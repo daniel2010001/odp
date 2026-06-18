@@ -1,5 +1,5 @@
-import { writable, derived } from 'svelte/store';
-import type { CkanPackage, CkanFacet } from '$lib/types/ckan';
+import { derived, writable } from "svelte/store";
+import type { CkanFacet, CkanPackage } from "$lib/types/ckan";
 
 export interface SearchState {
 	query: string;
@@ -14,7 +14,7 @@ export interface SearchState {
 }
 
 const initialState: SearchState = {
-	query: '',
+	query: "",
 	filters: {},
 	results: [],
 	total: 0,
@@ -91,12 +91,10 @@ function createSearchStore() {
 export const search = createSearchStore();
 
 // Derivados útiles
-export const totalPages = derived(search, ($s) =>
-	Math.ceil($s.total / $s.pageSize)
-);
+export const totalPages = derived(search, ($s) => Math.ceil($s.total / $s.pageSize));
 export const hasActiveFilters = derived(search, ($s) =>
-	Object.values($s.filters).some((f) => f.length > 0)
+	Object.values($s.filters).some((f) => f.length > 0),
 );
 export const activeFilterCount = derived(search, ($s) =>
-	Object.values($s.filters).reduce((acc, f) => acc + f.length, 0)
+	Object.values($s.filters).reduce((acc, f) => acc + f.length, 0),
 );

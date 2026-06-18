@@ -1,13 +1,13 @@
 // API: operaciones sobre organizaciones
 
-import type { CkanClient } from './client';
-import type { CkanOrganization } from '$lib/types/ckan';
+import type { CkanOrganization } from "$lib/types/ckan";
+import type { CkanClient } from "./client";
 
 export function createOrganizationApi(client: CkanClient) {
 	return {
 		/** Listar todas las organizaciones */
 		async list(): Promise<CkanOrganization[]> {
-			return client.post<CkanOrganization[]>('organization_list', {
+			return client.post<CkanOrganization[]>("organization_list", {
 				all_fields: true,
 				include_extras: true,
 			});
@@ -15,7 +15,7 @@ export function createOrganizationApi(client: CkanClient) {
 
 		/** Obtener detalle de una organización por ID o slug */
 		async show(id: string): Promise<CkanOrganization> {
-			return client.post<CkanOrganization>('organization_show', {
+			return client.post<CkanOrganization>("organization_show", {
 				id,
 				include_datasets: true,
 				include_extras: true,
@@ -24,19 +24,19 @@ export function createOrganizationApi(client: CkanClient) {
 
 		/** Crear una organización (requiere permisos de admin) */
 		async create(data: Record<string, unknown>): Promise<CkanOrganization> {
-			return client.post<CkanOrganization>('organization_create', data);
+			return client.post<CkanOrganization>("organization_create", data);
 		},
 
 		/** Actualizar una organización */
 		async update(data: Record<string, unknown>): Promise<CkanOrganization> {
-			return client.post<CkanOrganization>('organization_update', data);
+			return client.post<CkanOrganization>("organization_update", data);
 		},
 
 		/** Organizaciones donde el usuario actual tiene rol */
-		async listForUser(permission?: 'create_dataset' | 'admin' | 'editor' | 'member'): Promise<
-			CkanOrganization[]
-		> {
-			return client.post<CkanOrganization[]>('organization_list_for_user', {
+		async listForUser(
+			permission?: "create_dataset" | "admin" | "editor" | "member",
+		): Promise<CkanOrganization[]> {
+			return client.post<CkanOrganization[]>("organization_list_for_user", {
 				permission,
 			});
 		},

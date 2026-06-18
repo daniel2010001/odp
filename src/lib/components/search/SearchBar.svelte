@@ -1,66 +1,66 @@
 <script lang="ts">
-	import { Search, X } from 'lucide-svelte';
-	import { cn } from '$lib/utils';
+import { Search, X } from "lucide-svelte";
+import { cn } from "$lib/utils";
 
-	let {
-		value = '',
-		placeholder = 'Buscar datasets...',
-		class: className = '',
-		onchange,
-		onsubmit,
-	}: {
-		value?: string;
-		placeholder?: string;
-		class?: string;
-		onchange?: (value: string) => void;
-		onsubmit?: (value: string) => void;
-	} = $props();
+let {
+	value = "",
+	placeholder = "Buscar datasets...",
+	class: className = "",
+	onchange,
+	onsubmit,
+}: {
+	value?: string;
+	placeholder?: string;
+	class?: string;
+	onchange?: (value: string) => void;
+	onsubmit?: (value: string) => void;
+} = $props();
 
-	let inputEl: HTMLInputElement | undefined = $state();
-	// Inicializamos con el valor del prop; el $effect sincroniza cambios externos
-	let localValue = $state(value);
+let inputEl: HTMLInputElement | undefined = $state();
+// Inicializamos con el valor del prop; el $effect sincroniza cambios externos
+let localValue = $state(value);
 
-	// Sync externo → interno
-	$effect(() => {
-		if (value !== localValue) {
-			localValue = value;
-		}
-	});
-
-	// Debounce: 300ms
-	let debounceTimer: ReturnType<typeof setTimeout>;
-	function handleInput(e: Event) {
-		const target = e.target as HTMLInputElement;
-		localValue = target.value;
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			onchange?.(localValue);
-		}, 300);
+// Sync externo → interno
+$effect(() => {
+	if (value !== localValue) {
+		localValue = value;
 	}
+});
 
-	function handleSubmit(e: Event) {
-		e.preventDefault();
-		clearTimeout(debounceTimer);
+// Debounce: 300ms
+let debounceTimer: ReturnType<typeof setTimeout>;
+function handleInput(e: Event) {
+	const target = e.target as HTMLInputElement;
+	localValue = target.value;
+	clearTimeout(debounceTimer);
+	debounceTimer = setTimeout(() => {
 		onchange?.(localValue);
-		onsubmit?.(localValue);
-	}
+	}, 300);
+}
 
-	function clear() {
-		localValue = '';
-		onchange?.('');
+function handleSubmit(e: Event) {
+	e.preventDefault();
+	clearTimeout(debounceTimer);
+	onchange?.(localValue);
+	onsubmit?.(localValue);
+}
+
+function clear() {
+	localValue = "";
+	onchange?.("");
+	inputEl?.focus();
+}
+
+// Keyboard shortcut: Cmd/Ctrl+K to focus
+function handleKeydown(e: KeyboardEvent) {
+	if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+		e.preventDefault();
 		inputEl?.focus();
 	}
-
-	// Keyboard shortcut: Cmd/Ctrl+K to focus
-	function handleKeydown(e: KeyboardEvent) {
-		if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-			e.preventDefault();
-			inputEl?.focus();
-		}
-		if (e.key === 'Escape') {
-			inputEl?.blur();
-		}
+	if (e.key === "Escape") {
+		inputEl?.blur();
 	}
+}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />

@@ -1,0 +1,5 @@
+# ─── Pre-commit: Biome ─────────────────────────────────────────
+# Corre formateo, lint e import sorting sobre los archivos staged.
+# Si hay errores, el commit se cancela.
+
+bun biome check --staged --write --no-errors-on-unmatched

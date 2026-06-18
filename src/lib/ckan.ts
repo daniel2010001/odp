@@ -1,6 +1,6 @@
-import { env } from '$lib/env';
-import { createCkanClient } from './api/client';
-import type { CkanClient } from './api/client';
+import { env } from "$lib/env";
+import type { CkanClient } from "./api/client";
+import { createCkanClient } from "./api/client";
 
 let client: CkanClient | null = null;
 

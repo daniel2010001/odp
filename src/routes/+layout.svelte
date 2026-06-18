@@ -1,8 +1,8 @@
 <script lang="ts">
-	import '../app.css';
-	import { page } from '$app/stores';
+import "../app.css";
+import { page } from "$app/stores";
 
-	let { children } = $props();
+let { children } = $props();
 </script>
 
 <div class="flex min-h-screen flex-col">

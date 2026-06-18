@@ -1,165 +1,165 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { replaceState } from '$app/navigation';
-	import { env } from '$lib/env';
-	import { createCkanClient } from '$lib/api/client';
-	import { createDatasetApi } from '$lib/api/datasets';
-	import { buildFilterQuery } from '$lib/utils/ckan';
-	import { parseExtras } from '$lib/types/dataset';
-	import { getMockSearchResult } from '$lib/mock/data';
-	import SearchBar from '$lib/components/search/SearchBar.svelte';
-	import FacetFilter from '$lib/components/search/FacetFilter.svelte';
-	import DatasetCard from '$lib/components/search/DatasetCard.svelte';
-	import Pagination from '$lib/components/search/Pagination.svelte';
-	import type { CkanPackage, CkanFacet } from '$lib/types/ckan';
-	import type { SearchResponse } from '$lib/types/api';
+import { replaceState } from "$app/navigation";
+import { page } from "$app/stores";
+import { createCkanClient } from "$lib/api/client";
+import { createDatasetApi } from "$lib/api/datasets";
+import DatasetCard from "$lib/components/search/DatasetCard.svelte";
+import FacetFilter from "$lib/components/search/FacetFilter.svelte";
+import Pagination from "$lib/components/search/Pagination.svelte";
+import SearchBar from "$lib/components/search/SearchBar.svelte";
+import { env } from "$lib/env";
+import { getMockSearchResult } from "$lib/mock/data";
+import type { SearchResponse } from "$lib/types/api";
+import type { CkanFacet, CkanPackage } from "$lib/types/ckan";
+import { parseExtras } from "$lib/types/dataset";
+import { buildFilterQuery } from "$lib/utils/ckan";
 
-	// ─── State desde URL ──────────────────────────────────────────────
-	let query = $state($page.url.searchParams.get('q') ?? '');
-	let selectedOrgs = $state<string[]>(() => {
-		const v = $page.url.searchParams.get('org');
-		return v ? v.split(',') : [];
-	});
-	let selectedFormats = $state<string[]>(() => {
-		const v = $page.url.searchParams.get('format');
-		return v ? v.split(',') : [];
-	});
-	let selectedTags = $state<string[]>(() => {
-		const v = $page.url.searchParams.get('tags');
-		return v ? v.split(',') : [];
-	});
-	let currentPage = $state(Number($page.url.searchParams.get('page')) || 1);
-	let sortBy = $state($page.url.searchParams.get('sort') ?? 'metadata_modified desc');
+// ─── State desde URL ──────────────────────────────────────────────
+let query = $state($page.url.searchParams.get("q") ?? "");
+let selectedOrgs = $state<string[]>(() => {
+	const v = $page.url.searchParams.get("org");
+	return v ? v.split(",") : [];
+});
+let selectedFormats = $state<string[]>(() => {
+	const v = $page.url.searchParams.get("format");
+	return v ? v.split(",") : [];
+});
+let selectedTags = $state<string[]>(() => {
+	const v = $page.url.searchParams.get("tags");
+	return v ? v.split(",") : [];
+});
+let currentPage = $state(Number($page.url.searchParams.get("page")) || 1);
+let sortBy = $state($page.url.searchParams.get("sort") ?? "metadata_modified desc");
 
-	// ─── Result state ─────────────────────────────────────────────────
-	let results = $state<CkanPackage[]>([]);
-	let total = $state(0);
-	let loading = $state(true);
-	let error = $state<string | null>(null);
-	let facets = $state<Record<string, CkanFacet>>({});
+// ─── Result state ─────────────────────────────────────────────────
+let results = $state<CkanPackage[]>([]);
+let total = $state(0);
+let loading = $state(true);
+let error = $state<string | null>(null);
+let facets = $state<Record<string, CkanFacet>>({});
 
-	const pageSize = 20;
-	const totalPages = $derived(Math.ceil(total / pageSize));
+const pageSize = 20;
+const totalPages = $derived(Math.ceil(total / pageSize));
 
-	// ─── Sincronizar URL ──────────────────────────────────────────────
-	function syncUrl() {
-		const params = new URLSearchParams();
-		if (query) params.set('q', query);
-		if (selectedOrgs.length) params.set('org', selectedOrgs.join(','));
-		if (selectedFormats.length) params.set('format', selectedFormats.join(','));
-		if (selectedTags.length) params.set('tags', selectedTags.join(','));
-		if (currentPage > 1) params.set('page', String(currentPage));
-		if (sortBy !== 'metadata_modified desc') params.set('sort', sortBy);
+// ─── Sincronizar URL ──────────────────────────────────────────────
+function syncUrl() {
+	const params = new URLSearchParams();
+	if (query) params.set("q", query);
+	if (selectedOrgs.length) params.set("org", selectedOrgs.join(","));
+	if (selectedFormats.length) params.set("format", selectedFormats.join(","));
+	if (selectedTags.length) params.set("tags", selectedTags.join(","));
+	if (currentPage > 1) params.set("page", String(currentPage));
+	if (sortBy !== "metadata_modified desc") params.set("sort", sortBy);
 
-		const newUrl = `/search${params.toString() ? '?' + params.toString() : ''}`;
-		replaceState(newUrl, $page.url);
-	}
+	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}`;
+	replaceState(newUrl, $page.url);
+}
 
-	// ─── Búsqueda en CKAN ─────────────────────────────────────────────
-	let abortController = $state<AbortController | null>(null);
+// ─── Búsqueda en CKAN ─────────────────────────────────────────────
+let abortController = $state<AbortController | null>(null);
 
-	async function doSearch() {
-		loading = true;
-		error = null;
+async function doSearch() {
+	loading = true;
+	error = null;
 
-		// Construir filter query
-		const filterMap: Record<string, string[]> = {};
-		if (selectedOrgs.length) filterMap['organization'] = selectedOrgs;
-		if (selectedFormats.length) filterMap['res_format'] = selectedFormats;
-		if (selectedTags.length) filterMap['tags'] = selectedTags;
-		const fq = buildFilterQuery(filterMap);
+	// Construir filter query
+	const filterMap: Record<string, string[]> = {};
+	if (selectedOrgs.length) filterMap["organization"] = selectedOrgs;
+	if (selectedFormats.length) filterMap["res_format"] = selectedFormats;
+	if (selectedTags.length) filterMap["tags"] = selectedTags;
+	const fq = buildFilterQuery(filterMap);
 
+	try {
+		// CKAN_URL vacío = ruta relativa (proxy de Vite en dev)
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+		const datasetApi = createDatasetApi(client);
+
+		const searchResult = await datasetApi.search({
+			q: query || "*:*",
+			fq,
+			limit: pageSize,
+			offset: (currentPage - 1) * pageSize,
+			sort: sortBy,
+			facet_field: ["organization", "tags", "res_format", "license_id"],
+			facet_limit: 50,
+		});
+
+		results = searchResult.results;
+		total = searchResult.count;
+		facets = searchResult.search_facets;
+	} catch (err) {
+		// Si falló CKAN, intentar con datos mock como respaldo
 		try {
-			// CKAN_URL vacío = ruta relativa (proxy de Vite en dev)
-			const client = createCkanClient({ baseUrl: env.CKAN_URL });
-			const datasetApi = createDatasetApi(client);
-
-			const searchResult = await datasetApi.search({
-				q: query || '*:*',
-				fq,
-				limit: pageSize,
-				offset: (currentPage - 1) * pageSize,
-				sort: sortBy,
-				facet_field: ['organization', 'tags', 'res_format', 'license_id'],
-				facet_limit: 50,
-			});
-
-			results = searchResult.results;
-			total = searchResult.count;
-			facets = searchResult.search_facets;
-		} catch (err) {
-			// Si falló CKAN, intentar con datos mock como respaldo
-			try {
-				const mock = getMockSearchResult();
-				results = mock.results;
-				total = mock.count;
-				facets = mock.search_facets;
-			} catch {
-				error = err instanceof Error ? err.message : 'Error de búsqueda';
-				results = [];
-				total = 0;
-				facets = {};
-			}
-		} finally {
-			loading = false;
+			const mock = getMockSearchResult();
+			results = mock.results;
+			total = mock.count;
+			facets = mock.search_facets;
+		} catch {
+			error = err instanceof Error ? err.message : "Error de búsqueda";
+			results = [];
+			total = 0;
+			facets = {};
 		}
+	} finally {
+		loading = false;
 	}
+}
 
-	// ─── Efecto: sincronizar + buscar ────────────────────────────────
-	$effect(() => {
-		// Leer todos los reactivos para que el effect dependa de ellos
-		void query;
-		void selectedOrgs;
-		void selectedFormats;
-		void selectedTags;
-		void currentPage;
-		void sortBy;
+// ─── Efecto: sincronizar + buscar ────────────────────────────────
+$effect(() => {
+	// Leer todos los reactivos para que el effect dependa de ellos
+	void query;
+	void selectedOrgs;
+	void selectedFormats;
+	void selectedTags;
+	void currentPage;
+	void sortBy;
 
-		syncUrl();
-		doSearch();
-	});
+	syncUrl();
+	doSearch();
+});
 
-	// ─── Handlers ─────────────────────────────────────────────────────
-	function onSearchChange(value: string) {
-		query = value;
-		currentPage = 1;
+// ─── Handlers ─────────────────────────────────────────────────────
+function onSearchChange(value: string) {
+	query = value;
+	currentPage = 1;
+}
+
+function toggleFilter(field: "org" | "format" | "tags", value: string) {
+	currentPage = 1;
+	if (field === "org") {
+		selectedOrgs = selectedOrgs.includes(value)
+			? selectedOrgs.filter((v) => v !== value)
+			: [...selectedOrgs, value];
+	} else if (field === "format") {
+		selectedFormats = selectedFormats.includes(value)
+			? selectedFormats.filter((v) => v !== value)
+			: [...selectedFormats, value];
+	} else {
+		selectedTags = selectedTags.includes(value)
+			? selectedTags.filter((v) => v !== value)
+			: [...selectedTags, value];
 	}
+}
 
-	function toggleFilter(field: 'org' | 'format' | 'tags', value: string) {
-		currentPage = 1;
-		if (field === 'org') {
-			selectedOrgs = selectedOrgs.includes(value)
-				? selectedOrgs.filter((v) => v !== value)
-				: [...selectedOrgs, value];
-		} else if (field === 'format') {
-			selectedFormats = selectedFormats.includes(value)
-				? selectedFormats.filter((v) => v !== value)
-				: [...selectedFormats, value];
-		} else {
-			selectedTags = selectedTags.includes(value)
-				? selectedTags.filter((v) => v !== value)
-				: [...selectedTags, value];
-		}
-	}
+function clearAllFilters() {
+	selectedOrgs = [];
+	selectedFormats = [];
+	selectedTags = [];
+	currentPage = 1;
+}
 
-	function clearAllFilters() {
-		selectedOrgs = [];
-		selectedFormats = [];
-		selectedTags = [];
-		currentPage = 1;
-	}
+function goToPage(p: number) {
+	currentPage = p;
+	window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
-	function goToPage(p: number) {
-		currentPage = p;
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	const hasActiveFilters = $derived(
-		selectedOrgs.length > 0 || selectedFormats.length > 0 || selectedTags.length > 0
-	);
-	const activeFilterCount = $derived(
-		selectedOrgs.length + selectedFormats.length + selectedTags.length
-	);
+const hasActiveFilters = $derived(
+	selectedOrgs.length > 0 || selectedFormats.length > 0 || selectedTags.length > 0,
+);
+const activeFilterCount = $derived(
+	selectedOrgs.length + selectedFormats.length + selectedTags.length,
+);
 </script>
 
 <svelte:head>

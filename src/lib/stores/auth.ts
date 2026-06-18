@@ -1,5 +1,5 @@
-import { writable, derived } from 'svelte/store';
-import type { CkanUser } from '$lib/types/ckan';
+import { derived, writable } from "svelte/store";
+import type { CkanUser } from "$lib/types/ckan";
 
 export interface AuthState {
 	token: string | null;
@@ -57,6 +57,6 @@ export const auth = createAuthStore();
 export const isAuthenticated = derived(auth, ($auth) => $auth.token !== null);
 export const isSuperAdmin = derived(
 	auth,
-	($auth) => $auth.user?.capacity === 'admin' || $auth.user?.capacity === 'superadmin'
+	($auth) => $auth.user?.capacity === "admin" || $auth.user?.capacity === "superadmin",
 );
 export const currentUser = derived(auth, ($auth) => $auth.user);

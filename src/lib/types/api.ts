@@ -46,10 +46,10 @@ export class CkanApiError extends Error {
 	constructor(
 		message: string,
 		public status?: number,
-		public ckanType?: string
+		public ckanType?: string,
 	) {
 		super(message);
-		this.name = 'CkanApiError';
+		this.name = "CkanApiError";
 	}
 }
 
@@ -60,4 +60,4 @@ export interface AuthSession {
 }
 
 // Re-export para conveniencia
-import type { CkanUser } from './ckan';
+import type { CkanUser } from "./ckan";

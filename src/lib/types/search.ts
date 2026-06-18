@@ -1,11 +1,11 @@
-import type { CkanPackage, CkanFacet } from './ckan';
+import type { CkanFacet, CkanPackage } from "./ckan";
 
 export interface SearchFilters {
 	q: string;
 	organizations: string[];
 	tags: string[];
 	resFormat: string[];
-	visibility: ('private' | 'public')[];
+	visibility: ("private" | "public")[];
 	dateFrom?: string;
 	dateTo?: string;
 }

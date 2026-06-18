@@ -42,7 +42,7 @@ export interface CkanOrganization {
 	description: string;
 	image_url?: string;
 	created: string;
-	state: 'active' | 'deleted';
+	state: "active" | "deleted";
 	package_count?: number;
 	users?: CkanUser[];
 	// extras puede contener metadata adicional
@@ -56,7 +56,7 @@ export interface CkanUser {
 	display_name: string;
 	email?: string;
 	created: string;
-	state: 'active' | 'deleted';
+	state: "active" | "deleted";
 	role?: string;
 	capacity?: string;
 }
@@ -74,7 +74,7 @@ export interface CkanResource {
 	size?: number;
 	created: string;
 	last_modified: string;
-	state: 'active' | 'deleted';
+	state: "active" | "deleted";
 	position: number;
 	hash?: string;
 	// extras para metadatos adicionales
@@ -87,7 +87,7 @@ export interface CkanTag {
 	name: string;
 	display_name: string;
 	vocabulary_id?: string;
-	state: 'active' | 'deleted';
+	state: "active" | "deleted";
 }
 
 // ─── Extra / Key-Value ───────────────────────────────────────────────
@@ -105,7 +105,7 @@ export interface CkanGroup {
 	description?: string;
 	image_url?: string;
 	created: string;
-	state: 'active' | 'deleted';
+	state: "active" | "deleted";
 	package_count?: number;
 }
 
@@ -116,7 +116,7 @@ export interface CkanPackage {
 	title: string;
 	notes?: string; // descripción (rich text / markdown)
 	private: boolean;
-	state: 'active' | 'deleted' | 'draft';
+	state: "active" | "deleted" | "draft";
 	organization?: CkanOrganization;
 	resources: CkanResource[];
 	tags: CkanTag[];

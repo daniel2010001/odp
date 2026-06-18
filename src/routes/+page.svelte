@@ -1,33 +1,33 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Card from '$lib/components/ui/card/card.svelte';
-	import { env } from '$lib/env';
-	import { createCkanClient } from '$lib/api/client';
-	import { createDatasetApi } from '$lib/api/datasets';
-	import { getMockSearchResult, MOCK_ORGS } from '$lib/mock/data';
-	import { onMount } from 'svelte';
+import { onMount } from "svelte";
+import { createCkanClient } from "$lib/api/client";
+import { createDatasetApi } from "$lib/api/datasets";
+import Button from "$lib/components/ui/button/button.svelte";
+import Card from "$lib/components/ui/card/card.svelte";
+import { env } from "$lib/env";
+import { getMockSearchResult, MOCK_ORGS } from "$lib/mock/data";
 
-	let stats = $state({
-		datasets: 0,
-		organizations: 0,
-		loading: true,
-		error: null as string | null,
-	});
+let stats = $state({
+	datasets: 0,
+	organizations: 0,
+	loading: true,
+	error: null as string | null,
+});
 
-	onMount(async () => {
-		try {
-			const client = createCkanClient({ baseUrl: env.CKAN_URL });
-			const datasetApi = createDatasetApi(client);
-			const searchResult = await datasetApi.search({ limit: 0 });
-			stats.datasets = searchResult.count;
-		} catch {
-			// Fallback: mock si CKAN no responde
-			const mock = getMockSearchResult();
-			stats.datasets = mock.count;
-		}
-		stats.organizations = MOCK_ORGS.length;
-		stats.loading = false;
-	});
+onMount(async () => {
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+		const datasetApi = createDatasetApi(client);
+		const searchResult = await datasetApi.search({ limit: 0 });
+		stats.datasets = searchResult.count;
+	} catch {
+		// Fallback: mock si CKAN no responde
+		const mock = getMockSearchResult();
+		stats.datasets = mock.count;
+	}
+	stats.organizations = MOCK_ORGS.length;
+	stats.loading = false;
+});
 </script>
 
 <section class="bg-gradient-to-br from-primary to-primary/80">

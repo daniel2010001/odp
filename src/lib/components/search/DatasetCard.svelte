@@ -1,33 +1,31 @@
 <script lang="ts">
-	import { Calendar, Building2, FileText } from 'lucide-svelte';
-	import { cn, formatDate, formatSize } from '$lib/utils';
-	import type { CkanPackage } from '$lib/types/ckan';
-	import Card from '$lib/components/ui/card/card.svelte';
+import { Building2, Calendar, FileText } from "lucide-svelte";
+import Card from "$lib/components/ui/card/card.svelte";
+import type { CkanPackage } from "$lib/types/ckan";
+import { cn, formatDate, formatSize } from "$lib/utils";
 
-	let {
-		dataset,
-		class: className = '',
-	}: {
-		dataset: CkanPackage;
-		class?: string;
-	} = $props();
+let {
+	dataset,
+	class: className = "",
+}: {
+	dataset: CkanPackage;
+	class?: string;
+} = $props();
 
-	const resourceFormats = $derived(
-		dataset.resources
-			?.map((r) => r.format?.toUpperCase())
-			.filter(Boolean)
-			.slice(0, 4) ?? []
-	);
+const resourceFormats = $derived(
+	dataset.resources
+		?.map((r) => r.format?.toUpperCase())
+		.filter(Boolean)
+		.slice(0, 4) ?? [],
+);
 
-	const moreFormats = $derived(
-		dataset.resources ? dataset.resources.length - resourceFormats.length : 0
-	);
+const moreFormats = $derived(
+	dataset.resources ? dataset.resources.length - resourceFormats.length : 0,
+);
 
-	const description = $derived(
-		dataset.notes
-			? dataset.notes.replace(/<[^>]*>/g, '').slice(0, 200)
-			: 'Sin descripción'
-	);
+const description = $derived(
+	dataset.notes ? dataset.notes.replace(/<[^>]*>/g, "").slice(0, 200) : "Sin descripción",
+);
 </script>
 
 <Card class={cn('p-5', className)}>

@@ -1,42 +1,42 @@
 <script lang="ts">
-	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
-	import { cn } from '$lib/utils';
-	import Button from '$lib/components/ui/button/button.svelte';
+import { ChevronLeft, ChevronRight } from "lucide-svelte";
+import Button from "$lib/components/ui/button/button.svelte";
+import { cn } from "$lib/utils";
 
-	let {
-		current = 1,
-		total = 1,
-		onchange,
-		class: className = '',
-	}: {
-		current?: number;
-		total?: number;
-		onchange?: (page: number) => void;
-		class?: string;
-	} = $props();
+let {
+	current = 1,
+	total = 1,
+	onchange,
+	class: className = "",
+}: {
+	current?: number;
+	total?: number;
+	onchange?: (page: number) => void;
+	class?: string;
+} = $props();
 
-	const pages = $derived.by(() => {
-		if (total <= 7) {
-			return Array.from({ length: total }, (_, i) => i + 1);
-		}
+const pages = $derived.by(() => {
+	if (total <= 7) {
+		return Array.from({ length: total }, (_, i) => i + 1);
+	}
 
-		const result: (number | 'ellipsis')[] = [];
-		result.push(1);
+	const result: (number | "ellipsis")[] = [];
+	result.push(1);
 
-		if (current > 3) result.push('ellipsis');
+	if (current > 3) result.push("ellipsis");
 
-		const start = Math.max(2, current - 1);
-		const end = Math.min(total - 1, current + 1);
+	const start = Math.max(2, current - 1);
+	const end = Math.min(total - 1, current + 1);
 
-		for (let i = start; i <= end; i++) {
-			result.push(i);
-		}
+	for (let i = start; i <= end; i++) {
+		result.push(i);
+	}
 
-		if (current < total - 2) result.push('ellipsis');
-		result.push(total);
+	if (current < total - 2) result.push("ellipsis");
+	result.push(total);
 
-		return result;
-	});
+	return result;
+});
 </script>
 
 {#if total > 1}

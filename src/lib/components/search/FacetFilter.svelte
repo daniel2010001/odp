@@ -1,25 +1,25 @@
 <script lang="ts">
-	import { cn } from '$lib/utils';
-	import { ChevronDown } from 'lucide-svelte';
+import { ChevronDown } from "lucide-svelte";
+import { cn } from "$lib/utils";
 
-	let {
-		title = '',
-		items = [] as { name: string; display_name: string; count: number }[],
-		selected = [] as string[],
-		onselect,
-		class: className = '',
-	}: {
-		title?: string;
-		items?: { name: string; display_name: string; count: number }[];
-		selected?: string[];
-		onselect?: (name: string) => void;
-		class?: string;
-	} = $props();
+let {
+	title = "",
+	items = [] as { name: string; display_name: string; count: number }[],
+	selected = [] as string[],
+	onselect,
+	class: className = "",
+}: {
+	title?: string;
+	items?: { name: string; display_name: string; count: number }[];
+	selected?: string[];
+	onselect?: (name: string) => void;
+	class?: string;
+} = $props();
 
-	let showAll = $state(false);
-	const DEFAULT_SHOW = 5;
-	const visibleItems = $derived(showAll ? items : items.slice(0, DEFAULT_SHOW));
-	const hasMore = $derived(items.length > DEFAULT_SHOW);
+let showAll = $state(false);
+const DEFAULT_SHOW = 5;
+const visibleItems = $derived(showAll ? items : items.slice(0, DEFAULT_SHOW));
+const hasMore = $derived(items.length > DEFAULT_SHOW);
 </script>
 
 <fieldset class={cn('space-y-2', className)}>
