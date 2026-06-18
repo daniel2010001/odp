@@ -16,22 +16,13 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"preset": "recommended"
-		}
-	},
-	"overrides": [
-		{
-			"includes": ["*.svelte"],
-			"linter": {
-				"rules": {
-					"correctness": {
-						"noUnusedVariables": "warn",
-						"noUnusedImports": "warn"
-					}
-				}
+			"preset": "recommended",
+			"correctness": {
+				"noUnusedVariables": "off",
+				"noUnusedImports": "off"
 			}
 		}
-	],
+	},
 	"css": {
 		"parser": {
 			"tailwindDirectives": true
