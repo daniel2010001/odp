@@ -29,7 +29,6 @@ const formatBadge = $derived.by(() => {
 	};
 	return badges[fmt] ?? { label: fmt || "FILE", class: "bg-gray-100 text-gray-700" };
 });
-
 </script>
 
 <div

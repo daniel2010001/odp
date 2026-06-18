@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ArrowLeft, Building2, Calendar, Clock, Shield, Tag, User } from "lucide-svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
@@ -7,7 +8,6 @@ import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
 import type { CkanPackage } from "$lib/types/ckan";
 import { formatDate } from "$lib/utils/ckan";
-import { ArrowLeft, Building2, Calendar, Clock, Tag, User, Shield } from "lucide-svelte";
 
 // ─── State ───────────────────────────────────────────────────────
 let dataset = $state<CkanPackage | null>(null);
@@ -53,9 +53,7 @@ $effect(() => {
 });
 
 // ─── Derived ─────────────────────────────────────────────────────
-const description = $derived(
-	dataset?.notes ? dataset.notes.replace(/<[^>]*>/g, "").trim() : null,
-);
+const description = $derived(dataset?.notes ? dataset.notes.replace(/<[^>]*>/g, "").trim() : null);
 
 const activeResources = $derived(
 	dataset?.resources?.filter((r) => r.state === "active" || !r.state) ?? [],
