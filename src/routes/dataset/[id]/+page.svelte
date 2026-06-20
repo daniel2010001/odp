@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Building2, Calendar, Clock, Shield, Tag, User } from "lucide-svelte";
+import { ArrowLeft, Building2, Calendar, Clock, Shield, User } from "lucide-svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
@@ -59,6 +59,9 @@ const activeResources = $derived(
 	dataset?.resources?.filter((r) => r.state === "active" || !r.state) ?? [],
 );
 
+const visibleTags = $derived(dataset?.tags?.slice(0, 5) ?? []);
+const hiddenTagCount = $derived((dataset?.tags?.length ?? 0) - 5);
+
 const metadataItems = $derived.by(() => {
 	if (!dataset) return [];
 	const items: { icon: typeof Calendar; label: string; value: string }[] = [];
@@ -110,17 +113,23 @@ const metadataItems = $derived.by(() => {
 	<!-- Loading skeleton -->
 	{#if loading}
 		<div class="animate-pulse space-y-6">
-			<div class="h-8 w-3/4 rounded-lg bg-muted"></div>
 			<div class="flex gap-2">
 				<div class="h-5 w-32 rounded-full bg-muted"></div>
 				<div class="h-5 w-20 rounded-full bg-muted"></div>
 			</div>
+			<div class="h-8 w-3/4 rounded-lg bg-muted"></div>
+			<div class="h-1 w-16 rounded-full bg-muted"></div>
 			<div class="space-y-2">
 				<div class="h-4 w-full rounded bg-muted"></div>
 				<div class="h-4 w-5/6 rounded bg-muted"></div>
 				<div class="h-4 w-4/6 rounded bg-muted"></div>
 			</div>
-			<div class="h-32 rounded-lg bg-muted"></div>
+			<div class="space-y-2">
+				<div class="h-8 rounded bg-muted"></div>
+				<div class="h-8 rounded bg-muted"></div>
+				<div class="h-8 rounded bg-muted"></div>
+				<div class="h-8 rounded bg-muted"></div>
+			</div>
 			<div class="space-y-3">
 				<div class="h-16 rounded-lg bg-muted"></div>
 				<div class="h-16 rounded-lg bg-muted"></div>
@@ -154,52 +163,54 @@ const metadataItems = $derived.by(() => {
 	{:else if dataset}
 		<!-- Header -->
 		<div class="mb-8">
-			<div class="flex items-start gap-3">
-				<h1 class="text-2xl font-bold text-foreground sm:text-3xl">
-					{dataset.title || dataset.name}
-				</h1>
+			<div class="mb-4 flex flex-wrap items-center gap-2">
+				{#if dataset.organization}
+					<span
+						class="inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-primary"
+					>
+						<Building2 class="size-3.5" />
+						{dataset.organization.title}
+					</span>
+				{/if}
 				{#if dataset.private}
 					<span
-						class="mt-1.5 shrink-0 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800"
+						class="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive ring-1 ring-destructive/20"
 					>
 						Privado
 					</span>
 				{/if}
 			</div>
 
-			<!-- Organization badge -->
-			{#if dataset.organization}
-				<div class="mt-3 flex items-center gap-2">
-					<span
-						class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
-					>
-						<Building2 class="size-4" />
-						{dataset.organization.title}
-					</span>
-				</div>
-			{/if}
+			<h1 class="font-heading text-3xl font-bold text-foreground sm:text-4xl">
+				{dataset.title || dataset.name}
+			</h1>
+			<div class="mt-3 h-1 w-16 rounded-full bg-primary/30"></div>
 		</div>
 
 		<!-- Description -->
-		{#if description}
-			<div class="mb-8">
-				<h2 class="mb-2 text-sm font-semibold text-foreground">Descripción</h2>
+		<div class="mb-8">
+			<h2 class="mb-3 font-heading text-lg font-semibold text-foreground">Descripción</h2>
+			{#if description}
 				<p class="text-sm leading-relaxed text-muted-foreground">{description}</p>
-			</div>
-		{/if}
+			{:else}
+				<p class="text-sm italic text-muted-foreground">Sin descripción</p>
+			{/if}
+		</div>
 
-		<!-- Metadata grid -->
+		<!-- Metadata -->
 		{#if metadataItems.length > 0}
 			<div class="mb-8">
-				<h2 class="mb-3 text-sm font-semibold text-foreground">Metadatos</h2>
-				<div class="grid gap-2 sm:grid-cols-2">
+				<h2 class="mb-3 font-heading text-lg font-semibold text-foreground">Metadatos</h2>
+				<div class="divide-y divide-border/50">
 					{#each metadataItems as item}
-						<div class="flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5">
-							<item.icon class="size-4 shrink-0 text-muted-foreground" />
-							<div class="min-w-0">
-								<p class="text-xs text-muted-foreground">{item.label}</p>
-								<p class="truncate text-sm font-medium text-foreground">{item.value}</p>
-							</div>
+						<div
+							class="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+						>
+							<span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+								<item.icon class="size-3.5" />
+								{item.label}
+							</span>
+							<span class="text-sm font-medium text-foreground">{item.value}</span>
 						</div>
 					{/each}
 				</div>
@@ -209,29 +220,34 @@ const metadataItems = $derived.by(() => {
 		<!-- Tags -->
 		{#if dataset.tags && dataset.tags.length > 0}
 			<div class="mb-8">
-				<h2 class="mb-3 text-sm font-semibold text-foreground">Etiquetas</h2>
-				<div class="flex flex-wrap gap-2">
-					{#each dataset.tags as tag}
+				<h2 class="mb-3 font-heading text-lg font-semibold text-foreground">Etiquetas</h2>
+				<div class="flex flex-wrap gap-1.5">
+					{#each visibleTags as tag}
 						<span
-							class="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+							class="rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
 						>
-							<Tag class="size-3" />
-							{tag.display_name || tag.name}
+							#{tag.display_name || tag.name}
 						</span>
 					{/each}
+					{#if hiddenTagCount > 0}
+						<span
+							class="rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+						>
+							+{hiddenTagCount} más
+						</span>
+					{/if}
 				</div>
 			</div>
 		{/if}
 
 		<!-- Resources -->
 		<div class="mb-8">
-			<h2 class="mb-3 text-sm font-semibold text-foreground">
+			<h2 class="mb-3 font-heading text-lg font-semibold text-foreground">
 				Recursos
 				{#if activeResources.length > 0}
 					<span class="font-normal text-muted-foreground">({activeResources.length})</span>
 				{/if}
 			</h2>
-
 			{#if activeResources.length === 0}
 				<p class="text-sm text-muted-foreground">Este dataset no tiene recursos disponibles.</p>
 			{:else}
@@ -243,12 +259,16 @@ const metadataItems = $derived.by(() => {
 			{/if}
 		</div>
 
-		<!-- Dataset ID info -->
-		<div class="rounded-lg border bg-muted/30 px-4 py-3">
+		<!-- Footer info -->
+		<div class="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
 			<p class="text-xs text-muted-foreground">
-				ID del dataset: <code class="font-mono">{dataset.id}</code>
+				ID: <code class="font-mono">{dataset.id}</code>
 				<span class="mx-2">·</span>
 				Slug: <code class="font-mono">{dataset.name}</code>
+				{#if dataset.state}
+					<span class="mx-2">·</span>
+					Estado: <code class="font-mono">{dataset.state}</code>
+				{/if}
 			</p>
 		</div>
 	{/if}
