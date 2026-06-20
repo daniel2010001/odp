@@ -13,21 +13,13 @@ import type { SearchResponse } from "$lib/types/api";
 import type { CkanFacet, CkanPackage } from "$lib/types/ckan";
 import { parseExtras } from "$lib/types/dataset";
 import { buildFilterQuery } from "$lib/utils/ckan";
+import { onMount } from "svelte";
 
 // ─── State desde URL ──────────────────────────────────────────────
 let query = $state($page.url.searchParams.get("q") ?? "");
-let selectedOrgs = $state<string[]>(() => {
-	const v = $page.url.searchParams.get("org");
-	return v ? v.split(",") : [];
-});
-let selectedFormats = $state<string[]>(() => {
-	const v = $page.url.searchParams.get("format");
-	return v ? v.split(",") : [];
-});
-let selectedTags = $state<string[]>(() => {
-	const v = $page.url.searchParams.get("tags");
-	return v ? v.split(",") : [];
-});
+let selectedOrgs = $state<string[]>($page.url.searchParams.get("org")?.split(",") ?? []);
+let selectedFormats = $state<string[]>($page.url.searchParams.get("format")?.split(",") ?? []);
+let selectedTags = $state<string[]>($page.url.searchParams.get("tags")?.split(",") ?? []);
 let currentPage = $state(Number($page.url.searchParams.get("page")) || 1);
 let sortBy = $state($page.url.searchParams.get("sort") ?? "metadata_modified desc");
 
@@ -37,6 +29,13 @@ let total = $state(0);
 let loading = $state(true);
 let error = $state<string | null>(null);
 let facets = $state<Record<string, CkanFacet>>({});
+
+// ─── Router ready guard ────────────────────────────────────────────
+let mounted = $state(false);
+
+onMount(() => {
+	mounted = true;
+});
 
 const pageSize = 20;
 const totalPages = $derived(Math.ceil(total / pageSize));
@@ -114,9 +113,11 @@ $effect(() => {
 	void selectedTags;
 	void currentPage;
 	void sortBy;
+	void mounted;
 
-	syncUrl();
-	doSearch();
+	// Recién después de onMount el router está listo para replaceState
+	if (mounted) doSearch();
+	if (mounted) syncUrl();
 });
 
 // ─── Handlers ─────────────────────────────────────────────────────
@@ -171,7 +172,7 @@ const activeFilterCount = $derived(
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 	<!-- Header -->
 	<div class="mb-8">
-		<h1 class="text-2xl font-bold text-foreground sm:text-3xl">
+		<h1 class="text-2xl font-semibold text-primary sm:text-3xl">
 			Catálogo de Datos
 		</h1>
 		<p class="mt-1 text-sm text-muted-foreground">
@@ -183,19 +184,18 @@ const activeFilterCount = $derived(
 	<SearchBar
 		value={query}
 		onchange={onSearchChange}
-		onsubmit={onSearchChange}
 		class="mb-6"
 	/>
 
 	<!-- Active filters -->
 	{#if hasActiveFilters}
 		<div class="mb-4 flex flex-wrap items-center gap-2">
-			<span class="text-sm text-muted-foreground">Filtros activos:</span>
+			<span class="text-sm font-medium text-muted-foreground">Filtros activos:</span>
 
 			{#each selectedOrgs as org}
 				<button
 					onclick={() => toggleFilter('org', org)}
-					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+					class="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/20 transition-all duration-200 hover:bg-accent/80"
 				>
 					{org}
 					<span class="ml-1">&times;</span>
@@ -204,7 +204,7 @@ const activeFilterCount = $derived(
 			{#each selectedFormats as format}
 				<button
 					onclick={() => toggleFilter('format', format)}
-					class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200"
+					class="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/20 transition-all duration-200 hover:bg-accent/80"
 				>
 					{format}
 					<span class="ml-1">&times;</span>
@@ -213,7 +213,7 @@ const activeFilterCount = $derived(
 			{#each selectedTags as tag}
 				<button
 					onclick={() => toggleFilter('tags', tag)}
-					class="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-accent"
+					class="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border transition-all duration-200 hover:bg-border"
 				>
 					{tag}
 					<span class="ml-1">&times;</span>
@@ -222,7 +222,7 @@ const activeFilterCount = $derived(
 
 			<button
 				onclick={clearAllFilters}
-				class="text-xs text-muted-foreground underline hover:text-foreground"
+				class="text-xs font-medium text-muted-foreground underline underline-offset-2 transition-colors duration-200 hover:text-primary"
 			>
 				Limpiar todos
 			</button>
@@ -232,13 +232,13 @@ const activeFilterCount = $derived(
 	<div class="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
 		<!-- Sidebar: Facets -->
 		<aside class="mb-6 lg:mb-0">
-			<div class="space-y-6 rounded-xl border bg-card p-4 shadow-sm">
+			<div class="space-y-6 rounded-xl border border-border bg-card p-4 shadow-sm">
 				<div class="flex items-center justify-between">
-					<h2 class="text-sm font-semibold text-foreground">Filtros</h2>
+					<h2 class="text-sm font-semibold text-primary">Filtros</h2>
 					{#if hasActiveFilters}
 						<button
 							onclick={clearAllFilters}
-							class="text-xs text-muted-foreground underline hover:text-foreground"
+							class="text-xs font-medium text-muted-foreground underline underline-offset-2 transition-colors duration-200 hover:text-primary"
 						>
 							({activeFilterCount})
 						</button>
@@ -293,7 +293,7 @@ const activeFilterCount = $derived(
 					{:else}
 						{total} resultado{total !== 1 ? 's' : ''}
 						{#if query}
-							para <span class="font-medium text-foreground">"{query}"</span>
+							para <span class="font-medium text-primary">"{query}"</span>
 						{/if}
 					{/if}
 				</p>
@@ -304,7 +304,7 @@ const activeFilterCount = $derived(
 						sortBy = (e.target as HTMLSelectElement).value;
 						currentPage = 1;
 					}}
-					class="h-9 rounded-lg border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class="h-9 rounded-lg border border-border bg-background px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 				>
 					<option value="metadata_modified desc">Más recientes</option>
 					<option value="metadata_modified asc">Más antiguos</option>
@@ -326,22 +326,22 @@ const activeFilterCount = $derived(
 			{#if loading}
 				<div class="space-y-4">
 					{#each Array(3) as _}
-						<div class="animate-pulse rounded-xl border bg-card p-5">
-			<div class="mb-3 h-5 w-3/4 rounded bg-muted"></div>
-				<div class="mb-2 h-4 w-full rounded bg-muted"></div>
-				<div class="mb-4 h-4 w-1/2 rounded bg-muted"></div>
-				<div class="flex gap-2">
-					<div class="h-5 w-14 rounded bg-muted"></div>
-					<div class="h-5 w-14 rounded bg-muted"></div>
-				</div>
+						<div class="animate-pulse rounded-xl border border-border bg-card p-5">
+							<div class="mb-3 h-5 w-3/4 rounded bg-muted"></div>
+							<div class="mb-2 h-4 w-full rounded bg-muted"></div>
+							<div class="mb-4 h-4 w-1/2 rounded bg-muted"></div>
+							<div class="flex gap-2">
+								<div class="h-5 w-14 rounded bg-muted"></div>
+								<div class="h-5 w-14 rounded bg-muted"></div>
+							</div>
 						</div>
 					{/each}
 				</div>
 
 			<!-- Empty state -->
 			{:else if !loading && total === 0 && !error}
-				<div class="rounded-xl border bg-card p-12 text-center">
-					<p class="text-lg font-medium text-foreground">Sin resultados</p>
+				<div class="rounded-xl border border-border bg-card p-12 text-center">
+					<p class="text-lg font-medium text-primary">Sin resultados</p>
 					<p class="mt-2 text-sm text-muted-foreground">
 						{query
 							? `No encontramos datasets para "${query}". Probá con otros términos o limpiá los filtros.`
@@ -353,7 +353,7 @@ const activeFilterCount = $derived(
 								query = '';
 								clearAllFilters();
 							}}
-							class="mt-4 text-sm text-primary hover:underline"
+							class="mt-4 text-sm font-medium text-primary hover:underline"
 						>
 							Limpiar búsqueda y filtros
 						</button>

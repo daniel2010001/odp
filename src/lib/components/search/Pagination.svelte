@@ -39,7 +39,7 @@ const pages = $derived.by(() => {
 });
 </script>
 
-{#if total > 1}
+	{#if total > 1}
 	<nav
 		class={cn('flex items-center justify-center gap-1', className)}
 		aria-label="Paginación"
@@ -50,6 +50,7 @@ const pages = $derived.by(() => {
 			disabled={current <= 1}
 			onclick={() => onchange?.(current - 1)}
 			aria-label="Página anterior"
+			class="text-primary hover:bg-accent hover:text-primary/80"
 		>
 			<ChevronLeft class="size-4" />
 		</Button>
@@ -64,6 +65,7 @@ const pages = $derived.by(() => {
 					onclick={() => onchange?.(page)}
 					aria-label={`Ir a página ${page}`}
 					aria-current={page === current ? 'page' : undefined}
+					class={page === current ? 'bg-primary text-white hover:bg-primary/80' : 'text-primary hover:bg-accent hover:text-primary/80'}
 				>
 					{page}
 				</Button>
@@ -76,6 +78,7 @@ const pages = $derived.by(() => {
 			disabled={current >= total}
 			onclick={() => onchange?.(current + 1)}
 			aria-label="Página siguiente"
+			class="text-primary hover:bg-accent hover:text-primary/80"
 		>
 			<ChevronRight class="size-4" />
 		</Button>
