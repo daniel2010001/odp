@@ -2,6 +2,7 @@
 	"name": "open-data-plataform",
 	"private": true,
 	"version": "0.0.1",
+	"packageManager": "pnpm@10.12.1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
