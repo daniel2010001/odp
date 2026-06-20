@@ -172,9 +172,9 @@ const activeFilterCount = $derived(
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 	<!-- Header -->
 	<div class="mb-8">
-		<h1 class="text-2xl font-semibold text-primary sm:text-3xl">
-			Catálogo de Datos
-		</h1>
+    <h1 class="font-heading text-2xl font-semibold text-primary sm:text-3xl">
+      Catálogo de Datos
+    </h1>
 		<p class="mt-1 text-sm text-muted-foreground">
 			Explorá los datasets disponibles en la plataforma
 		</p>
@@ -195,7 +195,7 @@ const activeFilterCount = $derived(
 			{#each selectedOrgs as org}
 				<button
 					onclick={() => toggleFilter('org', org)}
-					class="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/20 transition-all duration-200 hover:bg-accent/80"
+          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{org}
 					<span class="ml-1">&times;</span>
@@ -204,7 +204,7 @@ const activeFilterCount = $derived(
 			{#each selectedFormats as format}
 				<button
 					onclick={() => toggleFilter('format', format)}
-					class="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/20 transition-all duration-200 hover:bg-accent/80"
+          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{format}
 					<span class="ml-1">&times;</span>
@@ -213,7 +213,7 @@ const activeFilterCount = $derived(
 			{#each selectedTags as tag}
 				<button
 					onclick={() => toggleFilter('tags', tag)}
-					class="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border transition-all duration-200 hover:bg-border"
+          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{tag}
 					<span class="ml-1">&times;</span>
@@ -234,7 +234,7 @@ const activeFilterCount = $derived(
 		<aside class="mb-6 lg:mb-0">
 			<div class="space-y-6 rounded-xl border border-border bg-card p-4 shadow-sm">
 				<div class="flex items-center justify-between">
-					<h2 class="text-sm font-semibold text-primary">Filtros</h2>
+          <h2 class="font-heading text-sm font-semibold text-primary">Filtros</h2>
 					{#if hasActiveFilters}
 						<button
 							onclick={clearAllFilters}
@@ -291,10 +291,11 @@ const activeFilterCount = $derived(
 					{#if loading}
 						Buscando...
 					{:else}
-						{total} resultado{total !== 1 ? 's' : ''}
-						{#if query}
-							para <span class="font-medium text-primary">"{query}"</span>
-						{/if}
+            <span class="font-heading font-medium text-primary">{total}</span>
+            resultado{total !== 1 ? 's' : ''}
+            {#if query}
+              para <span class="font-medium text-primary">"{query}"</span>
+            {/if}
 					{/if}
 				</p>
 
@@ -326,15 +327,16 @@ const activeFilterCount = $derived(
 			{#if loading}
 				<div class="space-y-4">
 					{#each Array(3) as _}
-						<div class="animate-pulse rounded-xl border border-border bg-card p-5">
-							<div class="mb-3 h-5 w-3/4 rounded bg-muted"></div>
-							<div class="mb-2 h-4 w-full rounded bg-muted"></div>
-							<div class="mb-4 h-4 w-1/2 rounded bg-muted"></div>
-							<div class="flex gap-2">
-								<div class="h-5 w-14 rounded bg-muted"></div>
-								<div class="h-5 w-14 rounded bg-muted"></div>
-							</div>
-						</div>
+            <div class="animate-pulse rounded-xl border border-border bg-card p-4">
+              <div class="mb-2 h-4 w-24 rounded bg-muted"></div>
+              <div class="mb-2 h-5 w-3/4 rounded bg-muted"></div>
+              <div class="mb-2 h-4 w-full rounded bg-muted"></div>
+              <div class="mb-3 h-4 w-1/2 rounded bg-muted"></div>
+              <div class="flex gap-2">
+                <div class="h-4 w-12 rounded bg-muted"></div>
+                <div class="h-4 w-12 rounded bg-muted"></div>
+              </div>
+            </div>
 					{/each}
 				</div>
 

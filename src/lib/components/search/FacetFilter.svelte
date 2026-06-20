@@ -27,10 +27,13 @@ const hasMore = $derived(items.length > DEFAULT_SHOW);
 		{title}
 	</legend>
 
-	{#each visibleItems as item (item.name)}
-		<label
-			class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-150 hover:bg-accent"
-		>
+  {#each visibleItems as item (item.name)}
+    <label
+      class={cn(
+        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-150",
+        selected.includes(item.name) ? "bg-primary/10" : "hover:bg-accent",
+      )}
+    >
 			<input
 				type="checkbox"
 				checked={selected.includes(item.name)}
@@ -46,7 +49,7 @@ const hasMore = $derived(items.length > DEFAULT_SHOW);
 		<button
 			type="button"
 			onclick={() => (showAll = !showAll)}
-			class="flex w-full items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-accent"
+      class="flex w-full items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary underline underline-offset-2 transition-all duration-200 hover:bg-accent"
 		>
 			{showAll ? 'Mostrar menos' : `Mostrar ${items.length - DEFAULT_SHOW} más`}
 			<ChevronDown
