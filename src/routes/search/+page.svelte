@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
@@ -13,7 +14,6 @@ import type { SearchResponse } from "$lib/types/api";
 import type { CkanFacet, CkanPackage } from "$lib/types/ckan";
 import { parseExtras } from "$lib/types/dataset";
 import { buildFilterQuery } from "$lib/utils/ckan";
-import { onMount } from "svelte";
 
 // ─── State desde URL ──────────────────────────────────────────────
 let query = $state($page.url.searchParams.get("q") ?? "");

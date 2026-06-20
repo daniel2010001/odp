@@ -21,8 +21,7 @@ function getStoredTheme(): Theme {
 function applyTheme(theme: Theme) {
 	if (typeof document === "undefined") return;
 
-	const isDark =
-		theme === "dark" || (theme === "system" && getSystemPreference());
+	const isDark = theme === "dark" || (theme === "system" && getSystemPreference());
 
 	if (isDark) {
 		document.documentElement.classList.add("dark");
@@ -40,15 +39,13 @@ function createThemeStore() {
 
 	// Listen to system preference changes
 	if (typeof window !== "undefined") {
-		window
-			.matchMedia("(prefers-color-scheme: dark)")
-			.addEventListener("change", () => {
-				// Re-read current theme from store
-				const current = localStorage.getItem("theme") as Theme | null;
-				if (current === "system" || !current) {
-					applyTheme("system");
-				}
-			});
+		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+			// Re-read current theme from store
+			const current = localStorage.getItem("theme") as Theme | null;
+			if (current === "system" || !current) {
+				applyTheme("system");
+			}
+		});
 	}
 
 	return {

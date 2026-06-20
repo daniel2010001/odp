@@ -1,14 +1,14 @@
 <script lang="ts">
+import { BarChart3, Eye, Search, Terminal, Upload, Users } from "lucide-svelte";
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import SearchBar from "$lib/components/search/SearchBar.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
-import SearchBar from "$lib/components/search/SearchBar.svelte";
 import { env } from "$lib/env";
 import { getMockSearchResult, MOCK_ORGS } from "$lib/mock/data";
-import { Search, Eye, BarChart3, Users, Upload, Terminal } from "lucide-svelte";
 
 let stats = $state({
 	datasets: 0,

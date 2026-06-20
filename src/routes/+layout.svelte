@@ -1,35 +1,35 @@
 <script lang="ts">
- import "../app.css";
- import { Menu, Moon, Sun, Monitor, X } from "lucide-svelte";
- import { theme } from "$lib/stores/theme";
- import ThemePlayground from "$lib/components/ThemePlayground.svelte";
- import { onDestroy } from "svelte";
- 
- let { children } = $props();
- 
- let mobileMenuOpen = $state(false);
- let currentTheme: "light" | "dark" | "system" = $state("system");
+import "../app.css";
+import { Menu, Monitor, Moon, Sun, X } from "lucide-svelte";
+import { onDestroy } from "svelte";
+import ThemePlayground from "$lib/components/ThemePlayground.svelte";
+import { theme } from "$lib/stores/theme";
 
- const unsub = theme.subscribe((v) => {
- 	currentTheme = v;
- });
- onDestroy(unsub);
- 
- // Resolve what icon to show based on effective dark state
- let isDark = $state(false);
- $effect(() => {
- 	isDark =
- 		currentTheme === "dark" ||
- 		(currentTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
- });
- 
- function toggleMobileMenu() {
- 	mobileMenuOpen = !mobileMenuOpen;
- }
- 
- function closeMobileMenu() {
- 	mobileMenuOpen = false;
- }
+let { children } = $props();
+
+let mobileMenuOpen = $state(false);
+let currentTheme: "light" | "dark" | "system" = $state("system");
+
+const unsub = theme.subscribe((v) => {
+	currentTheme = v;
+});
+onDestroy(unsub);
+
+// Resolve what icon to show based on effective dark state
+let isDark = $state(false);
+$effect(() => {
+	isDark =
+		currentTheme === "dark" ||
+		(currentTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+});
+
+function toggleMobileMenu() {
+	mobileMenuOpen = !mobileMenuOpen;
+}
+
+function closeMobileMenu() {
+	mobileMenuOpen = false;
+}
 </script>
 
 <div class="flex min-h-screen flex-col">
