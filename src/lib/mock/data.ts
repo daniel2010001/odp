@@ -188,6 +188,171 @@ function generateMockDatasets(count: number): CkanPackage[] {
 
 export const MOCK_DATASETS = generateMockDatasets(45);
 
+// Showcase dataset with rich content for UI testing
+export const SHOWCASE_DATASET: CkanPackage = {
+	id: "showcase-observatorio-movilidad",
+	name: "observatorio-de-movilidad-urbana-cochabamba",
+	title: "Observatorio de Movilidad Urbana — Cochabamba",
+	notes: `<p>El Observatorio de Movilidad Urbana de Cochabamba es un proyecto interdisciplinario de la Facultad de Ciencias y Tecnología que recopila, procesa y publica datos abiertos sobre movilidad urbana en el área metropolitana de Kanata. Este dataset integra información de sensores de tráfico, encuestas de origen-destino, datos de transporte público y registros de accidentes viales.</p>
+<p>Los datos cubren el período 2019–2025 y se actualizan trimestralmente. Incluyen series temporales de flujos vehiculares por punto de conteo, tiempos de viaje promedio entre zonas de análisis, cobertura del sistema de transporte público (líneas, frecuencias y paradas), y estadísticas de accidentalidad vial clasificadas por tipo, horario y ubicación.</p>
+<p>La metodología de recolección sigue los estándares del <em>Manual de Estudios de Movilidad Urbana</em> de CAF (Banco de Desarrollo de América Latina), adaptada al contexto local. Los datos de sensores provienen de 47 puntos de conteo automatizados ubicados en las principales vías de la ciudad, complementados con conteos manuales en intersecciones críticas.</p>
+<p>Este dataset es utilizado por investigadores de la UMSS, la Alcaldía de Cochabamba, y organismos de cooperación internacional para el diseño de políticas de movilidad sostenible. Los datos están disponibles en múltiples formatos para facilitar su reutilización.</p>
+<p><strong>Limitaciones conocidas:</strong> Los datos de 2020 presentan interrupciones debido a las restricciones de movilidad durante la pandemia. Los registros de accidentalidad vial anteriores a 2021 pueden tener subregistros por diferencias en los criterios de reporte policial.</p>`,
+	private: false,
+	state: "active",
+	organization: MOCK_ORGS[0],
+	resources: [
+		{
+			id: "res-showcase-1",
+			package_id: "showcase-observatorio-movilidad",
+			name: "Flujos vehiculares por punto de conteo (2019–2025)",
+			description:
+				"Serie temporal de flujos vehiculares horarios en los 47 puntos de conteo automatizados. Datos agregados por dirección, tipo de vehículo y día de la semana.",
+			format: "CSV",
+			url: "https://data.umss.edu.bo/resource/flujos-vehiculares.csv",
+			resource_type: "file",
+			mimetype: "text/csv",
+			size: 12_450_000,
+			created: "2024-01-15T10:00:00Z",
+			last_modified: "2025-06-10T08:30:00Z",
+			state: "active",
+			position: 0,
+			hash: "sha256-a1b2c3d4e5f6",
+		},
+		{
+			id: "res-showcase-2",
+			package_id: "showcase-observatorio-movilidad",
+			name: "Encuesta de origen-destino 2024",
+			description:
+				"Resultados de la encuesta de origen-destino realizada en el área metropolitana. Muestra: 8,500 hogares, cobertura geográfica: 12 distritos.",
+			format: "XLSX",
+			url: "https://data.umss.edu.bo/resource/encuesta-origen-destino-2024.xlsx",
+			resource_type: "file",
+			mimetype: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			size: 3_800_000,
+			created: "2024-08-20T14:00:00Z",
+			last_modified: "2025-01-15T09:45:00Z",
+			state: "active",
+			position: 1,
+			hash: "sha256-g7h8i9j0k1l2",
+		},
+		{
+			id: "res-showcase-3",
+			package_id: "showcase-observatorio-movilidad",
+			name: "Rutas y paradas del transporte público (GeoJSON)",
+			description:
+				"Geometrías de líneas y paradas del sistema de transporte público metropolitano. Incluye 63 líneas, 1,240 paradas y 8 terminales.",
+			format: "GeoJSON",
+			url: "https://data.umss.edu.bo/resource/transporte-publico.geojson",
+			resource_type: "file",
+			mimetype: "application/geo+json",
+			size: 28_000_000,
+			created: "2024-03-10T12:00:00Z",
+			last_modified: "2025-05-22T16:00:00Z",
+			state: "active",
+			position: 2,
+			hash: "sha256-m3n4o5p6q7r8",
+		},
+		{
+			id: "res-showcase-4",
+			package_id: "showcase-observatorio-movilidad",
+			name: "Accidentalidad vial (2019–2025)",
+			description:
+				"Registro de accidentes de tránsito con clasificación por tipo, gravedad, horario y ubicación georreferenciada.",
+			format: "CSV",
+			url: "https://data.umss.edu.bo/resource/accidentalidad-vial.csv",
+			resource_type: "file",
+			mimetype: "text/csv",
+			size: 5_200_000,
+			created: "2024-02-01T08:00:00Z",
+			last_modified: "2025-06-01T11:00:00Z",
+			state: "active",
+			position: 3,
+			hash: "sha256-s9t0u1v2w3x4",
+		},
+		{
+			id: "res-showcase-5",
+			package_id: "showcase-observatorio-movilidad",
+			name: "Informe metodológico y diccionario de datos",
+			description:
+				"Documento PDF con la metodología de recolección, definición de variables, criterios de calidad y notas técnicas.",
+			format: "PDF",
+			url: "https://data.umss.edu.bo/resource/informe-metodologico.pdf",
+			resource_type: "file",
+			mimetype: "application/pdf",
+			size: 1_800_000,
+			created: "2024-01-15T10:00:00Z",
+			last_modified: "2025-03-01T10:00:00Z",
+			state: "active",
+			position: 4,
+			hash: "sha256-y5z6a7b8c9d0",
+		},
+		{
+			id: "res-showcase-6",
+			package_id: "showcase-observatorio-movilidad",
+			name: "API de datos en tiempo real (JSON)",
+			description:
+				"Endpoint REST para consultar datos actualizados de flujos vehiculares en tiempo real. Requiere API key.",
+			format: "JSON",
+			url: "https://api.umss.edu.bo/movilidad/v1/flujos",
+			resource_type: "api",
+			mimetype: "application/json",
+			size: 0,
+			created: "2025-01-10T10:00:00Z",
+			last_modified: "2025-06-18T14:00:00Z",
+			state: "active",
+			position: 5,
+			hash: "sha256-e1f2g3h4i5j6",
+		},
+	],
+	tags: [
+		{ id: "tag-movilidad", name: "movilidad", display_name: "Movilidad", state: "active" },
+		{ id: "tag-transporte", name: "transporte", display_name: "Transporte", state: "active" },
+		{ id: "tag-cochabamba", name: "cochabamba", display_name: "Cochabamba", state: "active" },
+		{
+			id: "tag-geolocalizacion",
+			name: "geolocalización",
+			display_name: "Geolocalización",
+			state: "active",
+		},
+		{
+			id: "tag-accidentalidad",
+			name: "accidentalidad",
+			display_name: "Accidentalidad",
+			state: "active",
+		},
+		{
+			id: "tag-series-temporales",
+			name: "series-temporales",
+			display_name: "Series temporales",
+			state: "active",
+		},
+		{
+			id: "tag-transporte-publico",
+			name: "transporte-público",
+			display_name: "Transporte público",
+			state: "active",
+		},
+		{ id: "tag-sensores", name: "sensores", display_name: "Sensores", state: "active" },
+	],
+	groups: [],
+	extras: [
+		{ key: "frequency", value: "Trimestral" },
+		{ key: "language", value: "es" },
+		{ key: "spatial", value: "Cochabamba, Bolivia" },
+		{ key: "temporal_coverage", value: "2019-2025" },
+		{ key: "granularity", value: "Punto de conteo / Distrito" },
+		{ key: "methodology", value: "CAF - Manual de Estudios de Movilidad Urbana" },
+	],
+	metadata_created: "2024-01-15T10:00:00Z",
+	metadata_modified: "2025-06-18T14:30:00Z",
+	creator_user_id: "admin-fcyt",
+	author: "Centro de Investigación en Movilidad Urbana (CIMU-FCyT)",
+	maintainer: "Ing. María Elena Vargas Quiroga",
+	license_id: "cc-by",
+	license_title: "Creative Commons Attribution 4.0",
+};
+
 export function getMockSearchResult() {
 	const orgFacets: Record<string, number> = {};
 	const formatFacets: Record<string, number> = {};
@@ -246,5 +411,6 @@ export function getMockSearchResult() {
 
 /** Buscar un dataset mock por id o name */
 export function getMockDatasetById(id: string): CkanPackage | undefined {
+	if (SHOWCASE_DATASET.id === id || SHOWCASE_DATASET.name === id) return SHOWCASE_DATASET;
 	return MOCK_DATASETS.find((ds) => ds.id === id || ds.name === id);
 }
