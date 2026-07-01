@@ -252,9 +252,9 @@ const metadataItems = $derived.by(() => {
 				<p class="text-sm text-muted-foreground">Este dataset no tiene recursos disponibles.</p>
 			{:else}
 				<div class="space-y-2">
-					{#each activeResources as resource (resource.id)}
-						<ResourceCard {resource} />
-					{/each}
+				{#each activeResources as resource (resource.id)}
+					<ResourceCard {resource} datasetId={dataset.id} />
+				{/each}
 				</div>
 			{/if}
 		</div>

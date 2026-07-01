@@ -1,14 +1,15 @@
 <script lang="ts">
-import { Download } from "lucide-svelte";
 import type { CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { formatSize } from "$lib/utils/ckan";
 
 let {
 	resource,
+	datasetId,
 	class: className = "",
 }: {
 	resource: CkanResource;
+	datasetId: string;
 	class?: string;
 } = $props();
 
@@ -72,11 +73,13 @@ const formatBadge = $derived.by(() => {
 });
 </script>
 
-<div
+<a
+	href={`/dataset/${datasetId}/resource/${resource.id}`}
 	class={cn(
 		"flex items-start gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/30 sm:p-4",
 		className,
 	)}
+	aria-label="{resource.name || 'Recurso'}, detalle del recurso"
 >
 	<!-- Format badge -->
 	<div
@@ -105,15 +108,4 @@ const formatBadge = $derived.by(() => {
 			{/if}
 		</div>
 	</div>
-
-	<!-- Download link -->
-	<a
-		href={resource.url}
-		target="_blank"
-		rel="noopener noreferrer"
-		class="flex shrink-0 items-center gap-1 rounded-md border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-	>
-		<Download class="size-3.5" />
-		<span class="hidden sm:inline">Descargar</span>
-	</a>
-</div>
+</a>

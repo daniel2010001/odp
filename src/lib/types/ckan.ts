@@ -69,7 +69,7 @@ export interface CkanResource {
 	description?: string;
 	format?: string; // CSV, PDF, JSON, etc.
 	url: string;
-	resource_type?: string; // file, api, etc.
+	resource_type?: "file" | "api" | string;
 	mimetype?: string;
 	size?: number;
 	created: string;

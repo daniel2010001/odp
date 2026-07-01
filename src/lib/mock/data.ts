@@ -414,3 +414,12 @@ export function getMockDatasetById(id: string): CkanPackage | undefined {
 	if (SHOWCASE_DATASET.id === id || SHOWCASE_DATASET.name === id) return SHOWCASE_DATASET;
 	return MOCK_DATASETS.find((ds) => ds.id === id || ds.name === id);
 }
+
+/** Buscar un recurso mock por id en todos los datasets */
+export function getMockResourceById(id: string): CkanResource | undefined {
+	for (const ds of [SHOWCASE_DATASET, ...MOCK_DATASETS]) {
+		const found = ds.resources.find((r) => r.id === id);
+		if (found) return found;
+	}
+	return undefined;
+}
