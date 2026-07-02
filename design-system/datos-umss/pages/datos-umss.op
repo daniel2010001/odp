@@ -22193,7 +22193,7 @@
                     {
                       "type": "text",
                       "name": "VBDesc",
-                      "content": "Igual al clasico, pero si escribis algo que no existe, aparece una opcion 'Crear nuevo tag: \"X\"' al final del dropdown.",
+                      "content": "Muestra tags existentes que coinciden (incluyendo matches parciales y similares). NO se crean tags nuevos via este componente.",
                       "fontFamily": "Crimson Text, serif",
                       "fontSize": 12,
                       "fontWeight": 400,
@@ -22208,7 +22208,7 @@
                     },
                     {
                       "type": "frame",
-                      "name": "VBBody",
+                      "name": "VABody",
                       "layout": "vertical",
                       "width": "fill_container",
                       "height": "fit_content",
@@ -22408,8 +22408,8 @@
                           "children": [
                             {
                               "type": "text",
-                              "name": "cancer",
-                              "content": "cancer",
+                              "name": "salu",
+                              "content": "salu",
                               "fontFamily": "Crimson Text, serif",
                               "fontSize": 14,
                               "fontWeight": 600,
@@ -22478,45 +22478,39 @@
                           "children": [
                             {
                               "type": "frame",
-                              "name": "Opt_cancerol",
+                              "name": "DDHeader",
                               "layout": "horizontal",
                               "width": "fill_container",
                               "height": "fit_content",
-                              "gap": 8,
+                              "gap": 4,
                               "padding": [
-                                10,
+                                8,
                                 12,
-                                10,
+                                4,
                                 12
                               ],
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ],
-                              "alignItems": "center",
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "Opt_cancerol",
-                                  "content": "cancerologia",
+                                  "name": "DDHeaderTxt",
+                                  "content": "Tags que coinciden con \"salu\"",
                                   "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 400,
-                                  "color": "#0F172A",
+                                  "fontSize": 10,
+                                  "fontWeight": 700,
+                                  "color": "#334155",
                                   "fill": [
                                     {
                                       "type": "solid",
-                                      "color": "#0F172A"
+                                      "color": "#334155"
                                     }
-                                  ]
+                                  ],
+                                  "letterSpacing": 1
                                 }
                               ]
                             },
                             {
                               "type": "frame",
-                              "name": "Opt_cancer c",
+                              "name": "Opt_salud",
                               "layout": "horizontal",
                               "width": "fill_container",
                               "height": "fit_content",
@@ -22537,8 +22531,8 @@
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "Opt_cancer c",
-                                  "content": "cancer cervical",
+                                  "name": "Opt_salud",
+                                  "content": "salud",
                                   "fontFamily": "Crimson Text, serif",
                                   "fontSize": 13,
                                   "fontWeight": 400,
@@ -22554,7 +22548,7 @@
                             },
                             {
                               "type": "frame",
-                              "name": "Opt_cancer d",
+                              "name": "Opt_salud-me",
                               "layout": "horizontal",
                               "width": "fill_container",
                               "height": "fit_content",
@@ -22575,8 +22569,23 @@
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "Opt_cancer d",
-                                  "content": "cancer de mama",
+                                  "name": "Sim_salud-me",
+                                  "content": "≈",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "Opt_salud-me",
+                                  "content": "salud-mental",
                                   "fontFamily": "Crimson Text, serif",
                                   "fontSize": 13,
                                   "fontWeight": 400,
@@ -22592,20 +22601,7 @@
                             },
                             {
                               "type": "frame",
-                              "name": "Divider",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": 1,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#DBEAFE"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "CreateOpt",
+                              "name": "Opt_salud-pu",
                               "layout": "horizontal",
                               "width": "fill_container",
                               "height": "fit_content",
@@ -22619,33 +22615,18 @@
                               "fill": [
                                 {
                                   "type": "solid",
-                                  "color": "#DBEAFE"
+                                  "color": "#FFFFFF"
                                 }
                               ],
                               "alignItems": "center",
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "+",
-                                  "content": "+",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 14,
-                                  "fontWeight": 700,
-                                  "color": "#1E40AF",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E40AF"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "name": "Crear nuevo tag: ",
-                                  "content": "Crear nuevo tag: ",
+                                  "name": "Sim_salud-pu",
+                                  "content": "≈",
                                   "fontFamily": "Crimson Text, serif",
                                   "fontSize": 13,
-                                  "fontWeight": 400,
+                                  "fontWeight": 600,
                                   "color": "#334155",
                                   "fill": [
                                     {
@@ -22656,16 +22637,69 @@
                                 },
                                 {
                                   "type": "text",
-                                  "name": "\"cancer\"",
-                                  "content": "\"cancer\"",
+                                  "name": "Opt_salud-pu",
+                                  "content": "salud-publica",
                                   "fontFamily": "Crimson Text, serif",
                                   "fontSize": 13,
-                                  "fontWeight": 600,
-                                  "color": "#1E40AF",
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
                                   "fill": [
                                     {
                                       "type": "solid",
-                                      "color": "#1E40AF"
+                                      "color": "#0F172A"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "Opt_salubrid",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "gap": 8,
+                              "padding": [
+                                10,
+                                12,
+                                10,
+                                12
+                              ],
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#FFFFFF"
+                                }
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "Sim_salubrid",
+                                  "content": "≈",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "Opt_salubrid",
+                                  "content": "salubridad",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
                                     }
                                   ]
                                 }
