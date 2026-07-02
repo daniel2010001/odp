@@ -17976,7 +17976,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "name": "TabPreview",
+                  "name": "Tab_0",
                   "layout": "vertical",
                   "width": "fit_content",
                   "height": "fit_content",
@@ -17990,7 +17990,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "name": "TabPreviewTxt",
+                      "name": "TabTxt_0",
                       "content": "Vista previa",
                       "fontFamily": "Crimson Text, serif",
                       "fontSize": 14,
@@ -18005,7 +18005,7 @@
                     },
                     {
                       "type": "frame",
-                      "name": "Indicator",
+                      "name": "TabInd_0",
                       "width": "fill_container",
                       "height": 3,
                       "fill": [
@@ -18019,7 +18019,7 @@
                 },
                 {
                   "type": "frame",
-                  "name": "TabAPI",
+                  "name": "Tab_1",
                   "layout": "vertical",
                   "width": "fit_content",
                   "height": "fit_content",
@@ -18033,7 +18033,38 @@
                   "children": [
                     {
                       "type": "text",
-                      "name": "TabAPITxt",
+                      "name": "TabTxt_1",
+                      "content": "Resumen",
+                      "fontFamily": "Crimson Text, serif",
+                      "fontSize": 14,
+                      "fontWeight": 500,
+                      "color": "#334155",
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#334155"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "name": "Tab_2",
+                  "layout": "vertical",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "gap": 8,
+                  "padding": [
+                    16,
+                    20,
+                    12,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "name": "TabTxt_2",
                       "content": "API",
                       "fontFamily": "Crimson Text, serif",
                       "fontSize": 14,
@@ -18050,7 +18081,7 @@
                 },
                 {
                   "type": "frame",
-                  "name": "TabMetadata",
+                  "name": "Tab_3",
                   "layout": "vertical",
                   "width": "fit_content",
                   "height": "fit_content",
@@ -18064,7 +18095,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "name": "TabMetadataTxt",
+                      "name": "TabTxt_3",
                       "content": "Metadata",
                       "fontFamily": "Crimson Text, serif",
                       "fontSize": 14,
@@ -19598,6 +19629,96 @@
                           "lineHeight": 1.4
                         }
                       ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "name": "TabHeader_Resumen",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 40,
+              "gap": 8,
+              "alignItems": "center",
+              "padding": [
+                0,
+                80,
+                0,
+                80
+              ],
+              "fill": [
+                {
+                  "type": "solid",
+                  "color": "#FFFFFF"
+                }
+              ],
+              "stroke": {
+                "thickness": 1,
+                "fill": [
+                  {
+                    "type": "solid",
+                    "color": "#E2E8F0"
+                  }
+                ]
+              },
+              "children": [
+                {
+                  "type": "frame",
+                  "name": "ActiveTabLabel",
+                  "layout": "vertical",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "gap": 6,
+                  "padding": [
+                    12,
+                    16,
+                    8,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "name": "ActiveTabTxt",
+                      "content": "Resumen",
+                      "fontFamily": "Crimson Text, serif",
+                      "fontSize": 13,
+                      "fontWeight": 700,
+                      "color": "#1E3A8A",
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#1E3A8A"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "ActiveTabInd",
+                      "width": "fill_container",
+                      "height": 3,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#1E3A8A"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "name": "HintTxt",
+                  "content": "(contenido del tab activo)",
+                  "fontFamily": "Crimson Text, serif",
+                  "fontSize": 11,
+                  "fontWeight": 400,
+                  "color": "#334155",
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#334155"
                     }
                   ]
                 }
