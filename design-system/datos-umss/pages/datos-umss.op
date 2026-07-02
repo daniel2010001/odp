@@ -16259,6 +16259,579 @@
                           ]
                         }
                       ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "GeneralMetaSection",
+                      "layout": "vertical",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "gap": 16,
+                      "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "name": "Header",
+                          "layout": "vertical",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            0,
+                            0,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "GMSecEye",
+                              "content": "METADATA GENERAL",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 12,
+                              "fontWeight": 700,
+                              "color": "#7C2D12",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#7C2D12"
+                                }
+                              ],
+                              "letterSpacing": 2
+                            },
+                            {
+                              "type": "text",
+                              "name": "GMSecTitle",
+                              "content": "Informacion tecnica del dataset",
+                              "fontFamily": "EB Garamond, serif",
+                              "fontSize": 22,
+                              "fontWeight": 700,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "GeneralMetaTable",
+                          "layout": "vertical",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 0,
+                          "padding": [
+                            0,
+                            0,
+                            0,
+                            0
+                          ],
+                          "cornerRadius": 12,
+                          "clipContent": true,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": [
+                              {
+                                "type": "solid",
+                                "color": "#DBEAFE"
+                              }
+                            ]
+                          },
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#FFFFFF"
+                            }
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "name": "GMHeader",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 40,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#F8FAFC"
+                                }
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMH1",
+                                  "content": "Campo",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 700,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMH2",
+                                  "content": "Valor",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 700,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow1",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR1C1",
+                                  "content": "Identificador",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR1C2",
+                                  "content": "indicadores-salud-2020-2024",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow2",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR2C1",
+                                  "content": "Organizacion",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR2C2",
+                                  "content": "Facultad de Medicina",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow3",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR3C1",
+                                  "content": "Autor",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR3C2",
+                                  "content": "Dr. Juan Pérez",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow4",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR4C1",
+                                  "content": "Mantenedor",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR4C2",
+                                  "content": "jperez@umss.edu",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow5",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR5C1",
+                                  "content": "Visibilidad",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR5C2",
+                                  "content": "Publico",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow6",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR6C1",
+                                  "content": "Estado",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR6C2",
+                                  "content": "Activo",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "GMRow7",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 44,
+                              "gap": 0,
+                              "padding": [
+                                0,
+                                16,
+                                0,
+                                16
+                              ],
+                              "alignItems": "center",
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "GMR7C1",
+                                  "content": "Etiquetas",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#0F172A",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#0F172A"
+                                    }
+                                  ],
+                                  "width": 240,
+                                  "textGrowth": "fixed-width"
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "GMR7C2",
+                                  "content": "#salud  #medicina  #epidemiologia  #UMSS  #indicadores",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 12,
+                                  "fontWeight": 400,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ],
+                                  "width": 560,
+                                  "textGrowth": "fixed-width"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 },
