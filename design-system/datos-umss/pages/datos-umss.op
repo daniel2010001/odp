@@ -17969,113 +17969,6 @@
                   "children": [
                     {
                       "type": "frame",
-                      "name": "ViewsDropdown",
-                      "layout": "horizontal",
-                      "width": "fit_content",
-                      "height": 40,
-                      "gap": 12,
-                      "padding": [
-                        0,
-                        0,
-                        0,
-                        0
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "DropLabel",
-                          "content": "Vista:",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 13,
-                          "fontWeight": 500,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "DropBtn",
-                          "layout": "horizontal",
-                          "width": "fit_content",
-                          "height": 36,
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            14,
-                            0,
-                            14
-                          ],
-                          "cornerRadius": 6,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#FFFFFF"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1.5,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#1E3A8A"
-                              }
-                            ]
-                          },
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "ellipse",
-                              "name": "DropIcon",
-                              "width": 8,
-                              "height": 8,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#1E3A8A"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "name": "ActiveViewLabel",
-                              "content": "Tabla",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 600,
-                              "color": "#1E3A8A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#1E3A8A"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "name": "Chevron",
-                              "content": "▼",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 11,
-                              "fontWeight": 600,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
                       "name": "ViewSpace",
                       "layout": "vertical",
                       "width": "fill_container",
@@ -18147,15 +18040,15 @@
                   "layout": "vertical",
                   "width": 280,
                   "height": "fit_content",
-                  "gap": 12,
+                  "gap": 16,
                   "children": [
                     {
                       "type": "frame",
-                      "name": "ActionsCard",
+                      "name": "ViewsDropdownCard",
                       "layout": "vertical",
                       "width": "fill_container",
                       "height": "fit_content",
-                      "gap": 8,
+                      "gap": 10,
                       "padding": [
                         16,
                         16,
@@ -18181,50 +18074,82 @@
                       "children": [
                         {
                           "type": "text",
-                          "name": "AcEye",
-                          "content": "ACCIONES",
+                          "name": "DropEye",
+                          "content": "VISTA",
                           "fontFamily": "Crimson Text, serif",
                           "fontSize": 10,
                           "fontWeight": 700,
-                          "color": "#7C2D12",
+                          "color": "#334155",
                           "fill": [
                             {
                               "type": "solid",
-                              "color": "#7C2D12"
+                              "color": "#334155"
                             }
                           ],
                           "letterSpacing": 2
                         },
                         {
                           "type": "frame",
-                          "name": "DownloadBtn",
+                          "name": "DropBtn",
                           "layout": "horizontal",
                           "width": "fill_container",
-                          "height": 44,
+                          "height": 40,
+                          "gap": 8,
                           "padding": [
-                            10,
+                            0,
                             14,
-                            10,
+                            0,
                             14
                           ],
-                          "cornerRadius": 8,
+                          "cornerRadius": 6,
                           "fill": [
                             {
                               "type": "solid",
-                              "color": "#7C2D12"
+                              "color": "#FFFFFF"
                             }
                           ],
+                          "stroke": {
+                            "thickness": 1.5,
+                            "fill": [
+                              {
+                                "type": "solid",
+                                "color": "#1E40AF"
+                              }
+                            ]
+                          },
                           "alignItems": "center",
-                          "justifyContent": "center",
                           "children": [
                             {
                               "type": "text",
-                              "name": "DownloadTxt",
-                              "content": "Descargar CSV",
+                              "name": "ActiveViewLabel",
+                              "content": "Tabla",
                               "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
+                              "fontSize": 14,
                               "fontWeight": 600,
-                              "color": "#FFFFFF"
+                              "color": "#1E40AF",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#1E40AF"
+                                }
+                              ],
+                              "width": 200,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "Chevron",
+                              "content": "▼",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -18236,7 +18161,7 @@
                       "layout": "vertical",
                       "width": "fill_container",
                       "height": "fit_content",
-                      "gap": 6,
+                      "gap": 0,
                       "padding": [
                         16,
                         16,
@@ -18267,14 +18192,20 @@
                           "fontFamily": "Crimson Text, serif",
                           "fontSize": 10,
                           "fontWeight": 700,
-                          "color": "#7C2D12",
+                          "color": "#334155",
                           "fill": [
                             {
                               "type": "solid",
-                              "color": "#7C2D12"
+                              "color": "#334155"
                             }
                           ],
                           "letterSpacing": 2
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InfoSpacer1",
+                          "width": "fill_container",
+                          "height": 8
                         },
                         {
                           "type": "frame",
@@ -18525,28 +18456,56 @@
                               "textGrowth": "fixed-width"
                             }
                           ]
-                        },
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "HashCard",
+                      "layout": "vertical",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "gap": 10,
+                      "padding": [
+                        16,
+                        16,
+                        16,
+                        16
+                      ],
+                      "cornerRadius": 12,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#FFFFFF"
+                        }
+                      ],
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
                         {
                           "type": "frame",
-                          "name": "InfoRow6",
+                          "name": "HashHeader",
                           "layout": "horizontal",
                           "width": "fill_container",
                           "height": "fit_content",
-                          "gap": 8,
-                          "padding": [
-                            4,
-                            0,
-                            4,
-                            0
-                          ],
+                          "gap": 4,
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
                           "children": [
                             {
                               "type": "text",
-                              "name": "IR6L",
+                              "name": "HashEye",
                               "content": "SHA256",
                               "fontFamily": "Crimson Text, serif",
-                              "fontSize": 11,
-                              "fontWeight": 400,
+                              "fontSize": 10,
+                              "fontWeight": 700,
                               "color": "#334155",
                               "fill": [
                                 {
@@ -18554,31 +18513,83 @@
                                   "color": "#334155"
                                 }
                               ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
+                              "letterSpacing": 2
                             },
                             {
                               "type": "text",
-                              "name": "IR6V",
-                              "content": "a3f5d8e2...c9b1e5",
-                              "fontFamily": "monospace",
+                              "name": "HashCopyTxt",
+                              "content": "Copiar",
+                              "fontFamily": "Crimson Text, serif",
                               "fontSize": 11,
-                              "fontWeight": 400,
-                              "color": "#0F172A",
+                              "fontWeight": 600,
+                              "color": "#1E40AF",
                               "fill": [
                                 {
                                   "type": "solid",
-                                  "color": "#0F172A"
+                                  "color": "#1E40AF"
                                 }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
+                              ]
                             }
                           ]
+                        },
+                        {
+                          "type": "text",
+                          "name": "HashValue",
+                          "content": "a3f5d8e2c1b97f4e6a8d2c5b9e1f3a7d6c4b8e2f1a9d5c3b7e8f2a4d6c9b1e5",
+                          "fontFamily": "monospace",
+                          "fontSize": 10,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "lineHeight": 1.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "DownloadBtn",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 44,
+                      "padding": [
+                        10,
+                        14,
+                        10,
+                        14
+                      ],
+                      "cornerRadius": 8,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#7C2D12"
+                        }
+                      ],
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "DownloadTxt",
+                          "content": "Descargar CSV",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#FFFFFF"
                         }
                       ]
                     }
                   ]
+                }
+              ],
+              "fill": [
+                {
+                  "type": "solid",
+                  "color": "#FFFFFF"
                 }
               ]
             },
