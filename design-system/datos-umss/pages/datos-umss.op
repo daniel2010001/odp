@@ -15904,183 +15904,6 @@
                   "width": 900,
                   "textGrowth": "fixed-width",
                   "lineHeight": 1.5
-                },
-                {
-                  "type": "frame",
-                  "name": "Stats",
-                  "layout": "horizontal",
-                  "width": "fit_content",
-                  "height": 60,
-                  "gap": 48,
-                  "alignItems": "center",
-                  "padding": [
-                    16,
-                    0,
-                    0,
-                    0
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "name": "Stat1",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat1Num",
-                          "content": "v1.4",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 20,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat1Lbl",
-                          "content": "Versión",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "Stat2",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat2Num",
-                          "content": "CSV · PDF",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 20,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat2Lbl",
-                          "content": "Formatos",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "Stat3",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat3Num",
-                          "content": "4.2K",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 20,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat3Lbl",
-                          "content": "Descargas",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "Stat4",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat4Num",
-                          "content": "12 mar 2026",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 16,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat4Lbl",
-                          "content": "Última actualización",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -16449,16 +16272,16 @@
                   "children": [
                     {
                       "type": "frame",
-                      "name": "ActionsCard",
+                      "name": "CiteCard",
                       "layout": "vertical",
                       "width": "fill_container",
                       "height": "fit_content",
                       "gap": 8,
                       "padding": [
-                        20,
-                        20,
-                        20,
-                        20
+                        16,
+                        16,
+                        16,
+                        16
                       ],
                       "cornerRadius": 12,
                       "fill": [
@@ -16478,16 +16301,827 @@
                       },
                       "children": [
                         {
+                          "type": "text",
+                          "name": "CiteEye",
+                          "content": "CITAR COMO",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 10,
+                          "fontWeight": 700,
+                          "color": "#7C2D12",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#7C2D12"
+                            }
+                          ],
+                          "letterSpacing": 2
+                        },
+                        {
+                          "type": "text",
+                          "name": "CiteBody",
+                          "content": "Pérez, J. (2026). Indicadores de salud pública y epidemiología UMSS 2020-2024 (Version 1.4) [Data set]. Universidad Mayor de San Simón, Facultad de Medicina.",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 11,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": "fill_container",
+                          "textGrowth": "fixed-width",
+                          "lineHeight": 1.5
+                        },
+                        {
                           "type": "frame",
-                          "name": "PrimaryBtn",
+                          "name": "CiteFormatRow",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "padding": [
+                            4,
+                            0,
+                            0,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "name": "FmtAPABtn",
+                              "layout": "horizontal",
+                              "width": "fit_content",
+                              "height": 24,
+                              "padding": [
+                                2,
+                                8,
+                                2,
+                                8
+                              ],
+                              "cornerRadius": 4,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#1E40AF"
+                                }
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "FmtAPATxt",
+                                  "content": "APA",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 11,
+                                  "fontWeight": 700,
+                                  "color": "#FFFFFF",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#FFFFFF"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "FmtBibBtn",
+                              "layout": "horizontal",
+                              "width": "fit_content",
+                              "height": 24,
+                              "padding": [
+                                2,
+                                8,
+                                2,
+                                8
+                              ],
+                              "cornerRadius": 4,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#FFFFFF"
+                                }
+                              ],
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "FmtBibTxt",
+                                  "content": "BibTeX",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 11,
+                                  "fontWeight": 600,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "Spacer1",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": 1,
+                              "children": []
+                            },
+                            {
+                              "type": "frame",
+                              "name": "CopyCiteBtn",
+                              "layout": "horizontal",
+                              "width": 24,
+                              "height": 24,
+                              "gap": 0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#FFFFFF"
+                                }
+                              ],
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 4,
+                              "alignItems": "center",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "CopyIcon",
+                                  "content": "⧉",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#1E40AF",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#1E40AF"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "DublinCoreCard",
+                      "layout": "vertical",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "gap": 0,
+                      "padding": [
+                        16,
+                        16,
+                        16,
+                        16
+                      ],
+                      "cornerRadius": 12,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#FFFFFF"
+                        }
+                      ],
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "DCEye",
+                          "content": "DUBLIN CORE",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 10,
+                          "fontWeight": 700,
+                          "color": "#7C2D12",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#7C2D12"
+                            }
+                          ],
+                          "letterSpacing": 2
+                        },
+                        {
+                          "type": "frame",
+                          "name": "DCSpacer1",
+                          "width": "fill_container",
+                          "height": 8
+                        },
+                        {
+                          "type": "frame",
+                          "name": "DCRow1",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "DCR1L",
+                              "content": "Publicador",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "DCR1V",
+                              "content": "Dr. Juan Pérez",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "DCRow2",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "DCR2L",
+                              "content": "Email",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "DCR2V",
+                              "content": "jperez@umss.edu",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "DCRow3",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "DCR3L",
+                              "content": "Licencia",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "DCR3V",
+                              "content": "CC-BY 4.0",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "DCRow4",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "DCR4L",
+                              "content": "Idioma",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "DCR4V",
+                              "content": "Espanol",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "DCRow5",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "DCR5L",
+                              "content": "Frecuencia",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "DCR5V",
+                              "content": "Anual",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "InfoCard",
+                      "layout": "vertical",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "gap": 0,
+                      "padding": [
+                        16,
+                        16,
+                        16,
+                        16
+                      ],
+                      "cornerRadius": 12,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#FFFFFF"
+                        }
+                      ],
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "InEye",
+                          "content": "INFORMACION",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 10,
+                          "fontWeight": 700,
+                          "color": "#7C2D12",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#7C2D12"
+                            }
+                          ],
+                          "letterSpacing": 2
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InfoSpacer1",
+                          "width": "fill_container",
+                          "height": 8
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InRow1",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "InR1L",
+                              "content": "Version",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "InR1V",
+                              "content": "v1.4",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InRow2",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "InR2L",
+                              "content": "Creado",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "InR2V",
+                              "content": "15 ene 2024",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InRow3",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "InR3L",
+                              "content": "Modificado",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "InR3V",
+                              "content": "12 mar 2026",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InRow4",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "InR4L",
+                              "content": "Descargas",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "InR4V",
+                              "content": "4,234",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "InRow5",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 8,
+                          "padding": [
+                            6,
+                            0,
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "InR5L",
+                              "content": "Recursos",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "width": 90,
+                              "textGrowth": "fixed-width"
+                            },
+                            {
+                              "type": "text",
+                              "name": "InR5V",
+                              "content": "3",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 11,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ],
+                              "width": 190,
+                              "textGrowth": "fixed-width"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "ActionsCard",
+                      "layout": "vertical",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "gap": 8,
+                      "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "name": "DownloadAllBtn",
                           "layout": "horizontal",
                           "width": "fill_container",
                           "height": 44,
                           "padding": [
-                            12,
-                            16,
-                            12,
-                            16
+                            10,
+                            14,
+                            10,
+                            14
                           ],
                           "cornerRadius": 8,
                           "fill": [
@@ -16501,695 +17135,12 @@
                           "children": [
                             {
                               "type": "text",
-                              "name": "DownloadBtn",
-                              "content": "⬇ Descargar todo (.zip)",
+                              "name": "DownloadAllTxt",
+                              "content": "Descargar todo (.zip)",
                               "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
+                              "fontSize": 13,
                               "fontWeight": 600,
-                              "color": "#FFFFFF",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "SecondaryBtns",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 36,
-                          "gap": 8,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "name": "ShareBtn",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": 36,
-                              "padding": [
-                                8,
-                                12,
-                                8,
-                                12
-                              ],
-                              "cornerRadius": 8,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#F8FAFC"
-                                }
-                              ],
-                              "stroke": {
-                                "thickness": 1,
-                                "fill": [
-                                  {
-                                    "type": "solid",
-                                    "color": "#DBEAFE"
-                                  }
-                                ]
-                              },
-                              "alignItems": "center",
-                              "justifyContent": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ShareTxt",
-                                  "content": "Compartir",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#1E3A8A",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E3A8A"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "SaveBtn",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": 36,
-                              "padding": [
-                                8,
-                                12,
-                                8,
-                                12
-                              ],
-                              "cornerRadius": 8,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#F8FAFC"
-                                }
-                              ],
-                              "stroke": {
-                                "thickness": 1,
-                                "fill": [
-                                  {
-                                    "type": "solid",
-                                    "color": "#DBEAFE"
-                                  }
-                                ]
-                              },
-                              "alignItems": "center",
-                              "justifyContent": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "SaveTxt",
-                                  "content": "Guardar",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#1E3A8A",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E3A8A"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "CiteCard",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 12,
-                      "padding": [
-                        20,
-                        20,
-                        20,
-                        20
-                      ],
-                      "cornerRadius": 12,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#FFFFFF"
-                        }
-                      ],
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": [
-                          {
-                            "type": "solid",
-                            "color": "#DBEAFE"
-                          }
-                        ]
-                      },
-                      "children": [
-                        {
-                          "type": "frame",
-                          "name": "Header",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 12,
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Eye",
-                              "content": "CITAR COMO",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 11,
-                              "fontWeight": 700,
-                              "color": "#7C2D12",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#7C2D12"
-                                }
-                              ],
-                              "letterSpacing": 2
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Tabs",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 28,
-                              "gap": 0,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#F8FAFC"
-                                }
-                              ],
-                              "stroke": {
-                                "thickness": 1,
-                                "fill": [
-                                  {
-                                    "type": "solid",
-                                    "color": "#DBEAFE"
-                                  }
-                                ]
-                              },
-                              "cornerRadius": 6,
-                              "padding": [
-                                2,
-                                2,
-                                2,
-                                2
-                              ],
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "name": "TabA",
-                                  "layout": "horizontal",
-                                  "width": "fit_content",
-                                  "height": 24,
-                                  "padding": [
-                                    4,
-                                    12,
-                                    4,
-                                    12
-                                  ],
-                                  "cornerRadius": 4,
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E3A8A"
-                                    }
-                                  ],
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "TabATxt",
-                                      "content": "APA",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 11,
-                                      "fontWeight": 700,
-                                      "color": "#FFFFFF",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#FFFFFF"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "TabB",
-                                  "layout": "horizontal",
-                                  "width": "fit_content",
-                                  "height": 24,
-                                  "padding": [
-                                    4,
-                                    12,
-                                    4,
-                                    12
-                                  ],
-                                  "cornerRadius": 4,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "TabBTxt",
-                                      "content": "BibTeX",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 11,
-                                      "fontWeight": 600,
-                                      "color": "#334155",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#334155"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "CiteBox",
-                          "layout": "vertical",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 4,
-                          "padding": [
-                            12,
-                            14,
-                            12,
-                            14
-                          ],
-                          "cornerRadius": 8,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#F8FAFC"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "CiteText",
-                              "content": "Pérez, J. (2026). Indicadores de salud pública y epidemiología UMSS 2020-2024 (Version 1.4) [Data set]. Universidad Mayor de San Simón, Facultad de Medicina. https://datos.umss.edu/dataset/indicadores-salud",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 400,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": "fill_container",
-                              "textGrowth": "fixed-width",
-                              "lineHeight": 1.5
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "CopyBtn",
-                          "layout": "horizontal",
-                          "width": "fit_content",
-                          "height": 32,
-                          "gap": 6,
-                          "padding": [
-                            6,
-                            12,
-                            6,
-                            12
-                          ],
-                          "cornerRadius": 6,
-                          "fill": [
-                            {
-                              "type": "solid",
                               "color": "#FFFFFF"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#1E3A8A"
-                              }
-                            ]
-                          },
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "CopyTxt",
-                              "content": "📋 Copiar al portapapeles",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 600,
-                              "color": "#1E3A8A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#1E3A8A"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "MetadataSection",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 12,
-                      "padding": [
-                        32,
-                        32,
-                        32,
-                        32
-                      ],
-                      "cornerRadius": 12,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#FFFFFF"
-                        }
-                      ],
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": [
-                          {
-                            "type": "solid",
-                            "color": "#DBEAFE"
-                          }
-                        ]
-                      },
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Sec3Eye",
-                          "content": "METADATOS · DUBLIN CORE",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 12,
-                          "fontWeight": 700,
-                          "color": "#7C2D12",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#7C2D12"
-                            }
-                          ],
-                          "letterSpacing": 2
-                        },
-                        {
-                          "type": "text",
-                          "name": "Sec3Title",
-                          "content": "Información del dataset",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 22,
-                          "fontWeight": 700,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Md1",
-                          "content": "Publicador · Dr. Juan Pérez (Facultad de Medicina)",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 400,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Md2",
-                          "content": "Email de contacto · juan.perez@umss.edu",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 400,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Md3",
-                          "content": "Licencia · Creative Commons Attribution 4.0",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 400,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Md4",
-                          "content": "Idioma · Español",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 400,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Md5",
-                          "content": "Frecuencia de actualización · Anual",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 400,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "StatsCard",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 12,
-                      "padding": [
-                        20,
-                        20,
-                        20,
-                        20
-                      ],
-                      "cornerRadius": 12,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#FFFFFF"
-                        }
-                      ],
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": [
-                          {
-                            "type": "solid",
-                            "color": "#DBEAFE"
-                          }
-                        ]
-                      },
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "StatsEye",
-                          "content": "ESTADÍSTICAS",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 700,
-                          "color": "#7C2D12",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#7C2D12"
-                            }
-                          ],
-                          "letterSpacing": 2
-                        },
-                        {
-                          "type": "frame",
-                          "name": "StatRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "justifyContent": "space_between",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Stat1Lbl",
-                              "content": "Vistas",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "name": "Stat1Val",
-                              "content": "12.4K",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 600,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "StatRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "justifyContent": "space_between",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Stat2Lbl",
-                              "content": "Descargas",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "name": "Stat2Val",
-                              "content": "4.2K",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 600,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "StatRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "justifyContent": "space_between",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Stat3Lbl",
-                              "content": "Versiones",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "name": "Stat3Val",
-                              "content": "4",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 600,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ]
                             }
                           ]
                         }
