@@ -19977,226 +19977,432 @@
                     },
                     {
                       "type": "frame",
-                      "name": "FormatFilter",
+                      "name": "TagInput",
                       "layout": "vertical",
                       "width": "fill_container",
                       "height": "fit_content",
                       "gap": 10,
                       "children": [
                         {
-                          "type": "text",
-                          "name": "FmtEye",
-                          "content": "FORMATO",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 10,
-                          "fontWeight": 700,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
+                          "type": "frame",
+                          "name": "TIHeader",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "gap": 4,
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "padding": [
+                            0,
+                            0,
+                            8,
+                            0
                           ],
-                          "letterSpacing": 1.5
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "TIEye",
+                              "content": "ETIQUETAS",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 10,
+                              "fontWeight": 700,
+                              "color": "#334155",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#334155"
+                                }
+                              ],
+                              "letterSpacing": 1.5
+                            },
+                            {
+                              "type": "text",
+                              "name": "TIClear",
+                              "content": "Limpiar",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 10,
+                              "fontWeight": 600,
+                              "color": "#7C2D12",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#7C2D12"
+                                }
+                              ]
+                            }
+                          ]
                         },
                         {
                           "type": "frame",
-                          "name": "FmtChips",
+                          "name": "TIChips",
                           "layout": "horizontal",
                           "width": "fill_container",
                           "height": "fit_content",
                           "gap": 6,
+                          "padding": [
+                            0,
+                            0,
+                            10,
+                            0
+                          ],
                           "children": [
                             {
                               "type": "frame",
-                              "name": "Badge_csv",
+                              "name": "Chip_salud",
                               "layout": "horizontal",
                               "width": "fit_content",
-                              "height": 24,
+                              "height": 26,
+                              "gap": 6,
                               "padding": [
-                                4,
-                                10,
-                                4,
-                                10
+                                2,
+                                8,
+                                2,
+                                4
                               ],
                               "cornerRadius": 999,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#FED7AA"
+                                }
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "ChipT_salud",
+                                  "content": "#salud",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 12,
+                                  "fontWeight": 600,
+                                  "color": "#7C2D12",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#7C2D12"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "name": "ChipX_salud",
+                                  "layout": "horizontal",
+                                  "width": 18,
+                                  "height": 18,
+                                  "cornerRadius": 999,
+                                  "alignItems": "center",
+                                  "justifyContent": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "name": "ChipXT_salud",
+                                      "content": "×",
+                                      "fontFamily": "Crimson Text, serif",
+                                      "fontSize": 14,
+                                      "fontWeight": 600,
+                                      "color": "#7C2D12",
+                                      "fill": [
+                                        {
+                                          "type": "solid",
+                                          "color": "#7C2D12"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "Chip_UMSS",
+                              "layout": "horizontal",
+                              "width": "fit_content",
+                              "height": 26,
+                              "gap": 6,
+                              "padding": [
+                                2,
+                                8,
+                                2,
+                                4
+                              ],
+                              "cornerRadius": 999,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#FED7AA"
+                                }
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "ChipT_UMSS",
+                                  "content": "#UMSS",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 12,
+                                  "fontWeight": 600,
+                                  "color": "#7C2D12",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#7C2D12"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "name": "ChipX_UMSS",
+                                  "layout": "horizontal",
+                                  "width": 18,
+                                  "height": 18,
+                                  "cornerRadius": 999,
+                                  "alignItems": "center",
+                                  "justifyContent": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "name": "ChipXT_UMSS",
+                                      "content": "×",
+                                      "fontFamily": "Crimson Text, serif",
+                                      "fontSize": 14,
+                                      "fontWeight": 600,
+                                      "color": "#7C2D12",
+                                      "fill": [
+                                        {
+                                          "type": "solid",
+                                          "color": "#7C2D12"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "name": "TIInput",
+                          "layout": "horizontal",
+                          "width": "fill_container",
+                          "height": 40,
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            14,
+                            0,
+                            14
+                          ],
+                          "cornerRadius": 8,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#FFFFFF"
+                            }
+                          ],
+                          "stroke": {
+                            "thickness": 1.5,
+                            "fill": [
+                              {
+                                "type": "solid",
+                                "color": "#1E40AF"
+                              }
+                            ]
+                          },
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "name": "salu",
+                              "content": "salu",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 14,
+                              "fontWeight": 600,
+                              "color": "#0F172A",
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#0F172A"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "name": "TICursor",
+                              "content": "|",
+                              "fontFamily": "Crimson Text, serif",
+                              "fontSize": 14,
+                              "fontWeight": 600,
+                              "color": "#1E40AF",
                               "fill": [
                                 {
                                   "type": "solid",
                                   "color": "#1E40AF"
                                 }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "CSV",
-                                  "content": "CSV",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 11,
-                                  "fontWeight": 700,
-                                  "color": "#FFFFFF",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#FFFFFF"
-                                    }
-                                  ],
-                                  "letterSpacing": 1
-                                }
                               ]
                             },
                             {
                               "type": "frame",
-                              "name": "Badge_pdf",
+                              "name": "TISpacer",
                               "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 24,
-                              "padding": [
-                                4,
-                                10,
-                                4,
-                                10
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "PDF",
-                                  "content": "PDF",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 11,
-                                  "fontWeight": 700,
-                                  "color": "#1E40AF",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E40AF"
-                                    }
-                                  ],
-                                  "letterSpacing": 1
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Badge_json",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 24,
-                              "padding": [
-                                4,
-                                10,
-                                4,
-                                10
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "JSON",
-                                  "content": "JSON",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 11,
-                                  "fontWeight": 700,
-                                  "color": "#1E40AF",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E40AF"
-                                    }
-                                  ],
-                                  "letterSpacing": 1
-                                }
-                              ]
+                              "width": "fill_container",
+                              "height": 1,
+                              "children": []
                             }
                           ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "TagsFilter",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 10,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "TagsEye",
-                          "content": "ETIQUETAS",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 10,
-                          "fontWeight": 700,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ],
-                          "letterSpacing": 1.5
                         },
                         {
                           "type": "frame",
-                          "name": "TagsWrap",
-                          "layout": "horizontal",
+                          "name": "TIDropdown",
+                          "layout": "vertical",
                           "width": "fill_container",
                           "height": "fit_content",
-                          "gap": 6,
+                          "gap": 0,
+                          "margin": [
+                            4,
+                            0,
+                            0,
+                            0
+                          ],
+                          "cornerRadius": 8,
+                          "clipOverflow": true,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": [
+                              {
+                                "type": "solid",
+                                "color": "#DBEAFE"
+                              }
+                            ]
+                          },
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#FFFFFF"
+                            }
+                          ],
                           "children": [
                             {
                               "type": "frame",
-                              "name": "Tag1",
+                              "name": "TIDDHeader",
                               "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 24,
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "gap": 4,
                               "padding": [
-                                3,
                                 8,
-                                3,
-                                8
+                                12,
+                                4,
+                                12
                               ],
-                              "cornerRadius": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "TIDDH",
+                                  "content": "Tags que coinciden con \"salu\"",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 10,
+                                  "fontWeight": 700,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ],
+                                  "letterSpacing": 1
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "TIOpt1",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "gap": 8,
+                              "padding": [
+                                10,
+                                12,
+                                10,
+                                12
+                              ],
                               "fill": [
                                 {
                                   "type": "solid",
                                   "color": "#F8FAFC"
                                 }
                               ],
-                              "stroke": {
-                                "thickness": 1,
-                                "fill": [
-                                  {
-                                    "type": "solid",
-                                    "color": "#DBEAFE"
-                                  }
-                                ]
-                              },
                               "alignItems": "center",
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "#salud",
-                                  "content": "#salud",
+                                  "name": "TIOpt1T",
+                                  "content": "salud",
                                   "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 11,
-                                  "fontWeight": 500,
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#1E40AF",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#1E40AF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "TIOpt1B",
+                                  "content": "exacto",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 10,
+                                  "fontWeight": 600,
+                                  "color": "#1E40AF",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#1E40AF"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "name": "TIOpt2",
+                              "layout": "horizontal",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "gap": 8,
+                              "padding": [
+                                10,
+                                12,
+                                10,
+                                12
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "≈",
+                                  "content": "≈",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "salud-mental",
+                                  "content": "salud-mental",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
                                   "color": "#0F172A",
                                   "fill": [
                                     {
@@ -20209,41 +20415,40 @@
                             },
                             {
                               "type": "frame",
-                              "name": "Tag2",
+                              "name": "TIOpt3",
                               "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 24,
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "gap": 8,
                               "padding": [
-                                3,
-                                8,
-                                3,
-                                8
+                                10,
+                                12,
+                                10,
+                                12
                               ],
-                              "cornerRadius": 4,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#F8FAFC"
-                                }
-                              ],
-                              "stroke": {
-                                "thickness": 1,
-                                "fill": [
-                                  {
-                                    "type": "solid",
-                                    "color": "#DBEAFE"
-                                  }
-                                ]
-                              },
-                              "alignItems": "center",
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "#educacion",
-                                  "content": "#educacion",
+                                  "name": "≈",
+                                  "content": "≈",
                                   "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 11,
-                                  "fontWeight": 500,
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "salud-publica",
+                                  "content": "salud-publica",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
                                   "color": "#0F172A",
                                   "fill": [
                                     {
@@ -20256,41 +20461,40 @@
                             },
                             {
                               "type": "frame",
-                              "name": "Tag3",
+                              "name": "TIOpt4",
                               "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 24,
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "gap": 8,
                               "padding": [
-                                3,
-                                8,
-                                3,
-                                8
+                                10,
+                                12,
+                                10,
+                                12
                               ],
-                              "cornerRadius": 4,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#F8FAFC"
-                                }
-                              ],
-                              "stroke": {
-                                "thickness": 1,
-                                "fill": [
-                                  {
-                                    "type": "solid",
-                                    "color": "#DBEAFE"
-                                  }
-                                ]
-                              },
-                              "alignItems": "center",
                               "children": [
                                 {
                                   "type": "text",
-                                  "name": "#investigacion",
-                                  "content": "#investigacion",
+                                  "name": "≈",
+                                  "content": "≈",
                                   "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 11,
-                                  "fontWeight": 500,
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
+                                  "color": "#334155",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#334155"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "name": "salubridad",
+                                  "content": "salubridad",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 400,
                                   "color": "#0F172A",
                                   "fill": [
                                     {
@@ -21625,1517 +21829,6 @@
                         {
                           "type": "solid",
                           "color": "#1E40AF"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "name": "TagInputPreview",
-              "layout": "vertical",
-              "width": "fill_container",
-              "height": "fit_content",
-              "gap": 24,
-              "padding": [
-                40,
-                80,
-                48,
-                80
-              ],
-              "fill": [
-                {
-                  "type": "solid",
-                  "color": "#FFFFFF"
-                }
-              ],
-              "children": [
-                {
-                  "type": "frame",
-                  "name": "TIPHeader",
-                  "layout": "vertical",
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "gap": 8,
-                  "alignItems": "center",
-                  "padding": [
-                    0,
-                    0,
-                    16,
-                    0
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "name": "TIPEye",
-                      "content": "TAG INPUT · 3 VARIANTES",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 13,
-                      "fontWeight": 700,
-                      "color": "#7C2D12",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#7C2D12"
-                        }
-                      ],
-                      "textAlign": "center",
-                      "letterSpacing": 2.5
-                    },
-                    {
-                      "type": "text",
-                      "name": "TIPTitle",
-                      "content": "Selector de tags con busqueda",
-                      "fontFamily": "EB Garamond, serif",
-                      "fontSize": 28,
-                      "fontWeight": 700,
-                      "color": "#0F172A",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#0F172A"
-                        }
-                      ],
-                      "textAlign": "center"
-                    },
-                    {
-                      "type": "text",
-                      "name": "TIPDesc",
-                      "content": "Componente UI estandar para seleccionar multiples tags con busqueda en tiempo real. Usado por GitHub topics, Stack Overflow, Notion filters, Linear, etc.",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 14,
-                      "fontWeight": 400,
-                      "color": "#334155",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#334155"
-                        }
-                      ],
-                      "width": 720,
-                      "textGrowth": "fixed-width",
-                      "textAlign": "center",
-                      "lineHeight": 1.5
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "name": "VariantA",
-                  "layout": "vertical",
-                  "width": 720,
-                  "height": "fit_content",
-                  "gap": 12,
-                  "padding": [
-                    24,
-                    24,
-                    24,
-                    24
-                  ],
-                  "cornerRadius": 12,
-                  "fill": [
-                    {
-                      "type": "solid",
-                      "color": "#FFFFFF"
-                    }
-                  ],
-                  "stroke": {
-                    "thickness": 1,
-                    "fill": [
-                      {
-                        "type": "solid",
-                        "color": "#DBEAFE"
-                      }
-                    ]
-                  },
-                  "children": [
-                    {
-                      "type": "frame",
-                      "name": "VAHeader",
-                      "layout": "horizontal",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "VALetter",
-                          "content": "A",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 700,
-                          "color": "#7C2D12",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#7C2D12"
-                            }
-                          ],
-                          "letterSpacing": 2
-                        },
-                        {
-                          "type": "text",
-                          "name": "VATitle",
-                          "content": "CLASICO",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 600,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "name": "VADesc",
-                      "content": "Filtra de una lista pre-existente de tags. Si escribis algo que no existe, no aparece nada.",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 12,
-                      "fontWeight": 400,
-                      "color": "#334155",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#334155"
-                        }
-                      ],
-                      "lineHeight": 1.5
-                    },
-                    {
-                      "type": "frame",
-                      "name": "VABody",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 0,
-                      "padding": [
-                        16,
-                        16,
-                        16,
-                        16
-                      ],
-                      "cornerRadius": 8,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#F8FAFC"
-                        }
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "name": "ChipsRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            0,
-                            12,
-                            0
-                          ],
-                          "children": [
-                            {
-                              "type": "frame",
-                              "name": "Chip_salud",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_salud",
-                                  "content": "#salud",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_salud",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_salud",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Chip_educacio",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_educacio",
-                                  "content": "#educacion",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_educacio",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_educacio",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Chip_investig",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_investig",
-                                  "content": "#investigacion",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_investig",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_investig",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "InputBox",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "cornerRadius": 8,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#FFFFFF"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1.5,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#1E40AF"
-                              }
-                            ]
-                          },
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Buscar tags...",
-                              "content": "Buscar tags...",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Spacer",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "text",
-                              "name": "InputKbd",
-                              "content": "↵",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 600,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "name": "VariantB",
-                  "layout": "vertical",
-                  "width": 720,
-                  "height": "fit_content",
-                  "gap": 12,
-                  "padding": [
-                    24,
-                    24,
-                    24,
-                    24
-                  ],
-                  "cornerRadius": 12,
-                  "fill": [
-                    {
-                      "type": "solid",
-                      "color": "#FFFFFF"
-                    }
-                  ],
-                  "stroke": {
-                    "thickness": 1,
-                    "fill": [
-                      {
-                        "type": "solid",
-                        "color": "#DBEAFE"
-                      }
-                    ]
-                  },
-                  "children": [
-                    {
-                      "type": "frame",
-                      "name": "VBHeader",
-                      "layout": "horizontal",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "VBLetter",
-                          "content": "B",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 700,
-                          "color": "#7C2D12",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#7C2D12"
-                            }
-                          ],
-                          "letterSpacing": 2
-                        },
-                        {
-                          "type": "text",
-                          "name": "VBTitle",
-                          "content": "CREATABLE",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 600,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "name": "VBDesc",
-                      "content": "Muestra tags existentes que coinciden (incluyendo matches parciales y similares). NO se crean tags nuevos via este componente.",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 12,
-                      "fontWeight": 400,
-                      "color": "#334155",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#334155"
-                        }
-                      ],
-                      "lineHeight": 1.5
-                    },
-                    {
-                      "type": "frame",
-                      "name": "VABody",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 0,
-                      "padding": [
-                        16,
-                        16,
-                        16,
-                        16
-                      ],
-                      "cornerRadius": 8,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#F8FAFC"
-                        }
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "name": "ChipsRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            0,
-                            12,
-                            0
-                          ],
-                          "children": [
-                            {
-                              "type": "frame",
-                              "name": "Chip_salud",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_salud",
-                                  "content": "#salud",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_salud",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_salud",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Chip_educacio",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_educacio",
-                                  "content": "#educacion",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_educacio",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_educacio",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "InputBox",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "cornerRadius": 8,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#FFFFFF"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1.5,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#1E40AF"
-                              }
-                            ]
-                          },
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "salu",
-                              "content": "salu",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 600,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "name": "Cursor",
-                              "content": "|",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 600,
-                              "color": "#1E40AF",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#1E40AF"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Spacer",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": 1
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "Dropdown",
-                          "layout": "vertical",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 0,
-                          "margin": [
-                            4,
-                            0,
-                            0,
-                            0
-                          ],
-                          "cornerRadius": 8,
-                          "clipContent": true,
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#FFFFFF"
-                            }
-                          ],
-                          "children": [
-                            {
-                              "type": "frame",
-                              "name": "DDHeader",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": "fit_content",
-                              "gap": 4,
-                              "padding": [
-                                8,
-                                12,
-                                4,
-                                12
-                              ],
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "DDHeaderTxt",
-                                  "content": "Tags que coinciden con \"salu\"",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 10,
-                                  "fontWeight": 700,
-                                  "color": "#334155",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#334155"
-                                    }
-                                  ],
-                                  "letterSpacing": 1
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Opt_salud",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": "fit_content",
-                              "gap": 8,
-                              "padding": [
-                                10,
-                                12,
-                                10,
-                                12
-                              ],
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#F8FAFC"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "Opt_salud",
-                                  "content": "salud",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 400,
-                                  "color": "#1E40AF",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#1E40AF"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Opt_salud-me",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": "fit_content",
-                              "gap": 8,
-                              "padding": [
-                                10,
-                                12,
-                                10,
-                                12
-                              ],
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "Sim_salud-me",
-                                  "content": "≈",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 600,
-                                  "color": "#334155",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#334155"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "name": "Opt_salud-me",
-                                  "content": "salud-mental",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 400,
-                                  "color": "#0F172A",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#0F172A"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Opt_salud-pu",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": "fit_content",
-                              "gap": 8,
-                              "padding": [
-                                10,
-                                12,
-                                10,
-                                12
-                              ],
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "Sim_salud-pu",
-                                  "content": "≈",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 600,
-                                  "color": "#334155",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#334155"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "name": "Opt_salud-pu",
-                                  "content": "salud-publica",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 400,
-                                  "color": "#0F172A",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#0F172A"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Opt_salubrid",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": "fit_content",
-                              "gap": 8,
-                              "padding": [
-                                10,
-                                12,
-                                10,
-                                12
-                              ],
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "Sim_salubrid",
-                                  "content": "≈",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 600,
-                                  "color": "#334155",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#334155"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "name": "Opt_salubrid",
-                                  "content": "salubridad",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 13,
-                                  "fontWeight": 400,
-                                  "color": "#0F172A",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#0F172A"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "name": "VariantC",
-                  "layout": "vertical",
-                  "width": 720,
-                  "height": "fit_content",
-                  "gap": 12,
-                  "padding": [
-                    24,
-                    24,
-                    24,
-                    24
-                  ],
-                  "cornerRadius": 12,
-                  "fill": [
-                    {
-                      "type": "solid",
-                      "color": "#FFFFFF"
-                    }
-                  ],
-                  "stroke": {
-                    "thickness": 1,
-                    "fill": [
-                      {
-                        "type": "solid",
-                        "color": "#DBEAFE"
-                      }
-                    ]
-                  },
-                  "children": [
-                    {
-                      "type": "frame",
-                      "name": "VCHeader",
-                      "layout": "horizontal",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "VCLetter",
-                          "content": "C",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 700,
-                          "color": "#7C2D12",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#7C2D12"
-                            }
-                          ],
-                          "letterSpacing": 2
-                        },
-                        {
-                          "type": "text",
-                          "name": "VCTitle",
-                          "content": "PRE-SELECCIONADOS",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 14,
-                          "fontWeight": 600,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "name": "VCDesc",
-                      "content": "Los tags iniciales vienen del backend (ej: tags del dataset que se esta editando). El usuario puede agregar mas o quitar los existentes.",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 12,
-                      "fontWeight": 400,
-                      "color": "#334155",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#334155"
-                        }
-                      ],
-                      "lineHeight": 1.5
-                    },
-                    {
-                      "type": "frame",
-                      "name": "VCBody",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 0,
-                      "padding": [
-                        16,
-                        16,
-                        16,
-                        16
-                      ],
-                      "cornerRadius": 8,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#F8FAFC"
-                        }
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "name": "ChipsRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            0,
-                            12,
-                            0
-                          ],
-                          "children": [
-                            {
-                              "type": "frame",
-                              "name": "Chip_salud-pu",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_salud-pu",
-                                  "content": "#salud-publica",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_salud-pu",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_salud-pu",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Chip_bolivia",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_bolivia",
-                                  "content": "#bolivia",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_bolivia",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_bolivia",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Chip_UMSS-202",
-                              "layout": "horizontal",
-                              "width": "fit_content",
-                              "height": 26,
-                              "gap": 6,
-                              "padding": [
-                                2,
-                                8,
-                                2,
-                                4
-                              ],
-                              "cornerRadius": 999,
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FED7AA"
-                                }
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "name": "ChipT_UMSS-202",
-                                  "content": "#UMSS-2024",
-                                  "fontFamily": "Crimson Text, serif",
-                                  "fontSize": 12,
-                                  "fontWeight": 600,
-                                  "color": "#7C2D12",
-                                  "fill": [
-                                    {
-                                      "type": "solid",
-                                      "color": "#7C2D12"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "name": "ChipX_UMSS-202",
-                                  "layout": "horizontal",
-                                  "width": 18,
-                                  "height": 18,
-                                  "cornerRadius": 999,
-                                  "alignItems": "center",
-                                  "justifyContent": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "name": "ChipXT_UMSS-202",
-                                      "content": "×",
-                                      "fontFamily": "Crimson Text, serif",
-                                      "fontSize": 14,
-                                      "fontWeight": 600,
-                                      "color": "#7C2D12",
-                                      "fill": [
-                                        {
-                                          "type": "solid",
-                                          "color": "#7C2D12"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "InputBox",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 8,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "cornerRadius": 8,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#FFFFFF"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1.5,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#1E40AF"
-                              }
-                            ]
-                          },
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Agregar mas tags...",
-                              "content": "Agregar mas tags...",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "name": "Spacer",
-                              "layout": "horizontal",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "text",
-                              "name": "↵",
-                              "content": "↵",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 14,
-                              "fontWeight": 600,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "HintRow",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": "fit_content",
-                          "gap": 8,
-                          "padding": [
-                            12,
-                            0,
-                            0,
-                            0
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "3 tags pre-cargados del b",
-                              "content": "3 tags pre-cargados del backend",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 11,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "letterSpacing": 0.3
-                            }
-                          ]
                         }
                       ]
                     }
