@@ -18313,30 +18313,52 @@
                       },
                       "children": [
                         {
+                          "type": "text",
+                          "name": "HashEye",
+                          "content": "SHA256",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 10,
+                          "fontWeight": 700,
+                          "color": "#334155",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#334155"
+                            }
+                          ],
+                          "letterSpacing": 2
+                        },
+                        {
                           "type": "frame",
-                          "name": "HashHeader",
+                          "name": "HashValueRow",
                           "layout": "horizontal",
                           "width": "fill_container",
                           "height": "fit_content",
                           "gap": 8,
-                          "justifyContent": "space_between",
                           "alignItems": "center",
+                          "padding": [
+                            4,
+                            0,
+                            0,
+                            0
+                          ],
                           "children": [
                             {
                               "type": "text",
-                              "name": "HashEye",
-                              "content": "SHA256",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 10,
-                              "fontWeight": 700,
-                              "color": "#334155",
+                              "name": "HashValue",
+                              "content": "a3f5d8e2...c9b1e5",
+                              "fontFamily": "monospace",
+                              "fontSize": 11,
+                              "fontWeight": 400,
+                              "color": "#0F172A",
                               "fill": [
                                 {
                                   "type": "solid",
-                                  "color": "#334155"
+                                  "color": "#0F172A"
                                 }
                               ],
-                              "letterSpacing": 2
+                              "width": 180,
+                              "textGrowth": "fixed-width"
                             },
                             {
                               "type": "frame",
@@ -18382,23 +18404,6 @@
                               ]
                             }
                           ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "HashValue",
-                          "content": "a3f5d8e2...c9b1e5",
-                          "fontFamily": "monospace",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#0F172A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#0F172A"
-                            }
-                          ],
-                          "width": "fill_container",
-                          "textGrowth": "fixed-width"
                         }
                       ]
                     },
@@ -18828,9 +18833,9 @@
                   "gap": 8,
                   "alignItems": "center",
                   "padding": [
-                    40,
+                    48,
                     0,
-                    24,
+                    32,
                     0
                   ],
                   "children": [
@@ -18988,15 +18993,6 @@
                         16
                       ],
                       "alignItems": "center",
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": [
-                          {
-                            "type": "solid",
-                            "color": "#DBEAFE"
-                          }
-                        ]
-                      },
                       "children": [
                         {
                           "type": "text",
