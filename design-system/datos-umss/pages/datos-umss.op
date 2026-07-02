@@ -17969,45 +17969,46 @@
                   "children": [
                     {
                       "type": "frame",
-                      "name": "ToggleView",
+                      "name": "ViewsDropdown",
                       "layout": "horizontal",
-                      "width": "fill_container",
-                      "height": 44,
-                      "gap": 0,
+                      "width": "fit_content",
+                      "height": 40,
+                      "gap": 12,
                       "padding": [
-                        4,
-                        4,
-                        4,
-                        4
+                        0,
+                        0,
+                        0,
+                        0
                       ],
-                      "cornerRadius": 8,
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#F8FAFC"
-                        }
-                      ],
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": [
-                          {
-                            "type": "solid",
-                            "color": "#DBEAFE"
-                          }
-                        ]
-                      },
+                      "alignItems": "center",
                       "children": [
                         {
+                          "type": "text",
+                          "name": "DropLabel",
+                          "content": "Vista:",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 500,
+                          "color": "#334155",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#334155"
+                            }
+                          ]
+                        },
+                        {
                           "type": "frame",
-                          "name": "Tab1",
+                          "name": "DropBtn",
                           "layout": "horizontal",
-                          "width": "fill_container",
+                          "width": "fit_content",
                           "height": 36,
+                          "gap": 8,
                           "padding": [
-                            8,
-                            16,
-                            8,
-                            16
+                            0,
+                            14,
+                            0,
+                            14
                           ],
                           "cornerRadius": 6,
                           "fill": [
@@ -18026,15 +18027,26 @@
                             ]
                           },
                           "alignItems": "center",
-                          "justifyContent": "center",
                           "children": [
                             {
+                              "type": "ellipse",
+                              "name": "DropIcon",
+                              "width": 8,
+                              "height": 8,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#1E3A8A"
+                                }
+                              ]
+                            },
+                            {
                               "type": "text",
-                              "name": "Tab1Txt",
+                              "name": "ActiveViewLabel",
                               "content": "Tabla",
                               "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
+                              "fontSize": 14,
+                              "fontWeight": 600,
                               "color": "#1E3A8A",
                               "fill": [
                                 {
@@ -18042,65 +18054,14 @@
                                   "color": "#1E3A8A"
                                 }
                               ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "Tab2",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 36,
-                          "padding": [
-                            8,
-                            16,
-                            8,
-                            16
-                          ],
-                          "cornerRadius": 6,
-                          "alignItems": "center",
-                          "justifyContent": "center",
-                          "children": [
+                            },
                             {
                               "type": "text",
-                              "name": "Tab2Txt",
-                              "content": "Grafico",
+                              "name": "Chevron",
+                              "content": "▼",
                               "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "Tab3",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 36,
-                          "padding": [
-                            8,
-                            16,
-                            8,
-                            16
-                          ],
-                          "cornerRadius": 6,
-                          "alignItems": "center",
-                          "justifyContent": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "Tab3Txt",
-                              "content": "Resumen",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
+                              "fontSize": 11,
+                              "fontWeight": 600,
                               "color": "#334155",
                               "fill": [
                                 {
