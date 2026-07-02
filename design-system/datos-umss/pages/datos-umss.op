@@ -17764,183 +17764,6 @@
                   "width": 900,
                   "textGrowth": "fixed-width",
                   "lineHeight": 1.5
-                },
-                {
-                  "type": "frame",
-                  "name": "Stats",
-                  "layout": "horizontal",
-                  "width": "fit_content",
-                  "height": 50,
-                  "gap": 48,
-                  "alignItems": "center",
-                  "padding": [
-                    12,
-                    0,
-                    0,
-                    0
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "name": "Stat1",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat1Num",
-                          "content": "2.4 MB",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 16,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat1Lbl",
-                          "content": "Tamaño",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "Stat2",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat2Num",
-                          "content": "1,248 filas",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 16,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat2Lbl",
-                          "content": "Registros",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "Stat3",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat3Num",
-                          "content": "5 columnas",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 16,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat3Lbl",
-                          "content": "Esquema",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "Stat4",
-                      "layout": "vertical",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "name": "Stat4Num",
-                          "content": "12 mar 2026",
-                          "fontFamily": "EB Garamond, serif",
-                          "fontSize": 16,
-                          "fontWeight": 700,
-                          "color": "#1E3A8A",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "name": "Stat4Lbl",
-                          "content": "Actualizado",
-                          "fontFamily": "Crimson Text, serif",
-                          "fontSize": 11,
-                          "fontWeight": 400,
-                          "color": "#334155",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#334155"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -18040,7 +17863,7 @@
                   "layout": "vertical",
                   "width": 280,
                   "height": "fit_content",
-                  "gap": 16,
+                  "gap": 12,
                   "children": [
                     {
                       "type": "frame",
@@ -18495,7 +18318,7 @@
                           "layout": "horizontal",
                           "width": "fill_container",
                           "height": "fit_content",
-                          "gap": 4,
+                          "gap": 8,
                           "justifyContent": "space_between",
                           "alignItems": "center",
                           "children": [
@@ -18516,17 +18339,45 @@
                               "letterSpacing": 2
                             },
                             {
-                              "type": "text",
-                              "name": "HashCopyTxt",
-                              "content": "Copiar",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 11,
-                              "fontWeight": 600,
-                              "color": "#1E40AF",
+                              "type": "frame",
+                              "name": "CopyBtn",
+                              "layout": "horizontal",
+                              "width": 24,
+                              "height": 24,
+                              "gap": 0,
                               "fill": [
                                 {
                                   "type": "solid",
-                                  "color": "#1E40AF"
+                                  "color": "#FFFFFF"
+                                }
+                              ],
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#DBEAFE"
+                                  }
+                                ]
+                              },
+                              "cornerRadius": 4,
+                              "alignItems": "center",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "name": "CopyIcon",
+                                  "content": "⧉",
+                                  "fontFamily": "Crimson Text, serif",
+                                  "fontSize": 13,
+                                  "fontWeight": 600,
+                                  "color": "#1E40AF",
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#1E40AF"
+                                    }
+                                  ]
                                 }
                               ]
                             }
@@ -18535,9 +18386,9 @@
                         {
                           "type": "text",
                           "name": "HashValue",
-                          "content": "a3f5d8e2c1b97f4e6a8d2c5b9e1f3a7d6c4b8e2f1a9d5c3b7e8f2a4d6c9b1e5",
+                          "content": "a3f5d8e2...c9b1e5",
                           "fontFamily": "monospace",
-                          "fontSize": 10,
+                          "fontSize": 11,
                           "fontWeight": 400,
                           "color": "#0F172A",
                           "fill": [
@@ -18546,7 +18397,8 @@
                               "color": "#0F172A"
                             }
                           ],
-                          "lineHeight": 1.4
+                          "width": "fill_container",
+                          "textGrowth": "fixed-width"
                         }
                       ]
                     },
@@ -18599,7 +18451,7 @@
               "layout": "vertical",
               "width": "fill_container",
               "height": "fit_content",
-              "gap": 24,
+              "gap": 16,
               "padding": [
                 40,
                 80,
@@ -18613,6 +18465,67 @@
                 }
               ],
               "children": [
+                {
+                  "type": "frame",
+                  "name": "Header",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "name": "APIEye",
+                      "content": "API · ENDPOINT",
+                      "fontFamily": "Crimson Text, serif",
+                      "fontSize": 12,
+                      "fontWeight": 700,
+                      "color": "#7C2D12",
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#7C2D12"
+                        }
+                      ],
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "name": "APITitle",
+                      "content": "Como consumir este resource via API",
+                      "fontFamily": "EB Garamond, serif",
+                      "fontSize": 28,
+                      "fontWeight": 700,
+                      "color": "#0F172A",
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#0F172A"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "name": "APIDesc",
+                      "content": "Usa estos endpoints para acceder programaticamente a los datos del resource.",
+                      "fontFamily": "Crimson Text, serif",
+                      "fontSize": 15,
+                      "fontWeight": 400,
+                      "color": "#334155",
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#334155"
+                        }
+                      ],
+                      "width": 720,
+                      "textGrowth": "fixed-width",
+                      "textAlign": "center",
+                      "lineHeight": 1.5
+                    }
+                  ]
+                },
                 {
                   "type": "frame",
                   "name": "EndpointCard",
@@ -18643,37 +18556,6 @@
                     ]
                   },
                   "children": [
-                    {
-                      "type": "text",
-                      "name": "EndpointEye",
-                      "content": "ENDPOINT · DATASTORE SEARCH",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 11,
-                      "fontWeight": 700,
-                      "color": "#7C2D12",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#7C2D12"
-                        }
-                      ],
-                      "letterSpacing": 2
-                    },
-                    {
-                      "type": "text",
-                      "name": "EndpointTitle",
-                      "content": "URL base del API (CKAN DataStore)",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 13,
-                      "fontWeight": 600,
-                      "color": "#0F172A",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#0F172A"
-                        }
-                      ]
-                    },
                     {
                       "type": "frame",
                       "name": "UrlBox",
@@ -18710,14 +18592,14 @@
                               "color": "#E2E8F0"
                             }
                           ],
-                          "width": 850,
+                          "width": 900,
                           "textGrowth": "fixed-width"
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "name": "EndpointActions",
+                      "name": "UrlActions",
                       "layout": "horizontal",
                       "width": "fit_content",
                       "height": "fit_content",
@@ -18753,7 +18635,7 @@
                             "fill": [
                               {
                                 "type": "solid",
-                                "color": "#1E3A8A"
+                                "color": "#1E40AF"
                               }
                             ]
                           },
@@ -18762,53 +18644,15 @@
                             {
                               "type": "text",
                               "name": "CopyUrlTxt",
-                              "content": "📋 Copiar URL",
+                              "content": "⧉ Copiar URL",
                               "fontFamily": "Crimson Text, serif",
                               "fontSize": 12,
                               "fontWeight": 600,
-                              "color": "#1E3A8A",
+                              "color": "#1E40AF",
                               "fill": [
                                 {
                                   "type": "solid",
-                                  "color": "#1E3A8A"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "OpenInApiBtn",
-                          "layout": "horizontal",
-                          "width": "fit_content",
-                          "height": 32,
-                          "padding": [
-                            6,
-                            12,
-                            6,
-                            12
-                          ],
-                          "cornerRadius": 6,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#1E3A8A"
-                            }
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "OpenApiTxt",
-                              "content": "Probar en API →",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 600,
-                              "color": "#FFFFFF",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#FFFFFF"
+                                  "color": "#1E40AF"
                                 }
                               ]
                             }
@@ -18867,7 +18711,7 @@
                     {
                       "type": "text",
                       "name": "CurlDesc",
-                      "content": "Obtener las primeras 5 filas filtrando por año 2024 y facultad Medicina",
+                      "content": "Obtener las primeras 5 filas",
                       "fontFamily": "Crimson Text, serif",
                       "fontSize": 13,
                       "fontWeight": 400,
@@ -18936,7 +18780,7 @@
                         {
                           "type": "text",
                           "name": "CodeL3",
-                          "content": "  -d '{",
+                          "content": "  -d '{\"resource_id\": \"a3f5d8e2\", \"limit\": 5}'",
                           "fontFamily": "monospace",
                           "fontSize": 12,
                           "fontWeight": 400,
@@ -18948,857 +18792,6 @@
                             }
                           ],
                           "lineHeight": 1.6
-                        },
-                        {
-                          "type": "text",
-                          "name": "CodeL4",
-                          "content": "    \"resource_id\": \"a3f5d8e2-c1b9-7f4e-a8d2-c5b9e1f3a7d6\",",
-                          "fontFamily": "monospace",
-                          "fontSize": 12,
-                          "fontWeight": 400,
-                          "color": "#A78BFA",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#A78BFA"
-                            }
-                          ],
-                          "lineHeight": 1.6
-                        },
-                        {
-                          "type": "text",
-                          "name": "CodeL5",
-                          "content": "    \"filters\": { \"Anio\": 2024, \"Facultad\": \"Medicina\" },",
-                          "fontFamily": "monospace",
-                          "fontSize": 12,
-                          "fontWeight": 400,
-                          "color": "#E2E8F0",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#E2E8F0"
-                            }
-                          ],
-                          "lineHeight": 1.6
-                        },
-                        {
-                          "type": "text",
-                          "name": "CodeL6",
-                          "content": "    \"limit\": 5",
-                          "fontFamily": "monospace",
-                          "fontSize": 12,
-                          "fontWeight": 400,
-                          "color": "#E2E8F0",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#E2E8F0"
-                            }
-                          ],
-                          "lineHeight": 1.6
-                        },
-                        {
-                          "type": "text",
-                          "name": "CodeL7",
-                          "content": "  }'",
-                          "fontFamily": "monospace",
-                          "fontSize": 12,
-                          "fontWeight": 400,
-                          "color": "#E2E8F0",
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#E2E8F0"
-                            }
-                          ],
-                          "lineHeight": 1.6
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "name": "CurlActions",
-                      "layout": "horizontal",
-                      "width": "fit_content",
-                      "height": "fit_content",
-                      "gap": 8,
-                      "padding": [
-                        4,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "name": "CopyCurlBtn",
-                          "layout": "horizontal",
-                          "width": "fit_content",
-                          "height": 32,
-                          "padding": [
-                            6,
-                            12,
-                            6,
-                            12
-                          ],
-                          "cornerRadius": 6,
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#FFFFFF"
-                            }
-                          ],
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#1E3A8A"
-                              }
-                            ]
-                          },
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "CopyCurlTxt",
-                              "content": "📋 Copiar curl",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 12,
-                              "fontWeight": 600,
-                              "color": "#1E3A8A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#1E3A8A"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "name": "ParamsCard",
-                  "layout": "vertical",
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "gap": 12,
-                  "padding": [
-                    24,
-                    24,
-                    24,
-                    24
-                  ],
-                  "cornerRadius": 12,
-                  "fill": [
-                    {
-                      "type": "solid",
-                      "color": "#FFFFFF"
-                    }
-                  ],
-                  "stroke": {
-                    "thickness": 1,
-                    "fill": [
-                      {
-                        "type": "solid",
-                        "color": "#DBEAFE"
-                      }
-                    ]
-                  },
-                  "children": [
-                    {
-                      "type": "text",
-                      "name": "ParamsEye",
-                      "content": "PARAMETROS DISPONIBLES",
-                      "fontFamily": "Crimson Text, serif",
-                      "fontSize": 11,
-                      "fontWeight": 700,
-                      "color": "#7C2D12",
-                      "fill": [
-                        {
-                          "type": "solid",
-                          "color": "#7C2D12"
-                        }
-                      ],
-                      "letterSpacing": 2
-                    },
-                    {
-                      "type": "frame",
-                      "name": "ParamsTable",
-                      "layout": "vertical",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "gap": 0,
-                      "cornerRadius": 8,
-                      "clipContent": true,
-                      "stroke": {
-                        "thickness": 1,
-                        "fill": [
-                          {
-                            "type": "solid",
-                            "color": "#DBEAFE"
-                          }
-                        ]
-                      },
-                      "children": [
-                        {
-                          "type": "frame",
-                          "name": "PHead",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 40,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "fill": [
-                            {
-                              "type": "solid",
-                              "color": "#F8FAFC"
-                            }
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PH1",
-                              "content": "Parametro",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PH2",
-                              "content": "Tipo",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PH3",
-                              "content": "Default",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PH4",
-                              "content": "Descripcion",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "PR1",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PR1C1",
-                              "content": "resource_id",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR1C2",
-                              "content": "string",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR1C3",
-                              "content": "requerido",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#7C2D12",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#7C2D12"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR1C4",
-                              "content": "ID del resource (UUID del CKAN resource)",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "PR2",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PR2C1",
-                              "content": "limit",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR2C2",
-                              "content": "int",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR2C3",
-                              "content": "100",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR2C4",
-                              "content": "Maximo de filas a retornar (max: 32000)",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "PR3",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PR3C1",
-                              "content": "offset",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR3C2",
-                              "content": "int",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR3C3",
-                              "content": "0",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR3C4",
-                              "content": "Offset para paginacion",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "PR4",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PR4C1",
-                              "content": "filters",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR4C2",
-                              "content": "object",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR4C3",
-                              "content": "{}",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR4C4",
-                              "content": "Filtros: {\"Anio\": 2024, \"Facultad\": [\"Medicina\", \"Ingenieria\"]}",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "PR5",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PR5C1",
-                              "content": "q",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR5C2",
-                              "content": "string",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR5C3",
-                              "content": "-",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR5C4",
-                              "content": "Busqueda full-text en todos los campos",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "name": "PR6",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 44,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "PR6C1",
-                              "content": "sort",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR6C2",
-                              "content": "string",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR6C3",
-                              "content": "_id asc",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "PR6C4",
-                              "content": "\"Anio desc, Valor desc\" - ordenamiento",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 560,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
                         }
                       ]
                     }
@@ -19812,7 +18805,7 @@
               "layout": "vertical",
               "width": "fill_container",
               "height": "fit_content",
-              "gap": 24,
+              "gap": 16,
               "padding": [
                 40,
                 80,
@@ -19828,40 +18821,25 @@
               "children": [
                 {
                   "type": "frame",
-                  "name": "DataDictCard",
+                  "name": "Header",
                   "layout": "vertical",
                   "width": "fill_container",
                   "height": "fit_content",
-                  "gap": 16,
+                  "gap": 8,
+                  "alignItems": "center",
                   "padding": [
+                    40,
+                    0,
                     24,
-                    24,
-                    24,
-                    24
+                    0
                   ],
-                  "cornerRadius": 12,
-                  "fill": [
-                    {
-                      "type": "solid",
-                      "color": "#FFFFFF"
-                    }
-                  ],
-                  "stroke": {
-                    "thickness": 1,
-                    "fill": [
-                      {
-                        "type": "solid",
-                        "color": "#DBEAFE"
-                      }
-                    ]
-                  },
                   "children": [
                     {
                       "type": "text",
-                      "name": "DDEye",
-                      "content": "DATA DICTIONARY - ESQUEMA DE COLUMNAS",
+                      "name": "MDEye",
+                      "content": "METADATA · INFORMACION TECNICA",
                       "fontFamily": "Crimson Text, serif",
-                      "fontSize": 11,
+                      "fontSize": 12,
                       "fontWeight": 700,
                       "color": "#7C2D12",
                       "fill": [
@@ -19874,10 +18852,25 @@
                     },
                     {
                       "type": "text",
-                      "name": "DDDesc",
-                      "content": "Cada columna del dataset con su tipo, label human-readable y descripcion",
+                      "name": "MDTitle",
+                      "content": "Sobre este resource",
+                      "fontFamily": "EB Garamond, serif",
+                      "fontSize": 28,
+                      "fontWeight": 700,
+                      "color": "#0F172A",
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#0F172A"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "name": "MDDesc",
+                      "content": "Detalles tecnicos del archivo: formato, tamano, encoding y validacion. Para datasets tabulares se incluye data dictionary.",
                       "fontFamily": "Crimson Text, serif",
-                      "fontSize": 13,
+                      "fontSize": 15,
                       "fontWeight": 400,
                       "color": "#334155",
                       "fill": [
@@ -19886,17 +18879,115 @@
                           "color": "#334155"
                         }
                       ],
-                      "lineHeight": 1.4
+                      "width": 720,
+                      "textGrowth": "fixed-width",
+                      "textAlign": "center",
+                      "lineHeight": 1.5
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "name": "GeneralMetaCard",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "gap": 0,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "cornerRadius": 12,
+                  "clipContent": true,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": [
+                      {
+                        "type": "solid",
+                        "color": "#DBEAFE"
+                      }
+                    ]
+                  },
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#FFFFFF"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "name": "GMHeader",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 40,
+                      "gap": 0,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#F8FAFC"
+                        }
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "GMH1",
+                          "content": "Campo",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 700,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 240,
+                          "textGrowth": "fixed-width"
+                        },
+                        {
+                          "type": "text",
+                          "name": "GMH2",
+                          "content": "Valor",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 700,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
+                        }
+                      ]
                     },
                     {
                       "type": "frame",
-                      "name": "DDTable",
-                      "layout": "vertical",
+                      "name": "GMRow1",
+                      "layout": "horizontal",
                       "width": "fill_container",
-                      "height": "fit_content",
+                      "height": 44,
                       "gap": 0,
-                      "cornerRadius": 8,
-                      "clipContent": true,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
                       "stroke": {
                         "thickness": 1,
                         "fill": [
@@ -19908,565 +18999,338 @@
                       },
                       "children": [
                         {
-                          "type": "frame",
-                          "name": "DDHead",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 40,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
+                          "type": "text",
+                          "name": "GMR1C1",
+                          "content": "Formato",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
                           "fill": [
                             {
                               "type": "solid",
-                              "color": "#F8FAFC"
+                              "color": "#0F172A"
                             }
                           ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "name": "DDH1",
-                              "content": "Columna",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDH2",
-                              "content": "Tipo",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDH3",
-                              "content": "Label",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 180,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDH4",
-                              "content": "Descripcion",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 700,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 460,
-                              "textGrowth": "fixed-width"
-                            }
-                          ]
+                          "width": 240,
+                          "textGrowth": "fixed-width"
                         },
                         {
-                          "type": "frame",
-                          "name": "DDR1",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 56,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
+                          "type": "text",
+                          "name": "GMR1C2",
+                          "content": "CSV",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#0F172A",
+                          "fill": [
                             {
-                              "type": "text",
-                              "name": "DDR1C1",
-                              "content": "Indicador",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR1C2",
-                              "content": "text",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR1C3",
-                              "content": "Nombre del indicador",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 180,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR1C4",
-                              "content": "Tipo de indicador de salud: prevalencia, mortalidad, cobertura, etc.",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 460,
-                              "textGrowth": "fixed-width"
+                              "type": "solid",
+                              "color": "#0F172A"
                             }
-                          ]
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "GMRow2",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 0,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "GMR2C1",
+                          "content": "Tamano",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 240,
+                          "textGrowth": "fixed-width"
                         },
                         {
-                          "type": "frame",
-                          "name": "DDR2",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 56,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
+                          "type": "text",
+                          "name": "GMR2C2",
+                          "content": "2.4 MB",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#0F172A",
+                          "fill": [
                             {
-                              "type": "text",
-                              "name": "DDR2C1",
-                              "content": "Facultad",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR2C2",
-                              "content": "text",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR2C3",
-                              "content": "Facultad UMSS",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 180,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR2C4",
-                              "content": "Facultad que reporta el indicador (Medicina, Ingenieria, etc.)",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 460,
-                              "textGrowth": "fixed-width"
+                              "type": "solid",
+                              "color": "#0F172A"
                             }
-                          ]
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "GMRow3",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 0,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "GMR3C1",
+                          "content": "MIME",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 240,
+                          "textGrowth": "fixed-width"
                         },
                         {
-                          "type": "frame",
-                          "name": "DDR3",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 56,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
+                          "type": "text",
+                          "name": "GMR3C2",
+                          "content": "text/csv",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#0F172A",
+                          "fill": [
                             {
-                              "type": "text",
-                              "name": "DDR3C1",
-                              "content": "Anio",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR3C2",
-                              "content": "int",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR3C3",
-                              "content": "Anio academico",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 180,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR3C4",
-                              "content": "Anio al que corresponde el indicador (rango 2020-2024)",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 460,
-                              "textGrowth": "fixed-width"
+                              "type": "solid",
+                              "color": "#0F172A"
                             }
-                          ]
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "GMRow4",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 0,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "GMR4C1",
+                          "content": "Encoding",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 240,
+                          "textGrowth": "fixed-width"
                         },
                         {
-                          "type": "frame",
-                          "name": "DDR4",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 56,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
+                          "type": "text",
+                          "name": "GMR4C2",
+                          "content": "UTF-8",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#0F172A",
+                          "fill": [
                             {
-                              "type": "text",
-                              "name": "DDR4C1",
-                              "content": "Valor",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR4C2",
-                              "content": "float",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR4C3",
-                              "content": "Valor del indicador",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 180,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR4C4",
-                              "content": "Valor numerico (porcentaje, tasa, conteo, etc.)",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 460,
-                              "textGrowth": "fixed-width"
+                              "type": "solid",
+                              "color": "#0F172A"
                             }
-                          ]
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "GMRow5",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 0,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "GMR5C1",
+                          "content": "Creado",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 240,
+                          "textGrowth": "fixed-width"
                         },
                         {
-                          "type": "frame",
-                          "name": "DDR5",
-                          "layout": "horizontal",
-                          "width": "fill_container",
-                          "height": 56,
-                          "gap": 0,
-                          "padding": [
-                            0,
-                            16,
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "stroke": {
-                            "thickness": 1,
-                            "fill": [
-                              {
-                                "type": "solid",
-                                "color": "#DBEAFE"
-                              }
-                            ]
-                          },
-                          "children": [
+                          "type": "text",
+                          "name": "GMR5C2",
+                          "content": "15 ene 2024",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#0F172A",
+                          "fill": [
                             {
-                              "type": "text",
-                              "name": "DDR5C1",
-                              "content": "Unidad",
-                              "fontFamily": "monospace",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#E2E8F0",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#E2E8F0"
-                                }
-                              ],
-                              "width": 160,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR5C2",
-                              "content": "text",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 80,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR5C3",
-                              "content": "Unidad de medida",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 500,
-                              "color": "#0F172A",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#0F172A"
-                                }
-                              ],
-                              "width": 180,
-                              "textGrowth": "fixed-width"
-                            },
-                            {
-                              "type": "text",
-                              "name": "DDR5C4",
-                              "content": "Unidad del valor (%, por 1000, casos/mes, etc.)",
-                              "fontFamily": "Crimson Text, serif",
-                              "fontSize": 13,
-                              "fontWeight": 400,
-                              "color": "#334155",
-                              "fill": [
-                                {
-                                  "type": "solid",
-                                  "color": "#334155"
-                                }
-                              ],
-                              "width": 460,
-                              "textGrowth": "fixed-width"
+                              "type": "solid",
+                              "color": "#0F172A"
                             }
-                          ]
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "name": "GMRow6",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 44,
+                      "gap": 0,
+                      "padding": [
+                        0,
+                        16,
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#DBEAFE"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "name": "GMR6C1",
+                          "content": "Modificado",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 400,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 240,
+                          "textGrowth": "fixed-width"
+                        },
+                        {
+                          "type": "text",
+                          "name": "GMR6C2",
+                          "content": "12 mar 2026",
+                          "fontFamily": "Crimson Text, serif",
+                          "fontSize": 13,
+                          "fontWeight": 600,
+                          "color": "#0F172A",
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#0F172A"
+                            }
+                          ],
+                          "width": 520,
+                          "textGrowth": "fixed-width"
                         }
                       ]
                     }
