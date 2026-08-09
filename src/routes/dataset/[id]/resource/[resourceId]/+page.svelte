@@ -95,17 +95,17 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 });
 
 // ─── Derived: field list ───────────────────────────────────────
-// Solo se muestran los metadatos con valor. Se omiten campos redundantes
-// con el resto de la vista (nombre -> título, descripción -> su sección,
-// url -> botón de descarga, hash -> sin valor útil) y las fechas, que se
-// muestran debajo del título.
+// Render every resource_show field that has a non-empty value.
+// name/description/url/state/last_modified are rendered elsewhere.
 const fieldList = $derived.by(() => {
 	if (!resource) return [];
 	const fields: { label: string; value: string | null | undefined; raw: unknown }[] = [
 		{ label: "Formato", value: resource.format, raw: resource.format },
 		{ label: "Tamaño", value: formatSize(resource.size), raw: resource.size },
+		{ label: "Tipo MIME", value: resource.mimetype, raw: resource.mimetype },
 		{ label: "Tipo de recurso", value: resource.resource_type, raw: resource.resource_type },
 		{ label: "Creado", value: formatDate(resource.created), raw: resource.created },
+		{ label: "Hash", value: resource.hash, raw: resource.hash },
 	];
 	return fields.filter((f) => f.raw !== undefined && f.raw !== null && f.raw !== "");
 });

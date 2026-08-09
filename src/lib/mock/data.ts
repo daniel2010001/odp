@@ -1,7 +1,7 @@
 // Datos mock para desarrollo sin CKAN conectado
 // Simula las respuestas de la API de CKAN
 
-import type { CkanFacet, CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import type { CkanFacet, CkanOrganization, CkanPackage, CkanResource } from "$lib/types/ckan";
 
 export const MOCK_ORGS: CkanOrganization[] = [
 	{
