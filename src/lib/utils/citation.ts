@@ -91,7 +91,10 @@ export function formatCitationBibTeX(dataset: CkanPackage): string {
 	const url = buildDatasetUrl(dataset);
 
 	// Construir key única: apellido + año + primera palabra del título
-	const authorKey = author.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
+	const authorKey = author
+		.split(/\s+/)[0]
+		.toLowerCase()
+		.replace(/[^a-z]/g, "");
 	const titleKey = title
 		.split(/\s+/)[0]
 		.toLowerCase()

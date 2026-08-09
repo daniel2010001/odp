@@ -163,28 +163,23 @@ const metadataItems = $derived.by(() => {
 	{:else if dataset}
 		<!-- Header -->
 		<div class="mb-8">
-			<div class="mb-4 flex flex-wrap items-center gap-2">
+			<h1 class="font-heading text-3xl font-bold text-foreground sm:text-4xl">
+				{dataset.title || dataset.name}
+			</h1>
+			<div class="mt-3 h-1 w-16 rounded-full bg-primary/30"></div>
+
+			<!-- Meta: org + private (below title) -->
+			<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
 				{#if dataset.organization}
-					<span
-						class="inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-primary"
-					>
+					<span class="inline-flex items-center gap-1.5">
 						<Building2 class="size-3.5" />
 						{dataset.organization.title}
 					</span>
 				{/if}
 				{#if dataset.private}
-					<span
-						class="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive ring-1 ring-destructive/20"
-					>
-						Privado
-					</span>
+					<span class="text-destructive">· Privado</span>
 				{/if}
 			</div>
-
-			<h1 class="font-heading text-3xl font-bold text-foreground sm:text-4xl">
-				{dataset.title || dataset.name}
-			</h1>
-			<div class="mt-3 h-1 w-16 rounded-full bg-primary/30"></div>
 		</div>
 
 		<!-- Description -->
@@ -224,14 +219,14 @@ const metadataItems = $derived.by(() => {
 				<div class="flex flex-wrap gap-1.5">
 					{#each visibleTags as tag}
 						<span
-							class="rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+							class="inline-flex items-center justify-center rounded px-2 py-0.5 text-[10px] text-muted-foreground"
 						>
 							#{tag.display_name || tag.name}
 						</span>
 					{/each}
 					{#if hiddenTagCount > 0}
 						<span
-							class="rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+							class="inline-flex items-center justify-center rounded px-2 py-0.5 text-[10px] text-muted-foreground"
 						>
 							+{hiddenTagCount} más
 						</span>

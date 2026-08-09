@@ -59,25 +59,23 @@ function shortDate(iso: string): string {
 <a href={`/dataset/${dataset.id}`} class="group block no-underline">
 	<Card class={cn('cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200', className)}>
 		<div class="p-4 space-y-2">
-			<!-- Header: org + private -->
-			<div class="flex items-start justify-between gap-2">
+			<!-- Title -->
+			<h3 class="font-heading text-base font-semibold text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline">
+				{dataset.title || dataset.name}
+			</h3>
+
+			<!-- Meta: org + private (inline, below title) -->
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
 				{#if dataset.organization}
-					<span class="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-primary">
+					<span class="inline-flex items-center gap-1">
 						<Building2 class="size-3" />
 						{dataset.organization.title}
 					</span>
 				{/if}
 				{#if dataset.private}
-					<span class="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive ring-1 ring-destructive/20">
-						Privado
-					</span>
+					<span class="text-destructive">· Privado</span>
 				{/if}
 			</div>
-
-			<!-- Title -->
-			<h3 class="font-heading text-base font-semibold text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline">
-				{dataset.title || dataset.name}
-			</h3>
 
 			<!-- Description -->
 			<p class="text-sm text-muted-foreground line-clamp-2">
@@ -88,7 +86,7 @@ function shortDate(iso: string): string {
 			{#if dataset.tags?.length}
 				<div class="flex flex-wrap items-center gap-1.5">
 					{#each dataset.tags.slice(0, 3) as tag}
-						<span class="rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+						<span class="inline-flex items-center justify-center rounded px-2 py-0.5 text-[10px] text-muted-foreground">
 							#{tag.display_name || tag.name}
 						</span>
 					{/each}
