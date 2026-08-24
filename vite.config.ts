@@ -23,6 +23,10 @@ export default defineConfig({
 	server: {
 		// Escucha en 0.0.0.0 para poder correr detrás de un proxy/contenedor.
 		host: true,
+		// Hosts permitidos: sin esto Vite bloquea las requests cuyo Host header
+		// no sea localhost. Se accede por dominio (odp.hs.lan, vía Caddy/nginx)
+		// y por IP LAN directa (:8082).
+		allowedHosts: ["odp.hs.lan", "192.168.1.201"],
 		proxy: {
 			"/api": {
 				target: process.env.CKAN_PROXY_TARGET ?? "http://localhost:5000",
