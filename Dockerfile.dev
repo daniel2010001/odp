@@ -10,6 +10,10 @@ RUN npm install -g pnpm@10.12.1
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
+# Config + código (vite.config.ts, svelte.config.js, src/, static/, ...).
+# src/ y static/ se sobrescriben con bind mounts en runtime para HMR.
+COPY . .
+
 EXPOSE 5173
 
 # vite.config.ts ya tiene `server.host: true`, así que Vite escucha en 0.0.0.0
