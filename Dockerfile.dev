@@ -14,6 +14,11 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # src/ y static/ se sobrescriben con bind mounts en runtime para HMR.
 COPY . .
 
+# $env/static/public requiere las variables PUBLIC_* desde `.env`
+# (no desde `.env.example`). Sin esto falla en el cliente con
+# "doesn't provide an export named 'PUBLIC_APP_URL'".
+COPY .env.example .env
+
 EXPOSE 5173
 
 # vite.config.ts ya tiene `server.host: true`, así que Vite escucha en 0.0.0.0
