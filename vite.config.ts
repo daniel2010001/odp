@@ -21,11 +21,20 @@ export default defineConfig({
 
 	// En desarrollo, deriva /api/* a CKAN para evitar CORS
 	server: {
+		// Escucha en 0.0.0.0 para poder correr detrás de un proxy/contenedor.
+		host: true,
 		proxy: {
 			"/api": {
-				target: "http://localhost:5000",
+				target: process.env.CKAN_PROXY_TARGET ?? "http://localhost:5000",
 				changeOrigin: true,
 			},
+		},
+		// Permite HMR detrás de un reverse proxy: el cliente se conecta al
+		// puerto público del proxy en vez del puerto interno de Vite.
+		hmr: {
+			clientPort: process.env.VITE_HMR_CLIENT_PORT
+				? Number(process.env.VITE_HMR_CLIENT_PORT)
+				: undefined,
 		},
 	},
 });

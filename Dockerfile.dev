@@ -1,0 +1,16 @@
+# Frontend development image — Vite dev server with HMR (hot reload).
+# No build; source is bind-mounted at runtime for live changes.
+
+FROM node:20-alpine
+WORKDIR /app
+
+RUN npm install -g pnpm@10.12.1
+
+# Dependencias primero (cachea la capa de install)
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+EXPOSE 5173
+
+# vite.config.ts ya tiene `server.host: true`, así que Vite escucha en 0.0.0.0
+CMD ["pnpm", "dev"]
