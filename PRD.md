@@ -212,14 +212,17 @@ Desarrollar e implementar una plataforma digital centralizada de gestión y publ
 
 ## 10. Consideraciones Técnicas
 
-- **Backend**: Node.js (NestJS) o Python (Django) con API REST.
-- **Base de datos**: PostgreSQL (JSONB para metadatos, tablas EAV para normalización de CSV).
-- **Búsqueda**: Solr (o Elasticsearch) con indexación asíncrona.
-- **Almacenamiento de archivos**: Sistema de archivos local o S3-compatible (MinIO) con rutas organizadas por hash.
-- **Colas de trabajo**: Bull/Redis para procesamiento de CSV y normalización.
-- **Frontend**: React con componentes reutilizables (Material UI o Tailwind).
-- **Autenticación**: JWT con refresh tokens.
-- **Despliegue**: Docker + Kubernetes (opcional) para escalabilidad.
+> **Nota (ago 2026)**: la implementación decidió **reutilizar CKAN** como backend en lugar de
+> construir una plataforma desde cero, y el frontend se implementó en **SvelteKit** (no React).
+> Esta sección refleja el stack realmente adoptado.
+
+- **Backend**: [CKAN](https://ckan.org) (Python), plataforma open-source de datos abiertos. El frontend consume su API REST (`package_search`, `organization_list`, `package_show`, etc.).
+- **Base de datos**: PostgreSQL (gestionada por CKAN).
+- **Búsqueda**: Solr (integrado en CKAN).
+- **Almacenamiento de archivos**: gestionado por CKAN (filestore local o S3-compatible).
+- **Frontend**: SvelteKit 2 + Svelte 5 (runes) + TailwindCSS 4 + shadcn-svelte. TypeScript 6, pnpm 10.
+- **Autenticación**: tokens/sesiones de CKAN (sin JWT custom en el frontend).
+- **Despliegue**: Docker (docker-compose para CKAN + frontend).
 
 ---
 
