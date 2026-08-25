@@ -51,10 +51,10 @@ Chain strategy: pending
 
 ## Phase 4: UI
 
-- [ ] 4.1 Login page: runes form, zod, loading/error, `goto(returnTo || "/dashboard")` (`src/routes/auth/login/+page.svelte`)
-- [ ] 4.2 Dashboard: minimal + client guard → `goto("/auth/login")` (`src/routes/dashboard/+page.svelte`)
-- [ ] 4.3 Test + implement `UserMenu.svelte`: runes dropdown (name, Dashboard, Cerrar sesión) (`src/lib/components/auth/UserMenu.svelte`)
-- [ ] 4.4 Replace `{#if false}` block with conditional `UserMenu` desktop+mobile (`src/routes/+layout.svelte`)
+- [x] 4.1 Login page: runes form, zod, loading/error, `goto(returnTo || "/dashboard")` (`src/routes/auth/login/+page.svelte`)
+- [x] 4.2 Dashboard: minimal + client guard → `goto("/auth/login")` (`src/routes/dashboard/+page.svelte`)
+- [x] 4.3 Test + implement `UserMenu.svelte`: runes dropdown (name, Dashboard, Cerrar sesión) (`src/lib/components/auth/UserMenu.svelte`)
+- [x] 4.4 Replace `{#if false}` block with conditional `UserMenu` desktop+mobile (`src/routes/+layout.svelte`)
 
 ## Phase 5: Env + Docs
 

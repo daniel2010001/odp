@@ -1,9 +1,9 @@
-# Apply Progress: Authentication — Work Units 1–3 (Foundation + Server Auth Helper + Routes/Client API)
+# Apply Progress: Authentication — Work Units 1–4 (Foundation + Server Auth Helper + Routes/Client API + UI)
 
 - **Change**: authentication
-- **Phase**: Phase 1 (tasks 1.1–1.7) + Phase 2 (tasks 2.1–2.2) + Phase 3 (tasks 3.1–3.5)
+- **Phase**: Phase 1 (tasks 1.1–1.7) + Phase 2 (tasks 2.1–2.2) + Phase 3 (tasks 3.1–3.5) + Phase 4 (tasks 4.1–4.4)
 - **Mode**: Strict TDD
-- **Branch**: `feat/auth-01-foundation` (WU1, targets `main`) → `feat/auth-02-server` (WU2) → `feat/auth-03-routes` (WU3, stacked on WU2)
+- **Branch**: `feat/auth-01-foundation` (WU1, targets `main`) → `feat/auth-02-server` (WU2) → `feat/auth-03-routes` (WU3) → `feat/auth-04-ui` (WU4, stacked on WU3)
 - **Date**: 2026-08-24
 
 ---
@@ -108,6 +108,42 @@
 
 ---
 
+## Work Unit 4 (UI)
+
+### Completed Tasks
+
+- [x] 4.1 Login page: runes form, zod, loading/error, `goto(returnTo || "/dashboard")` (`src/routes/auth/login/+page.svelte`)
+- [x] 4.2 Dashboard: minimal + client guard → `goto("/auth/login")` (`src/routes/dashboard/+page.svelte`)
+- [x] 4.3 Test + implement `UserMenu.svelte`: runes dropdown (name, Dashboard, Cerrar sesión) (`src/lib/components/auth/UserMenu.svelte`)
+- [x] 4.4 Replace `{#if false}` block with conditional `UserMenu` desktop+mobile (`src/routes/+layout.svelte`)
+
+### TDD Cycle Evidence (WU4)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.3 | `src/lib/components/auth/UserMenu.test.ts` | Component (jsdom) | N/A (new) | ✅ module-not-found | ✅ 5/5 | ✅ display_name + fallback + open/close + Escape + logout | ✅ clean (`biome --write`) |
+| 4.2 | `src/routes/dashboard/dashboard.test.ts` | Component (jsdom) | N/A (new) | ✅ module-not-found | ✅ 3/3 | ✅ anonymous-redirect + authenticated + superadmin | ✅ clean |
+| 4.1 | — (route form) | — | N/A (new) | ➖ Structural | n/a | ➖ skipped: form wiring (zod + API covered in WU1/WU3) | ➖ none |
+| 4.4 | — (layout wiring) | — | ✅ 77/77 baseline | ➖ Structural | n/a | ➖ skipped: conditional render wiring | ➖ none |
+
+### Work Unit Evidence (WU4)
+
+| Evidence | Value |
+|---|---|
+| Focused test command | `pnpm test src/lib/components/auth/UserMenu.test.ts src/routes/dashboard/dashboard.test.ts` — 8 passed (exit 0); full `pnpm test` — 85 passed (12 files) |
+| Runtime harness | Manual browser login (`pnpm dev`) — not executed (no live CKAN dev instance in this environment); route wiring validated by `svelte-check` + `svelte-kit sync` |
+| Rollback boundary | Delete `src/lib/components/auth/*`, `src/routes/dashboard/*`, `src/routes/auth/login/+page.svelte`; revert `src/routes/+layout.svelte` `{#if false}` block, `src/test/mocks/app/navigation.ts` + `vitest.config.ts` alias. Store/API/server untouched — UI-only |
+
+### Test Summary (WU4)
+
+- **Total tests written**: 8 (5 UserMenu + 3 dashboard)
+- **Total tests passing**: 85 (12 files) — was 77 (10 files) before WU4
+- **Layers used**: Component/Integration (jsdom, 8)
+- **`pnpm check`**: 0 errors, 4 pre-existing warnings (ThemePlayground a11y ×2, SearchBar state_referenced_locally, tsconfig node types) — unrelated to this change
+- **`biome check`**: clean on all 8 changed files (4 auto-fixed for import order)
+
+---
+
 ## Deviations / Notes (cumulative)
 
 1. **Test infra prerequisite**: `origin/main` (10d0160) did NOT contain the Vitest test infrastructure — it lives on `chore/cleanup` (commit `452a844`, unmerged). Strict TDD required a runner, so WU1 PR includes a `chore(test)` commit as a prerequisite. Recommend merging `chore/cleanup`'s test-infra commit before later WUs.
@@ -120,10 +156,11 @@
 8. **Testable handler via extracted module (WU3)**: `+server.ts` imports `$env/dynamic/private`, which Vitest cannot resolve. Extracted all testable logic (rate limiter, body parse, error map, orchestration) into `src/lib/server/auth-server.ts` (no `$env` import), returning plain `{ status, body }` results the route converts with `json(...)`.
 9. **`$env/dynamic/private` is `{ env }`, not named exports (WU3)**: the generated ambient types expose `export const env`, so the route reads `env.CKAN_INTERNAL_URL` (not `import { CKAN_INTERNAL_URL }`). Falls back to `http://localhost:5000` for dev.
 10. **Timeout maps to 504, not 502 (WU3)**: the design contract lists 401/429/502 only; `TIMEOUT` is mapped to 504 (semantically correct upstream timeout) with the Spanish message "La conexión con CKAN expiró.". All other upstream failures map to 502 with a specific Spanish message.
+11. **`$app/navigation` unresolvable in Vitest (WU4)**: SvelteKit's `$app/*` virtual modules don't resolve under Vitest (the project's `vitest.config.ts` only aliases `$lib`). Added a lightweight `src/test/mocks/app/navigation.ts` stub (exports `vi.fn()` per navigation API) and aliased `$app/navigation` in `vitest.config.ts`, so component tests import and assert on `goto` directly without `vi.mock("$app/navigation", ...)`.
+12. **Dashboard guard is SSR-safe (WU4)**: the `/dashboard` guard runs in `onMount` (client-only) and content is gated by `{#if $isAuthenticated}`. During SSR the store reads window-less (null), so nothing renders and there is no flash; the redirect fires only on the client after hydration.
 
-## Remaining (Phases 4–5 — NOT implemented)
+## Remaining (Phase 5 — NOT implemented)
 
-- [ ] 4.1–4.4 Login UI, dashboard, UserMenu, layout
 - [ ] 5.1–5.3 Env vars + docs (`CKAN_INTERNAL_URL`)
 
 ## Commits (cumulative)
@@ -150,3 +187,10 @@ WU3:
 - `980528d` feat(auth): add client login/logout API module
 - `8e73263` test(auth): add login route handler and token revoke tests
 - `d54b0e6` feat(auth): add login and logout server routes
+- `45f842d` docs(openspec): record apply progress for authentication work unit 3
+
+WU4:
+
+- `4266e8e` chore(test): stub `$app/navigation` for vitest component tests
+- `135fd97` test(auth): add user menu and dashboard guard tests
+- `34f2ab0` feat(auth): add login page, dashboard, and user menu
