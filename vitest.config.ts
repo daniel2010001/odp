@@ -19,6 +19,11 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			$lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+			// `$app/*` son módulos virtuales de SvelteKit que no resuelven en
+			// Vitest. Se mapean a stubs testables (src/test/mocks/app/).
+			"$app/navigation": fileURLToPath(
+				new URL("./src/test/mocks/app/navigation.ts", import.meta.url),
+			),
 		},
 	},
 	test: {
