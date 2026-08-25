@@ -28,13 +28,13 @@ Chain strategy: pending
 
 ## Phase 1: Foundation
 
-- [ ] 1.1 Add `sysadmin?`, `fullname?` to `CkanUser` (`src/lib/types/ckan.ts`)
-- [ ] 1.2 Extend `ApiClientConfig.apiKey` to `string | (() => string | null)` (`src/lib/types/api.ts`)
-- [ ] 1.3 Resolve lazy `apiKey` in `request()` (`src/lib/api/client.ts`)
-- [ ] 1.4 `getCkanClient()` passes `getApiKey` getter (`src/lib/ckan.ts`)
-- [ ] 1.5 Auth store: localStorage persistence + hydration; `isSuperAdmin` → `user.sysadmin` (`src/lib/stores/auth.ts`)
-- [ ] 1.6 Create `loginSchema` (zod, Spanish messages) (`src/lib/schemas/auth.ts`)
-- [ ] 1.7 Test: store persistence/hydration + `isSuperAdmin` (`src/lib/stores/auth.test.ts`)
+- [x] 1.1 Add `sysadmin?`, `fullname?` to `CkanUser` (`src/lib/types/ckan.ts`)
+- [x] 1.2 Extend `ApiClientConfig.apiKey` to `string | (() => string | null)` (`src/lib/types/api.ts`)
+- [x] 1.3 Resolve lazy `apiKey` in `request()` (`src/lib/api/client.ts`)
+- [x] 1.4 `getCkanClient()` passes `getApiKey` getter (`src/lib/ckan.ts`)
+- [x] 1.5 Auth store: localStorage persistence + hydration; `isSuperAdmin` → `user.sysadmin` (`src/lib/stores/auth.ts`)
+- [x] 1.6 Create `loginSchema` (zod, Spanish messages) (`src/lib/schemas/auth.ts`)
+- [x] 1.7 Test: store persistence/hydration + `isSuperAdmin` (`src/lib/stores/auth.test.ts`)
 
 ## Phase 2: Server Auth Helper
 
