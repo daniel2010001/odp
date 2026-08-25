@@ -423,3 +423,23 @@ export function getMockResourceById(id: string): CkanResource | undefined {
 	}
 	return undefined;
 }
+
+/** Listar todas las organizaciones mock con package_count recomputado desde MOCK_DATASETS */
+export function getMockOrgs(): CkanOrganization[] {
+	return MOCK_ORGS.map((org) => ({
+		...org,
+		package_count: MOCK_DATASETS.filter((ds) => ds.organization?.name === org.name).length,
+	}));
+}
+
+/** Obtener una organización mock por id o name (slug) */
+export function getMockOrgById(idOrName: string): CkanOrganization | undefined {
+	return MOCK_ORGS.find((org) => org.id === idOrName || org.name === idOrName);
+}
+
+/** Listar datasets mock de una organización por name o id */
+export function getMockDatasetsByOrg(idOrName: string): CkanPackage[] {
+	return MOCK_DATASETS.filter(
+		(ds) => ds.organization?.name === idOrName || ds.organization?.id === idOrName,
+	);
+}
