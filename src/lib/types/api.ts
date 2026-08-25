@@ -3,8 +3,8 @@
 export interface ApiClientConfig {
 	/** URL base del CKAN (ej: https://data.miuniversidad.edu.bo) */
 	baseUrl: string;
-	/** API Key opcional para acciones autenticadas */
-	apiKey?: string;
+	/** API Key opcional para acciones autenticadas (string o getter lazy) */
+	apiKey?: string | (() => string | null);
 	/** Timeout por defecto en ms */
 	timeout?: number;
 }
