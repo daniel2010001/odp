@@ -1,0 +1,41 @@
+# ─── Dependencias / build local ──────────────────────────────
+node_modules
+.svelte-kit
+build
+
+# ─── Git / entorno / secretos ────────────────────────────────
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# ─── AI / herramientas / tooling ─────────────────────────────
+.opencode
+.atl
+.pi
+openspec
+
+# ─── Diseño / docs / assets no necesarios para el build ──────
+design-system
+
+# ─── Tests / specs ───────────────────────────────────────────
+**/*.test.ts
+**/*.spec.ts
+**/__tests__/**
+coverage
+src/test-setup.ts
+vitest.config.ts
+
+# ─── Tooling local / hooks ───────────────────────────────────
+.husky
+biome.json
+components.json
+
+# ─── Misc / SO ───────────────────────────────────────────────
+Dockerfile
+.dockerignore
+README.md
+PRD.md
+*.log
+.DS_Store

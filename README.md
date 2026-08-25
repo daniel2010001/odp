@@ -1,42 +1,60 @@
-# sv
+# odp — Plataforma de Datos Abiertos UMSS
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Portal de datos abiertos de la Universidad Mayor de San Simón (UMSS). Frontend en SvelteKit que consume la API de [CKAN](https://ckan.org).
 
-## Creating a project
+## Stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+- **Frontend**: SvelteKit 2 + Svelte 5 (runes) + TailwindCSS 4 + shadcn-svelte
+- **Lenguaje**: TypeScript (strict)
+- **Package manager**: pnpm 10
+- **Backend**: CKAN (Python) — ver `../odp-docker/ckan-docker`
+- **Lint/format**: Biome 2
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Requisitos
 
-To recreate this project with the same configuration:
+- Node.js 20+
+- pnpm 10
 
-```sh
-# recreate this project
-npx sv@0.16.1 create --template minimal --types ts --add tailwindcss="plugins:none" --no-install /tmp/sveltekit-scaffold
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Setup
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm install
+cp .env.example .env    # ajustar PUBLIC_CKAN_URL si es necesario
+pnpm dev                # http://localhost:5173
 ```
 
-## Building
+En desarrollo, el proxy de Vite deriva `/api/*` a `http://localhost:5000` (CKAN). Sin CKAN corriendo, la app usa datos mock.
 
-To create a production version of your app:
+## Scripts
 
-```sh
-npm run build
+| Comando          | Descripción                  |
+| ---------------- | ---------------------------- |
+| `pnpm dev`       | Servidor de desarrollo (Vite) |
+| `pnpm build`     | Build de producción          |
+| `pnpm preview`   | Previsualizar el build       |
+| `pnpm check`     | Typecheck (svelte-check)     |
+| `pnpm lint`      | Lint (Biome)                 |
+| `pnpm format`    | Formatear (Biome)            |
+
+## Estructura
+
+```
+src/
+├── routes/              # páginas (file-based routing de SvelteKit)
+│   ├── +page.svelte     # home
+│   ├── search/          # catálogo con búsqueda facetada
+│   ├── dataset/[id]/    # detalle de dataset
+│   ├── organizations/   # listado de organizaciones
+│   └── organization/[id]/  # detalle de organización
+└── lib/
+    ├── api/             # clientes CKAN (client, datasets, organizations, resources)
+    ├── components/      # UI (ui/, search/, dataset/, organizations/)
+    ├── stores/          # auth, search, theme
+    ├── types/           # tipos CKAN y de dominio
+    ├── utils/           # helpers (citation, ckan, csv)
+    └── mock/            # datos mock para desarrollo sin CKAN
 ```
 
-You can preview the production build with `npm run preview`.
+## Backend (CKAN)
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+El backend CKAN está dockerizado en `../odp-docker/ckan-docker` (`docker-compose.yml`). El plugin `ckanext-umss` vive en su carpeta `src/`.
