@@ -58,16 +58,16 @@ function shortDate(iso: string): string {
 
 <a href={`/dataset/${dataset.id}`} class="group block no-underline">
 	<Card class={cn('cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200', className)}>
-		<div class="p-4 space-y-2">
+		<div class="space-y-2 p-6">
 			<!-- Title -->
-			<h3 class="font-heading text-base font-semibold text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline">
+			<h3 class="font-heading text-lg font-semibold leading-snug text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline">
 				{dataset.title || dataset.name}
 			</h3>
 
 			<!-- Meta: org + private (inline, below title) -->
 			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
 				{#if dataset.organization}
-					<span class="inline-flex items-center gap-1">
+					<span class="inline-flex items-center gap-1 font-medium text-destructive">
 						<Building2 class="size-3" />
 						{dataset.organization.title}
 					</span>

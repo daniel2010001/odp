@@ -23,8 +23,11 @@ const hasMore = $derived(items.length > DEFAULT_SHOW);
 </script>
 
 <fieldset class={cn('space-y-1', className)}>
-	<legend class="mb-2 text-sm font-semibold text-primary">
-		{title}
+	<legend class="mb-2 flex items-baseline justify-between gap-2">
+		<span class="text-[11px] font-bold uppercase tracking-wider text-foreground">{title}</span>
+		{#if items.length > 0}
+			<span class="text-[11px] font-medium text-muted-foreground">({items.length})</span>
+		{/if}
 	</legend>
 
   {#each visibleItems as item (item.name)}
