@@ -2,7 +2,9 @@
 import "../app.css";
 import { Menu, Monitor, Moon, Sun, X } from "lucide-svelte";
 import { onDestroy } from "svelte";
+import UserMenu from "$lib/components/auth/UserMenu.svelte";
 import ThemePlayground from "$lib/components/ThemePlayground.svelte";
+import { isAuthenticated } from "$lib/stores/auth";
 import { theme } from "$lib/stores/theme";
 
 let { children } = $props();
@@ -74,14 +76,8 @@ function closeMobileMenu() {
 					{/if}
 				</button>
 
-				{#if false}
-					<!-- TODO: cuando tengamos auth -->
-					<a href="/dashboard" class="text-sm font-medium text-white/90 hover:text-white">
-						Dashboard
-					</a>
-					<a href="/auth/logout" class="text-sm font-medium text-red-300 hover:text-red-200">
-						Salir
-					</a>
+				{#if $isAuthenticated}
+					<UserMenu />
 				{:else}
 					<a
 						href="/auth/login"
@@ -144,13 +140,19 @@ function closeMobileMenu() {
 						{/if}
 					</button>
 
-					<a
-						href="/auth/login"
-						class="mt-2 block rounded-lg bg-[#E30613] px-3 py-2 text-center text-sm font-semibold text-white"
-						onclick={closeMobileMenu}
-					>
-						Iniciar Sesión
-					</a>
+					{#if $isAuthenticated}
+						<div class="mt-2">
+							<UserMenu />
+						</div>
+					{:else}
+						<a
+							href="/auth/login"
+							class="mt-2 block rounded-lg bg-[#E30613] px-3 py-2 text-center text-sm font-semibold text-white"
+							onclick={closeMobileMenu}
+						>
+							Iniciar Sesión
+						</a>
+					{/if}
 				</div>
 			</div>
 		{/if}
