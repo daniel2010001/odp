@@ -1,9 +1,9 @@
-# Apply Progress: Authentication — Work Units 1–4 (Foundation + Server Auth Helper + Routes/Client API + UI)
+# Apply Progress: Authentication — Work Units 1–5 (Foundation + Server Auth Helper + Routes/Client API + UI + Env/Docs)
 
 - **Change**: authentication
-- **Phase**: Phase 1 (tasks 1.1–1.7) + Phase 2 (tasks 2.1–2.2) + Phase 3 (tasks 3.1–3.5) + Phase 4 (tasks 4.1–4.4)
+- **Phase**: Phase 1 (tasks 1.1–1.7) + Phase 2 (tasks 2.1–2.2) + Phase 3 (tasks 3.1–3.5) + Phase 4 (tasks 4.1–4.4) + Phase 5 (tasks 5.1–5.3) — ALL COMPLETE
 - **Mode**: Strict TDD
-- **Branch**: `feat/auth-01-foundation` (WU1, targets `main`) → `feat/auth-02-server` (WU2) → `feat/auth-03-routes` (WU3) → `feat/auth-04-ui` (WU4, stacked on WU3)
+- **Branch**: `feat/auth-01-foundation` (WU1, targets `main`) → `feat/auth-02-server` (WU2) → `feat/auth-03-routes` (WU3) → `feat/auth-04-ui` (WU4, stacked on WU3) → `feat/auth-05-env` (WU5, stacked on WU4)
 - **Date**: 2026-08-24
 
 ---
@@ -144,6 +144,40 @@
 
 ---
 
+## Work Unit 5 (Env + Docs)
+
+### Completed Tasks
+
+- [x] 5.1 Add `CKAN_INTERNAL_URL` (server-only) to `.env.example`
+- [x] 5.2 Document `CKAN_INTERNAL_URL` odp-docker compose wiring (prod `http://ckan:5000`, dev `http://ckan-dev:5000`) — external repo NOT edited (documented in README only)
+- [x] 5.3 Run `pnpm check` typecheck gate — passes
+
+### TDD Cycle Evidence (WU5)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 5.1 | — (env config) | — | ✅ 85/85 baseline | ➖ Structural | n/a | ➖ skipped: config, no branch | ➖ none |
+| 5.2 | — (docs) | — | ✅ 85/85 baseline | ➖ Structural | n/a | ➖ skipped: docs-only | ➖ none |
+| 5.3 | — (typecheck gate) | — | ✅ 85/85 baseline | ➖ Structural | ✅ 0 errors | ➖ n/a — gate | ➖ none |
+
+### Work Unit Evidence (WU5)
+
+| Evidence | Value |
+|---|---|
+| Focused test command | `pnpm test` — 85 passed (12 files, exit 0); `pnpm check` — 0 errors, 4 pre-existing warnings |
+| Runtime harness | N/A — config/docs only; no runtime boundary in WU5 |
+| Rollback boundary | Revert `.env.example` (remove `CKAN_INTERNAL_URL` block), `README.md` (remove Autenticación section), `openspec/changes/authentication/tasks.md` + `apply-progress.md` |
+
+### Test Summary (WU5)
+
+- **Total tests written**: 0 (config/docs only — no production logic)
+- **Total tests passing**: 85 (12 files) — unchanged from WU4
+- **Layers used**: none (structural/config)
+- **`pnpm check`**: 0 errors, 4 pre-existing warnings (ThemePlayground a11y ×2, SearchBar state_referenced_locally, tsconfig node types) — unrelated to this change
+- **`biome check`**: no JS/TS files changed in this WU; repo-wide `biome check .` reports 0 errors (4 pre-existing warnings + 5 infos)
+
+---
+
 ## Deviations / Notes (cumulative)
 
 1. **Test infra prerequisite**: `origin/main` (10d0160) did NOT contain the Vitest test infrastructure — it lives on `chore/cleanup` (commit `452a844`, unmerged). Strict TDD required a runner, so WU1 PR includes a `chore(test)` commit as a prerequisite. Recommend merging `chore/cleanup`'s test-infra commit before later WUs.
@@ -158,10 +192,11 @@
 10. **Timeout maps to 504, not 502 (WU3)**: the design contract lists 401/429/502 only; `TIMEOUT` is mapped to 504 (semantically correct upstream timeout) with the Spanish message "La conexión con CKAN expiró.". All other upstream failures map to 502 with a specific Spanish message.
 11. **`$app/navigation` unresolvable in Vitest (WU4)**: SvelteKit's `$app/*` virtual modules don't resolve under Vitest (the project's `vitest.config.ts` only aliases `$lib`). Added a lightweight `src/test/mocks/app/navigation.ts` stub (exports `vi.fn()` per navigation API) and aliased `$app/navigation` in `vitest.config.ts`, so component tests import and assert on `goto` directly without `vi.mock("$app/navigation", ...)`.
 12. **Dashboard guard is SSR-safe (WU4)**: the `/dashboard` guard runs in `onMount` (client-only) and content is gated by `{#if $isAuthenticated}`. During SSR the store reads window-less (null), so nothing renders and there is no flash; the redirect fires only on the client after hydration.
+13. **`CKAN_INTERNAL_URL` compose wiring is external (WU5)**: task 5.2 names the `odp-docker` compose as the edit target, but `odp-docker` is a separate external repo (`/home/danielblc/projects/odp-docker`). Per work-unit instructions it was NOT edited; the required wiring (`CKAN_INTERNAL_URL=http://ckan:5000` prod / `http://ckan-dev:5000` dev) is documented in `README.md` (Autenticación section) and already reflected in `design.md` (File Changes table).
 
-## Remaining (Phase 5 — NOT implemented)
+## Phase 5 complete — no remaining tasks
 
-- [ ] 5.1–5.3 Env vars + docs (`CKAN_INTERNAL_URL`)
+All tasks 1.1–5.3 are complete. The `authentication` change is fully implemented.
 
 ## Commits (cumulative)
 
@@ -194,3 +229,9 @@ WU4:
 - `4266e8e` chore(test): stub `$app/navigation` for vitest component tests
 - `135fd97` test(auth): add user menu and dashboard guard tests
 - `34f2ab0` feat(auth): add login page, dashboard, and user menu
+- `cfb7449` docs(openspec): record apply progress for authentication work unit 4
+
+WU5:
+
+- `1372f25` chore(env): add server-only CKAN_INTERNAL_URL to .env.example
+- `a8d4e6d` docs(auth): document CKAN_INTERNAL_URL and odp-docker compose wiring

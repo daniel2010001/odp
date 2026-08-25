@@ -58,6 +58,6 @@ Chain strategy: pending
 
 ## Phase 5: Env + Docs
 
-- [ ] 5.1 Add `CKAN_INTERNAL_URL` (server-only) to `.env.example`
-- [ ] 5.2 Add `CKAN_INTERNAL_URL` to odp-docker compose (prod `http://ckan:5000`, dev `http://ckan-dev:5000`)
-- [ ] 5.3 Run `pnpm check` typecheck gate — must pass
+- [x] 5.1 Add `CKAN_INTERNAL_URL` (server-only) to `.env.example`
+- [x] 5.2 Document `CKAN_INTERNAL_URL` odp-docker compose wiring (prod `http://ckan:5000`, dev `http://ckan-dev:5000`) — external repo NOT edited (documented in README only)
+- [x] 5.3 Run `pnpm check` typecheck gate — must pass
