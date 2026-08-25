@@ -1,9 +1,9 @@
-# Apply Progress: Authentication — Work Units 1–2 (Foundation + Server Auth Helper)
+# Apply Progress: Authentication — Work Units 1–3 (Foundation + Server Auth Helper + Routes/Client API)
 
 - **Change**: authentication
-- **Phase**: Phase 1 (tasks 1.1–1.7) + Phase 2 (tasks 2.1–2.2)
+- **Phase**: Phase 1 (tasks 1.1–1.7) + Phase 2 (tasks 2.1–2.2) + Phase 3 (tasks 3.1–3.5)
 - **Mode**: Strict TDD
-- **Branch**: `feat/auth-01-foundation` (WU1, targets `main`) → `feat/auth-02-server` (WU2, stacked on WU1)
+- **Branch**: `feat/auth-01-foundation` (WU1, targets `main`) → `feat/auth-02-server` (WU2) → `feat/auth-03-routes` (WU3, stacked on WU2)
 - **Date**: 2026-08-24
 
 ---
@@ -72,6 +72,42 @@
 
 ---
 
+## Work Unit 3 (Server Routes + Client API)
+
+### Completed Tasks
+
+- [x] 3.1 RED: `login`/`logout` endpoint wiring tests (`src/lib/api/auth.test.ts`)
+- [x] 3.2 Implement client `login(username, password)` / `logout(token)` (`src/lib/api/auth.ts`)
+- [x] 3.3 RED: handler rate-limit + body-parse + error-map tests (`src/lib/server/auth-server.test.ts`)
+- [x] 3.4 Implement POST `/auth/login`: rate limit, parse, helper, Spanish errors (`src/routes/auth/login/+server.ts`)
+- [x] 3.5 Implement POST `/auth/logout`: best-effort `api_token_revoke` (`src/routes/auth/logout/+server.ts`)
+
+### TDD Cycle Evidence (WU3)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 3.1/3.2 | `src/lib/api/auth.test.ts` | Unit | N/A (new) | ✅ module-not-found | ✅ 5/5 | ✅ login success/401/500 + logout success/network | ✅ clean |
+| 3.3/3.4 | `src/lib/server/auth-server.test.ts` | Unit | N/A (new) | ✅ module-not-found | ✅ 19/19 | ✅ 4 rate-limit + 4 parse + 6 error-map + 5 handleLogin | ✅ clean (`biome --write`) |
+| 3.5 | `src/lib/server/ckan-auth.test.ts` | Unit | ✅ 11/11 (WU2 baseline) | ✅ 3 failed/11 passed | ✅ 14/14 | ✅ revoke happy-path + network + HTTP-error | ✅ clean |
+
+### Work Unit Evidence (WU3)
+
+| Evidence | Value |
+|---|---|
+| Focused test command | `pnpm test src/lib/api/auth.test.ts` — 5 passed; `pnpm test src/lib/server/auth-server.test.ts` — 19 passed; `pnpm test src/lib/server/ckan-auth.test.ts` — 14 passed; full `pnpm test` — 77 passed (10 files) |
+| Runtime harness | `curl -X POST http://localhost:5173/auth/login -H 'Content-Type: application/json' -d '{"username":"x","password":"y"}'` in `pnpm dev` — not executed (no live CKAN dev instance in this environment); route wiring validated by `svelte-check` + generated `$types` |
+| Rollback boundary | Delete `src/lib/api/auth.*`, `src/lib/server/auth-server.*`, `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts`, and revert `revokeToken` in `src/lib/server/ckan-auth.ts` (+ its tests). Store/UI untouched; `auth.ts` client API is unused until Phase 4 |
+
+### Test Summary (WU3)
+
+- **Total tests written**: 27 (5 client API + 19 handler + 3 revoke)
+- **Total tests passing**: 77 (10 files) — was 50 (8 files) before WU3
+- **Layers used**: Unit (27)
+- **`pnpm check`**: 0 errors, 4 pre-existing warnings (ThemePlayground a11y ×2, SearchBar state_referenced_locally, tsconfig node types) — unrelated to this change
+- **`biome check`**: clean on all 8 changed files (5 auto-fixed for import order)
+
+---
+
 ## Deviations / Notes (cumulative)
 
 1. **Test infra prerequisite**: `origin/main` (10d0160) did NOT contain the Vitest test infrastructure — it lives on `chore/cleanup` (commit `452a844`, unmerged). Strict TDD required a runner, so WU1 PR includes a `chore(test)` commit as a prerequisite. Recommend merging `chore/cleanup`'s test-infra commit before later WUs.
@@ -80,10 +116,13 @@
 4. **Pre-commit hook**: previously invoked `bun` (not installed). Now uses `pnpm exec biome check --staged --write` (fixed upstream in `chore(dev)`), so WU2 commits used the normal hook.
 5. **DOMException vs Error (WU2)**: jsdom v30's `DOMException` is not `instanceof Error`, so the mock's `throw` guard (`next instanceof Error`) did not rethrow it. The TIMEOUT test uses `new Error(...)` with `name = "AbortError"` instead; the helper checks `err.name`, matching real abort semantics.
 6. **Error codes beyond design (WU2)**: the design's Interfaces/Contracts listed only bad-creds / network / timeout / CSRF codes, but steps 2 and 4 also need typed failures. Added `USER_RESOLUTION_FAILED` and `TOKEN_CREATION_FAILED` to `CkanAuthErrorCode`. This clarifies the design without changing behavior.
+7. **`+server.test.ts` in `src/routes/` is illegal (WU3)**: SvelteKit reserves ALL `+`-prefixed files under `src/routes/`. `src/routes/auth/login/+server.test.ts` (task 3.3's stated path) breaks `svelte-kit sync` with "Files prefixed with + are reserved". Relocated the handler test to `src/lib/server/auth-server.test.ts` (co-located with the extracted `auth-server.ts` helpers it tests). The thin `+server.ts` wrapper is validated by `svelte-check` instead.
+8. **Testable handler via extracted module (WU3)**: `+server.ts` imports `$env/dynamic/private`, which Vitest cannot resolve. Extracted all testable logic (rate limiter, body parse, error map, orchestration) into `src/lib/server/auth-server.ts` (no `$env` import), returning plain `{ status, body }` results the route converts with `json(...)`.
+9. **`$env/dynamic/private` is `{ env }`, not named exports (WU3)**: the generated ambient types expose `export const env`, so the route reads `env.CKAN_INTERNAL_URL` (not `import { CKAN_INTERNAL_URL }`). Falls back to `http://localhost:5000` for dev.
+10. **Timeout maps to 504, not 502 (WU3)**: the design contract lists 401/429/502 only; `TIMEOUT` is mapped to 504 (semantically correct upstream timeout) with the Spanish message "La conexión con CKAN expiró.". All other upstream failures map to 502 with a specific Spanish message.
 
-## Remaining (Phases 3–5 — NOT implemented)
+## Remaining (Phases 4–5 — NOT implemented)
 
-- [ ] 3.1–3.5 Routes `/auth/login`, `/auth/logout` + client API
 - [ ] 4.1–4.4 Login UI, dashboard, UserMenu, layout
 - [ ] 5.1–5.3 Env vars + docs (`CKAN_INTERNAL_URL`)
 
@@ -104,3 +143,10 @@ WU2:
 
 - `2b21a38` test(auth): add server CKAN auth helper tests
 - `864b8a4` feat(auth): add server-side CKAN auth helper
+
+WU3:
+
+- `c382b6e` test(auth): add client login/logout API wiring tests
+- `980528d` feat(auth): add client login/logout API module
+- `8e73263` test(auth): add login route handler and token revoke tests
+- `d54b0e6` feat(auth): add login and logout server routes
