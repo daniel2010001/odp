@@ -5,12 +5,14 @@ import { cn } from "$lib/utils";
 let {
 	value = "",
 	placeholder = "Buscar datasets...",
+	submitLabel = "",
 	class: className = "",
 	onchange,
 	onsubmit,
 }: {
 	value?: string;
 	placeholder?: string;
+	submitLabel?: string;
 	class?: string;
 	onchange?: (value: string) => void;
 	onsubmit?: (value: string) => void;
@@ -77,7 +79,7 @@ function handleKeydown(e: KeyboardEvent) {
 		value={localValue}
 		oninput={handleInput}
 		aria-label="Buscar datasets"
-    class="h-12 w-full rounded-lg border border-border bg-background pl-10 pr-20 text-sm text-primary shadow-sm placeholder:text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    class="h-12 w-full rounded-lg border border-border bg-background pl-10 {submitLabel ? 'pr-36' : 'pr-20'} text-sm text-primary shadow-sm placeholder:text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 	/>
 
 	<div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
@@ -91,10 +93,19 @@ function handleKeydown(e: KeyboardEvent) {
 				<X class="size-4" />
 			</button>
 		{/if}
-		<kbd
-			class="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline"
-		>
-			⌘K
-		</kbd>
+		{#if submitLabel}
+			<button
+				type="submit"
+				class="flex h-9 items-center justify-center rounded-md bg-destructive px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-destructive/90 hover:shadow-md"
+			>
+				{submitLabel}
+			</button>
+		{:else}
+			<kbd
+				class="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline"
+			>
+				⌘K
+			</kbd>
+		{/if}
 	</div>
 </form>

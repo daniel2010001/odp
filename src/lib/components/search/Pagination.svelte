@@ -53,6 +53,7 @@ const pages = $derived.by(() => {
 			class="text-primary hover:bg-accent hover:text-primary/80"
 		>
 			<ChevronLeft class="size-4" />
+			<span class="hidden md:inline">Anterior</span>
 		</Button>
 
 		{#each pages as page (typeof page === 'number' ? page : `ellipsis-${Math.random()}`)}
@@ -65,7 +66,12 @@ const pages = $derived.by(() => {
 					onclick={() => onchange?.(page)}
 					aria-label={`Ir a página ${page}`}
 					aria-current={page === current ? 'page' : undefined}
-					class={page === current ? 'bg-primary text-white hover:bg-primary/80' : 'text-primary hover:bg-accent hover:text-primary/80'}
+					class={cn(
+						'min-w-10',
+						page === current
+							? 'bg-primary text-white hover:bg-primary/80'
+							: 'text-primary hover:bg-accent hover:text-primary/80',
+					)}
 				>
 					{page}
 				</Button>
@@ -80,6 +86,7 @@ const pages = $derived.by(() => {
 			aria-label="Página siguiente"
 			class="text-primary hover:bg-accent hover:text-primary/80"
 		>
+			<span class="hidden md:inline">Siguiente</span>
 			<ChevronRight class="size-4" />
 		</Button>
 	</nav>

@@ -169,33 +169,86 @@ const activeFilterCount = $derived(
 	</title>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-	<!-- Header -->
-	<div class="mb-8">
-    <h1 class="font-heading text-2xl font-semibold text-primary sm:text-3xl">
-      Catálogo de Datos
-    </h1>
-		<p class="mt-1 text-sm text-muted-foreground">
-			Explorá los datasets disponibles en la plataforma
+<!-- Hero -->
+<section class="bg-gradient-to-br from-primary to-primary/90">
+	<div class="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 lg:px-8 lg:py-16">
+		<p
+			class="text-xs font-bold uppercase tracking-[2.5px] text-destructive"
+		>
+			Catálogo de Datos
 		</p>
+		<h1
+			class="mx-auto mt-3 max-w-3xl font-heading text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl"
+		>
+			Explorá los datasets abiertos de la UMSS
+		</h1>
+		<p class="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/80">
+			Más de 1,200 datasets publicados por las facultades, departamentos e institutos de la universidad.
+		</p>
+
+		<div class="mx-auto mt-8 w-full max-w-[720px]">
+			<SearchBar
+				value={query}
+				placeholder="Buscá por organización, etiquetas, formato..."
+				submitLabel="Buscar"
+				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-white [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-primary"
+				onchange={onSearchChange}
+				onsubmit={onSearchChange}
+			/>
+		</div>
 	</div>
+</section>
 
-	<!-- Search bar -->
-	<SearchBar
-		value={query}
-		onchange={onSearchChange}
-		class="mb-6"
-	/>
+<!-- ResultsBar -->
+<section class="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
+	<div
+		class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6 lg:px-8"
+	>
+		<p class="flex items-baseline gap-2">
+			{#if loading}
+				<span class="text-sm text-muted-foreground">Buscando...</span>
+			{:else}
+				<span class="font-heading text-2xl font-bold text-foreground">{total.toLocaleString('es-BO')}</span>
+				<span class="text-sm text-muted-foreground">
+					{#if query}
+						resultado{total !== 1 ? 's' : ''} para <span class="font-medium text-foreground">"{query}"</span>
+					{:else}
+						datasets encontrados
+					{/if}
+				</span>
+			{/if}
+		</p>
 
-	<!-- Active filters -->
-	{#if hasActiveFilters}
-		<div class="mb-4 flex flex-wrap items-center gap-2">
+		<label class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+			<span class="hidden sm:inline">Ordenar:</span>
+			<select
+				value={sortBy}
+				onchange={(e) => {
+					sortBy = (e.target as HTMLSelectElement).value;
+					currentPage = 1;
+				}}
+				class="h-9 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+			>
+				<option value="metadata_modified desc">Más recientes</option>
+				<option value="metadata_modified asc">Más antiguos</option>
+				<option value="title_string asc">A-Z</option>
+				<option value="title_string desc">Z-A</option>
+				<option value="score desc">Relevancia</option>
+			</select>
+		</label>
+	</div>
+</section>
+
+<!-- Active filters -->
+{#if hasActiveFilters}
+	<div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+		<div class="flex flex-wrap items-center gap-2">
 			<span class="text-sm font-medium text-muted-foreground">Filtros activos:</span>
 
 			{#each selectedOrgs as org}
 				<button
 					onclick={() => toggleFilter('org', org)}
-          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{org}
 					<span class="ml-1">&times;</span>
@@ -204,7 +257,7 @@ const activeFilterCount = $derived(
 			{#each selectedFormats as format}
 				<button
 					onclick={() => toggleFilter('format', format)}
-          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{format}
 					<span class="ml-1">&times;</span>
@@ -213,7 +266,7 @@ const activeFilterCount = $derived(
 			{#each selectedTags as tag}
 				<button
 					onclick={() => toggleFilter('tags', tag)}
-          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{tag}
 					<span class="ml-1">&times;</span>
@@ -227,20 +280,23 @@ const activeFilterCount = $derived(
 				Limpiar todos
 			</button>
 		</div>
-	{/if}
+	</div>
+{/if}
 
+<!-- Body -->
+<div class="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
 	<div class="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
 		<!-- Sidebar: Facets -->
 		<aside class="mb-6 lg:mb-0">
-			<div class="space-y-6 rounded-xl border border-border bg-card p-4 shadow-sm">
+			<div class="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
 				<div class="flex items-center justify-between">
-          <h2 class="font-heading text-sm font-semibold text-primary">Filtros</h2>
+					<h2 class="text-[11px] font-bold uppercase tracking-wider text-foreground">Filtros</h2>
 					{#if hasActiveFilters}
 						<button
 							onclick={clearAllFilters}
-							class="text-xs font-medium text-muted-foreground underline underline-offset-2 transition-colors duration-200 hover:text-primary"
+							class="text-xs font-semibold text-destructive underline underline-offset-2 transition-colors duration-200 hover:text-destructive/80"
 						>
-							({activeFilterCount})
+							Limpiar ({activeFilterCount})
 						</button>
 					{/if}
 				</div>
@@ -285,36 +341,6 @@ const activeFilterCount = $derived(
 
 		<!-- Results -->
 		<div class="min-w-0">
-			<!-- Results header -->
-			<div class="mb-4 flex items-center justify-between">
-				<p class="text-sm text-muted-foreground">
-					{#if loading}
-						Buscando...
-					{:else}
-            <span class="font-heading font-medium text-primary">{total}</span>
-            resultado{total !== 1 ? 's' : ''}
-            {#if query}
-              para <span class="font-medium text-primary">"{query}"</span>
-            {/if}
-					{/if}
-				</p>
-
-				<select
-					value={sortBy}
-					onchange={(e) => {
-						sortBy = (e.target as HTMLSelectElement).value;
-						currentPage = 1;
-					}}
-					class="h-9 rounded-lg border border-border bg-background px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-				>
-					<option value="metadata_modified desc">Más recientes</option>
-					<option value="metadata_modified asc">Más antiguos</option>
-					<option value="title_string asc">A-Z</option>
-					<option value="title_string desc">Z-A</option>
-					<option value="score desc">Relevancia</option>
-				</select>
-			</div>
-
 			<!-- Error -->
 			{#if error}
 				<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
@@ -327,23 +353,23 @@ const activeFilterCount = $derived(
 			{#if loading}
 				<div class="space-y-4">
 					{#each Array(3) as _}
-            <div class="animate-pulse rounded-xl border border-border bg-card p-4">
-              <div class="mb-2 h-4 w-24 rounded bg-muted"></div>
-              <div class="mb-2 h-5 w-3/4 rounded bg-muted"></div>
-              <div class="mb-2 h-4 w-full rounded bg-muted"></div>
-              <div class="mb-3 h-4 w-1/2 rounded bg-muted"></div>
-              <div class="flex gap-2">
-                <div class="h-4 w-12 rounded bg-muted"></div>
-                <div class="h-4 w-12 rounded bg-muted"></div>
-              </div>
-            </div>
+						<div class="animate-pulse rounded-xl border border-border bg-card p-6">
+							<div class="mb-2 h-4 w-24 rounded bg-muted"></div>
+							<div class="mb-2 h-5 w-3/4 rounded bg-muted"></div>
+							<div class="mb-2 h-4 w-full rounded bg-muted"></div>
+							<div class="mb-3 h-4 w-1/2 rounded bg-muted"></div>
+							<div class="flex gap-2">
+								<div class="h-4 w-12 rounded bg-muted"></div>
+								<div class="h-4 w-12 rounded bg-muted"></div>
+							</div>
+						</div>
 					{/each}
 				</div>
 
 			<!-- Empty state -->
-			{:else if !loading && total === 0 && !error}
+			{:else if total === 0 && !error}
 				<div class="rounded-xl border border-border bg-card p-12 text-center">
-					<p class="text-lg font-medium text-primary">Sin resultados</p>
+					<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
 					<p class="mt-2 text-sm text-muted-foreground">
 						{query
 							? `No encontramos datasets para "${query}". Probá con otros términos o limpiá los filtros.`
