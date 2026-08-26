@@ -218,10 +218,10 @@ function closeMobileMenu() {
 						</li>
 						<li>
 							<a
-								href="/auth/login"
+								href="/dashboard"
 								class="transition-colors duration-200 hover:text-primary-foreground"
 							>
-								Iniciar Sesión
+								Dashboard
 							</a>
 						</li>
 					</ul>
