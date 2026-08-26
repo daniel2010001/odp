@@ -52,6 +52,12 @@ function closeMobileMenu() {
 					Catálogo
 				</a>
 				<a
+					href="/organizations"
+					class="text-sm font-medium text-white/90 transition-colors duration-200 hover:text-white"
+				>
+					Organizaciones
+				</a>
+				<a
 					href="/about"
 					class="text-sm font-medium text-white/90 transition-colors duration-200 hover:text-white"
 				>
@@ -120,6 +126,13 @@ function closeMobileMenu() {
 						Catálogo
 					</a>
 					<a
+						href="/organizations"
+						class="block rounded-md px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white"
+						onclick={closeMobileMenu}
+					>
+						Organizaciones
+					</a>
+					<a
 						href="/about"
 						class="block rounded-md px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white"
 						onclick={closeMobileMenu}
@@ -176,6 +189,9 @@ function closeMobileMenu() {
 				<div class="flex items-center gap-4 text-xs text-muted-foreground">
 					<a href="/about" class="hover:text-primary transition-colors duration-200">
 						Acerca de
+					</a>
+					<a href="/organizations" class="hover:text-primary transition-colors duration-200">
+						Organizaciones
 					</a>
 					<a href="/search" class="hover:text-primary transition-colors duration-200">
 						Catálogo

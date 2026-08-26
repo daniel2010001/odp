@@ -110,12 +110,14 @@ function handleHeroSearch(query: string) {
 					<p class="mt-1 text-sm text-muted-foreground">Datasets disponibles</p>
 				</div>
 			</Card>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6 text-center">
-					<p class="text-3xl font-bold text-primary">{stats.organizations}</p>
-					<p class="mt-1 text-sm text-muted-foreground">Organizaciones</p>
-				</div>
-			</Card>
+			<a href="/organizations" class="block">
+				<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+					<div class="p-6 text-center">
+						<p class="text-3xl font-bold text-primary">{stats.organizations}</p>
+						<p class="mt-1 text-sm text-muted-foreground">Organizaciones</p>
+					</div>
+				</Card>
+			</a>
 			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
 				<div class="p-6 text-center">
 					<p class="text-3xl font-bold text-primary">—</p>
