@@ -5,7 +5,7 @@ import type { ApiClientConfig } from "$lib/types/api";
 import { CkanApiError } from "$lib/types/api";
 
 export function createCkanClient(config: ApiClientConfig) {
-	const { baseUrl, apiKey, timeout = 10000 } = config;
+	const { baseUrl, timeout = 10000 } = config;
 
 	async function request<T>(
 		action: string,
@@ -18,6 +18,7 @@ export function createCkanClient(config: ApiClientConfig) {
 			"Content-Type": "application/json",
 		};
 
+		const apiKey = typeof config.apiKey === "function" ? config.apiKey() : config.apiKey;
 		if (apiKey) {
 			headers.Authorization = apiKey;
 		}

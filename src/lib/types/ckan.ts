@@ -59,6 +59,8 @@ export interface CkanUser {
 	state: "active" | "deleted";
 	role?: string;
 	capacity?: string;
+	sysadmin?: boolean;
+	fullname?: string;
 }
 
 // ─── Resource ────────────────────────────────────────────────────────
