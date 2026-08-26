@@ -1,21 +1,27 @@
 <script lang="ts">
-import { BarChart3, Eye, Search, Terminal, Upload, Users } from "lucide-svelte";
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import { createOrganizationApi } from "$lib/api/organizations";
+import OrganizationCard from "$lib/components/organizations/OrganizationCard.svelte";
 import SearchBar from "$lib/components/search/SearchBar.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
-import { getMockSearchResult, MOCK_ORGS } from "$lib/mock/data";
+import { getMockSearchResult, MOCK_DATASETS, MOCK_ORGS } from "$lib/mock/data";
+import type { CkanOrganization } from "$lib/types/ckan";
 
 let stats = $state({
 	datasets: 0,
 	organizations: 0,
+	resources: 0,
+	formats: 0,
 	loading: true,
 	error: null as string | null,
 });
+
+let orgs = $state<CkanOrganization[]>([]);
 
 onMount(async () => {
 	try {
@@ -23,14 +29,41 @@ onMount(async () => {
 		const datasetApi = createDatasetApi(client);
 		const searchResult = await datasetApi.search({ limit: 0 });
 		stats.datasets = searchResult.count;
+
+		try {
+			const organizationApi = createOrganizationApi(client);
+			const orgList = await organizationApi.list();
+			orgs = orgList.filter((o) => o.state === "active").slice(0, 6);
+		} catch {
+			// Fallback: organizaciones mock si CKAN no responde
+			orgs = MOCK_ORGS;
+		}
 	} catch {
 		// Fallback: mock si CKAN no responde
 		const mock = getMockSearchResult();
 		stats.datasets = mock.count;
+		orgs = MOCK_ORGS;
 	}
-	stats.organizations = MOCK_ORGS.length;
+	stats.organizations = orgs.length;
+	// Recursos y formatos: derivados del catálogo de referencia (mock)
+	stats.resources = MOCK_DATASETS.reduce((acc, ds) => acc + ds.resources.length, 0);
+	stats.formats = new Set(MOCK_DATASETS.flatMap((ds) => ds.resources.map((r) => r.format))).size;
 	stats.loading = false;
 });
+
+const heroStats = $derived([
+	{ value: stats.loading ? "…" : stats.datasets, label: "Datasets publicados" },
+	{ value: stats.loading ? "…" : stats.organizations, label: "Organizaciones" },
+	{ value: stats.loading ? "…" : stats.resources, label: "Recursos indexados" },
+	{ value: stats.loading ? "…" : stats.formats, label: "Formatos disponibles" },
+]);
+
+const platformStats = $derived([
+	{ value: stats.loading ? "…" : stats.datasets, label: "Datasets publicados" },
+	{ value: stats.loading ? "…" : stats.organizations, label: "Organizaciones activas" },
+	{ value: stats.loading ? "…" : stats.resources, label: "Recursos indexados" },
+	{ value: stats.loading ? "…" : stats.formats, label: "Formatos disponibles" },
+]);
 
 function handleHeroSearch(query: string) {
 	if (query.trim()) {
@@ -39,36 +72,121 @@ function handleHeroSearch(query: string) {
 }
 </script>
 
-<!-- Hero Section -->
-<section class="bg-gradient-to-br from-primary to-primary/90">
-	<div class="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-24">
+<!-- Hero B (variante) -->
+<section class="border-b border-border bg-gradient-to-b from-primary/10 to-background">
+	<div class="mx-auto max-w-4xl px-4 pb-16 pt-16 text-center sm:px-6 lg:pb-24 lg:pt-24">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
+			Plataforma de Datos Abiertos · UMSS
+		</p>
 		<h1
-			class="font-heading text-4xl font-semibold text-white sm:text-5xl lg:text-6xl"
+			class="mt-4 font-heading text-4xl font-bold leading-[1.1] text-foreground sm:text-5xl lg:text-[52px]"
 		>
-			Datos Abiertos UMSS
+			Datos abiertos para la comunidad universitaria
 		</h1>
-		<p class="mx-auto mt-4 max-w-2xl text-lg text-white/80">
-			Plataforma de Datos Abiertos de la Universidad Mayor de San Simón
+		<p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+			Explorá, analizá y reutilizá los conjuntos de datos académicos y administrativos de la
+			Universidad Mayor de San Simón, publicados bajo principios FAIR.
 		</p>
 
-		<!-- Search bar in hero -->
-		<div class="mx-auto mt-8 max-w-2xl">
+		<div class="mx-auto mt-10 max-w-2xl">
 			<SearchBar
 				value=""
 				placeholder="Buscar datasets, organizaciones, temas..."
-				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-white [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-primary"
+				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
 				onchange={handleHeroSearch}
 				onsubmit={handleHeroSearch}
 			/>
 		</div>
 
-		<div class="mt-8 flex justify-center gap-4">
+		<div class="mt-12 grid grid-cols-2 gap-8 lg:grid-cols-4">
+			{#each heroStats as stat (stat.label)}
+				<div>
+					<p class="font-heading text-3xl font-bold text-primary">{stat.value}</p>
+					<p class="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+				</div>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- Por organización -->
+<section id="organizaciones" class="bg-muted/50">
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+		<div class="text-center">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
+				Organizaciones
+			</p>
+			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
+				Datos por organización
+			</h2>
+			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+				Explorá los conjuntos de datos publicados por las facultades, direcciones e institutos de
+				la Universidad Mayor de San Simón.
+			</p>
+		</div>
+
+		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+			{#if orgs.length}
+				{#each orgs as org (org.id)}
+					<OrganizationCard
+						org={org}
+						count={org.package_count ?? 0}
+						href={`/search?org=${encodeURIComponent(org.name)}`}
+					/>
+				{/each}
+			{:else}
+				<p class="col-span-full text-center text-sm text-muted-foreground">
+					Cargando organizaciones...
+				</p>
+			{/if}
+		</div>
+	</div>
+</section>
+
+<!-- Sobre la plataforma -->
+<section class="bg-background">
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+		<div class="mx-auto max-w-3xl text-center">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">Plataforma</p>
+			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
+				Sobre la plataforma
+			</h2>
+			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+				Datos académicos y administrativos publicados bajo principios FAIR (localizables,
+				accesibles, interoperables y reutilizables), con búsqueda facetada, previsualización y
+				descarga en múltiples formatos.
+			</p>
+		</div>
+
+		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+			{#each platformStats as stat (stat.label)}
+				<Card class="bg-muted/50 p-6 text-center">
+					<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
+					<p class="mt-2 text-sm text-muted-foreground">{stat.label}</p>
+				</Card>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- CTA final -->
+<section class="bg-primary">
+	<div class="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:py-24">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary-foreground/80">
+			Empezá a explorar
+		</p>
+		<h2
+			class="mt-4 font-heading text-3xl font-bold leading-[1.15] text-primary-foreground sm:text-4xl lg:text-[40px]"
+		>
+			Los datos de la UMSS están a un clic
+		</h2>
+		<p class="mx-auto mt-4 max-w-2xl leading-relaxed text-primary-foreground/80">
+			Accedé al catálogo público, conocé las organizaciones y descargá los conjuntos de datos en
+			múltiples formatos para tus investigaciones y proyectos.
+		</p>
+		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
 			<a href="/search">
-				<Button
-					variant="default"
-					size="lg"
-					class="bg-secondary text-white hover:bg-secondary/90"
-				>
+				<Button variant="destructive" size="lg" class="h-[52px] px-8 text-base">
 					Explorar Catálogo
 				</Button>
 			</a>
@@ -76,132 +194,11 @@ function handleHeroSearch(query: string) {
 				<Button
 					variant="outline"
 					size="lg"
-					class="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+					class="h-[52px] border-primary-foreground/40 bg-transparent px-8 text-base text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
 				>
 					Más Información
 				</Button>
 			</a>
-		</div>
-	</div>
-</section>
-
-<!-- Stats -->
-<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-	{#if stats.loading}
-		<p class="text-center text-muted-foreground">Conectando con CKAN...</p>
-	{:else if stats.error}
-		<Card>
-			<div class="p-6 text-center">
-				<p class="font-semibold text-destructive">No se pudo conectar con CKAN.</p>
-				<p class="mt-1 text-sm text-muted-foreground">{stats.error}</p>
-				<p class="mt-2 text-sm text-muted-foreground">
-					Configurá
-					<code class="rounded bg-muted px-1">VITE_CKAN_URL</code>
-					en tu archivo
-					<code class="rounded bg-muted px-1">.env</code>.
-				</p>
-			</div>
-		</Card>
-	{:else}
-		<div class="grid gap-6 sm:grid-cols-3">
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6 text-center">
-					<p class="text-3xl font-bold text-primary">{stats.datasets}</p>
-					<p class="mt-1 text-sm text-muted-foreground">Datasets disponibles</p>
-				</div>
-			</Card>
-			<a href="/organizations" class="block">
-				<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-					<div class="p-6 text-center">
-						<p class="text-3xl font-bold text-primary">{stats.organizations}</p>
-						<p class="mt-1 text-sm text-muted-foreground">Organizaciones</p>
-					</div>
-				</Card>
-			</a>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6 text-center">
-					<p class="text-3xl font-bold text-primary">—</p>
-					<p class="mt-1 text-sm text-muted-foreground">Recursos indexados</p>
-				</div>
-			</Card>
-		</div>
-	{/if}
-</section>
-
-<!-- Features -->
-<section class="border-t bg-muted/50">
-	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-		<h2 class="text-center text-2xl font-semibold text-primary">
-			¿Qué podés hacer?
-		</h2>
-
-		<div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6">
-					<div class="mb-3 inline-flex rounded-lg bg-accent p-2.5 text-accent-foreground">
-						<Search class="size-5" />
-					</div>
-					<h3 class="font-semibold text-accent-foreground">Buscar y descubrir</h3>
-					<p class="mt-2 text-sm text-muted-foreground">
-						Navegá el catálogo con búsqueda facetada por organización, etiquetas, formato y más.
-					</p>
-				</div>
-			</Card>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6">
-					<div class="mb-3 inline-flex rounded-lg bg-accent p-2.5 text-accent-foreground">
-						<Eye class="size-5" />
-					</div>
-					<h3 class="font-semibold text-accent-foreground">Visualizar datos</h3>
-					<p class="mt-2 text-sm text-muted-foreground">
-						Previsualizá CSV, PDF, imágenes y JSON directamente en el navegador.
-					</p>
-				</div>
-			</Card>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6">
-					<div class="mb-3 inline-flex rounded-lg bg-accent p-2.5 text-accent-foreground">
-						<BarChart3 class="size-5" />
-					</div>
-					<h3 class="font-semibold text-accent-foreground">Analizar CSV</h3>
-					<p class="mt-2 text-sm text-muted-foreground">
-						Cargá archivos CSV y generá gráficos interactivos de barras, líneas y más.
-					</p>
-				</div>
-			</Card>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6">
-					<div class="mb-3 inline-flex rounded-lg bg-accent p-2.5 text-accent-foreground">
-						<Users class="size-5" />
-					</div>
-					<h3 class="font-semibold text-accent-foreground">Colaborar</h3>
-					<p class="mt-2 text-sm text-muted-foreground">
-						Trabajá en equipos, creá colecciones transversales y gestioná permisos.
-					</p>
-				</div>
-			</Card>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6">
-					<div class="mb-3 inline-flex rounded-lg bg-accent p-2.5 text-accent-foreground">
-						<Upload class="size-5" />
-					</div>
-					<h3 class="font-semibold text-accent-foreground">Publicar</h3>
-					<p class="mt-2 text-sm text-muted-foreground">
-						Flujo de aprobación de borrador a publicación con control de visibilidad.
-					</p>
-				</div>
-			</Card>
-			<Card class="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-				<div class="p-6">
-					<div class="mb-3 inline-flex rounded-lg bg-accent p-2.5 text-accent-foreground">
-						<Terminal class="size-5" />
-					</div>
-					<h3 class="font-semibold text-accent-foreground">API pública</h3>
-					<p class="mt-2 text-sm text-muted-foreground">
-						Accedé a los datasets públicos mediante API REST con API Key.
-					</p>
-				</div>
-			</Card>
 		</div>
 	</div>
 </section>
