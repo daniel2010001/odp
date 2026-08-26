@@ -38,26 +38,26 @@ Chain strategy: pending
 
 ## Phase 2: Server Auth Helper
 
-- [ ] 2.1 RED: mock-fetch tests for 6-step flow, cookie jar, CSRF fallback, error mapping (`src/lib/server/ckan-auth.test.ts`)
-- [ ] 2.2 Implement `ckan-auth.ts`: cookie jar, CSRF parse+fallback, mint; DI `baseUrl` (`src/lib/server/ckan-auth.ts`)
+- [x] 2.1 RED: mock-fetch tests for 6-step flow, cookie jar, CSRF fallback, error mapping (`src/lib/server/ckan-auth.test.ts`)
+- [x] 2.2 Implement `ckan-auth.ts`: cookie jar, CSRF parse+fallback, mint; DI `baseUrl` (`src/lib/server/ckan-auth.ts`)
 
 ## Phase 3: Server Routes + Client API
 
-- [ ] 3.1 RED: `login`/`logout` endpoint wiring tests (`src/lib/api/auth.test.ts`)
-- [ ] 3.2 Implement client `login(username, password)` / `logout(token)` (`src/lib/api/auth.ts`)
-- [ ] 3.3 RED: handler rate-limit + body-parse + error-map tests (`src/routes/auth/login/+server.test.ts`)
-- [ ] 3.4 Implement POST `/auth/login`: rate limit, parse, helper, Spanish errors (`src/routes/auth/login/+server.ts`)
-- [ ] 3.5 Implement POST `/auth/logout`: best-effort `api_token_revoke` (`src/routes/auth/logout/+server.ts`)
+- [x] 3.1 RED: `login`/`logout` endpoint wiring tests (`src/lib/api/auth.test.ts`)
+- [x] 3.2 Implement client `login(username, password)` / `logout(token)` (`src/lib/api/auth.ts`)
+- [x] 3.3 RED: handler rate-limit + body-parse + error-map tests (`src/lib/server/auth-server.test.ts`)
+- [x] 3.4 Implement POST `/auth/login`: rate limit, parse, helper, Spanish errors (`src/routes/auth/login/+server.ts`)
+- [x] 3.5 Implement POST `/auth/logout`: best-effort `api_token_revoke` (`src/routes/auth/logout/+server.ts`)
 
 ## Phase 4: UI
 
-- [ ] 4.1 Login page: runes form, zod, loading/error, `goto(returnTo || "/dashboard")` (`src/routes/auth/login/+page.svelte`)
-- [ ] 4.2 Dashboard: minimal + client guard → `goto("/auth/login")` (`src/routes/dashboard/+page.svelte`)
-- [ ] 4.3 Test + implement `UserMenu.svelte`: runes dropdown (name, Dashboard, Cerrar sesión) (`src/lib/components/auth/UserMenu.svelte`)
-- [ ] 4.4 Replace `{#if false}` block with conditional `UserMenu` desktop+mobile (`src/routes/+layout.svelte`)
+- [x] 4.1 Login page: runes form, zod, loading/error, `goto(returnTo || "/dashboard")` (`src/routes/auth/login/+page.svelte`)
+- [x] 4.2 Dashboard: minimal + client guard → `goto("/auth/login")` (`src/routes/dashboard/+page.svelte`)
+- [x] 4.3 Test + implement `UserMenu.svelte`: runes dropdown (name, Dashboard, Cerrar sesión) (`src/lib/components/auth/UserMenu.svelte`)
+- [x] 4.4 Replace `{#if false}` block with conditional `UserMenu` desktop+mobile (`src/routes/+layout.svelte`)
 
 ## Phase 5: Env + Docs
 
-- [ ] 5.1 Add `CKAN_INTERNAL_URL` (server-only) to `.env.example`
-- [ ] 5.2 Add `CKAN_INTERNAL_URL` to odp-docker compose (prod `http://ckan:5000`, dev `http://ckan-dev:5000`)
-- [ ] 5.3 Run `pnpm check` typecheck gate — must pass
+- [x] 5.1 Add `CKAN_INTERNAL_URL` (server-only) to `.env.example`
+- [x] 5.2 Document `CKAN_INTERNAL_URL` odp-docker compose wiring (prod `http://ckan:5000`, dev `http://ckan-dev:5000`) — external repo NOT edited (documented in README only)
+- [x] 5.3 Run `pnpm check` typecheck gate — must pass

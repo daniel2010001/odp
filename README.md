@@ -58,3 +58,24 @@ src/
 ## Backend (CKAN)
 
 El backend CKAN está dockerizado en `../odp-docker/ckan-docker` (`docker-compose.yml`). El plugin `ckanext-umss` vive en su carpeta `src/`.
+
+## Autenticación
+
+El login de usuarios usa un proxy server-side en SvelteKit (`POST /auth/login`) que ejecuta el flujo de CKAN (`user/login` → `user_show` → token CSRF → `api_token_create`) y devuelve un JWT guardado en `localStorage`. Las llamadas autenticadas a `/api/*` adjuntan `Authorization: <JWT>` en el cliente.
+
+### `CKAN_INTERNAL_URL` (solo servidor)
+
+`/auth/login` usa la variable **server-only** `CKAN_INTERNAL_URL` para localizar CKAN desde el servidor (no se expone al cliente):
+
+- **Desarrollo local**: sin configurar → usa el proxy de Vite (`http://localhost:5000`)
+- **Desarrollo (compose)**: `CKAN_INTERNAL_URL=http://ckan-dev:5000`
+- **Producción (compose)**: `CKAN_INTERNAL_URL=http://ckan:5000`
+
+### Wiring en `odp-docker` (repo externo)
+
+El repo `odp-docker` (separado, `../odp-docker/ckan-docker`) debe inyectar la variable en el servicio del frontend:
+
+- **Producción**: `CKAN_INTERNAL_URL=http://ckan:5000`
+- **Desarrollo**: `CKAN_INTERNAL_URL=http://ckan-dev:5000`
+
+Esta variable **no** se configura en este repo: se añade al `docker-compose.yml` de `odp-docker` en el despliegue.

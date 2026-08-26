@@ -28,3 +28,22 @@ Object.defineProperty(globalThis, "localStorage", {
 	writable: true,
 	configurable: true,
 });
+
+// jsdom (v30) no implementa `window.matchMedia`. El layout y el store de tema lo
+// usan (`prefers-color-scheme`). Se provee un stub determinista (sin preferencia
+// dark) para que los tests que renderizan esos componentes no lancen TypeError.
+Object.defineProperty(window, "matchMedia", {
+	value: (query: string): MediaQueryList =>
+		({
+			matches: false,
+			media: query,
+			onchange: null,
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			addListener: () => {},
+			removeListener: () => {},
+			dispatchEvent: () => false,
+		}) as unknown as MediaQueryList,
+	writable: true,
+	configurable: true,
+});
