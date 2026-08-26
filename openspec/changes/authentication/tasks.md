@@ -43,11 +43,11 @@ Chain strategy: pending
 
 ## Phase 3: Server Routes + Client API
 
-- [ ] 3.1 RED: `login`/`logout` endpoint wiring tests (`src/lib/api/auth.test.ts`)
-- [ ] 3.2 Implement client `login(username, password)` / `logout(token)` (`src/lib/api/auth.ts`)
-- [ ] 3.3 RED: handler rate-limit + body-parse + error-map tests (`src/routes/auth/login/+server.test.ts`)
-- [ ] 3.4 Implement POST `/auth/login`: rate limit, parse, helper, Spanish errors (`src/routes/auth/login/+server.ts`)
-- [ ] 3.5 Implement POST `/auth/logout`: best-effort `api_token_revoke` (`src/routes/auth/logout/+server.ts`)
+- [x] 3.1 RED: `login`/`logout` endpoint wiring tests (`src/lib/api/auth.test.ts`)
+- [x] 3.2 Implement client `login(username, password)` / `logout(token)` (`src/lib/api/auth.ts`)
+- [x] 3.3 RED: handler rate-limit + body-parse + error-map tests (`src/lib/server/auth-server.test.ts`)
+- [x] 3.4 Implement POST `/auth/login`: rate limit, parse, helper, Spanish errors (`src/routes/auth/login/+server.ts`)
+- [x] 3.5 Implement POST `/auth/logout`: best-effort `api_token_revoke` (`src/routes/auth/logout/+server.ts`)
 
 ## Phase 4: UI
 

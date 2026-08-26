@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CkanAuthError, ckanLogin, TOKEN_NAME } from "./ckan-auth";
+import { CkanAuthError, ckanLogin, revokeToken, TOKEN_NAME } from "./ckan-auth";
 
 const BASE = "https://ckan.test";
 
@@ -291,5 +291,33 @@ describe("ckanLogin — CSRF fallback", () => {
 		// reintento con el token fresco
 		expect(calls[5].url).toBe(`${BASE}/api/3/action/api_token_create`);
 		expect(calls[5].init?.headers?.["X-CSRFToken"]).toBe("csrf-fresh");
+	});
+});
+
+describe("revokeToken", () => {
+	it("llama a api_token_revoke con el token en el cuerpo", async () => {
+		const { impl, calls } = fetchSequence([response(200, { json: { success: true } })]);
+		vi.stubGlobal("fetch", impl);
+
+		await revokeToken("jwt-1", { baseUrl: BASE });
+
+		expect(calls[0].url).toBe(`${BASE}/api/3/action/api_token_revoke`);
+		expect(calls[0].init?.method).toBe("POST");
+		expect(calls[0].init?.headers?.["Content-Type"]).toBe("application/json");
+		expect(JSON.parse(bodyOf(calls[0]))).toEqual({ token: "jwt-1" });
+	});
+
+	it("no lanza cuando la revocación falla por red (best-effort)", async () => {
+		const { impl } = fetchSequence([new Error("network down")]);
+		vi.stubGlobal("fetch", impl);
+
+		await expect(revokeToken("jwt-1", { baseUrl: BASE })).resolves.toBeUndefined();
+	});
+
+	it("no lanza cuando CKAN responde con error HTTP (best-effort)", async () => {
+		const { impl } = fetchSequence([response(403, { json: { success: false } })]);
+		vi.stubGlobal("fetch", impl);
+
+		await expect(revokeToken("jwt-1", { baseUrl: BASE })).resolves.toBeUndefined();
 	});
 });

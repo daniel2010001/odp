@@ -259,3 +259,21 @@ export async function ckanLogin(
 	// Paso 5: devolver token + usuario.
 	return { token, user };
 }
+
+/**
+ * Revoca un token de acceso en CKAN (best-effort). Nunca lanza: el cierre de
+ * sesión del cliente debe completarse aunque la revocación falle (red, timeout
+ * o un error HTTP como token ya revocado).
+ */
+export async function revokeToken(token: string, options: CkanAuthOptions): Promise<void> {
+	const baseUrl = options.baseUrl.replace(/\/$/, "");
+	try {
+		await safeFetch(`${baseUrl}/api/3/action/api_token_revoke`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ token }),
+		});
+	} catch {
+		// best-effort: se ignora cualquier fallo.
+	}
+}
