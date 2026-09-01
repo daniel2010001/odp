@@ -132,6 +132,10 @@ async function fetchCsrf(baseUrl: string, jar: CookieJar, name: string): Promise
 		method: "GET",
 		headers: cookieHeaders(jar),
 	});
+	// IMPORTANTE: la página /user/<name> regenera la cookie de sesión. Hay que
+	// guardarla ANTES de leer el HTML, o el token CSRF de la sesión queda
+	// desincronizado y api_token_create devuelve 400 "CSRF session token is missing".
+	storeCookies(jar, response.headers);
 	const html = await response.text();
 	const csrf = extractMetaCsrf(html);
 	if (!csrf) {
@@ -164,10 +168,17 @@ async function mintToken(
 			continue;
 		}
 
-		const payload = (await response.json()) as {
-			success?: boolean;
-			result?: { token?: string };
-		};
+		let payload: { success?: boolean; result?: { token?: string } };
+		try {
+			payload = (await response.json()) as { success?: boolean; result?: { token?: string } };
+		} catch {
+			// Respuesta no JSON (p. ej. página de error HTML): no es un token válido.
+			throw new CkanAuthError(
+				"TOKEN_CREATION_FAILED",
+				"No se pudo crear el token de acceso.",
+				response.status,
+			);
+		}
 		if (!payload.success || !payload.result?.token) {
 			throw new CkanAuthError(
 				"TOKEN_CREATION_FAILED",
