@@ -48,22 +48,22 @@ function closeMobileMenu() {
 
 			<!-- Desktop Nav -->
 			<div class="hidden items-center gap-8 md:flex">
-				<div class="flex items-center gap-8">
+				<div class="flex items-center gap-1">
 					<a
 						href="/search"
-						class="text-sm font-medium text-foreground transition-colors duration-200 hover:text-primary"
+						class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-accent hover:text-primary"
 					>
 						Catálogo
 					</a>
 					<a
 						href="/organizations"
-						class="text-sm font-medium text-foreground transition-colors duration-200 hover:text-primary"
+						class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-accent hover:text-primary"
 					>
 						Organizaciones
 					</a>
 					<a
 						href="/about"
-						class="text-sm font-medium text-foreground transition-colors duration-200 hover:text-primary"
+						class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-accent hover:text-primary"
 					>
 						Acerca de
 					</a>
@@ -184,88 +184,115 @@ function closeMobileMenu() {
 	<!-- Footer -->
 	<footer class="bg-primary text-primary-foreground">
 		<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-			<div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-				<!-- Brand -->
-				<div class="space-y-4">
-					<p class="font-heading text-2xl font-bold text-primary-foreground">Datos UMSS</p>
-					<p class="max-w-xs text-sm leading-relaxed text-primary-foreground/80">
-						Universidad Mayor de San Simón — Plataforma de Datos Abiertos. Conjuntos de datos
-						académicos y administrativos bajo principios FAIR.
-					</p>
+			<!-- Explorar más (CTA) -->
+			<div class="text-center">
+				<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary-foreground/80">
+					Explorá más
+				</p>
+				<h3 class="mt-3 font-heading text-2xl font-bold text-primary-foreground lg:text-3xl">
+					Seguí descubriendo datos abiertos
+				</h3>
+				<div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+					<a
+						href="/search"
+						class="rounded-lg bg-primary-foreground px-6 py-2.5 text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary-foreground/90"
+					>
+						Explorar Catálogo
+					</a>
+					<a
+						href="/organizations"
+						class="rounded-lg border border-primary-foreground/40 px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-200 hover:bg-primary-foreground/10"
+					>
+						Conocé las organizaciones
+					</a>
 				</div>
+			</div>
 
-				<!-- Platform -->
-				<div>
-					<p class="font-heading text-base font-bold text-primary-foreground">Plataforma</p>
-					<ul class="mt-3 space-y-2 text-sm text-primary-foreground/80">
-						<li>
-							<a href="/search" class="transition-colors duration-200 hover:text-primary-foreground">
-								Catálogo
-							</a>
-						</li>
-						<li>
-							<a
-								href="/organizations"
-								class="transition-colors duration-200 hover:text-primary-foreground"
-							>
-								Organizaciones
-							</a>
-						</li>
-						<li>
-							<a href="/about" class="transition-colors duration-200 hover:text-primary-foreground">
-								Acerca de
-							</a>
-						</li>
-						<li>
-							<a
-								href="/dashboard"
-								class="transition-colors duration-200 hover:text-primary-foreground"
-							>
-								Dashboard
-							</a>
-						</li>
-					</ul>
-				</div>
+			<!-- Separador -->
+			<div class="mt-12 border-t border-primary-foreground/20 pt-10">
+				<div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+					<!-- Brand -->
+					<div class="space-y-4">
+						<p class="font-heading text-2xl font-bold text-primary-foreground">Datos UMSS</p>
+						<p class="max-w-xs text-sm leading-relaxed text-primary-foreground/80">
+							Universidad Mayor de San Simón — Plataforma de Datos Abiertos. Conjuntos de datos
+							académicos y administrativos bajo principios FAIR.
+						</p>
+					</div>
 
-				<!-- Data -->
-				<div>
-					<p class="font-heading text-base font-bold text-primary-foreground">Datos</p>
-					<ul class="mt-3 space-y-2 text-sm text-primary-foreground/80">
-						<li>
-							<a href="/search" class="transition-colors duration-200 hover:text-primary-foreground">
-								Explorar datasets
-							</a>
-						</li>
-						<li>
-							<a
-								href="/organizations"
-								class="transition-colors duration-200 hover:text-primary-foreground"
-							>
-								Por organización
-							</a>
-						</li>
-						<li>
-							<a href="/about" class="transition-colors duration-200 hover:text-primary-foreground">
-								Sobre la plataforma
-							</a>
-						</li>
-					</ul>
-				</div>
+					<!-- Platform -->
+					<div>
+						<p class="font-heading text-base font-bold text-primary-foreground">Plataforma</p>
+						<ul class="mt-3 space-y-2 text-sm text-primary-foreground/80">
+							<li>
+								<a href="/search" class="transition-colors duration-200 hover:text-primary-foreground">
+									Catálogo
+								</a>
+							</li>
+							<li>
+								<a
+									href="/organizations"
+									class="transition-colors duration-200 hover:text-primary-foreground"
+								>
+									Organizaciones
+								</a>
+							</li>
+							<li>
+								<a href="/about" class="transition-colors duration-200 hover:text-primary-foreground">
+									Acerca de
+								</a>
+							</li>
+							<li>
+								<a
+									href="/dashboard"
+									class="transition-colors duration-200 hover:text-primary-foreground"
+								>
+									Dashboard
+								</a>
+							</li>
+						</ul>
+					</div>
 
-				<!-- Contact -->
-				<div>
-					<p class="font-heading text-base font-bold text-primary-foreground">Contacto</p>
-					<ul class="mt-3 space-y-2 text-sm text-primary-foreground/80">
-						<li>Cochabamba, Bolivia</li>
-						<li>
-							<a
-								href="mailto:datos@umss.edu.bo"
-								class="transition-colors duration-200 hover:text-primary-foreground"
-							>
-								datos@umss.edu.bo
-							</a>
-						</li>
-					</ul>
+					<!-- Data -->
+					<div>
+						<p class="font-heading text-base font-bold text-primary-foreground">Datos</p>
+						<ul class="mt-3 space-y-2 text-sm text-primary-foreground/80">
+							<li>
+								<a href="/search" class="transition-colors duration-200 hover:text-primary-foreground">
+									Explorar datasets
+								</a>
+							</li>
+							<li>
+								<a
+									href="/organizations"
+									class="transition-colors duration-200 hover:text-primary-foreground"
+								>
+									Por organización
+								</a>
+							</li>
+							<li>
+								<a href="/about" class="transition-colors duration-200 hover:text-primary-foreground">
+									Sobre la plataforma
+								</a>
+							</li>
+						</ul>
+					</div>
+
+					<!-- Contact -->
+					<div>
+						<p class="font-heading text-base font-bold text-primary-foreground">Contacto</p>
+						<ul class="mt-3 space-y-2 text-sm text-primary-foreground/80">
+							<li>Cochabamba, Bolivia</li>
+							<li>
+								<a
+									href="mailto:datos@umss.edu.bo"
+									class="transition-colors duration-200 hover:text-primary-foreground"
+								>
+									datos@umss.edu.bo
+								</a>
+							</li>
+						</ul>
+					</div>
 				</div>
 			</div>
 
