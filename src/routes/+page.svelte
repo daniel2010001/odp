@@ -1,7 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
-import { reveal } from "$lib/actions/reveal";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
@@ -25,8 +24,6 @@ let stats = $state({
 let orgs = $state<CkanOrganization[]>([]);
 
 onMount(async () => {
-	// Activa el scroll snap solo en esta página (clase en <html>).
-	document.documentElement.classList.add("scroll-snap");
 	try {
 		const client = createCkanClient({ baseUrl: env.CKAN_URL });
 		const datasetApi = createDatasetApi(client);
@@ -85,11 +82,8 @@ function handleHeroSearch(query: string) {
 </script>
 
 <!-- Hero B (variante) -->
-<section
-	class="snap-section flex min-h-screen items-center justify-center border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background"
-	use:reveal
->
-	<div class="mx-auto max-w-4xl px-4 py-24 text-center sm:px-6">
+<section class="border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background">
+	<div class="mx-auto max-w-4xl px-4 pb-20 pt-20 text-center sm:px-6 lg:pb-24 lg:pt-24">
 		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 			Plataforma de Datos Abiertos · UMSS
 		</p>
@@ -102,15 +96,6 @@ function handleHeroSearch(query: string) {
 			Explorá, analizá y reutilizá los conjuntos de datos académicos y administrativos de la
 			Universidad Mayor de San Simón, publicados bajo principios FAIR.
 		</p>
-
-		<div class="mx-auto mt-10 max-w-2xl">
-			<SearchBar
-				value=""
-				placeholder="Buscar datasets, organizaciones, temas..."
-				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
-				onsubmit={handleHeroSearch}
-			/>
-		</div>
 
 		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
 			<a href="/search">
@@ -125,9 +110,36 @@ function handleHeroSearch(query: string) {
 	</div>
 </section>
 
+<!-- Buscar -->
+<section class="bg-background">
+	<div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-20">
+		<div class="mx-auto max-w-3xl text-center">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
+				Empezá a explorar
+			</p>
+			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
+				Los datos de la UMSS están a un clic
+			</h2>
+			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+				Accedé al catálogo público, conocé las organizaciones y descargá los conjuntos de datos en
+				múltiples formatos para tus investigaciones y proyectos.
+			</p>
+
+			<div class="mx-auto mt-8 max-w-2xl">
+				<SearchBar
+					value=""
+					placeholder="Buscar datasets, organizaciones, temas..."
+					class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
+					onsubmit={handleHeroSearch}
+				/>
+			</div>
+		</div>
+	</div>
+</section>
+
 <!-- Sobre la plataforma -->
-<section class="snap-section flex min-h-screen items-center bg-background" use:reveal>
-	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20">
+<section class="bg-background">
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
@@ -153,8 +165,8 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Por organización -->
-<section id="organizaciones" class="snap-section flex min-h-screen items-center bg-background" use:reveal>
-	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20">
+<section id="organizaciones" class="bg-background">
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 				Organizaciones
