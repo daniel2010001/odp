@@ -119,7 +119,7 @@ function handleHeroSearch(query: string) {
 	</div>
 </section>
 
-<!-- Sobre la plataforma -->
+<!-- Sobre la plataforma — comparación de layouts -->
 <section class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
@@ -134,7 +134,11 @@ function handleHeroSearch(query: string) {
 			</p>
 		</div>
 
-		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+		<!-- Opción A: 4 columnas (4x1) -->
+		<p class="mt-14 text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+			Opción A — 4 columnas
+		</p>
+		<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 			{#each platformStats as stat (stat.label)}
 				<Card class="flex flex-col items-center bg-muted/50 p-8 text-center">
 					<div class="mb-5 inline-flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -143,6 +147,44 @@ function handleHeroSearch(query: string) {
 					<p class="font-heading text-5xl font-bold text-primary">{stat.value}</p>
 					<p class="mt-3 text-base font-semibold text-foreground">{stat.label}</p>
 					<p class="mt-2 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+				</Card>
+			{/each}
+		</div>
+
+		<!-- Opción B: 2x2 -->
+		<p class="mt-16 text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+			Opción B — 2 × 2
+		</p>
+		<div class="mt-6 grid gap-6 sm:grid-cols-2">
+			{#each platformStats as stat (stat.label)}
+				<Card class="flex flex-col items-center bg-muted/50 p-8 text-center">
+					<div class="mb-5 inline-flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+						<stat.icon class="size-7" aria-hidden="true" />
+					</div>
+					<p class="font-heading text-5xl font-bold text-primary">{stat.value}</p>
+					<p class="mt-3 text-base font-semibold text-foreground">{stat.label}</p>
+					<p class="mt-2 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+				</Card>
+			{/each}
+		</div>
+
+		<!-- Opción C: 1x4 (apilada horizontal) -->
+		<p class="mt-16 text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+			Opción C — 1 × 4 (apilada)
+		</p>
+		<div class="mt-6 grid gap-4">
+			{#each platformStats as stat (stat.label)}
+				<Card class="flex items-center gap-6 bg-muted/50 p-6">
+					<div class="inline-flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+						<stat.icon class="size-7" aria-hidden="true" />
+					</div>
+					<div class="flex-1">
+						<div class="flex flex-wrap items-baseline gap-x-3">
+							<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
+							<p class="text-base font-semibold text-foreground">{stat.label}</p>
+						</div>
+						<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+					</div>
 				</Card>
 			{/each}
 		</div>
