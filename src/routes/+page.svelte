@@ -51,18 +51,27 @@ onMount(async () => {
 	stats.loading = false;
 });
 
-const heroStats = $derived([
-	{ value: stats.loading ? "…" : stats.datasets, label: "Datasets publicados" },
-	{ value: stats.loading ? "…" : stats.organizations, label: "Organizaciones" },
-	{ value: stats.loading ? "…" : stats.resources, label: "Recursos indexados" },
-	{ value: stats.loading ? "…" : stats.formats, label: "Formatos disponibles" },
-]);
-
 const platformStats = $derived([
-	{ value: stats.loading ? "…" : stats.datasets, label: "Datasets publicados" },
-	{ value: stats.loading ? "…" : stats.organizations, label: "Organizaciones activas" },
-	{ value: stats.loading ? "…" : stats.resources, label: "Recursos indexados" },
-	{ value: stats.loading ? "…" : stats.formats, label: "Formatos disponibles" },
+	{
+		value: stats.loading ? "…" : stats.datasets,
+		label: "Datasets",
+		description: "Conjuntos de datos publicados, listos para explorar y descargar.",
+	},
+	{
+		value: stats.loading ? "…" : stats.organizations,
+		label: "Organizaciones",
+		description: "Facultades, direcciones e institutos que publican datos.",
+	},
+	{
+		value: stats.loading ? "…" : stats.resources,
+		label: "Recursos",
+		description: "Archivos y enlaces dentro de cada dataset.",
+	},
+	{
+		value: stats.loading ? "…" : stats.formats,
+		label: "Formatos",
+		description: "CSV, PDF, JSON y otros tipos de archivo disponibles.",
+	},
 ]);
 
 function handleHeroSearch(query: string) {
@@ -75,7 +84,7 @@ function handleHeroSearch(query: string) {
 <!-- Hero B (variante) -->
 <section class="border-b border-border bg-gradient-to-b from-primary/10 to-background">
 	<div class="mx-auto max-w-4xl px-4 pb-16 pt-16 text-center sm:px-6 lg:pb-24 lg:pt-24">
-		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 			Plataforma de Datos Abiertos · UMSS
 		</p>
 		<h1
@@ -97,13 +106,31 @@ function handleHeroSearch(query: string) {
 				onsubmit={handleHeroSearch}
 			/>
 		</div>
+	</div>
+</section>
 
-		<div class="mt-12 grid grid-cols-2 gap-8 lg:grid-cols-4">
-			{#each heroStats as stat (stat.label)}
-				<div>
-					<p class="font-heading text-3xl font-bold text-primary">{stat.value}</p>
-					<p class="mt-1 text-sm text-muted-foreground">{stat.label}</p>
-				</div>
+<!-- Sobre la plataforma -->
+<section class="bg-background">
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+		<div class="mx-auto max-w-3xl text-center">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
+			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
+				Sobre la plataforma
+			</h2>
+			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+				Datos académicos y administrativos publicados bajo principios FAIR (localizables,
+				accesibles, interoperables y reutilizables), con búsqueda facetada, previsualización y
+				descarga en múltiples formatos.
+			</p>
+		</div>
+
+		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+			{#each platformStats as stat (stat.label)}
+				<Card class="bg-muted/50 p-6 text-center">
+					<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
+					<p class="mt-2 text-sm font-semibold text-foreground">{stat.label}</p>
+					<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{stat.description}</p>
+				</Card>
 			{/each}
 		</div>
 	</div>
@@ -113,7 +140,7 @@ function handleHeroSearch(query: string) {
 <section id="organizaciones" class="bg-muted/50">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 				Organizaciones
 			</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
@@ -143,32 +170,6 @@ function handleHeroSearch(query: string) {
 	</div>
 </section>
 
-<!-- Sobre la plataforma -->
-<section class="bg-background">
-	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
-		<div class="mx-auto max-w-3xl text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">Plataforma</p>
-			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
-				Sobre la plataforma
-			</h2>
-			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-				Datos académicos y administrativos publicados bajo principios FAIR (localizables,
-				accesibles, interoperables y reutilizables), con búsqueda facetada, previsualización y
-				descarga en múltiples formatos.
-			</p>
-		</div>
-
-		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-			{#each platformStats as stat (stat.label)}
-				<Card class="bg-muted/50 p-6 text-center">
-					<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
-					<p class="mt-2 text-sm text-muted-foreground">{stat.label}</p>
-				</Card>
-			{/each}
-		</div>
-	</div>
-</section>
-
 <!-- CTA final -->
 <section class="bg-primary">
 	<div class="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:py-24">
@@ -186,7 +187,10 @@ function handleHeroSearch(query: string) {
 		</p>
 		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
 			<a href="/search">
-				<Button variant="destructive" size="lg" class="h-[52px] px-8 text-base">
+				<Button
+					size="lg"
+					class="h-[52px] bg-primary-foreground px-8 text-base font-semibold text-primary hover:bg-primary-foreground/90"
+				>
 					Explorar Catálogo
 				</Button>
 			</a>

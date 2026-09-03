@@ -41,58 +41,60 @@
 }
 
 :root {
-	--background: oklch(0.984 0.003 257);
-	--foreground: oklch(0.129 0.032 257);
-	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.129 0.032 257);
-	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.129 0.032 257);
-	--primary: oklch(0.395 0.098 257);
-	--primary-foreground: oklch(1 0 0);
-	--secondary: oklch(0.528 0.178 24);
-	--secondary-foreground: oklch(1 0 0);
-	--muted: oklch(0.968 0.007 257);
-	--muted-foreground: oklch(0.554 0.015 257);
-	--accent: oklch(0.954 0.014 257);
-	--accent-foreground: oklch(0.395 0.098 257);
-	--destructive: oklch(0.577 0.245 27);
-	--destructive-foreground: oklch(1 0 0);
-	--border: oklch(0.922 0.004 257);
-	--input: oklch(0.922 0.004 257);
-	--ring: oklch(0.395 0.098 257);
-	--chart-1: oklch(0.395 0.098 257);
-	--chart-2: oklch(0.528 0.178 24);
-	--chart-3: oklch(0.769 0.168 85);
-	--chart-4: oklch(0.696 0.146 184);
-	--chart-5: oklch(0.554 0.015 257);
+	/* ─── Paleta pastel — modo claro ─────────────────────────────── */
+	--background: oklch(0.973 0.006 250); /* azul suave casi blanco */
+	--foreground: oklch(0.26 0.03 257); /* slate suave, no negro puro */
+	--card: oklch(0.995 0.001 250);
+	--card-foreground: oklch(0.26 0.03 257);
+	--popover: oklch(0.995 0.001 250);
+	--popover-foreground: oklch(0.26 0.03 257);
+	--primary: oklch(0.52 0.085 257); /* azul pastel medio */
+	--primary-foreground: oklch(0.985 0.002 250);
+	--secondary: oklch(0.74 0.06 250); /* azul pastel claro */
+	--secondary-foreground: oklch(0.28 0.04 257);
+	--muted: oklch(0.945 0.008 250);
+	--muted-foreground: oklch(0.42 0.02 257);
+	--accent: oklch(0.93 0.018 250);
+	--accent-foreground: oklch(0.42 0.07 257);
+	--destructive: oklch(0.55 0.09 15); /* rosa coral pastel legible */
+	--destructive-foreground: oklch(0.985 0.002 250);
+	--border: oklch(0.905 0.01 250);
+	--input: oklch(0.905 0.01 250);
+	--ring: oklch(0.62 0.08 257);
+	--chart-1: oklch(0.62 0.08 257);
+	--chart-2: oklch(0.72 0.07 60);
+	--chart-3: oklch(0.8 0.07 120);
+	--chart-4: oklch(0.74 0.07 200);
+	--chart-5: oklch(0.68 0.07 300);
 	--radius: 0.5rem;
 }
 
 .dark {
-	--background: oklch(0.085 0.023 257);
-	--foreground: oklch(0.968 0.007 257);
-	--card: oklch(0.158 0.032 257);
-	--card-foreground: oklch(0.968 0.007 257);
-	--popover: oklch(0.158 0.032 257);
-	--popover-foreground: oklch(0.968 0.007 257);
-	--primary: oklch(0.624 0.132 257);
-	--primary-foreground: oklch(1 0 0);
-	--secondary: oklch(0.634 0.174 24);
-	--secondary-foreground: oklch(1 0 0);
-	--muted: oklch(0.228 0.019 257);
-	--muted-foreground: oklch(0.676 0.016 257);
-	--accent: oklch(0.314 0.076 257);
-	--accent-foreground: oklch(0.922 0.004 257);
-	--destructive: oklch(0.614 0.2 25);
-	--destructive-foreground: oklch(1 0 0);
-	--border: oklch(0.228 0.019 257);
-	--input: oklch(0.228 0.019 257);
-	--ring: oklch(0.624 0.132 257);
-	--chart-1: oklch(0.624 0.132 257);
-	--chart-2: oklch(0.634 0.174 24);
-	--chart-3: oklch(0.769 0.168 85);
-	--chart-4: oklch(0.696 0.146 184);
-	--chart-5: oklch(0.676 0.016 257);
+	/* ─── Paleta pastel — modo oscuro (fondo suave, no negro) ───── */
+	--background: oklch(0.22 0.02 257); /* azul-gris oscuro suave */
+	--foreground: oklch(0.93 0.008 250);
+	--card: oklch(0.28 0.024 257);
+	--card-foreground: oklch(0.93 0.008 250);
+	--popover: oklch(0.28 0.024 257);
+	--popover-foreground: oklch(0.93 0.008 250);
+	--primary: oklch(0.72 0.07 257); /* azul pastel luminoso */
+	--primary-foreground: oklch(0.2 0.03 257);
+	--secondary: oklch(0.66 0.06 250);
+	--secondary-foreground: oklch(0.2 0.03 257);
+	--muted: oklch(0.3 0.02 257);
+	--muted-foreground: oklch(0.72 0.015 250);
+	--accent: oklch(0.34 0.04 257);
+	--accent-foreground: oklch(0.9 0.01 250);
+	--destructive: oklch(0.74 0.09 15); /* coral pastel luminoso */
+	--destructive-foreground: oklch(0.2 0.03 257);
+	--border: oklch(0.34 0.02 257);
+	--input: oklch(0.34 0.02 257);
+	--ring: oklch(0.72 0.07 257);
+	--chart-1: oklch(0.72 0.07 257);
+	--chart-2: oklch(0.78 0.07 60);
+	--chart-3: oklch(0.82 0.07 120);
+	--chart-4: oklch(0.76 0.07 200);
+	--chart-5: oklch(0.72 0.07 300);
 }
 
 /* ─── Base styles ─────────────────────────────────────────────────── */
