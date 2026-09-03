@@ -85,8 +85,11 @@ function handleHeroSearch(query: string) {
 </script>
 
 <!-- Hero B (variante) -->
-<section class="snap-section border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background" use:reveal>
-	<div class="mx-auto max-w-4xl px-4 pb-20 pt-20 text-center sm:px-6 lg:pb-28 lg:pt-28">
+<section
+	class="snap-section flex min-h-screen items-center justify-center border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background"
+	use:reveal
+>
+	<div class="mx-auto max-w-4xl px-4 py-24 text-center sm:px-6">
 		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 			Plataforma de Datos Abiertos · UMSS
 		</p>
@@ -108,40 +111,23 @@ function handleHeroSearch(query: string) {
 				onsubmit={handleHeroSearch}
 			/>
 		</div>
-	</div>
-</section>
 
-<!-- Empezá a explorar -->
-<section class="snap-section bg-background" use:reveal>
-	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20 lg:py-32">
-		<div class="mx-auto max-w-3xl text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
-				Empezá a explorar
-			</p>
-			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
-				Los datos de la UMSS están a un clic
-			</h2>
-			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-				Accedé al catálogo público, conocé las organizaciones y descargá los conjuntos de datos en
-				múltiples formatos para tus investigaciones y proyectos.
-			</p>
-			<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-				<a href="/search">
-					<Button size="lg" class="h-[52px] px-8 text-base">Explorar Catálogo</Button>
-				</a>
-				<a href="/about">
-					<Button variant="outline" size="lg" class="h-[52px] px-8 text-base">
-						Más Información
-					</Button>
-				</a>
-			</div>
+		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+			<a href="/search">
+				<Button size="lg" class="h-[52px] px-8 text-base">Explorar Catálogo</Button>
+			</a>
+			<a href="/about">
+				<Button variant="outline" size="lg" class="h-[52px] px-8 text-base">
+					Más Información
+				</Button>
+			</a>
 		</div>
 	</div>
 </section>
 
 <!-- Sobre la plataforma -->
-<section class="snap-section bg-background" use:reveal>
-	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20 lg:py-32">
+<section class="snap-section flex min-h-screen items-center bg-background" use:reveal>
+	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
@@ -167,8 +153,8 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Por organización -->
-<section id="organizaciones" class="snap-section bg-background" use:reveal>
-	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20 lg:py-32">
+<section id="organizaciones" class="snap-section flex min-h-screen items-center bg-background" use:reveal>
+	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20">
 		<div class="text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 				Organizaciones

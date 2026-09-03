@@ -131,11 +131,12 @@ body {
 /* ─── Scroll snap: secciones que "encajan" al hacer scroll ────────── */
 /* Se activa solo en páginas que añaden la clase `scroll-snap` al <html>. */
 html.scroll-snap {
-	scroll-snap-type: y proximity;
+	scroll-snap-type: y mandatory;
 }
 
 html.scroll-snap .snap-section {
 	scroll-snap-align: start;
+	scroll-snap-stop: normal;
 	/* Compensa la altura del header sticky (h-20 = 5rem). */
 	scroll-margin-top: 5rem;
 }
