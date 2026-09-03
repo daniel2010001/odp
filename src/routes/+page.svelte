@@ -109,6 +109,30 @@ function handleHeroSearch(query: string) {
 	</div>
 </section>
 
+<!-- Explorar más -->
+<section class="bg-background">
+	<div class="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Explorá más</p>
+		<h2 class="mt-3 font-heading text-2xl font-bold leading-[1.2] text-primary lg:text-3xl">
+			Seguí descubriendo datos abiertos
+		</h2>
+		<div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+			<a
+				href="/search"
+				class="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90"
+			>
+				Explorar Catálogo
+			</a>
+			<a
+				href="/organizations"
+				class="rounded-lg border border-border px-6 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-accent"
+			>
+				Conocé las organizaciones
+			</a>
+		</div>
+	</div>
+</section>
+
 <!-- Sobre la plataforma -->
 <section class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
