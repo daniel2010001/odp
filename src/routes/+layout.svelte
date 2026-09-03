@@ -91,7 +91,7 @@ function closeMobileMenu() {
 					{:else}
 						<a
 							href="/auth/login"
-							class="rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm transition-all duration-200 hover:bg-destructive/90 hover:shadow-md"
+							class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md"
 						>
 							Iniciar Sesión
 						</a>
@@ -165,7 +165,7 @@ function closeMobileMenu() {
 					{:else}
 						<a
 							href="/auth/login"
-							class="mt-2 block rounded-lg bg-destructive px-3 py-2 text-center text-sm font-semibold text-destructive-foreground"
+							class="mt-2 block rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
 							onclick={closeMobileMenu}
 						>
 							Iniciar Sesión

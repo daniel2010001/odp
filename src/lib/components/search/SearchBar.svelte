@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Search, X } from "lucide-svelte";
+import { untrack } from "svelte";
 import { cn } from "$lib/utils";
 
 let {
@@ -23,8 +24,10 @@ let inputEl: HTMLInputElement | undefined = $state();
 let localValue = $state(value);
 
 // Sync externo → interno
+// `untrack` evita que la escritura de `localValue` dentro del efecto lo
+// re-dispare (bucle) y resete el input mientras el usuario escribe.
 $effect(() => {
-	if (value !== localValue) {
+	if (value !== untrack(() => localValue)) {
 		localValue = value;
 	}
 });
