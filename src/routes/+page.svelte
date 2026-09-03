@@ -58,28 +58,28 @@ const platformStats = $derived([
 		label: "Datasets",
 		icon: Database,
 		description:
-			"Conjuntos de datos académicos y administrativos publicados por la comunidad universitaria, listos para explorar, analizar y descargar.",
+			"Un conjunto de datos es un grupo de archivos y metadatos sobre un mismo tema, publicado por una organización de la universidad.",
 	},
 	{
 		value: stats.loading ? "…" : stats.organizations,
 		label: "Organizaciones",
 		icon: Building2,
 		description:
-			"Facultades, direcciones e institutos de la UMSS que publican y gestionan sus propios datos abiertos bajo principios FAIR.",
+			"Cada organización es una facultad, dirección o instituto que publica y administra sus propios conjuntos de datos.",
 	},
 	{
 		value: stats.loading ? "…" : stats.resources,
 		label: "Recursos",
 		icon: FileText,
 		description:
-			"Archivos y enlaces individuales dentro de cada dataset: tablas, documentos, imágenes y más, listos para su reutilización.",
+			"Un recurso es cada archivo o enlace dentro de un dataset: una tabla CSV, un documento PDF, una imagen o un JSON.",
 	},
 	{
 		value: stats.loading ? "…" : stats.formats,
 		label: "Formatos",
 		icon: Layers,
 		description:
-			"Los tipos de archivo disponibles en el catálogo — CSV, PDF, JSON e imágenes — para que reutilices los datos como necesites.",
+			"Los formatos son los tipos de archivo que contienen los recursos: CSV, PDF, JSON, PNG y otros.",
 	},
 ]);
 
@@ -157,13 +157,17 @@ function handleHeroSearch(query: string) {
 		</p>
 		<div class="mt-6 grid gap-6 sm:grid-cols-2">
 			{#each platformStats as stat (stat.label)}
-				<Card class="flex flex-col items-center bg-muted/50 p-8 text-center">
-					<div class="mb-5 inline-flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+				<Card class="flex items-center gap-5 bg-muted/50 p-6">
+					<div class="inline-flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
 						<stat.icon class="size-7" aria-hidden="true" />
 					</div>
-					<p class="font-heading text-5xl font-bold text-primary">{stat.value}</p>
-					<p class="mt-3 text-base font-semibold text-foreground">{stat.label}</p>
-					<p class="mt-2 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+					<div class="flex-1">
+						<div class="flex flex-wrap items-baseline gap-x-3">
+							<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
+							<p class="text-base font-semibold text-foreground">{stat.label}</p>
+						</div>
+						<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+					</div>
 				</Card>
 			{/each}
 		</div>
