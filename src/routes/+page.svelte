@@ -8,6 +8,7 @@ import OrganizationCard from "$lib/components/organizations/OrganizationCard.sve
 import SearchBar from "$lib/components/search/SearchBar.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { reveal } from "$lib/actions/reveal";
 import { env } from "$lib/env";
 import { getMockSearchResult, MOCK_DATASETS, MOCK_ORGS } from "$lib/mock/data";
 import type { CkanOrganization } from "$lib/types/ckan";
@@ -24,6 +25,8 @@ let stats = $state({
 let orgs = $state<CkanOrganization[]>([]);
 
 onMount(async () => {
+	// Activa el scroll snap solo en esta página (clase en <html>).
+	document.documentElement.classList.add("scroll-snap");
 	try {
 		const client = createCkanClient({ baseUrl: env.CKAN_URL });
 		const datasetApi = createDatasetApi(client);
@@ -82,8 +85,8 @@ function handleHeroSearch(query: string) {
 </script>
 
 <!-- Hero B (variante) -->
-<section class="border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background">
-	<div class="mx-auto max-w-4xl px-4 pb-16 pt-16 text-center sm:px-6 lg:pb-24 lg:pt-24">
+<section class="snap-section border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background" use:reveal>
+	<div class="mx-auto max-w-4xl px-4 pb-20 pt-20 text-center sm:px-6 lg:pb-28 lg:pt-28">
 		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 			Plataforma de Datos Abiertos · UMSS
 		</p>
@@ -109,8 +112,8 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Empezá a explorar -->
-<section class="bg-background">
-	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+<section class="snap-section bg-background" use:reveal>
+	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20 lg:py-32">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 				Empezá a explorar
@@ -137,8 +140,8 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Sobre la plataforma -->
-<section class="bg-background">
-	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+<section class="snap-section bg-background" use:reveal>
+	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20 lg:py-32">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
@@ -164,8 +167,8 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Por organización -->
-<section id="organizaciones" class="bg-background">
-	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+<section id="organizaciones" class="snap-section bg-background" use:reveal>
+	<div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-20 lg:py-32">
 		<div class="text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 				Organizaciones
