@@ -113,34 +113,6 @@ body {
 	font-family: var(--font-sans);
 }
 
-/* ─── Reveal-on-scroll (action `use:reveal`) ──────────────────────── */
-.reveal {
-	opacity: 0;
-	transform: translateY(24px);
-	transition:
-		opacity 0.6s ease-out,
-		transform 0.6s ease-out;
-	will-change: opacity, transform;
-}
-
-.reveal.is-visible {
-	opacity: 1;
-	transform: translateY(0);
-}
-
-/* ─── Scroll snap: secciones que "encajan" al hacer scroll ────────── */
-/* Se activa solo en páginas que añaden la clase `scroll-snap` al <html>. */
-html.scroll-snap {
-	scroll-snap-type: y mandatory;
-}
-
-html.scroll-snap .snap-section {
-	scroll-snap-align: start;
-	scroll-snap-stop: normal;
-	/* Compensa la altura del header sticky (h-20 = 5rem). */
-	scroll-margin-top: 5rem;
-}
-
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
 	*,
@@ -150,10 +122,5 @@ html.scroll-snap .snap-section {
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
-	}
-
-	.reveal {
-		opacity: 1;
-		transform: none;
 	}
 }
