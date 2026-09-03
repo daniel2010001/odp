@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Building2, Database, FileText, Layers } from "lucide-svelte";
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
@@ -55,22 +56,30 @@ const platformStats = $derived([
 	{
 		value: stats.loading ? "…" : stats.datasets,
 		label: "Datasets",
-		description: "Conjuntos de datos publicados, listos para explorar y descargar.",
+		icon: Database,
+		description:
+			"Conjuntos de datos académicos y administrativos publicados por la comunidad universitaria, listos para explorar, analizar y descargar.",
 	},
 	{
 		value: stats.loading ? "…" : stats.organizations,
 		label: "Organizaciones",
-		description: "Facultades, direcciones e institutos que publican datos.",
+		icon: Building2,
+		description:
+			"Facultades, direcciones e institutos de la UMSS que publican y gestionan sus propios datos abiertos bajo principios FAIR.",
 	},
 	{
 		value: stats.loading ? "…" : stats.resources,
 		label: "Recursos",
-		description: "Archivos y enlaces dentro de cada dataset.",
+		icon: FileText,
+		description:
+			"Archivos y enlaces individuales dentro de cada dataset: tablas, documentos, imágenes y más, listos para su reutilización.",
 	},
 	{
 		value: stats.loading ? "…" : stats.formats,
 		label: "Formatos",
-		description: "CSV, PDF, JSON y otros tipos de archivo disponibles.",
+		icon: Layers,
+		description:
+			"Los tipos de archivo disponibles en el catálogo — CSV, PDF, JSON e imágenes — para que reutilices los datos como necesites.",
 	},
 ]);
 
@@ -110,6 +119,36 @@ function handleHeroSearch(query: string) {
 	</div>
 </section>
 
+<!-- Sobre la plataforma -->
+<section class="bg-background">
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+		<div class="mx-auto max-w-3xl text-center">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
+			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
+				Sobre la plataforma
+			</h2>
+			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+				Datos académicos y administrativos publicados bajo principios FAIR (localizables,
+				accesibles, interoperables y reutilizables), con búsqueda facetada, previsualización y
+				descarga en múltiples formatos.
+			</p>
+		</div>
+
+		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+			{#each platformStats as stat (stat.label)}
+				<Card class="flex flex-col items-center bg-muted/50 p-8 text-center">
+					<div class="mb-5 inline-flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+						<stat.icon class="size-7" aria-hidden="true" />
+					</div>
+					<p class="font-heading text-5xl font-bold text-primary">{stat.value}</p>
+					<p class="mt-3 text-base font-semibold text-foreground">{stat.label}</p>
+					<p class="mt-2 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+				</Card>
+			{/each}
+		</div>
+	</div>
+</section>
+
 <!-- Buscar -->
 <section class="bg-background">
 	<div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-20">
@@ -133,33 +172,6 @@ function handleHeroSearch(query: string) {
 					onsubmit={handleHeroSearch}
 				/>
 			</div>
-		</div>
-	</div>
-</section>
-
-<!-- Sobre la plataforma -->
-<section class="bg-background">
-	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
-		<div class="mx-auto max-w-3xl text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
-			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
-				Sobre la plataforma
-			</h2>
-			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-				Datos académicos y administrativos publicados bajo principios FAIR (localizables,
-				accesibles, interoperables y reutilizables), con búsqueda facetada, previsualización y
-				descarga en múltiples formatos.
-			</p>
-		</div>
-
-		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-			{#each platformStats as stat (stat.label)}
-				<Card class="bg-muted/50 p-6 text-center">
-					<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
-					<p class="mt-2 text-sm font-semibold text-foreground">{stat.label}</p>
-					<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{stat.description}</p>
-				</Card>
-			{/each}
 		</div>
 	</div>
 </section>
