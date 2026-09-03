@@ -109,32 +109,36 @@ function handleHeroSearch(query: string) {
 	</div>
 </section>
 
-<!-- Explorar más -->
+<!-- Empezá a explorar -->
 <section class="bg-background">
-	<div class="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6">
-		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Explorá más</p>
-		<h2 class="mt-3 font-heading text-2xl font-bold leading-[1.2] text-primary lg:text-3xl">
-			Seguí descubriendo datos abiertos
-		</h2>
-		<div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-			<a
-				href="/search"
-				class="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90"
-			>
-				Explorar Catálogo
-			</a>
-			<a
-				href="/organizations"
-				class="rounded-lg border border-border px-6 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-accent"
-			>
-				Conocé las organizaciones
-			</a>
+	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
+		<div class="mx-auto max-w-3xl text-center">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
+				Empezá a explorar
+			</p>
+			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
+				Los datos de la UMSS están a un clic
+			</h2>
+			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+				Accedé al catálogo público, conocé las organizaciones y descargá los conjuntos de datos en
+				múltiples formatos para tus investigaciones y proyectos.
+			</p>
+			<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+				<a href="/search">
+					<Button size="lg" class="h-[52px] px-8 text-base">Explorar Catálogo</Button>
+				</a>
+				<a href="/about">
+					<Button variant="outline" size="lg" class="h-[52px] px-8 text-base">
+						Más Información
+					</Button>
+				</a>
+			</div>
 		</div>
 	</div>
 </section>
 
 <!-- Sobre la plataforma -->
-<section class="bg-background">
+<section class="bg-muted/40">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
@@ -150,7 +154,7 @@ function handleHeroSearch(query: string) {
 
 		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 			{#each platformStats as stat (stat.label)}
-				<Card class="bg-muted/50 p-6 text-center">
+				<Card class="bg-card p-6 text-center shadow-sm">
 					<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
 					<p class="mt-2 text-sm font-semibold text-foreground">{stat.label}</p>
 					<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{stat.description}</p>
@@ -161,7 +165,7 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Por organización -->
-<section id="organizaciones" class="bg-background">
+<section id="organizaciones" class="bg-accent/40">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
@@ -190,43 +194,6 @@ function handleHeroSearch(query: string) {
 					Cargando organizaciones...
 				</p>
 			{/if}
-		</div>
-	</div>
-</section>
-
-<!-- CTA final -->
-<section class="bg-primary">
-	<div class="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:py-24">
-		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary-foreground/80">
-			Empezá a explorar
-		</p>
-		<h2
-			class="mt-4 font-heading text-3xl font-bold leading-[1.15] text-primary-foreground sm:text-4xl lg:text-[40px]"
-		>
-			Los datos de la UMSS están a un clic
-		</h2>
-		<p class="mx-auto mt-4 max-w-2xl leading-relaxed text-primary-foreground/80">
-			Accedé al catálogo público, conocé las organizaciones y descargá los conjuntos de datos en
-			múltiples formatos para tus investigaciones y proyectos.
-		</p>
-		<div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-			<a href="/search">
-				<Button
-					size="lg"
-					class="h-[52px] bg-primary-foreground px-8 text-base font-semibold text-primary hover:bg-primary-foreground/90"
-				>
-					Explorar Catálogo
-				</Button>
-			</a>
-			<a href="/about">
-				<Button
-					variant="outline"
-					size="lg"
-					class="h-[52px] border-primary-foreground/40 bg-transparent px-8 text-base text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-				>
-					Más Información
-				</Button>
-			</a>
 		</div>
 	</div>
 </section>
