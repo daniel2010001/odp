@@ -27,6 +27,8 @@
 	--color-chart-3: var(--chart-3);
 	--color-chart-4: var(--chart-4);
 	--color-chart-5: var(--chart-5);
+	--color-footer: var(--footer);
+	--color-footer-foreground: var(--footer-foreground);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
@@ -66,6 +68,8 @@
 	--chart-3: oklch(0.8 0.07 120);
 	--chart-4: oklch(0.74 0.07 200);
 	--chart-5: oklch(0.68 0.07 300);
+	--footer: oklch(0.44 0.09 257); /* azul profundo del footer */
+	--footer-foreground: oklch(0.985 0.002 250);
 	--radius: 0.5rem;
 }
 
@@ -95,6 +99,8 @@
 	--chart-3: oklch(0.82 0.07 120);
 	--chart-4: oklch(0.76 0.07 200);
 	--chart-5: oklch(0.72 0.07 300);
+	--footer: oklch(0.26 0.05 257); /* azul profundo, más oscuro que el fondo */
+	--footer-foreground: oklch(0.93 0.008 250);
 }
 
 /* ─── Base styles ─────────────────────────────────────────────────── */
