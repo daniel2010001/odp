@@ -102,7 +102,6 @@ function handleHeroSearch(query: string) {
 				value=""
 				placeholder="Buscar datasets, organizaciones, temas..."
 				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
-				onchange={handleHeroSearch}
 				onsubmit={handleHeroSearch}
 			/>
 		</div>
@@ -138,7 +137,7 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Sobre la plataforma -->
-<section class="bg-muted/40">
+<section class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
@@ -154,7 +153,7 @@ function handleHeroSearch(query: string) {
 
 		<div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 			{#each platformStats as stat (stat.label)}
-				<Card class="bg-card p-6 text-center shadow-sm">
+				<Card class="bg-muted/50 p-6 text-center">
 					<p class="font-heading text-4xl font-bold text-primary">{stat.value}</p>
 					<p class="mt-2 text-sm font-semibold text-foreground">{stat.label}</p>
 					<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{stat.description}</p>
@@ -165,7 +164,7 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Por organización -->
-<section id="organizaciones" class="bg-accent/40">
+<section id="organizaciones" class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
