@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
+import { reveal } from "$lib/actions/reveal";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
@@ -8,7 +9,6 @@ import OrganizationCard from "$lib/components/organizations/OrganizationCard.sve
 import SearchBar from "$lib/components/search/SearchBar.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
-import { reveal } from "$lib/actions/reveal";
 import { env } from "$lib/env";
 import { getMockSearchResult, MOCK_DATASETS, MOCK_ORGS } from "$lib/mock/data";
 import type { CkanOrganization } from "$lib/types/ckan";
