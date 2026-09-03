@@ -20,8 +20,7 @@ export function reveal(node: HTMLElement, options: RevealOptions = {}) {
 	const delay = options.delay ?? 0;
 
 	const prefersReducedMotion =
-		typeof window !== "undefined" &&
-		window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	if (prefersReducedMotion) {
 		// Sin animación: el contenido queda visible tal cual.
