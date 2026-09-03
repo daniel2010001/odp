@@ -54,7 +54,7 @@ async function handleLogout() {
 		onclick={toggle}
 		aria-haspopup="menu"
 		aria-expanded={open}
-		class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-white/90 transition-colors duration-200 hover:bg-white/10 hover:text-white"
+		class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-accent hover:text-primary"
 	>
 		<span>{$auth.user?.display_name || $auth.user?.name || "Cuenta"}</span>
 		<ChevronDown class="size-4" aria-hidden="true" />

@@ -82,7 +82,7 @@ function handleHeroSearch(query: string) {
 </script>
 
 <!-- Hero B (variante) -->
-<section class="border-b border-border bg-gradient-to-b from-primary/10 to-background">
+<section class="border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background">
 	<div class="mx-auto max-w-4xl px-4 pb-16 pt-16 text-center sm:px-6 lg:pb-24 lg:pt-24">
 		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
 			Plataforma de Datos Abiertos · UMSS
@@ -137,7 +137,7 @@ function handleHeroSearch(query: string) {
 </section>
 
 <!-- Por organización -->
-<section id="organizaciones" class="bg-muted/50">
+<section id="organizaciones" class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
