@@ -73,9 +73,9 @@ function shortDate(iso: string): string {
 		)}
 	>
 		<div class="space-y-2.5 p-6">
-			<!-- Title (estilo actual: serif azul text-lg) -->
+			<!-- Title: text-xl bold para que domine sobre la meta -->
 			<h3
-				class="font-heading text-lg font-semibold leading-snug text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline"
+				class="font-heading text-xl font-bold leading-[1.2] text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline"
 			>
 				{dataset.title || dataset.name}
 			</h3>
