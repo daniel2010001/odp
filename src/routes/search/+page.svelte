@@ -1,7 +1,7 @@
 <script lang="ts">
-import { onMount } from "svelte";
-import { replaceState } from "$app/navigation";
+import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
+import { untrack } from "svelte";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
@@ -31,10 +31,14 @@ let error = $state<string | null>(null);
 let facets = $state<Record<string, CkanFacet>>({});
 
 // ─── Router ready guard ────────────────────────────────────────────
-let mounted = $state(false);
+// `replaceState` de $app/navigation solo puede llamarse después de que el
+// router de SvelteKit esté inicializado. onMount NO garantiza eso (corre
+// antes) y llamar replaceState temprano lanza "before router is initialized"
+// y rompe el $effect. `afterNavigate` corre recién cuando el router navegó.
+let routerReady = $state(false);
 
-onMount(() => {
-	mounted = true;
+afterNavigate(() => {
+	routerReady = true;
 });
 
 const pageSize = 20;
@@ -51,7 +55,12 @@ function syncUrl() {
 	if (sortBy !== "metadata_modified desc") params.set("sort", sortBy);
 
 	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}`;
-	replaceState(newUrl, $page.url);
+	// Segundo argumento = page.state (shallow routing), NO la URL: un objeto
+	// URL no es serializable y replaceState lanza "could not be cloned".
+	// Se lee con `untrack` para que $page.state no sea dependencia reactiva
+	// de los $effect que llaman syncUrl (si no, replaceState → cambia $page →
+	// re-dispara el effect → loop infinito).
+	replaceState(newUrl, untrack(() => $page.state));
 }
 
 // ─── Búsqueda en CKAN ─────────────────────────────────────────────
@@ -104,7 +113,7 @@ async function doSearch() {
 	}
 }
 
-// ─── Efecto: sincronizar + buscar ────────────────────────────────
+// ─── Efecto: buscar cuando cambia el estado ───────────────────────
 $effect(() => {
 	// Leer todos los reactivos para que el effect dependa de ellos
 	void query;
@@ -113,11 +122,26 @@ $effect(() => {
 	void selectedTags;
 	void currentPage;
 	void sortBy;
-	void mounted;
+	void routerReady;
 
-	// Recién después de onMount el router está listo para replaceState
-	if (mounted) doSearch();
-	if (mounted) syncUrl();
+	// Recién con el router listo (afterNavigate) ejecutamos la búsqueda.
+	if (routerReady) doSearch();
+});
+
+// ─── Efecto: sincronizar URL ──────────────────────────────────────
+// Separado del effect de búsqueda a propósito: replaceState necesita el
+// router inicializado; si por cualquier motivo este effect fallara, nunca
+// debe tumbar la búsqueda ni viceversa.
+$effect(() => {
+	void query;
+	void selectedOrgs;
+	void selectedFormats;
+	void selectedTags;
+	void currentPage;
+	void sortBy;
+	void routerReady;
+
+	if (routerReady) syncUrl();
 });
 
 // ─── Handlers ─────────────────────────────────────────────────────
