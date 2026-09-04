@@ -113,6 +113,24 @@ body {
 	font-family: var(--font-sans);
 }
 
+/*
+ * En Tailwind v4 la clase `border` (solo ancho) ya no define un color por
+ * defecto: cae a `currentColor` (el color del texto), por eso los bordes
+ * sin color explícito se veían casi negros en modo claro y casi blancos en
+ * oscuro. Restauramos un color por defecto que apunta al token `--border`
+ * (que ya tiene variante clara y oscura). Las utilidades con color
+ * explícito (p. ej. `border-primary/15`) siguen pisando esta base.
+ */
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--border);
+	}
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
 	*,
