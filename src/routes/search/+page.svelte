@@ -31,6 +31,11 @@ let loading = $state(true);
 let error = $state<string | null>(null);
 let facets = $state<Record<string, CkanFacet>>({});
 
+// Total del catálogo completo (sin filtros). Se carga una vez y queda fijo:
+// la descripción del hero NO debe cambiar cuando el usuario filtra/busca.
+let catalogTotal = $state(0);
+let catalogTotalLoading = $state(true);
+
 // ─── Router ready guard ────────────────────────────────────────────
 // `replaceState` de $app/navigation solo puede llamarse después de que el
 // router de SvelteKit esté inicializado. onMount NO garantiza eso (corre
@@ -117,6 +122,25 @@ async function doSearch() {
 	}
 }
 
+// ─── Cargar total del catálogo (fijo, sin filtros) ───────────────
+// Usa limit: 0 para traer solo el conteo real del catálogo completo,
+// independiente de la búsqueda/filtros activos. Almacenado en
+// `catalogTotal` para que la descripción del hero sea estable.
+async function loadCatalogTotal() {
+	catalogTotalLoading = true;
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+		const datasetApi = createDatasetApi(client);
+		const result = await datasetApi.search({ q: "*:*", limit: 0 });
+		catalogTotal = result.count;
+	} catch {
+		// Fallback: conteo mock si CKAN no responde
+		catalogTotal = getMockSearchResult().count;
+	} finally {
+		catalogTotalLoading = false;
+	}
+}
+
 // ─── Efecto: buscar cuando cambia el estado ───────────────────────
 $effect(() => {
 	// Leer todos los reactivos para que el effect dependa de ellos
@@ -130,6 +154,15 @@ $effect(() => {
 
 	// Recién con el router listo (afterNavigate) ejecutamos la búsqueda.
 	if (routerReady) doSearch();
+});
+
+// ─── Efecto: cargar el total del catálogo una sola vez ───────────
+// No depende de query/filtros: corre cuando el router está listo y nunca
+// se re-dispara al filtrar (a diferencia del effect de búsqueda).
+$effect(() => {
+	void routerReady;
+
+	if (routerReady) loadCatalogTotal();
 });
 
 // ─── Efecto: sincronizar URL ──────────────────────────────────────
@@ -214,13 +247,12 @@ const activeFilterCount = $derived(
 			Explorá los datasets abiertos de la UMSS
 		</h1>
 		<p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-			{#if !query && !hasActiveFilters && !loading && total > 0}
-				{total.toLocaleString('es-BO')} datasets publicados por las facultades,
-				departamentos e institutos de la universidad.
-			{:else}
-				Conjuntos de datos académicos y administrativos publicados por las facultades,
-				departamentos e institutos de la universidad.
-			{/if}
+			La Universidad Mayor de San Simón publica
+			<span class="font-semibold text-foreground">
+				{catalogTotalLoading ? '…' : catalogTotal.toLocaleString('es-BO')}
+			</span>
+			datasets académicos y administrativos desde sus facultades, departamentos e institutos,
+			bajo principios FAIR.
 		</p>
 
 		<div class="mx-auto mt-8 w-full max-w-[720px]">
