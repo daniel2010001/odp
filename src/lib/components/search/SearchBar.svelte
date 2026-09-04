@@ -8,15 +8,17 @@ let {
 	placeholder = "Buscar datasets...",
 	submitLabel = "",
 	class: className = "",
-	onchange,
 	onsubmit,
+	onclear,
 }: {
 	value?: string;
 	placeholder?: string;
 	submitLabel?: string;
 	class?: string;
-	onchange?: (value: string) => void;
+	/** Submit por Enter o clic en el botón "Buscar". */
 	onsubmit?: (value: string) => void;
+	/** El campo quedó vacío (X o backspace hasta vaciarlo). */
+	onclear?: () => void;
 } = $props();
 
 let inputEl: HTMLInputElement | undefined = $state();
@@ -32,27 +34,24 @@ $effect(() => {
 	}
 });
 
-// Debounce: 300ms
-let debounceTimer: ReturnType<typeof setTimeout>;
 function handleInput(e: Event) {
 	const target = e.target as HTMLInputElement;
 	localValue = target.value;
-	clearTimeout(debounceTimer);
-	debounceTimer = setTimeout(() => {
-		onchange?.(localValue);
-	}, 300);
+	// Sin búsqueda en vivo: solo avisamos cuando el usuario vació el campo
+	// (backspace hasta el final) para que el padre pueda resetear.
+	if (localValue === "") {
+		onclear?.();
+	}
 }
 
 function handleSubmit(e: Event) {
 	e.preventDefault();
-	clearTimeout(debounceTimer);
-	onchange?.(localValue);
 	onsubmit?.(localValue);
 }
 
 function clear() {
 	localValue = "";
-	onchange?.("");
+	onclear?.();
 	inputEl?.focus();
 }
 
@@ -70,7 +69,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 <svelte:window onkeydown={handleKeydown} />
 
-	<form role="search" onsubmit={handleSubmit} class={cn('relative', className)}>
+<form role="search" onsubmit={handleSubmit} class={cn('relative', className)}>
 	<Search
 		class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-primary"
 	/>
@@ -82,7 +81,7 @@ function handleKeydown(e: KeyboardEvent) {
 		value={localValue}
 		oninput={handleInput}
 		aria-label="Buscar datasets"
-    class="h-12 w-full rounded-lg border border-border bg-background pl-10 {submitLabel ? 'pr-36' : 'pr-20'} text-sm text-primary shadow-sm placeholder:text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+		class="h-12 w-full rounded-lg border border-border bg-background pl-10 {submitLabel ? 'pr-36' : 'pr-20'} text-sm text-primary shadow-sm placeholder:text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 	/>
 
 	<div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
