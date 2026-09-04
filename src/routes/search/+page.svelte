@@ -1,4 +1,5 @@
 <script lang="ts">
+import { X } from "lucide-svelte";
 import { untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
@@ -279,28 +280,28 @@ const activeFilterCount = $derived(
 			{#each selectedOrgs as org}
 				<button
 					onclick={() => toggleFilter('org', org)}
-					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{org}
-					<span class="ml-1">&times;</span>
+					<X class="size-3" aria-hidden="true" />
 				</button>
 			{/each}
 			{#each selectedFormats as format}
 				<button
 					onclick={() => toggleFilter('format', format)}
-					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{format}
-					<span class="ml-1">&times;</span>
+					<X class="size-3" aria-hidden="true" />
 				</button>
 			{/each}
 			{#each selectedTags as tag}
 				<button
 					onclick={() => toggleFilter('tags', tag)}
-					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
 				>
 					{tag}
-					<span class="ml-1">&times;</span>
+					<X class="size-3" aria-hidden="true" />
 				</button>
 			{/each}
 
@@ -319,9 +320,11 @@ const activeFilterCount = $derived(
 	<div class="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
 		<!-- Sidebar: Facets -->
 		<aside class="mb-6 lg:mb-0">
-			<div class="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
-				<div class="flex items-center justify-between">
-					<h2 class="text-[11px] font-bold uppercase tracking-wider text-foreground">Filtros</h2>
+			<div class="rounded-xl border border-border bg-card p-6 shadow-sm">
+				<div class="flex items-baseline justify-between gap-2 border-b border-border pb-3">
+					<h2 class="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">
+						Filtros
+					</h2>
 					{#if hasActiveFilters}
 						<button
 							onclick={clearAllFilters}
@@ -332,41 +335,34 @@ const activeFilterCount = $derived(
 					{/if}
 				</div>
 
-				{#if facets.organization}
-					<FacetFilter
-						title="Organización"
-						items={facets.organization.items}
-						selected={selectedOrgs}
-						onselect={(v) => toggleFilter('org', v)}
-					/>
-				{/if}
+				<div class="space-y-5 pt-3">
+					{#if facets.organization}
+						<FacetFilter
+							title="Organización"
+							items={facets.organization.items}
+							selected={selectedOrgs}
+							onselect={(v) => toggleFilter('org', v)}
+						/>
+					{/if}
 
-				{#if facets.res_format}
-					<FacetFilter
-						title="Formato"
-						items={facets.res_format.items}
-						selected={selectedFormats}
-						onselect={(v) => toggleFilter('format', v)}
-					/>
-				{/if}
+					{#if facets.res_format}
+						<FacetFilter
+							title="Formato"
+							items={facets.res_format.items}
+							selected={selectedFormats}
+							onselect={(v) => toggleFilter('format', v)}
+						/>
+					{/if}
 
-				{#if facets.tags}
-					<FacetFilter
-						title="Etiquetas"
-						items={facets.tags.items}
-						selected={selectedTags}
-						onselect={(v) => toggleFilter('tags', v)}
-					/>
-				{/if}
-
-				{#if facets.license_id}
-					<FacetFilter
-						title="Licencia"
-						items={facets.license_id.items}
-						selected={[]}
-						onselect={() => {}}
-					/>
-				{/if}
+					{#if facets.tags}
+						<FacetFilter
+							title="Etiquetas"
+							items={facets.tags.items}
+							selected={selectedTags}
+							onselect={(v) => toggleFilter('tags', v)}
+						/>
+					{/if}
+				</div>
 			</div>
 		</aside>
 
