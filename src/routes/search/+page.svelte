@@ -170,20 +170,24 @@ const activeFilterCount = $derived(
 </svelte:head>
 
 <!-- Hero -->
-<section class="bg-gradient-to-br from-primary to-primary/90">
-	<div class="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 lg:px-8 lg:py-16">
-		<p
-			class="text-xs font-bold uppercase tracking-[2.5px] text-destructive"
-		>
+<section class="border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background">
+	<div class="mx-auto max-w-7xl px-4 pb-16 pt-16 text-center sm:px-6 lg:px-8 lg:pb-20 lg:pt-24">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
 			Catálogo de Datos
 		</p>
 		<h1
-			class="mx-auto mt-3 max-w-3xl font-heading text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl"
+			class="mx-auto mt-4 max-w-3xl font-heading text-4xl font-bold leading-[1.1] text-foreground sm:text-5xl lg:text-[52px]"
 		>
 			Explorá los datasets abiertos de la UMSS
 		</h1>
-		<p class="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/80">
-			Más de 1,200 datasets publicados por las facultades, departamentos e institutos de la universidad.
+		<p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+			{#if !query && !hasActiveFilters && !loading && total > 0}
+				{total.toLocaleString('es-BO')} datasets publicados por las facultades,
+				departamentos e institutos de la universidad.
+			{:else}
+				Conjuntos de datos académicos y administrativos publicados por las facultades,
+				departamentos e institutos de la universidad.
+			{/if}
 		</p>
 
 		<div class="mx-auto mt-8 w-full max-w-[720px]">
@@ -191,7 +195,7 @@ const activeFilterCount = $derived(
 				value={query}
 				placeholder="Buscá por organización, etiquetas, formato..."
 				submitLabel="Buscar"
-				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-white [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-primary"
+				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
 				onchange={onSearchChange}
 				onsubmit={onSearchChange}
 			/>

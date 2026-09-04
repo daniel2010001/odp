@@ -99,7 +99,7 @@ function handleKeydown(e: KeyboardEvent) {
 		{#if submitLabel}
 			<button
 				type="submit"
-				class="flex h-9 items-center justify-center rounded-md bg-destructive px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-destructive/90 hover:shadow-md"
+				class="flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md"
 			>
 				{submitLabel}
 			</button>
