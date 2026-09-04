@@ -93,7 +93,7 @@ function handleHeroSearch(query: string) {
 <!-- Hero B (variante) -->
 <section class="border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background">
 	<div class="mx-auto max-w-4xl px-4 pb-28 pt-28 text-center sm:px-6 lg:pb-36 lg:pt-36">
-		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
 			Plataforma de Datos Abiertos · UMSS
 		</p>
 		<h1
@@ -123,7 +123,7 @@ function handleHeroSearch(query: string) {
 <section class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">Plataforma</p>
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">Plataforma</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
 				Sobre la plataforma
 			</h2>
@@ -157,7 +157,7 @@ function handleHeroSearch(query: string) {
 <section class="bg-background">
 	<div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
 				Empezá a explorar
 			</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
@@ -184,7 +184,7 @@ function handleHeroSearch(query: string) {
 <section id="organizaciones" class="bg-background">
 	<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-20 lg:py-20">
 		<div class="text-center">
-			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-primary">
+			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
 				Organizaciones
 			</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
