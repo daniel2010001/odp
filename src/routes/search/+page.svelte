@@ -1,7 +1,7 @@
 <script lang="ts">
+import { untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
-import { untrack } from "svelte";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
@@ -60,7 +60,10 @@ function syncUrl() {
 	// Se lee con `untrack` para que $page.state no sea dependencia reactiva
 	// de los $effect que llaman syncUrl (si no, replaceState → cambia $page →
 	// re-dispara el effect → loop infinito).
-	replaceState(newUrl, untrack(() => $page.state));
+	replaceState(
+		newUrl,
+		untrack(() => $page.state),
+	);
 }
 
 // ─── Búsqueda en CKAN ─────────────────────────────────────────────
