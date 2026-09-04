@@ -81,10 +81,10 @@ function shortDate(iso: string): string {
 			</h3>
 
 			<!-- Meta: org (con icono, estilo actual) + privado -->
-			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
 				{#if dataset.organization}
-					<span class="inline-flex items-center gap-1 font-medium text-destructive">
-						<Building2 class="size-3" aria-hidden="true" />
+					<span class="inline-flex items-center gap-1.5 font-medium text-destructive">
+						<Building2 class="size-3.5" aria-hidden="true" />
 						{dataset.organization.title}
 					</span>
 				{/if}
@@ -98,18 +98,18 @@ function shortDate(iso: string): string {
 				{description}
 			</p>
 
-			<!-- Tags (estilo actual) -->
+			<!-- Tags: chips con fondo muted suave -->
 			{#if dataset.tags?.length}
 				<div class="flex flex-wrap items-center gap-1.5">
 					{#each dataset.tags.slice(0, 3) as tag}
 						<span
-							class="inline-flex items-center justify-center rounded px-2 py-0.5 text-[10px] text-muted-foreground"
+							class="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
 						>
 							#{tag.display_name || tag.name}
 						</span>
 					{/each}
 					{#if dataset.tags.length > 3}
-						<span class="text-[10px] text-muted-foreground">+{dataset.tags.length - 3}</span>
+						<span class="text-xs text-muted-foreground">+{dataset.tags.length - 3}</span>
 					{/if}
 				</div>
 			{/if}
@@ -119,23 +119,23 @@ function shortDate(iso: string): string {
 				<div class="flex flex-wrap items-center gap-1.5">
 					{#each resourceFormats as format}
 						<span
-							class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold {getFormatAccent(format)}"
+							class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-xs font-semibold {getFormatAccent(format)}"
 						>
 							{format}
 						</span>
 					{/each}
 					{#if moreFormats > 0}
-						<span class="text-[10px] text-muted-foreground">+{moreFormats} más</span>
+						<span class="text-xs text-muted-foreground">+{moreFormats} más</span>
 					{/if}
 				</div>
 
-				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-					<span class="inline-flex items-center gap-1">
-						<FileText class="size-3" aria-hidden="true" />
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+					<span class="inline-flex items-center gap-1.5">
+						<FileText class="size-3.5" aria-hidden="true" />
 						{resourceCountLabel}
 					</span>
-					<span class="inline-flex items-center gap-1">
-						<Calendar class="size-3" aria-hidden="true" />
+					<span class="inline-flex items-center gap-1.5">
+						<Calendar class="size-3.5" aria-hidden="true" />
 						Actualizado {shortDate(dataset.metadata_modified)}
 					</span>
 				</div>
