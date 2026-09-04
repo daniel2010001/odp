@@ -149,8 +149,13 @@ $effect(() => {
 });
 
 // ─── Handlers ─────────────────────────────────────────────────────
-function onSearchChange(value: string) {
+function onSearchSubmit(value: string) {
 	query = value;
+	currentPage = 1;
+}
+
+function onSearchClear() {
+	query = "";
 	currentPage = 1;
 }
 
@@ -224,8 +229,8 @@ const activeFilterCount = $derived(
 				placeholder="Buscá por organización, etiquetas, formato..."
 				submitLabel="Buscar"
 				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
-				onchange={onSearchChange}
-				onsubmit={onSearchChange}
+				onsubmit={onSearchSubmit}
+				onclear={onSearchClear}
 			/>
 		</div>
 	</div>
