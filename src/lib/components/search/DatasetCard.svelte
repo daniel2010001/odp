@@ -65,7 +65,7 @@ function shortDate(iso: string): string {
 }
 </script>
 
-<a href={`/dataset/${dataset.id}`} class="group block no-underline focus-visible:outline-none">
+<a href={`/dataset/${dataset.name}`} class="group block no-underline focus-visible:outline-none">
 	<Card
 		class={cn(
 			'cursor-pointer border-primary/15 transition-all duration-200 group-hover:border-primary/35 group-hover:shadow-md',
