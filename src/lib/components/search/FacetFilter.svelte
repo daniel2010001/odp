@@ -1,5 +1,6 @@
 <script lang="ts">
 import { ChevronDown, Search } from "lucide-svelte";
+import { onMount } from "svelte";
 import { cn } from "$lib/utils";
 
 let {
@@ -19,6 +20,12 @@ let {
 let open = $state(true);
 let showAll = $state(false);
 let query = $state("");
+
+// En móvil (< md = 768px) los acordeones arrancan contraídos; en desktop
+// (md+) quedan abiertos por defecto. Solo se ajusta al montar.
+onMount(() => {
+	open = window.matchMedia("(min-width: 768px)").matches;
+});
 
 const DEFAULT_SHOW = 5;
 
