@@ -7,10 +7,8 @@ import {
 	ChevronRight,
 	Clock,
 	Copy,
-	Database,
-	Info,
+	Link2,
 	Shield,
-	Tag,
 	User,
 } from "lucide-svelte";
 import { page } from "$app/stores";
@@ -32,6 +30,7 @@ let loading = $state(true);
 let error = $state<string | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
 let copied = $state(false);
+let copiedLink = $state(false);
 
 // ─── ID from URL ────────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
@@ -150,17 +149,11 @@ const orgHref = $derived(
 // ─── Technical metadata table ───────────────────────────────────
 const generalMetaRows = $derived.by(() => {
 	if (!dataset) return [];
-	const rows: { label: string; value: string; href?: string }[] = [
-		{ label: "Identificador", value: dataset.name },
+	const rows: { label: string; value: string; mono?: boolean }[] = [
+		{ label: "Slug", value: dataset.name, mono: true },
+		{ label: "ID", value: dataset.id, mono: true },
+		{ label: "Visibilidad", value: visibilityLabel },
 	];
-	if (dataset.organization?.title) {
-		rows.push({
-			label: "Organización",
-			value: dataset.organization.title,
-			href: orgHref ?? undefined,
-		});
-	}
-	rows.push({ label: "Visibilidad", value: visibilityLabel });
 	if (stateLabel) rows.push({ label: "Estado", value: stateLabel });
 	return rows;
 });
@@ -181,6 +174,24 @@ async function handleCopyCitation() {
 		copied = true;
 		setTimeout(() => {
 			copied = false;
+		}, 2000);
+	}
+}
+
+// Copia el enlace canónico del dataset (usa el slug, no el id interno).
+function buildShareUrl(): string {
+	if (!dataset) return "";
+	return `${window.location.origin}/dataset/${dataset.name}`;
+}
+
+async function handleCopyLink() {
+	const url = buildShareUrl();
+	if (!url) return;
+	const ok = await copyToClipboard(url);
+	if (ok) {
+		copiedLink = true;
+		setTimeout(() => {
+			copiedLink = false;
 		}, 2000);
 	}
 }
@@ -275,8 +286,35 @@ async function handleCopyCitation() {
 		<!-- Hero -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+				<!-- Title + copy link -->
+				<div class="flex items-center gap-3">
+					<button
+						type="button"
+						onclick={handleCopyLink}
+						aria-label="Copiar enlace del dataset"
+						title="Copiar enlace"
+						class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					>
+						{#if copiedLink}
+							<Check class="size-4 text-emerald-600" />
+						{:else}
+							<Link2 class="size-4" />
+						{/if}
+					</button>
+					<h1
+						class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+					>
+						{dataset.title || dataset.name}
+					</h1>
+				</div>
+
+				<!-- Subtitle: updated -->
+				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
+				</div>
+
 				<!-- Badges row -->
-				<div class="flex flex-wrap items-center gap-2">
+				<div class="mt-4 flex flex-wrap items-center gap-2">
 					{#if dataset.organization?.title}
 						{#if orgHref}
 							<a
@@ -321,22 +359,6 @@ async function handleCopyCitation() {
 						{visibilityLabel}
 					</span>
 				</div>
-
-				<!-- Title -->
-				<h1
-					class="mt-5 font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
-				>
-					{dataset.title || dataset.name}
-				</h1>
-
-				<!-- Subtitle: org + updated -->
-				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-					{#if dataset.organization?.title}
-						<span>{dataset.organization.title}</span>
-						<span aria-hidden="true">·</span>
-					{/if}
-					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
-				</div>
 			</div>
 		</section>
 
@@ -345,23 +367,18 @@ async function handleCopyCitation() {
 			<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
 				<!-- Main column -->
 				<div class="min-w-0 space-y-6">
-					<!-- Description -->
+					<!-- Description + tags -->
 					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-bold uppercase tracking-wider text-primary">Descripción</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-foreground">Sobre este dataset</h2>
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Descripción</p>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre este dataset</h2>
 						{#if description}
 							<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{description}</p>
 						{:else}
 							<p class="mt-3 text-sm italic text-muted-foreground">Sin descripción</p>
 						{/if}
-					</Card>
 
-					<!-- Tags -->
-					{#if dataset.tags && dataset.tags.length > 0}
-						<Card class="p-6 sm:p-8">
-							<p class="text-xs font-bold uppercase tracking-wider text-primary">Etiquetas</p>
-							<h2 class="mt-1 font-heading text-xl font-bold text-foreground">Temas</h2>
-							<div class="mt-3 flex flex-wrap gap-2">
+						{#if dataset.tags && dataset.tags.length > 0}
+							<div class="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-4">
 								{#each visibleTags as tag}
 									<span
 										class="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground"
@@ -375,13 +392,13 @@ async function handleCopyCitation() {
 									</span>
 								{/if}
 							</div>
-						</Card>
-					{/if}
+						{/if}
+					</Card>
 
 					<!-- Resources -->
 					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-bold uppercase tracking-wider text-primary">Recursos</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-foreground">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 							Archivos disponibles
 							{#if activeResources.length > 0}
 								<span class="font-normal text-muted-foreground">({activeResources.length})</span>
@@ -394,19 +411,19 @@ async function handleCopyCitation() {
 								</p>
 							{:else}
 								{#each activeResources as resource (resource.id)}
-									<ResourceCard {resource} datasetId={dataset.id} />
+									<ResourceCard {resource} datasetSlug={dataset.name} />
 								{/each}
 							{/if}
 						</div>
 					</Card>
 
-					<!-- Technical metadata -->
-					<div>
-						<p class="text-xs font-bold uppercase tracking-wider text-primary">Metadatos</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-foreground">
+					<!-- Technical info -->
+					<Card class="p-6 sm:p-8">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 							Información técnica del dataset
 						</h2>
-						<Card class="mt-3 overflow-hidden">
+						<div class="mt-4 overflow-hidden rounded-lg border border-border">
 							<div
 								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
 							>
@@ -419,25 +436,23 @@ async function handleCopyCitation() {
 										class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
 									>
 										<span class="text-muted-foreground">{row.label}</span>
-										{#if row.href}
-											<a href={row.href} class="font-medium text-primary hover:underline">
-												{row.value}
-											</a>
+										{#if row.mono}
+											<code class="break-all font-mono text-foreground">{row.value}</code>
 										{:else}
 											<span class="break-all font-medium text-foreground">{row.value}</span>
 										{/if}
 									</div>
 								{/each}
 							</div>
-						</Card>
-					</div>
+						</div>
+					</Card>
 				</div>
 
 				<!-- Sidebar -->
-				<aside class="min-w-0 space-y-6">
+				<aside class="min-w-0 space-y-6 lg:sticky lg:top-24">
 					<!-- Cite card -->
 					<Card class="p-5">
-						<p class="text-xs font-bold uppercase tracking-wider text-primary">Citar como</p>
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
 						<div class="mt-3 flex items-center gap-2">
 							<button
 								type="button"
@@ -486,7 +501,7 @@ async function handleCopyCitation() {
 					<!-- Metadata card -->
 					{#if metadataItems.length > 0}
 						<Card class="p-5">
-							<p class="text-xs font-bold uppercase tracking-wider text-primary">Metadatos</p>
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Metadatos</p>
 							<div class="mt-3 divide-y divide-border/60">
 								{#each metadataItems as item}
 									<div class="flex items-start justify-between gap-3 py-2.5">
@@ -506,7 +521,7 @@ async function handleCopyCitation() {
 					<!-- Organization card -->
 					{#if dataset.organization?.title}
 						<Card class="p-5">
-							<p class="text-xs font-bold uppercase tracking-wider text-primary">Organización</p>
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
 							<div class="mt-3 flex items-start gap-3">
 								<OrganizationLogo
 									imageUrl={dataset.organization.image_url}
@@ -534,35 +549,6 @@ async function handleCopyCitation() {
 						</Card>
 					{/if}
 
-					<!-- Technical info -->
-					<Card class="p-5">
-						<p class="text-xs font-bold uppercase tracking-wider text-primary">Información técnica</p>
-						<div class="mt-3 space-y-2 text-xs">
-							<div class="flex items-start justify-between gap-3">
-								<span class="flex items-center gap-2 text-muted-foreground">
-									<Database class="size-3.5 shrink-0" />
-									ID
-								</span>
-								<code class="break-all text-right font-mono text-foreground">{dataset.id}</code>
-							</div>
-							<div class="flex items-start justify-between gap-3">
-								<span class="flex items-center gap-2 text-muted-foreground">
-									<Tag class="size-3.5 shrink-0" />
-									Slug
-								</span>
-								<code class="break-all text-right font-mono text-foreground">{dataset.name}</code>
-							</div>
-							{#if stateLabel}
-								<div class="flex items-start justify-between gap-3">
-									<span class="flex items-center gap-2 text-muted-foreground">
-										<Info class="size-3.5 shrink-0" />
-										Estado
-									</span>
-									<span class="text-right font-medium text-foreground">{stateLabel}</span>
-								</div>
-							{/if}
-						</div>
-					</Card>
 				</aside>
 			</div>
 		</section>

@@ -378,7 +378,7 @@ const activeFilterCount = $derived(
 <div class="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
 	<div class="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
 		<!-- Sidebar: Facets -->
-		<aside class="mb-6 lg:mb-0">
+		<aside class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-40 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto">
 			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
 			     (md+) el panel queda siempre desplegado. -->
 			<button

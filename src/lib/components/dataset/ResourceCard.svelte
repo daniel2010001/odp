@@ -5,11 +5,11 @@ import { formatSize } from "$lib/utils/ckan";
 
 let {
 	resource,
-	datasetId,
+	datasetSlug,
 	class: className = "",
 }: {
 	resource: CkanResource;
-	datasetId: string;
+	datasetSlug: string;
 	class?: string;
 } = $props();
 
@@ -74,7 +74,7 @@ const formatBadge = $derived.by(() => {
 </script>
 
 <a
-	href={`/dataset/${datasetId}/resource/${resource.id}`}
+	href={`/dataset/${datasetSlug}/resource/${resource.id}`}
 	class={cn(
 		"flex items-start gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/30 sm:p-4",
 		className,
