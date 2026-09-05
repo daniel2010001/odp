@@ -1,5 +1,5 @@
 <script lang="ts">
-import { X } from "lucide-svelte";
+import { ChevronDown, SlidersHorizontal, X } from "lucide-svelte";
 import { untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
@@ -11,16 +11,16 @@ import Pagination from "$lib/components/search/Pagination.svelte";
 import SearchBar from "$lib/components/search/SearchBar.svelte";
 import { env } from "$lib/env";
 import { getMockSearchResult } from "$lib/mock/data";
-import type { SearchResponse } from "$lib/types/api";
 import type { CkanFacet, CkanPackage } from "$lib/types/ckan";
-import { parseExtras } from "$lib/types/dataset";
 import { buildFilterQuery } from "$lib/utils/ckan";
+import { mapLicenseItems } from "$lib/utils/licenses";
 
 // ─── State desde URL ──────────────────────────────────────────────
 let query = $state($page.url.searchParams.get("q") ?? "");
 let selectedOrgs = $state<string[]>($page.url.searchParams.get("org")?.split(",") ?? []);
 let selectedFormats = $state<string[]>($page.url.searchParams.get("format")?.split(",") ?? []);
 let selectedTags = $state<string[]>($page.url.searchParams.get("tags")?.split(",") ?? []);
+let selectedLicenses = $state<string[]>($page.url.searchParams.get("license")?.split(",") ?? []);
 let currentPage = $state(Number($page.url.searchParams.get("page")) || 1);
 let sortBy = $state($page.url.searchParams.get("sort") ?? "metadata_modified desc");
 
@@ -35,6 +35,9 @@ let facets = $state<Record<string, CkanFacet>>({});
 // la descripción del hero NO debe cambiar cuando el usuario filtra/busca.
 let catalogTotal = $state(0);
 let catalogTotalLoading = $state(true);
+
+// ─── UI: colapso de filtros en móvil ──────────────────────────────
+let mobileFiltersOpen = $state(false);
 
 // ─── Router ready guard ────────────────────────────────────────────
 // `replaceState` de $app/navigation solo puede llamarse después de que el
@@ -57,6 +60,7 @@ function syncUrl() {
 	if (selectedOrgs.length) params.set("org", selectedOrgs.join(","));
 	if (selectedFormats.length) params.set("format", selectedFormats.join(","));
 	if (selectedTags.length) params.set("tags", selectedTags.join(","));
+	if (selectedLicenses.length) params.set("license", selectedLicenses.join(","));
 	if (currentPage > 1) params.set("page", String(currentPage));
 	if (sortBy !== "metadata_modified desc") params.set("sort", sortBy);
 
@@ -73,8 +77,6 @@ function syncUrl() {
 }
 
 // ─── Búsqueda en CKAN ─────────────────────────────────────────────
-let abortController = $state<AbortController | null>(null);
-
 async function doSearch() {
 	loading = true;
 	error = null;
@@ -84,6 +86,7 @@ async function doSearch() {
 	if (selectedOrgs.length) filterMap["organization"] = selectedOrgs;
 	if (selectedFormats.length) filterMap["res_format"] = selectedFormats;
 	if (selectedTags.length) filterMap["tags"] = selectedTags;
+	if (selectedLicenses.length) filterMap["license_id"] = selectedLicenses;
 	const fq = buildFilterQuery(filterMap);
 
 	try {
@@ -148,6 +151,7 @@ $effect(() => {
 	void selectedOrgs;
 	void selectedFormats;
 	void selectedTags;
+	void selectedLicenses;
 	void currentPage;
 	void sortBy;
 	void routerReady;
@@ -174,6 +178,7 @@ $effect(() => {
 	void selectedOrgs;
 	void selectedFormats;
 	void selectedTags;
+	void selectedLicenses;
 	void currentPage;
 	void sortBy;
 	void routerReady;
@@ -192,7 +197,7 @@ function onSearchClear() {
 	currentPage = 1;
 }
 
-function toggleFilter(field: "org" | "format" | "tags", value: string) {
+function toggleFilter(field: "org" | "format" | "tags" | "license", value: string) {
 	currentPage = 1;
 	if (field === "org") {
 		selectedOrgs = selectedOrgs.includes(value)
@@ -202,6 +207,10 @@ function toggleFilter(field: "org" | "format" | "tags", value: string) {
 		selectedFormats = selectedFormats.includes(value)
 			? selectedFormats.filter((v) => v !== value)
 			: [...selectedFormats, value];
+	} else if (field === "license") {
+		selectedLicenses = selectedLicenses.includes(value)
+			? selectedLicenses.filter((v) => v !== value)
+			: [...selectedLicenses, value];
 	} else {
 		selectedTags = selectedTags.includes(value)
 			? selectedTags.filter((v) => v !== value)
@@ -213,6 +222,7 @@ function clearAllFilters() {
 	selectedOrgs = [];
 	selectedFormats = [];
 	selectedTags = [];
+	selectedLicenses = [];
 	currentPage = 1;
 }
 
@@ -222,10 +232,13 @@ function goToPage(p: number) {
 }
 
 const hasActiveFilters = $derived(
-	selectedOrgs.length > 0 || selectedFormats.length > 0 || selectedTags.length > 0,
+	selectedOrgs.length > 0 ||
+		selectedFormats.length > 0 ||
+		selectedTags.length > 0 ||
+		selectedLicenses.length > 0,
 );
 const activeFilterCount = $derived(
-	selectedOrgs.length + selectedFormats.length + selectedTags.length,
+	selectedOrgs.length + selectedFormats.length + selectedTags.length + selectedLicenses.length,
 );
 </script>
 
@@ -341,6 +354,15 @@ const activeFilterCount = $derived(
 					<X class="size-3" aria-hidden="true" />
 				</button>
 			{/each}
+			{#each selectedLicenses as license}
+				<button
+					onclick={() => toggleFilter('license', license)}
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+				>
+					{license}
+					<X class="size-3" aria-hidden="true" />
+				</button>
+			{/each}
 
 			<button
 				onclick={clearAllFilters}
@@ -357,23 +379,67 @@ const activeFilterCount = $derived(
 	<div class="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
 		<!-- Sidebar: Facets -->
 		<aside class="mb-6 lg:mb-0">
-			<div class="rounded-xl border border-border bg-card p-6 shadow-sm">
+			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
+			     (md+) el panel queda siempre desplegado. -->
+			<button
+				type="button"
+				onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}
+				aria-expanded={mobileFiltersOpen}
+				class="mb-4 flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left shadow-sm transition-colors duration-200 hover:bg-accent md:hidden"
+			>
+				<span class="flex items-center gap-2 text-sm font-semibold text-foreground">
+					<SlidersHorizontal class="size-4 text-primary" aria-hidden="true" />
+					Filtros
+					{#if activeFilterCount > 0}
+						<span
+							class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+						>
+							{activeFilterCount}
+						</span>
+					{/if}
+				</span>
+				<ChevronDown
+					class="size-4 text-muted-foreground transition-transform duration-200 {mobileFiltersOpen
+						? 'rotate-180'
+						: ''}"
+					aria-hidden="true"
+				/>
+			</button>
+
+			<div
+				class="rounded-xl border border-border bg-card p-6 shadow-sm transition-opacity duration-200 {mobileFiltersOpen
+					? 'block'
+					: 'hidden'} md:block {loading ? 'opacity-60' : ''}"
+			>
 				<div class="flex items-baseline justify-between gap-2 border-b border-border pb-3">
-					<h2 class="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">
+					<h2 class="text-sm font-bold uppercase tracking-[0.14em] text-destructive">
 						Filtros
 					</h2>
-					{#if hasActiveFilters}
-						<button
-							onclick={clearAllFilters}
-							class="text-xs font-semibold text-destructive underline underline-offset-2 transition-colors duration-200 hover:text-destructive/80"
-						>
-							Limpiar ({activeFilterCount})
-						</button>
-					{/if}
+					<div class="flex items-center gap-3">
+						{#if loading}
+							<span
+								class="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+							>
+								<span
+									class="size-2 animate-pulse rounded-full bg-primary"
+									aria-hidden="true"
+								></span>
+								Actualizando…
+							</span>
+						{/if}
+						{#if hasActiveFilters}
+							<button
+								onclick={clearAllFilters}
+								class="text-xs font-semibold text-destructive underline underline-offset-2 transition-colors duration-200 hover:text-destructive/80"
+							>
+								Limpiar ({activeFilterCount})
+							</button>
+						{/if}
+					</div>
 				</div>
 
 				<div class="space-y-5 pt-3">
-					{#if facets.organization}
+					{#if facets.organization?.items?.length}
 						<FacetFilter
 							title="Organización"
 							items={facets.organization.items}
@@ -382,7 +448,7 @@ const activeFilterCount = $derived(
 						/>
 					{/if}
 
-					{#if facets.res_format}
+					{#if facets.res_format?.items?.length}
 						<FacetFilter
 							title="Formato"
 							items={facets.res_format.items}
@@ -391,12 +457,21 @@ const activeFilterCount = $derived(
 						/>
 					{/if}
 
-					{#if facets.tags}
+					{#if facets.tags?.items?.length}
 						<FacetFilter
 							title="Etiquetas"
 							items={facets.tags.items}
 							selected={selectedTags}
 							onselect={(v) => toggleFilter('tags', v)}
+						/>
+					{/if}
+
+					{#if facets.license_id?.items?.length}
+						<FacetFilter
+							title="Licencia"
+							items={mapLicenseItems(facets.license_id.items)}
+							selected={selectedLicenses}
+							onselect={(v) => toggleFilter('license', v)}
 						/>
 					{/if}
 				</div>
