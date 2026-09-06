@@ -13,6 +13,7 @@
 | Contratos de comportamiento de features | `openspec/specs/` | Specs OpenSpec (formato GIVEN/WHEN/THEN). |
 | Cambios en curso (SDD) | `openspec/changes/` | Artefactos de cambios activos. |
 | Cambios cerrados | `openspec/changes/archive/` | Trazabilidad de cambios ya archivados. |
+| **Pendientes y para-futuro** | `BACKLOG.md` | Fuente única de pendientes. Todo lo que quede "para después" en una sesión se anota acá antes de cerrar; al cerrar un ítem se borra (git guarda el historial). |
 | Mockups visuales | `design-system/datos-umss/pages/*.op` | Archivos OpenPencil. |
 
 ## Reglas de oro
