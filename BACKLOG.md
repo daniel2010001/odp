@@ -31,6 +31,30 @@
   `feat/dataset-detail-polish`, `fix/search-resultsbar-favicon`, `feat/search-card-title-hierarchy`,
   `feat/auth-04-ui`, `feat/auth-02-server`. _Verificado 2026-09-06._
 
+- [ ] **Política de fallback a datos mock en producción** — cada página
+  (`+page.svelte`, `search`, `dataset/[id]`, `resource/[resourceId]`, `organizations`) hace
+  fallback silencioso a `getMock*` cuando CKAN falla, **sin distinguir dev de prod**. Si CKAN cae
+  en producción, la app muestra datasets falsos y stats infladas como si fueran reales. Decidir:
+  ¿mock solo con `import.meta.env.DEV` y error visible en prod, o estado explícito "CKAN no
+  disponible"? _Origen: audit de consistencia 2026-09-06; el README lo presenta como solo-dev pero
+  el código no discrimina._
+
+## Documentación y trazabilidad
+
+- [ ] **Spec de organizations nunca promovida a OpenSpec** — el cambio `organizations-catalog` se
+  archivó en modo engram (sin filesystem), por lo que la feature implementada (listado/detalle de
+  orgs) **no tiene spec en `openspec/specs/`** (hoy solo authentication, dataset-resource-listing,
+  resource-detail-view). Contradice la convención de AGENTS.md (specs = contratos de features).
+  Decidir: promover spec desde el archive engram o documentar por qué no aplica.
+  _Origen: audit 2026-09-06._
+
+- [ ] **Divergencia doc↔código en el home** — el design-system README (§9, página Home) describe
+  una sección "¿Qué podés hacer?" con grid de 6 features (buscar, visualizar, analizar CSV,
+  colaborar, publicar, API pública). El home real **ya no tiene esa sección** (quedó CTA + stats +
+  organizaciones tras la reestructura de septiembre). Decidir si el doc quedó desactualizado o si
+  la sección se perdió deliberadamente, y alinear. _Origen: audit 2026-09-06; ver PR #19 y
+  design-system §9 item 1._
+
 ## Backend CKAN / `odp-docker` (repo hermano)
 
 - [~] **`CKAN_INTERNAL_URL` en compose de producción** — `docker-compose.unified.yml` (prod) NO
@@ -58,6 +82,43 @@
   (B) seed real vía `package_create` en paralelo, (C) insert directo + rebuild (descartado).
   Recomendación previa: B + A como colchón. _Origen: plan 2026-09-01._
 
+## Gestión de contenido (CRUD) y vistas
+
+> Área "de visión": **documentada** en PRD §3 (dentro de alcance v1) y en el inventario de
+> páginas del design-system (sección 9, páginas privadas), pero **sin specs OpenSpec** y **sin
+> implementar** en el frontend (hoy el frontend es solo lectura + login; el dashboard dice
+> "La publicación de datasets estará disponible próximamente"). Nada de esto es urgente.
+
+- [ ] **Decidir la estrategia de CRUD: UI custom vs UI nativo de CKAN** — CKAN ya trae su propio
+  CRUD (crear/editar datasets, orgs, etc.). Hay que decidir si este frontend construye el CRUD
+  como UI propia contra la API de CKAN (como sugiere el inventario del design-system) o si la
+  gestión queda en el UI nativo de CKAN y este frontend sigue siendo solo lectura pública. Es la
+  decisión que destraba todo lo demás de esta sección. _Referencias: PRD §3, design-system §9._
+
+- [ ] **CRUD de datasets / recursos / organizaciones en el frontend** — páginas privadas del
+  inventario del design-system que no existen como rutas hoy: formulario de dataset crear/editar
+  (wizard, metadatos Dublin Core/DCAT-AP, carga drag & drop multi-formato límite 50 MB),
+  gestión de recursos, gestión de organizaciones. _Referencias: design-system §9 items 10–11._
+
+- [ ] **Dashboard del usuario real** — hoy `/dashboard` es un placeholder tras login. El
+  inventario lo define como panel con "Mis datasets", "Mis organizaciones", solicitudes
+  pendientes y accesos rápidos. _Referencias: design-system §9 item 7._
+
+- [ ] **Vista previa del recurso (CSV)** — conectar la semilla existente: el panel "Vista previa"
+  con pestaña "Tabla" y placeholder "Próximamente" en
+  `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte` más `src/lib/utils/csv.ts`
+  (parseo + preview 20 filas, ya testeado). Falta decidir fuente de datos (datastore de CKAN vs
+  fetch del archivo) y renderizar la tabla real. _Referencias: design-system §9 item 4 ("área
+  Vista previa"), PRD módulo Previsualización y Exportación._
+
+- [ ] **Módulo de Análisis de CSV** — página 11 del inventario: cargar CSV, tabla normalizada,
+  selector de columnas X/Y, gráficos (barras/líneas/pastel) con export PNG/CSV. Sin nada de
+  código hoy. _Referencias: PRD §3 (módulo de análisis), design-system §9 item 11._
+
+- [ ] **Gestión de colaboradores/equipos y colecciones** — paneles de permisos por rol; PRD
+  también lista versionado/aprobación, soft-delete, auditoría como alcance v1. _Referencias:
+  PRD §3, design-system §9 items 12–13._
+
 ## Para futuro (ideas, sin compromiso)
 
 - [ ] **Roles / perfiles de usuario** — profundizar la gestión de roles más allá de
@@ -67,6 +128,11 @@
   visual pasiva (no tocado).
 - [ ] **Registro público de usuarios** — si algún día se quiere auto-registro, va en contra de
   PRD RF-03; decidir conscientemente antes de habilitarlo.
+- [ ] **Features "fuera de alcance v1" del PRD (candidatas v2)** — registradas como decisión en
+  PRD §3 pero sin seguimiento: SSO/LDAP, mapas interactivos (datos geoespaciales), motor IA para
+  sugerencia de gráficos/preguntas, extracción automática de metadatos (OCR/lectura de cabeceras),
+  edición masiva de metadatos, integración con repos externos (Drive/Dropbox), auto-registro.
+  _Referencias: PRD §3 "Fuera del alcance (v1)"._
 
 ---
 
@@ -82,3 +148,5 @@
 | `bun.lock` stale | Eliminado; se usa pnpm. |
 | Placeholder "Recursos indexados" | Eliminado. |
 | Tests sin runner | Vitest + testing-library configurados; 13 archivos de test. |
+| PRD desactualizado (decía React/backend-custom) | **Corregido** — PRD §10 ya refleja SvelteKit + CKAN (7 menciones de CKAN); verificado 2026-09-06. |
+| README raíz genérico "sv" | **Corregido** — README.md ya documenta stack real, setup, estructura y mock data. |
