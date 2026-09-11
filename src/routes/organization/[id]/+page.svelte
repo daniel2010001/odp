@@ -8,6 +8,7 @@ import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.sve
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetsByOrg, getMockOrgById } from "$lib/mock/data";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 
 // ─── State ───────────────────────────────────────────────────────
@@ -39,12 +40,18 @@ async function loadOrg() {
 		const orgApi = createOrganizationApi(client);
 		const datasetApi = createDatasetApi(client);
 
-		// 1. Resolver organización: CKAN → mock fallback
+		// 1. Resolver organización: CKAN (mock fallback solo en dev)
 		let resolvedOrg: CkanOrganization | undefined;
 		try {
 			resolvedOrg = await orgApi.show(orgId);
-		} catch {
-			resolvedOrg = getMockOrgById(orgId);
+		} catch (err) {
+			if (import.meta.env.DEV) {
+				resolvedOrg = getMockOrgById(orgId);
+			} else if (err instanceof CkanApiError && err.status === 404) {
+				resolvedOrg = undefined;
+			} else {
+				throw err;
+			}
 		}
 
 		if (!resolvedOrg) {
@@ -54,12 +61,16 @@ async function loadOrg() {
 
 		org = resolvedOrg;
 
-		// 2. Datasets: CKAN → mock fallback (usa el slug canónico)
+		// 2. Datasets: CKAN (mock fallback solo en dev, usa el slug canónico)
 		try {
 			const result = await datasetApi.byOrganization(resolvedOrg.name);
 			datasets = result.results;
-		} catch {
-			datasets = getMockDatasetsByOrg(orgId);
+		} catch (err) {
+			if (import.meta.env.DEV) {
+				datasets = getMockDatasetsByOrg(orgId);
+			} else {
+				throw err;
+			}
 		}
 	} catch (err) {
 		error = err instanceof Error ? err.message : "Error al cargar la organización";

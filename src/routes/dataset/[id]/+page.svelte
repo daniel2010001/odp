@@ -51,12 +51,17 @@ async function loadDataset() {
 		const datasetApi = createDatasetApi(client);
 		dataset = await datasetApi.show(datasetId);
 	} catch (err) {
-		// Fallback a mock data
-		const mock = getMockDatasetById(datasetId);
-		if (mock) {
-			dataset = mock;
+		// En dev se respalda con datos mock; en prod se muestra un error explícito.
+		if (import.meta.env.DEV) {
+			const mock = getMockDatasetById(datasetId);
+			if (mock) {
+				dataset = mock;
+			} else {
+				error = err instanceof Error ? err.message : "Error al cargar el dataset";
+				dataset = null;
+			}
 		} else {
-			error = err instanceof Error ? err.message : "Error al cargar el dataset";
+			error = "No se pudo conectar con el catálogo de datos. Intentá de nuevo más tarde.";
 			dataset = null;
 		}
 	} finally {

@@ -108,14 +108,22 @@ async function doSearch() {
 		total = searchResult.count;
 		facets = searchResult.search_facets;
 	} catch (err) {
-		// Si falló CKAN, intentar con datos mock como respaldo
-		try {
-			const mock = getMockSearchResult();
-			results = mock.results;
-			total = mock.count;
-			facets = mock.search_facets;
-		} catch {
-			error = err instanceof Error ? err.message : "Error de búsqueda";
+		// Solo en dev se respalda con datos mock; en prod se muestra un error
+		// explícito y nunca se muestran datos falsos.
+		if (import.meta.env.DEV) {
+			try {
+				const mock = getMockSearchResult();
+				results = mock.results;
+				total = mock.count;
+				facets = mock.search_facets;
+			} catch {
+				error = err instanceof Error ? err.message : "Error de búsqueda";
+				results = [];
+				total = 0;
+				facets = {};
+			}
+		} else {
+			error = "No se pudo conectar con el catálogo de datos. Intentá de nuevo más tarde.";
 			results = [];
 			total = 0;
 			facets = {};
@@ -137,8 +145,8 @@ async function loadCatalogTotal() {
 		const result = await datasetApi.search({ q: "*:*", limit: 0 });
 		catalogTotal = result.count;
 	} catch {
-		// Fallback: conteo mock si CKAN no responde
-		catalogTotal = getMockSearchResult().count;
+		// En dev se usa el conteo mock; en prod el total queda en 0 sin datos falsos.
+		catalogTotal = import.meta.env.DEV ? getMockSearchResult().count : 0;
 	} finally {
 		catalogTotalLoading = false;
 	}

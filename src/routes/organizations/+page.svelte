@@ -41,7 +41,11 @@ async function loadOrgs() {
 		try {
 			orgs = await orgApi.list();
 		} catch {
-			orgs = getMockOrgs();
+			if (import.meta.env.DEV) {
+				orgs = getMockOrgs();
+			} else {
+				throw new Error("No se pudo conectar con el catálogo de datos.");
+			}
 		}
 
 		items = await Promise.all(

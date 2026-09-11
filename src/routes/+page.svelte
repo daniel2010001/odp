@@ -28,27 +28,44 @@ onMount(async () => {
 	try {
 		const client = createCkanClient({ baseUrl: env.CKAN_URL });
 		const datasetApi = createDatasetApi(client);
-		const searchResult = await datasetApi.search({ limit: 0 });
+		const searchResult = await datasetApi.search({
+			limit: 0,
+			facet_field: ["res_format"],
+			facet_limit: 1000,
+		});
 		stats.datasets = searchResult.count;
+		// Formatos: cantidad de formatos distintos reales (facet res_format).
+		stats.formats = searchResult.search_facets?.res_format?.items?.length ?? 0;
 
 		try {
 			const organizationApi = createOrganizationApi(client);
 			const orgList = await organizationApi.list();
-			orgs = orgList.filter((o) => o.state === "active").slice(0, 6);
+			const activeOrgs = orgList.filter((o) => o.state === "active");
+			stats.organizations = activeOrgs.length;
+			orgs = activeOrgs.slice(0, 6);
 		} catch {
-			// Fallback: organizaciones mock si CKAN no responde
-			orgs = MOCK_ORGS;
+			stats.organizations = 0;
+			orgs = [];
 		}
 	} catch {
-		// Fallback: mock si CKAN no responde
-		const mock = getMockSearchResult();
-		stats.datasets = mock.count;
-		orgs = MOCK_ORGS;
+		// En dev se respalda con datos mock; en prod se muestra un error
+		// explícito y nunca se muestran datos falsos.
+		if (import.meta.env.DEV) {
+			const mock = getMockSearchResult();
+			stats.datasets = mock.count;
+			stats.formats = mock.search_facets?.res_format?.items?.length ?? 0;
+			orgs = MOCK_ORGS;
+			stats.organizations = orgs.length;
+		} else {
+			stats.error = "No se pudo conectar con el catálogo de datos.";
+			orgs = [];
+		}
 	}
-	stats.organizations = orgs.length;
-	// Recursos y formatos: derivados del catálogo de referencia (mock)
-	stats.resources = MOCK_DATASETS.reduce((acc, ds) => acc + ds.resources.length, 0);
-	stats.formats = new Set(MOCK_DATASETS.flatMap((ds) => ds.resources.map((r) => r.format))).size;
+	// Recursos: solo en dev (derivado del catálogo mock). CKAN no expone un
+	// total de recursos vía package_search, así que en prod no se inventa.
+	stats.resources = import.meta.env.DEV
+		? MOCK_DATASETS.reduce((acc, ds) => acc + ds.resources.length, 0)
+		: 0;
 	stats.loading = false;
 });
 
@@ -68,7 +85,7 @@ const platformStats = $derived([
 			"Cada organización es una facultad, dirección o instituto que publica y administra sus propios conjuntos de datos.",
 	},
 	{
-		value: stats.loading ? "…" : stats.resources,
+		value: stats.loading ? "…" : import.meta.env.DEV ? stats.resources : "—",
 		label: "Recursos",
 		icon: FileText,
 		description:
@@ -118,6 +135,14 @@ function handleHeroSearch(query: string) {
 		</div>
 	</div>
 </section>
+
+{#if stats.error}
+	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-20">
+		<div class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center text-sm text-destructive">
+			{stats.error}
+		</div>
+	</div>
+{/if}
 
 <!-- Sobre la plataforma — comparación de layouts -->
 <section class="bg-background">
@@ -207,7 +232,7 @@ function handleHeroSearch(query: string) {
 				{/each}
 			{:else}
 				<p class="col-span-full text-center text-sm text-muted-foreground">
-					Cargando organizaciones...
+					{stats.error ? "No se pudieron cargar las organizaciones." : "Cargando organizaciones..."}
 				</p>
 			{/if}
 		</div>

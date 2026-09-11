@@ -49,19 +49,21 @@ async function loadData() {
 
 		if (resourceResult.status === "fulfilled") {
 			resource = resourceResult.value;
-		} else {
-			// Fallback a mock data
+		} else if (import.meta.env.DEV) {
+			// Fallback a mock data solo en dev
 			const mockResource = getMockResourceById(resourceId);
 			if (mockResource) {
 				resource = mockResource;
 			} else {
 				throw new Error("Recurso no encontrado");
 			}
+		} else {
+			throw new Error("No se pudo cargar el recurso. Intentá de nuevo más tarde.");
 		}
 
 		if (datasetResult.status === "fulfilled") {
 			dataset = datasetResult.value;
-		} else {
+		} else if (import.meta.env.DEV) {
 			const mockDataset = getMockDatasetById(datasetId);
 			if (mockDataset) dataset = mockDataset;
 		}
