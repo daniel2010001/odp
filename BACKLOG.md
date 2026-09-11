@@ -17,32 +17,24 @@
 
 ## v0 — core presentable
 
-- [ ] **[v0] Techos de subida de archivos (bloquea RF-12: 50 MB)** — los tres están rotos hoy y
-  cualquiera de ellos impide el requisito de 50 MB:
-  1. `odp-docker/frontend-proxy/nginx.conf` **no tiene `client_max_body_size`** → default 1 MB.
-     Es el único punto de entrada público (`8080:80`) y su `location /api/` hace
-     `proxy_pass http://ckan:5000`, **salteando** el nginx de CKAN que sí tiene
-     `client_max_body_size 140M`. Subidas >1 MB devuelven **413** hoy.
-  2. **adapter-node limita el body a 512 KB** vía `BODY_SIZE_LIMIT` (default de SvelteKit).
-     Sólo aplica si la subida pasa por un `+server.ts` propio; requiere `BODY_SIZE_LIMIT=52M`
-     en el servicio `frontend` del compose.
-  3. **CKAN: `ckan.max_resource_size`, default 10 MB** (env `CKAN_MAX_UPLOAD_SIZE_MB`). No está
-     seteado en `.env.example`. Para 50 MB: `CKAN_MAX_UPLOAD_SIZE_MB=50`.
-
-  Verificar end-to-end con un archivo de 50 MB. _Origen: diagnóstico 2026-09-11._
-
-- [ ] **[v0] Método multipart en el cliente CKAN** — `src/lib/api/client.ts` hardcodea
-  `Content-Type: application/json` más `JSON.stringify`, así que **no puede subir archivos**.
-  CKAN exige `multipart/form-data` con la clave `upload` en `resource_create` / `resource_patch`
-  (el resto de las acciones sí aceptan JSON). Regla de implementación: pasar el `FormData`
-  intacto y **nunca** setear `Content-Type` a mano (se pierde el boundary y CKAN rechaza el
-  archivo). _Origen: docs de CKAN FileStore + diagnóstico 2026-09-11._
-
 - [ ] **[v0] Wizard de dataset (crear/editar) + gestión de recursos** — formulario por
   secciones: título, descripción, organización, licencia, etiquetas, visibilidad; editor de
   metadatos (Dublin Core / DCAT-AP); carga de recursos drag & drop multi-formato, límite 50 MB.
   `package_create` / `package_update` + `resource_create`. _Referencias: design-system §9 item
   10, PRD RF-09 a RF-13._
+
+  **Camino de subida decidido (2026-09-11, verificado):** el archivo va **directo del browser a
+  `/api/3/action/resource_create`** (mismo origen a través del proxy), **no** por una ruta
+  `+server.ts` propia. Consecuencias de implementación:
+  - Se construye un `FormData` con la clave `upload` y se hace `fetch('/api/3/action/resource_create',
+    { method: "POST", headers: { Authorization: token }, body: form })`. **Nunca** setear
+    `Content-Type`: se pierde el boundary y CKAN rechaza el archivo. No usar
+    `src/lib/api/client.ts` para esto (hardcodea JSON).
+  - Permite mostrar progreso real de subida (con fetch + streams o XHR), que un form action del
+    servidor no puede.
+  - No consume memoria del servidor Node ni topa con su límite de body.
+
+  _Ver el historial de cierre para los techos de subida, ya resueltos y verificados._
 
 - [ ] **[v0] Dashboard real del usuario** — hoy `/dashboard` es un placeholder que promete
   "gestionar los datasets de tu organización" y dice "próximamente": es **deuda visible en
@@ -78,9 +70,24 @@
   `localStorage` (vulnerable a XSS). Patrón más seguro: guardar el API token en una cookie
   httpOnly/secure/samesite y que el reverse proxy la convierta en header `Authorization`
   (`proxy_set_header 'Authorization' $cookie_<nombre>`). Combinar con
-  `ckan.auth.disable_cookie_auth_in_api = true`. **Al implementarlo, la subida de archivos debe
-  pasar a proxy server-side** (en `v0` puede ir directo del browser a `/api/`).
-  _Origen: research 2026-09-10 (ckanext-passwordless_api)._
+  `ckan.auth.disable_cookie_auth_in_api = true`.
+
+  **Efecto obligado sobre las subidas:** al sacar el token del browser, el archivo ya no puede ir
+  directo a `/api/`; pasa a un `+server.ts` propio y por lo tanto aparecen dos requisitos:
+  1. `BODY_SIZE_LIMIT` en el servicio `frontend` del compose (default de adapter-node: **512 KB**).
+     Trampa medida el 2026-09-11 sobre el build real: al excederlo el adapter **no devuelve 413**,
+     devuelve **HTTP 400 con el mensaje de error de la propia app** (un `request.json()` que falla
+     al leer el body), así que parece un error de validación y no un límite de tamaño. Con
+     `BODY_SIZE_LIMIT=55M` el mismo body de 2 MB se leyó completo.
+  2. Un método multipart en `src/lib/api/client.ts`, que hoy hardcodea `Content-Type:
+     application/json` + `JSON.stringify` y por eso no puede subir archivos. CKAN exige
+     `multipart/form-data` con la clave `upload` y pasar el `FormData` intacto, **sin** setear
+     `Content-Type`.
+
+  Mientras tanto el límite de adapter-node queda **deliberadamente sin subir**: en `v0` ningún
+  route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
+  rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
+  2026-09-11._
 
 - [ ] **[v1] Gestión de organizaciones en el portal** — CRUD de organizaciones
   (`organization_create` / `organization_update`) y de miembros
@@ -147,6 +154,7 @@
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Techos de subida de archivos (RF-12, 50 MB)** | **Resuelto y verificado end-to-end** (2026-09-11). Estado real medido: (1) `frontend-proxy/nginx.conf` y `frontend-proxy/dev-nginx.conf` no tenían `client_max_body_size` → default 1 MB → **413** medido con 2 MB y con 50 MB por el proxy, y 200 con 2 MB directo a CKAN. Se agregó `client_max_body_size 55M` **acotado a `location /api/`** en ambos. (2) CKAN **ya permitía 100 MB** (`CKAN_MAX_UPLOAD_SIZE_MB=100` en `ckan-docker/.env.example:50`) — la afirmación previa de que estaba en el default de 10 MB era **incorrecta**. (3) `BODY_SIZE_LIMIT` de adapter-node (default 512 KB) se midió sobre el build de producción: existe y se dispara, pero **no está en el camino de v0**, así que se dejó sin subir a propósito. Verificación final: archivo de 50 MB (52 428 800 bytes) subido por el proxy, HTTP 200 en ~450-750 ms, `size` reportado por CKAN correcto y **sha256 del archivo descargado igual al local**; 2 MB a `/` sigue devolviendo 413 (alcance acotado correcto). |
 | **Estrategia de CRUD: UI propia vs. UI nativo** | **Decidida** (2026-09-11) — CKAN headless; el portal es dueño de toda la UI, incluida la administración. El UI de CKAN se acepta sólo como muleta operativa en `v0`. PRD §3 y §7 reconciliados con el esquema real de CKAN. |
 | **Definición de tiers de versión (v0/v1/v1+/v2+)** | **Escrita** — `PRD.md` §3 (tabla de tiers con criterio de salida por tier) y etiquetado por tier de cada ítem de este backlog. |
 | PRs de authentication #5–#10 "OPEN" | En realidad **todos mergeados** a `main` (el archive-report los listó OPEN al momento de archivar; entraron después). Código verificado en `main` 2026-09-06. |
