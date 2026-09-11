@@ -135,11 +135,11 @@ duplicar estilos.
 1. **Home (`/`)** — Landing.
    - Header/navbar: logo "Datos UMSS", links "Catálogo" y "Acerca de", toggle de tema
      (claro/oscuro/sistema), botón "Iniciar Sesión" (coral). Menú hamburguesa en móvil.
-   - Hero con gradiente azul institucional: título grande (serif), subtítulo, barra de
-     búsqueda grande, y 2 CTAs ("Explorar Catálogo" + "Más Información").
-   - Sección de estadísticas: cards KPI (datasets, organizaciones, recursos indexados).
-   - Sección "¿Qué podés hacer?" con grid de cards de feature (buscar, visualizar,
-     analizar CSV, colaborar, publicar, API pública), cada una con icono SVG.
+   - Hero con gradiente azul institucional: título grande (serif), subtítulo, y 2 CTAs
+     ("Explorar Catálogo" + "Más Información").
+   - Sección "Sobre la plataforma": cards KPI (datasets, organizaciones, recursos, formatos).
+   - Sección "Empezá a explorar": barra de búsqueda grande centrada.
+   - Sección "Por organización": grid de cards de organizaciones (top 6 activas).
    - Footer institucional: "Universidad Mayor de San Simón — Plataforma de Datos Abiertos".
 
 2. **Catálogo / Búsqueda (`/search`)** — Página de datos densa (core de la app).
@@ -191,7 +191,7 @@ duplicar estilos.
 ## 10. Idioma y tono del copy
 
 - **Español rioplatense (voseo).** Ejemplos reales del producto: "Explorá Catálogo",
-  "¿Qué podés hacer?", "Buscar datasets, organizaciones, temas...", "No encontramos datasets",
+  "Buscar datasets, organizaciones, temas...", "No encontramos datasets",
   "Limpiar búsqueda y filtros", "Volver al catálogo", "Descargar recurso", "Navegá", "Probá".
 - **Tono institucional**, neutro y profesional; sin jerga de marketing agresivo.
 
