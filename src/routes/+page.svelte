@@ -119,7 +119,7 @@ function handleHeroSearch(query: string) {
 			Datos abiertos para la comunidad universitaria
 		</h1>
 		<p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-			Explorá, analizá y reutilizá los conjuntos de datos académicos y administrativos de la
+			Explore, analice y reutilice los conjuntos de datos académicos y administrativos de la
 			Universidad Mayor de San Simón, publicados bajo principios FAIR.
 		</p>
 
@@ -183,14 +183,14 @@ function handleHeroSearch(query: string) {
 	<div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-20">
 		<div class="mx-auto max-w-3xl text-center">
 			<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
-				Empezá a explorar
+				Empiece a explorar
 			</p>
 			<h2 class="mt-3 font-heading text-3xl font-bold leading-[1.2] text-primary lg:text-4xl">
 				Los datos de la UMSS están a un clic
 			</h2>
 			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-				Accedé al catálogo público, conocé las organizaciones y descargá los conjuntos de datos en
-				múltiples formatos para tus investigaciones y proyectos.
+				Acceda al catálogo público, conozca las organizaciones y descargue los conjuntos de datos en
+				múltiples formatos para sus investigaciones y proyectos.
 			</p>
 
 			<div class="mx-auto mt-8 max-w-2xl">
@@ -216,7 +216,7 @@ function handleHeroSearch(query: string) {
 				Datos por organización
 			</h2>
 			<p class="mx-auto mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-				Explorá los conjuntos de datos publicados por las facultades, direcciones e institutos de
+				Explore los conjuntos de datos publicados por las facultades, direcciones e institutos de
 				la Universidad Mayor de San Simón.
 			</p>
 		</div>

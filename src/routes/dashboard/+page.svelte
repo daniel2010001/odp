@@ -33,14 +33,14 @@ onMount(() => {
 		</div>
 
 		<p class="mt-3 text-muted-foreground">
-			Este es tu panel personal. Desde acá vas a poder gestionar los datasets de tu
+			Este es su panel personal. Desde aquí podrá gestionar los datasets de su
 			organización.
 		</p>
 
 		<div class="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm">
 			<h2 class="font-heading text-lg font-semibold text-primary">Publicación de datasets</h2>
 			<p class="mt-2 text-sm text-muted-foreground">
-				La publicación de datasets estará disponible próximamente. Mientras tanto, podés
+				La publicación de datasets estará disponible próximamente. Mientras tanto, puede
 				explorar el catálogo existente.
 			</p>
 			<a

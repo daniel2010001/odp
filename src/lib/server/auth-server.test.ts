@@ -141,7 +141,7 @@ describe("handleLogin (orquestación del handler)", () => {
 
 		expect(result).toEqual({
 			status: 429,
-			body: { error: "Demasiados intentos. Esperá un momento." },
+			body: { error: "Demasiados intentos. Espere un momento." },
 		});
 		expect(ckanLogin).not.toHaveBeenCalled();
 	});

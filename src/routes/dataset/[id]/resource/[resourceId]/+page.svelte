@@ -58,7 +58,7 @@ async function loadData() {
 				throw new Error("Recurso no encontrado");
 			}
 		} else {
-			throw new Error("No se pudo cargar el recurso. Intentá de nuevo más tarde.");
+			throw new Error("No se pudo cargar el recurso. Intente nuevamente más tarde.");
 		}
 
 		if (datasetResult.status === "fulfilled") {
@@ -430,9 +430,9 @@ async function handleCopyEndpoint() {
 		<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 			<div>
 				<p class="text-xs font-bold uppercase tracking-wider text-primary">API · Endpoint</p>
-				<h2 class="mt-1 font-heading text-2xl font-bold text-foreground">Accedé por API</h2>
+				<h2 class="mt-1 font-heading text-2xl font-bold text-foreground">Acceso por API</h2>
 				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-					Usá estos endpoints para acceder programáticamente a los datos del recurso.
+					Use estos endpoints para acceder programáticamente a los datos del recurso.
 				</p>
 			</div>
 

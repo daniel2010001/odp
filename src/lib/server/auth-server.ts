@@ -100,7 +100,7 @@ export async function handleLogin(
 	limiter: RateLimiter = defaultLimiter,
 ): Promise<LoginHandlerResponse> {
 	if (!limiter.check(address)) {
-		return { status: 429, body: { error: "Demasiados intentos. Esperá un momento." } };
+		return { status: 429, body: { error: "Demasiados intentos. Espere un momento." } };
 	}
 
 	const parsed = parseLoginBody(rawBody);

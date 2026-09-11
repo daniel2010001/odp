@@ -59,7 +59,7 @@ async function handleSubmit(event: SubmitEvent) {
 <div class="mx-auto max-w-md px-4 py-12 sm:px-6 lg:px-8">
 	<h1 class="font-heading text-3xl font-bold text-primary">Iniciar Sesión</h1>
 	<p class="mt-2 text-sm text-muted-foreground">
-		Ingresá con tu cuenta de CKAN para acceder al panel.
+		Ingrese con su cuenta de CKAN para acceder al panel.
 	</p>
 
 	<Card class="mt-6 p-6">
@@ -114,6 +114,6 @@ async function handleSubmit(event: SubmitEvent) {
 	</Card>
 
 	<p class="mt-4 text-center text-sm text-muted-foreground">
-		¿No podés ingresar? Contactá al administrador de tu organización.
+		¿No puede ingresar? Contacte al administrador de su organización.
 	</p>
 </div>

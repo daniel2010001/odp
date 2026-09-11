@@ -61,7 +61,7 @@ async function loadDataset() {
 				dataset = null;
 			}
 		} else {
-			error = "No se pudo conectar con el catálogo de datos. Intentá de nuevo más tarde.";
+			error = "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
 			dataset = null;
 		}
 	} finally {

@@ -74,7 +74,7 @@ onMount(() => {
 			Organizaciones
 		</h1>
 		<p class="mt-1 text-sm text-muted-foreground">
-			Explorá las organizaciones que publican datasets en la plataforma
+			Explore las organizaciones que publican datasets en la plataforma
 		</p>
 	</div>
 

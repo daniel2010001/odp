@@ -138,7 +138,7 @@ duplicar estilos.
    - Hero con gradiente azul institucional: título grande (serif), subtítulo, y 2 CTAs
      ("Explorar Catálogo" + "Más Información").
    - Sección "Sobre la plataforma": cards KPI (datasets, organizaciones, recursos, formatos).
-   - Sección "Empezá a explorar": barra de búsqueda grande centrada.
+   - Sección "Empiece a explorar": barra de búsqueda grande centrada.
    - Sección "Por organización": grid de cards de organizaciones (top 6 activas).
    - Footer institucional: "Universidad Mayor de San Simón — Plataforma de Datos Abiertos".
 
@@ -190,9 +190,10 @@ duplicar estilos.
 
 ## 10. Idioma y tono del copy
 
-- **Español rioplatense (voseo).** Ejemplos reales del producto: "Explorá Catálogo",
-  "Buscar datasets, organizaciones, temas...", "No encontramos datasets",
-  "Limpiar búsqueda y filtros", "Volver al catálogo", "Descargar recurso", "Navegá", "Probá".
+- **Español neutro y formal (trato de "usted").** Sin voseo ni regionalismos. Ejemplos reales
+  del producto: "Explore el catálogo", "Buscar datasets, organizaciones, temas...",
+  "No encontramos datasets", "Limpiar búsqueda y filtros", "Volver al catálogo",
+  "Descargar recurso", "Navegue por las organizaciones", "Intente nuevamente más tarde".
 - **Tono institucional**, neutro y profesional; sin jerga de marketing agresivo.
 
 ---

@@ -29,8 +29,9 @@
 4. **Tipografías:** EB Garamond (headings, `font-heading`), Poppins (cuerpo, `font-sans`),
    JetBrains Mono (código/hashes, `font-mono`).
 5. **Iconos:** Lucide (SVG). Prohibido emojis como iconos.
-6. **Copy de UI en español rioplatense (voseo):** "Explorá", "Navegá", "Limpiá", "Volver al
-   catálogo". Tono institucional, sin marketing agresivo.
+6. **Copy de UI en español neutro y formal (trato de "usted"):** "Explore", "Navegue",
+   "Limpie los filtros", "Volver al catálogo". Sin voseo ni regionalismos. Tono institucional,
+   sin marketing agresivo.
 7. **Accesibilidad:** contraste de texto ≥ 4.5:1, focus visible, `prefers-reduced-motion`,
    hovers que no desplazan el layout, responsive sin scroll horizontal en móvil.
 

@@ -123,7 +123,7 @@ async function doSearch() {
 				facets = {};
 			}
 		} else {
-			error = "No se pudo conectar con el catálogo de datos. Intentá de nuevo más tarde.";
+			error = "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
 			results = [];
 			total = 0;
 			facets = {};
@@ -265,7 +265,7 @@ const activeFilterCount = $derived(
 		<h1
 			class="mx-auto mt-4 max-w-3xl font-heading text-4xl font-bold leading-[1.1] text-foreground sm:text-5xl lg:text-[52px]"
 		>
-			Explorá los datasets abiertos de la UMSS
+			Explore los datasets abiertos de la UMSS
 		</h1>
 		<p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
 			La Universidad Mayor de San Simón publica
@@ -279,7 +279,7 @@ const activeFilterCount = $derived(
 		<div class="mx-auto mt-8 w-full max-w-[720px]">
 			<SearchBar
 				value={query}
-				placeholder="Buscá por organización, etiquetas, formato..."
+				placeholder="Busque por organización, etiquetas, formato..."
 				submitLabel="Buscar"
 				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
 				onsubmit={onSearchSubmit}
@@ -519,7 +519,7 @@ const activeFilterCount = $derived(
 					<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
 					<p class="mt-2 text-sm text-muted-foreground">
 						{query
-							? `No encontramos datasets para "${query}". Probá con otros términos o limpiá los filtros.`
+							? `No encontramos datasets para "${query}". Pruebe con otros términos o limpie los filtros.`
 							: 'No hay datasets disponibles en este momento.'}
 					</p>
 					{#if query || hasActiveFilters}
