@@ -153,6 +153,12 @@
   (B) seed real vía `package_create` en paralelo, (C) insert directo + rebuild (descartado).
   Recomendación previa: B + A como colchón. _Origen: plan 2026-09-01._
 
+  **Seed ligero de dev (no es el ítem a escala):** `scripts/seed-ckan.mjs` (2026-09-11) puebla
+  el CKAN dev con 5 organizaciones + 16 datasets espejados de `src/lib/mock/data.ts`; idempotente
+  por `name`, sin secretos en el repo (la contraseña admin se lee del entorno). Es contenido de
+  desarrollo para que el portal no muestre listas vacías; el seed a escala de este ítem sigue
+  pendiente.
+
 ---
 
 ## Historial de cierre (trazabilidad corta)
