@@ -163,6 +163,12 @@
   desarrollo para que el portal no muestre listas vacías; el seed a escala de este ítem sigue
   pendiente.
 
+- [ ] **[v1+] Datos de muestra para las vistas (contenido en el DataStore)** — la vista previa
+  CSV lee de `datastore_search`, pero los recursos del seed son url-only (sin filas). Falta
+  contenido durable en el DataStore para demoear las vistas. Decidir la fuente (CSVs chicos
+  commiteados vs. generador determinista vs. upload real + datapusher) y hacerlo idempotente y
+  determinista. _Origen: sesión 2026-09-11 (diferido); relacionado con "Endurecer la vista previa CSV"._
+
 ---
 
 ## Historial de cierre (trazabilidad corta)
