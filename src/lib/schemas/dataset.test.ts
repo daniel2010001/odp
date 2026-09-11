@@ -24,6 +24,16 @@ describe("datasetCreateSchema — owner_org", () => {
 		expect(datasetCreateSchema.safeParse({ ...base, owner_org: "" }).success).toBe(false);
 	});
 
+	it("rechaza una organización con solo espacios", () => {
+		expect(datasetCreateSchema.safeParse({ ...base, owner_org: "   " }).success).toBe(false);
+	});
+
+	it("recorta los espacios de una organización válida", () => {
+		expect(
+			datasetCreateSchema.parse({ ...base, owner_org: "  facultad-de-ciencias  " }).owner_org,
+		).toBe("facultad-de-ciencias");
+	});
+
 	it("reporta el error en español cuando falta la organización", () => {
 		const result = datasetCreateSchema.safeParse({ ...base, owner_org: "" });
 		expect(result.success).toBe(false);

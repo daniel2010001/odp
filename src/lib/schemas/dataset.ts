@@ -3,6 +3,14 @@ import { z } from "zod/v4";
 // NOTA: Zod v4 cambia algunas APIs. Si usás Zod v3, reemplazá `z.object` sin cambios.
 // Para Zod v4, la sintaxis es compatible hacia atrás en la mayoría de los casos.
 
+/**
+ * `owner_org` acepta el id (UUID) o el slug de la organización: el wizard envía el
+ * slug que devuelve `organization_list_for_user`, así que exigir UUID rompía el submit.
+ *
+ * La existencia de la organización no se valida acá a propósito: el select se puebla
+ * desde `organization_list_for_user`, de modo que un valor inventado solo podría entrar
+ * por una request armada a mano, y CKAN la rechaza igual.
+ */
 export const datasetCreateSchema = z.object({
 	name: z
 		.string()
@@ -14,9 +22,7 @@ export const datasetCreateSchema = z.object({
 		.min(3, "El título debe tener al menos 3 caracteres")
 		.max(200, "El título no puede exceder 200 caracteres"),
 	notes: z.string().max(5000).optional(),
-	// CKAN acepta el id (UUID) o el slug de la organización, y el wizard envía el slug
-	// que devuelve `organization_list_for_user`. Exigir UUID rompía el submit.
-	owner_org: z.string().min(1, "Debe seleccionar una organización"),
+	owner_org: z.string().trim().min(1, "Debe seleccionar una organización"),
 	private: z.boolean().default(true),
 	license_id: z.string().optional(),
 	tag_string: z.string().optional(),
