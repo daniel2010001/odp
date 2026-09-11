@@ -9,12 +9,6 @@
 
 ## Backend CKAN / `odp-docker` (repo hermano)
 
-- [ ] **Versionar `ckan-docker/`** — el directorio entero está ignorado en `odp-docker` (`.gitignore`
-  raíz: "ckan-docker es un repo git separado"), pero **no** es submodule ni repo aparte (sin `.git`,
-  sin `.gitmodules`; `git ls-files ckan-docker/` = 0). El plugin `ckanext-umss`, los Dockerfiles y
-  `.env.example` no están versionados en ningún lado. Decidir: convertirlo en submodule con repo
-  propio, o trackearlo dentro de `odp-docker`. _Origen: review 2026-09-10._
-
 - [ ] **Token en cookie httpOnly + nginx (endurecimiento)** — hoy el JWT vive en `localStorage`
   (vulnerable a XSS). Patrón más seguro: guardar el API token en una cookie httpOnly/secure/
   samesite y que el reverse proxy la convierta en header `Authorization`
@@ -110,3 +104,4 @@
 | Token accumulation en login repetido | **Resuelto (código)** — `ckanLogin` ahora lista (`api_token_list`) y revoca (`api_token_revoke`) los tokens previos del portal antes de mintear el nuevo (best-effort); +3 tests. |
 | `ckan.auth.create_user_via_api=false` | **Aplicado** — agregado a `ckan-docker/.env` y `.env.example` (aplicado por el usuario + verificado). |
 | Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). |
+| Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
