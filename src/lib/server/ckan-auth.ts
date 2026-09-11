@@ -193,6 +193,46 @@ async function mintToken(
 }
 
 /**
+ * Lista los tokens del usuario autenticado y revoca los que tengan el nombre
+ * del portal (TOKEN_NAME) para no acumular tokens vivos en logins repetidos.
+ * Best-effort: si el listado o alguna revocación falla, el login continúa igual
+ * (un token huérfano más es preferible a tumbar el login por red/CSRF).
+ */
+async function revokePreviousTokens(baseUrl: string, jar: CookieJar, csrf: string): Promise<void> {
+	try {
+		const listResponse = await safeFetch(`${baseUrl}/api/3/action/api_token_list`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", ...cookieHeaders(jar) },
+			body: JSON.stringify({}),
+		});
+		const payload = (await listResponse.json()) as {
+			success?: boolean;
+			result?: Array<{ id?: string; name?: string }>;
+		};
+		if (!payload.success || !Array.isArray(payload.result)) return;
+
+		const stale = payload.result.filter((t) => t.name === TOKEN_NAME && t.id);
+		for (const t of stale) {
+			try {
+				await safeFetch(`${baseUrl}/api/3/action/api_token_revoke`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"X-CSRFToken": csrf,
+						...cookieHeaders(jar),
+					},
+					body: JSON.stringify({ token: t.id }),
+				});
+			} catch {
+				// best-effort: una revocación individual que falla no tumba el login.
+			}
+		}
+	} catch {
+		// best-effort: si el listado falla (red, CSRF, etc.), seguimos al mint.
+	}
+}
+
+/**
  * Autentica `username`/`password` contra CKAN y devuelve un JWT más el
  * usuario resuelto. La contraseña nunca se expone fuera de esta función.
  */
@@ -263,8 +303,9 @@ export async function ckanLogin(
 	}
 	const user = toCkanUser(userShow.result);
 
-	// Pasos 3 y 4: CSRF de la página de usuario → mint token.
+	// Pasos 3 y 4: CSRF de la página de usuario → revocar tokens previos → mint token.
 	const csrf = await fetchCsrf(baseUrl, jar, user.name);
+	await revokePreviousTokens(baseUrl, jar, csrf);
 	const token = await mintToken(baseUrl, jar, user.name, csrf);
 
 	// Paso 5: devolver token + usuario.

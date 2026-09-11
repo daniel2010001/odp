@@ -86,6 +86,7 @@ describe("ckanLogin — 6-step flow", () => {
 			response(200, {
 				text: '<html><head><meta name="_csrf_token" content="csrf-1" /></head></html>',
 			}),
+			response(200, { json: { success: true, result: [] } }),
 			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
 		]);
 		vi.stubGlobal("fetch", impl);
@@ -95,7 +96,7 @@ describe("ckanLogin — 6-step flow", () => {
 		expect(result.token).toBe("jwt-1");
 		expect(result.user.name).toBe("jdoe");
 		expect(result.user.sysadmin).toBe(false);
-		expect(calls).toHaveLength(4);
+		expect(calls).toHaveLength(5);
 
 		// 1) web login
 		expect(calls[0].url).toBe(`${BASE}/user/login`);
@@ -112,12 +113,16 @@ describe("ckanLogin — 6-step flow", () => {
 		expect(calls[2].url).toBe(`${BASE}/user/jdoe`);
 		expect(calls[2].init?.headers?.Cookie).toBe("ckan=sess-1");
 
-		// 4) api_token_create
-		expect(calls[3].url).toBe(`${BASE}/api/3/action/api_token_create`);
+		// 4) api_token_list (limpieza de tokens previos)
+		expect(calls[3].url).toBe(`${BASE}/api/3/action/api_token_list`);
 		expect(calls[3].init?.headers?.Cookie).toBe("ckan=sess-1");
-		expect(calls[3].init?.headers?.["X-CSRFToken"]).toBe("csrf-1");
-		expect(calls[3].init?.headers?.["Content-Type"]).toBe("application/json");
-		expect(JSON.parse(bodyOf(calls[3]))).toEqual({ user: "jdoe", name: TOKEN_NAME });
+
+		// 5) api_token_create
+		expect(calls[4].url).toBe(`${BASE}/api/3/action/api_token_create`);
+		expect(calls[4].init?.headers?.Cookie).toBe("ckan=sess-1");
+		expect(calls[4].init?.headers?.["X-CSRFToken"]).toBe("csrf-1");
+		expect(calls[4].init?.headers?.["Content-Type"]).toBe("application/json");
+		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ user: "jdoe", name: TOKEN_NAME });
 	});
 
 	it("uses the name resolved by user_show, not the login input", async () => {
@@ -125,6 +130,7 @@ describe("ckanLogin — 6-step flow", () => {
 			response(302, { setCookies: ["ckan=sess-1"] }),
 			response(200, { json: { success: true, result: { ...userDict, name: "resolved-name" } } }),
 			response(200, { text: '<meta name="_csrf_token" content="csrf-2" />' }),
+			response(200, { json: { success: true, result: [] } }),
 			response(200, { json: { success: true, result: { token: "jwt-2" } } }),
 		]);
 		vi.stubGlobal("fetch", impl);
@@ -133,7 +139,7 @@ describe("ckanLogin — 6-step flow", () => {
 
 		expect(result.user.name).toBe("resolved-name");
 		expect(calls[2].url).toBe(`${BASE}/user/resolved-name`);
-		expect(JSON.parse(bodyOf(calls[3]))).toEqual({ user: "resolved-name", name: TOKEN_NAME });
+		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ user: "resolved-name", name: TOKEN_NAME });
 	});
 });
 
@@ -145,6 +151,7 @@ describe("ckanLogin — cookie jar", () => {
 			}),
 			response(200, { json: { success: true, result: userDict } }),
 			response(200, { text: '<meta name="_csrf_token" content="csrf-1" />' }),
+			response(200, { json: { success: true, result: [] } }),
 			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
 		]);
 		vi.stubGlobal("fetch", impl);
@@ -155,6 +162,7 @@ describe("ckanLogin — cookie jar", () => {
 		expect(calls[1].init?.headers?.Cookie).toContain("auth_tkt=abc");
 		expect(calls[2].init?.headers?.Cookie).toContain("ckan=sess-1");
 		expect(calls[3].init?.headers?.Cookie).toContain("auth_tkt=abc");
+		expect(calls[4].init?.headers?.Cookie).toContain("auth_tkt=abc");
 	});
 });
 
@@ -211,6 +219,7 @@ describe("ckanLogin — error mapping", () => {
 			response(302, { setCookies: ["ckan=sess-1"] }),
 			response(200, { json: { success: true, result: userDict } }),
 			response(200, { text: '<meta name="_csrf_token" content="csrf-1" />' }),
+			response(200, { json: { success: true, result: [] } }),
 			response(200, {
 				json: { success: false, error: { message: "not allowed", __type: "Authorization Error" } },
 			}),
@@ -246,6 +255,7 @@ describe("ckanLogin — CSRF fallback", () => {
 			response(302, { setCookies: ["ckan=sess-2"] }),
 			response(200, { json: { success: true, result: userDict } }),
 			response(200, { text: '<meta name="_csrf_token" content="csrf-1" />' }),
+			response(200, { json: { success: true, result: [] } }),
 			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
 		]);
 		vi.stubGlobal("fetch", impl);
@@ -272,6 +282,7 @@ describe("ckanLogin — CSRF fallback", () => {
 			response(302, { setCookies: ["ckan=sess-1"] }),
 			response(200, { json: { success: true, result: userDict } }),
 			response(200, { text: '<meta name="_csrf_token" content="csrf-stale" />' }),
+			response(200, { json: { success: true, result: [] } }),
 			response(400, { text: "<html>bad csrf</html>" }),
 			response(200, { text: '<meta name="_csrf_token" content="csrf-fresh" />' }),
 			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
@@ -282,15 +293,86 @@ describe("ckanLogin — CSRF fallback", () => {
 
 		expect(result.token).toBe("jwt-1");
 
-		expect(calls[3].url).toBe(`${BASE}/api/3/action/api_token_create`);
-		expect(calls[3].init?.headers?.["X-CSRFToken"]).toBe("csrf-stale");
+		expect(calls[4].url).toBe(`${BASE}/api/3/action/api_token_create`);
+		expect(calls[4].init?.headers?.["X-CSRFToken"]).toBe("csrf-stale");
 
 		// fallback: re-GET de la página de usuario
-		expect(calls[4].url).toBe(`${BASE}/user/jdoe`);
+		expect(calls[5].url).toBe(`${BASE}/user/jdoe`);
 
 		// reintento con el token fresco
-		expect(calls[5].url).toBe(`${BASE}/api/3/action/api_token_create`);
-		expect(calls[5].init?.headers?.["X-CSRFToken"]).toBe("csrf-fresh");
+		expect(calls[6].url).toBe(`${BASE}/api/3/action/api_token_create`);
+		expect(calls[6].init?.headers?.["X-CSRFToken"]).toBe("csrf-fresh");
+	});
+});
+
+describe("ckanLogin — dedupe de tokens previos", () => {
+	it("revoca los tokens previos del portal antes de mintear uno nuevo", async () => {
+		const { impl, calls } = fetchSequence([
+			response(302, { setCookies: ["ckan=sess-1"] }),
+			response(200, { json: { success: true, result: userDict } }),
+			response(200, { text: '<meta name="_csrf_token" content="csrf-1" />' }),
+			response(200, {
+				json: {
+					success: true,
+					result: [
+						{ id: "old-jwt-1", name: TOKEN_NAME },
+						{ id: "old-jwt-2", name: TOKEN_NAME },
+						{ id: "other-jwt", name: "Otra app" },
+					],
+				},
+			}),
+			response(200, { json: { success: true } }),
+			response(200, { json: { success: true } }),
+			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
+		]);
+		vi.stubGlobal("fetch", impl);
+
+		const result = await ckanLogin("jdoe", "secret-pass", { baseUrl: BASE });
+
+		expect(result.token).toBe("jwt-1");
+
+		// listado de tokens del usuario
+		expect(calls[3].url).toBe(`${BASE}/api/3/action/api_token_list`);
+
+		// revoca solo los tokens del portal (nombre TOKEN_NAME), no los de otra app
+		expect(calls[4].url).toBe(`${BASE}/api/3/action/api_token_revoke`);
+		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ token: "old-jwt-1" });
+		expect(calls[5].url).toBe(`${BASE}/api/3/action/api_token_revoke`);
+		expect(JSON.parse(bodyOf(calls[5]))).toEqual({ token: "old-jwt-2" });
+
+		// minteo del token nuevo
+		expect(calls[6].url).toBe(`${BASE}/api/3/action/api_token_create`);
+	});
+
+	it("no tumba el login si el listado de tokens falla (best-effort)", async () => {
+		const { impl } = fetchSequence([
+			response(302, { setCookies: ["ckan=sess-1"] }),
+			response(200, { json: { success: true, result: userDict } }),
+			response(200, { text: '<meta name="_csrf_token" content="csrf-1" />' }),
+			new Error("list failed"),
+			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
+		]);
+		vi.stubGlobal("fetch", impl);
+
+		const result = await ckanLogin("jdoe", "secret-pass", { baseUrl: BASE });
+
+		expect(result.token).toBe("jwt-1");
+	});
+
+	it("no tumba el login si una revocación individual falla (best-effort)", async () => {
+		const { impl } = fetchSequence([
+			response(302, { setCookies: ["ckan=sess-1"] }),
+			response(200, { json: { success: true, result: userDict } }),
+			response(200, { text: '<meta name="_csrf_token" content="csrf-1" />' }),
+			response(200, { json: { success: true, result: [{ id: "old-jwt-1", name: TOKEN_NAME }] } }),
+			new Error("revoke failed"),
+			response(200, { json: { success: true, result: { token: "jwt-1" } } }),
+		]);
+		vi.stubGlobal("fetch", impl);
+
+		const result = await ckanLogin("jdoe", "secret-pass", { baseUrl: BASE });
+
+		expect(result.token).toBe("jwt-1");
 	});
 });
 
