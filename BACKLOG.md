@@ -35,11 +35,15 @@
   producción**. Debe listar "Mis datasets" y "Mis organizaciones" desde la API de CKAN, más los
   accesos rápidos. _Referencias: design-system §9 item 7._
 
-- [ ] **[v0] Vista previa del recurso (CSV)** — conectar la semilla existente: el panel
-  "Vista previa" con pestaña "Tabla" y placeholder "Próximamente" en
-  `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte`, más `src/lib/utils/csv.ts`
-  (parseo + preview de 20 filas, ya testeado). Falta decidir la fuente de datos (datastore de
-  CKAN vs. fetch del archivo). _Referencias: design-system §9 item 4, PRD RF-31._
+- [ ] **[v0] Endurecer la vista previa CSV (hallazgos de revisión)** — 4 hallazgos informativos
+  no bloqueantes de la revisión de la vista previa (lineage `review-ca9abb1187a39513`, lente
+  reliability). Sólo el primero es sustantivo:
+  1. `R3-stale-search-race` (WARNING): `ResourcePreview.svelte` puede resolver un
+     `datastore_search` viejo después de uno nuevo si el recurso cambia rápido (carrera de
+     estados → filas de un recurso distinto).
+  2. `R3-cellvalue-object-stringify`: `DataPreviewTable` hace `String(obj)` → `"[object Object]"`.
+  3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
+  4. `R3-loading-state-untested`: estado de carga sin test.
 
 - [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
@@ -167,6 +171,7 @@
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Vista previa del recurso (CSV)** | **Implementada** (2026-09-11). Fuente decidida: **DataStore de CKAN** (`datastore_search`), no fetch del archivo. Nuevos `src/lib/api/datastore.ts` y `src/lib/components/resource/{DataPreviewTable,ResourcePreview}.svelte` (+ tests); el placeholder "Próximamente" de `resource/[resourceId]/+page.svelte` se reemplazó por el componente. Revisión RDD **approved** (tier medium, lente reliability), authority quemada; 4 hallazgos informativos anotados como ítem v0 de seguimiento. Gates: check 0 errores, 145 tests, lint 0 errores. |
 | **Copy de UI: voseo → español neutro formal** | **Normalizado** (2026-09-11). La convención estaba en voseo rioplatense (AGENTS.md regla 6 + design-system §10) y el producto tenía 18 strings en voseo en 10 archivos. Se actualizaron las dos convenciones a "trato de usted, sin voseo ni regionalismos" y se reescribieron todos los strings de UI: home (5), search (4), organizations (1), login (2), dashboard (2), detalle de dataset (1), detalle de recurso (3), y el error de rate-limit del login en `src/lib/server/auth-server.ts` (+ su test). Se corrigió además una referencia obsoleta en el inventario del design-system ("Empezá a explorar" → "Empiece a explorar") y un posesivo informal ("tus investigaciones" → "sus investigaciones"). Verificado: `grep` de marcadores de voseo sobre `src/` → 0 coincidencias. Nota: quedan instrucciones internas para desarrolladores en voseo (AGENTS.md regla 3, design-system §12); no son copy de plataforma y quedaron fuera de alcance. |
 | **Techos de subida de archivos (RF-12, 50 MB)** | **Resuelto y verificado end-to-end** (2026-09-11). Estado real medido: (1) `frontend-proxy/nginx.conf` y `frontend-proxy/dev-nginx.conf` no tenían `client_max_body_size` → default 1 MB → **413** medido con 2 MB y con 50 MB por el proxy, y 200 con 2 MB directo a CKAN. Se agregó `client_max_body_size 55M` **acotado a `location /api/`** en ambos. (2) CKAN **ya permitía 100 MB** (`CKAN_MAX_UPLOAD_SIZE_MB=100` en `ckan-docker/.env.example:50`) — la afirmación previa de que estaba en el default de 10 MB era **incorrecta**. (3) `BODY_SIZE_LIMIT` de adapter-node (default 512 KB) se midió sobre el build de producción: existe y se dispara, pero **no está en el camino de v0**, así que se dejó sin subir a propósito. Verificación final: archivo de 50 MB (52 428 800 bytes) subido por el proxy, HTTP 200 en ~450-750 ms, `size` reportado por CKAN correcto y **sha256 del archivo descargado igual al local**; 2 MB a `/` sigue devolviendo 413 (alcance acotado correcto). |
 | **Estrategia de CRUD: UI propia vs. UI nativo** | **Decidida** (2026-09-11) — CKAN headless; el portal es dueño de toda la UI, incluida la administración. El UI de CKAN se acepta sólo como muleta operativa en `v0`. PRD §3 y §7 reconciliados con el esquema real de CKAN. |
