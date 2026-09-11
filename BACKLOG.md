@@ -7,72 +7,20 @@
 >
 > Convención de estado: `[ ]` abierto · `[~]` a medias · `[x]` hecho (se elimina al commitear).
 
-## Frontend (repo `odp` — SvelteKit)
-
-- [ ] **CI/CD inexistente** — no hay `.github/` en el repo. No corre lint/test/build en ningún
-  lado. Definir si se agrega GitHub Actions (lint + typecheck + vitest) o si se deja deliberado.
-  _Origen: audit 2026-08-24._
-
-- [ ] **`getCkanClient()` muerto** — `src/lib/ckan.ts` define un singleton `getCkanClient()` que
-  nadie llama; todo el código usa `createCkanClient()` directo. Decidir: borrar `ckan.ts` o
-  migrar los callers. _Origen: audit 2026-08-24; verificado sin callers 2026-09-06._
-
-- [~] **`ThemePlayground` leftover** — componente dev-only de cambio de colores, importado y
-  montado en `src/routes/+layout.svelte:285` dentro de `{#if import.meta.env.DEV}`. Decidir si
-  se conserva como herramienta de dev o se elimina. _Origen: audit 2026-08-24._
-
-- [ ] **Verificar los 9 apuntes de comparación de cards** — feedback del usuario comparando
-  DatasetCard vs DatasetCardMockup en `/dev/cards` (2026-09-03), pedido "NO implementar aún,
-  solo recordar". Varios quedaron absorbidos por la DatasetCardV2 oficial (PR #39); falta
-  revisar punto por punto cuáles siguen vivos (p. ej. hover del actual). Ver detalle en memoria
-  engram #232. _Origen: 2026-09-03._
-
-- [ ] **Housekeeping: borrar ramas remotas ya mergeadas** — `fix/facetfilter-mobile-collapsed`,
-  `feat/dataset-detail-polish`, `fix/search-resultsbar-favicon`, `feat/search-card-title-hierarchy`,
-  `feat/auth-04-ui`, `feat/auth-02-server`. _Verificado 2026-09-06._
-
-- [ ] **Política de fallback a datos mock en producción** — cada página
-  (`+page.svelte`, `search`, `dataset/[id]`, `resource/[resourceId]`, `organizations`) hace
-  fallback silencioso a `getMock*` cuando CKAN falla, **sin distinguir dev de prod**. Si CKAN cae
-  en producción, la app muestra datasets falsos y stats infladas como si fueran reales. Decidir:
-  ¿mock solo con `import.meta.env.DEV` y error visible en prod, o estado explícito "CKAN no
-  disponible"? _Origen: audit de consistencia 2026-09-06; el README lo presenta como solo-dev pero
-  el código no discrimina._
-
-## Documentación y trazabilidad
-
-- [ ] **Spec de organizations nunca promovida a OpenSpec** — el cambio `organizations-catalog` se
-  archivó en modo engram (sin filesystem), por lo que la feature implementada (listado/detalle de
-  orgs) **no tiene spec en `openspec/specs/`** (hoy solo authentication, dataset-resource-listing,
-  resource-detail-view). Contradice la convención de AGENTS.md (specs = contratos de features).
-  Decidir: promover spec desde el archive engram o documentar por qué no aplica.
-  _Origen: audit 2026-09-06._
-
-- [ ] **Divergencia doc↔código en el home** — el design-system README (§9, página Home) describe
-  una sección "¿Qué podés hacer?" con grid de 6 features (buscar, visualizar, analizar CSV,
-  colaborar, publicar, API pública). El home real **ya no tiene esa sección** (quedó CTA + stats +
-  organizaciones tras la reestructura de septiembre). Decidir si el doc quedó desactualizado o si
-  la sección se perdió deliberadamente, y alinear. _Origen: audit 2026-09-06; ver PR #19 y
-  design-system §9 item 1._
-
 ## Backend CKAN / `odp-docker` (repo hermano)
 
-- [~] **`CKAN_INTERNAL_URL` en compose de producción** — `docker-compose.unified.yml` (prod) NO
-  tiene la variable; el frontend prod no podría loguear contra CKAN. El compose dev
-  (`docker-compose.dev.unified.yml`) sí la tiene pero **sin commitear** (working tree).
-  _Origen: follow-up 1 del archive de authentication; estado verificado 2026-09-06._
+- [ ] **Versionar `ckan-docker/`** — el directorio entero está ignorado en `odp-docker` (`.gitignore`
+  raíz: "ckan-docker es un repo git separado"), pero **no** es submodule ni repo aparte (sin `.git`,
+  sin `.gitmodules`; `git ls-files ckan-docker/` = 0). El plugin `ckanext-umss`, los Dockerfiles y
+  `.env.example` no están versionados en ningún lado. Decidir: convertirlo en submodule con repo
+  propio, o trackearlo dentro de `odp-docker`. _Origen: review 2026-09-10._
 
-- [ ] **`ckan.auth.create_user_via_api=false`** — recomendar/configurar en CKAN para que no haya
-  auto-registro público por API (requisito PRD RF-03). Cambio del lado backend.
-  _Origen: follow-up 2 del archive de authentication._
-
-- [ ] **Token accumulation en login repetido** — cada login crea un `api_token` nuevo en CKAN y
-  los viejos quedan vivos. Evaluar dedupe con `api_token_list` o revocar tokens previos al
-  mintear. _Origen: follow-up 4 del archive de authentication (open question del design)._
-
-- [ ] **Plugin `expire_api_token`** — considerar habilitarlo en CKAN para que los tokens expiren
-  solos (fue non-goal de la propuesta original). _Origen: follow-up 5 del archive de
-  authentication._
+- [ ] **Token en cookie httpOnly + nginx (endurecimiento)** — hoy el JWT vive en `localStorage`
+  (vulnerable a XSS). Patrón más seguro: guardar el API token en una cookie httpOnly/secure/
+  samesite y que el reverse proxy la convierta en header `Authorization`
+  (`proxy_set_header 'Authorization' $cookie_<nombre>`). Combinar con
+  `ckan.auth.disable_cookie_auth_in_api = true`. Candidato para cuando se implemente el CRUD.
+  _Origen: research 2026-09-10 (ckanext-passwordless_api)._
 
 ## Datos y contenido
 
@@ -150,3 +98,15 @@
 | Tests sin runner | Vitest + testing-library configurados; 13 archivos de test. |
 | PRD desactualizado (decía React/backend-custom) | **Corregido** — PRD §10 ya refleja SvelteKit + CKAN (7 menciones de CKAN); verificado 2026-09-06. |
 | README raíz genérico "sv" | **Corregido** — README.md ya documenta stack real, setup, estructura y mock data. |
+| `getCkanClient()` muerto | **Eliminado** — `src/lib/ckan.ts` borrado (sin callers). |
+| CI/CD inexistente | **Agregado** — `.github/workflows/ci.yml` (lint + typecheck + vitest). |
+| `ThemePlayground` leftover | **Conservado** — tool dev-only gated por `import.meta.env.DEV`; decisión de mantenerlo. |
+| 9 apuntes de comparación de cards | **Obsoleto** — memoria engram #232 perdida y `/dev/cards` eliminado; absorbido por DatasetCardV2 (PR #39). |
+| Política de fallback a mock en producción | **Corregido** — mock solo con `import.meta.env.DEV`; en prod error explícito en las 6 páginas. Además: stats del home (orgs/formats) ahora reales y "Recursos" ya no se inventa en prod. |
+| Spec de organizations | **Escrita** — `openspec/specs/organizations/spec.md` desde el código implementado. |
+| Divergencia doc↔código en el home | **Corregido** — design-system README §9 actualizado al home real (CTA + stats + organizaciones). |
+| `CKAN_INTERNAL_URL` en compose prod | **Corregido** — `docker-compose.unified.yml` inyecta `CKAN_INTERNAL_URL: http://ckan:5000` en el servicio frontend. |
+| Housekeeping: ramas remotas mergeadas | **Borradas** — 14 ramas eliminadas de `origin` (11 mergeadas por ancestría + 3 superseded). Quedan solo `main` y `HEAD`. |
+| Token accumulation en login repetido | **Resuelto (código)** — `ckanLogin` ahora lista (`api_token_list`) y revoca (`api_token_revoke`) los tokens previos del portal antes de mintear el nuevo (best-effort); +3 tests. |
+| `ckan.auth.create_user_via_api=false` | **Aplicado** — agregado a `ckan-docker/.env` y `.env.example` (aplicado por el usuario + verificado). |
+| Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). |
