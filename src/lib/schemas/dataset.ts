@@ -14,7 +14,9 @@ export const datasetCreateSchema = z.object({
 		.min(3, "El título debe tener al menos 3 caracteres")
 		.max(200, "El título no puede exceder 200 caracteres"),
 	notes: z.string().max(5000).optional(),
-	owner_org: z.string().uuid("Debe seleccionar una organización"),
+	// CKAN acepta el id (UUID) o el slug de la organización, y el wizard envía el slug
+	// que devuelve `organization_list_for_user`. Exigir UUID rompía el submit.
+	owner_org: z.string().min(1, "Debe seleccionar una organización"),
 	private: z.boolean().default(true),
 	license_id: z.string().optional(),
 	tag_string: z.string().optional(),

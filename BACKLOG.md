@@ -17,24 +17,18 @@
 
 ## v0 — core presentable
 
-- [ ] **[v0] Wizard de dataset (crear/editar) + gestión de recursos** — formulario por
-  secciones: título, descripción, organización, licencia, etiquetas, visibilidad; editor de
-  metadatos (Dublin Core / DCAT-AP); carga de recursos drag & drop multi-formato, límite 50 MB.
-  `package_create` / `package_update` + `resource_create`. _Referencias: design-system §9 item
-  10, PRD RF-09 a RF-13._
+## En curso (cambios SDD)
 
-  **Camino de subida decidido (2026-09-11, verificado):** el archivo va **directo del browser a
-  `/api/3/action/resource_create`** (mismo origen a través del proxy), **no** por una ruta
-  `+server.ts` propia. Consecuencias de implementación:
-  - Se construye un `FormData` con la clave `upload` y se hace `fetch('/api/3/action/resource_create',
-    { method: "POST", headers: { Authorization: token }, body: form })`. **Nunca** setear
-    `Content-Type`: se pierde el boundary y CKAN rechaza el archivo. No usar
-    `src/lib/api/client.ts` para esto (hardcodea JSON).
-  - Permite mostrar progreso real de subida (con fetch + streams o XHR), que un form action del
-    servidor no puede.
-  - No consume memoria del servidor Node ni topa con su límite de body.
+> Al arrancar un cambio SDD, el ítem se mueve desde este backlog a `openspec/changes/`.
 
-  _Ver el historial de cierre para los techos de subida, ya resueltos y verificados._
+- [~] **`openspec/changes/2026-09-11-dataset-publishing/`** — wizard de creación de dataset
+  (metadata nativa de CKAN) + carga de recursos, hasta 50 MB, con progreso y reporte de fallo por
+  archivo. Tier `v0`. Cadena de 3 PRs: PR1 (artefactos + fix de `owner_org`) **completo**, PR2
+  (módulos puros + tests) y PR3 (UI del wizard + CTA del dashboard) pendientes. La decisión de
+  subida (browser directo a `/api/3/action/resource_create`) quedó fijada en el spec.
+  _Referencias: design-system §9 item 10, PRD RF-09 a RF-13._
+
+## v0 — core presentable
 
 - [ ] **[v0] Dashboard real del usuario** — hoy `/dashboard` es un placeholder que promete
   "gestionar los datasets de tu organización" y dice "próximamente": es **deuda visible en
@@ -99,6 +93,19 @@
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
+- [ ] **[v1+] Metadatos de interoperabilidad (DCAT/Dublin Core)** — agregar los campos que no
+  tienen equivalente nativo en CKAN: idioma (`dct:language`) y periodicidad de actualización
+  (`dct:accrualPeriodicity`). **Decisión 2026-09-11: se difiere a propósito y `v0` no escribe
+  `extras`.** Motivo medido contra el código de `ckanext-dcat`: su vocabulario de `extras` **no es
+  estable entre sus propios perfiles** — el perfil legacy `euro_dcat_ap` escribe `dcat_issued`,
+  `dcat_modified`, `dcat_publisher_name`, `dcat_creator_name`, `guid` y `language` (sin prefijo,
+  unido por comas), mientras que el perfil basado en `ckanext-scheming` guarda lo mismo como
+  campos de primer nivel. Congelar nombres antes de elegir perfil obliga a migrar los extras de
+  todos los datasets creados entre medio. Lo que `v0` necesita ya está cubierto: `issued` y
+  `modified` caen a `metadata_created`/`metadata_modified`, el publisher cae a la organización
+  dueña y el creator a `author`. **Antes de implementar esto hay que decidir el perfil DCAT.**
+  _Origen: verificación contra la fuente de ckanext-dcat, 2026-09-11._
+
 - [ ] **[v1+] Módulo de Análisis de CSV** — página 11 del inventario: cargar CSV, tabla
   normalizada, selector de columnas X/Y, gráficos (barras/líneas/pastel) con export PNG/CSV. Sin
   nada de código hoy. Es el **diferencial real del portal** frente al UI de CKAN.
@@ -154,6 +161,7 @@
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Copy de UI: voseo → español neutro formal** | **Normalizado** (2026-09-11). La convención estaba en voseo rioplatense (AGENTS.md regla 6 + design-system §10) y el producto tenía 18 strings en voseo en 10 archivos. Se actualizaron las dos convenciones a "trato de usted, sin voseo ni regionalismos" y se reescribieron todos los strings de UI: home (5), search (4), organizations (1), login (2), dashboard (2), detalle de dataset (1), detalle de recurso (3), y el error de rate-limit del login en `src/lib/server/auth-server.ts` (+ su test). Se corrigió además una referencia obsoleta en el inventario del design-system ("Empezá a explorar" → "Empiece a explorar") y un posesivo informal ("tus investigaciones" → "sus investigaciones"). Verificado: `grep` de marcadores de voseo sobre `src/` → 0 coincidencias. Nota: quedan instrucciones internas para desarrolladores en voseo (AGENTS.md regla 3, design-system §12); no son copy de plataforma y quedaron fuera de alcance. |
 | **Techos de subida de archivos (RF-12, 50 MB)** | **Resuelto y verificado end-to-end** (2026-09-11). Estado real medido: (1) `frontend-proxy/nginx.conf` y `frontend-proxy/dev-nginx.conf` no tenían `client_max_body_size` → default 1 MB → **413** medido con 2 MB y con 50 MB por el proxy, y 200 con 2 MB directo a CKAN. Se agregó `client_max_body_size 55M` **acotado a `location /api/`** en ambos. (2) CKAN **ya permitía 100 MB** (`CKAN_MAX_UPLOAD_SIZE_MB=100` en `ckan-docker/.env.example:50`) — la afirmación previa de que estaba en el default de 10 MB era **incorrecta**. (3) `BODY_SIZE_LIMIT` de adapter-node (default 512 KB) se midió sobre el build de producción: existe y se dispara, pero **no está en el camino de v0**, así que se dejó sin subir a propósito. Verificación final: archivo de 50 MB (52 428 800 bytes) subido por el proxy, HTTP 200 en ~450-750 ms, `size` reportado por CKAN correcto y **sha256 del archivo descargado igual al local**; 2 MB a `/` sigue devolviendo 413 (alcance acotado correcto). |
 | **Estrategia de CRUD: UI propia vs. UI nativo** | **Decidida** (2026-09-11) — CKAN headless; el portal es dueño de toda la UI, incluida la administración. El UI de CKAN se acepta sólo como muleta operativa en `v0`. PRD §3 y §7 reconciliados con el esquema real de CKAN. |
 | **Definición de tiers de versión (v0/v1/v1+/v2+)** | **Escrita** — `PRD.md` §3 (tabla de tiers con criterio de salida por tier) y etiquetado por tier de cada ítem de este backlog. |
