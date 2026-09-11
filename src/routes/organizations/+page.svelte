@@ -113,7 +113,7 @@ onMount(() => {
 		<div class="rounded-xl border border-border bg-card p-12 text-center">
 			<p class="text-lg font-medium text-primary">No hay organizaciones disponibles</p>
 			<p class="mt-2 text-sm text-muted-foreground">
-				Volvé más tarde para ver las organizaciones que publican datos.
+				Vuelva más tarde para ver las organizaciones que publican datos.
 			</p>
 		</div>
 

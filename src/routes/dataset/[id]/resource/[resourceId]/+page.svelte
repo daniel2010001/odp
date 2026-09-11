@@ -482,7 +482,7 @@ async function handleCopyEndpoint() {
 					<p class="text-xs font-bold uppercase tracking-wider text-primary">
 						Ejemplo de consulta · curl
 					</p>
-					<p class="mt-1 text-sm text-muted-foreground">Obtené los metadatos del recurso.</p>
+					<p class="mt-1 text-sm text-muted-foreground">Obtenga los metadatos del recurso.</p>
 					<div class="mt-3 overflow-x-auto rounded-lg bg-foreground p-4">
 						<pre class="font-mono text-xs leading-relaxed text-background"><code>{curlCommand}</code></pre>
 					</div>
