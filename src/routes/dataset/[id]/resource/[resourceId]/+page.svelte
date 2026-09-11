@@ -3,7 +3,9 @@ import { ArrowLeft, Check, Copy, Download, ExternalLink, FileText, Layers } from
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import { createDatastoreApi } from "$lib/api/datastore";
 import { createResourceApi } from "$lib/api/resources";
+import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -13,6 +15,9 @@ import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
+
+// Cliente del DataStore para la vista previa de CSV (RF-31).
+const datastoreApi = createDatastoreApi(createCkanClient({ baseUrl: env.CKAN_URL }));
 
 // ─── State ───────────────────────────────────────────────────────
 let resource = $state<CkanResource | null>(null);
@@ -351,18 +356,7 @@ async function handleCopyEndpoint() {
 								Tabla
 							</span>
 						</div>
-						<div class="flex min-h-[420px] flex-col items-center justify-center gap-3 p-10 text-center">
-							<div class="flex size-16 items-center justify-center rounded-full bg-primary/10">
-								<FileText class="size-8 text-primary" />
-							</div>
-							<p class="font-heading text-xl font-bold text-foreground">Próximamente</p>
-							<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
-								La vista previa de datos estará disponible en una próxima versión.
-								{#if resource.format?.toLowerCase() === "csv"}
-									Este recurso CSV podrá explorarse como tabla y gráficos.
-								{/if}
-							</p>
-						</div>
+						<ResourcePreview resource={resource} datastore={datastoreApi} />
 					</Card>
 				</div>
 
