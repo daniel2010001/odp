@@ -261,30 +261,40 @@ const SHOWCASE = {
 	resources: [
 		{
 			name: "Flujos vehiculares por punto de conteo (2019–2025)",
+			description:
+				"Serie temporal de flujos vehiculares horarios en los 47 puntos de conteo automatizados. Datos agregados por dirección, tipo de vehículo y día de la semana.",
 			format: "CSV",
 			size: 12_450_000,
 			url: "https://data.umss.edu.bo/resource/flujos-vehiculares.csv",
 		},
 		{
 			name: "Encuesta de origen-destino 2024",
+			description:
+				"Resultados de la encuesta de origen-destino realizada en el área metropolitana. Muestra: 8,500 hogares, cobertura geográfica: 12 distritos.",
 			format: "XLSX",
 			size: 3_800_000,
 			url: "https://data.umss.edu.bo/resource/encuesta-origen-destino-2024.xlsx",
 		},
 		{
 			name: "Rutas y paradas del transporte público (GeoJSON)",
+			description:
+				"Geometrías de líneas y paradas del sistema de transporte público metropolitano. Incluye 63 líneas, 1,240 paradas y 8 terminales.",
 			format: "GeoJSON",
 			size: 28_000_000,
 			url: "https://data.umss.edu.bo/resource/transporte-publico.geojson",
 		},
 		{
 			name: "Accidentalidad vial (2019–2025)",
+			description:
+				"Registro de accidentes de tránsito con clasificación por tipo, gravedad, horario y ubicación georreferenciada.",
 			format: "CSV",
 			size: 5_200_000,
 			url: "https://data.umss.edu.bo/resource/accidentalidad-vial.csv",
 		},
 		{
 			name: "Informe metodológico y diccionario de datos",
+			description:
+				"Documento PDF con la metodología de recolección, definición de variables, criterios de calidad y notas técnicas.",
 			format: "PDF",
 			size: 1_800_000,
 			url: "https://data.umss.edu.bo/resource/informe-metodologico.pdf",

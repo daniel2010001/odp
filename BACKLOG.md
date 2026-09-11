@@ -45,6 +45,12 @@
   3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
   4. `R3-loading-state-untested`: estado de carga sin test.
 
+- [ ] **[v0] Sección "Data API" para recursos CSV** — la sección "Acceso por API" de la página
+  de recurso hoy está gateada a `resource_type === "api"` (oculta para archivos). Lo correcto,
+  como data.gov.au y otros portales CKAN: mostrar una "Data API" con `datastore_search` para
+  recursos tabulares (CSV) en el DataStore, en lugar de un `resource_show`. Diferido durante la
+  revisión de la UI de recurso (2026-09-11). _Origen: observación del usuario + verificación.
+
 - [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
