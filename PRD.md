@@ -30,6 +30,26 @@ Desarrollar e implementar una plataforma digital centralizada de gestión y publ
 
 ## 3. Alcance
 
+### Modelo de versiones (v0, v1, v1+, v2+)
+
+El proyecto se planifica en tiers **acumulativos**: cada tier incluye todo lo anterior más lo que
+agrega.
+
+| Tier | Objetivo | Criterio de salida |
+|---|---|---|
+| **v0** | Core funcional, presentable y evaluable. Demuestra avance del proyecto. | Un evaluador externo puede recorrer el catálogo, iniciar sesión, publicar un dataset con recursos y verlo reflejado en el portal. **No pretende cubrir este PRD.** |
+| **v1** | Producto usable en producción. | El portal cubre el ciclo completo de publicación y administración sin depender del UI de CKAN. Los requerimientos de este documento que no entren se **difieren a `v1+`** con registro del motivo; no bloquean la salida. |
+| **v1+** | Requerimientos diferidos de `v1` más capacidades no exigidas por este PRD pero convenientes para producción. | — |
+| **v2 / v2+** | Mejoras futuras no solicitadas explícitamente. | — |
+
+**Arquitectura adoptada** (decisión registrada 2026-09-11): CKAN se usa como **backend headless**
+(sólo su API REST). El portal SvelteKit es dueño del **100% de la interfaz**, incluida la
+administración. El UI web nativo de CKAN se acepta únicamente como **muleta operativa durante `v0`**;
+no forma parte de la arquitectura objetivo.
+
+La asignación concreta de cada requerimiento a un tier se mantiene en `BACKLOG.md` (fuente única
+de pendientes): ahí se decide qué entra en cada versión.
+
 ### Dentro del alcance (v1)
 - Registro y autenticación de usuarios (manual por superadmin y admins de organización).
 - Gestión completa de organizaciones (CRUD, jerarquía figurativa).
@@ -44,6 +64,10 @@ Desarrollar e implementar una plataforma digital centralizada de gestión y publ
 - API REST pública (con API Key) para consulta de datasets públicos.
 - Búsqueda facetada con Solr.
 - Módulo de análisis de datos: carga de CSV, normalización en tablas, gráficos básicos (barras, líneas) configurables.
+
+> Lista completa de requerimientos de `v1`. **No todos son alcanzables con CKAN**: los que dependen
+de entidades sin equivalente en su esquema están asignados a tiers posteriores en `BACKLOG.md`
+(ver §7 y §10). Un requerimiento que no entre en `v1` se mueve a `v1+`, dejando registro del motivo.
 
 ### Fuera del alcance (v1)
 - Autenticación SSO/LDAP (se integrará en v2).
@@ -152,6 +176,41 @@ Desarrollar e implementar una plataforma digital centralizada de gestión y publ
 ---
 
 ## 7. Modelo de Datos Conceptual (Entidades Principales)
+
+> **Reconciliado con CKAN (2026-09-11).** La decisión de reutilizar CKAN como backend (ver §10)
+> dejó obsoleta la versión original de esta sección, que describía un esquema propio. La tabla
+> siguiente mapea cada entidad conceptual a su equivalente real en CKAN (esquema `package`,
+> `resource`, `group`, `user`, `member`, `activity`).
+
+| Entidad conceptual | Equivalente en CKAN | Estado |
+|---|---|---|
+| `users` | `user` | Nativo. `password_hash` lo gestiona CKAN; `super_admin` es el flag `sysadmin` |
+| `organizations` | `organization` (un `group` con `type='organization'`) | Nativo. `parent_id` no existe: la jerarquía de orgs no es nativa |
+| `user_organizations` | `member` | Nativo. Roles `member` / `editor` / `admin`; no hay rol `viewer` propio |
+| `datasets` | `package` | Nativo. `metadata` va en `extras` (clave/valor); `organization_id` es `owner_org` |
+| `lifecycle_status` | *sin equivalente* | CKAN sólo tiene `private` (booleano). No existe `draft→review→approved→published` |
+| `visibility` (3 niveles) | Parcial | CKAN tiene 2 niveles: `private` y público. El nivel "interno de organización" es el comportamiento de `private` |
+| `versions` | `activity` (insuficiente) | CKAN registra actividad, no versiones con estado de aprobación |
+| `resources` | `resource` | Nativo. `file_hash`, `size`, `url`, `format` son nativos; el tipo archivo/enlace se infiere de `url` |
+| `dataset_collaborators` | `package_collaborator` | Nativo desde CKAN 2.9, requiere `ckan.auth.allow_dataset_collaborators = true` |
+| `teams`, `team_members` | *sin equivalente* | Requiere extensión propia o capa paralela |
+| `collections` | `group` | Nativo para agrupar datasets de distintas orgs; el flujo de aprobación (RF-23) no es nativo |
+| `collection_datasets` | `member` (de `group`) | Nativo |
+| `publication_requests` | *sin equivalente* | Requiere extensión propia o capa paralela |
+| `audit_logs` | `activity` (insuficiente) | RF-33/RF-34 (retención de 5 años, logins) exigen una extensión de auditoría |
+| `access_status` (readonly/locked) | *sin equivalente* | Requiere extensión propia |
+| `deleted_at` (soft-delete) | *sin equivalente* | Requiere extensión propia |
+
+**Consecuencia de alcance:** los requerimientos que dependen de entidades marcadas *sin
+equivalente* (RF-14 a RF-17, RF-19, RF-23, RF-33 a RF-36) **no son alcanzables con la API de
+CKAN**. Exigen una extensión propia o una capa de datos paralela, y por eso están asignados a
+tiers posteriores a `v0` en `BACKLOG.md`.
+
+### Modelo conceptual original (histórico)
+
+> Referencia del diseño **previo** a la adopción de CKAN. **No es el modelo implementado**: el
+> mapeo vigente es la tabla de arriba. Se conserva para trazabilidad de los requerimientos y de
+> las entidades nombradas en §5.
 
 - `users` (id, email, name, password_hash, super_admin, created_at)
 - `organizations` (id, name, slug, description, parent_id, created_at)
