@@ -15,23 +15,20 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión (Plan B — dashboard + publicación)
+## Plan B — dashboard + publicación (cerrado 2026-09-12)
 
-> Agenda acordada al cierre del 2026-09-12. «Plan B» = las features pendientes del plan
-> S-A…S-E (S-A ✅ · S-B ✅ · S-C PR1+PR2 ✅ · S-D ⏳ · S-E ✅). El «Plan A» (alineamiento
-> visual del portal) quedó cerrado.
+> Ejecutado y cerrado. «Plan B» = las features pendientes del plan S-A…S-E, ahora completas:
+> S-A ✅ · S-B ✅ · S-C PR1+PR2+PR3 ✅ · S-D ✅ · S-E ✅. El «Plan A» (alineamiento visual del
+> portal) quedó cerrado antes.
 
-- [ ] **PR3 de `dataset-publishing`** — UI del wizard en `/dashboard/datasets/new` + reemplazar
-  el placeholder de `/dashboard` por el CTA al wizard. Absorber los 3 hallazgos de la revisión
-  de PR2 (`R3-no-timeout`, `R3-nonjson-200`, `R3-slug-boundary`).
-- [ ] **S-D · Dashboard real del usuario** (ítem `[v0]` de abajo): listar "Mis datasets" y
-  "Mis organizaciones" desde la API de CKAN, más los accesos rápidos.
-
-**Orden acordado:** fundir PR3 + S-D en **un solo track "dashboard + publicación"** (ambos
-giran alrededor de `/dashboard`; evita el churn placeholder → CTA → listado real), y construir
-las páginas nuevas ya alineadas a los tokens/copy de las páginas terminadas.
-
-## v0 — core presentable
+- [x] **PR3 de `dataset-publishing`** — wizard en `/dashboard/datasets/new` + CTA del dashboard
+  (commit `157d6d2`). Absorbidos los 3 hallazgos de PR2 (`R3-no-timeout`, `R3-nonjson-200`,
+  `R3-slug-boundary`). Revisión RDD `approved` (lineage `review-c9dee8d0f9b7ef4a`, tier medium,
+  lente reliability); 3 hallazgos advisory informativos.
+- [x] **S-D · Dashboard real** — `/dashboard` lista "Mis datasets"
+  (`current_package_list_with_resources`) y "Mis organizaciones" (`organization_list_for_user`),
+  con estados independientes de carga/vacío/error (commit `1dfa399`). Revisión RDD `approved`
+  (lineage `review-076d16ba6c6ee758`, tier medium, lente reliability); 2 hallazgos advisory.
 
 ## En curso (cambios SDD)
 
@@ -39,18 +36,15 @@ las páginas nuevas ya alineadas a los tokens/copy de las páginas terminadas.
 
 - [~] **`openspec/changes/2026-09-11-dataset-publishing/`** — wizard de creación de dataset
   (metadata nativa de CKAN) + carga de recursos, hasta 50 MB, con progreso y reporte de fallo por
-  archivo. Tier `v0`. Cadena de 3 PRs: PR1 (artefactos + fix de `owner_org`) **completo**, PR2
-  (módulos puros + tests) **completo** (`002b33a`) y PR3 (UI del wizard + CTA del dashboard)
-  **pendiente**. La decisión de
-  subida (browser directo a `/api/3/action/resource_create`) quedó fijada en el spec.
+  archivo, más el dashboard real. Tier `v0`. Cadena de PRs: PR1 (artefactos + fix de `owner_org`)
+  **completo** (`3308221`), PR2 (módulos puros + tests) **completo** (`002b33a`), PR3 (UI del
+  wizard + absorción de los 3 hallazgos) **completo** (`157d6d2`) y PR4 (dashboard real)
+  **completo** (`1dfa399`). La decisión de subida (browser directo a
+  `/api/3/action/resource_create`) quedó fijada en el spec. **Pendiente de cierre**: verificación
+  Fase 4 contra el stack dev (crear dataset + subir 50 MB desde el wizard) y el archivado.
   _Referencias: design-system §9 item 10, PRD RF-09 a RF-13._
 
 ## v0 — core presentable
-
-- [ ] **[v0] Dashboard real del usuario** — hoy `/dashboard` es un placeholder que promete
-  "gestionar los datasets de tu organización" y dice "próximamente": es **deuda visible en
-  producción**. Debe listar "Mis datasets" y "Mis organizaciones" desde la API de CKAN, más los
-  accesos rápidos. _Referencias: design-system §9 item 7._
 
 - [ ] **[v0] Endurecer la vista previa CSV (hallazgos de revisión)** — 4 hallazgos informativos
   no bloqueantes de la revisión de la vista previa (lineage `review-ca9abb1187a39513`, lente
@@ -200,6 +194,8 @@ las páginas nuevas ya alineadas a los tokens/copy de las páginas terminadas.
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Dashboard real del usuario (S-D)** | **Implementado** (2026-09-12, commit `1dfa399`). `/dashboard` dejó de ser el placeholder "próximamente": ahora lista "Mis datasets" (`current_package_list_with_resources`) y "Mis organizaciones" (`organization_list_for_user`), con estados independientes de carga/vacío/error y CTA "Publicar dataset" al wizard. Revisión RDD `approved` (lineage `review-076d16ba6c6ee758`, tier medium, lente reliability), authority quemada; 2 hallazgos advisory informativos anotados. Gates: check 0 errores, 159 tests, lint 0 errores. |
+| **Wizard de publicación de datasets (PR3)** | **Implementado** (2026-09-12, commit `157d6d2`). Ruta `/dashboard/datasets/new`: guard de auth client-side, organizaciones escribibles vía `organization_list_for_user(permission="create_dataset")` con estados de error/vacío, formulario con sugerencia de slug, selector de archivos con validación previa de tamaño, `package_create` + subidas secuenciales con progreso y cancelación, fallo parcial con reintento y navegación al dataset creado. Absorbidos los 3 hallazgos advisory de PR2 (`R3-no-timeout`, `R3-nonjson-200`, `R3-slug-boundary`). Revisión RDD `approved` (lineage `review-c9dee8d0f9b7ef4a`, tier medium, lente reliability), authority quemada; 3 hallazgos advisory informativos anotados. Gates: check 0 errores, 156 tests, lint 0 errores. |
 | **Vista previa del recurso (CSV)** | **Implementada** (2026-09-11). Fuente decidida: **DataStore de CKAN** (`datastore_search`), no fetch del archivo. Nuevos `src/lib/api/datastore.ts` y `src/lib/components/resource/{DataPreviewTable,ResourcePreview}.svelte` (+ tests); el placeholder "Próximamente" de `resource/[resourceId]/+page.svelte` se reemplazó por el componente. Revisión RDD **approved** (tier medium, lente reliability), authority quemada; 4 hallazgos informativos anotados como ítem v0 de seguimiento. Gates: check 0 errores, 145 tests, lint 0 errores. |
 | **Copy de UI: voseo → español neutro formal** | **Normalizado** (2026-09-11). La convención estaba en voseo rioplatense (AGENTS.md regla 6 + design-system §10) y el producto tenía 18 strings en voseo en 10 archivos. Se actualizaron las dos convenciones a "trato de usted, sin voseo ni regionalismos" y se reescribieron todos los strings de UI: home (5), search (4), organizations (1), login (2), dashboard (2), detalle de dataset (1), detalle de recurso (3), y el error de rate-limit del login en `src/lib/server/auth-server.ts` (+ su test). Se corrigió además una referencia obsoleta en el inventario del design-system ("Empezá a explorar" → "Empiece a explorar") y un posesivo informal ("tus investigaciones" → "sus investigaciones"). Verificado: `grep` de marcadores de voseo sobre `src/` → 0 coincidencias. Nota: quedan instrucciones internas para desarrolladores en voseo (AGENTS.md regla 3, design-system §12); no son copy de plataforma y quedaron fuera de alcance. |
 | **Techos de subida de archivos (RF-12, 50 MB)** | **Resuelto y verificado end-to-end** (2026-09-11). Estado real medido: (1) `frontend-proxy/nginx.conf` y `frontend-proxy/dev-nginx.conf` no tenían `client_max_body_size` → default 1 MB → **413** medido con 2 MB y con 50 MB por el proxy, y 200 con 2 MB directo a CKAN. Se agregó `client_max_body_size 55M` **acotado a `location /api/`** en ambos. (2) CKAN **ya permitía 100 MB** (`CKAN_MAX_UPLOAD_SIZE_MB=100` en `ckan-docker/.env.example:50`) — la afirmación previa de que estaba en el default de 10 MB era **incorrecta**. (3) `BODY_SIZE_LIMIT` de adapter-node (default 512 KB) se midió sobre el build de producción: existe y se dispara, pero **no está en el camino de v0**, así que se dejó sin subir a propósito. Verificación final: archivo de 50 MB (52 428 800 bytes) subido por el proxy, HTTP 200 en ~450-750 ms, `size` reportado por CKAN correcto y **sha256 del archivo descargado igual al local**; 2 MB a `/` sigue devolviendo 413 (alcance acotado correcto). |
@@ -228,6 +224,19 @@ las páginas nuevas ya alineadas a los tokens/copy de las páginas terminadas.
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **[v0] Hallazgos advisory de PR3 y PR4 (dashboard + publicación)** — informativos, no
+  bloqueantes, sin corrección abierta. Verlos como trabajo posterior, nunca como motivo para
+  re-correr la revisión sobre esos candidatos:
+  - `review-c9dee8d0f9b7ef4a` (PR3): `R3-001` (`+page.svelte:186`, WARNING),
+    `R3-002` (`wizard.test.ts:23-143`, WARNING), `R3-003` (`+page.svelte:219`, SUGGESTION).
+  - `review-076d16ba6c6ee758` (PR4): `R3-reactive-auth` (`+page.svelte:83`, WARNING),
+    `R3-untested-dataset-failure` (`dashboard.test.ts:125`, SUGGESTION).
+
+- [ ] **[v0] Verificación Fase 4 del cambio `dataset-publishing`** — 4.1–4.3 (`pnpm check` /
+  `test` / `lint`) quedaron verdes; **4.4** (crear un dataset desde el wizard y subir ~50 MB
+  contra el stack dev) y **4.5** (confirmar que ningún byte llega al servidor SvelteKit) quedan
+  pendientes de verificación interactiva con credenciales reales.
 
 - [ ] **[v1] Revisión nativa `escalated` sin cerrar** — la línea de revisión de la sesión
   2026-09-10/11 cerró en estado `escalated` (hallazgos severos inconclusos), no `approved`. El

@@ -62,9 +62,9 @@
 
 ## Phase 4: Verification
 
-- [ ] 4.1 `pnpm check` — 0 errors
-- [ ] 4.2 `pnpm test` — full suite green
-- [ ] 4.3 `pnpm lint` — no new findings
+- [x] 4.1 `pnpm check` — 0 errors
+- [x] 4.2 `pnpm test` — full suite green (159 tests)
+- [x] 4.3 `pnpm lint` — no new findings
 - [ ] 4.4 Against the dev stack: create a dataset from the wizard and upload a ~50 MB file; confirm the resource appears with the right size
 - [ ] 4.5 Confirm no file bytes reach the SvelteKit server (upload path bypasses it; `BODY_SIZE_LIMIT` stays at its default)
 - [x] 4.6 Smoke-check `organization_list_for_user` with `permission="create_dataset"` against the dev instance — **assumption holds**: an `editor` sees the organization, a plain `member` gets `[]`. Without the argument a plain `member` also sees the organization, which is why the permission argument is required by the spec. Probe used two users with different roles in one organization, then cleaned up (users, organization and tokens removed).
