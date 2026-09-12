@@ -60,13 +60,11 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 
 ## v0 — core presentable
 
-- [ ] **[v0] Dashboard (`/dashboard`) — pulir la UI** — hoy no conforma (feedback directo del
-  usuario, 2026-09-12):
-  1. la card/botón de **publicar dataset** no encaja (revisar jerarquía, texto y forma);
-  2. la **lista de datasets** "se ve rara" (densidad, contenedores, separación);
-  3. "Mis datasets" y "Mis organizaciones" **se parecen demasiado** → confusión al distinguirlas
-     (dar identidad visual propia a cada sección: encabezado, icono, conteo, contenedor).
-  _Referencias: design-system §9 item 7. Proceso de UI: `AGENTS.md` regla 8._
+- [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
+  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte`: rótulo
+  `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
+  similar a la del **dataset**, conservando el detalle que agrega valor a la card. Revisar ambos
+  antes de normalizar. _Origen: revisión de UI del dashboard (2026-09-12)._
 
 - [ ] **[v0] Wizard (`/dashboard/datasets/new`) — pulir la UI** — misma revisión iterativa que el
   dashboard. Puntos conocidos: claridad de "archivo **o** enlace" por recurso (RF-13: son
@@ -232,6 +230,7 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Pulido de UI del dashboard (`/dashboard`)** | **Implementado y aprobado** (2026-09-12). Iterado en el playground `/dev/dashboard` (regla 8 de `AGENTS.md`) durante 6 rondas de revisión del usuario, y promovido luego de la aprobación; el playground se borró. Resultado: encabezado sin CTA compitiendo, **grilla de acciones** (hoy sólo «Publicar dataset», preparada para crecer) + **barra de acciones pegajosa** que aparece al scrollear (aire de 8 px bajo el encabezado, `inert` mientras está oculta), listas con contenedor propio y metadatos por fila (recursos + actualización + privacidad; sigla + datasets + rol en organizaciones) y descripción por sección. Verificado en Chromium: posición de la barra, que los clics atraviesan la franja transparente y que el enlace oculto no se puede enfocar. Auditoría responsive a 375/390/768/1024/1280/1440/1920 px sin desborde horizontal. Incluye `MAX_SIGLA_LENGTH` exportado por `OrganizationLogo` y la sigla declarada respetada verbatim. |
 | **Saneamiento del `href` de recursos (borde de salida)** | **Implementado** (2026-09-12). Política única de enlaces externos en `src/lib/utils/external-url.ts` (`safeExternalUrl` / `unsafeUrlReason`, allowlist `http:`/`https:` fail-closed) aplicada en los dos bordes de salida de la página de recurso (`resource.url` y el extra `docs_url`) y reusada por el wizard en la entrada. Primer test de componente de la página de recurso (`resource-page.test.ts`; el RED reprodujo el `href="javascript:..."` real) gracias a un stub de `$app/stores` en `vitest.config.ts`. Gates: check 0 errores, 169 tests, lint 0 errores, build 0. |
 | **Recursos por enlace (RF-11/RF-13) + archivado del cambio `dataset-publishing`** | **Implementado, verificado y archivado** (2026-09-12). La verificación destapó que el PRD exige que un recurso sea archivo **o** enlace y el proposal lo había sub-escopeado. El wizard ahora adjunta enlaces externos (`resource_create` en JSON, sin bytes) y restringe el esquema a `http:`/`https:` para cerrar el vector de XSS almacenado vía `javascript:`. Commit `f0d30f3`. Verificación nativa `pass` (13/13 requisitos, 35/35 escenarios, 37/37 tareas) y cambio archivado (`1b7c33d`), con la spec promovida a `openspec/specs/dataset-publishing/spec.md`. |
 | **Dashboard real del usuario (S-D)** | **Implementado** (2026-09-12, commit `1dfa399`). `/dashboard` dejó de ser el placeholder "próximamente": ahora lista "Mis datasets" (`current_package_list_with_resources`) y "Mis organizaciones" (`organization_list_for_user`), con estados independientes de carga/vacío/error y CTA "Publicar dataset" al wizard. Revisión RDD `approved` (lineage `review-076d16ba6c6ee758`, tier medium, lente reliability), authority quemada; 2 hallazgos advisory informativos anotados. Gates: check 0 errores, 159 tests, lint 0 errores. |
@@ -272,6 +271,35 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
   - `review-076d16ba6c6ee758` (PR4 dashboard): `R3-reactive-auth`, `R3-untested-dataset-failure`.
   - `review-656da6beeca5d9e9` (PR5 enlaces): `R3-link-remove-during-submit` (`+page.svelte:789`),
     `R3-link-validation-coverage` (`+page.svelte:218`).
+
+- [ ] **[v1] Sigla de organización (`extras.sigla`)** — CKAN **no** tiene un campo nativo de
+  abreviatura, pero sí soporta extras en organizaciones: existe la tabla `group_extra`, la API acepta
+  `extras` en `organization_create` / `organization_update` y `organization_show(include_extras)` los
+  devuelve (verificado contra el CKAN dev el 2026-09-12). Convención del portal: clave `sigla`
+  (`[{"key": "sigla", "value": "FCyT"}]`), respetada **verbatim** al renderizar. **Lectura ya
+  implementada**: `organization_list_for_user` no acepta `include_extras`, así que `listForUser`
+  completa los extras con una segunda llamada acotada por ids
+  (`organization_list(ids=[...], include_extras=true)`) y, si esa llamada falla, devuelve las
+  organizaciones sin extras (la sigla es cosmética). El mosaico recorta a `MAX_SIGLA_LENGTH` (6,
+  exportado por `OrganizationLogo`) y baja el tamaño de fuente según el largo; sin sigla cae al
+  monograma derivado del nombre. Falta: (a) escribir la sigla en los seeds y en la futura gestión de
+  organizaciones; (b) **validar el mismo `MAX_SIGLA_LENGTH` en el formulario de alta/edición** cuando
+  exista — el límite debe salir de una sola constante para que entrada y salida no deriven, y validar
+  en la entrada **no** exime al render de defenderse (el dato también entra por la API de CKAN).
+  _Origen: revisión de UI del dashboard (2026-09-12)._
+
+- [ ] **[v1] Barra de acciones pegajosa: revisar si conviene una versión móvil completa** — hoy
+  debajo de `lg` la barra muestra **solo** la acción principal; de `lg` hacia arriba, todas. A 768 px
+  las cuatro acciones no entran (medido: 168 px de desborde interno) y el scroll horizontal dentro de
+  la barra no da ninguna señal de que hay más acciones. Si se necesita todo en móvil, la salida es un
+  menú compacto («más acciones») en lugar de scroll lateral. _Origen: auditoría responsive
+  (2026-09-12)._ **(Hoy sólo existe una acción real: el problema reaparece cuando aterricen las
+  demás.)_**
+
+- [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
+  datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
+  no es alcanzable con CKAN: las "solicitudes de publicación" del PRD son el caso conocido).
+  _Origen: pedido explícito del usuario (2026-09-12)._
 
 - [ ] **[v0] `describeCreateError` sobre-dispara** — el regex `/already in use|url/i` del wizard
   etiqueta como conflicto de slug cualquier error cuyo mensaje contenga "url". Acotarlo al mensaje

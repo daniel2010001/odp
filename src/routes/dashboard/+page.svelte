@@ -2,9 +2,10 @@
 import {
 	ArrowRight,
 	Building2,
+	ChevronRight,
 	Database,
 	Inbox,
-	LoaderCircle,
+	Lock,
 	Plus,
 	RotateCw,
 	ShieldCheck,
@@ -16,9 +17,13 @@ import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
+import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
+import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import { cn } from "$lib/utils";
+import { formatDate } from "$lib/utils/ckan";
 
 // ─── Estado ──────────────────────────────────────────────────────────
 let authed = $state(false);
@@ -69,10 +74,67 @@ async function loadOrganizations() {
 		organizations = await orgApi.listForUser();
 	} catch (err) {
 		organizations = [];
-		orgsError = err instanceof Error ? err.message : "No se pudo cargar sus organizaciones.";
+		orgsError = err instanceof Error ? err.message : "No se pudieron cargar sus organizaciones.";
 	} finally {
 		orgsLoading = false;
 	}
+}
+
+// ─── Acciones del panel ──────────────────────────────────────────────
+// Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice,
+// pero el panel no anuncia nada que el backend todavía no pueda cumplir (ver BACKLOG.md).
+const actions = [
+	{
+		title: "Publicar dataset",
+		description: "Cree un dataset y suba sus recursos con el asistente.",
+		href: "/dashboard/datasets/new",
+		icon: Database,
+	},
+];
+
+// ─── Barra de acciones pegajosa ──────────────────────────────────────
+// El centinela vive justo después de la grilla: cuando queda detrás de la barra, la barra aparece;
+// al volver a subir, se esconde.
+//
+// Ojo con la condición (medido en Chromium): con `rootMargin` igual a `STICKY_TOP_PX` el callback
+// llega cuando el centinela cruza esa altura, y en ese momento `boundingClientRect.top` todavía es
+// **positivo** (+22 en la medición). Comparar contra 0 nunca se cumple y la barra no aparece.
+const HEADER_PX = 80; // altura del encabezado del sitio (`h-20` del layout)
+const STICKY_GAP_PX = 8; // aire aprobado entre el encabezado y la barra (`pt-2`)
+const STICKY_TOP_PX = HEADER_PX + STICKY_GAP_PX;
+
+let actionsSentinel: HTMLDivElement | undefined = $state();
+let actionsStuck = $state(false);
+
+$effect(() => {
+	if (!actionsSentinel) return;
+	if (typeof IntersectionObserver === "undefined") return;
+
+	const observer = new IntersectionObserver(
+		([entry]) => {
+			// `top < STICKY_TOP_PX` distingue «quedó arriba, detrás de la barra» de «todavía está más
+			// abajo del pliegue» (viewport chico o página corta), que no debe mostrar la barra.
+			actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < STICKY_TOP_PX;
+		},
+		{ rootMargin: `-${STICKY_TOP_PX}px 0px 0px 0px` },
+	);
+	observer.observe(actionsSentinel);
+	return () => observer.disconnect();
+});
+
+// ─── Etiquetas de las filas ──────────────────────────────────────────
+const datasetCountLabel = (count: number) => (count === 1 ? "1 recurso" : `${count} recursos`);
+
+const packageCountLabel = (count: number) => (count === 1 ? "1 dataset" : `${count} datasets`);
+
+const capacityLabel: Record<string, string> = {
+	admin: "Administrador",
+	editor: "Editor",
+	member: "Miembro",
+};
+
+function siglaOf(organization: CkanOrganization): string | undefined {
+	return organization.extras?.find((extra) => extra.key === "sigla")?.value;
 }
 </script>
 
@@ -81,10 +143,11 @@ async function loadOrganizations() {
 </svelte:head>
 
 {#if authed}
-	<div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+		<!-- Encabezado -->
 		<div class="flex flex-wrap items-center gap-3">
 			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">
-				¡Hola, {$currentUser?.display_name || $currentUser?.name}!
+				Hola, {$currentUser?.display_name || $currentUser?.name}
 			</h1>
 			{#if $isSuperAdmin}
 				<span
@@ -95,169 +158,314 @@ async function loadOrganizations() {
 				</span>
 			{/if}
 		</div>
-
-		<p class="mt-3 text-muted-foreground">
-			Este es su panel personal. Desde aquí podrá gestionar los datasets de su
-			organización.
+		<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+			Este es su panel personal. Desde aquí publica datasets y revisa las organizaciones a las que
+			pertenece.
 		</p>
 
-		<!-- CTA al wizard de publicación -->
-		<a
-			href="/dashboard/datasets/new"
-			class="group mt-8 flex items-center gap-4 rounded-xl border border-primary/30 bg-primary/5 p-6 shadow-sm transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-		>
-			<span
-				class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+		<!-- Acciones -->
+		<section aria-labelledby="actions-heading" class="mt-8">
+			<h2 id="actions-heading" class="text-xs font-medium uppercase tracking-wider text-destructive">
+				Acciones
+			</h2>
+
+			<div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+				{#each actions as action (action.title)}
+					<a
+						href={action.href}
+						class="group flex items-start gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+					>
+						<span
+							class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+						>
+							<action.icon class="size-5" aria-hidden="true" />
+						</span>
+						<span class="min-w-0 flex-1">
+							<span class="flex items-center gap-2">
+								<span class="font-heading text-base font-semibold text-primary">
+									{action.title}
+								</span>
+								<ArrowRight
+									class="size-4 shrink-0 text-primary transition-transform group-hover:translate-x-0.5"
+									aria-hidden="true"
+								/>
+							</span>
+							<span class="mt-1 block text-xs leading-relaxed text-muted-foreground">
+								{action.description}
+							</span>
+						</span>
+					</a>
+				{/each}
+			</div>
+
+			<!-- Centinela: marca el momento en que la grilla deja de estar a la vista. -->
+			<div bind:this={actionsSentinel} class="h-px" aria-hidden="true"></div>
+
+			<!-- Barra de acciones pegajosa: se pega en `top-20` más el aire elegido (`pt-2`). Mientras
+			     está oculta, `inert` la saca del foco y de los clics. El `pointer-events-none` del
+			     contenedor evita que el aire transparente se trague los clics del contenido detrás. -->
+			<div
+				class={cn(
+					"pointer-events-none fixed inset-x-0 top-20 z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
+					actionsStuck ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
+				)}
+				inert={!actionsStuck}
 			>
-				<Plus class="size-5" aria-hidden="true" />
-			</span>
-			<span class="min-w-0 flex-1">
-				<span class="block font-heading text-lg font-semibold text-primary">
-					Publicar dataset
-				</span>
-				<span class="mt-1 block text-sm text-muted-foreground">
-					Cree un nuevo dataset y suba sus recursos desde el asistente de publicación.
-				</span>
-			</span>
-			<ArrowRight
-				class="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-				aria-hidden="true"
-			/>
-		</a>
-
-		<!-- Mis datasets -->
-		<section class="mt-10" aria-labelledby="datasets-heading">
-			<h2 id="datasets-heading" class="font-heading text-xl font-semibold text-primary">
-				Mis datasets
-			</h2>
-
-			{#if datasetsLoading}
 				<div
-					class="mt-4 flex items-center gap-2 rounded-xl border border-border bg-card p-8 text-sm text-muted-foreground"
-					role="status"
-					aria-live="polite"
+					class="pointer-events-auto mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto rounded-xl border border-border bg-card/95 p-2 shadow-lg backdrop-blur"
+					data-sticky-actions=""
 				>
-					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-					Cargando datasets...
-				</div>
-			{:else if datasetsError}
-				<div
-					class="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center"
-					role="alert"
-				>
-					<TriangleAlert class="mx-auto size-6 text-destructive" aria-hidden="true" />
-					<p class="mt-2 text-sm font-medium text-destructive">
-						No se pudo cargar sus datasets.
-					</p>
-					<p class="mt-1 break-words text-xs text-muted-foreground">{datasetsError}</p>
-					<button
-						type="button"
-						onclick={loadDatasets}
-						class="mt-4 inline-flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					<span
+						class="hidden shrink-0 pl-2 pr-1 text-xs font-medium uppercase tracking-wider text-destructive lg:inline"
 					>
-						<RotateCw class="size-4" aria-hidden="true" />
-						Reintentar
-					</button>
-				</div>
-			{:else if datasets.length === 0}
-				<div class="mt-4 rounded-xl border border-border bg-card p-8 text-center">
-					<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
-					<p class="mt-2 text-sm font-medium text-foreground">Publique su primer dataset</p>
-					<p class="mt-1 text-xs text-muted-foreground">
-						Aún no tiene datasets que pueda editar. Use el asistente para crear el primero.
-					</p>
-				</div>
-			{:else}
-				<ul class="mt-4 space-y-2">
-					{#each datasets as dataset (dataset.id)}
-						<li>
-							<a
-								href={`/dataset/${dataset.name}`}
-								class="group flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							>
-								<Database
-									class="size-4 shrink-0 text-muted-foreground"
-									aria-hidden="true"
-								/>
-								<span
-									class="min-w-0 break-words text-sm font-medium text-foreground group-hover:text-primary"
-								>
-									{dataset.title}
-								</span>
-							</a>
-						</li>
+						Acciones
+					</span>
+					{#each actions as action (action.title)}
+						<a
+							href={action.href}
+							class="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/40 bg-card px-3 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-auto lg:justify-start"
+						>
+							<Plus class="size-4" aria-hidden="true" />
+							{action.title}
+						</a>
 					{/each}
-				</ul>
-			{/if}
+				</div>
+			</div>
 		</section>
 
-		<!-- Mis organizaciones -->
-		<section class="mt-10" aria-labelledby="organizations-heading">
-			<h2 id="organizations-heading" class="font-heading text-xl font-semibold text-primary">
-				Mis organizaciones
-			</h2>
-
-			{#if orgsLoading}
-				<div
-					class="mt-4 flex items-center gap-2 rounded-xl border border-border bg-card p-8 text-sm text-muted-foreground"
-					role="status"
-					aria-live="polite"
-				>
-					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-					Cargando organizaciones...
-				</div>
-			{:else if orgsError}
-				<div
-					class="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center"
-					role="alert"
-				>
-					<TriangleAlert class="mx-auto size-6 text-destructive" aria-hidden="true" />
-					<p class="mt-2 text-sm font-medium text-destructive">
-						No se pudo cargar sus organizaciones.
-					</p>
-					<p class="mt-1 break-words text-xs text-muted-foreground">{orgsError}</p>
-					<button
-						type="button"
-						onclick={loadOrganizations}
-						class="mt-4 inline-flex items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+		<div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+			<!-- Mis datasets -->
+			<section aria-labelledby="datasets-heading" class="min-w-0">
+				<div class="flex items-center gap-3">
+					<span
+						class="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
 					>
-						<RotateCw class="size-4" aria-hidden="true" />
-						Reintentar
-					</button>
+						<Database class="size-4" aria-hidden="true" />
+					</span>
+					<h2 id="datasets-heading" class="font-heading text-lg font-semibold text-primary">
+						Mis datasets
+					</h2>
+					<span
+						class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+					>
+						{datasetsLoading ? "—" : datasets.length}
+					</span>
 				</div>
-			{:else if organizations.length === 0}
-				<div class="mt-4 rounded-xl border border-border bg-card p-8 text-center">
-					<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
-					<p class="mt-2 text-sm font-medium text-foreground">
-						Aún no pertenece a ninguna organización
-					</p>
-					<p class="mt-1 text-xs text-muted-foreground">
-						Solicite a un administrador que lo agregue a una organización para publicar
-						datasets.
-					</p>
-				</div>
-			{:else}
-				<ul class="mt-4 space-y-2">
-					{#each organizations as organization (organization.id)}
-						<li>
-							<a
-								href={`/organization/${organization.name}`}
-								class="group flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+					Datasets que puede editar en las organizaciones a las que pertenece.
+				</p>
+
+				<Card class="mt-4 p-2">
+					{#if datasetsLoading}
+						<div role="status" aria-live="polite">
+							<span class="sr-only">Cargando datasets...</span>
+							{#each [0, 1, 2] as row (row)}
+								<div class="flex items-center gap-3 rounded-lg px-3 py-4">
+									<div class="size-10 shrink-0 animate-pulse rounded-lg bg-muted"></div>
+									<div class="min-w-0 flex-1 space-y-2">
+										<div class="h-3.5 w-2/5 animate-pulse rounded bg-muted"></div>
+										<div class="h-3 w-3/5 animate-pulse rounded bg-muted"></div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{:else if datasetsError}
+						<div class="p-6 text-center" role="alert">
+							<TriangleAlert class="mx-auto size-6 text-destructive" aria-hidden="true" />
+							<p class="mt-2 text-sm font-medium text-destructive">
+								No se pudieron cargar sus datasets
+							</p>
+							<p class="mx-auto mt-1 max-w-md break-words text-xs text-muted-foreground">
+								{datasetsError}
+							</p>
+							<button
+								type="button"
+								onclick={loadDatasets}
+								class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
-								<Building2
-									class="size-4 shrink-0 text-muted-foreground"
-									aria-hidden="true"
-								/>
-								<span
-									class="min-w-0 break-words text-sm font-medium text-foreground group-hover:text-primary"
-								>
-									{organization.title}
-								</span>
+								<RotateCw class="size-4" aria-hidden="true" />
+								Reintentar
+							</button>
+						</div>
+					{:else if datasets.length === 0}
+						<div class="p-8 text-center">
+							<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
+							<p class="mt-2 text-sm font-medium text-foreground">Publique su primer dataset</p>
+							<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+								Aún no tiene datasets que pueda editar. El asistente lo guía paso a paso.
+							</p>
+							<a
+								href="/dashboard/datasets/new"
+								class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								<Plus class="size-4" aria-hidden="true" />
+								Publicar dataset
 							</a>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
+						</div>
+					{:else}
+						<ul class="space-y-1">
+							{#each datasets as dataset (dataset.id)}
+								<li>
+									<a
+										href={`/dataset/${dataset.name}`}
+										class="group flex items-center gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+									>
+										<span
+											class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+										>
+											<Database class="size-4" aria-hidden="true" />
+										</span>
+										<span class="min-w-0 flex-1">
+											<span
+												class="block break-words text-sm font-medium text-foreground group-hover:text-primary"
+											>
+												{dataset.title}
+											</span>
+											<span class="mt-1.5 block text-xs leading-relaxed text-muted-foreground">
+												{datasetCountLabel(dataset.resources.length)} · Actualizado el {formatDate(
+													dataset.metadata_modified,
+												)}
+											</span>
+										</span>
+										{#if dataset.private}
+											<span
+												class="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+											>
+												<Lock class="size-3" aria-hidden="true" />
+												Privado
+											</span>
+										{/if}
+										<ChevronRight
+											class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+											aria-hidden="true"
+										/>
+									</a>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</Card>
+			</section>
+
+			<!-- Mis organizaciones -->
+			<section aria-labelledby="organizations-heading" class="min-w-0">
+				<div class="flex items-center gap-3">
+					<span
+						class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+					>
+						<Building2 class="size-4" aria-hidden="true" />
+					</span>
+					<h2 id="organizations-heading" class="font-heading text-lg font-semibold text-primary">
+						Mis organizaciones
+					</h2>
+					<span
+						class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+					>
+						{orgsLoading ? "—" : organizations.length}
+					</span>
+				</div>
+				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+					Organizaciones de las que forma parte y el rol que tiene en cada una.
+				</p>
+
+				<Card class="mt-4 p-2">
+					{#if orgsLoading}
+						<div role="status" aria-live="polite">
+							<span class="sr-only">Cargando organizaciones...</span>
+							{#each [0, 1] as row (row)}
+								<div class="flex items-center gap-3 rounded-lg px-3 py-4">
+									<div class="size-10 shrink-0 animate-pulse rounded-lg bg-muted"></div>
+									<div class="space-y-2">
+										<div class="h-3.5 w-32 animate-pulse rounded bg-muted"></div>
+										<div class="h-3 w-20 animate-pulse rounded bg-muted"></div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{:else if orgsError}
+						<div class="p-6 text-center" role="alert">
+							<TriangleAlert class="mx-auto size-6 text-destructive" aria-hidden="true" />
+							<p class="mt-2 text-sm font-medium text-destructive">
+								No se pudieron cargar sus organizaciones
+							</p>
+							<p class="mx-auto mt-1 max-w-md break-words text-xs text-muted-foreground">
+								{orgsError}
+							</p>
+							<button
+								type="button"
+								onclick={loadOrganizations}
+								class="mt-3 inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								<RotateCw class="size-4" aria-hidden="true" />
+								Reintentar
+							</button>
+						</div>
+					{:else if organizations.length === 0}
+						<div class="p-8 text-center">
+							<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
+							<p class="mt-2 text-sm font-medium text-foreground">
+								Aún no pertenece a ninguna organización
+							</p>
+							<p class="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+								Solicite a un administrador que lo agregue a una para publicar datasets.
+							</p>
+						</div>
+					{:else}
+						<ul class="space-y-1">
+							{#each organizations as organization (organization.id)}
+								<li>
+									<a
+										href={`/organization/${organization.name}`}
+										class="group flex items-start gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+									>
+										<OrganizationLogo
+											imageUrl={organization.image_url}
+											name={organization.title}
+											abbr={siglaOf(organization)}
+											class="size-10 shrink-0 bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary"
+										/>
+										<span class="min-w-0 flex-1">
+											<span
+												class="block break-words text-sm font-medium text-foreground group-hover:text-primary"
+											>
+												{organization.title}
+											</span>
+											{#if organization.description}
+												<span class="mt-1 line-clamp-1 block text-xs text-muted-foreground">
+													{organization.description}
+												</span>
+											{/if}
+											<span class="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+												{#if typeof organization.package_count === "number"}
+													<span class="text-muted-foreground">
+														{packageCountLabel(organization.package_count)}
+													</span>
+												{/if}
+												{#if organization.capacity}
+													<span
+														class={cn(
+															"rounded border px-1.5 py-0.5 text-[11px] font-medium",
+															organization.capacity === "admin"
+																? "border-primary/30 bg-primary/10 text-primary"
+																: "border-border bg-muted text-muted-foreground",
+														)}
+													>
+														{capacityLabel[organization.capacity] ?? organization.capacity}
+													</span>
+												{/if}
+											</span>
+										</span>
+										<ChevronRight
+											class="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+											aria-hidden="true"
+										/>
+									</a>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</Card>
+			</section>
+		</div>
 	</div>
 {/if}

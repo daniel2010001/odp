@@ -45,6 +45,8 @@ export interface CkanOrganization {
 	state: "active" | "deleted";
 	package_count?: number;
 	users?: CkanUser[];
+	/** Rol del usuario consultante en esta organización (`organization_list_for_user`). */
+	capacity?: "admin" | "editor" | "member" | string;
 	// extras puede contener metadata adicional
 	extras?: CkanExtra[];
 }
