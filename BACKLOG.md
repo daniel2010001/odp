@@ -15,6 +15,22 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Próxima sesión (Plan B — dashboard + publicación)
+
+> Agenda acordada al cierre del 2026-09-12. «Plan B» = las features pendientes del plan
+> S-A…S-E (S-A ✅ · S-B ✅ · S-C PR1+PR2 ✅ · S-D ⏳ · S-E ✅). El «Plan A» (alineamiento
+> visual del portal) quedó cerrado.
+
+- [ ] **PR3 de `dataset-publishing`** — UI del wizard en `/dashboard/datasets/new` + reemplazar
+  el placeholder de `/dashboard` por el CTA al wizard. Absorber los 3 hallazgos de la revisión
+  de PR2 (`R3-no-timeout`, `R3-nonjson-200`, `R3-slug-boundary`).
+- [ ] **S-D · Dashboard real del usuario** (ítem `[v0]` de abajo): listar "Mis datasets" y
+  "Mis organizaciones" desde la API de CKAN, más los accesos rápidos.
+
+**Orden acordado:** fundir PR3 + S-D en **un solo track "dashboard + publicación"** (ambos
+giran alrededor de `/dashboard`; evita el churn placeholder → CTA → listado real), y construir
+las páginas nuevas ya alineadas a los tokens/copy de las páginas terminadas.
+
 ## v0 — core presentable
 
 ## En curso (cambios SDD)
@@ -24,7 +40,8 @@
 - [~] **`openspec/changes/2026-09-11-dataset-publishing/`** — wizard de creación de dataset
   (metadata nativa de CKAN) + carga de recursos, hasta 50 MB, con progreso y reporte de fallo por
   archivo. Tier `v0`. Cadena de 3 PRs: PR1 (artefactos + fix de `owner_org`) **completo**, PR2
-  (módulos puros + tests) y PR3 (UI del wizard + CTA del dashboard) pendientes. La decisión de
+  (módulos puros + tests) **completo** (`002b33a`) y PR3 (UI del wizard + CTA del dashboard)
+  **pendiente**. La decisión de
   subida (browser directo a `/api/3/action/resource_create`) quedó fijada en el spec.
   _Referencias: design-system §9 item 10, PRD RF-09 a RF-13._
 
