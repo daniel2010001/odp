@@ -34,6 +34,12 @@
    sin marketing agresivo.
 7. **Accesibilidad:** contraste de texto ≥ 4.5:1, focus visible, `prefers-reduced-motion`,
    hovers que no desplazan el layout, responsive sin scroll horizontal en móvil.
+8. **UI: el agente propone, el usuario revisa, se itera.** Para cualquier trabajo de interfaz
+   (página, componente, layout), el agente propone un diseño concreto y verificable — no una
+   descripción abstracta. Se implementa en un playground `/dev/<page>` que duplica la página real,
+   el usuario lo revisa, y se itera ahí hasta que quede; recién entonces se promueve a la página
+   real y se borra el playground. Los mockups de OpenPencil son punto de partida, no fuente de
+   verdad.
 
 ## Stack
 

@@ -40,6 +40,16 @@
   `openspec/changes/archive/2026-09-11-dataset-publishing/` (commit `1b7c33d`) y spec promovida a
   `openspec/specs/dataset-publishing/spec.md`.
 
+## Próxima sesión (Plan C — pulido de UI)
+
+> Acordado al cierre del 2026-09-12. «Plan C» = pulir la UI del track recién cerrado (dashboard +
+> wizard). **Proceso acordado** (ver `AGENTS.md` regla 8): el agente propone un diseño concreto, el
+> usuario lo revisa, y se itera hasta que quede — mismo patrón que el Plan A (playground
+> `/dev/<page>` → iterar → promover → borrar).
+>
+> **Orden sugerido:** dashboard primero, wizard después. Nada de esto bloquea `v0`: es calidad
+> percibida, no funcionalidad faltante.
+
 ## En curso (cambios SDD)
 
 > Al arrancar un cambio SDD, el ítem se mueve desde este backlog a `openspec/changes/`.
@@ -49,6 +59,30 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 `openspec/specs/dataset-publishing/spec.md`.
 
 ## v0 — core presentable
+
+- [ ] **[v0] Dashboard (`/dashboard`) — pulir la UI** — hoy no conforma (feedback directo del
+  usuario, 2026-09-12):
+  1. la card/botón de **publicar dataset** no encaja (revisar jerarquía, texto y forma);
+  2. la **lista de datasets** "se ve rara" (densidad, contenedores, separación);
+  3. "Mis datasets" y "Mis organizaciones" **se parecen demasiado** → confusión al distinguirlas
+     (dar identidad visual propia a cada sección: encabezado, icono, conteo, contenedor).
+  _Referencias: design-system §9 item 7. Proceso de UI: `AGENTS.md` regla 8._
+
+- [ ] **[v0] Wizard (`/dashboard/datasets/new`) — pulir la UI** — misma revisión iterativa que el
+  dashboard. Puntos conocidos: claridad de "archivo **o** enlace" por recurso (RF-13: son
+  excluyentes y va uno por recurso), estados de carga/error y densidad general del formulario.
+  _Origen: feedback directo del usuario (2026-09-12)._
+
+- [ ] **[v0] Wizard — completar y endurecer la validación** — el submit ya valida con
+  `datasetCreateSchema` (Zod v4, ya en el stack) y muestra errores por campo, pero:
+  1. el schema **no cubre** `url` (landing page), `maintainer` ni `maintainer_email`, y `tag_string`
+     no valida formato: esos campos viajan sin validar hacia `package_create`;
+  2. no hay validación en vivo (al escribir / al perder foco), ni resumen de errores, ni foco al
+     primer campo inválido;
+  3. `describeCreateError` usa `/already in use|url/i`, demasiado amplio (ver Deuda de revisión).
+  Decisión: **mantener Zod** (ya es el estándar del repo) en vez de adoptar `sveltekit-superforms`,
+  que asume form actions server-side y choca con el transporte browser-directo.
+  _Referencia: PRD RF-09 a RF-13. Origen: feedback directo del usuario (2026-09-12)._
 
 - [ ] **[v0] Endurecer la vista previa CSV (hallazgos de revisión)** — 4 hallazgos informativos
   no bloqueantes de la revisión de la vista previa (lineage `review-ca9abb1187a39513`, lente
