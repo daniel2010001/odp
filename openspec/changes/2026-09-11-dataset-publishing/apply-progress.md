@@ -174,3 +174,78 @@ PR4 (dashboard real) es la última work unit del track. Líneas nuevas (código 
 dependencias bloqueantes. `nextRecommended` tras PR4: `sdd-verify` (quedan 4.1–4.5 como
 cierre de verificación; 4.4 y 4.5 requieren el dev stack y no son editables en esta
 sesión).
+
+---
+
+# Apply Progress — Dataset Publishing (3.15: recursos como enlace externo)
+
+## Resumen
+
+Se implementa la tarea 3.15: además de archivos, el wizard permite adjuntar un recurso
+como **enlace externo** (nombre + URL). Al enviar, tras `package_create` y las subidas de
+archivos, cada enlace se crea con `resource_create` **en JSON** (`{ package_id, url, name }`)
+vía el cliente CKAN existente — sin multipart y sin subir bytes. Un enlace nunca lleva
+archivo y un archivo nunca lleva URL (RF-13). El reporte de fallo parcial ahora cubre
+archivos y enlaces por igual; la navegación al dataset ocurre solo cuando todos tuvieron
+éxito, y el reintento vuelve a intentar tanto archivos como enlaces.
+
+## Estado de tareas (persistido en `tasks.md`)
+
+- [x] 3.15 RED then GREEN: enlace externo con `resource_create` JSON, sin multipart, fallo por enlace como el de archivo.
+
+Quedan sin marcar (cierre de verificación en dev stack, no editables en esta sesión):
+
+- [ ] 4.1 `pnpm check` — 0 errors
+- [ ] 4.2 `pnpm test` — full suite green
+- [ ] 4.3 `pnpm lint` — no new findings
+- [ ] 4.4 Contra el dev stack: crear dataset y subir ~50 MB
+- [ ] 4.5 Confirmar que ningún byte de archivo pasa por el servidor SvelteKit
+
+## Archivos creados/modificados
+
+| Archivo | Tipo | Descripción |
+|---|---|---|
+| `src/routes/dashboard/datasets/new/+page.svelte` | modificado | Sección "Enlaces externos" (nombre + URL con validación y labels asociados); `createLinkResources()` crea cada enlace con `resource_create` JSON; reporte de fallo parcial unificado (`failedResources`) y navegación condicionada a que no queden archivos ni enlaces fallidos |
+| `src/routes/dashboard/datasets/new/wizard.test.ts` | modificado | Mock de `$lib/api/resources`; test nuevo que verifica `resource_create` con `{ package_id, url, name }` y que NO se usa multipart (`mocks.upload` sin llamadas) |
+| `openspec/changes/2026-09-11-dataset-publishing/tasks.md` | modificado | marcada `[x]` la 3.15 |
+
+## Decisión de diseño
+
+Se mantienen **listas separadas** (`fileEntries` y `linkEntries`) en lugar de una lista
+unificada con discriminador `kind`, porque los archivos cargan estado que los enlaces no
+tienen (progreso, `AbortController`, cancelación) y el diff queda contenido: los archivos
+no se tocan salvo la extracción del reporte. La unificación se concentra en el derivado
+`failedResources`, que mapea ambos tipos a `{ key, label, reason }` para el reporte de
+fallo parcial y la condición de navegación.
+
+## Evidencia TDD (RED→GREEN)
+
+RED — `pnpm test src/routes/dashboard/datasets/new/wizard.test.ts`:
+
+- 1 test fallido: `crea un enlace externo con resource_create en JSON, sin multipart`
+  (no encontraba el label "Nombre del enlace"; los 5 tests preexistentes seguían verdes).
+  Resultado: `1 failed | 5 passed (6)`.
+
+GREEN (tras implementar `+page.svelte`):
+
+- 6/6 tests verdes en el archivo del wizard. El test nuevo verifica:
+  1. `resourceCreate` llamado con `{ package_id: "pkg-1", name: "Informe de matrícula", url: "https://example.org/informe.csv" }`.
+  2. `mocks.upload` (vía multipart) **no** fue llamado → el enlace no pasa por multipart.
+
+## Gates (resultados exactos)
+
+- `pnpm test` → **160 passed** (20 files). ✓
+- `pnpm check` → **0 errors** (4 warnings preexistentes: ThemePlayground a11y ×2, SearchBar `state_referenced_locally`, definición `node` en `tsconfig.json`). ✓
+- `pnpm lint` → **0 errors** (4 warnings / 7 infos, todos preexistentes: `app.css` `noImportantStyles`, `seed-ckan.mjs`, `ThemePlayground.svelte`, `search/+page.svelte`). Sin hallazgos nuevos. ✓
+
+## Workload / límite de PR
+
+Diff de 3.15 ≈ 150 líneas (código + test), dentro del presupuesto de 400 líneas
+revisables. No requiere nuevo PR de la cadena: es una work unit acotada y revisable.
+
+## Structured status consumido
+
+`applyState: ready`, `isNonAuthoritative: false`, `actionContext.mode: repo-local` con
+`allowedEditRoots: ["/home/danielblc/projects/odp"]`, sin warnings. La 3.15 era la única
+tarea de implementación pendiente (36/37). Tras marcarla, no quedan tareas de
+implementación sin marcar: `nextRecommended` pasa a `sdd-verify`.

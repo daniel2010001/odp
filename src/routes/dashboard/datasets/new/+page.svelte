@@ -3,6 +3,7 @@ import {
 	Check,
 	FileText,
 	Info,
+	Link,
 	LoaderCircle,
 	RotateCw,
 	Trash2,
@@ -16,6 +17,7 @@ import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
+import { createResourceApi } from "$lib/api/resources";
 import { UploadError, uploadResourceFile } from "$lib/api/upload";
 import { env } from "$lib/env";
 import { datasetCreateSchema } from "$lib/schemas/dataset";
@@ -85,6 +87,21 @@ interface FileEntry {
 let fileEntries = $state<FileEntry[]>([]);
 let rejectedFiles = $state<{ name: string; message: string }[]>([]);
 
+// ─── Enlaces externos ──────────────────────────────────────────────────
+type LinkStatus = "pending" | "done" | "error";
+interface LinkEntry {
+	key: string;
+	name: string;
+	url: string;
+	status: LinkStatus;
+	error?: string;
+}
+let linkEntries = $state<LinkEntry[]>([]);
+let linkName = $state("");
+let linkUrl = $state("");
+let linkError = $state<string | null>(null);
+let linkSeq = 0;
+
 // ─── Estado del submit ───────────────────────────────────────────────
 let submitting = $state(false);
 let fieldErrors = $state<Record<string, string>>({});
@@ -93,9 +110,32 @@ let createdDataset = $state<CkanPackage | null>(null);
 let uploadFinished = $state(false);
 
 // ─── Derivados ───────────────────────────────────────────────────────
-const failedUploads = $derived(
-	fileEntries.filter((entry) => entry.status === "error" || entry.status === "cancelled"),
-);
+// Recursos que fallaron (archivos y enlaces) para el reporte de fallo
+// parcial y la navegación: solo se navega al dataset cuando no queda ninguno.
+interface FailedResource {
+	key: string;
+	label: string;
+	reason: string;
+}
+const failedResources = $derived<FailedResource[]>([
+	...fileEntries
+		.filter((entry) => entry.status === "error" || entry.status === "cancelled")
+		.map((entry) => ({
+			key: entry.key,
+			label: entry.file.name,
+			reason:
+				entry.status === "cancelled"
+					? "subida cancelada"
+					: (entry.error ?? "No se pudo subir el archivo"),
+		})),
+	...linkEntries
+		.filter((entry) => entry.status === "error")
+		.map((entry) => ({
+			key: entry.key,
+			label: entry.name,
+			reason: entry.error ?? "No se pudo crear el enlace",
+		})),
+]);
 
 // ─── Sugerencia de slug ──────────────────────────────────────────────
 // Sigue al título mientras el usuario no lo haya editado a mano; una vez
@@ -169,6 +209,46 @@ function removeFile(key: string) {
 	fileEntries = fileEntries.filter((entry) => entry.key !== key);
 }
 
+function addLink() {
+	const name = linkName.trim();
+	const urlValue = linkUrl.trim();
+	linkError = null;
+
+	if (!name) {
+		linkError = "Escriba un nombre para el enlace.";
+		return;
+	}
+	if (!urlValue) {
+		linkError = "Escriba la URL del enlace.";
+		return;
+	}
+	let parsed: URL;
+	try {
+		parsed = new URL(urlValue);
+	} catch {
+		linkError = "La URL no es válida. Use una dirección completa (ej.: https://...).";
+		return;
+	}
+	// Solo se permiten http/https: los esquemas como `javascript:` o `data:` se
+	// guardan como `url` del recurso y el portal los renderiza como `href`,
+	// lo que abriría un vector de XSS almacenado.
+	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+		linkError = "El enlace debe usar los protocolos http o https.";
+		return;
+	}
+
+	linkEntries = [
+		...linkEntries,
+		{ key: `link-${linkSeq++}`, name, url: urlValue, status: "pending" },
+	];
+	linkName = "";
+	linkUrl = "";
+}
+
+function removeLink(key: string) {
+	linkEntries = linkEntries.filter((entry) => entry.key !== key);
+}
+
 // ─── Validación y submit ─────────────────────────────────────────────
 function mapZodErrors(
 	issues: readonly { path: PropertyKey[]; message: string }[],
@@ -233,8 +313,9 @@ async function handleSubmit() {
 		createdDataset = pkg;
 
 		await runUploads(pkg.id);
+		await createLinkResources(pkg.id);
 
-		if (failedUploads.length === 0) {
+		if (failedResources.length === 0) {
 			void goto(`/dataset/${pkg.name}`);
 		} else {
 			uploadFinished = true;
@@ -283,13 +364,35 @@ async function runUploads(packageId: string) {
 	}
 }
 
-async function retryFailedUploads() {
+async function createLinkResources(packageId: string) {
+	const client = makeClient();
+	const resourceApi = createResourceApi(client);
+
+	for (const entry of linkEntries) {
+		if (entry.status === "done") continue;
+		entry.error = undefined;
+		try {
+			await resourceApi.create({
+				package_id: packageId,
+				name: entry.name,
+				url: entry.url,
+			});
+			entry.status = "done";
+		} catch (err) {
+			entry.status = "error";
+			entry.error = err instanceof Error ? err.message : "No se pudo crear el enlace";
+		}
+	}
+}
+
+async function retryFailedResources() {
 	if (!createdDataset || submitting) return;
 	submitting = true;
 	uploadFinished = false;
 	try {
 		await runUploads(createdDataset.id);
-		if (failedUploads.length === 0) {
+		await createLinkResources(createdDataset.id);
+		if (failedResources.length === 0) {
 			void goto(`/dataset/${createdDataset.name}`);
 		} else {
 			uploadFinished = true;
@@ -621,6 +724,86 @@ function cancelUpload(key: string) {
 					{/if}
 				</section>
 
+				<!-- Enlaces externos -->
+				<section class="space-y-5 rounded-xl border border-border bg-card p-6">
+					<h2 class="font-heading text-lg font-semibold text-primary">Enlaces externos</h2>
+					<p class="text-sm text-muted-foreground">
+						Agregue recursos que no son archivos, como páginas o servicios, mediante una URL.
+					</p>
+
+					<div class="grid gap-5 sm:grid-cols-2">
+						<div class="space-y-1.5">
+							<label for="link-name" class="text-sm font-medium text-foreground">
+								Nombre del enlace
+							</label>
+							<input
+								id="link-name"
+								type="text"
+								bind:value={linkName}
+								aria-invalid={linkError ? "true" : undefined}
+								aria-describedby={linkError ? "link-error" : undefined}
+								class={inputClass}
+							/>
+						</div>
+						<div class="space-y-1.5">
+							<label for="link-url" class="text-sm font-medium text-foreground">
+								URL del enlace
+							</label>
+							<input
+								id="link-url"
+								type="url"
+								bind:value={linkUrl}
+								aria-invalid={linkError ? "true" : undefined}
+								aria-describedby={linkError ? "link-error" : undefined}
+								class={inputClass}
+							/>
+						</div>
+					</div>
+
+					{#if linkError}
+						<p id="link-error" class="text-xs text-destructive" role="alert">{linkError}</p>
+					{/if}
+
+					<button
+						type="button"
+						onclick={addLink}
+						disabled={submitting}
+						class="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+					>
+						<Link class="size-4" aria-hidden="true" />
+						Agregar enlace
+					</button>
+
+					{#if linkEntries.length > 0}
+						<ul class="space-y-2" aria-label="Enlaces agregados">
+							{#each linkEntries as entry (entry.key)}
+								<li class="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
+									<Link class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-sm text-foreground">{entry.name}</p>
+										<p class="truncate text-xs text-muted-foreground">{entry.url}</p>
+										{#if entry.status === "error"}
+											<p class="break-words text-xs text-destructive">{entry.error}</p>
+										{/if}
+									</div>
+									{#if entry.status === "pending" || entry.status === "error"}
+										<button
+											type="button"
+											onclick={() => removeLink(entry.key)}
+											aria-label={`Quitar el enlace ${entry.name}`}
+											class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											<Trash2 class="size-4" aria-hidden="true" />
+										</button>
+									{:else}
+										<Check class="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</section>
+
 				<!-- Errores y envío -->
 				{#if submitError}
 					<div
@@ -647,33 +830,29 @@ function cancelUpload(key: string) {
 					{/if}
 				</button>
 
-				{#if uploadFinished && failedUploads.length > 0}
+				{#if uploadFinished && failedResources.length > 0}
 					<div
 						class="rounded-xl border border-destructive/30 bg-destructive/5 p-6"
 						role="alert"
 					>
 						<TriangleAlert class="size-5 text-destructive" aria-hidden="true" />
 						<h2 class="mt-2 font-heading text-lg font-semibold text-destructive">
-							El dataset se creó, pero algunos archivos no se subieron
+							El dataset se creó, pero algunos recursos no se pudieron adjuntar
 						</h2>
 						<ul class="mt-3 space-y-1 text-sm text-destructive">
-							{#each failedUploads as entry (entry.key)}
-								<li class="break-words">
-									{entry.file.name}: {entry.status === "cancelled"
-										? "subida cancelada"
-										: (entry.error ?? "No se pudo subir el archivo")}
-								</li>
+							{#each failedResources as entry (entry.key)}
+								<li class="break-words">{entry.label}: {entry.reason}</li>
 							{/each}
 						</ul>
 						<div class="mt-4 flex flex-wrap gap-3">
 							<button
 								type="button"
-								onclick={retryFailedUploads}
+								onclick={retryFailedResources}
 								disabled={submitting}
 								class="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 							>
 								<RotateCw class="size-4" aria-hidden="true" />
-								Reintentar archivos fallidos
+								Reintentar recursos fallidos
 							</button>
 							{#if createdDataset}
 								<a

@@ -13,6 +13,7 @@ This change adds the portal's dataset creation wizard with resource upload, writ
 - Wizard route `/dashboard/datasets/new` for creating a dataset
 - Metadata: title, slug, description, organization, license, tags, visibility, landing page, maintainer, and the interoperability fields that map onto **native** CKAN fields
 - Resource upload: multiple files, browser-to-CKAN multipart, 50 MB per file, visible progress, per-file failure reporting
+- Resource links: attach an external URL as a resource, without uploading bytes (PRD RF-11 and RF-13: a resource is a file **or** a link)
 - Dashboard call to action replacing the "próximamente" placeholder
 - Client-side authentication guard
 

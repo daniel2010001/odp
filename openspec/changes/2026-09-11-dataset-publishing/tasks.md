@@ -59,14 +59,15 @@
 - [x] 3.12 Render "Mis datasets" from `current_package_list_with_resources`, linking to each dataset page, with an explicit empty state
 - [x] 3.13 Render "Mis organizaciones" from `organization_list_for_user`, linking to each organization page, with an explicit empty state
 - [x] 3.14 Keep the auth guard redirecting to `/auth/login` and the admin badge
+- [x] 3.15 RED then GREEN: a resource can be attached as an external link (name + URL), calling `resource_create` with JSON `{ package_id, url, name }` and no multipart part; per-link failure is reported like a file failure
 
 ## Phase 4: Verification
 
 - [x] 4.1 `pnpm check` — 0 errors
 - [x] 4.2 `pnpm test` — full suite green (159 tests)
 - [x] 4.3 `pnpm lint` — no new findings
-- [ ] 4.4 Against the dev stack: create a dataset from the wizard and upload a ~50 MB file; confirm the resource appears with the right size
-- [ ] 4.5 Confirm no file bytes reach the SvelteKit server (upload path bypasses it; `BODY_SIZE_LIMIT` stays at its default)
+- [x] 4.4 Against the dev stack: create a dataset from the wizard and upload a ~50 MB file; confirm the resource appears with the right size — **verified 2026-09-12** by replaying the wizard's exact requests through the same-origin proxy (`package_create` JSON then `resource_create` multipart, `Content-Type` unset): the dataset was created and CKAN reported `size=52428800` (exactly 50 MB); the test dataset was purged and the temporary token revoked afterwards.
+- [x] 4.5 Confirm no file bytes reach the SvelteKit server (upload path bypasses it; `BODY_SIZE_LIMIT` stays at its default) — **verified 2026-09-12**: `location /api/` in the dev proxy forwards to `ckan-dev:5000` (not to Node), and `BODY_SIZE_LIMIT` is unset in the frontend container.
 - [x] 4.6 Smoke-check `organization_list_for_user` with `permission="create_dataset"` against the dev instance — **assumption holds**: an `editor` sees the organization, a plain `member` gets `[]`. Without the argument a plain `member` also sees the organization, which is why the permission argument is required by the spec. Probe used two users with different roles in one organization, then cleaned up (users, organization and tokens removed).
 
 ## Advisory Findings From the PR1 Review
