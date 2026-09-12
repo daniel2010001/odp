@@ -286,3 +286,36 @@ Every field MUST have a programmatically associated label. Validation errors MUS
 - GIVEN a viewport width of 360 px
 - WHEN the wizard renders
 - THEN the page has no horizontal scrolling
+
+### Requirement: Dashboard Overview
+
+The dashboard (`/dashboard`) MUST present the authenticated user's workspace: the datasets they can edit, the organizations they belong to, and a call to action that opens the publishing wizard. It MUST be reachable only by authenticated users, redirecting unauthenticated visitors to `/auth/login` without issuing a CKAN request.
+
+#### Scenario: Authenticated user sees their workspace
+
+- GIVEN a session token in the auth store
+- WHEN the user opens `/dashboard`
+- THEN the page lists the datasets the user can edit, by title, linking to each dataset page
+- AND it lists the organizations the user belongs to, by title, linking to each organization page
+- AND it offers a call to action to `/dashboard/datasets/new`
+
+#### Scenario: Unauthenticated visitor
+
+- GIVEN no session token
+- WHEN the user opens `/dashboard`
+- THEN the browser is redirected to `/auth/login`
+- AND no request to `/api/3/action/*` is issued
+
+#### Scenario: Empty dataset list
+
+- GIVEN the user can edit no dataset
+- WHEN the page loads
+- THEN an explicit empty state is shown instead of a blank list
+- AND the call to action to publish a dataset is still offered
+
+#### Scenario: A request fails
+
+- GIVEN the dataset or the organization request fails
+- WHEN the page loads
+- THEN the failure is shown with a retry action
+- AND the section that did load stays visible

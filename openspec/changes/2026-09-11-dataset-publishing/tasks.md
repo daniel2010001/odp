@@ -53,8 +53,12 @@
 - [x] 3.6 Partial failure: report per file, keep the dataset, offer retry against the created dataset
 - [x] 3.7 Success navigation to `/dataset/[name]` (read-only)
 - [x] 3.8 Accessibility: labelled fields, errors associated with their field, busy submit state, no horizontal scroll at 360 px
-- [ ] 3.9 Replace the `src/routes/dashboard/+page.svelte` placeholder with a link to the wizard
+- [x] 3.9 Replace the `src/routes/dashboard/+page.svelte` placeholder with a link to the wizard
 - [x] 3.10 RED then GREEN: component test covering the minimum valid submission calling `package_create` with the expected payload, blocked submit on a missing required field, and the no-writable-organization state
+- [x] 3.11 RED then GREEN: dashboard test for the workspace lists, the publishing call to action, the empty state and the failure-with-retry state
+- [x] 3.12 Render "Mis datasets" from `current_package_list_with_resources`, linking to each dataset page, with an explicit empty state
+- [x] 3.13 Render "Mis organizaciones" from `organization_list_for_user`, linking to each organization page, with an explicit empty state
+- [x] 3.14 Keep the auth guard redirecting to `/auth/login` and the admin badge
 
 ## Phase 4: Verification
 
