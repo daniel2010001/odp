@@ -105,11 +105,90 @@ let linkSeq = 0;
 
 // ─── Estado del submit ───────────────────────────────────────────────
 let submitting = $state(false);
-let fieldErrors = $state<Record<string, string>>({});
 let submitError = $state<string | null>(null);
+// Campos que el usuario ya tocó (perdieron el foco): antes de eso no se le muestran errores, para no
+// regañarlo mientras todavía no escribió nada.
+let touched = $state<Record<string, boolean>>({});
+// Se pone en true al intentar enviar: ahí se muestran **todos** los errores, no sólo los tocados.
+let submitted = $state(false);
 let createdDataset = $state<CkanPackage | null>(null);
 let uploadFinished = $state(false);
 
+// ─── Validación ────────────────────────────────────────────────────────
+// Los errores se **derivan** del formulario en vez de acumularse en handlers: así, al corregir un
+// campo, su error desaparece solo. `fieldErrors` muestra sólo los campos tocados (o todos si ya se
+// intentó enviar), y `allErrors` es el conjunto completo que usa el resumen y el foco.
+
+/** Valores del formulario con el mismo shape que espera el schema. */
+function formValues() {
+	return {
+		name: slug.trim(),
+		title: title.trim(),
+		notes: notes || undefined,
+		owner_org: ownerOrg,
+		private: visibility === "private",
+		license_id: licenseId || undefined,
+		tag_string: tagString || undefined,
+		url: url || undefined,
+		maintainer: maintainer || undefined,
+		maintainer_email: maintainerEmail || undefined,
+	};
+}
+
+const validation = $derived(datasetCreateSchema.safeParse(formValues()));
+
+const allErrors = $derived(
+	validation.success ? ({} as Record<string, string>) : mapZodErrors(validation.error.issues),
+);
+
+const fieldErrors = $derived.by(() => {
+	if (submitted) return allErrors;
+	const visible: Record<string, string> = {};
+	for (const [field, message] of Object.entries(allErrors)) {
+		if (touched[field]) visible[field] = message;
+	}
+	return visible;
+});
+
+/**
+ * Orden de los campos en el formulario y el `id` de su control. Es el único lugar donde se relaciona
+ * el nombre del campo en el schema con el DOM: antes la UI buscaba `fieldErrors.slug` mientras el
+ * schema emitía `name`, así que el error del slug **nunca se mostraba**.
+ */
+const FIELD_CONTROLS: { field: string; id: string }[] = [
+	{ field: "title", id: "title" },
+	{ field: "name", id: "slug" },
+	{ field: "notes", id: "notes" },
+	{ field: "owner_org", id: "owner-org" },
+	{ field: "license_id", id: "license" },
+	{ field: "tag_string", id: "tags" },
+	{ field: "url", id: "url" },
+	{ field: "maintainer", id: "maintainer" },
+	{ field: "maintainer_email", id: "maintainer-email" },
+];
+
+/** Errores en orden de formulario, para el resumen y el foco. */
+const errorList = $derived(
+	FIELD_CONTROLS.filter(({ field }) => fieldErrors[field]).map(({ field, id }) => ({
+		id,
+		message: fieldErrors[field],
+	})),
+);
+
+function focusField(id: string) {
+	document.getElementById(id)?.focus();
+}
+
+function focusFirstInvalid() {
+	const first = FIELD_CONTROLS.find(({ field }) => allErrors[field]);
+	if (first) focusField(first.id);
+}
+
+function markTouched(field: string) {
+	touched[field] = true;
+}
+// Recursos que fallaron (archivos y enlaces) para el reporte de fallo
+// parcial y la navegación: solo se navega al dataset cuando no queda ninguno.
 // ─── Derivados ───────────────────────────────────────────────────────
 // Recursos que fallaron (archivos y enlaces) para el reporte de fallo
 // parcial y la navegación: solo se navega al dataset cuando no queda ninguno.
@@ -270,39 +349,30 @@ function describeCreateError(err: unknown, name: string): string {
 async function handleSubmit() {
 	if (submitting) return;
 
-	const result = datasetCreateSchema.safeParse({
-		name: slug.trim(),
-		title: title.trim(),
-		notes: notes || undefined,
-		owner_org: ownerOrg,
-		private: visibility === "private",
-		license_id: licenseId || undefined,
-		tag_string: tagString || undefined,
-	});
-
-	if (!result.success) {
-		fieldErrors = mapZodErrors(result.error.issues);
+	const data = validation.data;
+	if (!validation.success || !data) {
+		submitted = true;
 		submitError = null;
+		focusFirstInvalid();
 		return;
 	}
 
-	fieldErrors = {};
 	submitError = null;
 	uploadFinished = false;
 	submitting = true;
 
 	try {
 		const payload = buildPackagePayload({
-			title,
-			name: slug,
-			owner_org: ownerOrg,
-			private: visibility === "private",
-			notes,
-			license_id: licenseId,
-			tag_string: tagString,
-			url,
-			maintainer,
-			maintainer_email: maintainerEmail,
+			title: data.title,
+			name: data.name,
+			owner_org: data.owner_org,
+			private: data.private,
+			notes: data.notes,
+			license_id: data.license_id,
+			tag_string: data.tag_string,
+			url: data.url,
+			maintainer: data.maintainer,
+			maintainer_email: data.maintainer_email,
 		});
 
 		const client = makeClient();
@@ -479,6 +549,7 @@ function cancelUpload(key: string) {
 							id="title"
 							type="text"
 							bind:value={title}
+							onblur={() => markTouched("title")}
 							aria-invalid={fieldErrors.title ? "true" : undefined}
 							aria-describedby={fieldErrors.title ? "title-error" : undefined}
 							class={inputClass}
@@ -500,15 +571,16 @@ function cancelUpload(key: string) {
 								slug = (event.currentTarget as HTMLInputElement).value;
 								slugEdited = true;
 							}}
-							aria-invalid={fieldErrors.slug ? "true" : undefined}
-							aria-describedby={fieldErrors.slug ? "slug-hint slug-error" : "slug-hint"}
+							onblur={() => markTouched("name")}
+							aria-invalid={fieldErrors.name ? "true" : undefined}
+							aria-describedby={fieldErrors.name ? "slug-hint slug-error" : "slug-hint"}
 							class={inputClass}
 						/>
 						<p id="slug-hint" class="text-xs text-muted-foreground">
 							Se genera automáticamente a partir del título. Puede editarlo.
 						</p>
-						{#if fieldErrors.slug}
-							<p id="slug-error" class="text-xs text-destructive">{fieldErrors.slug}</p>
+						{#if fieldErrors.name}
+							<p id="slug-error" class="text-xs text-destructive">{fieldErrors.name}</p>
 						{/if}
 					</div>
 
@@ -518,6 +590,7 @@ function cancelUpload(key: string) {
 							id="notes"
 							rows={4}
 							bind:value={notes}
+							onblur={() => markTouched("notes")}
 							aria-invalid={fieldErrors.notes ? "true" : undefined}
 							aria-describedby={fieldErrors.notes ? "notes-error" : undefined}
 							class="{inputClass} h-auto"
@@ -539,6 +612,7 @@ function cancelUpload(key: string) {
 						<select
 							id="owner-org"
 							bind:value={ownerOrg}
+							onblur={() => markTouched("owner_org")}
 							aria-invalid={fieldErrors.owner_org ? "true" : undefined}
 							aria-describedby={fieldErrors.owner_org ? "owner-org-error" : undefined}
 							class={inputClass}
@@ -576,12 +650,17 @@ function cancelUpload(key: string) {
 							id="tags"
 							type="text"
 							bind:value={tagString}
-							aria-describedby="tags-hint"
+							onblur={() => markTouched("tag_string")}
+							aria-invalid={fieldErrors.tag_string ? "true" : undefined}
+							aria-describedby={fieldErrors.tag_string ? "tags-hint tags-error" : "tags-hint"}
 							class={inputClass}
 						/>
 						<p id="tags-hint" class="text-xs text-muted-foreground">
 							Separe las etiquetas con comas (ej.: matrícula, estudiantes).
 						</p>
+						{#if fieldErrors.tag_string}
+							<p id="tags-error" class="text-xs text-destructive">{fieldErrors.tag_string}</p>
+						{/if}
 					</div>
 
 					<fieldset class="space-y-1.5">
@@ -622,7 +701,18 @@ function cancelUpload(key: string) {
 						<label for="url" class="text-sm font-medium text-foreground">
 							Página de destino (URL)
 						</label>
-						<input id="url" type="url" bind:value={url} class={inputClass} />
+						<input
+							id="url"
+							type="url"
+							bind:value={url}
+							onblur={() => markTouched("url")}
+							aria-invalid={fieldErrors.url ? "true" : undefined}
+							aria-describedby={fieldErrors.url ? "url-error" : undefined}
+							class={inputClass}
+						/>
+						{#if fieldErrors.url}
+							<p id="url-error" class="text-xs text-destructive">{fieldErrors.url}</p>
+						{/if}
 					</div>
 
 					<div class="grid gap-5 sm:grid-cols-2">
@@ -630,7 +720,13 @@ function cancelUpload(key: string) {
 							<label for="maintainer" class="text-sm font-medium text-foreground">
 								Mantenedor
 							</label>
-							<input id="maintainer" type="text" bind:value={maintainer} class={inputClass} />
+							<input
+								id="maintainer"
+								type="text"
+								bind:value={maintainer}
+								onblur={() => markTouched("maintainer")}
+								class={inputClass}
+							/>
 						</div>
 						<div class="space-y-1.5">
 							<label for="maintainer-email" class="text-sm font-medium text-foreground">
@@ -640,8 +736,16 @@ function cancelUpload(key: string) {
 								id="maintainer-email"
 								type="email"
 								bind:value={maintainerEmail}
+								onblur={() => markTouched("maintainer_email")}
+								aria-invalid={fieldErrors.maintainer_email ? "true" : undefined}
+								aria-describedby={fieldErrors.maintainer_email ? "maintainer-email-error" : undefined}
 								class={inputClass}
 							/>
+							{#if fieldErrors.maintainer_email}
+								<p id="maintainer-email-error" class="text-xs text-destructive">
+									{fieldErrors.maintainer_email}
+								</p>
+							{/if}
 						</div>
 					</div>
 				</section>
@@ -803,6 +907,36 @@ function cancelUpload(key: string) {
 				</section>
 
 				<!-- Errores y envío -->
+				{#if submitted && errorList.length > 0}
+					<div
+						class="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+						role="alert"
+						aria-live="assertive"
+					>
+						<p class="text-sm font-medium text-destructive">
+							{errorList.length === 1
+								? "Corrija 1 campo antes de publicar:"
+								: `Corrija ${errorList.length} campos antes de publicar:`}
+						</p>
+						<ul class="mt-2 space-y-1">
+							{#each errorList as error (error.id)}
+								<li>
+									<a
+										href={`#${error.id}`}
+										onclick={(event) => {
+											event.preventDefault();
+											focusField(error.id);
+										}}
+										class="text-xs text-destructive underline underline-offset-2 hover:no-underline"
+									>
+										{error.message}
+									</a>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+
 				{#if submitError}
 					<div
 						class="rounded-lg border border-destructive/30 bg-destructive/5 p-3"

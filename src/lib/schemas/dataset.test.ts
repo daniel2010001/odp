@@ -72,3 +72,109 @@ describe("datasetCreateSchema — visibilidad", () => {
 		expect(datasetCreateSchema.parse({ ...base, private: false }).private).toBe(false);
 	});
 });
+
+describe("datasetCreateSchema — url (página de destino)", () => {
+	it("es opcional y se normaliza a undefined cuando viene vacía", () => {
+		expect(datasetCreateSchema.parse(base).url).toBeUndefined();
+		expect(datasetCreateSchema.parse({ ...base, url: "   " }).url).toBeUndefined();
+	});
+
+	it("acepta http y https, y recorta los espacios", () => {
+		expect(datasetCreateSchema.parse({ ...base, url: " https://datos.umss.edu/x " }).url).toBe(
+			"https://datos.umss.edu/x",
+		);
+		expect(datasetCreateSchema.parse({ ...base, url: "http://localhost:8080/x" }).url).toBe(
+			"http://localhost:8080/x",
+		);
+	});
+
+	it("rechaza esquemas ejecutables con el mismo mensaje que los enlaces de recurso", () => {
+		const result = datasetCreateSchema.safeParse({ ...base, url: "javascript:alert(1)" });
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues[0].message).toBe(
+				"El enlace debe usar los protocolos http o https.",
+			);
+			expect(result.error.issues[0].path).toEqual(["url"]);
+		}
+	});
+
+	it("rechaza una URL relativa o mal formada", () => {
+		const result = datasetCreateSchema.safeParse({ ...base, url: "datos.umss.edu/x" });
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues[0].message).toContain("no es válida");
+		}
+	});
+});
+
+describe("datasetCreateSchema — maintainer_email", () => {
+	it("es opcional y se normaliza a undefined cuando viene vacío", () => {
+		expect(datasetCreateSchema.parse(base).maintainer_email).toBeUndefined();
+		expect(datasetCreateSchema.parse({ ...base, maintainer_email: "  " }).maintainer_email).toBe(
+			undefined,
+		);
+	});
+
+	it("acepta un email válido y lo recorta", () => {
+		expect(
+			datasetCreateSchema.parse({ ...base, maintainer_email: " datos@umss.edu " }).maintainer_email,
+		).toBe("datos@umss.edu");
+	});
+
+	it("rechaza un email mal formado, incluso con puntos mal usados", () => {
+		for (const invalido of ["datos", "datos@", "@umss.edu", ".datos@umss.edu", "a..b@umss.edu"]) {
+			const result = datasetCreateSchema.safeParse({ ...base, maintainer_email: invalido });
+			expect(result.success, `debería rechazar «${invalido}»`).toBe(false);
+		}
+	});
+});
+
+describe("datasetCreateSchema — maintainer", () => {
+	it("es opcional y se recorta", () => {
+		expect(datasetCreateSchema.parse(base).maintainer).toBeUndefined();
+		expect(
+			datasetCreateSchema.parse({ ...base, maintainer: "  Unidad de Datos  " }).maintainer,
+		).toBe("Unidad de Datos");
+	});
+});
+
+describe("datasetCreateSchema — tag_string", () => {
+	const tags = (tag_string: string) =>
+		datasetCreateSchema.parse({ ...base, tag_string }).tag_string;
+
+	it("normaliza como CKAN: separa por coma, recorta y descarta vacíos", () => {
+		expect(tags("salud, educacion ,, ")).toBe("salud, educacion");
+	});
+
+	it("elimina duplicados conservando el orden", () => {
+		expect(tags("salud, educacion, salud")).toBe("salud, educacion");
+	});
+
+	it("rechaza un tag de un solo carácter (mínimo de CKAN)", () => {
+		const result = datasetCreateSchema.safeParse({ ...base, tag_string: "salud, a" });
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues[0].path).toEqual(["tag_string"]);
+			expect(result.error.issues[0].message).toContain("2");
+		}
+	});
+
+	it("rechaza un tag de más de 100 caracteres (máximo de CKAN)", () => {
+		const result = datasetCreateSchema.safeParse({ ...base, tag_string: "a".repeat(101) });
+		expect(result.success).toBe(false);
+	});
+
+	it("rechaza caracteres que CKAN no acepta (coma, barra, dos puntos, comillas)", () => {
+		for (const invalido of ["salud/mental", "a:b", "salud“x”"]) {
+			const result = datasetCreateSchema.safeParse({ ...base, tag_string: invalido });
+			expect(result.success, `debería rechazar «${invalido}»`).toBe(false);
+		}
+	});
+
+	it("acepta el charset real de CKAN: letras, números, espacio, guion, guión bajo y punto", () => {
+		expect(tags("covid-19, salud_publica, v2.1, gestión escolar")).toBe(
+			"covid-19, salud_publica, v2.1, gestión escolar",
+		);
+	});
+});

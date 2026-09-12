@@ -112,7 +112,11 @@ describe("Wizard de publicación", () => {
 		await screen.findByLabelText(/título/i);
 		await fireEvent.submit(getForm(container));
 
-		await waitFor(() => expect(screen.getByText(/título debe/i)).toBeInTheDocument());
+		await waitFor(() =>
+			expect(container.querySelector("#title-error")).toHaveTextContent(/título debe/i),
+		);
+		// El resumen también lista los errores (título vacío y slug vacío).
+		expect(screen.getByText(/corrija/i)).toBeInTheDocument();
 		expect(mocks.create).not.toHaveBeenCalled();
 	});
 
@@ -247,5 +251,86 @@ describe("Wizard de publicación", () => {
 		await fireEvent.click(screen.getByRole("button", { name: /reintentar recursos fallidos/i }));
 		await waitFor(() => expect(mocks.resourceCreate).toHaveBeenCalledTimes(2));
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dataset/matricula-estudiantil-2026"));
+	});
+
+	it("muestra el error del slug cuando su formato es inválido, en vez de fallar en silencio", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula 2026" },
+		});
+		await fireEvent.input(screen.getByLabelText(/^slug/i), { target: { value: "Matrícula 2026" } });
+		await fireEvent.change(screen.getByLabelText(/organización/i), {
+			target: { value: "facultad-de-ciencias" },
+		});
+
+		await fireEvent.submit(getForm(container));
+
+		// El nombre del campo en el schema es `name` y en la UI es «slug»: si las claves no coinciden,
+		// el usuario ve un botón que no responde y ningún mensaje.
+		await waitFor(() =>
+			expect(container.querySelector("#slug-error")).toHaveTextContent(/solo minúsculas/i),
+		);
+		expect(mocks.create).not.toHaveBeenCalled();
+	});
+
+	it("lleva el foco al primer campo inválido en orden de formulario al intentar enviar", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula 2026" },
+		});
+		await fireEvent.input(screen.getByLabelText(/^slug/i), { target: { value: "Matrícula 2026" } });
+
+		await fireEvent.submit(getForm(container));
+
+		// El título (3 caracteres) es válido; el primer inválido es el slug, y va antes de la organización.
+		await waitFor(() => expect(document.activeElement?.id).toBe("slug"));
+		expect(screen.getByText(/corrija 2 campos/i)).toBeInTheDocument();
+	});
+
+	it("valida en vivo al perder el foco y limpia el error al corregirlo", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		const email = await screen.findByLabelText(/correo del mantenedor/i);
+
+		// Antes de tocarlo no se muestra nada.
+		expect(container.querySelector("#maintainer-email-error")).toBeNull();
+
+		await fireEvent.input(email, { target: { value: "no-es-un-email" } });
+		await fireEvent.blur(email);
+
+		await waitFor(() =>
+			expect(container.querySelector("#maintainer-email-error")).toHaveTextContent(
+				/correo electrónico válido/i,
+			),
+		);
+
+		// Al corregir, el error desaparece sin necesidad de reenviar.
+		await fireEvent.input(email, { target: { value: "datos@umss.edu" } });
+		await waitFor(() => expect(container.querySelector("#maintainer-email-error")).toBeNull());
+	});
+
+	it("el resumen enlaza cada error con su campo", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await screen.findByLabelText(/título/i);
+		await fireEvent.submit(getForm(container));
+
+		await screen.findByText(/corrija/i);
+		const enlaces = screen
+			.getAllByRole("link")
+			.map((link) => link.getAttribute("href") ?? "")
+			.filter((href) => href.startsWith("#"));
+		// Con el formulario vacío fallan tres campos, y el resumen los lista en orden de formulario.
+		expect(enlaces).toEqual(["#title", "#slug", "#owner-org"]);
 	});
 });
