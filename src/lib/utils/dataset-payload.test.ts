@@ -113,6 +113,17 @@ describe("suggestSlug", () => {
 		expect(suggestSlug("a".repeat(150)).length).toBeLessThanOrEqual(100);
 	});
 
+	it("no deja un separador colgando al truncar en el límite de 100 (guión y guión bajo)", () => {
+		const long = "a".repeat(99);
+		expect(suggestSlug(`${long}-b`)).toBe(long);
+		expect(suggestSlug(`${long}_b`)).toBe(long);
+	});
+
+	it("recorta un título largo terminado en separador justo en el límite", () => {
+		const hundred = "a".repeat(100);
+		expect(suggestSlug(`${hundred}-`)).toBe(hundred);
+	});
+
 	it("devuelve una cadena vacía cuando no queda nada utilizable", () => {
 		expect(suggestSlug("¡...!")).toBe("");
 	});

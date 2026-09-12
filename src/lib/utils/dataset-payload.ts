@@ -73,14 +73,19 @@ export function buildPackagePayload(input: DatasetFormInput): Record<string, unk
  * schema es quien reporta el error.
  */
 export function suggestSlug(title: string): string {
-	return title
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9_-]+/g, "-")
-		.replace(/-{2,}/g, "-")
-		.replace(/^-+|-+$/g, "")
-		.slice(0, MAX_SLUG_LENGTH);
+	return (
+		title
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.toLowerCase()
+			.replace(/[^a-z0-9_-]+/g, "-")
+			.replace(/-{2,}/g, "-")
+			.replace(/^-+|-+$/g, "")
+			.slice(0, MAX_SLUG_LENGTH)
+			// Tras el slice puede quedar un separador colgando si el corte cayó justo
+			// sobre él; se limpia para no devolver un slug que el schema rechazaría.
+			.replace(/[-_]+$/g, "")
+	);
 }
 
 /** Infiere el `format` del recurso a partir de la extensión del archivo. */

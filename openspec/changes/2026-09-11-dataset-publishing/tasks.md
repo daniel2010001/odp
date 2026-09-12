@@ -45,16 +45,16 @@
 
 ## Phase 3: Wizard UI
 
-- [ ] 3.1 Wizard shell: client-side auth guard redirecting to `/auth/login`, loading, error-with-retry, and the empty case when the user has no writable organization (`src/routes/dashboard/datasets/new/+page.svelte`)
-- [ ] 3.2 Metadata fields with associated labels: title, slug, description, organization select, license select, tags, visibility, landing page, maintainer
-- [ ] 3.3 Slug suggestion wired to the title, preserved once edited by hand
-- [ ] 3.4 File picker with per-file size validation before any bytes are sent
-- [ ] 3.5 Submit flow: `package_create`, then sequential uploads with per-file progress and cancellation
-- [ ] 3.6 Partial failure: report per file, keep the dataset, offer retry against the created dataset
-- [ ] 3.7 Success navigation to `/dataset/[name]`
-- [ ] 3.8 Accessibility: labelled fields, errors associated with their field, busy submit state, no horizontal scroll at 360 px
-- [ ] 3.9 Replace the `/dashboard` placeholder with a link to the wizard
-- [ ] 3.10 RED then GREEN: component test covering the minimum valid submission calling `package_create` with the expected payload, blocked submit on a missing required field, and the no-writable-organization state
+- [x] 3.1 Wizard shell: client-side auth guard redirecting to `/auth/login` (read-only), loading, error-with-retry, and the empty case when the user has no writable organization (`src/routes/dashboard/datasets/new/+page.svelte`)
+- [x] 3.2 Metadata fields with associated labels: title, slug, description, organization select, license select, tags, visibility, landing page, maintainer
+- [x] 3.3 Slug suggestion wired to the title, preserved once edited by hand
+- [x] 3.4 File picker with per-file size validation before any bytes are sent
+- [x] 3.5 Submit flow: `package_create`, then sequential uploads with per-file progress and cancellation
+- [x] 3.6 Partial failure: report per file, keep the dataset, offer retry against the created dataset
+- [x] 3.7 Success navigation to `/dataset/[name]` (read-only)
+- [x] 3.8 Accessibility: labelled fields, errors associated with their field, busy submit state, no horizontal scroll at 360 px
+- [ ] 3.9 Replace the `src/routes/dashboard/+page.svelte` placeholder with a link to the wizard
+- [x] 3.10 RED then GREEN: component test covering the minimum valid submission calling `package_create` with the expected payload, blocked submit on a missing required field, and the no-writable-organization state
 
 ## Phase 4: Verification
 

@@ -16,6 +16,8 @@ class FakeXhr {
 	onload: (() => void) | null = null;
 	onerror: (() => void) | null = null;
 	onabort: (() => void) | null = null;
+	ontimeout: (() => void) | null = null;
+	timeout = 0;
 	aborted = false;
 
 	open(method: string, url: string) {
@@ -145,6 +147,44 @@ describe("uploadResourceFile — resultado", () => {
 		xhr.onerror?.();
 
 		await expect(promise).rejects.toMatchObject({ code: "network" });
+	});
+
+	it("configura un timeout por defecto en el XHR", () => {
+		const { promise, xhr } = start();
+
+		expect(xhr.timeout).toBe(600000);
+
+		xhr.onload?.();
+		return promise;
+	});
+
+	it("respeta un timeoutMs explícito", () => {
+		const { promise, xhr } = start({ timeoutMs: 3000 });
+
+		expect(xhr.timeout).toBe(3000);
+
+		xhr.onload?.();
+		return promise;
+	});
+
+	it("rechaza con error tipado cuando la subida excede el tiempo límite", async () => {
+		const { promise, xhr } = start();
+
+		xhr.ontimeout?.();
+
+		await expect(promise).rejects.toMatchObject({
+			code: "timeout",
+			message: expect.stringContaining("tiempo"),
+		});
+	});
+
+	it("distingue un 200 con cuerpo no-JSON del error genérico de CKAN", async () => {
+		const { promise, xhr } = start();
+		xhr.status = 200;
+		xhr.responseText = "<html>proxy devolvió HTML</html>";
+		xhr.onload?.();
+
+		await expect(promise).rejects.toMatchObject({ code: "nonjson" });
 	});
 
 	it("reporta el progreso en porcentaje", async () => {

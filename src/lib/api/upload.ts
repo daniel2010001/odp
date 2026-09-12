@@ -11,7 +11,7 @@
 
 import type { CkanResource } from "$lib/types/ckan";
 
-export type UploadErrorCode = "aborted" | "network" | "http" | "ckan";
+export type UploadErrorCode = "aborted" | "network" | "http" | "ckan" | "timeout" | "nonjson";
 
 export class UploadError extends Error {
 	readonly code: UploadErrorCode;
@@ -37,6 +37,12 @@ export interface UploadResourceOptions {
 	filename: string;
 	onProgress?: (percent: number) => void;
 	signal?: AbortSignal;
+	/**
+	 * Tiempo máximo de subida en ms. Por defecto 600000 (10 min): una subida
+	 * colgada (proxy o red que no cierra la conexión) debe fallar y no quedar
+	 * pendiente para siempre.
+	 */
+	timeoutMs?: number;
 }
 
 interface ResourceCreateEnvelope {
@@ -47,7 +53,16 @@ interface ResourceCreateEnvelope {
 
 /** Sube un archivo como recurso de un dataset. Resuelve con el recurso creado. */
 export function uploadResourceFile(options: UploadResourceOptions): Promise<CkanResource> {
-	const { baseUrl = "", token, packageId, file, filename, onProgress, signal } = options;
+	const {
+		baseUrl = "",
+		token,
+		packageId,
+		file,
+		filename,
+		onProgress,
+		signal,
+		timeoutMs = 600000,
+	} = options;
 
 	if (signal?.aborted) {
 		return Promise.reject(new UploadError("Subida cancelada", "aborted"));
@@ -59,6 +74,7 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 
 		xhr.open("POST", `${base}/api/3/action/resource_create`);
 		xhr.setRequestHeader("Authorization", token);
+		xhr.timeout = timeoutMs;
 
 		xhr.upload.onprogress = (event) => {
 			if (!event.lengthComputable || event.total === 0) return;
@@ -66,20 +82,35 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 		};
 
 		xhr.onload = () => {
-			let body: ResourceCreateEnvelope = {};
+			let body: ResourceCreateEnvelope | null = null;
 			try {
 				body = JSON.parse(xhr.responseText) as ResourceCreateEnvelope;
 			} catch {
-				// Respuesta no JSON (por ejemplo el HTML de un proxy): se reporta por status.
+				// Respuesta no JSON (por ejemplo el HTML de un proxy): se distingue
+				// según el status más abajo.
+				body = null;
 			}
 
 			if (xhr.status !== 200) {
 				reject(
 					new UploadError(
-						body.error?.message ?? `HTTP ${xhr.status}`,
+						body?.error?.message ?? `HTTP ${xhr.status}`,
 						"http",
 						xhr.status,
-						body.error?.__type,
+						body?.error?.__type,
+					),
+				);
+				return;
+			}
+
+			// 200 con cuerpo no-JSON: no es un error de CKAN (que siempre responde
+			// JSON); algo intermedio (proxy, HTML de error) rompió el envelope.
+			if (body === null) {
+				reject(
+					new UploadError(
+						"El servidor respondió con un cuerpo ilegible (no JSON)",
+						"nonjson",
+						xhr.status,
 					),
 				);
 				return;
@@ -102,6 +133,7 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 
 		xhr.onerror = () => reject(new UploadError("No se pudo conectar con el servidor", "network"));
 		xhr.onabort = () => reject(new UploadError("Subida cancelada", "aborted"));
+		xhr.ontimeout = () => reject(new UploadError("La subida excedió el tiempo límite", "timeout"));
 
 		signal?.addEventListener("abort", () => xhr.abort(), { once: true });
 
