@@ -29,6 +29,7 @@ import {
 	suggestSlug,
 	validateResourceFile,
 } from "$lib/utils/dataset-payload";
+import { safeExternalUrl, unsafeUrlReason } from "$lib/utils/external-url";
 import { licenseLabel } from "$lib/utils/licenses";
 
 // ─── Constantes ──────────────────────────────────────────────────────
@@ -222,24 +223,21 @@ function addLink() {
 		linkError = "Escriba la URL del enlace.";
 		return;
 	}
-	let parsed: URL;
-	try {
-		parsed = new URL(urlValue);
-	} catch {
-		linkError = "La URL no es válida. Use una dirección completa (ej.: https://...).";
-		return;
-	}
-	// Solo se permiten http/https: los esquemas como `javascript:` o `data:` se
-	// guardan como `url` del recurso y el portal los renderiza como `href`,
-	// lo que abriría un vector de XSS almacenado.
-	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-		linkError = "El enlace debe usar los protocolos http o https.";
+	// Política única de enlaces externos (`$lib/utils/external-url`): sólo http/https. Los
+	// esquemas como `javascript:` o `data:` se guardan como `url` del recurso y el portal los
+	// renderiza como `href`. Se distingue «no parsea» de «esquema no permitido» para el mensaje.
+	const safeUrl = safeExternalUrl(urlValue);
+	if (!safeUrl) {
+		linkError =
+			unsafeUrlReason(urlValue) === "protocol"
+				? "El enlace debe usar los protocolos http o https."
+				: "La URL no es válida. Use una dirección completa (ej.: https://...).";
 		return;
 	}
 
 	linkEntries = [
 		...linkEntries,
-		{ key: `link-${linkSeq++}`, name, url: urlValue, status: "pending" },
+		{ key: `link-${linkSeq++}`, name, url: safeUrl, status: "pending" },
 	];
 	linkName = "";
 	linkUrl = "";

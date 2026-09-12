@@ -26,6 +26,7 @@ import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
+import { safeExternalUrl } from "$lib/utils/external-url";
 
 // Cliente del DataStore para la vista previa de CSV (RF-31).
 const datastoreApi = createDatastoreApi(createCkanClient({ baseUrl: env.CKAN_URL }));
@@ -208,7 +209,13 @@ const exampleResponse = $derived(
 	apiExtras.find((e) => e.key === "example_response")?.value ?? null,
 );
 
-const docsUrl = $derived(apiExtras.find((e) => e.key === "docs_url")?.value ?? null);
+// `docs_url` es un extra de CKAN: puede llegar con cualquier esquema si el recurso se creó
+// por la API o por la UI nativa de CKAN. Se sanea antes de renderizarlo como `href`.
+const docsUrl = $derived(safeExternalUrl(apiExtras.find((e) => e.key === "docs_url")?.value));
+
+// `resource.url` también viene de CKAN y se renderiza como `href`: el saneo en el borde de
+// salida es lo que impide un `javascript:` almacenado (XSS almacenado).
+const downloadUrl = $derived(safeExternalUrl(resource?.url));
 
 // ─── Actions ────────────────────────────────────────────────────
 async function handleCopyEndpoint() {
@@ -386,9 +393,9 @@ async function handleCopyResourceLink() {
 				{/if}
 
 				<!-- Download action -->
-				{#if resource.url}
+				{#if downloadUrl}
 					<a
-						href={resource.url}
+						href={downloadUrl}
 						target="_blank"
 						rel="noopener noreferrer"
 						class="mt-5 inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"

@@ -24,6 +24,7 @@ export default defineConfig({
 			"$app/navigation": fileURLToPath(
 				new URL("./src/test/mocks/app/navigation.ts", import.meta.url),
 			),
+			"$app/stores": fileURLToPath(new URL("./src/test/mocks/app/stores.ts", import.meta.url)),
 		},
 	},
 	test: {
