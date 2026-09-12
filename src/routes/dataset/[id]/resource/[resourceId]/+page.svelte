@@ -1,5 +1,16 @@
 <script lang="ts">
-import { ArrowLeft, Check, Copy, Download, ExternalLink, FileText, Layers } from "lucide-svelte";
+import {
+	ArrowLeft,
+	ChartBar,
+	Check,
+	Copy,
+	Download,
+	ExternalLink,
+	FileText,
+	Link2,
+	Map as MapIcon,
+	Table,
+} from "lucide-svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
@@ -24,8 +35,17 @@ let resource = $state<CkanResource | null>(null);
 let dataset = $state<CkanPackage | null>(null);
 let loading = $state(true);
 let error = $state<string | null>(null);
-let hashCopied = $state(false);
 let endpointCopied = $state(false);
+let copiedLink = $state(false);
+
+// Vistas simuladas de la previsualización (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla CSV).
+const previewViews = [
+	{ id: "tabla", label: "Tabla", icon: Table },
+	{ id: "grafico", label: "Gráfico", icon: ChartBar },
+	{ id: "mapa", label: "Mapa", icon: MapIcon },
+];
+let previewView = $state("tabla");
+let hashCopied = $state(false);
 
 // ─── Params from URL ─────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
@@ -124,7 +144,11 @@ const stateLabel = $derived.by(() => {
 // name/description/url/state/last_modified are rendered elsewhere.
 const fieldList = $derived.by(() => {
 	if (!resource) return [];
+	// CKAN no expone un campo `filename` nativo: se deriva del último segmento de la URL.
+	const urlPath = (resource.url ?? "").split("?")[0].split("#")[0];
+	const filename = urlPath.split("/").filter(Boolean).pop() ?? null;
 	const fields: { label: string; value: string | null | undefined; raw: unknown }[] = [
+		{ label: "Nombre del archivo", value: filename, raw: filename },
 		{ label: "Formato", value: resource.format, raw: resource.format },
 		{ label: "Tamaño", value: formatSize(resource.size), raw: resource.size },
 		{ label: "Tipo MIME", value: resource.mimetype, raw: resource.mimetype },
@@ -134,11 +158,6 @@ const fieldList = $derived.by(() => {
 	];
 	return fields.filter((f) => f.raw !== undefined && f.raw !== null && f.raw !== "");
 });
-
-// Sidebar muestra los campos esenciales; la tabla de metadatos el listado completo.
-const sidebarFields = $derived(
-	fieldList.filter((f) => ["Formato", "Tamaño", "Tipo MIME", "Creado", "Hash"].includes(f.label)),
-);
 
 // ─── Derived: API extras ───────────────────────────────────────
 const apiExtras = $derived.by((): CkanExtra[] => {
@@ -192,6 +211,15 @@ const exampleResponse = $derived(
 const docsUrl = $derived(apiExtras.find((e) => e.key === "docs_url")?.value ?? null);
 
 // ─── Actions ────────────────────────────────────────────────────
+async function handleCopyEndpoint() {
+	const ok = await copyToClipboard(apiEndpoint);
+	if (ok) {
+		endpointCopied = true;
+		setTimeout(() => {
+			endpointCopied = false;
+		}, 2000);
+	}
+}
 async function handleCopyHash() {
 	if (!resource?.hash) return;
 	const ok = await copyToClipboard(resource.hash);
@@ -203,12 +231,14 @@ async function handleCopyHash() {
 	}
 }
 
-async function handleCopyEndpoint() {
-	const ok = await copyToClipboard(apiEndpoint);
+async function handleCopyResourceLink() {
+	if (!dataset?.name || !resource?.id) return;
+	const url = `${window.location.origin}/dataset/${dataset.name}/resource/${resource.id}`;
+	const ok = await copyToClipboard(url);
 	if (ok) {
-		endpointCopied = true;
+		copiedLink = true;
 		setTimeout(() => {
-			endpointCopied = false;
+			copiedLink = false;
 		}, 2000);
 	}
 }
@@ -240,16 +270,10 @@ async function handleCopyEndpoint() {
 			</div>
 			<div class="h-11 w-2/3 rounded-lg bg-muted"></div>
 			<div class="h-4 w-1/3 rounded bg-muted"></div>
-			<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-				<div class="space-y-6">
-					<div class="h-[420px] rounded-xl border border-border bg-card"></div>
-					<div class="h-64 rounded-xl border border-border bg-card"></div>
-					<div class="h-56 rounded-xl border border-border bg-card"></div>
-				</div>
-				<div class="space-y-6">
-					<div class="h-64 rounded-xl border border-border bg-card"></div>
-					<div class="h-20 rounded-xl border border-border bg-card"></div>
-				</div>
+			<div class="space-y-6">
+				<div class="h-[420px] rounded-xl border border-border bg-card"></div>
+				<div class="h-64 rounded-xl border border-border bg-card"></div>
+				<div class="h-56 rounded-xl border border-border bg-card"></div>
 			</div>
 		</div>
 
@@ -277,6 +301,12 @@ async function handleCopyEndpoint() {
 							Volver al catálogo
 						</a>
 					{/if}
+					<button
+						onclick={() => loadData()}
+						class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+					>
+						Reintentar
+					</button>
 				</div>
 			</div>
 		</div>
@@ -286,8 +316,36 @@ async function handleCopyEndpoint() {
 		<!-- Resource header -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+				<!-- Title + copy link -->
+				<div class="flex items-center gap-3">
+					<button
+						type="button"
+						onclick={handleCopyResourceLink}
+						aria-label="Copiar enlace del recurso"
+						title="Copiar enlace"
+						class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					>
+						{#if copiedLink}
+							<Check class="size-4 text-emerald-600" />
+						{:else}
+							<Link2 class="size-4" />
+						{/if}
+					</button>
+					<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+						{resource.name || "Recurso"}
+					</h1>
+				</div>
+
+				<!-- Subtitle: updated -->
+				{#if resource.last_modified}
+					<div class="mt-3 text-sm text-muted-foreground">
+						Actualizado {formatDate(resource.last_modified)}
+					</div>
+				{/if}
+
+
 				<!-- Badges row -->
-				<div class="flex flex-wrap items-center gap-2">
+				<div class="mt-4 flex flex-wrap items-center gap-2">
 					{#if formatLabel}
 						<span
 							class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
@@ -320,239 +378,228 @@ async function handleCopyEndpoint() {
 					{/if}
 				</div>
 
-				<!-- Title -->
-				<h1 class="mt-5 font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-					{resource.name || "Recurso"}
-				</h1>
-
-				<!-- Subtitle: updated -->
-				{#if resource.last_modified}
-					<div class="mt-3 text-sm text-muted-foreground">
-						Actualizado el {formatDate(resource.last_modified)}
-					</div>
-				{/if}
-
 				<!-- Description -->
 				{#if resource.description}
 					<p class="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
 						{resource.description}
 					</p>
 				{/if}
+
+				<!-- Download action -->
+				{#if resource.url}
+					<a
+						href={resource.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="mt-5 inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+					>
+						<Download class="size-4" />
+						Descargar recurso
+					</a>
+				{/if}
 			</div>
 		</section>
 
-		<!-- Preview content -->
-		<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-				<!-- Main: preview panel -->
-				<div class="min-w-0">
-					<Card class="overflow-hidden border-primary/20">
-						<div class="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3">
-							<p class="text-xs font-bold uppercase tracking-wider text-primary">Vista previa</p>
-							<span
-								class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+		<!-- Preview + metadata content -->
+		<section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+			<Card class="overflow-hidden border-primary/20">
+				<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
+					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
+					<div class="flex items-center gap-1 rounded-md border border-border bg-background p-0.5">
+						{#each previewViews as view (view.id)}
+							{@const Icon = view.icon}
+							<button
+								type="button"
+								onclick={() => (previewView = view.id)}
+								class={cn(
+									"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
+									previewView === view.id
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:text-foreground",
+								)}
 							>
-								<Layers class="size-3.5" />
-								Tabla
-							</span>
-						</div>
-						<ResourcePreview resource={resource} datastore={datastoreApi} />
-					</Card>
+								<Icon class="size-3.5" />
+								{view.label}
+							</button>
+						{/each}
+					</div>
 				</div>
+				{#if previewView === "tabla"}
+					<ResourcePreview resource={resource} datastore={datastoreApi} />
+				{:else}
+					<div class="flex min-h-[420px] flex-col items-center justify-center gap-3 p-10 text-center">
+						<div class="flex size-16 items-center justify-center rounded-full bg-primary/10">
+							{#if previewView === "grafico"}
+								<ChartBar class="size-8 text-primary" />
+							{:else}
+								<MapIcon class="size-8 text-primary" />
+							{/if}
+						</div>
+						<p class="font-heading text-xl font-bold text-foreground">
+							{previewView === "grafico" ? "Gráfico" : "Mapa"}
+						</p>
+						<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
+							Vista simulada. En la versión real, cada vista renderiza su propio contenido según los datos
+							del recurso.
+						</p>
+					</div>
+				{/if}
+			</Card>
 
-				<!-- Sidebar -->
-				<aside class="min-w-0 space-y-6">
-					<!-- Core info card -->
-					{#if sidebarFields.length > 0}
-						<Card class="p-5">
-							<p class="text-xs font-bold uppercase tracking-wider text-primary">Información</p>
-							<div class="mt-3 divide-y divide-border/60">
-								{#each sidebarFields as field}
+		<!-- API content -->
+		{#if resource.resource_type === "api"}
+			<div>
+				<div>
+					<p class="text-xs font-medium uppercase tracking-wider text-destructive">API · Endpoint</p>
+					<h2 class="mt-1 font-heading text-xl font-bold text-primary">Acceso por API</h2>
+					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+						Use estos endpoints para acceder programáticamente a los datos del recurso.
+					</p>
+				</div>
+	
+				<div class="mt-4 space-y-4">
+					<!-- Endpoint card -->
+					<Card class="p-5">
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<p class="text-sm font-semibold text-foreground">Endpoint</p>
+							<button
+								type="button"
+								onclick={handleCopyEndpoint}
+								class="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+							>
+								{#if endpointCopied}
+									<Check class="size-3.5 text-emerald-600" />
+									Copiado
+								{:else}
+									<Copy class="size-3.5" />
+									Copiar URL
+								{/if}
+							</button>
+						</div>
+						<div class="mt-3 overflow-x-auto rounded-lg bg-foreground px-4 py-3">
+							<code class="break-all font-mono text-xs text-background">{apiEndpoint}</code>
+						</div>
+						{#if docsUrl}
+							<a
+								href={docsUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:underline"
+							>
+								<ExternalLink class="size-3.5" />
+								Ver documentación de la API
+							</a>
+						{/if}
+						{#if apiExtraRows.length > 0}
+							<div class="mt-4 divide-y divide-border/60 border-t border-border/60">
+								{#each apiExtraRows as extra}
 									<div class="flex items-start justify-between gap-3 py-2.5">
-										<span class="text-xs text-muted-foreground">{field.label}</span>
-										<span class="break-all text-right text-xs font-semibold text-foreground">
-											{field.value}
+										<span class="text-xs text-muted-foreground">{apiExtraLabel(extra.key)}</span>
+										<span class="break-all text-right text-xs font-medium text-foreground">
+											{extra.value}
 										</span>
 									</div>
 								{/each}
 							</div>
-						</Card>
-					{/if}
-
-					<!-- Hash card -->
-					{#if resource.hash}
-						<Card class="p-5">
-							<div class="flex items-center justify-between">
-								<p class="text-xs font-bold uppercase tracking-wider text-primary">Hash</p>
-								<button
-									type="button"
-									onclick={handleCopyHash}
-									aria-label="Copiar hash"
-									title="Copiar hash al portapapeles"
-									class="inline-flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-								>
-									{#if hashCopied}
-										<Check class="size-3.5 text-emerald-600" />
-									{:else}
-										<Copy class="size-3.5" />
-									{/if}
-								</button>
+						{/if}
+					</Card>
+	
+					<!-- Curl card -->
+					<Card class="p-5">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+							Ejemplo de consulta · curl
+						</p>
+						<p class="mt-1 text-sm text-muted-foreground">Obtenga los metadatos del recurso.</p>
+						<div class="mt-3 overflow-x-auto rounded-lg bg-foreground p-4">
+							<pre class="font-mono text-xs leading-relaxed text-background"><code>{curlCommand}</code></pre>
+						</div>
+						{#if exampleResponse}
+							<p class="mt-4 text-xs font-medium uppercase tracking-wider text-destructive">Respuesta</p>
+							<div class="mt-1 overflow-x-auto rounded-lg bg-foreground p-4">
+								<pre class="font-mono text-xs leading-relaxed text-background"><code>{exampleResponse}</code></pre>
 							</div>
-							<code class="mt-3 block break-all font-mono text-xs text-foreground">
-								{resource.hash}
-							</code>
-						</Card>
-					{/if}
-
-					<!-- Download action -->
-					{#if resource.url}
-						<a
-							href={resource.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
-						>
-							<Download class="size-4" />
-							Descargar recurso
-						</a>
-					{/if}
-				</aside>
+						{/if}
+					</Card>
+				</div>
 			</div>
-		</section>
-
-		<!-- API content -->
-		<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<div>
-				<p class="text-xs font-bold uppercase tracking-wider text-primary">API · Endpoint</p>
-				<h2 class="mt-1 font-heading text-2xl font-bold text-foreground">Acceso por API</h2>
-				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-					Use estos endpoints para acceder programáticamente a los datos del recurso.
-				</p>
-			</div>
-
-			<div class="mt-4 space-y-4">
-				<!-- Endpoint card -->
-				<Card class="p-5">
-					<div class="flex flex-wrap items-center justify-between gap-3">
-						<p class="text-sm font-semibold text-foreground">Endpoint</p>
-						<button
-							type="button"
-							onclick={handleCopyEndpoint}
-							class="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
-						>
-							{#if endpointCopied}
-								<Check class="size-3.5 text-emerald-600" />
-								Copiado
-							{:else}
-								<Copy class="size-3.5" />
-								Copiar URL
-							{/if}
-						</button>
-					</div>
-					<div class="mt-3 overflow-x-auto rounded-lg bg-foreground px-4 py-3">
-						<code class="break-all font-mono text-xs text-background">{apiEndpoint}</code>
-					</div>
-					{#if docsUrl}
-						<a
-							href={docsUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:underline"
-						>
-							<ExternalLink class="size-3.5" />
-							Ver documentación de la API
-						</a>
-					{/if}
-					{#if apiExtraRows.length > 0}
-						<div class="mt-4 divide-y divide-border/60 border-t border-border/60">
-							{#each apiExtraRows as extra}
-								<div class="flex items-start justify-between gap-3 py-2.5">
-									<span class="text-xs text-muted-foreground">{apiExtraLabel(extra.key)}</span>
-									<span class="break-all text-right text-xs font-medium text-foreground">
-										{extra.value}
-									</span>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</Card>
-
-				<!-- Curl card -->
-				<Card class="p-5">
-					<p class="text-xs font-bold uppercase tracking-wider text-primary">
-						Ejemplo de consulta · curl
-					</p>
-					<p class="mt-1 text-sm text-muted-foreground">Obtenga los metadatos del recurso.</p>
-					<div class="mt-3 overflow-x-auto rounded-lg bg-foreground p-4">
-						<pre class="font-mono text-xs leading-relaxed text-background"><code>{curlCommand}</code></pre>
-					</div>
-					{#if exampleResponse}
-						<p class="mt-4 text-xs font-bold uppercase tracking-wider text-primary">Respuesta</p>
-						<div class="mt-1 overflow-x-auto rounded-lg bg-foreground p-4">
-							<pre class="font-mono text-xs leading-relaxed text-background"><code>{exampleResponse}</code></pre>
-						</div>
-					{/if}
-				</Card>
-			</div>
-		</section>
+		{/if}
 
 		<!-- Metadata content -->
-		<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<div>
-				<p class="text-xs font-bold uppercase tracking-wider text-primary">
+			<Card class="p-6 sm:p-8">
+				<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 					Metadatos · Información técnica
 				</p>
-				<h2 class="mt-1 font-heading text-2xl font-bold text-foreground">Sobre este recurso</h2>
+				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre este recurso</h2>
 				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 					Detalles técnicos del archivo: formato, tamaño, tipo MIME y otros metadatos.
 				</p>
-			</div>
 
-			{#if fieldList.length > 0}
-				<Card class="mt-4 overflow-hidden">
-					<div
-						class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
-					>
-						<span>Campo</span>
-						<span>Valor</span>
+				{#if fieldList.length > 0}
+					<div class="mt-4 overflow-hidden rounded-lg border border-border">
+						<div
+							class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
+						>
+							<span>Campo</span>
+							<span>Valor</span>
+						</div>
+						<div class="divide-y divide-border/60">
+							{#each fieldList as field}
+								<div
+									class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
+								>
+									<span class="text-muted-foreground">{field.label}</span>
+									{#if field.label === "Hash"}
+										<div class="flex items-center justify-between gap-2">
+											<code class="break-all font-mono text-foreground">{field.value}</code>
+											<button
+												type="button"
+												onclick={handleCopyHash}
+												aria-label="Copiar hash"
+												title="Copiar hash al portapapeles"
+												class="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+											>
+												{#if hashCopied}
+													<Check class="size-3.5 text-emerald-600" />
+												{:else}
+													<Copy class="size-3.5" />
+												{/if}
+											</button>
+										</div>
+									{:else}
+										<span class="break-all font-medium text-foreground">{field.value}</span>
+									{/if}
+								</div>
+							{/each}
+							{#if resource.last_modified}
+								<div
+									class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
+								>
+									<span class="text-muted-foreground">Modificado</span>
+									<span class="break-all font-medium text-foreground">
+										{formatDate(resource.last_modified)}
+									</span>
+								</div>
+							{/if}
+						</div>
 					</div>
-					<div class="divide-y divide-border/60">
-						{#each fieldList as field}
-							<div
-								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
-							>
-								<span class="text-muted-foreground">{field.label}</span>
-								<span class="break-all font-medium text-foreground">{field.value}</span>
-							</div>
-						{/each}
-						{#if resource.last_modified}
-							<div
-								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
-							>
-								<span class="text-muted-foreground">Modificado</span>
-								<span class="break-all font-medium text-foreground">
-									{formatDate(resource.last_modified)}
-								</span>
-							</div>
+				{/if}
+
+				<!-- Footer info -->
+				<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+					<p class="text-xs text-muted-foreground">
+						ID: <code class="font-mono">{resource.id}</code>
+						{#if resource.package_id}
+							<span class="mx-2">·</span>
+							Dataset: <code class="font-mono">{resource.package_id}</code>
 						{/if}
-					</div>
-				</Card>
-			{/if}
-
-			<!-- Footer info -->
-			<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-				<p class="text-xs text-muted-foreground">
-					ID: <code class="font-mono">{resource.id}</code>
-					{#if resource.package_id}
-						<span class="mx-2">·</span>
-						Dataset: <code class="font-mono">{resource.package_id}</code>
-					{/if}
-					{#if resource.position !== undefined}
-						<span class="mx-2">·</span>
-						Posición: <code class="font-mono">{resource.position}</code>
-					{/if}
-				</p>
-			</div>
+						{#if resource.position !== undefined}
+							<span class="mx-2">·</span>
+							Posición: <code class="font-mono">{resource.position}</code>
+						{/if}
+					</p>
+				</div>
+			</Card>
 		</section>
 	{/if}
 </div>
+
