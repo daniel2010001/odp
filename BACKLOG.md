@@ -296,6 +296,15 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
   (2026-09-12)._ **(Hoy sólo existe una acción real: el problema reaparece cuando aterricen las
   demás.)_**
 
+- [ ] **[v1] La barra pegajosa no tiene test automatizado** — su comportamiento (aparición a 88 px,
+  `inert` mientras está oculta, clics que atraviesan la franja transparente) se verificó **a mano en
+  Chromium por CDP**, no en la suite: jsdom no implementa `inert` ni `IntersectionObserver`. Si el
+  layout del encabezado cambia de alto (`h-20`), `STICKY_TOP_PX` queda desincronizado y **nada lo
+  detecta**. Opciones: un test de navegador real (playwright/puppeteer, hoy no instalados) o mover el
+  offset a una variable CSS compartida con el layout para que no pueda derivar. _Origen: revisión RDD
+  `review-1c90076e8986652c`, hallazgo advisory `R3-001` (el texto no se pudo recuperar: el ledger se
+  borra al cerrar la línea), 2026-09-12._
+
 - [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
   datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
   no es alcanzable con CKAN: las "solicitudes de publicación" del PRD son el caso conocido).
