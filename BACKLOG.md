@@ -436,9 +436,9 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 | Divergencia doc↔código en el home | **Corregido** — design-system README §9 actualizado al home real (CTA + stats + organizaciones). |
 | `CKAN_INTERNAL_URL` en compose prod | **Corregido** — `docker-compose.unified.yml` inyecta `CKAN_INTERNAL_URL: http://ckan:5000` en el servicio frontend. |
 | Housekeeping: ramas remotas mergeadas | **Borradas** — 14 ramas eliminadas de `origin` (11 mergeadas por ancestría + 3 superseded). Quedan solo `main` y `HEAD`. |
-| Token accumulation en login repetido | **Resuelto (código)** — `ckanLogin` ahora lista (`api_token_list`) y revoca (`api_token_revoke`) los tokens previos del portal antes de mintear el nuevo (best-effort); +3 tests. |
+| Token accumulation en login repetido | **RESUELTO DE VERDAD (2026-09-13, `e4b7ed9`)**. La afirmación anterior («resuelto en código») era **falsa**: el código llamaba a las acciones correctas pero con parámetros inválidos, así que no revocaba nada y fallaba en silencio (es best-effort). Eran **tres defectos encadenados**: (1) `api_token_list` sin `X-CSRFToken` → 400; (2) `api_token_list` sin el obligatorio `user_id` → 409; (3) `api_token_revoke` con `token` en vez de `jti` → CKAN intenta **decodificar un JWT**, el id no lo es, el `jti` queda en `null` y **no revoca nada devolviendo `success: true`**. Medido: con `token` el token sigue en el listado, con `jti` desaparece. Verificado después: logins repetidos dejan **exactamente 1** token del portal. |
 | `ckan.auth.create_user_via_api=false` | **Aplicado** — agregado a `ckan-docker/.env` y `.env.example` (aplicado por el usuario + verificado). Nota: esto bloquea la creación de usuarios por API (ver ítem `v1+` de usuarios). |
-| Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). |
+| Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). **Consecuencia medida (2026-09-13):** el plugin hace **obligatorios** `expires_in` y `unit` en `api_token_create`; el login del portal no los mandaba, así que CKAN respondía **409** y **ningún login funcionaba**. Arreglado en `e4b7ed9` con `TOKEN_TTL = { expires_in: 1, unit: 86400 }`, que espeja esa política. |
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
@@ -484,6 +484,24 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
   conviene tenerlo presente al leer la cobertura: **un cambio grande sin archivos «calientes» recibe
   menos lentes**. Si se quiere más cobertura en un candidato así, hay que partirlo en candidatos que sí
   disparen señales, no pedir más lentes al mismo.
+
+- [ ] **[v1] Hallazgos advisory del arreglo de autenticación** — línea `review-f4c32c431240dd20`
+  (tier high, 4 lentes, 66 líneas). Cerró **`approved`**; los cuatro hallazgos son informativos y
+  ninguno abrió corrección. Los dos que importan:
+  - `R4-ttl-drift` (`ckan-auth.ts:29`) — **el acoplamiento que ya documenta el propio comentario**: el
+    `TOKEN_TTL` del portal tiene que seguir a `CKAN___EXPIRE_API_TOKEN__DEFAULT_LIFETIME` del stack, y
+    hoy son dos números en dos repos distintos que nada obliga a coincidir. Si la política cambia y el
+    portal no, el login vuelve a romperse. Salida posible: leer el valor de una variable de entorno del
+    portal, o validarlo al arrancar.
+  - `R4-cleanup-latency` (`ckan-auth.ts:227`) — ahora que la limpieza **sí** se ejecuta, cada login
+    lista y revoca **secuencialmente** todos los tokens previos del portal. Con muchos tokens viejos
+    acumulados, eso alarga el login (y ya no falla en silencio, pero tampoco hay tope).
+  - `R2-001` (`ckan-auth.test.ts:135-136`), `R3-001` (`ckan-auth.ts:30`) — sugerencias de estilo.
+
+- [ ] **[v1] Tokens basura en el usuario admin del CKAN dev** — el listado tiene tokens de sesiones
+  viejas de pruebas (`seed-probe`, `seed-probe2`, `odp-e2e-probe`, `odp-e2e-smoke`) que nunca se
+  limpiaron. **No tocar los tres `datapusher`**: esos los usa el plugin de subida y revocarlos rompe la
+  carga de archivos. _Origen: diagnóstico del login, 2026-09-13._
 
 - [ ] **[v1] Sigla de organización (`extras.sigla`)** — CKAN **no** tiene un campo nativo de
   abreviatura, pero sí soporta extras en organizaciones: existe la tabla `group_extra`, la API acepta
