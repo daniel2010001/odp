@@ -4,7 +4,7 @@
 //   1) web-login (form-encoded, redirect manual) → cookie de sesión
 //   2) user_show → usuario resuelto (usa `name` resuelto)
 //   3) GET /user/<name> → token CSRF (meta `_csrf_token`)
-//   4) api_token_create → JWT (cookie + header `X-CSRFToken`)
+//   4) api_token_create → JWT (cookie + `X-CSRFToken`, con el vencimiento que exige el plugin)
 //   5) devuelve { token, user }
 //   6) fallback CSRF: si el login devuelve 400, obtiene el formulario e
 //      incluye `_csrf_token`; si api_token_create devuelve 400, reobtiene el
@@ -16,6 +16,17 @@ import type { CkanUser } from "$lib/types/ckan";
 
 /** Nombre con el que se etiqueta el token CKAN minteado. */
 export const TOKEN_NAME = "Portal Datos UMSS";
+
+/**
+ * Vencimiento del token que mintea el portal, en la forma que exige el plugin `expire_api_token`
+ * de CKAN: `expires_in × unit`, en segundos.
+ *
+ * El plugin hace **obligatorios** `expires_in` y `unit` en `api_token_create`: sin ellos CKAN
+ * responde 409 con `{'expires_in': ['Missing value'], 'unit': ['Missing value']}` y el login falla
+ * entero. El valor espeja `CKAN___EXPIRE_API_TOKEN__DEFAULT_LIFETIME` (86400 s = 1 día) del stack;
+ * si esa política cambia, este número tiene que seguirla.
+ */
+export const TOKEN_TTL = { expires_in: 1, unit: 86400 } as const;
 
 export type CkanAuthErrorCode =
 	| "INVALID_CREDENTIALS"
@@ -159,7 +170,7 @@ async function mintToken(
 				"X-CSRFToken": attemptCsrf,
 				...cookieHeaders(jar),
 			},
-			body: JSON.stringify({ user: name, name: TOKEN_NAME }),
+			body: JSON.stringify({ user: name, name: TOKEN_NAME, ...TOKEN_TTL }),
 		});
 
 		if (response.status === 400 && attempt === 0) {
@@ -198,12 +209,25 @@ async function mintToken(
  * Best-effort: si el listado o alguna revocación falla, el login continúa igual
  * (un token huérfano más es preferible a tumbar el login por red/CSRF).
  */
-async function revokePreviousTokens(baseUrl: string, jar: CookieJar, csrf: string): Promise<void> {
+async function revokePreviousTokens(
+	baseUrl: string,
+	jar: CookieJar,
+	csrf: string,
+	userId: string,
+): Promise<void> {
 	try {
 		const listResponse = await safeFetch(`${baseUrl}/api/3/action/api_token_list`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json", ...cookieHeaders(jar) },
-			body: JSON.stringify({}),
+			// `X-CSRFToken` es obligatorio también acá: sin él CKAN responde 400 y la limpieza de
+			// tokens previos no se ejecuta nunca (y como es best-effort, falla en silencio).
+			headers: {
+				"Content-Type": "application/json",
+				"X-CSRFToken": csrf,
+				...cookieHeaders(jar),
+			},
+			// `user_id` es obligatorio en `api_token_list` (sin él: 409 "Missing value"); el listado
+			// es el del usuario autenticado, así que se le pasa el id resuelto en `user_show`.
+			body: JSON.stringify({ user_id: userId }),
 		});
 		const payload = (await listResponse.json()) as {
 			success?: boolean;
@@ -221,7 +245,10 @@ async function revokePreviousTokens(baseUrl: string, jar: CookieJar, csrf: strin
 						"X-CSRFToken": csrf,
 						...cookieHeaders(jar),
 					},
-					body: JSON.stringify({ token: t.id }),
+					// `jti`, no `token`: con `token` CKAN intenta **decodificar un JWT**, el id no lo es,
+					// el `jti` queda en `None` y la revocación no hace nada **pero devuelve `success: true`**.
+					// Medido: con `token` el token sigue en el listado; con `jti` desaparece.
+					body: JSON.stringify({ jti: t.id }),
 				});
 			} catch {
 				// best-effort: una revocación individual que falla no tumba el login.
@@ -305,7 +332,7 @@ export async function ckanLogin(
 
 	// Pasos 3 y 4: CSRF de la página de usuario → revocar tokens previos → mint token.
 	const csrf = await fetchCsrf(baseUrl, jar, user.name);
-	await revokePreviousTokens(baseUrl, jar, csrf);
+	await revokePreviousTokens(baseUrl, jar, csrf, user.id);
 	const token = await mintToken(baseUrl, jar, user.name, csrf);
 
 	// Paso 5: devolver token + usuario.

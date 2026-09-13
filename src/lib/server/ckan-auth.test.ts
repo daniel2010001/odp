@@ -114,15 +114,27 @@ describe("ckanLogin — 6-step flow", () => {
 		expect(calls[2].init?.headers?.Cookie).toBe("ckan=sess-1");
 
 		// 4) api_token_list (limpieza de tokens previos)
+		// Sin `X-CSRFToken` CKAN responde 400 y la limpieza no corre nunca (es best-effort, así que
+		// fallaba en silencio): el header es obligatorio igual que en el create.
 		expect(calls[3].url).toBe(`${BASE}/api/3/action/api_token_list`);
 		expect(calls[3].init?.headers?.Cookie).toBe("ckan=sess-1");
+		expect(calls[3].init?.headers?.["X-CSRFToken"]).toBe("csrf-1");
+		// `user_id` es obligatorio en la acción: sin él CKAN responde 409 y no se revoca nada.
+		expect(JSON.parse(bodyOf(calls[3]))).toEqual({ user_id: userDict.id });
 
 		// 5) api_token_create
+		// `expires_in` y `unit` son obligatorios: el plugin `expire_api_token` de CKAN rechaza el
+		// pedido sin ellos (409 "Missing value") y el login entero falla.
 		expect(calls[4].url).toBe(`${BASE}/api/3/action/api_token_create`);
 		expect(calls[4].init?.headers?.Cookie).toBe("ckan=sess-1");
 		expect(calls[4].init?.headers?.["X-CSRFToken"]).toBe("csrf-1");
 		expect(calls[4].init?.headers?.["Content-Type"]).toBe("application/json");
-		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ user: "jdoe", name: TOKEN_NAME });
+		expect(JSON.parse(bodyOf(calls[4]))).toEqual({
+			user: "jdoe",
+			name: TOKEN_NAME,
+			expires_in: 1,
+			unit: 86400,
+		});
 	});
 
 	it("uses the name resolved by user_show, not the login input", async () => {
@@ -139,7 +151,12 @@ describe("ckanLogin — 6-step flow", () => {
 
 		expect(result.user.name).toBe("resolved-name");
 		expect(calls[2].url).toBe(`${BASE}/user/resolved-name`);
-		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ user: "resolved-name", name: TOKEN_NAME });
+		expect(JSON.parse(bodyOf(calls[4]))).toEqual({
+			user: "resolved-name",
+			name: TOKEN_NAME,
+			expires_in: 1,
+			unit: 86400,
+		});
 	});
 });
 
@@ -336,9 +353,9 @@ describe("ckanLogin — dedupe de tokens previos", () => {
 
 		// revoca solo los tokens del portal (nombre TOKEN_NAME), no los de otra app
 		expect(calls[4].url).toBe(`${BASE}/api/3/action/api_token_revoke`);
-		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ token: "old-jwt-1" });
+		expect(JSON.parse(bodyOf(calls[4]))).toEqual({ jti: "old-jwt-1" });
 		expect(calls[5].url).toBe(`${BASE}/api/3/action/api_token_revoke`);
-		expect(JSON.parse(bodyOf(calls[5]))).toEqual({ token: "old-jwt-2" });
+		expect(JSON.parse(bodyOf(calls[5]))).toEqual({ jti: "old-jwt-2" });
 
 		// minteo del token nuevo
 		expect(calls[6].url).toBe(`${BASE}/api/3/action/api_token_create`);
