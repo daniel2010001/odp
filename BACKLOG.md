@@ -40,20 +40,16 @@
   `openspec/changes/archive/2026-09-11-dataset-publishing/` (commit `1b7c33d`) y spec promovida a
   `openspec/specs/dataset-publishing/spec.md`.
 
-## Próxima sesión (Plan C — wizard, parte 2)
+## Plan C — pulido de UI (cerrado 2026-09-13)
 
-> **Estado:** el dashboard ya está cerrado (promovido y en `main`), la validación del wizard también.
-> Lo que queda es la **iteración de UI del wizard**, empezada el 2026-09-12.
+> **Estado: CERRADO.** El dashboard y el wizard están **promovidos y en `main`**, y el playground
+> (`src/routes/dev/dashboard/datasets/new/`, material de la regla 8 de `AGENTS.md`) **se borró** al
+> terminar. Los commits y las revisiones están en «Promoción del wizard (Plan C) — CERRADA», más abajo.
 >
-> **Dónde se está trabajando:** playground `src/routes/dev/dashboard/datasets/new/+page.svelte`
-> (creado por regla 8 de `AGENTS.md`, **sin commitear**), visible en `http://localhost:8082/dev/dashboard/datasets/new`.
-> Es una **maqueta con datos de fixture**: no sube nada ni toca CKAN. Se promueve y se borra al aprobar.
->
-> **Ya aprobado por el usuario en esta iteración:** los márgenes y el centrado (contenedor alineado al
-> encabezado del sitio, `max-w-7xl`) y el **resumen fijo (sticky) a la derecha** con la acción a mano.
->
-> **Estado (2026-09-13):** el playground tiene implementadas las **pasadas 1-3** y **dos rondas de
-> rediseño**. Falta la **revisión visual final** y, después, promover + borrar el playground.
+> Lo que sigue es el **registro de la iteración**: qué se decidió y qué se verificó mientras se diseñaba.
+> Los ítems marcados están **implementados** en la promoción; se conservan por el razonamiento
+> verificado que llevan adentro (mediciones contra CKAN, causas raíz), no como trabajo pendiente. Los
+> que siguen abiertos están marcados como tales.
 > Ya aprobado: márgenes y centrado (`max-w-7xl`), resumen fijo a la derecha, visibilidad fuera del
 > formulario, pestañas «Archivo | Enlace» y el estilo propio (sin `nova`).
 > **Descartado:** la barra pegajosa de envío (las acciones van fuera del resumen, en la columna
@@ -75,9 +71,9 @@
 
 ### Ajustes pedidos por el usuario (2026-09-12)
 
-- [ ] **[v0] Visibilidad fuera del flujo de creación** — se quita el selector de visibilidad del
+- [x] **[v0] Visibilidad fuera del flujo de creación** — se quita el selector de visibilidad del
   formulario (el flujo de publicación definirá el estado) pero **se mantiene en el resumen**.
-- [ ] **[v0] Slug autogenerado y bloqueado** — debe generarse a medida que se escribe el título
+- [x] **[v0] Slug autogenerado y bloqueado** — debe generarse a medida que se escribe el título
   (`Titl → titl`), mostrarse **como no-editable** (que no parezca un input) con una línea de
   comentario, y tener una acción explícita para **desbloquearlo** y editarlo. Ya existe la lógica de
   sugerencia (`slugEdited`) en la página; falta la presentación bloqueada/desbloqueada.
@@ -90,24 +86,24 @@
   (2..100) se conservan porque son las reglas reales de CKAN. Aplicado en `src/lib/schemas/dataset.ts`
   con tests nuevos (RED→GREEN); el mensaje de error del título ahora es «El título es obligatorio».
   Desaparece la tensión con el markdown (ya no hay tope de 5000 en la descripción).
-- [ ] **[v0] Organización: autocompletar si hay una sola** — si el usuario pertenece a una sola
+- [x] **[v0] Organización: autocompletar si hay una sola** — si el usuario pertenece a una sola
   organización, seleccionarla automáticamente (y reflejarlo en el resumen). El selector se mantiene
   para el caso de varias.
-- [ ] **[v0] Etiquetas: input tipo buscador con sugerencias y badges** — al escribir, sugerir
+- [x] **[v0] Etiquetas: input tipo buscador con sugerencias y badges** — al escribir, sugerir
   etiquetas existentes; al elegir una, agregarla como badge con «x» para quitarla; si no existe, crearla
   igual. **Verificado**: el repo tiene `FacetFilter` y `SearchBar` pero **no** un combobox; shadcn
   tiene componentes de este tipo que habría que instalar/adaptar. Las sugerencias pueden salir de
   `tag_list` o del facet `tags` de `package_search`.
-- [ ] **[v0] Licencias: explicar qué significa cada una** — **verificado**: `license_list` devuelve
+- [x] **[v0] Licencias: explicar qué significa cada una** — **verificado**: `license_list` devuelve
   por licencia `id`, `title`, `url`, `od_conformance`, `osd_conformance`, `domain_data`,
   `domain_content`, `is_generic`, `maintainer`, `status` (15 licencias en dev). **No hay** texto
   explicativo largo. Opciones: mostrar el `title` + enlace a `url` + los indicadores de conformidad
   como ayuda contextual, o escribir nosotros una explicación breve por licencia (y su traducción).
-- [ ] **[v0] «Página de destino» — aclarar el nombre** — es el campo `url` del **dataset** en CKAN:
+- [x] **[v0] «Página de destino» — aclarar el nombre** — es el campo `url` del **dataset** en CKAN:
   la página propia del dataset (por ejemplo, el sitio de la unidad que lo publica), **no** una
   referencia de un recurso ni la URL de descarga. Conviene renombrarlo y explicarlo con una ayuda,
   porque «página de destino» no se entiende.
-- [ ] **[v0] Subida: señal de progreso real** — además del porcentaje, una señal de que «está
+- [x] **[v0] Subida: señal de progreso real** — además del porcentaje, una señal de que «está
   pasando algo» (barra + indicador animado + cambio de color). **Medido (2026-09-13) contra el stack
   dev**: el porcentaje sale de `xhr.upload.onprogress`, que mide **bytes enviados**, y el tramo final
   (100 % → respuesta de CKAN) dura **~288 ms con 5 MB y ~469 ms con 50 MB** en red local. Es real y
@@ -116,7 +112,7 @@
   playground con el escenario «Procesando».
   _Nota: `package_purge` no está expuesto por API en este stack; la limpieza de un dataset de prueba
   va por CLI (`ckan dataset purge`)._
-- [ ] **[v0] Recursos: nombre y descripción editables por recurso (requisito)** — **verificado**:
+- [x] **[v0] Recursos: nombre y descripción editables por recurso (requisito)** — **verificado**:
   CKAN los soporta **nativamente** (`resource_create` acepta `name` y `description`;
   `default_resource_schema` los valida), así que RF-11 se cumple sin extras. Confirmado por el usuario:
   «es requerimiento que cada recurso tenga un nombre y una description/summary editable», porque el
@@ -154,7 +150,7 @@
   abandona a mitad, si un dataset a medio poblar es aceptable, si el estado `draft` de CKAN está
   habilitado en este stack (verificarlo con la API antes de prometerlo), y si el flujo de publicación
   definirá el estado de todos modos (ver el ítem de visibilidad).
-- [ ] **[v0] Barra pegajosa vs. botón duplicado** — el usuario pidió **implementar ambos** para
+- [x] **[v0] Barra pegajosa vs. botón duplicado** — el usuario pidió **implementar ambos** para
   comparar, igual que se hizo en el playground del dashboard: dejarlo como está (botón al final del
   formulario + otro en el resumen) o reemplazarlo por la barra pegajosa. **Resuelto (2026-09-13): la
   barra pegajosa se descartó** (no gustó). Las acciones quedan **fuera del resumen**, en la columna
@@ -182,42 +178,62 @@
   pegajosa propia; probar como alternativa el **mismo estilo que quedó en la página de búsqueda**,
   para ver si conviene unificar. _Origen: pedido del usuario._
 
-### Promoción del wizard (Plan C) — plan detallado para la próxima sesión
+### Promoción del wizard (Plan C) — CERRADA (2026-09-13)
 
-**Por qué no se hizo al cierre del 2026-09-13:** **no es un copy-paste**. El playground (1 558 líneas,
-datos de fixture) y el wizard real (1 003 líneas, lógica real) tienen **modelos de recursos
-distintos**, así que promover es una **re-arquitectura** del flujo de creación:
+> Ejecutada y cerrada. El playground (`src/routes/dev/dashboard/datasets/new/`) **se borró**: era
+> material de trabajo de la regla 8, sin trackear, y ya no tiene razón de existir.
 
-| Playground (maqueta) | Wizard real | Qué implica |
+**Lo que se hizo.** La promoción no fue un copy-paste: el playground era una maqueta con datos de
+fixture y el wizard real tenía la lógica de CKAN, así que se injertó la UI aprobada sobre la lógica
+real en **dos slices**, cada uno pasado por revisión nativa con su propia línea.
+
+| Slice | Commits | Revisión |
 |---|---|---|
-| `recursos`: **lista única** archivo/enlace con `nombre`, `descripcion`, `detalle`, `estado` | `fileEntries` (con `File` + `AbortController` + progreso) y `linkEntries` **separadas** | unificar el modelo **conservando** la subida real, la cancelación y el reintento |
-| `licencias` mock (5) | `LICENSE_IDS` **hardcodeada** (13) y **no** se llama a `license_list` | decidir: cargar la lista de CKAN o justificar la fija |
-| organizaciones mock | `organization_list_for_user` + estados de carga/error | conservar tal cual |
-| sin guard ni envío | guard (`authed`), `submitting`, `submitError`, `createdDataset`, `uploadFinished`, `rejectedFiles` | conservar entero |
-| — | `handleSubmit`, `runUploads`, `createLinkResources`, `retryFailedResources`, `cancelUpload` | reescribir sobre el modelo unificado |
+| Fundación previa (bits-ui + iconos, markdown RF-39, summary RF-40, topes y validación) | `5cc168e`, `e0fac01`, `d49ffb8`, `1bcc590`, `6cbdefb`, `73efbaf` | `review-521de49bd20a934a` — `approved`, tier high, 4 lentes, 8 advisory |
+| **Slice 1** — layout + metadatos | `785c24c`, `f613a61`, `d29306f`, `5616d18` | `review-cc9f270fe3b13523` — `approved`, tier medium |
+| Arreglo del detalle de dataset privado | `f8e6b09` | incluido en la línea anterior |
+| **Slice 2** — recursos unificados | `08300a3`, `f134e9c` | `review-544dc8f1f33ea19f` — `approved`, tier medium |
 
-**Plan en dos slices** (para no pasar el presupuesto de revisión de 400 líneas):
+**Decisiones que se tomaron para desbloquear el injerto** (todas consultadas antes de codificar):
 
-1. **Slice 1 — layout + metadatos** (sin tocar la sección de recursos, que sigue con su UI y su lógica
-   actuales): contenedor `max-w-7xl` + columna derecha pegajosa; *Metadatos básicos* con **resumen**
-   (contador 200) + **descripción** (editor de markdown con barra y vista previa + contador 5000) +
-   slug bloqueado; *Organización* con la organización automática cuando hay una sola; *Metadatos
-   adicionales* **siempre visibles** (etiquetas con combobox, licencia con su explicación, sitio web,
-   responsable con contadores); la **ficha** del resumen con el tooltip de privacidad; las acciones
-   **fuera del resumen**; y el `--label-offset` de los labels. Sumar `licenseIdError` y la validación
-   del resumen.
-2. **Slice 2 — recursos**: unificar el modelo (lista única archivo/enlace, con `nombre` y
-   `descripcion` por recurso) conservando la subida con progreso y cancelación, el reporte de fallo
-   parcial y la navegación final; **mini-form** de alta/edición + **lista compacta** con lápiz.
+1. **Visibilidad fuera del formulario; todo dataset se crea privado.** Es el ítem `[v0]` que ya estaba
+   anotado: el flujo de publicación definirá el estado. El payload manda `private: true` y la ficha lo
+   explica. **Consecuencia que había que resolver:** la página pública de un dataset privado respondía
+   403 incluso para su dueño (el cliente del detalle no llevaba token), así que publicar terminaba en una
+   página prohibida. Era **preexistente** — el wizard viejo también arrancaba en `private` — pero pasó a
+   ser el **único** camino al desaparecer la escapatoria de "hacerlo público". Arreglado en `f8e6b09`.
+2. **Licencias desde CKAN (`license_list`).** La lista hardcodeada tenía **4 ids que CKAN no ofrece**
+   (`cc-by-nc`, `cc-by-nc-sa`, `cc0-1.0`, `pddl`) y como CKAN no valida `license_id`, el wizard podía
+   guardar una licencia inexistente. Ahora el portal ofrece lo que CKAN tiene, con `curatedLicenseLabel`
+   para los ids que sí tienen etiqueta en español. Si la carga falla, el select se deshabilita y se
+   explica: la licencia es opcional, así que publicar sigue funcionando. **No** hay vuelta atrás a la
+   lista inventada.
+3. **Sugerencias de etiquetas desde el facet `tags`** de `package_search`, con degradación a `[]`.
 
-**Decisiones que bloquean el slice 1** (cortas, pero definen la *forma* del formulario):
-- ¿La **edición** de un dataset reutiliza esta UI? Si sí, el formulario debe nacer como **componente
-  con modo** (`create` | `edit`) en vez de página con la lógica adentro.
-- ¿La creación es de **uno o dos pasos** (con borrador)?
+**Verificación real (2026-09-13, stack dev, token minteado y revocado, datasets purgados):**
 
-**Verificación obligatoria al promover:** crear un dataset real desde la página promovida subiendo un
-archivo grande por el proxy (comprobando que no pasa por SvelteKit), con el guard de sesión; y re-medir
-el responsive a **375/768/1024/1440**.
+- **E2E de subida:** dataset creado con un archivo de **12 MiB**, `package_create` y `resource_create`
+  (multipart) por `http://localhost:8082/api/3/action/…` — **no** pasan por SvelteKit. `size` correcto.
+- **Slice 2, riesgo refutado por medición:** con un **nombre editable distinto del nombre del archivo**
+  (`Datos de verificación 2026` sobre `datos-verificacion.csv`), CKAN guardó `name` = el nombre editable,
+  `description` = la tipeada, y **`format: "CSV"` / `mimetype: text/csv` / `size` inferidos del archivo**,
+  no del nombre. La URL de descarga conserva el nombre real.
+- **Guard de sesión:** sin token redirige a `/auth/login`. **Consola:** 0 errores. **Responsive:**
+  0 px de desborde a 375/768/1024/1440.
+- Gates al cierre: `test` **301/301** · `check` 0 errores · `lint` en baseline · `build` OK.
+
+**Lo que sigue pendiente de esta tanda** (no bloquea el snapshot):
+
+- Las **dos decisiones `[v1]`** siguen abiertas y **no** bloquean nada: si la edición reutiliza esta UI
+  (hoy el wizard es una **página** con un solo flujo; extraerla a un componente con modo es un refactor
+  mecánico cuando exista edición) y si la creación es de uno o dos pasos (depende de la estrategia del
+  ciclo de vida, RF-15, todavía sin resolver).
+- **[v1] La página del wizard volvió a crecer** (`~1650` líneas tras el slice 2). Si se toca otra vez, el
+  candidato natural es extraer el mini-form y la lista de recursos a componentes, como ya se hizo con
+  `TagsInput` y `MarkdownEditor`.
+- **[v1] `aria-expanded` en el `TagsInput`:** `bits-ui Command.Input` lo deja en `"true"` incluso con la
+  lista cerrada (heredado del playground verificado). Un auditor estricto de a11y lo querría conmutado.
+
 
 ## En curso (cambios SDD)
 
@@ -234,11 +250,6 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
   `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
   similar a la del **dataset**, conservando el detalle que agrega valor a la card. Revisar ambos
   antes de normalizar. _Origen: revisión de UI del dashboard (2026-09-12)._
-
-- [ ] **[v0] Wizard (`/dashboard/datasets/new`) — pulir la UI** — misma revisión iterativa que el
-  dashboard. Puntos conocidos: claridad de "archivo **o** enlace" por recurso (RF-13: son
-  excluyentes y va uno por recurso), estados de carga/error y densidad general del formulario.
-  _Origen: feedback directo del usuario (2026-09-12)._
 
 - [ ] **[v0] Endurecer la vista previa CSV (hallazgos de revisión)** — 4 hallazgos informativos
   no bloqueantes de la revisión de la vista previa (lineage `review-ca9abb1187a39513`, lente
@@ -457,6 +468,22 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
     archivo **y** URL a la vez (RF-13 los quiere excluyentes).
   - `R4-markdown-parse-then-truncate` (resilience, `dataset-summary.ts:24`) — se parsea el markdown
     antes de truncar, en vez de truncar el texto plano.
+
+- [ ] **[v1] Hallazgos advisory de la promoción del wizard** — dos líneas más, ambas cerradas en
+  **`approved`** con hallazgos `WARNING`/`SUGGESTION` informativos. Ninguno abrió corrección. Son
+  trabajo posterior, nunca motivo para re-correr esas revisiones:
+  - `review-cc9f270fe3b13523` (slice 1 — layout + metadatos): `R3-001` (`TagsInput.svelte:104`) y
+    `R3-002` (`TagsInput.svelte:41`).
+  - `review-544dc8f1f33ea19f` (slice 2 — recursos unificados): `R3-cancel-processing`
+    (`+page.svelte:543-548`) — cancelar mientras el recurso está en estado «procesando».
+
+- [ ] **[v1] La revisión nativa se escala por ruta, no por tamaño** — observado el 2026-09-13: la
+  fundación del Plan C (1 477 líneas) salió **tier high con 4 lentes** porque tocaba
+  `src/lib/components/auth/UserMenu.svelte` (una línea de import), mientras la promoción del wizard
+  (2 220 líneas) salió **tier medium con 1 lente**. El tier lo decide el proveedor y no se discute, pero
+  conviene tenerlo presente al leer la cobertura: **un cambio grande sin archivos «calientes» recibe
+  menos lentes**. Si se quiere más cobertura en un candidato así, hay que partirlo en candidatos que sí
+  disparen señales, no pedir más lentes al mismo.
 
 - [ ] **[v1] Sigla de organización (`extras.sigla`)** — CKAN **no** tiene un campo nativo de
   abreviatura, pero sí soporta extras en organizaciones: existe la tabla `group_extra`, la API acepta
