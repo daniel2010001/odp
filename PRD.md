@@ -107,11 +107,24 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 - RF-08: Los datasets pertenecen a una única organización (propietaria).
 
 ### Módulo de Datasets
-- RF-09: Un dataset tiene: título, descripción (richtext), organización propietaria, estado de ciclo de vida (`draft`, `review`, `approved`, `published`), visibilidad (`private`, `internal`, `public`), metadatos estándar (título, descripción, publicador, fecha de emisión, fecha de modificación, idioma, licencia, palabras clave).
+- RF-09: Un dataset tiene: título, descripción **con formato** (markdown; ver RF-39), organización propietaria, estado de ciclo de vida (`draft`, `review`, `approved`, `published`), visibilidad (`private`, `internal`, `public`), metadatos estándar (título, descripción, publicador, fecha de emisión, fecha de modificación, idioma, licencia, palabras clave).
 - RF-10: Los metadatos se almacenan en formato JSONB para flexibilidad.
 - RF-11: Cada dataset puede tener múltiples **recursos** (archivos o enlaces). Cada recurso tiene: nombre, descripción, tipo (archivo/enlace), tamaño, hash SHA-256 (para archivos), URL (para enlaces), y metadatos de subida.
 - RF-12: Tamaño máximo por recurso: 50 MB (configurable).
 - RF-13: Un recurso solo puede contener un archivo o un enlace.
+- RF-39: La descripción del dataset se escribe en **markdown** y el portal la renderiza con un
+  subconjunto seguro: **HTML crudo deshabilitado** (el HTML escrito por el usuario nunca se interpreta)
+  y los enlaces e imágenes pasan por la **misma política de URL de la aplicación** (solo `http`/`https`,
+  fail-closed; ver §10). El editor ofrece **vista previa** mientras se escribe.
+  *Decisión (2026-09-13):* se eligió markdown y no HTML enriquecido. `notes` es `text` plano en CKAN y
+  **la propia UI de CKAN ya renderiza markdown** en la descripción; además el HTML almacenado es opaco
+  para Solr y para las exportaciones DCAT, y amplía la superficie de XSS almacenado. La palabra
+  «richtext» de RF-09 se interpreta como **con formato**, no como HTML libre.
+- RF-40: El dataset tiene un **resumen** corto (máximo 200 caracteres) que es lo que se muestra en las
+  **tarjetas del buscador**; si está vacío, la tarjeta usa un **extracto de la descripción**. Es un
+  campo **propio del portal**: en CKAN se guarda como **extra** (`summary`), no como campo nativo, y
+  no mapea a ningún vocabulario externo — la decisión de no escribir extras de **DCAT** sigue en pie
+  (esa deuda era por un vocabulario inestable entre perfiles de `ckanext-dcat`).
 
 ### Módulo de Versionado y Aprobación
 - RF-14: Los datasets tienen versiones. Una versión se crea explícitamente por el usuario (no automática). Cada versión tiene: número de versión (semántico o etiqueta editable), fecha, autor, estado de aprobación (`pending`, `approved`, `rejected`), y visibilidad propia (hereda de la versión base, pero puede ser distinta).
@@ -151,6 +164,21 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 - RF-30: Los archivos PDF, imágenes, TXT y JSON se previsualizan en el navegador.
 - RF-31: Para CSV sin análisis, se muestra una tabla con primeras 20 filas.
 - RF-32: Los gráficos generados en el módulo de análisis se pueden exportar como PNG o JPEG. Los datos de la tabla subyacente se pueden exportar como CSV.
+
+**Modelo de vistas (decisión de arquitectura, 2026-09-13).** Hay dos niveles que no deben mezclarse:
+
+- **Vista previa (render automático)**: el portal elige el render según el `format` del recurso
+  (PDF → embed/iframe, imagen → `<img>`, TXT/JSON → texto, CSV → tabla de 20 filas). No se crea ni se
+  guarda nada; vive **dentro de la página del recurso** (RF-30/RF-31).
+- **Vistas creadas (análisis)**: artefactos guardados que el editor, o la IA, produce sobre los datos
+  (gráficos, mapas). Viven en el **Módulo de Análisis de Datos** (RF-24/25/26), en página propia; RF-32
+  sólo los exporta. Los gráficos no son parte de la vista previa.
+
+La vista creada se guarda como **definición de vista** (`tipo` + columnas + opciones) en JSON, en un
+`__extras` del recurso (o tabla propia del portal más adelante). **No se usa `resource_view` de CKAN**:
+el proyecto es CKAN headless y el portal es dueño de toda la UI. La IA es un *autor alternativo* de esa
+misma definición, no un tipo de vista nuevo. La conversión PDF→markdown es una *pipeline de
+procesamiento* aparte (v1+), no un "tipo de vista".
 
 ### Módulo de Auditoría y Seguridad
 - RF-33: Se auditan todas las operaciones CUD sobre datasets, recursos, colaboradores, equipos, colecciones, cambios de visibilidad, aprobaciones, logins y logouts.
@@ -205,6 +233,60 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 equivalente* (RF-14 a RF-17, RF-19, RF-23, RF-33 a RF-36) **no son alcanzables con la API de
 CKAN**. Exigen una extensión propia o una capa de datos paralela, y por eso están asignados a
 tiers posteriores a `v0` en `BACKLOG.md`.
+
+### Límites de campos en CKAN (verificado 2026-09-13)
+
+Al crear o actualizar un dataset o un recurso, CKAN **sólo** impone los límites de la tabla. Todo lo
+demás es `text` sin tope en la base.
+
+| Campo | Límite real de CKAN |
+|---|---|
+| `package.name` (slug) | 2–100 caracteres; sólo minúsculas, números, `-` y `_` |
+| Etiquetas (`tags[].name`) | 2–100 caracteres cada una; charset `\p{L}\p{N}_-. ` |
+| `title` | **sin tope** (obligatorio, no vacío) |
+| `notes` (descripción) | **sin tope** |
+| `url` del dataset | **sin tope** |
+| `maintainer`, `maintainer_email`, `author*` | **sin tope** |
+| `resource.name`, `resource.description` | **sin tope** (probado: 1 y 8000 caracteres) |
+| `license_id` | debe ser un id de `license_list` |
+| `owner_org` | debe ser un id o slug de organización existente |
+
+**Campos de un recurso (verificado 2026-09-13, medido contra el stack dev):**
+
+- **No hay mínimo ni máximo** en `resource.name` ni `resource.description` (ambos son `text`).
+- **`name` NO se hereda del archivo.** Subir un archivo sin `name` deja el recurso **sin nombre**: CKAN
+  sólo guarda el nombre original del archivo **dentro de la URL de descarga**
+  (`…/download/informe-gestion-2026.pdf`), es decir, slugificado. Lo mismo con un enlace sin `name`.
+- Por lo tanto, **el portal es responsable del nombre**: si el usuario no escribe un título, el wizard
+  usa el **nombre del archivo** (o la URL, si es un enlace) como nombre del recurso.
+- En una **subida**, CKAN infiere solo: `format`, `size`, `mimetype` y `url_type = upload`. En un
+  **enlace**, `format` queda **vacío** salvo que se envíe explícitamente.
+- **`description` no es obligatoria** en CKAN. Que el portal la exija (o no) es una **decisión de
+  producto**: hoy el wizard la marca como *recomendada*, no obligatoria, y cuenta en la barra de
+  completitud del resumen.
+
+**Decisión (2026-09-13, revisada el mismo día): dos capas distintas.**
+
+1. **Reglas espejadas de CKAN** (obligatorias, no negociables): `name` 2–100 + regex de slug, tags
+   2–100 con el charset real, `owner_org` y `license_id` existentes, `maintainer_email` con el
+   patrón de CKAN. Validar distinto que el servidor produce errores peores que no validar.
+2. **Topes de UX del portal** (NO son límites de CKAN): `title` 120, `notes` 5000, `maintainer` 100,
+   `url` 500, `resource.name` 120 y `resource.description` 1000 caracteres. Son guardrails para que
+   un título larguísimo no rompa las cards ni el buscador, y viven en el **schema compartido**
+   (`src/lib/schemas/`), no sólo en la UI.
+
+**Consecuencia asumida:** como CKAN no los impone, un dataset puede entrar por otro camino (seed, UI
+nativa de CKAN, API) y **superar los topes**. Por eso el render es **defensivo**: las cards, el
+buscador y las listas truncan igual (`line-clamp`, `break-words`, `min-w-0`). La truncación es la que
+garantiza que el diseño no se rompa; el tope es sólo prevención en el formulario.
+
+**El wizard es dueño del nombre del recurso:** CKAN no lo hereda del archivo (verificado abajo), así
+que si el usuario no escribe un título, el portal usa el **nombre del archivo** o el **dominio** de la
+URL. Cualquier límite nuevo debe justificarse como tope de UX **y** acompañarse de render defensivo.
+
+**Histórico:** la primera versión de esta nota decía «el portal no inventa límites propios». Se
+revisó al agregar los topes de UX; lo que sigue prohibido es inventar **reglas de formato** distintas
+a las de CKAN.
 
 ### Modelo conceptual original (histórico)
 

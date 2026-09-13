@@ -94,6 +94,13 @@ Relacionados 8–16px, grupos 24–32px, secciones 48–80px. Padding de secció
 - `sm` `0 1px 2px rgba(0,0,0,.05)` · `md` `0 4px 6px rgba(0,0,0,.10)` ·
   `lg` `0 10px 15px rgba(0,0,0,.10)` · `xl` `0 20px 25px rgba(0,0,0,.15)`.
 
+**Formularios — alineación de label y ayuda (obligatoria).** El **label y el texto de ayuda se alinean
+con el TEXTO del input**, no con su borde. Como el input lleva `px-3` (12px) más 1px de borde, el label
+queda ~13px a la izquierda y se nota («hace un toc»). La separación es la variable CSS
+**`--label-offset`** (valor elegido: **`0.5rem`**), aplicada en el contenedor del campo:
+`class="space-y-1.5 [&>label]:pl-[var(--label-offset)] [&>p]:pl-[var(--label-offset)]"` y definida en el
+`<form>` con `style="--label-offset: …"`.
+
 ---
 
 ## 6. Modo oscuro
@@ -181,6 +188,11 @@ duplicar estilos.
 10. **Formulario de Dataset (crear/editar)** — Wizard o formulario por secciones: título,
     descripción, organización, licencia, etiquetas, visibilidad; editor de metadatos
     (Dublin Core/DCAT-AP); carga de recursos (drag & drop, multi-formato, límite 50 MB).
+    **Recursos — reglas de campos:** un recurso es archivo **o** enlace (nunca ambos); su **nombre**
+    y su **descripción** no tienen mínimo ni máximo en CKAN, pero CKAN **no hereda el nombre del
+    archivo**, así que si el título queda vacío el portal usa el nombre del archivo (o la URL del
+    enlace). La descripción es *recomendada*, no obligatoria. Verificado en el PRD §7.
+    En **móvil no hay arrastrar y soltar**: la zona de carga dice «Elija los archivos del equipo».
 11. **Módulo de Análisis de CSV** — Cargar CSV, tabla normalizada, selector de columnas X/Y,
     gráficos (barras, líneas, pastel) con export PNG/CSV.
 12. **Gestión de colaboradores/equipos y colecciones** — Paneles de permisos por rol.

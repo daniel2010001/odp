@@ -10,7 +10,7 @@ import {
 	Link2,
 	Shield,
 	User,
-} from "lucide-svelte";
+} from "@lucide/svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
@@ -23,6 +23,7 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
 import { formatDate } from "$lib/utils/ckan";
+import { renderMarkdown } from "$lib/utils/markdown";
 
 // ─── State ───────────────────────────────────────────────────────
 let dataset = $state<CkanPackage | null>(null);
@@ -76,7 +77,12 @@ $effect(() => {
 });
 
 // ─── Derived ─────────────────────────────────────────────────────
-const description = $derived(dataset?.notes ? dataset.notes.replace(/<[^>]*>/g, "").trim() : null);
+// La descripción es markdown (RF-39) y se renderiza con `renderMarkdown`, que es seguro por
+// construcción: HTML crudo deshabilitado y URLs validadas con la política de la app.
+const description = $derived.by(() => {
+	const notas = dataset?.notes;
+	return notas?.trim() ? renderMarkdown(notas) : null;
+});
 
 const activeResources = $derived(
 	dataset?.resources?.filter((r) => r.state === "active" || !r.state) ?? [],
@@ -377,7 +383,11 @@ async function handleCopyLink() {
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Descripción</p>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre este dataset</h2>
 						{#if description}
-							<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{description}</p>
+							<div
+								class="markdown-body mt-3 text-sm leading-relaxed text-muted-foreground"
+							>
+								{@html description}
+							</div>
 						{:else}
 							<p class="mt-3 text-sm italic text-muted-foreground">Sin descripción</p>
 						{/if}

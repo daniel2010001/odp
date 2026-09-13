@@ -231,7 +231,9 @@ function buildBaseDatasets() {
 			name,
 			title,
 			owner_org_name: org.name,
-			notes: `<p>${DESCS[i]}</p><p>Datos de la gestión 2025. Para consultas técnicas contactar a la unidad de transparencia de la ${org.title}.</p>`,
+			// `notes` es markdown (RF-39): texto plano con párrafos separados por línea en blanco.
+			// No se escribe HTML acá a propósito — el render no interpreta HTML crudo.
+			notes: `${DESCS[i]}\n\nDatos de la gestión 2025. Para consultas técnicas contactar a la unidad de transparencia de la ${org.title}.`,
 			license_id: LICENSES[i % LICENSES.length],
 			tags,
 			resources,
@@ -245,7 +247,7 @@ const SHOWCASE = {
 	title: "Observatorio de Movilidad Urbana — Cochabamba",
 	owner_org_name: "fcyt",
 	notes:
-		"<p>El Observatorio de Movilidad Urbana de Cochabamba recopila, procesa y publica datos abiertos sobre movilidad urbana en el área metropolitana de Kanata: flujos vehiculares, encuestas de origen-destino, transporte público y accidentalidad vial.</p><p>Los datos cubren el período 2019–2025 y se actualizan trimestralmente.</p>",
+		"El Observatorio de Movilidad Urbana de Cochabamba recopila, procesa y publica datos abiertos sobre movilidad urbana en el área metropolitana de Kanata: flujos vehiculares, encuestas de origen-destino, transporte público y accidentalidad vial.\n\nLos datos cubren el período 2019–2025 y se actualizan trimestralmente.",
 	license_id: "cc-by",
 	author: "Centro de Investigación en Movilidad Urbana (CIMU-FCyT)",
 	maintainer: "Ing. María Elena Vargas Quiroga",

@@ -10,7 +10,7 @@ import {
 	RotateCw,
 	ShieldCheck,
 	TriangleAlert,
-} from "lucide-svelte";
+} from "@lucide/svelte";
 import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
@@ -317,7 +317,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 										</span>
 										<span class="min-w-0 flex-1">
 											<span
-												class="block break-words text-sm font-medium text-foreground group-hover:text-primary"
+												class="line-clamp-2 break-words text-sm font-medium text-foreground group-hover:text-primary"
 											>
 												{dataset.title}
 											</span>
@@ -426,7 +426,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 										/>
 										<span class="min-w-0 flex-1">
 											<span
-												class="block break-words text-sm font-medium text-foreground group-hover:text-primary"
+												class="line-clamp-2 break-words text-sm font-medium text-foreground group-hover:text-primary"
 											>
 												{organization.title}
 											</span>

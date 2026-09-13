@@ -1,8 +1,9 @@
 <script lang="ts">
-import { Building2, Calendar, FileText } from "lucide-svelte";
+import { Building2, Calendar, FileText } from "@lucide/svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
+import { datasetSummary } from "$lib/utils/dataset-summary";
 
 let {
 	dataset,
@@ -28,9 +29,7 @@ const resourceCountLabel = $derived(
 	resourceCount === 1 ? "1 recurso" : `${resourceCount} recursos`,
 );
 
-const description = $derived(
-	dataset.notes ? dataset.notes.replace(/<[^>]*>/g, "").slice(0, 200) : "Sin descripción",
-);
+const description = $derived(datasetSummary(dataset) || "Sin descripción");
 
 // Color como ACENTO sobre contenedor neutro: los chips comparten el mismo
 // frame (bg-muted/50 + border) y solo el texto lleva el color del formato.
@@ -75,7 +74,7 @@ function shortDate(iso: string): string {
 		<div class="space-y-2.5 p-6">
 			<!-- Title: text-xl bold para que domine sobre la meta -->
 			<h3
-				class="font-heading text-xl font-bold leading-[1.2] text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline"
+				class="font-heading text-xl font-bold leading-[1.2] line-clamp-2 break-words text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline"
 			>
 				{dataset.title || dataset.name}
 			</h3>
