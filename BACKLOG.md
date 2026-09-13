@@ -138,6 +138,24 @@
 - [ ] **[v1] Mermaid y el `summary` para las cards** — quedan fuera de esta tanda. Mermaid es librería
   grande + render en cliente + superficie de ataque aparte. El `summary` es un **campo nuevo** (extra
   del dataset en CKAN, con la deuda de vocabulario ya conocida). SEO queda como feature aparte.
+- [ ] **[v1] Editor de la descripción: primero el layout, después el rich-text** — observación del
+  usuario (2026-09-13): «no termina de gustarme que sea así, me gusta la idea pero a la hora de verla
+  con info se me hace pequeña, y eso de poner dos pestañas no termina de gustarme».
+  **El diagnóstico honesto:** la queja es de **presentación**, no del modelo de datos. El markdown
+  guardado funciona y el render es seguro por construcción; lo que molesta es que el editor se ve
+  chico y que la vista previa obliga a cambiar de pestaña.
+  - **Camino barato (recomendado):** editor más alto y **vista previa visible sin pestañas** (lado a
+    lado en `lg`, apilada debajo en móvil). No toca el modelo ni el transporte: es layout. Ojo con la
+    altura: `MarkdownEditor` ya usa `field-sizing: content` como mejora progresiva, y su mínimo es lo
+    que hay que revisar.
+  - **Camino grande (la idea del usuario, aparcada):** editor **rich-text cuyo modelo guardado siga
+    siendo markdown**. Es factible, pero no gratis: exige una dependencia nueva
+    (TipTap/ProseMirror o Milkdown), un **ida y vuelta markdown ↔ modelo del editor que es con
+    pérdida** (tablas y listas anidadas son el caso típico), y aceptar un límite de fidelidad conocido
+    — o guardar las dos representaciones y convivir con su desincronización. Para v0/v1 **no se
+    justifica**: el markdown con vista previa ya cumple RF-39 y el dolor real se resuelve con el camino
+    barato. _Decisión del usuario: dejarlo pendiente, no ahora._
+
 - [ ] **[v1] Definir si la edición reutiliza la UI de creación** — la mayoría de las plataformas
   reutiliza la UI de creación para editar; la alternativa es una UI propia por operación. **Decidirlo
   antes de congelar la UI de creación**, porque afecta su forma: si se reutiliza, el formulario debe
@@ -360,6 +378,23 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 - [ ] **[v1+] Versionado con estados de aprobación** — RF-14/RF-16. Sin API nativa.
   `ckanext-versions` declara compatibilidad sólo con CKAN 2.9; `ckanext-datasetversions` es una
   alternativa aparte. Depende de la estrategia del ciclo de vida.
+
+  **Dos diseños anotados (2026-09-13, idea del usuario) para cuando se implemente:**
+  - **A — desnormalizado:** la versión actual vive en la tabla principal (`datasets`) y todas las
+    versiones en `dataset_versions`. Consultas de catálogo muy rápidas (sin joins), pero **duplica los
+    campos de contenido** y exige un trigger o transacción que sincronice ambas tablas, con el riesgo
+    de inconsistencia que eso trae.
+  - **B — normalizado:** `datasets` guarda sólo identidad y puntero a la versión actual; el contenido
+    descriptivo vive inmutable en `dataset_versions`, y una **vista** (`datasets_current`) resuelve el
+    join para que la aplicación consulte como si fuera una sola tabla. Una única fuente de verdad, sin
+    riesgo de desincronización.
+
+  **Advertencia arquitectónica, antes de elegir:** los dos diseños asumen una **base relacional propia
+  del portal**, y hoy el portal es **CKAN headless** — no tiene base de datos. Primero hay que decidir
+  *dónde* vive ese esquema: tablas propias dentro de `ckanext-umss`, o una base nueva para el portal.
+  Y esa decisión está **aguas abajo** de la estrategia del ciclo de vida (ítem `[v1]` de más arriba),
+  que es la que define qué cuenta como versión y qué estados existen. Elegir A o B antes de eso sería
+  congelar el esquema para un modelo de estados que todavía no existe.
 
 - [ ] **[v1+] Gestión de colaboradores y equipos (UI)** — paneles de permisos por rol. Los
   colaboradores por dataset son nativos (ver `v0`); los equipos multi-organización son custom.
