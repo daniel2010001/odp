@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { auth } from "$lib/stores/auth";
-import type { CkanOrganization, CkanPackage, CkanUser } from "$lib/types/ckan";
+import type { CkanLicense, CkanOrganization, CkanPackage, CkanUser } from "$lib/types/ckan";
 import Wizard from "./+page.svelte";
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
 	create: vi.fn(),
 	upload: vi.fn(),
 	resourceCreate: vi.fn(),
+	licenseList: vi.fn(),
+	tagSuggestions: vi.fn(),
 }));
 
 vi.mock("$lib/env", () => ({
@@ -19,7 +21,10 @@ vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({ listForUser: mocks.listForUser }),
 }));
 vi.mock("$lib/api/datasets", () => ({
-	createDatasetApi: () => ({ create: mocks.create }),
+	createDatasetApi: () => ({ create: mocks.create, tagSuggestions: mocks.tagSuggestions }),
+}));
+vi.mock("$lib/api/licenses", () => ({
+	createLicenseApi: () => ({ list: mocks.licenseList }),
 }));
 vi.mock("$lib/api/upload", () => ({
 	uploadResourceFile: mocks.upload,
@@ -27,6 +32,21 @@ vi.mock("$lib/api/upload", () => ({
 vi.mock("$lib/api/resources", () => ({
 	createResourceApi: () => ({ create: mocks.resourceCreate }),
 }));
+
+beforeAll(() => {
+	// jsdom no implementa `ResizeObserver` ni `scrollIntoView`, que bits-ui `Command` (TagsInput)
+	// usa al abrir la lista. Se proveen stubs deterministas para poder montar el combobox en tests.
+	class ResizeObserverStub {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	}
+	globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+
+	if (!Element.prototype.scrollIntoView) {
+		Element.prototype.scrollIntoView = () => {};
+	}
+});
 
 const baseUser: CkanUser = {
 	id: "u-1",
@@ -60,6 +80,34 @@ const pkg: CkanPackage = {
 	metadata_modified: "2026-01-01T00:00:00.000000",
 };
 
+function makeLicense(overrides: Partial<CkanLicense> = {}): CkanLicense {
+	return {
+		id: "cc-by",
+		title: "Creative Commons Attribution 4.0",
+		url: "https://creativecommons.org/licenses/by/4.0/",
+		family: "Creative Commons",
+		is_generic: "False",
+		maintainer: "",
+		status: "active",
+		od_conformance: "approved",
+		osd_conformance: "approved",
+		domain_content: "False",
+		domain_data: "False",
+		domain_software: "False",
+		...overrides,
+	};
+}
+
+const licenseListFixture: CkanLicense[] = [
+	makeLicense(),
+	makeLicense({
+		id: "cc-by-sa",
+		title: "Creative Commons Attribution-ShareAlike 4.0",
+		url: "https://creativecommons.org/licenses/by-sa/4.0/",
+	}),
+	makeLicense({ id: "notspecified", title: "License not specified", url: "" }),
+];
+
 function getForm(container: HTMLElement): HTMLFormElement {
 	const form = container.querySelector("form");
 	if (!form) throw new Error("No se encontró el formulario");
@@ -73,6 +121,8 @@ beforeEach(() => {
 	mocks.create.mockResolvedValue(pkg);
 	mocks.upload.mockResolvedValue({} as never);
 	mocks.resourceCreate.mockResolvedValue({} as never);
+	mocks.licenseList.mockResolvedValue(licenseListFixture);
+	mocks.tagSuggestions.mockResolvedValue(["matrícula", "estudiantes"]);
 });
 
 describe("Wizard de publicación", () => {
@@ -129,13 +179,7 @@ describe("Wizard de publicación", () => {
 			target: { value: "Matrícula Estudiantil 2026" },
 		});
 
-		const slugInput = screen.getByLabelText(/slug/i);
-		await waitFor(() => expect(slugInput).toHaveValue("matricula-estudiantil-2026"));
-
-		await fireEvent.change(screen.getByLabelText(/organización/i), {
-			target: { value: "facultad-de-ciencias" },
-		});
-
+		// La única organización se selecciona automáticamente y el slug sigue al título.
 		await fireEvent.submit(getForm(container));
 
 		await waitFor(() => expect(mocks.create).toHaveBeenCalled());
@@ -150,7 +194,19 @@ describe("Wizard de publicación", () => {
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dataset/matricula-estudiantil-2026"));
 	});
 
-	it("crea un enlace externo con resource_create en JSON, sin multipart", async () => {
+	it("selecciona automáticamente la única organización y la muestra de solo lectura", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await screen.findByLabelText(/título/i);
+
+		// El título de la organización (no el slug) se muestra de solo lectura.
+		expect(screen.getAllByText("Facultad de Ciencias").length).toBeGreaterThan(0);
+		expect(container.querySelector("#owner-org")).not.toBeInTheDocument();
+	});
+
+	it("muestra el slug bloqueado y lo desbloquea con la acción de editar", async () => {
 		auth.login("tok-123", baseUser);
 
 		const { container } = render(Wizard);
@@ -159,11 +215,128 @@ describe("Wizard de publicación", () => {
 			target: { value: "Matrícula Estudiantil 2026" },
 		});
 
-		const slugInput = screen.getByLabelText(/slug/i);
-		await waitFor(() => expect(slugInput).toHaveValue("matricula-estudiantil-2026"));
+		// Bloqueado: se muestra como texto, no como input editable.
+		await screen.findByText("matricula-estudiantil-2026");
+		expect(container.querySelector("#slug")).not.toBeInTheDocument();
 
-		await fireEvent.change(screen.getByLabelText(/organización/i), {
-			target: { value: "facultad-de-ciencias" },
+		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+		expect(container.querySelector("#slug")).toBeInTheDocument();
+	});
+
+	it("no muestra el campo de visibilidad y publica siempre como privado", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await screen.findByLabelText(/título/i);
+
+		expect(container.querySelector('input[type="radio"]')).not.toBeInTheDocument();
+		expect(screen.queryByText("Privada")).not.toBeInTheDocument();
+		expect(screen.queryByText("Pública")).not.toBeInTheDocument();
+	});
+
+	it("envía el resumen como extra summary en el payload", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula Estudiantil 2026" },
+		});
+		await fireEvent.input(screen.getByLabelText(/resumen/i), {
+			target: { value: "Datos consolidados de matrícula" },
+		});
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(mocks.create).toHaveBeenCalled());
+		expect(mocks.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				extras: [{ key: "summary", value: "Datos consolidados de matrícula" }],
+			}),
+		);
+	});
+
+	it("agrega etiquetas a través de TagsInput y las envía en tag_string", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula Estudiantil 2026" },
+		});
+
+		const input = screen.getByPlaceholderText(/etiqueta/i);
+		await fireEvent.input(input, { target: { value: "presupuesto" } });
+		await waitFor(() =>
+			expect(screen.getByRole("option", { name: "Agregar «presupuesto»" })).toHaveAttribute(
+				"aria-selected",
+				"true",
+			),
+		);
+		await fireEvent.keyDown(input, { key: "Enter" });
+
+		expect(
+			await screen.findByRole("button", { name: "Quitar etiqueta presupuesto" }),
+		).toBeInTheDocument();
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(mocks.create).toHaveBeenCalled());
+		expect(mocks.create).toHaveBeenCalledWith(
+			expect.objectContaining({ tag_string: "presupuesto" }),
+		);
+	});
+
+	it("carga las licencias desde license_list y envía la seleccionada", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula Estudiantil 2026" },
+		});
+
+		const licenseSelect = await screen.findByLabelText(/licencia/i);
+		await waitFor(() => expect(licenseSelect).toBeEnabled());
+
+		await fireEvent.change(licenseSelect, { target: { value: "cc-by" } });
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(mocks.create).toHaveBeenCalled());
+		expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ license_id: "cc-by" }));
+	});
+
+	it("cuando license_list falla, deshabilita el select y permite publicar sin licencia", async () => {
+		auth.login("tok-123", baseUser);
+		mocks.licenseList.mockRejectedValueOnce(new Error("boom"));
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula Estudiantil 2026" },
+		});
+
+		const licenseSelect = await screen.findByLabelText(/licencia/i);
+		await waitFor(() => expect(licenseSelect).toBeDisabled());
+		expect(screen.getByText(/no se pudo cargar la lista de licencias/i)).toBeInTheDocument();
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(mocks.create).toHaveBeenCalled());
+		const payload = mocks.create.mock.calls[0][0] as Record<string, unknown>;
+		expect(payload).not.toHaveProperty("license_id");
+		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dataset/matricula-estudiantil-2026"));
+	});
+
+	it("crea un enlace externo con resource_create en JSON, sin multipart", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula Estudiantil 2026" },
 		});
 
 		await fireEvent.input(screen.getByLabelText("Nombre del enlace"), {
@@ -220,11 +393,6 @@ describe("Wizard de publicación", () => {
 		await fireEvent.input(await screen.findByLabelText(/título/i), {
 			target: { value: "Matrícula Estudiantil 2026" },
 		});
-		const slugInput = screen.getByLabelText(/slug/i);
-		await waitFor(() => expect(slugInput).toHaveValue("matricula-estudiantil-2026"));
-		await fireEvent.change(screen.getByLabelText(/organización/i), {
-			target: { value: "facultad-de-ciencias" },
-		});
 		await fireEvent.input(screen.getByLabelText("Nombre del enlace"), {
 			target: { value: "Informe de matrícula" },
 		});
@@ -261,10 +429,8 @@ describe("Wizard de publicación", () => {
 		await fireEvent.input(await screen.findByLabelText(/título/i), {
 			target: { value: "Matrícula 2026" },
 		});
-		await fireEvent.input(screen.getByLabelText(/^slug/i), { target: { value: "Matrícula 2026" } });
-		await fireEvent.change(screen.getByLabelText(/organización/i), {
-			target: { value: "facultad-de-ciencias" },
-		});
+		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+		await fireEvent.input(screen.getByLabelText(/slug/i), { target: { value: "Matrícula 2026" } });
 
 		await fireEvent.submit(getForm(container));
 
@@ -284,13 +450,14 @@ describe("Wizard de publicación", () => {
 		await fireEvent.input(await screen.findByLabelText(/título/i), {
 			target: { value: "Matrícula 2026" },
 		});
-		await fireEvent.input(screen.getByLabelText(/^slug/i), { target: { value: "Matrícula 2026" } });
+		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+		await fireEvent.input(screen.getByLabelText(/slug/i), { target: { value: "Matrícula 2026" } });
 
 		await fireEvent.submit(getForm(container));
 
 		// El título (3 caracteres) es válido; el primer inválido es el slug, y va antes de la organización.
 		await waitFor(() => expect(document.activeElement?.id).toBe("slug"));
-		expect(screen.getByText(/corrija 2 campos/i)).toBeInTheDocument();
+		expect(screen.getByText(/corrija 1 campo/i)).toBeInTheDocument();
 	});
 
 	it("valida en vivo al perder el foco y limpia el error al corregirlo", async () => {
@@ -298,7 +465,7 @@ describe("Wizard de publicación", () => {
 
 		const { container } = render(Wizard);
 
-		const email = await screen.findByLabelText(/correo del mantenedor/i);
+		const email = await screen.findByLabelText(/correo del responsable/i);
 
 		// Antes de tocarlo no se muestra nada.
 		expect(container.querySelector("#maintainer-email-error")).toBeNull();
@@ -330,7 +497,7 @@ describe("Wizard de publicación", () => {
 			.getAllByRole("link")
 			.map((link) => link.getAttribute("href") ?? "")
 			.filter((href) => href.startsWith("#"));
-		// Con el formulario vacío fallan tres campos, y el resumen los lista en orden de formulario.
-		expect(enlaces).toEqual(["#title", "#slug", "#owner-org"]);
+		// Con el formulario vacío fallan el título y el slug (la organización se seleccionó sola).
+		expect(enlaces).toEqual(["#title", "#slug"]);
 	});
 });
