@@ -33,6 +33,17 @@ export const MAX_URL_LENGTH = 500;
 
 const TAG_CHARSET = /^[\p{L}\p{N}_ \-.]*$/u;
 
+/** Motivo por el que una etiqueta no sirve, o `null` si es válida. Fuente única de las reglas de CKAN. */
+export function tagProblem(tag: string): string | null {
+	if (tag.length < MIN_TAG_LENGTH || tag.length > MAX_TAG_LENGTH) {
+		return `La etiqueta «${tag}» debe tener entre ${MIN_TAG_LENGTH} y ${MAX_TAG_LENGTH} caracteres.`;
+	}
+	if (!TAG_CHARSET.test(tag)) {
+		return `La etiqueta «${tag}» solo puede tener letras, números, espacios, guiones, guiones bajos y puntos.`;
+	}
+	return null;
+}
+
 const CKAN_EMAIL_PATTERN =
 	/^(?!\.)(?!.*\.$)(?!.*?\.\.)[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
@@ -92,16 +103,9 @@ const tagString = z
 	.transform((raw) => parseTagString(raw ?? ""))
 	.superRefine((tags, ctx) => {
 		for (const tag of tags) {
-			if (tag.length < MIN_TAG_LENGTH || tag.length > MAX_TAG_LENGTH) {
-				ctx.addIssue({
-					code: "custom",
-					message: `La etiqueta «${tag}» debe tener entre ${MIN_TAG_LENGTH} y ${MAX_TAG_LENGTH} caracteres.`,
-				});
-			} else if (!TAG_CHARSET.test(tag)) {
-				ctx.addIssue({
-					code: "custom",
-					message: `La etiqueta «${tag}» solo puede tener letras, números, espacios, guiones, guiones bajos y puntos.`,
-				});
+			const problema = tagProblem(tag);
+			if (problema) {
+				ctx.addIssue({ code: "custom", message: problema });
 			}
 		}
 	})

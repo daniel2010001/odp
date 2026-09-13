@@ -7,6 +7,7 @@ import {
 	MAX_SUMMARY_LENGTH,
 	MAX_TITLE_LENGTH,
 	MAX_URL_LENGTH,
+	tagProblem,
 } from "./dataset";
 
 const base = {
@@ -281,6 +282,26 @@ describe("datasetCreateSchema — resumen (RF-40)", () => {
 		expect(
 			datasetCreateSchema.safeParse({ ...base, summary: "s".repeat(MAX_SUMMARY_LENGTH) }).success,
 		).toBe(true);
+	});
+});
+
+describe("tagProblem — reglas de CKAN", () => {
+	it("devuelve null para una etiqueta válida", () => {
+		expect(tagProblem("salud")).toBeNull();
+		expect(tagProblem("covid-19")).toBeNull();
+		expect(tagProblem("gestión escolar")).toBeNull();
+	});
+
+	it("rechaza una etiqueta demasiado corta", () => {
+		expect(tagProblem("a")).toContain("entre 2 y 100");
+	});
+
+	it("rechaza una etiqueta demasiado larga", () => {
+		expect(tagProblem("a".repeat(101))).toContain("entre 2 y 100");
+	});
+
+	it("rechaza un carácter que CKAN no acepta", () => {
+		expect(tagProblem("salud!")).toContain("solo puede tener");
 	});
 });
 
