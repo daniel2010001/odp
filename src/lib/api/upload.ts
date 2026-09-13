@@ -35,6 +35,10 @@ export interface UploadResourceOptions {
 	file: Blob;
 	/** Nombre con el que CKAN registra el recurso. */
 	filename: string;
+	/** Nombre visible del recurso en CKAN. Si está vacío, cae al nombre real del archivo. */
+	name?: string;
+	/** Descripción del recurso. Sólo se envía si tiene valor. */
+	description?: string;
 	onProgress?: (percent: number) => void;
 	signal?: AbortSignal;
 	/**
@@ -59,6 +63,8 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 		packageId,
 		file,
 		filename,
+		name,
+		description,
 		onProgress,
 		signal,
 		timeoutMs = 600000,
@@ -139,7 +145,11 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 
 		const form = new FormData();
 		form.append("package_id", packageId);
-		form.append("name", filename);
+		// `name` es el nombre visible del recurso: si viene vacío, CKAN recibe el nombre real
+		// del archivo (comportamiento previo a poder editarlo). El `filename` se conserva como
+		// nombre de la parte `upload` para que CKAN infiera format/size/mimetype desde el archivo.
+		form.append("name", name?.trim() || filename);
+		if (description?.trim()) form.append("description", description.trim());
 		form.append("upload", file, filename);
 
 		xhr.send(form);

@@ -113,6 +113,54 @@ describe("uploadResourceFile — transporte", () => {
 	});
 });
 
+describe("uploadResourceFile — name y description", () => {
+	it("manda el name provisto como nombre visible del recurso", () => {
+		const { promise, xhr } = start({ name: "Matrícula 2026 (datos)" });
+
+		expect(xhr.body?.get("name")).toBe("Matrícula 2026 (datos)");
+
+		xhr.onload?.();
+		return promise;
+	});
+
+	it("cae al nombre real del archivo cuando name viene vacío", () => {
+		const { promise, xhr } = start({ name: "" });
+
+		expect(xhr.body?.get("name")).toBe("datos.csv");
+
+		xhr.onload?.();
+		return promise;
+	});
+
+	it("agrega description sólo cuando tiene valor", () => {
+		const { promise, xhr } = start({ description: "Tabla completa de matrícula." });
+
+		expect(xhr.body?.get("description")).toBe("Tabla completa de matrícula.");
+
+		xhr.onload?.();
+		return promise;
+	});
+
+	it("omite description cuando viene vacía o en blanco", () => {
+		const { promise, xhr } = start({ description: "   " });
+
+		expect(xhr.body?.has("description")).toBe(false);
+
+		xhr.onload?.();
+		return promise;
+	});
+
+	it("conserva el nombre real del archivo en la parte upload", () => {
+		const { promise, xhr } = start({ name: "Matrícula 2026 (datos)" });
+
+		const upload = xhr.body?.get("upload") as File | null;
+		expect(upload?.name).toBe("datos.csv");
+
+		xhr.onload?.();
+		return promise;
+	});
+});
+
 describe("uploadResourceFile — resultado", () => {
 	it("resuelve con el recurso creado", async () => {
 		const { promise, xhr } = start();
