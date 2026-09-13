@@ -10,7 +10,7 @@ import {
 	Link2,
 	Map as MapIcon,
 	Table,
-} from "lucide-svelte";
+} from "@lucide/svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";

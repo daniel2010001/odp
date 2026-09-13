@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Building2, Database, FileText, Layers } from "lucide-svelte";
+import { Building2, Database, FileText, Layers } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";

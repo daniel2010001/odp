@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowRight, Database } from "lucide-svelte";
+import { ArrowRight, Database } from "@lucide/svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import type { CkanOrganization } from "$lib/types/ckan";
 import { cn } from "$lib/utils";

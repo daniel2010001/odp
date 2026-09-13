@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ChevronDown, LayoutDashboard, LogOut } from "lucide-svelte";
+import { ChevronDown, LayoutDashboard, LogOut } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
 import { logout } from "$lib/api/auth";

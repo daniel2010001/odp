@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Search, X } from "lucide-svelte";
+import { Search, X } from "@lucide/svelte";
 import { untrack } from "svelte";
 import { cn } from "$lib/utils";
 

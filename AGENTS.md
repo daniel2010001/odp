@@ -46,6 +46,16 @@
 SvelteKit 2 + Svelte 5 (runes) + TailwindCSS 4 + shadcn-svelte · TypeScript (strict) ·
 pnpm 10 · CKAN (backend) · Biome (lint/format).
 
+**Componentes de UI — decisión (2026-09-13).** Vendorizamos los componentes **en nuestro propio
+estilo**, sobre los tokens de `src/app.css` (que son la fuente de verdad visual). **No** adoptamos
+el estilo `nova` de shadcn-svelte ni `tailwind-variants`. Los primitivos interactivos son
+**bits-ui** (`Combobox`, `Command`, `Popover`, `Dialog`, `DropdownMenu`, `Select`, `Tabs`,
+`Tooltip`): úselos antes de escribir comportamiento a mano. **No** corra `shadcn-svelte add` a
+ciegas: el CLI (1.x) sólo ofrece `nova` y pisaría/contaminaría los componentes existentes. Cuando
+haga falta un componente nuevo, se vendoriza a mano: se toma su estructura (del registry o del
+componente equivalente) y se reemplazan las clases por las nuestras. Iconos: **`@lucide/svelte`**
+(`lucide-svelte` está deprecado).
+
 ## Comandos útiles
 
 ```sh

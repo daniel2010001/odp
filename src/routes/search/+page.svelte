@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ChevronDown, SlidersHorizontal, X } from "lucide-svelte";
+import { ChevronDown, SlidersHorizontal, X } from "@lucide/svelte";
 import { untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";

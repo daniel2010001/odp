@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Palette, RotateCcw, X } from "lucide-svelte";
+import { Palette, RotateCcw, X } from "@lucide/svelte";
 import { theme } from "$lib/stores/theme";
 
 let open = $state(false);

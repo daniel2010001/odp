@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ChevronDown, Search } from "lucide-svelte";
+import { ChevronDown, Search } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { cn } from "$lib/utils";
 

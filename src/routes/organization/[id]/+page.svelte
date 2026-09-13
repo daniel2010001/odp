@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Database } from "lucide-svelte";
+import { ArrowLeft, Database } from "@lucide/svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";

@@ -10,7 +10,7 @@ import {
 	TriangleAlert,
 	Upload,
 	X,
-} from "lucide-svelte";
+} from "@lucide/svelte";
 import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";

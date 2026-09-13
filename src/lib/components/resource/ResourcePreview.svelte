@@ -1,5 +1,5 @@
 <script lang="ts">
-import { FileText, Loader2 } from "lucide-svelte";
+import { FileText, Loader2 } from "@lucide/svelte";
 import type { DatastoreApi, DatastoreSearchResult } from "$lib/api/datastore";
 import type { CkanResource } from "$lib/types/ckan";
 import DataPreviewTable from "./DataPreviewTable.svelte";

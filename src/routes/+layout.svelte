@@ -1,6 +1,6 @@
 <script lang="ts">
 import "../app.css";
-import { Menu, Monitor, Moon, Sun, X } from "lucide-svelte";
+import { Menu, Monitor, Moon, Sun, X } from "@lucide/svelte";
 import { onDestroy } from "svelte";
 import UserMenu from "$lib/components/auth/UserMenu.svelte";
 import ThemePlayground from "$lib/components/ThemePlayground.svelte";
