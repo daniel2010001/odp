@@ -440,6 +440,24 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
   - `review-656da6beeca5d9e9` (PR5 enlaces): `R3-link-remove-during-submit` (`+page.svelte:789`),
     `R3-link-validation-coverage` (`+page.svelte:218`).
 
+- [ ] **[v1] Hallazgos advisory de la revisión de la fundación del Plan C** — línea
+  `review-521de49bd20a934a` (tier high, 4 lentes, 38 archivos, 1 477 líneas). Cerró **`approved`**;
+  los 8 hallazgos son `WARNING` informativos, **ninguno abrió corrección**. Son trabajo posterior:
+  nunca motivo para re-correr la revisión sobre ese candidato.
+  - `R2-components-json-nova-contradiction` (readability, `components.json:16`) — **corregido**: el
+    CLI había dejado `"style": "nova"`, que contradecía la decisión escrita en `AGENTS.md`; se
+    volvió a `default`.
+  - `R2-dataset-summary-max-not-applied` y `R3-summary-not-truncated` (readability/reliability,
+    `dataset-summary.ts:21-22`) — hay un tope declarado que no se aplica al summary del extra.
+  - `R2-markdown-editor-unique-html-comment` (readability, `MarkdownEditor.svelte:6`).
+  - `R3-legacy-html-notes` (reliability, `dataset-summary.ts:19-23`) y
+    `R4-legacy-html-notes` (resilience, `markdown.ts:56-60`) — qué pasa con `notes` que ya traen
+    HTML crudo (dato legacy).
+  - `R3-resource-archivo-url` (reliability, `resource.ts:48-77`) — caso de recurso que declara
+    archivo **y** URL a la vez (RF-13 los quiere excluyentes).
+  - `R4-markdown-parse-then-truncate` (resilience, `dataset-summary.ts:24`) — se parsea el markdown
+    antes de truncar, en vez de truncar el texto plano.
+
 - [ ] **[v1] Sigla de organización (`extras.sigla`)** — CKAN **no** tiene un campo nativo de
   abreviatura, pero sí soporta extras en organizaciones: existe la tabla `group_extra`, la API acepta
   `extras` en `organization_create` / `organization_update` y `organization_show(include_extras)` los
