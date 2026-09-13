@@ -808,16 +808,16 @@ const hayTitulo = $derived(title.trim().length > 0);
 								</label>
 								{@render contador(summary, MAX_SUMMARY_LENGTH, "summary-count")}
 							</div>
-							<input
+							<textarea
 								id="summary"
-								type="text"
+								rows="2"
 								bind:value={summary}
 								aria-describedby="summary-count summary-help summary-error"
-								placeholder="Una línea para las tarjetas del catálogo"
-								class={inputClass}
+								placeholder="Un resumen breve para las tarjetas del catálogo"
+								class="{inputClass} h-auto"
 								aria-invalid={fieldErrors.summary ? "true" : undefined}
 								onblur={() => markTouched("summary")}
-							/>
+							></textarea>
 							{#if fieldErrors.summary}
 								<p id="summary-error" class="pl-[var(--label-offset)] text-xs text-destructive">
 									{fieldErrors.summary}
