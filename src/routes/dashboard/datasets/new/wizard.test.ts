@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { auth } from "$lib/stores/auth";
@@ -339,13 +339,14 @@ describe("Wizard de publicación", () => {
 			target: { value: "Matrícula Estudiantil 2026" },
 		});
 
-		await fireEvent.input(screen.getByLabelText("Nombre del enlace"), {
+		await fireEvent.click(screen.getByRole("button", { name: "Tipo Enlace" }));
+		await fireEvent.input(screen.getByLabelText(/nombre del recurso/i), {
 			target: { value: "Informe de matrícula" },
 		});
 		await fireEvent.input(screen.getByLabelText("URL del enlace"), {
 			target: { value: "https://example.org/informe.csv" },
 		});
-		await fireEvent.click(screen.getByRole("button", { name: /agregar enlace/i }));
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
 
 		await fireEvent.submit(getForm(container));
 
@@ -365,20 +366,20 @@ describe("Wizard de publicación", () => {
 
 		const { container } = render(Wizard);
 
-		await screen.findByLabelText("Nombre del enlace");
-		await fireEvent.input(screen.getByLabelText("Nombre del enlace"), {
-			target: { value: "Enlace malicioso" },
-		});
+		await screen.findByLabelText(/nombre del recurso/i);
+		await fireEvent.click(screen.getByRole("button", { name: "Tipo Enlace" }));
 
 		for (const urlValue of ["javascript:alert(1)", "data:text/html,<script>alert(1)</script>"]) {
 			await fireEvent.input(screen.getByLabelText("URL del enlace"), {
 				target: { value: urlValue },
 			});
-			await fireEvent.click(screen.getByRole("button", { name: /agregar enlace/i }));
 
 			// Muestra el error de protocolo y NO agrega el enlace a la lista.
 			expect(screen.getByText(/http o https/i)).toBeInTheDocument();
-			expect(container.querySelector("ul[aria-label='Enlaces agregados']")).not.toBeInTheDocument();
+			expect(screen.getByRole("button", { name: /agregar recurso/i })).toBeDisabled();
+			expect(
+				container.querySelector("ul[aria-label='Recursos agregados']"),
+			).not.toBeInTheDocument();
 		}
 	});
 
@@ -393,13 +394,14 @@ describe("Wizard de publicación", () => {
 		await fireEvent.input(await screen.findByLabelText(/título/i), {
 			target: { value: "Matrícula Estudiantil 2026" },
 		});
-		await fireEvent.input(screen.getByLabelText("Nombre del enlace"), {
+		await fireEvent.click(screen.getByRole("button", { name: "Tipo Enlace" }));
+		await fireEvent.input(screen.getByLabelText(/nombre del recurso/i), {
 			target: { value: "Informe de matrícula" },
 		});
 		await fireEvent.input(screen.getByLabelText("URL del enlace"), {
 			target: { value: "https://example.org/informe.csv" },
 		});
-		await fireEvent.click(screen.getByRole("button", { name: /agregar enlace/i }));
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
 
 		await fireEvent.submit(getForm(container));
 
@@ -499,5 +501,134 @@ describe("Wizard de publicación", () => {
 			.filter((href) => href.startsWith("#"));
 		// Con el formulario vacío fallan el título y el slug (la organización se seleccionó sola).
 		expect(enlaces).toEqual(["#title", "#slug"]);
+	});
+
+	it("agrega un archivo como una sola entrada de recurso", async () => {
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		await screen.findByLabelText(/título/i);
+
+		const file = new File(["contenido"], "datos.csv", { type: "text/csv" });
+		await fireEvent.change(screen.getByLabelText(/seleccione un archivo/i), {
+			target: { files: [file] },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
+
+		const list = screen.getByRole("list", { name: "Recursos agregados" });
+		expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+		expect(within(list).getByText("Archivo")).toBeInTheDocument();
+		expect(within(list).getAllByText("datos.csv").length).toBeGreaterThan(0);
+	});
+
+	it("agrega un enlace como una sola entrada de recurso", async () => {
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		await screen.findByLabelText(/título/i);
+
+		await fireEvent.click(screen.getByRole("button", { name: "Tipo Enlace" }));
+		await fireEvent.input(screen.getByLabelText("URL del enlace"), {
+			target: { value: "https://example.org/informe.csv" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
+
+		const list = screen.getByRole("list", { name: "Recursos agregados" });
+		expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+		expect(within(list).getByText("Enlace")).toBeInTheDocument();
+		// Sin nombre, el recurso cae al dominio de la URL.
+		expect(within(list).getByText("example.org")).toBeInTheDocument();
+	});
+
+	it("edita una fila y guarda los cambios", async () => {
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		await screen.findByLabelText(/título/i);
+
+		await fireEvent.click(screen.getByRole("button", { name: "Tipo Enlace" }));
+		await fireEvent.input(screen.getByLabelText(/nombre del recurso/i), {
+			target: { value: "Informe original" },
+		});
+		await fireEvent.input(screen.getByLabelText("URL del enlace"), {
+			target: { value: "https://example.org/informe.csv" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
+
+		await fireEvent.click(screen.getByRole("button", { name: "Editar Informe original" }));
+		await fireEvent.input(screen.getByLabelText(/nombre del recurso/i), {
+			target: { value: "Informe editado" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+		expect(screen.getByRole("list", { name: "Recursos agregados" })).toBeInTheDocument();
+		const listEditada = screen.getByRole("list", { name: "Recursos agregados" });
+		expect(within(listEditada).getByText("Informe editado")).toBeInTheDocument();
+		expect(within(listEditada).queryByText("Informe original")).not.toBeInTheDocument();
+	});
+
+	it("envía el nombre y la descripción por recurso en el payload", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula Estudiantil 2026" },
+		});
+
+		// Archivo con nombre y descripción.
+		const file = new File(["contenido"], "datos.csv", { type: "text/csv" });
+		await fireEvent.change(screen.getByLabelText(/seleccione un archivo/i), {
+			target: { files: [file] },
+		});
+		await fireEvent.input(screen.getByLabelText(/nombre del recurso/i), {
+			target: { value: "Matrícula 2026" },
+		});
+		await fireEvent.input(
+			screen.getByLabelText(/descripción/i, { selector: "#recurso-descripcion" }),
+			{
+				target: { value: "Tabla completa de matrícula." },
+			},
+		);
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
+
+		// Enlace con nombre y descripción.
+		await fireEvent.click(screen.getByRole("button", { name: "Tipo Enlace" }));
+		await fireEvent.input(screen.getByLabelText(/nombre del recurso/i), {
+			target: { value: "Diccionario de datos" },
+		});
+		await fireEvent.input(
+			screen.getByLabelText(/descripción/i, { selector: "#recurso-descripcion" }),
+			{
+				target: { value: "Describe cada columna." },
+			},
+		);
+		await fireEvent.input(screen.getByLabelText("URL del enlace"), {
+			target: { value: "https://example.org/diccionario.pdf" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: /agregar recurso/i }));
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(mocks.upload).toHaveBeenCalled());
+		expect(mocks.upload).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filename: "datos.csv",
+				name: "Matrícula 2026",
+				description: "Tabla completa de matrícula.",
+			}),
+		);
+
+		await waitFor(() => expect(mocks.resourceCreate).toHaveBeenCalled());
+		expect(mocks.resourceCreate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				name: "Diccionario de datos",
+				description: "Describe cada columna.",
+				url: "https://example.org/diccionario.pdf",
+			}),
+		);
 	});
 });

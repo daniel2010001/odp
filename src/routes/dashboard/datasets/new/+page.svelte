@@ -9,6 +9,7 @@ import {
 	LoaderCircle,
 	Lock,
 	Pencil,
+	Plus,
 	RotateCw,
 	Trash2,
 	TriangleAlert,
@@ -37,6 +38,12 @@ import {
 	MAX_TITLE_LENGTH,
 	MAX_URL_LENGTH,
 } from "$lib/schemas/dataset";
+import {
+	MAX_RESOURCE_DESCRIPTION_LENGTH,
+	MAX_RESOURCE_NAME_LENGTH,
+	MAX_RESOURCE_URL_LENGTH,
+	resourceCreateSchema,
+} from "$lib/schemas/resource";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 import type { CkanLicense, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
@@ -80,33 +87,38 @@ let licenses = $state<CkanLicense[]>([]);
 let licensesLoading = $state(true);
 let licensesError = $state<string | null>(null);
 
-// ─── Archivos ────────────────────────────────────────────────────────
-type FileStatus = "pending" | "uploading" | "done" | "error" | "cancelled";
-interface FileEntry {
+// ─── Recursos (archivos y enlaces) ────────────────────────────────────
+// Un único listado: un recurso es archivo **o** enlace (PRD RF-13), nunca ambos. El
+// modelo unifica las dos listas anteriores (`fileEntries` + `linkEntries`) para que la
+// alta, la edición y los estados de subida sean los mismos para los dos tipos.
+type RecursoTipo = "archivo" | "enlace";
+type RecursoEstado = "pendiente" | "subiendo" | "procesando" | "listo" | "error" | "cancelado";
+interface RecursoEntry {
 	key: string;
-	file: File;
-	status: FileStatus;
-	progress: number;
+	tipo: RecursoTipo;
+	nombre: string; // Editable; si queda vacío, cae al nombre del archivo o al dominio de la URL.
+	descripcion: string;
+	file?: File; // Sólo archivo.
+	url?: string; // Sólo enlace.
+	estado: RecursoEstado;
+	progreso: number; // 0..100, sólo archivos.
 	error?: string;
-	controller: AbortController | null;
 }
-let fileEntries = $state<FileEntry[]>([]);
+let recursos = $state<RecursoEntry[]>([]);
 let rejectedFiles = $state<{ name: string; message: string }[]>([]);
 
-// ─── Enlaces externos ──────────────────────────────────────────────────
-type LinkStatus = "pending" | "done" | "error";
-interface LinkEntry {
-	key: string;
-	name: string;
-	url: string;
-	status: LinkStatus;
-	error?: string;
-}
-let linkEntries = $state<LinkEntry[]>([]);
-let linkName = $state("");
-let linkUrl = $state("");
-let linkError = $state<string | null>(null);
-let linkSeq = 0;
+// Controllers de subida por entrada: la cancelación necesita un AbortController por recurso.
+// No es reactivo (sólo se lee/escribe en los handlers de subida y cancelación).
+const uploadControllers = new Map<string, AbortController>();
+
+// ─── Mini-form de recursos: alta y edición ──────────────────────────
+let borradorTipo = $state<RecursoTipo>("archivo");
+let borradorNombre = $state("");
+let borradorDescripcion = $state("");
+let borradorUrl = $state("");
+let borradorArchivo = $state<File | null>(null);
+let editandoKey = $state<string | null>(null);
+let recursoSeq = 0;
 
 // ─── Estado del submit ───────────────────────────────────────────────
 let submitting = $state(false);
@@ -225,25 +237,21 @@ interface FailedResource {
 	label: string;
 	reason: string;
 }
-const failedResources = $derived<FailedResource[]>([
-	...fileEntries
-		.filter((entry) => entry.status === "error" || entry.status === "cancelled")
+const failedResources = $derived<FailedResource[]>(
+	recursos
+		.filter((entry) => entry.estado === "error" || entry.estado === "cancelado")
 		.map((entry) => ({
 			key: entry.key,
-			label: entry.file.name,
+			label: nombreEfectivo(entry),
 			reason:
-				entry.status === "cancelled"
+				entry.estado === "cancelado"
 					? "subida cancelada"
-					: (entry.error ?? "No se pudo subir el archivo"),
+					: (entry.error ??
+						(entry.tipo === "archivo"
+							? "No se pudo subir el archivo"
+							: "No se pudo crear el enlace")),
 		})),
-	...linkEntries
-		.filter((entry) => entry.status === "error")
-		.map((entry) => ({
-			key: entry.key,
-			label: entry.name,
-			reason: entry.error ?? "No se pudo crear el enlace",
-		})),
-]);
+);
 
 // ─── Sugerencia de slug ──────────────────────────────────────────────
 // Sigue al título mientras el usuario no lo haya editado a mano; una vez
@@ -312,74 +320,128 @@ async function loadTagSuggestions() {
 	tagSugerencias = await datasetApi.tagSuggestions();
 }
 
-// ─── Selector de archivos ────────────────────────────────────────────
-function onFilesPicked(event: Event) {
+// ─── Recursos: alta, edición y validación ─────────────────────────────
+// CKAN no completa el nombre del recurso con el del archivo (verificado): si el `nombre`
+// queda vacío, lo resuelve el portal — con el nombre del archivo, o con el dominio de la
+// URL cuando el recurso es un enlace.
+function dominioDe(url: string): string {
+	try {
+		return new URL(url).hostname;
+	} catch {
+		return url;
+	}
+}
+
+/** Nombre efectivo de un recurso: el editable, o el fallback según el tipo. */
+function nombreEfectivo(entry: RecursoEntry): string {
+	if (entry.nombre.trim()) return entry.nombre.trim();
+	if (entry.tipo === "archivo") return entry.file?.name ?? "Archivo";
+	return dominioDe(entry.url ?? "");
+}
+
+/** Nombre efectivo del borrador: lo que validará el schema y mostrará el botón. */
+function nombreEfectivoBorrador(): string {
+	if (borradorNombre.trim()) return borradorNombre.trim();
+	if (borradorTipo === "enlace") {
+		const url = borradorUrl.trim();
+		return url ? dominioDe(url) : "";
+	}
+	return borradorArchivo?.name ?? "";
+}
+
+/** Borrador validado con el mismo schema que usará el envío real. */
+const borradorRecurso = $derived(
+	resourceCreateSchema.safeParse({
+		tipo: borradorTipo,
+		name: nombreEfectivoBorrador(),
+		description: borradorDescripcion,
+		url: borradorTipo === "enlace" ? borradorUrl : undefined,
+	}),
+);
+const borradorValido = $derived(
+	borradorRecurso.success && (borradorTipo === "enlace" || borradorArchivo !== null),
+);
+const errorRecursoUrl = $derived(
+	borradorRecurso.success
+		? null
+		: (borradorRecurso.error.issues.find((issue) => issue.path[0] === "url")?.message ?? null),
+);
+
+function limpiarBorrador() {
+	editandoKey = null;
+	borradorNombre = "";
+	borradorDescripcion = "";
+	borradorUrl = "";
+	borradorArchivo = null;
+}
+
+function onArchivoPicked(event: Event) {
 	const input = event.currentTarget as HTMLInputElement;
-	const picked = Array.from(input.files ?? []);
+	const file = input.files?.[0] ?? null;
 	// Permite volver a elegir el mismo archivo en una próxima selección.
 	input.value = "";
-
-	const rejected: { name: string; message: string }[] = [];
-	const accepted: FileEntry[] = [];
-
-	for (const file of picked) {
-		const result = validateResourceFile(file);
-		if (!result.ok) {
-			rejected.push({ name: file.name, message: result.message });
-			continue;
-		}
-		accepted.push({
-			key: `${file.name}-${file.size}-${file.lastModified}`,
-			file,
-			status: "pending",
-			progress: 0,
-			controller: null,
-		});
+	if (!file) return;
+	const result = validateResourceFile(file);
+	if (!result.ok) {
+		rejectedFiles = [...rejectedFiles, { name: file.name, message: result.message }];
+		borradorArchivo = null;
+		return;
 	}
-
-	rejectedFiles = [...rejectedFiles, ...rejected];
-	fileEntries = [...fileEntries, ...accepted];
+	borradorArchivo = file;
 }
 
-function removeFile(key: string) {
-	fileEntries = fileEntries.filter((entry) => entry.key !== key);
-}
-
-function addLink() {
-	const name = linkName.trim();
-	const urlValue = linkUrl.trim();
-	linkError = null;
-
-	if (!name) {
-		linkError = "Escriba un nombre para el enlace.";
-		return;
-	}
-	if (!urlValue) {
-		linkError = "Escriba la URL del enlace.";
-		return;
-	}
-	// Política única de enlaces externos (`$lib/utils/external-url`): sólo http/https. Los
-	// esquemas como `javascript:` o `data:` se guardan como `url` del recurso y el portal los
-	// renderiza como `href`. Se distingue «no parsea» de «esquema no permitido» para el mensaje.
-	const safeUrl = safeExternalUrl(urlValue);
-	if (!safeUrl) {
-		linkError =
-			unsafeUrlReason(urlValue) === "protocol"
-				? "El enlace debe usar los protocolos http o https."
-				: "La URL no es válida. Use una dirección completa (ej.: https://...).";
-		return;
-	}
-
-	linkEntries = [
-		...linkEntries,
-		{ key: `link-${linkSeq++}`, name, url: safeUrl, status: "pending" },
+function agregarRecurso() {
+	if (!borradorValido) return;
+	const esEnlace = borradorTipo === "enlace";
+	recursos = [
+		...recursos,
+		{
+			key: `recurso-${++recursoSeq}`,
+			tipo: borradorTipo,
+			nombre: borradorNombre.trim(),
+			descripcion: borradorDescripcion.trim(),
+			file: esEnlace ? undefined : (borradorArchivo ?? undefined),
+			url: esEnlace ? (safeExternalUrl(borradorUrl) ?? borradorUrl.trim()) : undefined,
+			estado: "pendiente",
+			progreso: 0,
+		},
 	];
-	linkName = "";
-	linkUrl = "";
+	limpiarBorrador();
 }
 
-function removeLink(key: string) {
-	linkEntries = linkEntries.filter((entry) => entry.key !== key);
+function editarRecurso(key: string) {
+	const recurso = recursos.find((entry) => entry.key === key);
+	if (!recurso) return;
+	editandoKey = key;
+	borradorTipo = recurso.tipo;
+	borradorNombre = recurso.nombre;
+	borradorDescripcion = recurso.descripcion;
+	borradorUrl = recurso.tipo === "enlace" ? (recurso.url ?? "") : "";
+	borradorArchivo = recurso.tipo === "archivo" ? (recurso.file ?? null) : null;
+}
+
+function guardarRecurso() {
+	if (!editandoKey) return;
+	const key = editandoKey;
+	const esEnlace = borradorTipo === "enlace";
+	recursos = recursos.map((entry) =>
+		entry.key === key
+			? {
+					...entry,
+					tipo: borradorTipo,
+					nombre: borradorNombre.trim(),
+					descripcion: borradorDescripcion.trim(),
+					file: esEnlace ? undefined : (borradorArchivo ?? entry.file),
+					url: esEnlace ? (safeExternalUrl(borradorUrl) ?? borradorUrl.trim()) : undefined,
+				}
+			: entry,
+	);
+	limpiarBorrador();
+}
+
+function quitarRecurso(key: string) {
+	if (editandoKey === key) limpiarBorrador();
+	recursos = recursos.filter((entry) => entry.key !== key);
 }
 
 // ─── Validación y submit ─────────────────────────────────────────────
@@ -437,8 +499,7 @@ async function handleSubmit() {
 		const pkg = await datasetApi.create(payload);
 		createdDataset = pkg;
 
-		await runUploads(pkg.id);
-		await createLinkResources(pkg.id);
+		await runResources(pkg.id);
 
 		if (failedResources.length === 0) {
 			void goto(`/dataset/${pkg.name}`);
@@ -452,61 +513,73 @@ async function handleSubmit() {
 	}
 }
 
-async function runUploads(packageId: string) {
-	const token = get(auth).token;
-	if (!token) return;
-
-	for (const entry of fileEntries) {
-		if (entry.status === "done") continue;
-		entry.status = "uploading";
-		entry.progress = 0;
-		entry.error = undefined;
-		const controller = new AbortController();
-		entry.controller = controller;
-		try {
-			await uploadResourceFile({
-				packageId,
-				file: entry.file,
-				filename: entry.file.name,
-				token,
-				onProgress: (percent) => {
-					entry.progress = percent;
-				},
-				signal: controller.signal,
-			});
-			entry.status = "done";
-			entry.progress = 100;
-		} catch (err) {
-			if (err instanceof UploadError && err.code === "aborted") {
-				entry.status = "cancelled";
-			} else {
-				entry.status = "error";
-				entry.error = err instanceof Error ? err.message : "No se pudo subir el archivo";
-			}
-		} finally {
-			entry.controller = null;
+async function runResources(packageId: string) {
+	for (const entry of recursos) {
+		if (entry.estado === "listo") continue;
+		if (entry.tipo === "archivo") {
+			await uploadEntry(packageId, entry);
+		} else {
+			await createLinkEntry(packageId, entry);
 		}
 	}
 }
 
-async function createLinkResources(packageId: string) {
+async function uploadEntry(packageId: string, entry: RecursoEntry) {
+	const token = get(auth).token;
+	if (!token || !entry.file) return;
+	entry.estado = "subiendo";
+	entry.progreso = 0;
+	entry.error = undefined;
+	const controller = new AbortController();
+	uploadControllers.set(entry.key, controller);
+	try {
+		await uploadResourceFile({
+			packageId,
+			file: entry.file,
+			filename: entry.file.name,
+			name: nombreEfectivo(entry),
+			description: entry.descripcion.trim() || undefined,
+			token,
+			onProgress: (percent) => {
+				entry.progreso = percent;
+				// Al llegar al 100 % los bytes ya se enviaron, pero CKAN todavía valida
+				// y guarda: es el tramo «procesando».
+				if (percent >= 100) entry.estado = "procesando";
+			},
+			signal: controller.signal,
+		});
+		entry.estado = "listo";
+		entry.progreso = 100;
+	} catch (err) {
+		if (err instanceof UploadError && err.code === "aborted") {
+			entry.estado = "cancelado";
+		} else {
+			entry.estado = "error";
+			entry.error = err instanceof Error ? err.message : "No se pudo subir el archivo";
+		}
+	} finally {
+		uploadControllers.delete(entry.key);
+	}
+}
+
+async function createLinkEntry(packageId: string, entry: RecursoEntry) {
+	if (!entry.url) return;
 	const client = makeClient();
 	const resourceApi = createResourceApi(client);
-
-	for (const entry of linkEntries) {
-		if (entry.status === "done") continue;
-		entry.error = undefined;
-		try {
-			await resourceApi.create({
-				package_id: packageId,
-				name: entry.name,
-				url: entry.url,
-			});
-			entry.status = "done";
-		} catch (err) {
-			entry.status = "error";
-			entry.error = err instanceof Error ? err.message : "No se pudo crear el enlace";
-		}
+	const descripcion = entry.descripcion.trim();
+	entry.estado = "procesando";
+	entry.error = undefined;
+	try {
+		await resourceApi.create({
+			package_id: packageId,
+			name: nombreEfectivo(entry),
+			url: entry.url,
+			...(descripcion ? { description: descripcion } : {}),
+		});
+		entry.estado = "listo";
+	} catch (err) {
+		entry.estado = "error";
+		entry.error = err instanceof Error ? err.message : "No se pudo crear el enlace";
 	}
 }
 
@@ -515,8 +588,7 @@ async function retryFailedResources() {
 	submitting = true;
 	uploadFinished = false;
 	try {
-		await runUploads(createdDataset.id);
-		await createLinkResources(createdDataset.id);
+		await runResources(createdDataset.id);
 		if (failedResources.length === 0) {
 			void goto(`/dataset/${createdDataset.name}`);
 		} else {
@@ -528,7 +600,7 @@ async function retryFailedResources() {
 }
 
 function cancelUpload(key: string) {
-	fileEntries.find((entry) => entry.key === key)?.controller?.abort();
+	uploadControllers.get(key)?.abort();
 }
 
 // ─── Derivados de la ficha (resumen lateral) ─────────────────────────
@@ -545,21 +617,16 @@ interface FichaResource {
 	tipo: "archivo" | "enlace";
 	nombre: string;
 }
-const fichaResources = $derived<FichaResource[]>([
-	...fileEntries.map((entry) => ({
+const fichaResources = $derived<FichaResource[]>(
+	recursos.map((entry) => ({
 		key: entry.key,
-		tipo: "archivo" as const,
-		nombre: entry.file.name,
+		tipo: entry.tipo,
+		nombre: nombreEfectivo(entry),
 	})),
-	...linkEntries.map((entry) => ({
-		key: entry.key,
-		tipo: "enlace" as const,
-		nombre: entry.name,
-	})),
-]);
+);
 
 const recomendados = $derived([
-	{ label: "Recursos", ok: fileEntries.length + linkEntries.length > 0 },
+	{ label: "Recursos", ok: recursos.length > 0 },
 	{ label: "Licencia", ok: licenseId !== "" },
 	{ label: "Etiquetas", ok: tags.length > 0 },
 ]);
@@ -1028,29 +1095,218 @@ const hayTitulo = $derived(title.trim().length > 0);
 						</div>
 					</section>
 
-					<!-- Archivos -->
-					<section class="space-y-5 rounded-xl border border-border bg-card p-6">
-						<h2 class="font-heading text-lg font-semibold text-primary">Archivos</h2>
-
-						<div class="space-y-1.5">
-							<label for="files" class="text-sm font-medium text-foreground">Archivos</label>
-							<input
-								id="files"
-								type="file"
-								multiple
-								onchange={onFilesPicked}
-								class="block w-full min-w-0 text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary-foreground hover:file:bg-primary/90"
-							/>
-							<p id="files-hint" class="text-xs text-muted-foreground">
-								Hasta {LIMIT_MB} MB por archivo. Puede elegir varios.
-							</p>
+										<!-- Recursos: mini-form de alta/edición + lista compacta -->
+					<section class="space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6">
+						<div class="flex flex-wrap items-start justify-between gap-3">
+							<div>
+								<h2 class="font-heading text-lg font-semibold text-primary">Recursos</h2>
+								<p class="mt-1 max-w-xl text-sm text-muted-foreground">
+									Un recurso es un <strong class="font-semibold">archivo</strong> o un
+									<strong class="font-semibold">enlace</strong>: nunca los dos.
+								</p>
+							</div>
+							{#if recursos.length > 0}
+								<span
+									class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+								>
+									{recursos.length}
+									{recursos.length === 1 ? "recurso" : "recursos"}
+								</span>
+							{/if}
 						</div>
 
+						<!-- Mini-form: da de alta un recurso y también lo edita -->
+						<div class="rounded-xl border border-border bg-muted/30 p-4">
+							<div class="flex flex-wrap items-center justify-between gap-3">
+								<h3 class="font-heading text-base font-semibold text-primary">
+									{editandoKey ? "Editar recurso" : "Nuevo recurso"}
+								</h3>
+								{#if editandoKey}
+									<button
+										type="button"
+										onclick={limpiarBorrador}
+										class="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+									>
+										Cancelar edición
+									</button>
+								{/if}
+							</div>
+
+							<div class="mt-4 space-y-4">
+								<div class="space-y-1.5">
+									<div class="flex items-baseline justify-between gap-2">
+										<label
+											for="recurso-titulo"
+											class="pl-[var(--label-offset)] text-sm font-medium text-foreground"
+										>
+											Nombre del recurso
+										</label>
+										{@render contador(borradorNombre, MAX_RESOURCE_NAME_LENGTH, "recurso-titulo-count")}
+									</div>
+									<input
+										id="recurso-titulo"
+										type="text"
+										bind:value={borradorNombre}
+										aria-describedby="recurso-titulo-count recurso-titulo-help"
+										placeholder="Informe de gestión 2026"
+										class={inputClass}
+									/>
+									<p
+										id="recurso-titulo-help"
+										class="pl-[var(--label-offset)] text-xs text-muted-foreground"
+									>
+										El nombre que verá el público. Si lo deja vacío, se usará el nombre del archivo (o el
+										dominio, si es un enlace).
+									</p>
+								</div>
+
+								<div class="space-y-1.5">
+									<div class="flex items-baseline justify-between gap-2">
+										<label
+											for="recurso-descripcion"
+											class="pl-[var(--label-offset)] text-sm font-medium text-foreground"
+										>
+											Descripción
+										</label>
+										{@render contador(borradorDescripcion, MAX_RESOURCE_DESCRIPTION_LENGTH, "recurso-descripcion-count")}
+									</div>
+									<textarea
+										id="recurso-descripcion"
+										rows="2"
+										bind:value={borradorDescripcion}
+										aria-describedby="recurso-descripcion-count"
+										placeholder="¿Qué contiene este recurso?"
+										class="{inputClass} h-auto"
+									></textarea>
+								</div>
+
+								<div class="space-y-1.5">
+									<span class="block pl-[var(--label-offset)] text-sm font-medium text-foreground">
+										Tipo
+									</span>
+									<div class="flex w-fit items-center gap-1 rounded-md border border-border bg-background p-0.5">
+										<button
+											type="button"
+											onclick={() => (borradorTipo = "archivo")}
+											aria-label="Tipo Archivo"
+											aria-pressed={borradorTipo === "archivo"}
+											class={cn(
+												"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
+												borradorTipo === "archivo"
+													? "bg-primary text-primary-foreground"
+													: "text-muted-foreground hover:text-foreground",
+											)}
+										>
+											<Upload class="size-3.5" aria-hidden="true" />
+											Archivo
+										</button>
+										<button
+											type="button"
+											onclick={() => (borradorTipo = "enlace")}
+											aria-label="Tipo Enlace"
+											aria-pressed={borradorTipo === "enlace"}
+											class={cn(
+												"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
+												borradorTipo === "enlace"
+													? "bg-primary text-primary-foreground"
+													: "text-muted-foreground hover:text-foreground",
+											)}
+										>
+											<Link class="size-3.5" aria-hidden="true" />
+											Enlace
+										</button>
+									</div>
+								</div>
+
+								{#if borradorTipo === "archivo"}
+									<div class="rounded-xl border border-dashed border-border bg-background px-6 py-6 text-center">
+										<label for="recurso-archivo" class="block cursor-pointer">
+											<span
+												class="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary"
+											>
+												<Upload class="size-5" aria-hidden="true" />
+											</span>
+											{#if borradorArchivo}
+												<p class="mt-2.5 break-words text-sm font-medium text-foreground">{borradorArchivo.name}</p>
+												<p class="mt-1 text-xs text-muted-foreground">Elija otro archivo para reemplazarlo</p>
+											{:else}
+												<p class="mt-2.5 text-sm text-foreground">
+													Arrastre archivos aquí o
+													<span class="font-semibold text-primary underline underline-offset-2">elíjalos del equipo</span>
+												</p>
+											{/if}
+											<p class="mt-1 text-xs text-muted-foreground">Hasta {LIMIT_MB} MB por archivo.</p>
+										</label>
+										<input
+											id="recurso-archivo"
+											type="file"
+											onchange={onArchivoPicked}
+											class="sr-only"
+											aria-label="Seleccione un archivo"
+										/>
+									</div>
+								{:else}
+									<div class="space-y-1.5">
+										<div class="flex items-baseline justify-between gap-2">
+											<label
+												for="recurso-url"
+												class="pl-[var(--label-offset)] text-sm font-medium text-foreground"
+											>
+												URL del enlace
+											</label>
+											{@render contador(borradorUrl, MAX_RESOURCE_URL_LENGTH, "recurso-url-count")}
+										</div>
+										<input
+											id="recurso-url"
+											type="url"
+											bind:value={borradorUrl}
+											aria-invalid={errorRecursoUrl ? "true" : undefined}
+											aria-describedby="recurso-url-count recurso-url-error"
+											placeholder="https://…"
+											class={inputClass}
+										/>
+										{#if errorRecursoUrl}
+											<p
+												id="recurso-url-error"
+												class="pl-[var(--label-offset)] text-xs text-destructive"
+											>
+												{errorRecursoUrl}
+											</p>
+										{/if}
+									</div>
+								{/if}
+
+								<div class="flex flex-wrap items-center gap-3">
+									<button
+										type="button"
+										disabled={!borradorValido}
+										onclick={editandoKey ? guardarRecurso : agregarRecurso}
+										class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+									>
+										{#if editandoKey}
+											<Check class="size-4" aria-hidden="true" />
+											Guardar cambios
+										{:else}
+											<Plus class="size-4" aria-hidden="true" />
+											Agregar recurso
+										{/if}
+									</button>
+									{#if editandoKey}
+										<button
+											type="button"
+											onclick={limpiarBorrador}
+											class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											Cancelar
+										</button>
+									{/if}
+								</div>
+							</div>
+						</div>
+
+						<!-- Rechazos por tamaño -->
 						{#if rejectedFiles.length > 0}
-							<div
-								class="rounded-lg border border-destructive/30 bg-destructive/5 p-3"
-								role="alert"
-							>
+							<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-3" role="alert">
 								<p class="text-sm font-medium text-destructive">
 									Algunos archivos superan el límite y no se agregaron:
 								</p>
@@ -1062,129 +1318,150 @@ const hayTitulo = $derived(title.trim().length > 0);
 							</div>
 						{/if}
 
-						{#if fileEntries.length > 0}
-							<ul class="space-y-2" aria-label="Archivos seleccionados">
-								{#each fileEntries as entry (entry.key)}
-									<li class="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-										<FileText class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-										<div class="min-w-0 flex-1">
-											<p class="truncate text-sm text-foreground">{entry.file.name}</p>
-											{#if entry.status === "uploading"}
-												<p class="text-xs text-muted-foreground">{entry.progress}%</p>
-											{:else if entry.status === "error"}
-												<p class="break-words text-xs text-destructive">{entry.error}</p>
-											{:else if entry.status === "cancelled"}
-												<p class="text-xs text-muted-foreground">Subida cancelada</p>
-											{/if}
-										</div>
-										{#if entry.status === "uploading"}
-											<button
-												type="button"
-												onclick={() => cancelUpload(entry.key)}
-												aria-label={`Cancelar la subida de ${entry.file.name}`}
-												class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-											>
-												<X class="size-4" aria-hidden="true" />
-											</button>
-										{:else if entry.status === "pending" || entry.status === "error" || entry.status === "cancelled"}
-											<button
-												type="button"
-												onclick={() => removeFile(entry.key)}
-												aria-label={`Quitar ${entry.file.name}`}
-												class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-											>
-												<Trash2 class="size-4" aria-hidden="true" />
-											</button>
-										{:else}
-											<Check class="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
-										{/if}
-									</li>
-								{/each}
-							</ul>
+						<!-- Lista de recursos agregados -->
+						{#if recursos.length === 0}
+							<div class="rounded-lg border border-border bg-muted/20 px-6 py-8 text-center">
+								<Info class="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
+								<p class="mt-2 text-sm font-medium text-foreground">Todavía no agregó recursos</p>
+								<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+									Puede publicar el dataset sin recursos y agregarlos después.
+								</p>
+							</div>
+						{:else}
+							<div>
+								<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+									Recursos agregados
+								</p>
+								<Card class="mt-2 p-2">
+									<ul class="space-y-1" aria-label="Recursos agregados">
+										{#each recursos as recurso (recurso.key)}
+											<li>
+												<div
+													class={cn(
+														"flex items-center gap-3 rounded-lg px-3 py-3 transition-colors",
+														editandoKey === recurso.key && "bg-accent/60",
+														recurso.estado === "error" && "bg-destructive/5",
+													)}
+												>
+													<span
+														class={cn(
+															"inline-flex size-10 shrink-0 items-center justify-center rounded-lg",
+															recurso.estado === "error"
+																? "bg-destructive/10 text-destructive"
+																: "bg-muted text-muted-foreground",
+														)}
+													>
+														{#if recurso.tipo === "archivo"}
+															<FileText class="size-4" aria-hidden="true" />
+														{:else}
+															<Link class="size-4" aria-hidden="true" />
+														{/if}
+													</span>
+
+													<div class="min-w-0 flex-1">
+														<div class="flex flex-wrap items-center gap-2">
+															<span class="break-words text-sm font-medium text-foreground">
+																{nombreEfectivo(recurso)}
+															</span>
+															<span
+																class="rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+															>
+																{recurso.tipo === "archivo" ? "Archivo" : "Enlace"}
+															</span>
+														</div>
+														{#if recurso.descripcion}
+															<p class="mt-1 line-clamp-1 text-xs text-muted-foreground">
+																{recurso.descripcion}
+															</p>
+														{/if}
+														<p class="mt-1 truncate text-xs text-muted-foreground">
+															{recurso.tipo === "archivo" ? (recurso.file?.name ?? "") : (recurso.url ?? "")}
+														</p>
+
+														{#if recurso.estado === "subiendo"}
+															<div class="mt-2 flex items-center gap-3">
+																<div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+																	<div
+																		class="h-full rounded-full bg-primary transition-[width] duration-300"
+																		style={`width: ${recurso.progreso}%`}
+																	></div>
+																</div>
+																<span class="shrink-0 text-xs tabular-nums text-muted-foreground">
+																	{recurso.progreso}%
+																</span>
+															</div>
+														{:else if recurso.estado === "procesando"}
+															<div class="mt-2 space-y-1.5">
+																<div class="flex items-center gap-3">
+																	<div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+																		<div class="h-full w-full rounded-full bg-emerald-600"></div>
+																	</div>
+																	<span class="shrink-0 text-xs font-medium tabular-nums text-emerald-700">100 %</span>
+																</div>
+																<p class="flex items-center gap-1.5 text-xs font-medium text-primary">
+																	<LoaderCircle class="size-3.5 animate-spin" aria-hidden="true" />
+																	Procesando en CKAN… (validando y guardando; no cierre la página)
+																</p>
+															</div>
+														{:else if recurso.estado === "error"}
+															<p class="mt-1.5 text-xs text-destructive">{recurso.error}</p>
+														{:else if recurso.estado === "cancelado"}
+															<p class="mt-1.5 text-xs text-muted-foreground">Subida cancelada</p>
+														{/if}
+													</div>
+
+													<div class="flex shrink-0 items-center gap-1">
+														{#if recurso.estado === "subiendo"}
+															<button
+																type="button"
+																aria-label={`Cancelar la subida de ${nombreEfectivo(recurso)}`}
+																onclick={() => cancelUpload(recurso.key)}
+																class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															>
+																<X class="size-4" aria-hidden="true" />
+															</button>
+														{:else if recurso.estado === "procesando"}
+															<span class="px-1 text-xs text-muted-foreground">Procesando…</span>
+														{:else}
+															{#if recurso.estado === "error"}
+																<span class="inline-flex items-center gap-1 pr-1 text-xs font-medium text-destructive">
+																	<TriangleAlert class="size-3.5" aria-hidden="true" />
+																	Error
+																</span>
+															{:else if recurso.estado === "listo"}
+																<span class="inline-flex items-center gap-1 pr-1 text-xs text-muted-foreground">
+																	<Check class="size-4 text-emerald-600" aria-hidden="true" />
+																	Listo
+																</span>
+															{/if}
+															<button
+																type="button"
+																aria-label={`Editar ${nombreEfectivo(recurso)}`}
+																onclick={() => editarRecurso(recurso.key)}
+																class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															>
+																<Pencil class="size-4" aria-hidden="true" />
+															</button>
+															<button
+																type="button"
+																aria-label={`Quitar ${nombreEfectivo(recurso)}`}
+																onclick={() => quitarRecurso(recurso.key)}
+																class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															>
+																<Trash2 class="size-4" aria-hidden="true" />
+															</button>
+														{/if}
+													</div>
+												</div>
+											</li>
+										{/each}
+									</ul>
+								</Card>
+							</div>
 						{/if}
 					</section>
 
-					<!-- Enlaces externos -->
-					<section class="space-y-5 rounded-xl border border-border bg-card p-6">
-						<h2 class="font-heading text-lg font-semibold text-primary">Enlaces externos</h2>
-						<p class="text-sm text-muted-foreground">
-							Agregue recursos que no son archivos, como páginas o servicios, mediante una URL.
-						</p>
-
-						<div class="grid gap-5 sm:grid-cols-2">
-							<div class="space-y-1.5">
-								<label for="link-name" class="text-sm font-medium text-foreground">
-									Nombre del enlace
-								</label>
-								<input
-									id="link-name"
-									type="text"
-									bind:value={linkName}
-									aria-invalid={linkError ? "true" : undefined}
-									aria-describedby={linkError ? "link-error" : undefined}
-									class={inputClass}
-								/>
-							</div>
-							<div class="space-y-1.5">
-								<label for="link-url" class="text-sm font-medium text-foreground">
-									URL del enlace
-								</label>
-								<input
-									id="link-url"
-									type="url"
-									bind:value={linkUrl}
-									aria-invalid={linkError ? "true" : undefined}
-									aria-describedby={linkError ? "link-error" : undefined}
-									class={inputClass}
-								/>
-							</div>
-						</div>
-
-						{#if linkError}
-							<p id="link-error" class="text-xs text-destructive" role="alert">{linkError}</p>
-						{/if}
-
-						<button
-							type="button"
-							onclick={addLink}
-							disabled={submitting}
-							class="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-						>
-							<Link class="size-4" aria-hidden="true" />
-							Agregar enlace
-						</button>
-
-						{#if linkEntries.length > 0}
-							<ul class="space-y-2" aria-label="Enlaces agregados">
-								{#each linkEntries as entry (entry.key)}
-									<li class="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
-										<Link class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-										<div class="min-w-0 flex-1">
-											<p class="truncate text-sm text-foreground">{entry.name}</p>
-											<p class="truncate text-xs text-muted-foreground">{entry.url}</p>
-											{#if entry.status === "error"}
-												<p class="break-words text-xs text-destructive">{entry.error}</p>
-											{/if}
-										</div>
-										{#if entry.status === "pending" || entry.status === "error"}
-											<button
-												type="button"
-												onclick={() => removeLink(entry.key)}
-												aria-label={`Quitar el enlace ${entry.name}`}
-												class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-											>
-												<Trash2 class="size-4" aria-hidden="true" />
-											</button>
-										{:else}
-											<Check class="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
-										{/if}
-									</li>
-								{/each}
-							</ul>
-						{/if}
-					</section>
-
-					<!-- Fallo parcial: recursos que no se pudieron adjuntar -->
+<!-- Fallo parcial: recursos que no se pudieron adjuntar -->
 					{#if uploadFinished && failedResources.length > 0}
 						<div
 							class="rounded-xl border border-destructive/30 bg-destructive/5 p-6"
