@@ -11,6 +11,7 @@ import {
 	Shield,
 	User,
 } from "@lucide/svelte";
+import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
@@ -19,6 +20,8 @@ import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.sve
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
+import { auth } from "$lib/stores/auth";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
@@ -48,12 +51,25 @@ async function loadDataset() {
 	error = null;
 
 	try {
-		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+		// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
+		// responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
+		// flujo de publicación defina su visibilidad.
+		const client = createCkanClient({
+			baseUrl: env.CKAN_URL,
+			apiKey: () => get(auth).token,
+		});
 		const datasetApi = createDatasetApi(client);
 		dataset = await datasetApi.show(datasetId);
 	} catch (err) {
-		// En dev se respalda con datos mock; en prod se muestra un error explícito.
-		if (import.meta.env.DEV) {
+		// Un 403/404 es una respuesta **definitiva** del catálogo (privado o inexistente), no una
+		// caída: se explica el motivo y no se enmascara con datos mock.
+		if (err instanceof CkanApiError && (err.status === 403 || err.status === 404)) {
+			error =
+				err.status === 403
+					? "Este dataset es privado. Inicie sesión con una cuenta autorizada para verlo."
+					: "No se encontró el dataset solicitado.";
+			dataset = null;
+		} else if (import.meta.env.DEV) {
 			const mock = getMockDatasetById(datasetId);
 			if (mock) {
 				dataset = mock;
