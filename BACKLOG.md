@@ -40,15 +40,184 @@
   `openspec/changes/archive/2026-09-11-dataset-publishing/` (commit `1b7c33d`) y spec promovida a
   `openspec/specs/dataset-publishing/spec.md`.
 
-## Próxima sesión (Plan C — pulido de UI)
+## Próxima sesión (Plan C — wizard, parte 2)
 
-> Acordado al cierre del 2026-09-12. «Plan C» = pulir la UI del track recién cerrado (dashboard +
-> wizard). **Proceso acordado** (ver `AGENTS.md` regla 8): el agente propone un diseño concreto, el
-> usuario lo revisa, y se itera hasta que quede — mismo patrón que el Plan A (playground
-> `/dev/<page>` → iterar → promover → borrar).
+> **Estado:** el dashboard ya está cerrado (promovido y en `main`), la validación del wizard también.
+> Lo que queda es la **iteración de UI del wizard**, empezada el 2026-09-12.
 >
-> **Orden sugerido:** dashboard primero, wizard después. Nada de esto bloquea `v0`: es calidad
-> percibida, no funcionalidad faltante.
+> **Dónde se está trabajando:** playground `src/routes/dev/dashboard/datasets/new/+page.svelte`
+> (creado por regla 8 de `AGENTS.md`, **sin commitear**), visible en `http://localhost:8082/dev/dashboard/datasets/new`.
+> Es una **maqueta con datos de fixture**: no sube nada ni toca CKAN. Se promueve y se borra al aprobar.
+>
+> **Ya aprobado por el usuario en esta iteración:** los márgenes y el centrado (contenedor alineado al
+> encabezado del sitio, `max-w-7xl`) y el **resumen fijo (sticky) a la derecha** con la acción a mano.
+>
+> **Estado (2026-09-13):** el playground tiene implementadas las **pasadas 1-3** y **dos rondas de
+> rediseño**. Falta la **revisión visual final** y, después, promover + borrar el playground.
+> Ya aprobado: márgenes y centrado (`max-w-7xl`), resumen fijo a la derecha, visibilidad fuera del
+> formulario, pestañas «Archivo | Enlace» y el estilo propio (sin `nova`).
+> **Descartado:** la barra pegajosa de envío (las acciones van fuera del resumen, en la columna
+> derecha) y el acordeón de «Metadatos adicionales».
+> **Resumen:** la «Ficha de publicación» rediseñada **reemplazó** a la anterior (eyebrow coral
+> «Resumen», barra de completitud de datos recomendados —oculta si no hay título—, datos con iconos,
+> lista de recursos y bloque de pendientes no bloqueante).
+> **Recursos:** rediseñados como **mini-form** de alta/edición (Título + Descripción + tipo en
+> pestañas + «Agregar recurso») sobre una **lista compacta** con lápiz para editar y papelera.
+> **Labels:** la separación label↔campo es una **variable CSS** (`--label-offset`) con control de
+> pasos en la barra del playground; elegido el **paso 2 (`0.5rem`)**.
+> **Responsive:** revisado a 375/768/1024/1440 → **sin scroll horizontal**. El culpable era el grid
+> (sin `grid-cols-1`, la columna se dimensionaba por el `min-content` de los textos con `truncate`):
+> se agregó `grid-cols-1` + `min-w-0` en form/aside + `flex-wrap` en los grupos de la barra. En móvil
+> la zona de carga dice **«Elija los archivos del equipo»** (no hay arrastrar y soltar).
+> **Campos de recurso (verificado contra CKAN):** sin min/max; CKAN **no hereda el nombre del
+> archivo**, así que si el título queda vacío el portal usa el nombre del archivo (o la URL); la
+> descripción quedó **recomendada, no obligatoria**. Detalle en PRD §7 y design-system §9.
+
+### Ajustes pedidos por el usuario (2026-09-12)
+
+- [ ] **[v0] Visibilidad fuera del flujo de creación** — se quita el selector de visibilidad del
+  formulario (el flujo de publicación definirá el estado) pero **se mantiene en el resumen**.
+- [ ] **[v0] Slug autogenerado y bloqueado** — debe generarse a medida que se escribe el título
+  (`Titl → titl`), mostrarse **como no-editable** (que no parezca un input) con una línea de
+  comentario, y tener una acción explícita para **desbloquearlo** y editarlo. Ya existe la lógica de
+  sugerencia (`slugEdited`) en la página; falta la presentación bloqueada/desbloqueada.
+- [x] **[v0] Restricciones min/max en los inputs** — **verificado contra el CKAN que corre**:
+  CKAN **no tiene** mínimo ni máximo para `title`, `notes`, `url`, `maintainer`, `maintainer_email`
+  ni para el nombre/descripción de un recurso (todos son `text` sin límite en la base). Los únicos
+  límites reales son **`package.name` = varchar(100)** y **etiquetas 2..100**.
+  **Resuelto (2026-09-13): alineado a CKAN.** `title` pasó de `min 3 / max 200` a obligatorio sin
+  tope (`.trim().min(1)`); `notes` perdió el `max 5000`. `name` (min 2 / max 100 / slug) y tags
+  (2..100) se conservan porque son las reglas reales de CKAN. Aplicado en `src/lib/schemas/dataset.ts`
+  con tests nuevos (RED→GREEN); el mensaje de error del título ahora es «El título es obligatorio».
+  Desaparece la tensión con el markdown (ya no hay tope de 5000 en la descripción).
+- [ ] **[v0] Organización: autocompletar si hay una sola** — si el usuario pertenece a una sola
+  organización, seleccionarla automáticamente (y reflejarlo en el resumen). El selector se mantiene
+  para el caso de varias.
+- [ ] **[v0] Etiquetas: input tipo buscador con sugerencias y badges** — al escribir, sugerir
+  etiquetas existentes; al elegir una, agregarla como badge con «x» para quitarla; si no existe, crearla
+  igual. **Verificado**: el repo tiene `FacetFilter` y `SearchBar` pero **no** un combobox; shadcn
+  tiene componentes de este tipo que habría que instalar/adaptar. Las sugerencias pueden salir de
+  `tag_list` o del facet `tags` de `package_search`.
+- [ ] **[v0] Licencias: explicar qué significa cada una** — **verificado**: `license_list` devuelve
+  por licencia `id`, `title`, `url`, `od_conformance`, `osd_conformance`, `domain_data`,
+  `domain_content`, `is_generic`, `maintainer`, `status` (15 licencias en dev). **No hay** texto
+  explicativo largo. Opciones: mostrar el `title` + enlace a `url` + los indicadores de conformidad
+  como ayuda contextual, o escribir nosotros una explicación breve por licencia (y su traducción).
+- [ ] **[v0] «Página de destino» — aclarar el nombre** — es el campo `url` del **dataset** en CKAN:
+  la página propia del dataset (por ejemplo, el sitio de la unidad que lo publica), **no** una
+  referencia de un recurso ni la URL de descarga. Conviene renombrarlo y explicarlo con una ayuda,
+  porque «página de destino» no se entiende.
+- [ ] **[v0] Subida: señal de progreso real** — además del porcentaje, una señal de que «está
+  pasando algo» (barra + indicador animado + cambio de color). **Medido (2026-09-13) contra el stack
+  dev**: el porcentaje sale de `xhr.upload.onprogress`, que mide **bytes enviados**, y el tramo final
+  (100 % → respuesta de CKAN) dura **~288 ms con 5 MB y ~469 ms con 50 MB** en red local. Es real y
+  crece con el tamaño (CKAN calcula el hash y guarda el archivo), así que la UI muestra un estado
+  **«Procesando en CKAN…»** (barra al 100 % + indicador animado) antes de «Listo». Implementado en el
+  playground con el escenario «Procesando».
+  _Nota: `package_purge` no está expuesto por API en este stack; la limpieza de un dataset de prueba
+  va por CLI (`ckan dataset purge`)._
+- [ ] **[v0] Recursos: nombre y descripción editables por recurso (requisito)** — **verificado**:
+  CKAN los soporta **nativamente** (`resource_create` acepta `name` y `description`;
+  `default_resource_schema` los valida), así que RF-11 se cumple sin extras. Confirmado por el usuario:
+  «es requerimiento que cada recurso tenga un nombre y una description/summary editable», porque el
+  nombre del recurso **no siempre coincide con el del archivo** (`Informe gestión 2020` vs
+  `informe_2020`). Además, los recursos **sí** aceptan extras (`__extras` con `extras_valid_json`),
+  aunque hoy no enviamos ninguno. **Implementado (2026-09-13):** el diseño final es un **mini-form**
+  (Título, Descripción, tipo en pestañas, «Agregar recurso») sobre una **lista compacta** con lápiz
+  para editar; el nombre real del archivo se conserva en la línea de detalle para que se vea que
+  pueden diferir. (Primero se probaron los campos siempre visibles en cada fila y no gustó.)
+- [x] **[v1] Markdown en la descripción** — **HECHO (2026-09-13)**. Corrección a lo que decía este
+  ítem: **el PRD sí hablaba de esto** — RF-09 decía `descripción (richtext)`; se buscó «markdown»,
+  «mermaid» y «summary» y no aparecían, pero «richtext» estaba. Se reconcilió: RF-09 ahora dice «con
+  formato (markdown; ver RF-39)» y **RF-39** documenta la decisión completa.
+  Implementado: `markdown-it` (**una sola dependencia**), render seguro **por construcción** en
+  `src/lib/utils/markdown.ts` (`html: false` + URLs validadas con la política de la app → no hace
+  falta sanitizador), `MarkdownEditor.svelte` (pestañas Escribir | Vista previa), estilos compartidos
+  `.markdown-body` en `app.css`, render en la página pública del dataset y extracto de texto plano
+  para las cards. **27 tests**, 16 de ellos payloads de XSS con aserciones **estructurales** (se parsea
+  el HTML y se verifican etiquetas y atributos).
+  **Deuda asociada:** el seed escribía HTML en `notes` y los 16 datasets de dev tenían `<p>`; con el
+  HTML crudo deshabilitado eso se vería como texto literal. Se arregló el seed y se migraron los datos
+  de dev. Un despliegue con datos legacy necesita la misma limpieza.
+- [ ] **[v1] Mermaid y el `summary` para las cards** — quedan fuera de esta tanda. Mermaid es librería
+  grande + render en cliente + superficie de ataque aparte. El `summary` es un **campo nuevo** (extra
+  del dataset en CKAN, con la deuda de vocabulario ya conocida). SEO queda como feature aparte.
+- [ ] **[v1] Definir si la edición reutiliza la UI de creación** — la mayoría de las plataformas
+  reutiliza la UI de creación para editar; la alternativa es una UI propia por operación. **Decidirlo
+  antes de congelar la UI de creación**, porque afecta su forma: si se reutiliza, el formulario debe
+  nacer como **componente con modo** (`create` | `edit`) en vez de una página con la lógica adentro.
+  Depende además de cómo quede la descripción (rich text) y de los pasos del flujo.
+- [ ] **[v1] VS: creación en un paso vs. dos pasos (con borrador)** — el usuario pidió comparar
+  ambos métodos. Hoy el wizard hace **un solo submit**: `package_create` y después los recursos, con
+  reintento de los que fallan. La UI de CKAN hace **dos pasos** (primero metadatos, después recursos),
+  lo que da un «guardado de emergencia». A comparar: cantidad de requests, qué pasa si el usuario
+  abandona a mitad, si un dataset a medio poblar es aceptable, si el estado `draft` de CKAN está
+  habilitado en este stack (verificarlo con la API antes de prometerlo), y si el flujo de publicación
+  definirá el estado de todos modos (ver el ítem de visibilidad).
+- [ ] **[v0] Barra pegajosa vs. botón duplicado** — el usuario pidió **implementar ambos** para
+  comparar, igual que se hizo en el playground del dashboard: dejarlo como está (botón al final del
+  formulario + otro en el resumen) o reemplazarlo por la barra pegajosa. **Resuelto (2026-09-13): la
+  barra pegajosa se descartó** (no gustó). Las acciones quedan **fuera del resumen**, en la columna
+  derecha: «Publicar dataset» (primario, ancho completo) + «Cancelar» (contorno) + la nota. Ya no hay
+  botón al final del formulario ni duplicado dentro de la tarjeta.
+- [ ] **[v1] Arrastrar y soltar para subir archivos: diferido** — la zona de arrastre está dibujada
+  pero **no funciona** (el playground es estático). El usuario decidió dejarlo para después: es
+  comportamiento nuevo y no quiere mezclarlo con los ajustes menores.
+
+### Pendientes anotados (2026-09-13)
+
+- [ ] **[v0] Bug: badges de formato duplicados en las cards del buscador** — si un dataset tiene dos
+  recursos del mismo tipo (p. ej. 2 CSV), la card muestra **dos chips «CSV»**. Causa exacta en
+  `src/lib/components/search/DatasetCard.svelte`: `resourceFormats` hace
+  `.map((r) => r.format?.toUpperCase()).filter(Boolean).slice(0, 4)` **sin deduplicar**.
+  **Ojo con el efecto colateral**: `moreFormats` se calcula como
+  `dataset.resources.length - resourceFormats.length`, así que al deduplicar hay que recontar **sobre
+  los formatos únicos**, no sobre los recursos (con 3 recursos `[CSV, CSV, PDF]` los chips deben ser
+  CSV y PDF, y `moreFormats` debe dar **0**, no 1). El tope de 4 también aplica a los únicos.
+  _Origen: reportado por el usuario, 2026-09-13._
+- [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
+  **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
+  datos. _Origen: pedido del usuario._
+- [ ] **[v1] Probar el menú pegajoso del search en el dashboard** — el dashboard usa hoy una barra
+  pegajosa propia; probar como alternativa el **mismo estilo que quedó en la página de búsqueda**,
+  para ver si conviene unificar. _Origen: pedido del usuario._
+
+### Promoción del wizard (Plan C) — plan detallado para la próxima sesión
+
+**Por qué no se hizo al cierre del 2026-09-13:** **no es un copy-paste**. El playground (1 558 líneas,
+datos de fixture) y el wizard real (1 003 líneas, lógica real) tienen **modelos de recursos
+distintos**, así que promover es una **re-arquitectura** del flujo de creación:
+
+| Playground (maqueta) | Wizard real | Qué implica |
+|---|---|---|
+| `recursos`: **lista única** archivo/enlace con `nombre`, `descripcion`, `detalle`, `estado` | `fileEntries` (con `File` + `AbortController` + progreso) y `linkEntries` **separadas** | unificar el modelo **conservando** la subida real, la cancelación y el reintento |
+| `licencias` mock (5) | `LICENSE_IDS` **hardcodeada** (13) y **no** se llama a `license_list` | decidir: cargar la lista de CKAN o justificar la fija |
+| organizaciones mock | `organization_list_for_user` + estados de carga/error | conservar tal cual |
+| sin guard ni envío | guard (`authed`), `submitting`, `submitError`, `createdDataset`, `uploadFinished`, `rejectedFiles` | conservar entero |
+| — | `handleSubmit`, `runUploads`, `createLinkResources`, `retryFailedResources`, `cancelUpload` | reescribir sobre el modelo unificado |
+
+**Plan en dos slices** (para no pasar el presupuesto de revisión de 400 líneas):
+
+1. **Slice 1 — layout + metadatos** (sin tocar la sección de recursos, que sigue con su UI y su lógica
+   actuales): contenedor `max-w-7xl` + columna derecha pegajosa; *Metadatos básicos* con **resumen**
+   (contador 200) + **descripción** (editor de markdown con barra y vista previa + contador 5000) +
+   slug bloqueado; *Organización* con la organización automática cuando hay una sola; *Metadatos
+   adicionales* **siempre visibles** (etiquetas con combobox, licencia con su explicación, sitio web,
+   responsable con contadores); la **ficha** del resumen con el tooltip de privacidad; las acciones
+   **fuera del resumen**; y el `--label-offset` de los labels. Sumar `licenseIdError` y la validación
+   del resumen.
+2. **Slice 2 — recursos**: unificar el modelo (lista única archivo/enlace, con `nombre` y
+   `descripcion` por recurso) conservando la subida con progreso y cancelación, el reporte de fallo
+   parcial y la navegación final; **mini-form** de alta/edición + **lista compacta** con lápiz.
+
+**Decisiones que bloquean el slice 1** (cortas, pero definen la *forma* del formulario):
+- ¿La **edición** de un dataset reutiliza esta UI? Si sí, el formulario debe nacer como **componente
+  con modo** (`create` | `edit`) en vez de página con la lógica adentro.
+- ¿La creación es de **uno o dos pasos** (con borrador)?
+
+**Verificación obligatoria al promover:** crear un dataset real desde la página promovida subiendo un
+archivo grande por el proxy (comprobando que no pasa por SvelteKit), con el guard de sesión; y re-medir
+el responsive a **375/768/1024/1440**.
 
 ## En curso (cambios SDD)
 
@@ -80,6 +249,12 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
   2. `R3-cellvalue-object-stringify`: `DataPreviewTable` hace `String(obj)` → `"[object Object]"`.
   3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
   4. `R3-loading-state-untested`: estado de carga sin test.
+
+- [ ] **[v0] Quitar los tabs simulados «Gráfico»/«Mapa» de la página del recurso** — hoy la página
+  muestra un selector Tabla/Gráfico/Mapa donde sólo Tabla es real (CSV). Según el modelo de vistas
+  (PRD §3, 2026-09-13), los gráficos pertenecen al Módulo de Análisis, no a la vista previa. La vista
+  previa debe ofrecer sólo el render que permite el `format` (tabla para CSV, embed para PDF, imagen,
+  texto). _Origen: decisión de arquitectura 2026-09-13._
 
 - [ ] **[v0] Sección "Data API" para recursos CSV** — la sección "Acceso por API" de la página
   de recurso hoy está gateada a `resource_type === "api"` (oculta para archivos). Lo correcto,
@@ -155,7 +330,10 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 - [ ] **[v1+] Módulo de Análisis de CSV** — página 11 del inventario: cargar CSV, tabla
   normalizada, selector de columnas X/Y, gráficos (barras/líneas/pastel) con export PNG/CSV. Sin
   nada de código hoy. Es el **diferencial real del portal** frente al UI de CKAN.
-  _Referencias: PRD §3 (módulo de análisis), PRD RF-24, design-system §9 item 11._
+  **Modelo de vistas (2026-09-13):** aquí viven las *vistas creadas* — una **definición de vista**
+  (`tipo` + columnas + opciones) guardada en JSON en un `__extras` del recurso (no `resource_view`
+  de CKAN), renderizada por el portal. La IA es un autor alternativo de esa misma definición.
+  _Referencias: PRD §3 (módulo de análisis + modelo de vistas), PRD RF-24, design-system §9 item 11._
 
 - [ ] **[v1+] Colecciones (grupos de datasets)** — mapea a `group` + `group_member`. El flujo de
   aprobación por cada organización propietaria (RF-23) es custom y depende del ciclo de vida.
