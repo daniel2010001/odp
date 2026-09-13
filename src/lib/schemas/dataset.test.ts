@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { datasetCreateSchema } from "./dataset";
+import {
+	datasetCreateSchema,
+	licenseIdError,
+	MAX_MAINTAINER_LENGTH,
+	MAX_NOTES_LENGTH,
+	MAX_SUMMARY_LENGTH,
+	MAX_TITLE_LENGTH,
+	MAX_URL_LENGTH,
+} from "./dataset";
 
 const base = {
 	name: "matricula-2026",
@@ -176,5 +184,119 @@ describe("datasetCreateSchema — tag_string", () => {
 		expect(tags("covid-19, salud_publica, v2.1, gestión escolar")).toBe(
 			"covid-19, salud_publica, v2.1, gestión escolar",
 		);
+	});
+});
+
+describe("datasetCreateSchema — topes de UX del portal", () => {
+	it(`rechaza un título de más de ${MAX_TITLE_LENGTH} caracteres`, () => {
+		const result = datasetCreateSchema.safeParse({
+			...base,
+			title: "x".repeat(MAX_TITLE_LENGTH + 1),
+		});
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues[0].path).toEqual(["title"]);
+			expect(result.error.issues[0].message).toContain(String(MAX_TITLE_LENGTH));
+		}
+	});
+
+	it("acepta un título exactamente en el tope", () => {
+		expect(
+			datasetCreateSchema.safeParse({ ...base, title: "x".repeat(MAX_TITLE_LENGTH) }).success,
+		).toBe(true);
+	});
+
+	it(`rechaza una descripción de más de ${MAX_NOTES_LENGTH} caracteres`, () => {
+		const result = datasetCreateSchema.safeParse({
+			...base,
+			notes: "d".repeat(MAX_NOTES_LENGTH + 1),
+		});
+		expect(result.success).toBe(false);
+		if (!result.success) expect(result.error.issues[0].path).toEqual(["notes"]);
+	});
+
+	it(`rechaza un responsable de más de ${MAX_MAINTAINER_LENGTH} caracteres`, () => {
+		const result = datasetCreateSchema.safeParse({
+			...base,
+			maintainer: "m".repeat(MAX_MAINTAINER_LENGTH + 1),
+		});
+		expect(result.success).toBe(false);
+		if (!result.success) expect(result.error.issues[0].path).toEqual(["maintainer"]);
+	});
+
+	it(`rechaza una URL de más de ${MAX_URL_LENGTH} caracteres`, () => {
+		const result = datasetCreateSchema.safeParse({
+			...base,
+			url: `https://datos.umss.edu/${"a".repeat(MAX_URL_LENGTH + 10)}`,
+		});
+		expect(result.success).toBe(false);
+		if (!result.success) expect(result.error.issues[0].path).toEqual(["url"]);
+	});
+});
+
+describe("datasetCreateSchema — título: reglas del portal", () => {
+	it("acepta un título de un solo carácter (solo se exige no-vacío)", () => {
+		expect(datasetCreateSchema.safeParse({ ...base, title: "A" }).success).toBe(true);
+	});
+
+	it("rechaza un título vacío o de solo espacios", () => {
+		expect(datasetCreateSchema.safeParse({ ...base, title: "" }).success).toBe(false);
+		expect(datasetCreateSchema.safeParse({ ...base, title: "   " }).success).toBe(false);
+	});
+
+	it("recorta los espacios del título", () => {
+		expect(datasetCreateSchema.parse({ ...base, title: "  Matrícula 2026  " }).title).toBe(
+			"Matrícula 2026",
+		);
+	});
+});
+
+describe("datasetCreateSchema — descripción (notes)", () => {
+	it("sigue siendo opcional", () => {
+		expect(datasetCreateSchema.parse(base).notes).toBeUndefined();
+	});
+
+	it(`acepta una descripción justo en el tope de ${MAX_NOTES_LENGTH}`, () => {
+		expect(
+			datasetCreateSchema.safeParse({ ...base, notes: "x".repeat(MAX_NOTES_LENGTH) }).success,
+		).toBe(true);
+	});
+});
+
+describe("datasetCreateSchema — resumen (RF-40)", () => {
+	it("es opcional", () => {
+		expect(datasetCreateSchema.parse(base).summary).toBeUndefined();
+	});
+
+	it(`rechaza más de ${MAX_SUMMARY_LENGTH} caracteres`, () => {
+		const result = datasetCreateSchema.safeParse({
+			...base,
+			summary: "s".repeat(MAX_SUMMARY_LENGTH + 1),
+		});
+		expect(result.success).toBe(false);
+		if (!result.success) expect(result.error.issues[0].path).toEqual(["summary"]);
+	});
+
+	it("acepta un resumen justo en el tope", () => {
+		expect(
+			datasetCreateSchema.safeParse({ ...base, summary: "s".repeat(MAX_SUMMARY_LENGTH) }).success,
+		).toBe(true);
+	});
+});
+
+describe("licenseIdError — CKAN no valida la licencia", () => {
+	const lista = ["cc-by", "odc-odbl"];
+
+	it("no se queja si el id está en la lista", () => {
+		expect(licenseIdError("cc-by", lista)).toBeNull();
+	});
+
+	it("no se queja si no hay licencia", () => {
+		expect(licenseIdError(undefined, lista)).toBeNull();
+		expect(licenseIdError("", lista)).toBeNull();
+	});
+
+	it("rechaza un id que no está en la lista (CKAN lo aceptaría igual)", () => {
+		expect(licenseIdError("no-existe", lista)).toContain("no está en la lista de CKAN");
 	});
 });

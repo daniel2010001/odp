@@ -6,6 +6,7 @@ import {
 	suggestSlug,
 	validateResourceFile,
 } from "./dataset-payload";
+import { SUMMARY_EXTRA_KEY } from "./dataset-summary";
 
 const base = {
 	title: "Matrícula Estudiantil 2026",
@@ -171,5 +172,17 @@ describe("validateResourceFile", () => {
 
 	it("el límite es el de PRD RF-12 (50 MB)", () => {
 		expect(MAX_RESOURCE_BYTES).toBe(50 * 1024 * 1024);
+	});
+});
+
+describe("buildPackagePayload — resumen (RF-40)", () => {
+	it("escribe el resumen como extra del dataset", () => {
+		const payload = buildPackagePayload({ ...base, summary: "  Un resumen corto  " });
+		expect(payload.extras).toEqual([{ key: SUMMARY_EXTRA_KEY, value: "Un resumen corto" }]);
+	});
+
+	it("no escribe extras si no hay resumen", () => {
+		expect(buildPackagePayload({ ...base }).extras).toBeUndefined();
+		expect(buildPackagePayload({ ...base, summary: "   " }).extras).toBeUndefined();
 	});
 });

@@ -20,6 +20,17 @@ import { unsafeUrlReason } from "$lib/utils/external-url";
 export const MIN_TAG_LENGTH = 2;
 export const MAX_TAG_LENGTH = 100;
 
+// ─── Topes de UX del portal (NO son límites de CKAN) ─────────────────────
+// Verificado contra CKAN (PRD §7): `title`, `notes`, `maintainer`, `url` y `resource.name` /
+// `description` son `text` **sin límite**. Estos topes son guardrails del portal —evitan que un título
+// larguísimo rompa las cards y el buscador— y por eso el render también es **defensivo**: un dataset
+// que entre por otro camino (seed, UI de CKAN, API) puede superarlos y no debe romper nada.
+export const MAX_TITLE_LENGTH = 120;
+export const MAX_NOTES_LENGTH = 5000;
+export const MAX_SUMMARY_LENGTH = 200;
+export const MAX_MAINTAINER_LENGTH = 100;
+export const MAX_URL_LENGTH = 500;
+
 const TAG_CHARSET = /^[\p{L}\p{N}_ \-.]*$/u;
 
 const CKAN_EMAIL_PATTERN =
@@ -41,6 +52,10 @@ const optionalExternalUrl = z
 	.string()
 	.optional()
 	.transform((raw) => raw?.trim() ?? "")
+	.refine(
+		(value) => value.length <= MAX_URL_LENGTH,
+		`La URL no puede superar los ${MAX_URL_LENGTH} caracteres.`,
+	)
 	.superRefine((value, ctx) => {
 		if (!value) return;
 		const reason = unsafeUrlReason(value);
@@ -102,6 +117,10 @@ const tagString = z
  * La existencia de la organización no se valida acá a propósito: el select se puebla
  * desde `organization_list_for_user`, de modo que un valor inventado solo podría entrar
  * por una request armada a mano, y CKAN la rechaza igual.
+ *
+ * Límites: `name` 2–100 + regex de slug y tags 2–100 son **reglas espejadas de CKAN**. El resto
+ * (`title`, `notes`, `maintainer`, `url`) son **topes de UX del portal**, porque CKAN no los impone
+ * (ver PRD §7 y las constantes `MAX_*` de arriba).
  */
 export const datasetCreateSchema = z.object({
 	name: z
@@ -111,9 +130,17 @@ export const datasetCreateSchema = z.object({
 		.regex(/^[a-z0-9_-]+$/, "Solo minúsculas, números, guiones y guión bajo"),
 	title: z
 		.string()
-		.min(3, "El título debe tener al menos 3 caracteres")
-		.max(200, "El título no puede exceder 200 caracteres"),
-	notes: z.string().max(5000).optional(),
+		.trim()
+		.min(1, "El título es obligatorio")
+		.max(MAX_TITLE_LENGTH, `El título no puede superar los ${MAX_TITLE_LENGTH} caracteres.`),
+	notes: z
+		.string()
+		.max(MAX_NOTES_LENGTH, `La descripción no puede superar los ${MAX_NOTES_LENGTH} caracteres.`)
+		.optional(),
+	summary: z
+		.string()
+		.max(MAX_SUMMARY_LENGTH, `El resumen no puede superar los ${MAX_SUMMARY_LENGTH} caracteres.`)
+		.optional(),
 	owner_org: z.string().trim().min(1, "Debe seleccionar una organización"),
 	private: z.boolean().default(true),
 	license_id: z.string().optional(),
@@ -121,6 +148,10 @@ export const datasetCreateSchema = z.object({
 	url: optionalExternalUrl,
 	maintainer: z
 		.string()
+		.max(
+			MAX_MAINTAINER_LENGTH,
+			`El responsable no puede superar los ${MAX_MAINTAINER_LENGTH} caracteres.`,
+		)
 		.optional()
 		.transform((raw) => raw?.trim() || undefined),
 	maintainer_email: optionalEmail,
@@ -136,6 +167,18 @@ export const datasetCreateSchema = z.object({
 });
 
 export type DatasetCreateInput = z.infer<typeof datasetCreateSchema>;
+
+/**
+ * Valida el `license_id` contra la lista que devuelve CKAN.
+ *
+ * **CKAN NO valida este campo** (verificado 2026-09-13: `package_create` con un id inexistente
+ * responde `success: true` y lo guarda tal cual), así que el portal es el único que puede frenarlo.
+ * No va dentro del schema porque la lista es asíncrona: llega de `license_list` en tiempo de ejecución.
+ */
+export function licenseIdError(id: string | undefined, validIds: readonly string[]): string | null {
+	if (!id) return null;
+	return validIds.includes(id) ? null : `La licencia «${id}» no está en la lista de CKAN.`;
+}
 
 export const datasetUpdateSchema = datasetCreateSchema.partial();
 export type DatasetUpdateInput = z.infer<typeof datasetUpdateSchema>;

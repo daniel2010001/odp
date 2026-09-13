@@ -113,7 +113,7 @@ describe("Wizard de publicación", () => {
 		await fireEvent.submit(getForm(container));
 
 		await waitFor(() =>
-			expect(container.querySelector("#title-error")).toHaveTextContent(/título debe/i),
+			expect(container.querySelector("#title-error")).toHaveTextContent(/título es obligatorio/i),
 		);
 		// El resumen también lista los errores (título vacío y slug vacío).
 		expect(screen.getByText(/corrija/i)).toBeInTheDocument();

@@ -1,13 +1,11 @@
 // Construcción del payload de CKAN para el wizard de datasets.
 //
-// Decisión de v0 (2026-09-11): NO se escriben `extras`. El vocabulario de
-// ckanext-dcat difiere entre sus perfiles legacy y scheming, así que congelar
-// claves ahora obligaría a migrar todos los datasets creados entre medio. Lo que
-// el PRD pide ya se cubre con campos nativos: `metadata_created` y
-// `metadata_modified` son el fallback de issued/modified, y la organización
-// dueña es el fallback de publisher.
+// Decisión de v0 (2026-09-11): no se escriben extras de **DCAT** (su vocabulario difiere
+// entre perfiles y congelar claves obligaría a migrar). La única excepción es el **resumen** del
+// portal (RF-40), que no mapea a ningún vocabulario externo: ver `dataset-summary.ts`.
 
 import { formatSize } from "./ckan";
+import { SUMMARY_EXTRA_KEY } from "./dataset-summary";
 
 /** Tamaño máximo por recurso (PRD RF-12). Único origen del valor. */
 export const MAX_RESOURCE_BYTES = 50 * 1024 * 1024;
@@ -21,6 +19,7 @@ export interface DatasetFormInput {
 	owner_org: string;
 	private: boolean;
 	notes?: string;
+	summary?: string;
 	license_id?: string;
 	tag_string?: string;
 	url?: string;
@@ -47,7 +46,7 @@ function clean(value: string | undefined): string | undefined {
  * Traduce el formulario al payload de `package_create`.
  *
  * Omite los opcionales vacíos en lugar de mandar cadenas vacías, para que CKAN no
- * guarde valores en blanco. No agrega `extras`.
+ * guarde valores en blanco. Sólo escribe `extras` para el resumen del portal (RF-40).
  */
 export function buildPackagePayload(input: DatasetFormInput): Record<string, unknown> {
 	const payload: Record<string, unknown> = {
@@ -60,6 +59,12 @@ export function buildPackagePayload(input: DatasetFormInput): Record<string, unk
 	for (const field of OPTIONAL_FIELDS) {
 		const value = clean(input[field]);
 		if (value !== undefined) payload[field] = value;
+	}
+
+	// El resumen va como extra: CKAN no tiene un campo nativo para él.
+	const resumen = clean(input.summary);
+	if (resumen !== undefined) {
+		payload.extras = [{ key: SUMMARY_EXTRA_KEY, value: resumen }];
 	}
 
 	return payload;
