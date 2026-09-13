@@ -50,6 +50,54 @@ describe("createDatasetApi", () => {
 		expect(params.fq).toBe("organization:org-123");
 	});
 
+	it("tagSuggestions devuelve los nombres de las tags en orden de faceta", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({
+			count: 0,
+			sort: "",
+			results: [],
+			search_facets: {
+				tags: {
+					title: "Tags",
+					items: [
+						{ name: "salud", display_name: "salud", count: 5 },
+						{ name: "educacion", display_name: "educacion", count: 3 },
+					],
+				},
+			},
+		});
+
+		const api = createDatasetApi(client);
+		const tags = await api.tagSuggestions(50);
+
+		expect(tags).toEqual(["salud", "educacion"]);
+
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("package_search");
+		expect(params.rows).toBe(0);
+		expect(params["facet.field"]).toEqual(["tags"]);
+		expect(params["facet.limit"]).toBe(50);
+	});
+
+	it("tagSuggestions devuelve [] si la faceta no viene", async () => {
+		const { client } = makeClient();
+		const api = createDatasetApi(client);
+
+		const tags = await api.tagSuggestions();
+
+		expect(tags).toEqual([]);
+	});
+
+	it("tagSuggestions degrada a [] si la llamada falla", async () => {
+		const { client, post } = makeClient();
+		post.mockRejectedValueOnce(new Error("ckan caído"));
+		const api = createDatasetApi(client);
+
+		const tags = await api.tagSuggestions();
+
+		expect(tags).toEqual([]);
+	});
+
 	it("byOrganization combina un fq existente con AND", async () => {
 		const { client, post } = makeClient();
 		const api = createDatasetApi(client);

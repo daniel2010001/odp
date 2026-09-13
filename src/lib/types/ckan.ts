@@ -113,6 +113,23 @@ export interface CkanGroup {
 	package_count?: number;
 }
 
+// ─── License ──────────────────────────────────────────────────────────
+export interface CkanLicense {
+	id: string;
+	title: string;
+	url: string; // puede ser "" (p. ej. "notspecified")
+	family: string;
+	// CKAN envía estos flags como strings "True"/"False", no booleanos.
+	is_generic: string;
+	maintainer: string;
+	status: string; // "active"
+	od_conformance: string; // "approved" | "not reviewed"
+	osd_conformance: string;
+	domain_content: string;
+	domain_data: string;
+	domain_software: string;
+}
+
 // ─── Package (Dataset) ───────────────────────────────────────────────
 export interface CkanPackage {
 	id: string;

@@ -28,6 +28,27 @@ export function createDatasetApi(client: CkanClient) {
 			};
 		},
 
+		/**
+		 * Sugerencias de tags desde la faceta `tags` de `package_search`.
+		 *
+		 * Es una **conveniencia** para el wizard: si la faceta no viene, o si la llamada falla,
+		 * devuelve `[]` en vez de propagar el error. Unas sugerencias faltantes jamás deben bloquear
+		 * ni romper el asistente de creación de dataset (mismo criterio que `listForUser` con los
+		 * extras de organización).
+		 */
+		async tagSuggestions(limit = 20): Promise<string[]> {
+			try {
+				const result = await this.search({
+					limit: 0,
+					facet_field: ["tags"],
+					facet_limit: limit,
+				});
+				return result.search_facets.tags?.items.map((item) => item.name) ?? [];
+			} catch {
+				return [];
+			}
+		},
+
 		/** Obtener detalle de un dataset por ID o slug */
 		async show(id: string): Promise<CkanPackage> {
 			return client.post<CkanPackage>("package_show", { id });
