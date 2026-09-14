@@ -54,6 +54,48 @@ its own**, because CKAN sets `"include_private": authz.is_sysadmin(user)` (`get.
 The dev seed masks this by using a sysadmin. The dashboard's "My datasets" is therefore broken for
 every ordinary user. Nothing in the current spec covers it.
 
+### 2.4 Second measurement pass — 2026-09-14, the design's probe list (P0–P9)
+
+Run before the `spec` phase, against `http://localhost:5000` (the CKAN container directly rather than
+the `:8082` proxy), to close the design's open questions. **The headline: the design's create-time
+reasoning was not a hedge — it was a real hole, twice over.**
+
+| What was measured | Result |
+|---|---|
+| `private` in the create validator chain | `schema.py:160-161` — `ignore_missing, boolean_validator, datasets_with_no_organization_cannot_be_private`. **No authorization anywhere in it** |
+| The column default for `private` | `model/package.py:75` — `Column('private', types.Boolean, default=False)`. **Public** |
+| Editor `package_create {private: false}` | **`200`, stored `private=false`, `state=active`** → public, with no org admin involved |
+| Editor `package_create` **omitting** `private` | **`200`, stored `private=false`, `state=active`** → the omitted key falls through to the public column default |
+| Editor full `package_update` **omitting** `private` | **`200`, `private` stayed `true`** → omission is a publish attempt **only at create**. The create/update asymmetry is measured, not assumed |
+| Editor `package_patch {private: false}` | **`200`, stored `private=false`** → the original bypass, reconfirmed on this build |
+| Editor `package_patch {state: "draft"}` | **`200`, stored `state=draft`** → an editor **can** change `state` today. `ROLE_PERMISSIONS` gives `editor` `update_dataset`; `package_change_state` authorizes by delegating to `package_update`; so `ignore_not_package_admin`'s `check_access` succeeds and `state` is not dropped |
+| Org `admin` / `sysadmin` `package_patch {private: false}` | `200`, stored `private=false` → the approver path is stock `package_patch` |
+| Org `member`, and an editor of another org | `403 Authorization Error` in both cases → the existing baseline is preserved |
+| Editor `bulk_update_public` | `403` from CKAN's own auth (`has_user_permission_for_group_or_org(org_id, user, 'update')`, and `get_roles_with_permission('update')` returns only `admin`); `private` unchanged → the documented non-path holds |
+| Anonymous `*:*` count across the run | 16 → 19 → 21 → 16. The private datasets never appeared, and an anonymous marker search did not find them. **Four of the five datasets public at peak were the editor's own doing** |
+| `chained_auth_function` in 2.11.6 | **Present** (`toolkit.py:24,114`, `logic/__init__.py:781-813`) → the primary design shape needs no fallback |
+| Pre-update veto through `IPackageController` | **Impossible**: only `after_dataset_create`/`after_dataset_update` exist, both returning `None`, and 2.11.6's own docstring says the bulk actions bypass them |
+| Sysadmin short-circuit | Present at `authz.py:221-226`, skipped only for functions carrying `auth_sysadmins_check` |
+| `allow_dataset_collaborators` / `reveal_private_datasets` | Both `false` in `/srv/app/ckan.ini` (:101, :106) |
+| Extension test baseline | `pytest 8.3.4` + `pytest-ckan 2.11.6` **are installed in the dev image**, so no throwaway container is needed. Baseline `1 failed`: `NameError: name 'plugin_loaded' is not defined` at `tests/test_plugin.py:57` |
+| **P10 — the approver cascade.** An `admin` of a **parent** organization publishing a dataset owned by a **child** organization | **`200`, stored `private=false`.** The cascade is real for the `admin` capacity: `authz.py:322-333` walks `get_parent_group_hierarchy` for the capacities listed in `ckan.auth.roles_that_cascade_to_sub_groups`, which the running ini sets to `admin` (:98) — the same capacity the approver check uses |
+
+Two API behaviours reconfirmed or newly measured while driving the probes:
+
+- `api_token_create {user: <other user>}` — a sysadmin minting for someone else — returns the token but
+  **no `result.id`**, so the `jti` needed to revoke it is absent from the response.
+  `api_token_list {user_id}` is the only way to obtain it.
+- `api_token_revoke {jti: <anything matching no token>}` returns **`success: true`, HTTP 200 and revokes
+  nothing**. Same silent-no-op family as the `token`-instead-of-`jti` defect in §2.2. **Do not treat
+  `success: true` from `api_token_revoke` as evidence of revocation**; verify by listing.
+- The organization-hierarchy row is **inverted**: it is created as `member_create {id: <child org>,
+  object: <parent org>, object_type: "group", capacity: "parent"}`. `get_parent_group_hierarchy` reads a
+  group's parents from member rows where `group_id = <that group>` and takes the parent from `table_id`
+  (`model/group.py:461-476`). Creating the row the intuitive way answers **`200` and registers nothing
+  the cascade reader sees** — measured: the first attempt reported success and the parent-org admin
+  still got `403`; only the corrected row produced the `200`. `organization_show` does not report the
+  parent either. **A `200` from `member_create` is not evidence that the hierarchy exists.**
+
 ## 3. Pending product decisions (why the proposal is not launched)
 
 The following are genuine product choices, not harness mechanics. Each one changes the shape of the
@@ -82,10 +124,16 @@ implementation, so the proposal cannot honestly be written before they are answe
 
 All probe packages were deleted and purged, both probe organizations were hard-purged, all probe
 tokens were revoked by `jti`, and all probe users were removed. **Residual:** CKAN 2.11.6 exposes no
-user hard-delete, so five `state='deleted'` user rows remain (`probe-editor-x`, `probe-member-x`,
-`probe-editor-y`, `probe-outsider`, `probe-admin-x`); their tokens are gone.
+user hard-delete, so deleted user rows accumulate: five from the first pass (`probe-editor-x`,
+`probe-member-x`, `probe-editor-y`, `probe-outsider`, `probe-admin-x`) and **four more from the
+2026-09-14 pass** (`probe-lc-{editor,member,admin,outsider}-20260914215446`), and **two more from the P10
+cascade probe** (`probe-lc-hadmin-*`, `probe-lc-heditor-*`); their tokens are gone. The second pass was
+verified *after* cleanup and not only during it: anonymous `*:*` back to the 16 seeded datasets, 0 probe
+datasets, 0 probe organizations, and 0 tokens minted by that run.
 Pre-existing debris from earlier sessions (`pi-perm-*`, `probe-a`, `pi-upload-probe` and three
-UUID-named deleted packages) was left untouched as out of scope.
+UUID-named deleted packages) was left untouched as out of scope. So were four stale `ckan_admin` tokens
+from those sessions (`seed-probe`, `seed-probe2`, `odp-e2e-probe`, `odp-e2e-smoke`) — they are not this
+change's to burn, and the portal's own token (`Portal Datos UMSS`) must never be revoked from here.
 
 ## 6. Confirmed decisions (2026-09-13, answered by the user)
 

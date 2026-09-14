@@ -39,7 +39,7 @@ Every CKAN claim below carries a tag. Read them before trusting any sentence.
 | Tag | Meaning |
 |---|---|
 | `[MEASURED]` | Measured in a prior phase against the **running** CKAN 2.11.6 stack. Recorded in `preproposal.md` §2. |
-| `[SOURCE:2.12.0a0]` | Read from the CKAN checkout `$CKAN_SRC` (`2.12.0a0`). Stable core authorization/schema code, but **not** the running version. Probe **P0.1–P0.5** re-reads the same paths inside the container and is what upgrades these to fact. |
+| `[SOURCE:2.12.0a0]` | Read from the CKAN checkout `$CKAN_SRC` (`2.12.0a0`). Stable core authorization/schema code, but **not** the running version. Probe **P0.1–P0.5** re-read the same paths inside the running container on 2026-09-14 and found every tagged path identical in 2.11.6, so the tagged claims below are now facts about the version that runs. The tag is kept to record provenance. |
 | `[REPO]` | Read from the portal repo (`/home/danielblc/projects/odp`) or `odp-docker`. |
 | `[PROBE]` | Not measured. Listed in "Open questions" with the probe step that closes it. |
 
@@ -84,19 +84,25 @@ PUBLISH_ATTEMPT(stored, requested) :=
 wizard always hardcodes `private: true` `[REPO]`
 (`src/routes/dashboard/datasets/new/+page.svelte:147`), but CKAN's create-time validator chain for
 `private` is `ignore_missing, boolean_validator, datasets_with_no_organization_cannot_be_private`
-(`$CKAN_SRC/ckan/logic/schema.py:160-161` `[SOURCE:2.12.0a0]`) — nothing there is authorization. Only
-`state` is dropped at create for non-sysadmins `[MEASURED]`. So an org editor can very likely call
-`package_create {owner_org: <own org>, private: false}` and get a public dataset without ever passing
-through `package_update`. That is the same class of bypass as the measured patch. **`[PROBE P5]`**
-measures it; the guard covers it either way (if CKAN honors it, the hole closes; if CKAN
-rejects/drops it, the guard is a harmless no-op).
+(read back in the running container: `ckan/logic/schema.py:160-161`, 2.11.6) — nothing there is
+authorization. Only `state` is dropped at create for non-sysadmins `[MEASURED]`. **Measured on
+2026-09-14 (P5): an org editor called `package_create {owner_org: <own org>, private: false}` and got
+`200` with a stored `private=false`, `state=active` dataset** — a public dataset that never passed
+through `package_update`. The guard covers it because the hole is real, not because it might be.
 
 The **omitted-key** shape is a second and more dangerous hole, because it needs no explicit intent: at
 create time `ignore_missing` makes an absent `private` fall through to the column default, and that
-default is **public**. So `package_create {owner_org: <own org>}` — no `private` at all — would yield a
-public dataset. The create guard therefore treats absent and `false` alike and defers only on an
-explicit truthy value. This is also the only reason ordinary creation looks private today: the wizard
-always sends `private: true`.
+default is **public** — `Column('private', types.Boolean, default=False)`
+(`ckan/model/package.py:75`, 2.11.6). So `package_create {owner_org: <own org>}` — no `private` at all —
+yields a public dataset. **Measured on 2026-09-14 (P5b): `200`, stored `private=false`, `state=active`.**
+The create guard therefore treats absent and `false` alike and defers only on an explicit truthy value.
+This is also the only reason ordinary creation looks private today: the wizard always sends
+`private: true`.
+
+Note the asymmetry the same run measured (P4c): a **full `package_update` that omits `private` leaves the
+stored value untouched** (`200`, `private` stayed `true`). Omission is a publish attempt *only at create
+time*. Enforcing that distinction is the whole reason the guard has a separate `package_create` shape
+instead of reusing the update one.
 
 ### D2 — Where the rule sits: chained `IAuthFunctions` on `package_update` and `package_create`
 
@@ -228,7 +234,7 @@ going to honor — a lie in the opposite direction.
 |---|---|---|
 | org `editor` | `package_patch {private: false}` on its own org's dataset | `403` + plugin message |
 | org `editor` | `package_patch {state: "draft"}` | `403` |
-| org `editor` | `package_create {owner_org: own, private: false}` | `403` `[PROBE P5]` |
+| org `editor` | `package_create {owner_org: own, private: false}` | `403` (post-guard; measured `200` today, P5) |
 | org `editor` | `package_create {owner_org: own}` — **`private` omitted entirely** | `403` — an omitted key resolves to CKAN's **public** default, so it is the same publish attempt as `false` |
 | org `editor` | `package_update` metadata only (`private: true` unchanged) | `200`, stored values unchanged |
 | org `editor` | `package_delete` | `200` (soft delete) |
@@ -403,7 +409,7 @@ path is not asserted here.
 | P2 | As the **editor**: `package_create {name, owner_org, private: true}` | `200`, stored `private: true`, `state: "active"` — **the wizard's payload still works** | no-regression |
 | P3 | As the **editor**: `package_patch {id, private: false}` | **`403`**, `error.__type` = `Authorization Error`, message = the plugin's | **the deliverable** (today: `200` `[MEASURED]`) |
 | P4 | As the **editor**: `package_patch {id, state: "draft"}`; then `package_patch {id, title: "…"}`; then a full `package_update` that omits `private` | `403`; `200` (metadata edit unaffected); `200` with `private` still `true` (see open question 2) | D1 `state` + no regression |
-| P5 | As the **editor**: `package_create {name, owner_org, private: false}` | `403` (if CKAN would have honored it; recorded either way) | the create-time hole |
+| P5 | As the **editor**: `package_create {name, owner_org, private: false}` | `403` (post-guard; **measured `200`, stored `private=false`, `state=active`** before the guard, P5/P5b) | the create-time hole |
 | P6 | As the **org admin**: `package_patch {id, private: false}` | `200`, stored `private: false` | approver works |
 | P6.1 | As the **sysadmin**: same on a second dataset | `200` | sysadmin fallback survives |
 | P6.2 | As a **member** of the org, and as an **outsider** editor: `package_patch {id, private: false}` | `403` both | baseline preserved |
@@ -414,21 +420,77 @@ path is not asserted here.
 Every P3–P8 row is also a Python unit test where the semantics allow it; the probe is what proves the
 running image, not a substitute for the unit test.
 
-### Open questions that must be measured before the design can be trusted
+### Measured baseline — 2026-09-14, running CKAN 2.11.6, **before the guard exists**
 
-| # | Unprobed fact | Probe | Why the design depends on it |
+The full sequence was executed on 2026-09-14 21:54 against `http://localhost:5000` (the CKAN dev
+container directly, not the `:8082` proxy — the proxy only forwards, so authorization semantics are
+unaffected), with a sysadmin-minted token per probe user. **Read this table as today's behavior, not
+as the expectations above**: every `403` in the step table is the *post-guard* target, and the `200`s
+below are the *pre-guard* reality those rows replace.
+
+| # | Measured result | Reading |
+|---|---|---|
+| P0.1 | `<ckan_root>` = `/srv/app/src/ckan`; `ckan.__version__` = `2.11.6` | the version gap is closed by reading in-container |
+| P0.2 | sysadmin short-circuit present at `authz.py:221-226` | `[SOURCE]` → fact |
+| P0.3 | `interfaces.py` exposes `after_dataset_create` (:451) and `after_dataset_update` (:461), both returning `None`; there is **no** `before_dataset_update`. 2.11.6's own docstring for `after_dataset_update` warns that `bulk_update_private`/`bulk_update_public` bypass it and points at `chained_action` | no pre-update veto exists → D2's rejection of `IPackageController` stands |
+| P0.4 | `chained_auth_function` **present**: `toolkit.py:24,114`, `logic/__init__.py:781-813` | the primary D2 shape is available; **the plugin-declaration fallback is not needed** |
+| P0.5 | `ignore_not_package_admin` (`validators.py:556-585`) as read; wired at `schema.py:157` as `'state': [ignore_not_package_admin, ignore_missing]` | D1's premise confirmed in 2.11.6 |
+| P0.6 | `pytest 8.3.4` **is installed in the dev image** (`/usr/local/bin/pytest`, with `pytest-ckan 2.11.6`), so the throwaway-container fallback was **not** used. Baseline: `1 failed` — `NameError: name 'plugin_loaded' is not defined` at `tests/test_plugin.py:57` | the red baseline is real and reproducible in place |
+| P0.7 | `ckan.auth.allow_dataset_collaborators = false` (:101) and `ckan.auth.reveal_private_datasets = false` (:106) in `/srv/app/ckan.ini` | collaborators are irrelevant, and the denials below cannot be attributed to those flags |
+| P2 | editor `package_create {private: true}` → `200`, stored `private=true`, `state=active` | the wizard's payload still works |
+| **P3** | editor `package_patch {private: false}` → **`200`, stored `private=false`** | **the bypass, reconfirmed live.** This is the deliverable |
+| P4a | editor `package_patch {state: "draft"}` → **`200`, stored `state=draft`** | an editor **can** change `state` today, so D1's second clause is load-bearing rather than theoretical |
+| P4b | editor `package_patch {title: …}` → `200`, applied | metadata edits are unaffected |
+| P4c | editor **full** `package_update` **omitting** `private` → `200`, `private` **still `true`** | **open question 2 answered: omission on update is not a bypass** — the create/update asymmetry is real |
+| **P5** | editor `package_create {private: false}` → **`200`, stored `private=false`, `state=active`** | **open question 1 answered: the create-time hole is real.** The second guard is what closes it, so it is load-bearing rather than defensive |
+| **P5b** | editor `package_create` **omitting** `private` → **`200`, stored `private=false`, `state=active`** | the omitted-key hole, measured. This is precisely the shape the create guard was corrected for |
+| P6 | org `admin` `package_patch {private: false}` → `200`, stored `private=false` | the approver's call works with stock `package_patch` |
+| P6.1 | `sysadmin` → `200` | the sysadmin path survives |
+| P6.2 | org `member` → `403 Authorization Error` "not authorized to edit package"; editor of another org → `403` | **baseline preserved** |
+| P7 | anonymous `*:*` count: **16** (the seeded baseline) → **19** once the editor had created two public datasets and published a third with `package_patch` → **21** after the admin and the sysadmin published two more → **16** after cleanup. The two private datasets never appeared, and an anonymous marker search did not find them | the catalogue follows `private`, and **4 of the 5 public datasets in that window came from the editor alone** |
+| P8 | editor `bulk_update_public` → `403 Authorization Error`, `private` unchanged | the documented non-path holds |
+| P9 | cleanup verified: anonymous count back to 16, 0 probe datasets, 0 probe orgs, 0 tokens minted by this probe, and the 4 probe users left as `state='deleted'` | hygiene |
+| **P10** | an `admin` of a **parent** organization, with a dataset owned by a **child** organization → `package_patch {private: false}` answered **`200`, stored `private=false`** | the D3 comment's "cascades down the org hierarchy" is **measured, not assumed**. `authz.py:322-333` walks `get_parent_group_hierarchy` for the capacities in `ckan.auth.roles_that_cascade_to_sub_groups`, and the running ini sets that to `admin` (:98; the code default at `authz.py:515` is `admin` too) — the same capacity the approver check uses |
+
+Re-read in the container because the create guard depends on them:
+
+- `schema.py:160-161` — `'private': [ignore_missing, boolean_validator, datasets_with_no_organization_cannot_be_private]`: **no authorization anywhere in the chain.**
+- `model/package.py:75` — `Column('private', types.Boolean, default=False)`: the column default is **public**, which is exactly why an omitted key at create is a publish attempt.
+- `authz.py:248-253` — `ROLE_PERMISSIONS`: `editor` = `read, delete_dataset, create_dataset, update_dataset, manage_group`; `member` = `read, manage_group`. This is the whole explanation of P6.2 and of how far an editor's reach goes.
+- `logic/auth/update.py:110-118` — `package_change_state` authorizes by delegating to `package_update`, which authorizes on `has_user_permission_for_group_or_org(owner_org, user, 'update_dataset')` (`:14-24`). An editor holds `update_dataset`, so `ignore_not_package_admin`'s `check_access` succeeds and `state` survives the validator. That is the causal chain behind P4a.
+
+Two probe-mechanics gotchas worth not rediscovering:
+
+- `api_token_create {user: <other user>}` — a sysadmin minting for someone else — returns the token but **no `result.id`**, so the `jti` needed to revoke it is absent from the response. `api_token_list {user_id}` is the only way to obtain it. The self-mint path does return `result.id`.
+- `api_token_revoke {jti: <anything matching no token>}` answers **`success: true`, HTTP 200 and revokes nothing** — the same silent-no-op family as the `token`-instead-of-`jti` defect `preproposal.md` §2.2 already records. **A `success: true` from `api_token_revoke` is not evidence of revocation**; verify by listing.
+- The organization-hierarchy row is **inverted** from the intuitive reading: it is created as `member_create {id: <child org>, object: <parent org>, object_type: "group", capacity: "parent"}`. `get_parent_group_hierarchy` finds a group's parents in member rows where `group_id = <that group>` and reads the parent from `table_id` (`model/group.py:461-476`). Creating the row the intuitive way — `{id: <parent>, object: <child>}` — answers **`200` and registers nothing the cascade reader will ever see**, which is why P10 needed a second run before it meant anything. Nothing in `organization_show` reports the parent either.
+
+### Open questions — resolved by the 2026-09-14 probe run
+
+| # | Question | Probe | Answer |
 |---|---|---|---|
-| 1 | Does the running 2.11.6 keep `private: false` on `package_create` for a non-sysadmin editor? | P5 | If yes, the `package_create` guard is the difference between "closed" and "one API call away from public" |
-| 2 | Does a full `package_update` that **omits** `private` leave the column untouched? | P4 (variant: send the package dict without `private`) | If CKAN reset it to the column default, omission would become a bypass and the guard would have to treat "absent `private` in a full `package_update`" as a transition. Safe to escalate: every internal delegation passes the field |
-| 3 | Is `ckan.auth.allow_dataset_collaborators` really off, and what does `reveal_private_datasets` do on the API path? | P0.7 (+ one `package_show` as an outsider with the flag's current value) | Collaborators are irrelevant to a capacity-based approver, but if the flag were on, the denial message and copy would need to mention capacity accurately |
-| 4 | Does the running Solr index an `extras_*` field in a way that would matter? | not needed | **Not applicable**: this design writes no new `extras` key, which is exactly why the stemming hazard is out of scope |
-| 5 | Are `IPackageController`'s hooks and the sysadmin short-circuit identical in 2.11.6? | P0.2–P0.5 | They are load-bearing for rejecting the alternatives in D2 |
-| 6 | Is `chained_auth_function` available in 2.11.6? | P0.4 | Determines which of the two D2 shapes is implemented |
-| 7 | The container's own ini path and whether `pytest` is installed in the dev image | P0.6, P0.7 use `"$CKAN_INI"` / an explicit fallback, so nothing depends on the answer; if both routes fail, run the suite in a throwaway `ckan/ckan-dev:2.11` container | probe mechanics only |
+| 1 | Does the running 2.11.6 keep `private: false` on `package_create` for a non-sysadmin editor? | P5, P5b | **Yes, and worse than the question assumed.** Both an explicit `false` and an **omitted key** yield a stored `private=false` public dataset. The `package_create` guard is the difference between "closed" and "one API call away from public" |
+| 2 | Does a full `package_update` that **omits** `private` leave the column untouched? | P4c | **Yes, untouched.** Omission is a bypass **only at create time**, where `ignore_missing` falls through to the public column default. This asymmetry is exactly what the create guard encodes |
+| 3 | Is `ckan.auth.allow_dataset_collaborators` really off, and what does `reveal_private_datasets` do on the API path? | P0.7 | Both `false` in the running ini, and neither is read on the API authorization path. The denials above cannot come from them, and the copy need not mention collaborators |
+| 4 | Does the running Solr index an `extras_*` field in a way that would matter? | — | **Not applicable**: this design writes no new `extras` key, which is exactly why the stemming hazard is out of scope |
+| 5 | Are `IPackageController`'s hooks and the sysadmin short-circuit identical in 2.11.6? | P0.2, P0.3 | **Confirmed.** The short-circuit exists as read, and the only dataset hooks are post-hoc `after_dataset_*` returning `None`, so no pre-update veto is possible through that interface |
+| 6 | Is `chained_auth_function` available in 2.11.6? | P0.4 | **Yes.** The primary D2 shape is implemented; the plugin-declaration fallback is dropped |
+| 7 | The container's own ini path and whether `pytest` is installed in the dev image | P0.6, P0.7 | `"$CKAN_INI"` resolves to `/srv/app/ckan.ini`, and `pytest 8.3.4` with `pytest-ckan 2.11.6` is installed in the dev image, so the suite runs in place and no throwaway container is needed |
 
-Nothing above changes the chosen approach; each item selects between already-written variants or
-confirms a rejection. Items left unmeasured at verify time must be reported as such — the honest
-alternative to a probe is saying "not measured", never a fabricated claim.
+Nothing above changed the chosen approach; every item selected between already-written variants or
+confirmed a rejection. One expectation in the step table needs restating so it is not misread: the
+`403` rows for P3, P4a and P5 are the **post-guard** target. Today they answer `200`.
+
+### Unmeasured at this point
+
+Nothing in the step table is left unmeasured, and the one adjacent claim that a phase flagged as
+source-derived — the approver cascade to parent organizations — was closed by P10 on the same day.
+One
+claim remains unprobed on purpose, and `apply` will hit it on its first run: whether editing the
+bind-mounted extension is visible without a `docker restart` (the design assumes it is not, because
+plugin registration happens at process start). CKAN's own web UI rendering of the `403` for an editor
+who picks "Public" is likewise unverified. The honest alternative to a probe is saying "not measured",
+never a fabricated claim.
 
 ## Delivery shape across two repositories
 
@@ -444,7 +506,8 @@ relative to the compose file's own directory), and the unified file overrides th
 extension `[REPO]`. Editing `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/**` is
 therefore visible to the running container **after a `docker restart odp-dev-ckan-dev-1`** — plugin
 registration happens at process start, so a changed `implements(...)` needs the restart even if the
-file is mounted. Probe P0.4/P3 confirm the effect. Production is a different path:
+file is mounted. P0.4 confirms the decorator exists; the restart requirement itself is **not probed**, and
+`apply` will settle it on the first run. Production is a different path:
 `/home/danielblc/projects/odp-docker/ckan-docker/Dockerfile.umss` bakes a non-editable install, so
 shipping requires rebuilding and redeploying that image — a deployment action, explicitly out of this
 change's scope.
@@ -478,10 +541,10 @@ not met.
 |---|---|---|
 | An editor publishes through a path the guard does not cover | Low, but the class is real | Three paths were checked explicitly: `package_update`/`patch`/`change_state`/`revise` (covered), `package_create {private: false}` (covered by the second guard, probe P5), `bulk_update_public` (org-admin-only in stock CKAN, probe P8). Any new publish path added by a future CKAN version is a re-review trigger, not something this design can pre-empt |
 | The guard's key-presence logic is "helpful" but wrong (a request CKAN would have dropped gets a `403`) | Medium | Deliberately asymmetric: unrecognized values and unresolvable packages defer to the core decision; only an explicit, interpretable diff is refused. Create-time `state` is not guarded for exactly this reason |
-| Editors lose the ability to change `state` (including on draft datasets) | Medium, currently unreachable | This restores the intent of `ignore_not_package_admin`. `package_delete` still works, drafts do not exist in this deployment, and the portal has no edit UI at all |
+| Editors lose the ability to change `state` (including on draft datasets) | **Certain and reachable** (P4a measured an editor setting `state` to `draft` with `200`) | This restores the intent of `ignore_not_package_admin`, at the cost of a capability editors hold **right now**. `package_delete` still works, the portal has no edit UI, and this slice writes no `draft` vocabulary — so the practical exposure is CKAN's own web UI and the raw API, not the portal. It is recorded as a deliberate reduction, not as an unreachable edge |
 | The approver hint diverges from the CKAN rule | Low | The hint reads the same CKAN predicate through `organization_list_for_user`. The `403` remains the source of truth and is rendered honestly, so a divergence shows up as a *missing* affordance at worst |
 | An organization with editors but no admin cannot publish | Certain (accepted) | The non-approver copy names who can publish instead of leaving the user stuck. Decision from the proposal, not a new one |
-| The existing extension test suite is red before this change | High | Its `tests/test_plugin.py:57` references `plugin_loaded` without taking it as a fixture `[REPO]` (file: `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/tests/test_plugin.py`). Probe P0.6 records the baseline; the fix is part of PR 1 so "the suite passes" is a real claim rather than an inherited one |
+| The existing extension test suite is red before this change | High | Its `tests/test_plugin.py:57` references `plugin_loaded` without taking it as a fixture `[REPO]` (file: `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/tests/test_plugin.py`). Probe P0.6 records the baseline (`1 failed`, `NameError: name 'plugin_loaded' is not defined`) and confirmed `pytest 8.3.4` plus `pytest-ckan 2.11.6` are installed in the dev image, so the suite runs in place; the fix is part of PR 1, so "the suite passes" is a real claim rather than an inherited one |
 | CKAN's web UI now shows an error for editors who pick "Public" | Medium | Accepted: the web UI is an operational crutch in `v0`, and hiding the selector is cosmetic work with its own template override. If it proves confusing in practice it becomes a backlog item, not part of this slice |
 | 2.12 rewrites `extras` to a JSONB column | Low, not triggered | This design writes no extras, so the rewrite does not touch it |
 
