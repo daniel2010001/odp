@@ -259,15 +259,22 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 
 ### `2026-09-13-publication-lifecycle` — EN CURSO
 
-> **Estado (2026-09-13):** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
-> **lo próximo es `spec`**, después `tasks` y recién ahí `apply`. **Nada implementado todavía.**
-> Config SDD del proyecto: `openspec/config.yaml` (`strict_tdd: true`, `pnpm test`, sin runner de
-> integración ni E2E).
+> **Estado (2026-09-14):** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
+> **`spec` ✅** · **lo próximo es `tasks`**, y recién después `apply`. **Nada implementado todavía.**
+> Preflight de la sesión del 2026-09-14: ejecución `auto`, store `openspec`, entrega `ask-on-risk`,
+> presupuesto 400 líneas por PR. Config SDD del proyecto: `openspec/config.yaml` (`strict_tdd: true`,
+> `pnpm test`, sin runner de integración ni E2E).
 >
 > **Artefactos** en `openspec/changes/2026-09-13-publication-lifecycle/`. El **autoritativo para la
 > evidencia medida** es `preproposal.md`: `explore.md` se escribió leyendo un checkout de CKAN
 > **2.12.0a0 sin shell**, y **tres de sus afirmaciones fueron refutadas midiendo contra el 2.11.6 que
 > corre** (su encabezado lo advierte).
+>
+> **`spec` (2026-09-14):** dos artefactos nuevos — `specs/publication-lifecycle/spec.md` (capability nueva:
+> la garantía vive en `ckanext-umss`, otro repo, y no se puede fundir en el contrato del wizard sin volver
+> ambos inauditables) y `specs/dataset-publishing/spec.md` (delta con 3 MODIFIED). Gatekeeper PASS.
+> **Ojo al archivar:** los bloques MODIFIED copian el requisito canónico entero, así que el merge debe ser
+> un *patch*, nunca un reemplazo de archivo, o se pierden los requisitos intactos.
 
 **El problema:** hoy nada de lo creado en el portal puede llegar al catálogo. El wizard crea todo
 privado y no hay ninguna forma de publicarlo.
@@ -294,14 +301,34 @@ privado y no hay ninguna forma de publicarlo.
   `ckan-docker/src`!) y la UI en este repo. Por eso **`pnpm test` no puede cubrir el cumplimiento**:
   la única prueba honesta es una **sonda viva** contra el CKAN dockerizado (el diseño define P0–P9).
   Entrega prevista: **2 PRs**, y la decisión de entrega (`ask-on-risk`) cae en `tasks`.
-- **Segundo bypass probable, todavía sin medir:** `package_create {private: false}` para un editor.
-  Sólo se midió que se descarta `state` al crear, no `private`. Hay que probarlo (sonda P5) o
-  reportarlo como **no medido**.
+- **Segundo bypass: MEDIDO el 2026-09-14 (sonda P5) y es real.** `package_create {private: false}` como
+  editor → **200 con `private=false` guardado**: dataset público sin pasar nunca por `package_update`.
+  **Peor: omitir la clave** (`package_create {owner_org}` sin `private`) da exactamente lo mismo,
+  porque `private` está en la cadena `ignore_missing` del schema (`schema.py:160-161`) y el default de
+  la columna es **público** (`model/package.py:75`). Lo único que hoy mantiene privado lo que se crea es
+  el `private: true` hardcodeado del wizard. En cambio, un `package_update` **completo que omite
+  `private`** deja el valor intacto (200, sigue `true`): la omisión es un intento de publicación **sólo
+  al crear**.
+- **`state` sigue siendo mutable por un editor (medido 2026-09-14, P4a):** `package_patch
+  {state:"draft"}` como editor → **200 con `state=draft` guardado**. Causa: `ROLE_PERMISSIONS` le da
+  `update_dataset` al editor, `package_change_state` autoriza delegando en `package_update`, y
+  `ignore_not_package_admin` sólo descarta `state` cuando ese `check_access` falla. El guard del diseño
+  lo bloquea (segunda cláusula de D1), así que **este cambio le quita al editor una capacidad que hoy
+  sí tiene** — anotado abajo en `v1`.
+
+**Sondas P0–P9 ejecutadas el 2026-09-14** contra el CKAN 2.11.6 que corre (por `localhost:5000`), con
+higiene verificada *después* de limpiar: conteo anónimo de vuelta a los 16 datasets del seed, y 0
+datasets, 0 organizaciones y 0 tokens de sonda. Resultados en `design.md` → «Measured baseline» y en
+`preproposal.md` §2.4. Cerrado por las sondas: `chained_auth_function` **existe** en 2.11.6 (no hace
+falta el fallback), no hay hook de veto previo en `IPackageController`, y las dos banderas de
+colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
 `ckanext/umss/tests/test_plugin.py:57` llama `plugin_loaded("umss")` sin declararlo como fixture.
-Cualquier verificación con pytest de este cambio arranca de ahí. Y su `plugin.py` implementa **sólo
-`IConfigurer`** hoy.
+Medido el 2026-09-14: `1 failed`, `NameError: name 'plugin_loaded' is not defined`. `pytest 8.3.4` y
+`pytest-ckan 2.11.6` **sí están instalados en la imagen de dev**, así que la suite corre en el lugar y
+no hace falta el contenedor descartable que el diseño contemplaba como fallback. Y el `plugin.py`
+implementa **sólo `IConfigurer`** hoy.
 
 El cambio anterior (`2026-09-11-dataset-publishing`: wizard de publicación + dashboard real + recursos
 por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
@@ -386,6 +413,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
   rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
   2026-09-11._
+
+- [ ] **[v1] Un editor de organización pierde la capacidad de cambiar `state` cuando entre el guard de
+  publicación** — **medido (2026-09-14, P4a):** hoy un editor de org **sí** puede `package_patch
+  {state:"draft"}` (200, guardado), y puede volver a `active`. Es una consecuencia **deliberada** del
+  guard de `2026-09-13-publication-lifecycle` (restaura la intención de `ignore_not_package_admin`), pero
+  es una capacidad **alcanzable hoy**, no un caso teórico. Pendiente para `v1`: decidir si el portal (o un
+  override de plantilla de CKAN) expone el estado de forma honesta, y si la retracción de un dataset
+  publicado merece un flujo propio. _Origen: diseño del cambio + sonda P4a._
 
 - [ ] **[v1] Gestión de organizaciones en el portal** — CRUD de organizaciones
   (`organization_create` / `organization_update`) y de miembros
@@ -525,12 +560,33 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Divergencia doc↔código en el home | **Corregido** — design-system README §9 actualizado al home real (CTA + stats + organizaciones). |
 | `CKAN_INTERNAL_URL` en compose prod | **Corregido** — `docker-compose.unified.yml` inyecta `CKAN_INTERNAL_URL: http://ckan:5000` en el servicio frontend. |
 | Housekeeping: ramas remotas mergeadas | **Borradas** — 14 ramas eliminadas de `origin` (11 mergeadas por ancestría + 3 superseded). Quedan solo `main` y `HEAD`. |
-| Token accumulation en login repetido | **RESUELTO DE VERDAD (2026-09-13, `e4b7ed9`)**. La afirmación anterior («resuelto en código») era **falsa**: el código llamaba a las acciones correctas pero con parámetros inválidos, así que no revocaba nada y fallaba en silencio (es best-effort). Eran **tres defectos encadenados**: (1) `api_token_list` sin `X-CSRFToken` → 400; (2) `api_token_list` sin el obligatorio `user_id` → 409; (3) `api_token_revoke` con `token` en vez de `jti` → CKAN intenta **decodificar un JWT**, el id no lo es, el `jti` queda en `null` y **no revoca nada devolviendo `success: true`**. Medido: con `token` el token sigue en el listado, con `jti` desaparece. Verificado después: logins repetidos dejan **exactamente 1** token del portal. |
+| Token accumulation en login repetido | **RESUELTO DE VERDAD (2026-09-13, `e4b7ed9`)**. La afirmación anterior («resuelto en código») era **falsa**: el código llamaba a las acciones correctas pero con parámetros inválidos, así que no revocaba nada y fallaba en silencio (es best-effort). Eran **tres defectos encadenados**: (1) `api_token_list` sin `X-CSRFToken` → 400; (2) `api_token_list` sin el obligatorio `user_id` → 409; (3) `api_token_revoke` con `token` en vez de `jti` → CKAN intenta **decodificar un JWT**, el id no lo es, el `jti` queda en `null` y **no revoca nada devolviendo `success: true`**. Medido: con `token` el token sigue en el listado, con `jti` desaparece. Verificado después: logins repetidos dejan **exactamente 1** token del portal. **Ampliado (2026-09-14):** la familia del no-op silencioso tiene **dos** casos más, ambos medidos: (a) `api_token_revoke {jti: <cualquier cosa que no matchee ningún token>}` responde **`success: true` y HTTP 200 sin revocar nada** — **`success: true` no es evidencia de revocación**, hay que verificar listando; (b) `api_token_create {user: <otro usuario>}` (sysadmin emitiendo para terceros) **no devuelve `result.id`**, así que el `jti` sólo se obtiene con `api_token_list {user_id}`. Y un tercero, de otra familia: `member_create {id: <padre>, object: <hija>, object_type: "group", capacity: "parent"}` responde **`200` y no registra la jerarquía** que la cascada de permisos lee — la fila correcta es la **invertida** (`id: <hija>, object: <padre>`); `organization_show` tampoco reporta el padre. |
 | `ckan.auth.create_user_via_api=false` | **Aplicado** — agregado a `ckan-docker/.env` y `.env.example` (aplicado por el usuario + verificado). Nota: esto bloquea la creación de usuarios por API (ver ítem `v1+` de usuarios). |
 | Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). **Consecuencia medida (2026-09-13):** el plugin hace **obligatorios** `expires_in` y `unit` en `api_token_create`; el login del portal no los mandaba, así que CKAN respondía **409** y **ningún login funcionaba**. Arreglado en `e4b7ed9` con `TOKEN_TTL = { expires_in: 1, unit: 86400 }`, que espeja esa política. |
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **[v1] Advisory de las dos revisiones de la evidencia de sondas del ciclo de vida** — ambas
+  cerraron **`approved`**; los 6 hallazgos son informativos, **ninguno abrió corrección**. Trabajo
+  posterior, nunca motivo para re-correr la revisión sobre esos candidatos.
+  - `review-61dcee84f2290d65` (evidencia P0–P9 en `design.md` + `preproposal.md` + `BACKLOG.md`):
+    `R3-1` (`design.md:450`, la fila P7 — la narrativa de los conteos 16→19→21→16), `R3-2`
+    (`BACKLOG.md:412`, el ítem `[v1]` de la capacidad `state`).
+  - `review-9e769e5f903471c7` (evidencia P10 + las dos especificaciones, 5 archivos, 703 líneas):
+    `R3-CREATE-INVALID` (SUGGESTION, `publication-lifecycle/spec.md:48-62`, los dos escenarios de
+    creación), `R3-CROSSLAYER` (SUGGESTION, `dataset-publishing/spec.md:31-36`, `Publication is not a
+    form field`), `R3-NO-ADMIN-PATH` (WARNING, `publication-lifecycle/spec.md:116-122`, la organización
+    sin administrador), `R3-PORTAL-PREDICATE` (WARNING, `publication-lifecycle/spec.md:238`, el
+    predicado del portal).
+  - `review-c100297f6a4ac61c` (mismo contenido más esta entrada de deuda; 5 archivos, 716 líneas):
+    `R3-CATALOGUE-CONSISTENCY` (SUGGESTION, `publication-lifecycle/spec.md:208-213`),
+    `R3-DURABLE-LEVEL` (SUGGESTION, `publication-lifecycle/spec.md:19`), `R3-CREATE-ORG-DEFER`
+    (WARNING, `publication-lifecycle/spec.md:149-154`), `R3-FALSY-BOUNDARY` (WARNING,
+    `publication-lifecycle/spec.md:142-147`).
+    > Nota de trazabilidad: la entrada de deuda que usted está leyendo se agregó **después** de que esa
+    > revisión cerrara. El candidato aprobado es el árbol de 5 archivos; esta lista es el único delta
+    > posterior a la aprobación, y es un apunte de ids y ubicaciones, no una decisión.
 
 - [ ] **[v0] Hallazgos advisory de las revisiones del track dashboard + publicación** —
   informativos, no bloqueantes, sin corrección abierta. Verlos como trabajo posterior, nunca como
