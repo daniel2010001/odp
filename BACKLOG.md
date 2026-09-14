@@ -257,11 +257,65 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 
 > Al arrancar un cambio SDD, el ítem se mueve desde este backlog a `openspec/changes/`.
 
-Sin cambios activos. El último (`2026-09-11-dataset-publishing`: wizard de publicación + dashboard
-real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
+### `2026-09-13-publication-lifecycle` — EN CURSO
+
+> **Estado (2026-09-13):** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
+> **lo próximo es `spec`**, después `tasks` y recién ahí `apply`. **Nada implementado todavía.**
+> Config SDD del proyecto: `openspec/config.yaml` (`strict_tdd: true`, `pnpm test`, sin runner de
+> integración ni E2E).
+>
+> **Artefactos** en `openspec/changes/2026-09-13-publication-lifecycle/`. El **autoritativo para la
+> evidencia medida** es `preproposal.md`: `explore.md` se escribió leyendo un checkout de CKAN
+> **2.12.0a0 sin shell**, y **tres de sus afirmaciones fueron refutadas midiendo contra el 2.11.6 que
+> corre** (su encabezado lo advierte).
+
+**El problema:** hoy nada de lo creado en el portal puede llegar al catálogo. El wizard crea todo
+privado y no hay ninguna forma de publicarlo.
+
+**Decisiones de producto ya confirmadas — no re-abrir:**
+
+1. **La revisión debe ser infalsificable** → la regla va en CKAN (`IAuthFunctions` en `ckanext-umss`),
+   no en el portal. Medido: un editor de organización puede poner `private: false` con su propio token,
+   así que una revisión sólo del portal es consultiva.
+2. **Dos niveles de visibilidad** (público / privado = lo lee la organización dueña). Sin etiquetas de
+   permiso propias, sin nivel «solo autor».
+3. El **bug del dashboard** va aparte (ítem propio en `v0`).
+4. Primer corte = **mínimo publicable** (privado → publicado). La máquina de estados completa es
+   no-objetivo explícito.
+5. Aprobador = capacidad **`admin` de la organización** (+ sysadmin). Consecuencia aceptada: una
+   organización con editores pero sin admin no puede publicar.
+6. **Retracción fuera** de este corte (una vez publicado no se vuelve a privado).
+7. **Sin marcador extra**: `private` solo alcanza, lo que además elimina el riesgo de stemming de Solr.
+
+**Dos cosas que condicionan la implementación:**
+
+- Es un cambio **cross-repositorio**: el Python vive en
+  `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss` (¡hace falta el tramo
+  `ckan-docker/src`!) y la UI en este repo. Por eso **`pnpm test` no puede cubrir el cumplimiento**:
+  la única prueba honesta es una **sonda viva** contra el CKAN dockerizado (el diseño define P0–P9).
+  Entrega prevista: **2 PRs**, y la decisión de entrega (`ask-on-risk`) cae en `tasks`.
+- **Segundo bypass probable, todavía sin medir:** `package_create {private: false}` para un editor.
+  Sólo se midió que se descarta `state` al crear, no `private`. Hay que probarlo (sonda P5) o
+  reportarlo como **no medido**.
+
+**Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
+`ckanext/umss/tests/test_plugin.py:57` llama `plugin_loaded("umss")` sin declararlo como fixture.
+Cualquier verificación con pytest de este cambio arranca de ahí. Y su `plugin.py` implementa **sólo
+`IConfigurer`** hoy.
+
+El cambio anterior (`2026-09-11-dataset-publishing`: wizard de publicación + dashboard real + recursos
+por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 `openspec/specs/dataset-publishing/spec.md`.
 
 ## v0 — core presentable
+
+- [ ] **[v0] «Mis datasets» está roto para todo usuario que no sea sysadmin** — **medido
+  (2026-09-13)**: `current_package_list_with_resources` arma la respuesta con
+  `"include_private": authz.is_sysadmin(user)` (`get.py:143`), así que un usuario normal recibe
+  **cero** datasets privados, **ni los propios**. El seed de dev lo enmascara porque su usuario es
+  sysadmin, y por eso nadie lo había visto. Decidido (D3 del cambio
+  `2026-09-13-publication-lifecycle`) **arreglarlo aparte, como corrección propia**. Verificar de paso
+  si el mismo problema afecta a «Mis organizaciones». _Origen: sondas de ese cambio._
 
 - [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
   la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte`: rótulo
@@ -297,9 +351,9 @@ real + recursos por enlace) quedó **archivado** el 2026-09-12 y su spec canóni
 
 ## v1 — producto usable en producción
 
-- [ ] **[v1] Estrategia del ciclo de vida de publicación** — decidir y documentar cómo se
-  implementa `draft → review → approved → published` (RF-15). **CKAN no tiene API para esto.**
-  Opciones evaluadas el 2026-09-11:
+- [x] **[v1] Estrategia del ciclo de vida de publicación** — **MOVIDA al cambio SDD
+  `2026-09-13-publication-lifecycle` (2026-09-13)**; ver «En curso (cambios SDD)». Lo que sigue es el
+  registro histórico de las opciones evaluadas el 2026-09-11, ya superado por el diseño de ese cambio:
   - (A) Custom liviano en el portal: `package.extras.lifecycle_status` + `private` + endpoint
     server-side propio con las transiciones. Menor costo y control total.
   - (B) Extensión CKAN de terceros: `ckanext-workflow` / `ckanext-datasetapproval` /
