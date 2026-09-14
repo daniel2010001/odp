@@ -91,6 +91,13 @@ through `package_update`. That is the same class of bypass as the measured patch
 measures it; the guard covers it either way (if CKAN honors it, the hole closes; if CKAN
 rejects/drops it, the guard is a harmless no-op).
 
+The **omitted-key** shape is a second and more dangerous hole, because it needs no explicit intent: at
+create time `ignore_missing` makes an absent `private` fall through to the column default, and that
+default is **public**. So `package_create {owner_org: <own org>}` — no `private` at all — would yield a
+public dataset. The create guard therefore treats absent and `false` alike and defers only on an
+explicit truthy value. This is also the only reason ordinary creation looks private today: the wizard
+always sends `private: true`.
+
 ### D2 — Where the rule sits: chained `IAuthFunctions` on `package_update` and `package_create`
 
 | Alternative | Blast radius it creates | Verdict |
@@ -190,8 +197,12 @@ def package_create(next_auth, context, data_dict):
     owner_org = data_dict.get('owner_org')
     if not owner_org:
         return result                     # unowned datasets cannot be private; not our transition
-    if _as_bool(data_dict.get('private')) is not False:
-        return result                     # absent, private, or unrecognized: nothing to guard
+    if _as_bool(data_dict.get('private')) is True:
+        return result                     # explicit true: this is not a publish attempt
+    # At CREATE time an absent `private` is NOT "keep what is stored": `private` sits in the
+    # schema's `ignore_missing` chain, so an omitted key falls through to the column default, and
+    # CKAN datasets default to PUBLIC. An omitted key is therefore a publish attempt, exactly like
+    # an explicit `private: false`. Only an explicit truthy value may defer here.
     if _is_approver(context, owner_org):
         return result
     return {'success': False, 'msg': PUBLISH_DENIED_MSG}
@@ -218,6 +229,7 @@ going to honor — a lie in the opposite direction.
 | org `editor` | `package_patch {private: false}` on its own org's dataset | `403` + plugin message |
 | org `editor` | `package_patch {state: "draft"}` | `403` |
 | org `editor` | `package_create {owner_org: own, private: false}` | `403` `[PROBE P5]` |
+| org `editor` | `package_create {owner_org: own}` — **`private` omitted entirely** | `403` — an omitted key resolves to CKAN's **public** default, so it is the same publish attempt as `false` |
 | org `editor` | `package_update` metadata only (`private: true` unchanged) | `200`, stored values unchanged |
 | org `editor` | `package_delete` | `200` (soft delete) |
 | org `editor` | `resource_create` on its dataset | `200` |
@@ -326,7 +338,7 @@ root is `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/`, whi
 |---|---|
 | `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/auth.py` | **New.** `PUBLISH_DENIED_MSG`, `_is_approver`, `_as_bool`, `_load_or_defer`, chained `package_update` and `package_create` |
 | `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/plugin.py` | `implements(IAuthFunctions)` + `get_auth_functions()`; nothing else changes |
-| `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/tests/test_auth.py` | **New.** In-process tests via `factories` + `helpers.call_action`: editor `403`, admin `200`, sysadmin `200`, member/cross-org `403`, metadata-only edit `200`, delete `200`, create-with-`private: false` `403` |
+| `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/tests/test_auth.py` | **New.** In-process tests via `factories` + `helpers.call_action`: editor `403`, admin `200`, sysadmin `200`, member/cross-org `403`, metadata-only edit `200`, delete `200`, create-with-`private: false` `403`, and **create with `private` omitted** `403` |
 | `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/tests/test_plugin.py` | **Fix.** Line 57 calls `plugin_loaded("umss")` without taking it as a fixture parameter `[REPO]`, so it raises `NameError` rather than asserting the plugin loads. Probe **P0.6** confirms the current baseline before touching it |
 
 Inside the running container the same tree is `/srv/app/src_extensions/ckanext-umss/`.
