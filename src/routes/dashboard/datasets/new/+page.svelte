@@ -158,6 +158,14 @@ const validation = $derived(datasetCreateSchema.safeParse(formValues()));
 // Ids de licencia que CKAN devolvió en `license_list`: la única lista válida para contrastar.
 const idsOfrecidos = $derived(licenses.map((license) => license.id));
 
+// CKAN ofrece `notspecified` como una licencia más y su etiqueta curada es la misma que la de la
+// opción vacía («Sin especificar»). Renderizarla producía **dos opciones idénticas** con efectos
+// distintos: la vacía dejaba el campo recomendado como pendiente y `notspecified` lo daba por
+// completo, con el mismo texto a la vista. Se oculta del selector y queda **una sola** opción para
+// «sin licencia». `idsOfrecidos` conserva el id a propósito, para poder validar los datasets que ya
+// lo tengan guardado.
+const licenciasOfrecidas = $derived(licenses.filter((license) => license.id !== "notspecified"));
+
 const allErrors = $derived.by(() => {
 	const errors = validation.success
 		? ({} as Record<string, string>)
@@ -959,7 +967,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									class={inputClass}
 								>
 									<option value="">Sin especificar</option>
-									{#each licenses as license (license.id)}
+									{#each licenciasOfrecidas as license (license.id)}
 										<option value={license.id}>{curatedLicenseLabel(license.id) ?? license.title}</option>
 									{/each}
 								</select>

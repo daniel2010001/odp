@@ -308,6 +308,24 @@ describe("Wizard de publicación", () => {
 		expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ license_id: "cc-by" }));
 	});
 
+	it("ofrece una sola opción de «sin licencia» aunque CKAN devuelva notspecified", async () => {
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		const licenseSelect = await screen.findByLabelText(/licencia/i);
+		await waitFor(() => expect(licenseSelect).toBeEnabled());
+
+		const labels = within(licenseSelect)
+			.getAllByRole("option")
+			.map((option) => option.textContent?.trim());
+
+		// CKAN ofrece `notspecified` y su etiqueta curada es la misma que la de la opción vacía, así que
+		// renderizarla producía **dos** «Sin especificar» con efectos distintos: la vacía dejaba el campo
+		// recomendado como pendiente y `notspecified` lo daba por completo. Debe quedar una sola.
+		expect(labels.filter((label) => label === "Sin especificar")).toHaveLength(1);
+	});
+
 	it("cuando license_list falla, deshabilita el select y permite publicar sin licencia", async () => {
 		auth.login("tok-123", baseUser);
 		mocks.licenseList.mockRejectedValueOnce(new Error("boom"));
