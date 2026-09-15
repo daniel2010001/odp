@@ -123,7 +123,7 @@ The publication transition MUST be allowed for a caller that holds the `admin` c
 
 ### Requirement: Distinguishable Authorization Errors
 
-Denials produced by the publication rule MUST be authorization failures: HTTP `403` with `error.__type = "Authorization Error"` and a message that names the missing capacity. Values the rule does not recognize and packages it cannot resolve MUST defer to core CKAN, which MUST answer with its own outcome, and MUST NOT be converted into a `403`.
+Denials produced by the publication rule MUST be authorization failures: HTTP `403` with `error.__type = "Authorization Error"` and a message that names the missing capacity. A `private` value the rule cannot interpret as a boolean MUST be treated as a publish attempt and MUST NOT be deferred: CKAN's `boolean_validator` is total and coerces every value outside `true`/`yes`/`t`/`y`/`1` to `False`, so `private: "banana"` **stores the dataset public** instead of failing validation. Packages the rule cannot resolve MUST still defer to core CKAN, which MUST answer with its own outcome, and MUST NOT be converted into a `403`.
 
 #### Scenario: A refusal is not a validation error
 
@@ -139,12 +139,14 @@ Denials produced by the publication rule MUST be authorization failures: HTTP `4
 - THEN the message states that only an organization administrator can publish a dataset
 - AND it is not a generic "not authorized to edit package" message
 
-#### Scenario: An unrecognized value defers to core CKAN
+#### Scenario: An unrecognized `private` value is a publish attempt, not a deferral
 
-- GIVEN an organization `editor`
+- GIVEN an organization `editor` and a dataset stored with `private: true`
 - WHEN it sends `package_patch {id, private: "banana"}`
-- THEN CKAN answers with its own validation error for the `private` field
-- AND the publication rule does not turn that validation error into a `403`
+- THEN the publication rule answers `403` with `error.__type = "Authorization Error"`
+- AND it does not defer, because core CKAN would not raise a validation error: `boolean_validator`
+  coerces the value to `false` and stores the dataset public
+- AND the same call from an approver is left to core CKAN, which stores `private: false`
 
 #### Scenario: An unresolvable package defers to core CKAN
 

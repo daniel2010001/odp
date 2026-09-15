@@ -41,12 +41,40 @@ repository; no `stacked-to-main` / `feature-branch-chain` label applies until th
 
 | Unit | Goal | PR | Repo | Focused test command | Runtime harness | Rollback boundary |
 |---|---|---|---|---|---|---|
-| 1 | Chained `IAuthFunctions` guard + tests + red-baseline fix + `probe.sh` | PR 1 | `odp-docker` | `docker exec odp-dev-ckan-dev-1 sh -c 'cd /srv/app/src_extensions/ckanext-umss && pytest --ckan-ini=test.ini ckanext/umss'` | `openspec/changes/2026-09-13-publication-lifecycle/probe.sh` against the running CKAN 2.11.6 | revert `auth.py`, `plugin.py`, `test_plugin.py`; stock CKAN authorization for org editors returns |
+| 1 | Chained `IAuthFunctions` guard + tests + red-baseline fix + `probe.sh` | PR 1 | `odp-docker` | `docker exec -e CKAN_SQLALCHEMY_URL="postgresql://ckandbuser:ckandbpassword@db/ckan_test" -e CKAN_SITE_ID="test.ckan.net" odp-dev-ckan-dev-1 sh -c 'cd /srv/app/src_extensions/ckanext-umss && pytest --ckan-ini=test.ini ckanext/umss'` (both `-e` overrides are mandatory — see the hazard note below) | `openspec/changes/2026-09-13-publication-lifecycle/probe.sh` against the running CKAN 2.11.6 | revert `auth.py`, `plugin.py`, `test_plugin.py`; stock CKAN authorization for org editors returns |
 | 2 | `publish()` API + `PublishControl` + dataset-page wiring + copy | PR 2 | `odp` | `pnpm vitest run src/lib/api/datasets.test.ts src/lib/components/dataset/PublishControl.test.ts` | dev stack at `http://localhost:8082` | revert the API method, the component, the page wiring and the copy; the CKAN rule keeps working |
 
 ---
 
 ## PR 1 — Enforcement in `ckanext-umss` (`odp-docker`)
+
+> **⚠ HAZARD — read before running any test command.** The extension suite must **never** be run inside
+> the dev container without overriding the database **and** the site id. `test.ini` inherits
+> `test-core.ini`, which points at a *test* database (`sqlalchemy.url = postgres://ckan:ckan@db/ckan_test`)
+> and a *test* site (`ckan.site_id = test.ckan.net`), but both point at the **same** Solr core as dev. The
+> dev container exports `CKAN_SQLALCHEMY_URL`, `CKAN_SOLR_URL` and `CKAN_SITE_ID`, and
+> `ckan/config/environment.py:81` maps those settings to exactly those variables — so the env vars win on
+> all three and the suite's `clean_db` drops the **dev** schema while its factory datasets get indexed as
+> if they were dev's. This is not a theory: on 2026-09-14 the bare command wiped all 16 seeded datasets
+> and 5 organizations, replaced them with pytest factory rows, and left orphaned Solr documents. A run
+> with only the database override still left 5 factory datasets visible in dev's search. Always run:
+>
+> ```sh
+> docker exec -e CKAN_SQLALCHEMY_URL="postgresql://ckandbuser:ckandbpassword@db/ckan_test" \
+>   -e CKAN_SITE_ID="test.ckan.net" \
+>   odp-dev-ckan-dev-1 sh -c 'cd /srv/app/src_extensions/ckanext-umss && pytest --ckan-ini=test.ini ckanext/umss'
+> ```
+>
+> Verified with both overrides: `22 passed`, the dev database untouched at 16 datasets, and the anonymous
+> index count untouched at 16. If you ever run the suite without them, the index must be repaired with
+> `ckan -c "$CKAN_INI" search-index clear` **then** `rebuild` — `rebuild` alone does not purge stale
+> documents.
+>
+> **⚠ Also do not restart `odp-dev-ckan-dev-1` right now.** Its baked entrypoint script
+> (`ckan/docker-entrypoint.d/01_setup_datapusher.sh`) blanks `ckan.datapusher.api_token` on every start
+> because the CLI call it makes fails under `expire_api_token`; an empty token makes the DataPusher
+> plugin refuse to configure (`plugin.py:52`) and the container crash-loops. The script is fixed in
+> `odp-docker`, but the running image still has the old copy — the fix needs an image rebuild.
 
 Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
 `/home/danielblc/projects/odp-docker/ckan-docker/src/ckanext-umss` (inside the container:
@@ -54,7 +82,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
 
 ### Phase 1.1 — Baseline
 
-- [ ] **1.1.1 Record the red `pytest` baseline before touching anything.** Produce: a written record of the
+- [x] **1.1.1 Record the red `pytest` baseline before touching anything.** Produce: a written record of the
   pre-change suite state in `odp-docker`'s PR description (or `apply-progress.md`), not in this change
   directory. Paths: `…/ckanext-umss/ckanext/umss/tests/test_plugin.py:57`. Proof (live, in the running dev
   image): `docker exec odp-dev-ckan-dev-1 sh -c 'cd /srv/app/src_extensions/ckanext-umss && pytest
@@ -63,17 +91,20 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   than that one failure, stop and re-read design §"Measured baseline" P0.6 before continuing.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.1.2 GREEN: fix `test_plugin.py` so the suite actually runs.** Produce: the plugin-load test fixed
+- [x] **1.1.2 GREEN: fix `test_plugin.py` so the suite actually runs.** Produce: the plugin-load test fixed
   by taking `plugin_loaded` as a fixture parameter
   (`def test_plugin(self, plugin_loaded):`) instead of calling an undefined name. Paths:
-  `…/ckanext-umss/ckanext/umss/tests/test_plugin.py`. Proof: the `pytest --ckan-ini=test.ini
-  ckanext/umss` command above → `1 passed` (or the suite's real size) with no `NameError`. RED expectation
-  is task 1.1.1: the failure exists and is captured before the fix.
+  `…/ckanext-umss/ckanext/umss/tests/test_plugin.py`. Proof: the DB-and-site-overridden `pytest` command
+  above → `1 passed` (or the suite's real size) with no `NameError`. RED expectation
+  is task 1.1.1: the failure exists and is captured before the fix. **Correction measured during
+  `apply`:** `plugin_loaded` is **not** a pytest fixture in 2.11.6, so taking it as a fixture parameter
+  cannot work; the load test must assert through the real CKAN test helpers instead. Record what
+  actually worked rather than the prescribed signature.
   <!-- sdd-owner: implementation -->
 
 ### Phase 1.2 — The guard (strict TDD)
 
-- [ ] **1.2.1 RED: failing tests for the update-path predicate.** Produce: a new test module
+- [x] **1.2.1 RED: failing tests for the update-path predicate.** Produce: a new test module
   `…/ckanext-umss/ckanext/umss/tests/test_auth.py` whose **first collected test fails because
   `ckanext.umss.auth` does not exist yet** — import the module directly and assert the chained functions
   are registered, and do **not** use `pytest.skip` or `xfail` for behavior that is part of this change.
@@ -89,7 +120,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   assertions. TDD: this is the RED step for 1.2.2.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.2.2 GREEN: implement `auth.py` for the update shape.** Produce: `PUBLISH_DENIED_MSG`,
+- [x] **1.2.2 GREEN: implement `auth.py` for the update shape.** Produce: `PUBLISH_DENIED_MSG`,
   `_is_approver` (via `authz.has_user_permission_for_group_or_org(owner_org, user, 'admin')`),
   `_as_bool` (accepts `bool` and the strings `'true'`/`'false'` the CKAN web form posts), `_load_or_defer`,
   and `@toolkit.chained_auth_function package_update(next_auth, context, data_dict)` implementing
@@ -101,7 +132,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   to write this file.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.2.3 RED: failing tests for the create-path guard, including the omitted-key shape.** Produce:
+- [x] **1.2.3 RED: failing tests for the create-path guard, including the omitted-key shape.** Produce:
   additional tests in `…/ckanext-umss/ckanext/umss/tests/test_auth.py` covering, in `odp-docker`: org
   `editor` `package_create {owner_org: <own>, private: false}` → `403` **and no dataset created**; org
   `editor` `package_create {name, owner_org}` with `private` **omitted** → `403` **and no dataset
@@ -114,7 +145,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   1.2.2's still pass. TDD: RED for 1.2.4.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.2.4 GREEN: implement the `package_create` guard.** Produce:
+- [x] **1.2.4 GREEN: implement the `package_create` guard.** Produce:
   `@toolkit.chained_auth_function package_create(next_auth, context, data_dict)` in
   `…/ckanext-umss/ckanext/umss/auth.py`: defer when `data_dict` has no `owner_org`; defer only on an
   **explicit truthy** `private`; treat an absent key exactly like `false`; return the denial otherwise.
@@ -123,7 +154,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   create-path assertions pass. TDD: 1.2.3 first.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.2.5 RED: failing tests for the preserved refusals and the untouched write paths.** Produce:
+- [x] **1.2.5 RED: failing tests for the preserved refusals and the untouched write paths.** Produce:
   tests in `…/ckanext-umss/ckanext/umss/tests/test_auth.py` covering, in `odp-docker`: org `member`
   `package_patch {id, private: false}` → `403`; editor of another org → `403`; `package_delete` → `200`;
   `resource_create` on its own dataset → `200`; `package_patch {id, title: …}` → `200` with `private`
@@ -133,31 +164,33 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   against 1.2.4's guard, which currently over-refuses at least one of these shapes. TDD: RED for 1.2.6.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.2.6 GREEN: make the guard defer everywhere it must.** Produce: the minimum correction to
+- [x] **1.2.6 GREEN: make the guard defer everywhere it must.** Produce: the minimum correction to
   `_load_or_defer` / the key-presence logic in `…/ckanext-umss/ckanext/umss/auth.py` so every assertion of
   1.2.5 passes. A failure here means the guard refused a request that asks for no visibility or state
-  change, or refused a caller it must not. Proof: `pytest --ckan-ini=test.ini ckanext/umss` → the **whole**
-  suite green. TDD: 1.2.5 first.
+  change, or refused a caller it must not. Proof: the DB-and-site-overridden `pytest` command → the
+  **whole** suite green. TDD: 1.2.5 first.
   <!-- sdd-owner: implementation -->
 
 ### Phase 1.3 — Registration
 
-- [ ] **1.3.1 Register the auth functions and prove a reviewer sees them take effect.** Produce:
+- [x] **1.3.1 Register the auth functions and prove a reviewer sees them take effect.** Produce:
   `plugins.implements(plugins.IAuthFunctions)` plus `get_auth_functions()` returning
   `{'package_update': …, 'package_create': …}` on `UmssPlugin`, and nothing else changed. Paths:
-  `…/ckanext-umss/ckanext/umss/plugin.py`. Proof, two parts: (a) `pytest --ckan-ini=test.ini ckanext/umss`
-  → green including 1.1.2's load test; (b) **live probe** — `docker restart odp-dev-ckan-dev-1`, then
+  `…/ckanext-umss/ckanext/umss/plugin.py`. Proof, two parts: (a) the DB-and-site-overridden `pytest`
+  command → green including 1.1.2's load test; (b) **live probe** —
   `sh openspec/changes/2026-09-13-publication-lifecycle/probe.sh` from
-  `/home/danielblc/projects/odp`, which must flip row P3 from the measured `200` to `403`. Plugin
-  registration happens at process start, so **the restart is part of the proof**; without it the running
-  container still holds the old plugin set and the probe would report a false negative. Whether the
-  bind-mount alone suffices is unprobed by design — record which route worked. No RED expectation: this
+  `/home/danielblc/projects/odp`, which must flip row P3 from the measured `200` to `403`.
+  **Correction measured during `apply`:** the design assumed `IAuthFunctions` registration only happens
+  at process start and therefore requires `docker restart odp-dev-ckan-dev-1`. It does not — the dev
+  container runs the Flask reloader, so the bind-mounted change is registered on its own and a
+  pre-restart probe run was already 25/25. **Do not restart the container as part of this proof**, both
+  because it is unnecessary and because of the DataPusher hazard noted above. No RED expectation: this
   task wires already-tested functions.
   <!-- sdd-owner: implementation -->
 
 ### Phase 1.4 — Live-probe materialization
 
-- [ ] **1.4.1 Materialize `probe.sh` as the reviewer-runnable evidence.** Produce: an executable script at
+- [x] **1.4.1 Materialize `probe.sh` as the reviewer-runnable evidence.** Produce: an executable script at
   `openspec/changes/2026-09-13-publication-lifecycle/probe.sh` in **`odp`** (this repository), because the
   change directory lives here and the reviewer of PR 1 needs the script addressable from a path they
   already read; it is carried by **PR 1** even though the enforcement lives in `odp-docker`, since without
@@ -176,7 +209,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
   description instead of implying pytest proves it.
   <!-- sdd-owner: implementation -->
 
-- [ ] **1.4.2 Clean up the probe artifacts and record what remains.** Produce: a confirmation in PR 1's
+- [x] **1.4.2 Clean up the probe artifacts and record what remains.** Produce: a confirmation in PR 1's
   verification notes that `probe.sh` left nothing behind. Proof (live): anonymous `package_search?q=*:*`
   `count` back to its pre-run value (baseline 16), zero `probe-lc-*` datasets, zero `probe-lc-*`
   organizations, and `api_token_list` showing no tokens minted by the run. Residual to state plainly:
@@ -186,7 +219,7 @@ Repo root: `/home/danielblc/projects/odp-docker`. Extension root:
 
 ### Phase 1.5 — PR 1 verification
 
-- [ ] **1.5.1 Run the full extension suite one last time and attach the raw probe output.** Produce: PR 1's
+- [x] **1.5.1 Run the full extension suite one last time and attach the raw probe output.** Produce: PR 1's
   verification section, carrying the `pytest` summary line and the pasted `probe.sh` transcript (every
   status code and message body), to be consumed by `verify-report.md`. Proof:
   `docker exec odp-dev-ckan-dev-1 sh -c 'cd /srv/app/src_extensions/ckanext-umss && pytest
