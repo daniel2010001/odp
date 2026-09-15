@@ -58,6 +58,27 @@ rules:
   tasks:
     protect_review_workload: true
     review_budget_lines: 400
+    # Regla de forecast: **medir, no estimar**. Nace de dos entregas seguidas que rompieron el
+    # presupuesto por ~2,5× con el trabajo ya entregado, verificado y revisado:
+    #   PR1 (2026-09-14): estimado 190 líneas → real 915 de código (542 en odp-docker + 373 de
+    #     probe.sh). El forecast **ignoró el script de sonda** por completo.
+    #   PR2 (2026-09-14): estimado 230 → real 480 de código + 363 de tests. El forecast ignoró el
+    #     playground y subestimó los tests 3×.
+    # El exceso no era código descuidado: era **trabajo de verificación**, que es el trabajo que no
+    # conviene recortar. Por eso el forecast debe declarar tres líneas separadas.
+    forecast_fields:
+      - code_lines            # producción, por repo
+      - test_lines            # derivado de la proporción medida abajo, NO adivinado
+      - review_material_lines # playground, scripts de sonda: se declaran y NO compiten con el presupuesto
+    # Proporciones **medidas** en este repo (proporción tests:código). El forecast debe usar la del
+    # artefacto comparable más cercano y decir cuál usó. Componente con lógica densa vs. página con
+    # mucho marcado se comportan muy distinto:
+    test_to_code_ratio_measured:
+      dense_component: 1.69   # PublishControl: 363 líneas de test para 215 de código
+      markup_heavy_page: 0.38 # wizard /dashboard/datasets/new: 634 de test para ~1650 de página
+    # El gate de presupuesto va **antes** de aplicar, no después: si el forecast se pasa, se para y
+    # se decide ahí, en lugar de pedir una excepción con el trabajo ya hecho.
+    budget_gate_position: before-apply
   apply:
     test_command: "pnpm test"
     strict_tdd: true
