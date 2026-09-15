@@ -19,6 +19,12 @@ const CKAN_URL = (process.env.CKAN_URL ?? "http://localhost:5000").replace(/\/+$
 const ADMIN_NAME = process.env.CKAN_SYSADMIN_NAME ?? "ckan_admin";
 const ADMIN_PASSWORD = process.env.CKAN_SYSADMIN_PASSWORD;
 
+// El plugin `expire_api_token` (presente en `CKAN__PLUGINS`) hace **obligatorios**
+// `expires_in` y `unit` en `api_token_create`: sin ellos CKAN responde 409 con
+// `{'expires_in': ['Missing value'], 'unit': ['Missing value']}` y el seed aborta.
+// Mismos valores que el portal (`src/lib/server/ckan-auth.ts`, `TOKEN_TTL`).
+const TOKEN_TTL = { expires_in: 1, unit: 86400 };
+
 if (!ADMIN_PASSWORD) {
 	console.error("Falta CKAN_SYSADMIN_PASSWORD. Exportala antes de correr el seed.");
 	process.exit(2);
@@ -72,8 +78,28 @@ async function login() {
 		throw new Error(`Login falló (HTTP ${res.status}). Credenciales inválidas?`);
 	}
 
+	// `api_token_create` **no devuelve el `jti`**: medido, su `result` sólo trae `token`.
+	// Los ids sí están en `api_token_list` (cada entrada trae `id`), que es lo que
+	// `api_token_revoke` necesita. Se resuelve por diferencia: los ids que existen
+	// antes de mintear vs. los que existen después.
+	const tokenIds = async () => {
+		const res = await fetch(`${CKAN_URL}/api/3/action/api_token_list`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-CSRFToken": csrf,
+				Cookie: jar.toString(),
+			},
+			body: JSON.stringify({ user_id: ADMIN_NAME }),
+		});
+		const payload = await res.json().catch(() => null);
+		return (payload?.result ?? []).map((t) => t.id).filter(Boolean);
+	};
+
 	let csrf = await csrfToken(jar);
 	let token;
+	let jti;
+	const idsBefore = new Set(await tokenIds());
 	for (let attempt = 0; attempt < 2; attempt++) {
 		const mint = await fetch(`${CKAN_URL}/api/3/action/api_token_create`, {
 			method: "POST",
@@ -82,7 +108,7 @@ async function login() {
 				"X-CSRFToken": csrf,
 				Cookie: jar.toString(),
 			},
-			body: JSON.stringify({ user: ADMIN_NAME, name: "odp-seed" }),
+			body: JSON.stringify({ user: ADMIN_NAME, name: "odp-seed", ...TOKEN_TTL }),
 		});
 		if (mint.status === 400 && attempt === 0) {
 			csrf = await csrfToken(jar);
@@ -93,9 +119,10 @@ async function login() {
 			throw new Error("api_token_create falló: " + JSON.stringify(payload.error ?? {}));
 		}
 		token = payload.result.token;
+		jti = (await tokenIds()).find((id) => !idsBefore.has(id));
 		break;
 	}
-	return { jar, csrf, token };
+	return { jar, csrf, token, jti };
 }
 
 async function api(token, action, data) {
@@ -308,7 +335,7 @@ const SHOWCASE = {
 
 async function main() {
 	console.log(`Seed CKAN → ${CKAN_URL}`);
-	const { jar, csrf, token } = await login();
+	const { jar, csrf, token, jti } = await login();
 	console.log("Login OK, token minteado.\n");
 
 	try {
@@ -357,20 +384,36 @@ async function main() {
 
 		console.log(`\nListo. Creados ${createdCount} datasets, ${skippedCount} ya existían.`);
 	} finally {
-		// Revocar el token de seed (best-effort).
-		try {
-			await fetch(`${CKAN_URL}/api/3/action/api_token_revoke`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"X-CSRFToken": csrf,
-					Cookie: jar.toString(),
-				},
-				body: JSON.stringify({ token }),
-			});
-			console.log("Token de seed revocado.");
-		} catch {
-			// best-effort: el token expira solo en 24h.
+		// Revocar el token de seed (best-effort y **por `jti`**).
+		//
+		// Trampas medidas, las dos del mismo tipo: `api_token_revoke {token}` es un
+		// **no-op silencioso** (CKAN intenta decodificar un JWT, el id no lo es, el
+		// `jti` queda en `null` y devuelve `success: true` sin revocar nada); y con un
+		// `jti` que no matchea ningún token también responde `success: true`. O sea que
+		// **`success: true` no es evidencia de revocación**: acá sólo se informa lo que
+		// devolvió la llamada, sin afirmar que el token ya no existe.
+		if (!jti) {
+			console.log("Token de seed: sin `jti` no hay nada que revocar.");
+		} else {
+			try {
+				const revoke = await fetch(`${CKAN_URL}/api/3/action/api_token_revoke`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"X-CSRFToken": csrf,
+						Cookie: jar.toString(),
+					},
+					body: JSON.stringify({ jti }),
+				});
+				const payload = await revoke.json().catch(() => null);
+				console.log(
+					payload?.success
+						? "Token de seed: la revocación por `jti` respondió OK (compruébelo listando; `success` no es evidencia)."
+						: `Token de seed: la revocación falló (HTTP ${revoke.status}).`,
+				);
+			} catch {
+				// best-effort: el token expira solo en 1 día.
+			}
 		}
 	}
 }
