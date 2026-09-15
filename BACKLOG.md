@@ -408,6 +408,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## v1 — producto usable en producción
 
+- [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
+  del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque
+  el campo es opcional) y `notspecified` (el id que CKAN ofrece y que su propia UI escribe). Medido el
+  2026-09-14 en la base de dev: `cc-by|5`, `cc-by-sa|4`, `cc-zero|4`, `odc-odbl|3`, `notspecified|1`, y
+  **ningún** vacío. Consecuencia: el facet de licencia puede partir «sin licencia» en dos cubetas.
+  Decidir cuál es el canónico y alinear el facet. **El duplicado del select ya se arregló**
+  (`5d0b751`); esto es la parte de fondo. _Origen: revisión de UI del 2026-09-14._
+
 - [x] **[v1] Estrategia del ciclo de vida de publicación** — **MOVIDA al cambio SDD
   `2026-09-13-publication-lifecycle` (2026-09-13)**; ver «En curso (cambios SDD)». Lo que sigue es el
   registro histórico de las opciones evaluadas el 2026-09-11, ya superado por el diseño de ese cambio:
