@@ -336,6 +336,36 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## v0 — core presentable
 
+> **Revisión de UI del usuario (2026-09-14).** Observaciones nombradas, no arregladas todavía; el usuario
+> pidió explícitamente anotarlas antes de tocarlas.
+>
+> - [ ] **[v0] Sin organizaciones, la acción de crear dataset NO debe mostrarse.** Hoy se ofrece igual y
+>   lleva a un callejón sin salida («no pertenecer a ninguna org» = no se puede crear). _Origen: revisión
+>   de UI del 2026-09-14._
+> - [ ] **[v0] Una sesión muerta degrada a anónimo EN SILENCIO — medido (2026-09-14).**
+>   `organization_list_for_user` con un token inválido devuelve **`success: true` y `result: []`**, no un
+>   error (igual que sin token). Consecuencia: el portal no puede distinguir «estoy logueado y no tengo
+>   organizaciones» de «mi token ya no existe», y muestra listas vacías sin avisar. Ocurrió de verdad: un
+>   `db clean` de CKAN borra la tabla `api_token`, así que toda sesión abierta queda muerta y el dashboard
+>   y el wizard se ven vacíos. **Falta que el portal detecte la sesión inválida y fuerce re-login.**
+>   Nota: es la misma familia de no-op silencioso que `api_token_revoke`.
+> - [ ] **[v0] Los recursos de un dataset privado se ven como «Recurso no encontrado». DIAGNOSTICADO
+>   (2026-09-14).** Dos defectos distintos, y solo uno es de la aplicación:
+>   1. **La causa del síntoma que reportó el usuario es la sesión muerta** (el `db clean` borró
+>      `api_token`, ver el ítem anterior). Medido con el dataset `test` del usuario: `package_show`
+>      **anónimo → HTTP 403 `Authorization Error`** (el dataset es privado), y **con token válido → 200**,
+>      `private=true`, 1 recurso, `url_type=upload`, `format=PDF`; `resource_show` con token válido → OK.
+>      **El recurso existe y está bien**: el pedido sale anónimo y CKAN responde 403. **Se arregla con
+>      re-login.**
+>   2. **El defecto real de la página, que queda pendiente:** `dataset/[id]/resource/[resourceId]/+page.svelte:84`
+>      **convierte un `403` en «Recurso no encontrado»** — confunde «no tenés permiso para verlo» con «no
+>      existe». Y en DEV, antes de fallar, intenta un **fallback a mock** (`getMockResourceById`), que es lo
+>      que **enmascara** el error verdadero durante el desarrollo (el mismo antipatrón que ya se había
+>      encontrado en otra página). A arreglar: distinguir `403` de `404` y decirlo, y no dejar que el mock
+>      se trague un fallo de autorización. Es exactamente lo que exige el requisito
+>      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
+>      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
+>
 - [ ] **[v0] «Mis datasets» está roto para todo usuario que no sea sysadmin** — **medido
   (2026-09-13)**: `current_package_list_with_resources` arma la respuesta con
   `"include_private": authz.is_sysadmin(user)` (`get.py:143`), así que un usuario normal recibe
@@ -431,6 +461,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `ckanext-event-audit`. Depende del ciclo de vida resuelto.
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
+
+- [ ] **[v1+] Prueba de carga, cuando el CRUD esté completo.** El usuario la quiere, y el orden que
+  propuso es el correcto: **recién cuando existan create + read + update + delete**. Una prueba de carga
+  sobre un CRUD incompleto mide un sistema que todavía no es el que va a recibir la carga. Alcance a
+  definir cuando llegue el momento (concurrencia, tamaño de archivo, escritura contra DataStore).
+  _Origen: revisión del 2026-09-14._
+
+- [ ] **[v1+] Notas de UI de las páginas de organizaciones.** Al usuario **le gustan** las cards de
+  `/organizations`; son mejoras para después, no defectos. Anotar concretamente qué mejorar cuando se
+  retome esa página (y la de detalle `/organization/[id]`, que quedó bajo la misma observación).
+  _Origen: revisión del 2026-09-14._
 
 - [ ] **[v1+] Metadatos de interoperabilidad (DCAT/Dublin Core)** — agregar los campos que no
   tienen equivalente nativo en CKAN: idioma (`dct:language`) y periodicidad de actualización
