@@ -84,9 +84,17 @@ export function createDatasetApi(client: CkanClient) {
 			return client.post<CkanPackage[]>("current_package_list_with_resources");
 		},
 
-		/** Activar/desactivar un dataset */
-		async setState(id: string, state: "active" | "deleted" | "draft"): Promise<CkanPackage> {
-			return client.post<CkanPackage>("package_patch", { id, state });
+		/**
+		 * Publicar un dataset privado.
+		 *
+		 * Una sola llamada, con la acción estándar de CKAN: `package_patch {id, private: false}`.
+		 * **No** se envía `state` ni una acción propia de la extensión: el permiso lo decide la
+		 * autorización de CKAN (la regla de `ckanext-umss` encadenada sobre `package_update`), y un
+		 * editor de la organización recibe `403` aunque el portal ofrezca el botón. El objeto
+		 * devuelto es lo que CKAN guardó, nunca lo que el portal pidió.
+		 */
+		async publish(id: string): Promise<CkanPackage> {
+			return client.post<CkanPackage>("package_patch", { id, private: false });
 		},
 	};
 }

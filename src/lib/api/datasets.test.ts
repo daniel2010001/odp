@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanClient } from "./client";
 import { createDatasetApi } from "./datasets";
 
@@ -106,5 +107,68 @@ describe("createDatasetApi", () => {
 
 		const [, params] = post.mock.calls[0] as [string, Record<string, unknown>];
 		expect(params.fq).toBe("tags:salud AND organization:org-123");
+	});
+});
+
+describe("createDatasetApi.publish", () => {
+	it("llama a package_patch con exactamente {id, private: false}", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ id: "pkg-1", private: false });
+		const api = createDatasetApi(client);
+
+		await api.publish("pkg-1");
+
+		expect(post).toHaveBeenCalledTimes(1);
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("package_patch");
+		// La igualdad es estricta a propósito: una clave extra (p. ej. `state`) haría fallar esta prueba.
+		expect(params).toEqual({ id: "pkg-1", private: false });
+	});
+
+	it("no envía `state` ni una acción propia de la extensión", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ id: "pkg-1", private: false });
+		const api = createDatasetApi(client);
+
+		await api.publish("pkg-1");
+
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(params).not.toHaveProperty("state");
+		expect(Object.keys(params)).toEqual(["id", "private"]);
+		// Ninguna acción inventada por el portal o por `ckanext-umss`: el permiso lo decide
+		// la autorización de CKAN sobre `package_update`, no un transporte nuevo.
+		expect(action).not.toMatch(/publish|umss/i);
+	});
+
+	it("devuelve la respuesta de CKAN sin asumir el resultado", async () => {
+		const { client, post } = makeClient();
+		// CKAN puede contestar 200 sin haber concedido la publicación; la API no lo corrige.
+		const respuesta = { id: "pkg-1", name: "dataset-privado", private: true };
+		post.mockResolvedValueOnce(respuesta);
+		const api = createDatasetApi(client);
+
+		const resultado = await api.publish("pkg-1");
+
+		expect(resultado).toEqual(respuesta);
+		expect(resultado.private).toBe(true);
+	});
+
+	it("propaga el 403 del catálogo en vez de tragárselo", async () => {
+		const { client, post } = makeClient();
+		post.mockRejectedValueOnce(
+			new CkanApiError("Solo un administrador…", 403, "Authorization Error"),
+		);
+		const api = createDatasetApi(client);
+
+		await expect(api.publish("pkg-1")).rejects.toBeInstanceOf(CkanApiError);
+	});
+
+	it("el helper muerto setState ya no existe", () => {
+		const { client } = makeClient();
+		const api = createDatasetApi(client) as Record<string, unknown>;
+
+		// `package_patch {state}` es justo lo que la regla nueva de CKAN rechaza para quien no es
+		// aprobador: dejarlo sería una trampa para el próximo que lo encuentre.
+		expect(api.setState).toBeUndefined();
 	});
 });

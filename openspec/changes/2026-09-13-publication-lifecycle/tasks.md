@@ -237,14 +237,14 @@ honestly without it: a `403` becomes the D5 inline alert, never a fabricated suc
 
 ### Phase 2.1 — API surface
 
-- [ ] **2.1.1 RED: failing tests for `publish()`.** Produce: tests in `src/lib/api/datasets.test.ts`
+- [x] **2.1.1 RED: failing tests for `publish()`.** Produce: tests in `src/lib/api/datasets.test.ts`
   asserting the client posts `package_patch` with **exactly** `{id, private: false}`, that no `state` key
   is present, and that no extension-specific action name is used. Repo/paths: `odp`,
   `src/lib/api/datasets.test.ts`. Proof: `pnpm vitest run src/lib/api/datasets.test.ts` → fails, `publish`
   is not a function. TDD: RED for 2.1.2.
   <!-- sdd-owner: implementation -->
 
-- [ ] **2.1.2 GREEN: add `publish(id)` and drop the dead `setState`.** Produce: `publish(id)` calling
+- [x] **2.1.2 GREEN: add `publish(id)` and drop the dead `setState`.** Produce: `publish(id)` calling
   `client.post<CkanPackage>("package_patch", { id, private: false })` in `src/lib/api/datasets.ts`, and
   removal of `setState` (its `"draft"` vocabulary belongs to the deferred state machine and it has no
   caller). Repo/paths: `odp`, `src/lib/api/datasets.ts`. Proof: `pnpm vitest run
@@ -253,7 +253,7 @@ honestly without it: a `403` becomes the D5 inline alert, never a fabricated suc
 
 ### Phase 2.2 — The affordance component
 
-- [ ] **2.2.1 RED: failing component tests for every row of the D5 table.** Produce:
+- [x] **2.2.1 RED: failing component tests for every row of the D5 table.** Produce:
   `src/lib/components/dataset/PublishControl.test.ts` covering, with `@testing-library/svelte`: private +
   approver → control labeled "Publicar dataset" with the consequence sentence; private + non-approver →
   no control plus "Solo un administrador de la organización puede publicar este dataset."; private + hint
@@ -267,7 +267,7 @@ honestly without it: a `403` becomes the D5 inline alert, never a fabricated suc
   2.2.2. Note in the test file's header that this proves the **portal's honesty**, not CKAN's enforcement.
   <!-- sdd-owner: implementation -->
 
-- [ ] **2.2.2 GREEN: implement `PublishControl.svelte`.** Produce: the component with the button, busy and
+- [x] **2.2.2 GREEN: implement `PublishControl.svelte`.** Produce: the component with the button, busy and
   disabled states, the inline alert, and the approver / non-approver / unavailable states, using existing
   tokens (`bg-primary`, `text-destructive`, `border-border`) and Lucide icons only — no hex, no emoji, no
   optimistic state. Repo/paths: `odp`, `src/lib/components/dataset/PublishControl.svelte` (new). Proof:

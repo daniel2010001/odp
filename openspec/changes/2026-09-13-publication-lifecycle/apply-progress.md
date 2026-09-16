@@ -590,3 +590,213 @@ independently revertable and neither is a substitute for the other.
 - `gentle-ai sdd-attempt status` showed an active attempt for this work unit
   (`PR1 enforcement guard in ckanext-umss`, `max_attempts: 2`, `max_changed_lines: 400`); it was
   continued rather than re-acquired.
+
+---
+
+# PR 2 — Portal affordance (`odp`), tasks 2.1–2.2
+
+**Scope of this pass:** the API surface (`publish()`) and the affordance component
+(`PublishControl.svelte`) plus its playground. Tasks 2.3 (dataset-page wiring), 2.4 (copy + delete the
+playground) and 2.5 (PR 2 verification) are **not started**. Nothing was committed; everything lives in
+the working tree.
+
+| Task | Deliverable | State |
+|---|---|---|
+| 2.1.1 | RED tests for `publish()` in `src/lib/api/datasets.test.ts`; RED recorded | done |
+| 2.1.2 | `publish(id)` added, dead `setState` removed; GREEN recorded | done |
+| 2.2.1 | RED component tests for every row of D5 in `PublishControl.test.ts`; RED recorded | done |
+| 2.2.2 | `PublishControl.svelte` implemented; GREEN recorded | done |
+| 2.2.3 | Playground `src/routes/dev/dataset-publish/+page.svelte` built | **delivered, checkbox left unchecked — its proof is the human review, which has not happened yet** |
+
+## 10. Task 2.1 — `publish()` and the removal of `setState`
+
+`src/lib/api/datasets.ts` now exposes exactly one publish path:
+
+```ts
+async publish(id: string): Promise<CkanPackage> {
+    return client.post<CkanPackage>("package_patch", { id, private: false });
+},
+```
+
+- The wire call is the stock `package_patch` with **only** `{id, private: false}`; the test asserts
+  equality on the whole params object, so an added `state` key or a renamed action fails it.
+  No extension-defined action name is used (asserted with `not.toMatch(/publish|umss/i)` on the action).
+- The method returns CKAN's response verbatim. A `200` whose body still reports `private: true` is
+  returned as-is; the API never rewrites the result (test: "devuelve la respuesta de CKAN sin asumir el
+  resultado"). A `403` propagates as `CkanApiError` instead of being swallowed.
+- `setState(id, state)` was removed. **The dead-code claim in the design was re-verified before removal:**
+
+  ```
+  $ grep -rn "setState" src/
+  src/lib/api/datasets.ts:88:   async setState(id: string, state: "active" | "deleted" | "draft"): Promise<CkanPackage> {
+  ```
+
+  That is its own definition and nothing else — no caller, no test reference. Rationale for removing it
+  rather than leaving it: after PR 1, `package_patch {state}` is exactly what the new CKAN rule refuses
+  for a non-approver, so a helper that posts it is a loaded footgun, and its `"draft"` vocabulary belongs
+  to the state machine this slice explicitly defers. The removal is also pinned by a test
+  (`expect(api.setState).toBeUndefined()`), so it cannot silently come back.
+
+## 11. Task 2.2 — `PublishControl.svelte`
+
+Props (all optional except the dataset, so the page wiring of task 2.3 is a one-liner):
+
+| Prop | Type | Default |
+|---|---|---|
+| `dataset` | `CkanPackage` | required |
+| `publish` | `(id: string) => Promise<CkanPackage>` | real `createDatasetApi(client).publish` |
+| `listAdminOrganizations` | `() => Promise<CkanOrganization[]>` | real `createOrganizationApi(client).listForUser("admin")` |
+| `onpublished` | `(dataset: CkanPackage) => void` | — |
+| `class` | `string` | `""` |
+
+The defaults build their own client with `env.CKAN_URL` and `apiKey: () => get(auth).token`, the same way
+the dataset page and the wizard do. Injection exists for the playground and the tests; the page needs
+nothing.
+
+**Approver hint.** One call, `listForUser("admin")`, and membership is tested against
+`dataset.organization.id` — never against "the list is non-empty", and never against an unfiltered
+`organization_list`. Three fail-closed paths: the call rejects, the dataset carries no organization (the
+hint is not even attempted), and the list does not contain the dataset's org. While the hint is in
+flight nothing is offered.
+
+**No optimistic state.** `handlePublish` replaces the rendered dataset **only** when the response reports
+`private === false`, and only then calls `onpublished`. Every other outcome leaves the dataset as it was:
+
+| Response | What is rendered |
+|---|---|
+| `200`, `private === false` | The control disappears (the dataset is now public); `onpublished(response)` fires |
+| `200`, `private !== false` | Alert "El catálogo no confirmó la publicación."; still private, control offered again; `onpublished` not called |
+| `403` (`CkanApiError`) | Alert "Solo un administrador de la organización puede publicar este dataset."; control re-enabled; still private |
+| Any other failure | Alert "No se pudo publicar el dataset: <message>" with a working "Reintentar" |
+| In flight | Button disabled, labeled "Publicando…", no alert, no success indicator |
+
+### D5 row → test map (`src/lib/components/dataset/PublishControl.test.ts`, 14 tests)
+
+| D5 situation | Test |
+|---|---|
+| Already public → nothing, no unpublish control | "un dataset ya público no renderiza nada…" |
+| Private + approver → control + consequence sentence | "privado + aprobador: ofrece el control y enuncia la consecuencia" |
+| Private + non-approver → no control + who can publish | "privado + no aprobador…" |
+| Filtered list is still cross-checked by org id | "una lista de organizaciones de otro id no es prueba de aprobación" |
+| No organization → fails closed | "sin organización en el dataset la verificación falla cerrada" |
+| Hint call failed → no control + explicit state + retry | "privado + verificación fallida: estado explícito con reintento…" |
+| Nothing offered while the hint is unresolved | "mientras la verificación está en curso no ofrece el control" |
+| Hint asks with `permission: "admin"` | 'el wiring por defecto pide las organizaciones con `permission: "admin"`' |
+| Click → `200` confirmed → dataset replaced by CKAN's response | "llama a publish con el id del dataset y muestra el resultado como éxito sólo si CKAN confirmó" |
+| Click → default wiring publishes against the portal API | "si el wiring por defecto se usa, publica contra la API del portal" |
+| Click → `403` → refusal alert, control offered again, still private | "403: alerta de rechazo…" |
+| Click → `200` without granting | "200 sin confirmar…" |
+| Other failure → explicit error with retry | "otro fallo: error explícito con reintento que vuelve a intentar" |
+| Pending → busy, no success indicator | "en vuelo: el control reporta ocupado y no anuncia éxito" |
+
+### Strict TDD cycle evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 2.1 | `src/lib/api/datasets.test.ts` | Unit | ✅ 7/7 — the HEAD version of that file was run with the working tree stashed (`pnpm vitest run src/lib/api/datasets.test.ts` → `Tests 7 passed (7)`), then the stash was popped and every file compared byte-identical against a backup | ✅ Written — `publish` did not exist: `Test Files 1 failed (1)`, `Tests 5 failed \| 7 passed (12)`: 4× `TypeError: api.publish is not a function` and 1× `expected [AsyncFunction setState] to be undefined` | ✅ Passed — `Tests 12 passed (12)` after adding `publish` and deleting `setState` | ✅ 5 cases: exact `{id, private: false}` equality, no `state` key and no extension action name, CKAN's response returned unchanged when it still reports `private: true`, `403` propagates, `setState` gone | ➖ None needed — one method, one line of logic, plus its doc comment |
+| 2.2 | `src/lib/components/dataset/PublishControl.test.ts` | Unit with injected stubs (this repository declares no integration and no E2E runner — `openspec/config.yaml` `layers.integration: ""`, `layers.e2e: ""`) | N/A (new file) | ✅ Written — the component did not exist: `Failed to resolve import "./PublishControl.svelte"`, `Tests no tests` | ✅ Passed — `Tests 14 passed (14)` on the first GREEN run | ✅ 14 cases, one per D5 row, plus the two default-wiring cases. **Mutation control:** `if (respuesta.private === false)` was temporarily replaced by `if (true)` (every `200` treated as success) and `pnpm vitest run … -t "200 sin confirmar"` then failed (`Test Files 1 failed`, timing out waiting for the "El catálogo no confirmó la publicación." alert); the component was restored from a byte-identical backup and the suite re-run green. The no-fabricated-publication test is load-bearing, not a smoke test | ➖ None needed beyond the `biome check --write` formatting pass, after which both focused suites and the full suite were re-run |
+
+### Test summary
+
+- Tests written in this slice: **19** (5 API + 14 component).
+- Focused runs: `datasets.test.ts` 12/12; `PublishControl.test.ts` 14/14.
+- Full suite after the slice: **321 passed / 321** in 31 files (recorded baseline 302 → +19; nothing removed, skipped or marked todo).
+- Layers used: Unit 19, Integration 0, E2E 0 — the repository has no integration or E2E runner, so coverage degrades to unit with injected stubs, and the component test file's header says so.
+- Approval tests (refactoring): none — this slice contains no refactoring task.
+- Pure functions created: 0 — the slice is one HTTP wrapper and one stateful Svelte component; purity was not forced.
+- Assertion quality: every assertion exercises the production code and pins a specific value — accessible names (`Publicar dataset`, `Reintentar`, `Publicando…`), `role="alert"` text, the disabled state, the exact request payload, and the identity of the object handed to `onpublished`. No Tailwind class or internal state is asserted.
+
+## 12. Files changed (authored line counts, for the 400-line budget)
+
+| File | Change | Lines |
+|---|---|---|
+| `src/lib/api/datasets.ts` | `publish()` added, `setState()` removed | +11 / −3 |
+| `src/lib/api/datasets.test.ts` | 5 new tests | +64 / −0 |
+| `src/lib/components/dataset/PublishControl.svelte` | new | 204 |
+| `src/lib/components/dataset/PublishControl.test.ts` | new, 14 tests | 299 |
+| `src/routes/dev/dataset-publish/+page.svelte` | new playground (review material, **not to be committed**) | 245 |
+
+**Authored total: 823 added lines** (826 counting the 3 deletions), of which 245 are playground review
+material. Excluding the playground the slice is **578 lines** — still **over the 400-line budget**.
+
+Nothing was compressed to fit: no comment, blank line, test or doc sentence was deleted or restyled to
+reach the number. The irreducible parts are the 14 D5-row tests (299 lines, ~20 lines per row, each row a
+required behavior) and the component's four render states plus the hint/publish state machines (204
+lines, of which ~45 are the explanatory comments that make the fail-closed rules auditable). The API half
+(75 lines) is already minimal: one method, one strict equality assertion, one dead-code assertion.
+**Recommendation: `size:exception` for this slice, or split PR 2 so 2.1 lands alone and 2.2 lands with
+its playground.** Not inferred, not self-granted — the maintainer decides.
+
+## 13. Playground and the open human gate (task 2.2.3)
+
+`src/routes/dev/dataset-publish/+page.svelte` renders the **real** component with ten switchable
+scenarios: already public; private + approver; private + non-approver; hint failure (fails once, then
+succeeds, so the retry is visible); hint in flight; `403`; `200` unconfirmed; `200` confirmed; other
+error; in flight. The page owns a fixture dataset, shows its `Privado`/`Público` badge and passes
+`onpublished` back into it, so the reviewer can see that the badge flips **only** on CKAN's confirmed
+response. It is untracked and is review material: it must not be committed, and task 2.4.3 deletes it
+after promotion.
+
+**Task 2.2.3 stays unchecked on purpose.** Its stated proof is the user reviewing every state and saying
+it is ready to promote. That review has not happened, so the task is delivered but not complete, and
+promoting to the real page before it passes is exactly what the task forbids.
+
+## 14. Gates run
+
+| Command | Result |
+|---|---|
+| `pnpm vitest run src/lib/api/datasets.test.ts` | 12 passed (RED first: 5 failed) |
+| `pnpm vitest run src/lib/components/dataset/PublishControl.test.ts` | 14 passed (RED first: import failure) |
+| `pnpm test` | **31 files, 321 tests passed** — baseline was 302, so +19 (5 API + 14 component) |
+| `pnpm check` | **0 errors**, 4 warnings in 3 files — all four pre-existing (`ThemePlayground.svelte` ×2, `SearchBar.svelte`, `tsconfig.json`); none from the new files |
+| `pnpm lint` | exit 0: 0 errors, 4 warnings, 7 infos (all pre-existing/style warnings). Biome initially flagged 4 `format` errors in the new files; they were fixed with `biome check --write` on those five files only |
+| `pnpm build` | succeeded (`adapter-node`, `✔ done`) — the new playground route compiles |
+
+## 15. Deviations from the tasks/design text (stated, not hidden)
+
+1. **The component's API access is injectable.** The task did not say how `PublishControl` reaches the
+   API. It takes optional `publish` / `listAdminOrganizations` props whose defaults are the real APIs.
+   Without that, every D5 row would need module mocking and the playground could not simulate a `403`, a
+   `200` without a grant, or an error. Two tests exercise the default wiring so the injection cannot
+   become the only tested path.
+2. **New copy not in D5, flagged for review.** The in-flight hint state renders "Verificando su permiso…",
+   which D5 does not specify (D5 only specifies the failure state). It is neutral, offers nothing, and
+   exists so that "nothing is offered before confirmation" is visible rather than a blank space. If the
+   reviewer prefers silence or a spinner, it changes in the playground.
+3. **No success message on a confirmed publication.** D5 says the badge flips to "Público"; it does not
+   ask the control to congratulate. The component renders nothing once CKAN confirms, and the page's badge
+   is the confirmation. Inventing a success string would be copy the slice did not approve.
+4. **`dataset.organization` missing → unavailable, without even calling the hint.** D5 names only the
+   "hint call failed" case; with no organization there is no predicate to evaluate, so the affordance
+   fails closed. Tested.
+5. **`403` is recognized by `CkanApiError.status`.** A structurally different error object with a
+   `403`-like shape would fall into the generic error state. That is deliberate: the only producer of a
+   `403` here is `createCkanClient`, which throws `CkanApiError`; the test uses the real class.
+
+## 16. Structured status consumed
+
+- Native status JSON consumed: `artifactStore: openspec`, `changeName:
+  2026-09-13-publication-lifecycle`, `applyState: ready`, `nextRecommended: apply`,
+  `taskProgress 12/24`, `actionContext.mode: repo-local`, `workspaceRoot` and `allowedEditRoots` both
+  `/home/danielblc/projects/odp`.
+- No `actionContext` warning for this pass: every file written is inside `allowedEditRoots`, and the
+  forbidden surfaces (`src/routes/dataset/[id]/+page.svelte`, the wizard copy, `design.md`,
+  `proposal.md`, `specs/**`, `BACKLOG.md`, `openspec/specs/**`) were not touched.
+- Review-workload gate re-read: `Decision needed before apply: No`, `Chained PRs recommended: Yes`,
+  `Chain strategy: pending`, `400-line budget risk: Low` (per-PR forecast). The parent prompt resolved
+  this slice as "PR 2 tasks 2.1 and 2.2 only", which is the delivery path consumed; no chain label was
+  invented. Measured risk for the slice is **High** (§12).
+- **Post-settle artifact drift (recorded).** The attempt settled `passed` with `changed_lines: 1036` and `changed_line_budget_exceeded: true`; `apply-progress.md` was amended once **after** that settle, to adopt the strict-TDD support module's required evidence-table format and to add the retrospective safety-net run. The working tree therefore no longer matches the settled attempt's `finish_candidate_tree`. The cause is recorded here so a maintainer's `sdd-attempt reset` sees the real reason and not an unexplained drift.
+- `gentle-ai sdd-attempt acquire` was called with the already-active token
+  (`sha256:aa4793c1…`, work unit `PR2 portal publish affordance`, `max_attempts: 2`,
+  `max_changed_lines: 400`) and answered `proceed`; that exact attempt was continued, not re-acquired.
+
+## 17. Risks and decisions owed (PR 2 slice)
+
+| # | Risk / decision | Severity | Detail |
+|---|---|---|---|
+| S1 | The slice is 823 authored lines vs a 400 budget | High — needs a decision | §12. `size:exception` recommended, or a 2.1/2.2 split. Never inferred. |
+| S2 | Task 2.2.3's human review gate is open | Medium — blocks promotion | §13. The playground must be reviewed at `http://localhost:5173/dev/dataset-publish` before 2.3 wires the real page; 2.2.3 stays unchecked until then. |
+| S3 | The happy path cannot be proven by `pnpm test` | Medium | Vitest cannot execute Python and the repository has no integration or E2E runner. The portal half is proven only for honesty (what it renders given a response); a real end-to-end confirmation needs PR 1 deployed and is task 2.5.2. |
+| S4 | PR 1 was blocked on the maintainer's own decisions (R1–R3 in §8) | Medium — inherited | PR 2 does not depend on those decisions to land, but its `403` path is the only one that is real today: without PR 1 the affordance is an advisory button, which the proposal's D1 rejects. |
+| S5 | PR 1's dev database wipe (R1) and the orphaned Solr documents are still unrepaired | High — inherited, out of this slice | Nothing in this pass touches CKAN or its data; it was not run against the stack. |
