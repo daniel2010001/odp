@@ -1,5 +1,28 @@
 # Proposal: Publication Lifecycle
 
+> ## ⚠ MODELO REVERTIDO (2026-09-14) — este proposal está OBSOLETO
+>
+> Las decisiones de producto confirmadas (D1–D7) describen **publicación directa por el aprobador, sin
+> solicitud**. El usuario decidió después que **manda el PRD**, y el PRD especifica otra cosa:
+>
+> - `PRD:135` (RF-15.4): «el editor o admin puede **solicitar** cambio de visibilidad… Esta solicitud
+>   queda registrada en una tabla `publication_requests` y debe ser **aprobada** por un `org_admin`».
+> - `PRD:345` y `PRD:347`: **Solicitar** revisión/publicación → Editor · Steward · Org Admin;
+>   **Aprobar** cambio de visibilidad → Org Admin. **Dos roles distintos.**
+> - `PRD:57` y `PRD:110` (RF-09): **tres** niveles de visibilidad (`private`, `internal`, `public`).
+>
+> Las secciones de este documento que excluyen `publication_requests`, la máquina de estados, el tercer
+> nivel y la retracción **ya no son el alcance vigente**. Se conservan como registro de las decisiones
+> que se tomaron y ahora están revertidas. **No leerlas como estado actual.**
+>
+> **Lo que sigue siendo válido:** el PR 1 (el guard en `ckanext-umss`) — `PRD:347` da «aprobar cambio de
+> visibilidad» al `org_admin`, que es exactamente lo que el guard exige. **Salvo** que el flujo de
+> solicitud deba ser **obligatorio**, en cuyo caso un `org_admin` que cambie `private` directo estaría
+> salteándolo, y el guard necesitaría trabajo.
+>
+> La reconciliación formal (proposal → spec → design → tasks) está pendiente. El PR 2 construido sobre el
+> modelo viejo quedó aparcado en la rama `wip/pr2-directo-publicacion` (`6b53c64`).
+
 ## Intent
 
 **Problem.** Every dataset the portal creates is stored as `private: true, state: active`, and nothing in

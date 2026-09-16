@@ -259,11 +259,31 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 
 ### `2026-09-13-publication-lifecycle` — EN CURSO
 
-> **Estado (2026-09-14):** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
-> **`spec` ✅** · **lo próximo es `tasks`**, y recién después `apply`. **Nada implementado todavía.**
-> Preflight de la sesión del 2026-09-14: ejecución `auto`, store `openspec`, entrega `ask-on-risk`,
-> presupuesto 400 líneas por PR. Config SDD del proyecto: `openspec/config.yaml` (`strict_tdd: true`,
-> `pnpm test`, sin runner de integración ni E2E).
+> **Estado (2026-09-14, tarde):** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
+> `spec` ✅ · `tasks` ✅ · **`apply` del PR 1 ✅ (pusheado: `86f130b` en `odp-docker`)** · **PR 2
+> APARCADO**. · El **modelo de producto fue revertido** el 2026-09-14: manda el PRD, no las decisiones
+> D1–D7 del proposal. Ver el aviso al inicio de `proposal.md`. **Hay que reconciliar proposal → spec →
+> design → tasks antes de seguir con el portal.**
+>
+> **Qué cambia y qué sobrevive:**
+> - **Sobrevive el PR 1** (el guard encadenado en `ckanext-umss`, ya pusheado): `PRD:347` da «aprobar
+>   cambio de visibilidad» al `org_admin`, que es lo que el guard exige. **Pendiente de confirmar:** si el
+>   flujo de solicitud es **obligatorio**, un `org_admin` que cambie `private` directo lo estaría
+>   salteando y el guard necesita trabajo.
+> - **Aparcado** el PR 2 (botón de publicación directa para el aprobador), en la rama
+>   `wip/pr2-directo-publicacion` (`6b53c64`). Construido para el actor equivocado: en el modelo del PRD
+>   **el que pide no es el que aprueba** (`PRD:345` vs `PRD:347`). Reutilizable de ahí: el manejo honesto
+>   del `403`, la regla «un `200` que no concede no es un éxito» y las dos máquinas de estado.
+> - **Store decidido por el PRD**, no hay que inventarlo: `PRD:227` dice que `publication_requests`
+>   *«requiere extensión propia o capa paralela»*; `PRD:308` da el esquema (`id, dataset_id,
+>   requested_visibility, status, requested_by, approved_by, comments, created_at`); y `PRD:361` dice que
+>   la base es **PostgreSQL gestionada por CKAN**. O sea: tabla nueva en `ckanext-umss`, con migración.
+> - **Tercer nivel:** el PRD pide 3 (`private`, `internal`, `public`) y su propia tabla §7 (`PRD:220`)
+>   admite que CKAN tiene 2 y que «interno de organización» **es** el comportamiento de `private`. El que
+>   falta es el que el PRD llama `private` (**solo el autor**), que necesita mecanismo propio.
+> - **Ida y vuelta:** el PRD muestra solo flechas hacia arriba (`PRD:135`, `PRD:320`) pero la frase
+>   «cambio de visibilidad» no está limitada en dirección y la matriz (`PRD:347`) tampoco. **El PRD no lo
+>   cierra**: hay que decidirlo.
 >
 > **Artefactos** en `openspec/changes/2026-09-13-publication-lifecycle/`. El **autoritativo para la
 > evidencia medida** es `preproposal.md`: `explore.md` se escribió leyendo un checkout de CKAN
