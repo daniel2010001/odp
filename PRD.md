@@ -56,8 +56,9 @@ de pendientes): ahí se decide qué entra en cada versión.
 - Gestión de datasets (CRUD, metadatos, recursos, versionado).
 - Control de visibilidad (3 niveles: **privado — solo el autor —**, interno de organización, público).
   **CKAN sólo ofrece de forma nativa los dos últimos**: `private: false` = público, `private: true` = lo
-  lee **toda la organización dueña**, con cualquier capacidad. El nivel «solo el autor» requiere trabajo
-  propio. Ver §7.
+  lee **toda la organización dueña**, con cualquier capacidad. **El nivel «privado — solo el autor» queda
+  diferido a `v1+`** por ese motivo, no por falta de interés: la dirección que lo implementa está
+  identificada (ver §7), y hasta entonces el producto distingue **dos** niveles. Ver §7.
 - Flujo de aprobación para publicación (borrador → revisión → aprobado → publicado) con **cambio de
   visibilidad solicitado y aprobado en los dos sentidos** (`publication_requests`), más la degradación
   directa por un administrador de la organización para el caso de una publicación por error.
@@ -238,7 +239,7 @@ procesamiento* aparte (v1+), no un "tipo de vista".
 | `user_organizations` | `member` | Nativo. Roles `member` / `editor` / `admin`; no hay rol `viewer` propio |
 | `datasets` | `package` | Nativo. `metadata` va en `extras` (clave/valor); `organization_id` es `owner_org` |
 | `lifecycle_status` | *sin equivalente* | CKAN sólo tiene `private` (booleano). No existe `draft→review→approved→published` |
-| `visibility` (3 niveles) | Parcial | CKAN tiene 2 niveles: `private` y público. El nivel "interno de organización" es el comportamiento de `private` |
+| `visibility` (3 niveles) | Parcial | CKAN tiene 2 niveles: `private` y público. El nivel "interno de organización" es el comportamiento de `private`; el nivel **«privado — solo el autor» no existe** y queda **diferido a `v1+`**. La dirección técnica está identificada: CKAN expone `IPermissionLabels` (`ckan/plugins/interfaces.py`), y un privado recibe hoy la etiqueta `member-<owner_org>` de `DefaultPermissionLabels`, así que el nivel se construye agregando `creator-<user_id>` en `ckanext-umss` sin tocar el core |
 | `versions` | `activity` (insuficiente) | CKAN registra actividad, no versiones con estado de aprobación |
 | `resources` | `resource` | Nativo. `file_hash`, `size`, `url`, `format` son nativos; el tipo archivo/enlace se infiere de `url` |
 | `dataset_collaborators` | `package_collaborator` | Nativo desde CKAN 2.9, requiere `ckan.auth.allow_dataset_collaborators = true` |

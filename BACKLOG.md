@@ -332,15 +332,20 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 >   que la visibilidad (todo CUD, colaboradores, equipos, colecciones, logins). Es su **propia feature**, con
 >   su propio store, y el PRD ya admite (`:228`) que la `activity` nativa de CKAN no alcanza.
 >
-> **Puntos que tuve que decidir yo al redactar y conviene que confirmes:**
-> 1. Un `org_admin` que quiera **subir** la visibilidad también pasa por una solicitud — puede
->    solicitarla y aprobarla él mismo. Sale de que el flujo sea obligatorio para todos, y la matriz ya lo
->    permitía, pero es raro en la práctica.
-> 2. Una solicitud **pendiente queda anulada** si un admin degrada directo (RF-42).
-> 3. La degradación **exige motivo**. No lo pedía nadie; lo agregué porque es la excepción al flujo.
-> 4. **Sin tier asignado**: RF-41/RF-42 no están en `v0`, `v1` ni `v1+`. Y la degradación a «solo el
->    autor» apunta a un nivel que CKAN no tiene: hay que decidir si el tercer nivel se difiere a `v1+` o
->    si se construye con `IPermissionLabels` antes de poder cumplir esa dirección.
+> **Puntos que tuve que decidir yo al redactar — estado:**
+> 1. **CONFIRMADO** — un `org_admin` que quiera **subir** la visibilidad también pasa por una solicitud,
+>    y puede solicitarla y aprobarla él mismo. Se queda: **un solo camino** para todos los casos, lo que
+>    simplifica el guard y la auditoría, a costa de un par de clics para el admin.
+> 2. Redactado así, **no cuestionado**: una solicitud **pendiente queda anulada** si un admin degrada
+>    directo (RF-42).
+> 3. Redactado así, **no cuestionado**: la degradación **exige motivo**.
+> 4. **CONFIRMADO** — el tercer nivel («privado — solo el autor») queda **diferido a `v1+`**, escrito en
+>    §3 y en §7 con el motivo (CKAN no lo tiene) y **con la dirección técnica**: `IPermissionLabels`, y un
+>    privado recibe hoy `member-<owner_org>` de `DefaultPermissionLabels`, así que se construye agregando
+>    `creator-<user_id>` en `ckanext-umss` sin tocar el core.
+>
+> **Pendiente de confirmar:** que el flujo sea obligatorio implica que **el guard del PR 1 no alcanza**
+> (hoy un `org_admin` puede cambiar `private` directo). Decidido dejarlo y atarlo en el rediseño.
 >
 > **Artefactos** en `openspec/changes/2026-09-13-publication-lifecycle/`. El **autoritativo para la
 > evidencia medida** es `preproposal.md`: `explore.md` se escribió leyendo un checkout de CKAN
