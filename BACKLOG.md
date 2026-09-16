@@ -285,6 +285,47 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 >   «cambio de visibilidad» no está limitada en dirección y la matriz (`PRD:347`) tampoco. **El PRD no lo
 >   cierra**: hay que decidirlo.
 >
+> #### Respuestas del usuario (2026-09-14) y lo que implican
+>
+> 1. **El flujo de solicitud es OBLIGATORIO para todos.** Consecuencia dura: **el guard del PR 1 queda
+>    insuficiente.** Hoy permite que un `org_admin` ponga `private: false` directo con `package_patch`,
+>    y bajo este modelo eso es **saltearse el flujo**. Hay que atar el cambio de visibilidad a una
+>    solicitud aprobada, lo que obliga a que el guard consulte el estado de la solicitud. **El PR 1 ya
+>    está mergeado en `odp-docker/master` (`86f130b`) y necesita trabajo adicional.**
+> 2. **Dirección: por ahora solo subir**, pero la bajada queda pendiente y **debe escribirse en el PRD**
+>    (no está). El usuario describe **dos casos distintos**: los usuarios **piden** bajar (con aprobación)
+>    y los **admins bajan directo en cualquier momento** (p. ej. publicación por error). Cada cambio,
+>    auditado. **Ninguno de los dos está en el PRD.**
+> 3. **Solo 2 niveles por ahora**, y aquí hubo una inversión que conviene dejar escrita. Medido y
+>    confirmado desde la fuente y en vivo:
+>
+>    | Nivel del PRD | En CKAN |
+>    |---|---|
+>    | `public` | `private: false` + `state: active` ✅ existe |
+>    | `internal` (**organización**) | **`private: true`** ✅ existe |
+>    | `private` (**solo el autor**) | ❌ **no existe** |
+>
+>    `ckan/lib/plugins.py · DefaultPermissionLabels`: un privado recibe la etiqueta
+>    `member-<owner_org>`, y **cualquier** usuario con permiso `read` en esa org recibe esa etiqueta. La
+>    etiqueta `creator-<id>` solo se aplica cuando el dataset **no tiene** organización dueña. Medido en
+>    vivo: un `member` (la capacidad **mínima**) de la org dueña lee el privado → **200**; anónimo → **403**.
+>    O sea: **el nivel que falta es «solo el autor», no «organización».**
+>
+>    **Buenas noticias para el día que toque:** CKAN tiene el punto de extensión exacto,
+>    **`IPermissionLabels`** (`ckan/plugins/interfaces.py:1894`; CKAN trae de ejemplo
+>    `example_ipermissionlabels`). El nivel «solo el autor» se implementa en `ckanext-umss` agregando la
+>    etiqueta `creator-<id>` a los privados, sin hackear el core.
+>
+> #### Gaps del PRD que hay que escribir antes de replanificar
+>
+> - **Degradación de visibilidad** (los dos casos: pedido del usuario y acción directa del admin).
+> - **Que el flujo de solicitud sea obligatorio** (hoy solo se describe el camino feliz, no la
+>   prohibición del atajo).
+> - **Nota de alcance para la auditoría:** RF-33/RF-34 piden `audit_logs` con triggers y cubren **mucho
+>   más** que la visibilidad (todo CUD, colaboradores, equipos, colecciones, logins). Es su **propia
+>   feature**, con su propio store, y el PRD ya admite (`:228`) que la `activity` nativa de CKAN no
+>   alcanza.
+>
 > **Artefactos** en `openspec/changes/2026-09-13-publication-lifecycle/`. El **autoritativo para la
 > evidencia medida** es `preproposal.md`: `explore.md` se escribió leyendo un checkout de CKAN
 > **2.12.0a0 sin shell**, y **tres de sus afirmaciones fueron refutadas midiendo contra el 2.11.6 que
