@@ -698,6 +698,25 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **El guard de `odp-docker` NO se puede revisar desde una sesión en `odp` — y todavía no hay que revisarlo.**
+  El código que **hace cumplir** la regla de publicación vive en
+  `/home/danielblc/projects/odp-docker` (otro **clon Git**), y el ciclo de revisión se ata al **workspace de
+  la sesión**. Una sesión abierta en `odp` no puede atarse a él: es una limitación estructural, no una
+  configuración. Es el hueco más incómodo del cambio, porque cae justo en la parte que más importa.
+
+  **Cuándo revisarlo:** **después** del rediseño, cuando el guard quede final. Bajo el flujo de solicitud
+  obligatorio el guard **va a cambiar** (tiene que consultar la solicitud aprobada), así que revisar la
+  versión actual gasta un ciclo completo de revisión en código con rework pendiente conocido. Revisar
+  antes sería cumplir el trámite sin cubrir el riesgo.
+
+  **Cómo, cuando toque** — es lo único que hay que hacer del lado humano:
+  ```sh
+  cd /home/danielblc/projects/odp-docker
+  pi
+  ```
+  y pedir la revisión en esa sesión. Nada más: el agente corre el preflight y el resto del ciclo ahí.
+  _Origen: pusheo del PR 1 (`odp-docker` `86f130b`) + reconciliación del modelo del PRD (2026-09-14)._
+
 - [ ] **[v1] Advisory de las dos revisiones de la evidencia de sondas del ciclo de vida** — ambas
   cerraron **`approved`**; los 6 hallazgos son informativos, **ninguno abrió corrección**. Trabajo
   posterior, nunca motivo para re-correr la revisión sobre esos candidatos.
