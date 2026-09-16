@@ -54,8 +54,13 @@ de pendientes): ahí se decide qué entra en cada versión.
 - Registro y autenticación de usuarios (manual por superadmin y admins de organización).
 - Gestión completa de organizaciones (CRUD, jerarquía figurativa).
 - Gestión de datasets (CRUD, metadatos, recursos, versionado).
-- Control de visibilidad (3 niveles: privado, interno de organización, público).
-- Flujo de aprobación para publicación (borrador → revisión → aprobado → publicado).
+- Control de visibilidad (3 niveles: **privado — solo el autor —**, interno de organización, público).
+  **CKAN sólo ofrece de forma nativa los dos últimos**: `private: false` = público, `private: true` = lo
+  lee **toda la organización dueña**, con cualquier capacidad. El nivel «solo el autor» requiere trabajo
+  propio. Ver §7.
+- Flujo de aprobación para publicación (borrador → revisión → aprobado → publicado) con **cambio de
+  visibilidad solicitado y aprobado en los dos sentidos** (`publication_requests`), más la degradación
+  directa por un administrador de la organización para el caso de una publicación por error.
 - Colaboradores con roles (viewer, editor, steward) por dataset.
 - Equipos (teams) pertenecientes a una organización, con miembros de distintas orgs.
 - Colecciones (grupos de datasets) con publicación condicionada a aprobación de orgs propietarias.
@@ -132,9 +137,25 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   1. El editor crea/edita un dataset en estado `draft`.
   2. Solicita revisión → estado pasa a `review`.
   3. Un `org_admin` o `steward` con permiso de aprobación revisa y puede: aprobar (pasa a `approved`) o rechazar (vuelve a `draft` con comentarios).
-  4. Una vez aprobado, el editor o admin puede solicitar cambio de visibilidad (`private` → `internal` o `public`). Esta solicitud queda registrada en una tabla `publication_requests` y debe ser aprobada por un `org_admin`.
+  4. Una vez aprobado, el editor o admin puede **solicitar** cambio de visibilidad **en cualquier
+     dirección** entre los niveles de §3. Esta solicitud queda registrada en una tabla
+     `publication_requests` con el nivel destino, y debe ser aprobada por un `org_admin`.
+  5. **El flujo de solicitud es obligatorio.** Ninguna visibilidad cambia por otro camino, **salvo** la
+     degradación directa de un `org_admin` (RF-42). En particular, un administrador de la organización
+     que quiera **subir** la visibilidad también pasa por una solicitud: puede solicitarla y aprobarla
+     él mismo, según la matriz de §9.
 - RF-16: Cada vez que se aprueba o rechaza una revisión, se genera una nueva versión (con su estado) para auditoría.
 - RF-17: Cambios menores (edición de título, descripción, metadatos) no generan nueva versión, solo se registran en auditoría.
+- RF-41: **Degradación solicitada por el usuario.** Un editor, steward o admin de la organización puede
+  **solicitar bajar** la visibilidad de un dataset, en cualquier dirección entre los niveles de §3,
+  indicando el motivo. La solicitud se registra en `publication_requests` con `requested_visibility` en
+  el nivel destino y requiere la aprobación de un `org_admin`, igual que el ascenso. Si se rechaza, la
+  visibilidad **no** cambia y la decisión queda registrada con sus comentarios.
+- RF-42: **Degradación directa por un administrador.** Un `org_admin` o un superadmin puede bajar la
+  visibilidad **sin solicitud previa**, para el caso de una publicación hecha por error. Es **la única
+  excepción** al flujo obligatorio de RF-15.5. Requiere motivo, y queda auditada con el actor y el motivo
+  (RF-33). Si existía una solicitud pendiente sobre ese dataset, queda **anulada** y no puede aplicarse
+  después.
 
 ### Módulo de Colaboradores y Equipos
 - RF-18: Un dataset puede tener colaboradores (usuarios) con permisos explícitos: `view`, `edit`, `admin` (steward). La asignación se realiza mediante la tabla `dataset_collaborators`.
@@ -181,7 +202,7 @@ misma definición, no un tipo de vista nuevo. La conversión PDF→markdown es u
 procesamiento* aparte (v1+), no un "tipo de vista".
 
 ### Módulo de Auditoría y Seguridad
-- RF-33: Se auditan todas las operaciones CUD sobre datasets, recursos, colaboradores, equipos, colecciones, cambios de visibilidad, aprobaciones, logins y logouts.
+- RF-33: Se auditan todas las operaciones CUD sobre datasets, recursos, colaboradores, equipos, colecciones, cambios de visibilidad, aprobaciones, logins y logouts. Los **cambios de visibilidad se registran en los dos sentidos**, con quién los solicitó, quién los aprobó o quién los ejecutó directamente, y el motivo cuando la degradación fue directa (RF-42).
 - RF-34: La auditoría se registra en una tabla `audit_logs` desde el backend, complementada con triggers en la base de datos para mayor seguridad.
 - RF-35: Soft-delete: las entidades tienen `deleted_at` (ocultas para todos, excepto superadmin). La eliminación permanente solo la realiza un superadmin bajo instrucción explícita y queda registrada.
 - RF-36: Bloqueo: las entidades tienen un estado `access_status` con valores: `accessible`, `readonly` (solo lectura), `locked` (inaccesible). Reversible por usuarios con permisos de administración.
@@ -320,6 +341,20 @@ a las de CKAN.
 5. Editor (o admin) solicita cambio de visibilidad a `internal` o `public`.
 6. Org_admin aprueba la solicitud de publicación → visibilidad actualizada.
 
+### Degradación de visibilidad
+
+**Caso A — el usuario la solicita, con aprobación (RF-41):**
+1. Un editor, steward o admin de la organización solicita bajar la visibilidad, indicando el motivo.
+2. La solicitud se registra en `publication_requests` con `requested_visibility` en el nivel destino.
+3. Un `org_admin` la aprueba → visibilidad actualizada, o la rechaza con comentarios.
+4. Si se rechaza, la visibilidad **no** cambia y la decisión queda registrada.
+
+**Caso B — el administrador la baja directamente (RF-42):**
+1. Un `org_admin` o superadmin baja la visibilidad **sin** solicitud previa, por una publicación hecha por
+   error.
+2. La acción queda auditada con el actor y el motivo (RF-33).
+3. Si existía una solicitud pendiente sobre ese dataset, queda **anulada** y no puede aplicarse después.
+
 ### Colaboración en un dataset
 1. Steward del dataset invita a un usuario (por email) o agrega un equipo.
 2. El colaborador recibe notificación (correo) y acepta (opcional).
@@ -343,8 +378,10 @@ a las de CKAN.
 | Agregar/editar/eliminar recursos | No | Sí | Sí | Sí | Sí |
 | Crear versión | No | Sí | Sí | Sí | Sí |
 | Solicitar revisión/publicación | No | Sí | Sí | Sí | Sí |
+| Solicitar cambio de visibilidad (subir o bajar) | No | Sí | Sí | Sí | Sí |
 | Aprobar revisión (dataset propio) | No | No | Sí (si permiso) | Sí | Sí |
-| Aprobar cambio de visibilidad | No | No | No | Sí | Sí |
+| Aprobar cambio de visibilidad (subir o bajar) | No | No | No | Sí | Sí |
+| Degradar visibilidad directamente, sin solicitud y con motivo | No | No | No | Sí | Sí |
 | Gestionar colaboradores | No | No | Sí | Sí | Sí |
 | Eliminar lógicamente (soft-delete) | No | No | No | No (solo superadmin) | Sí |
 | Cambiar bloqueo (readonly/locked) | No | No | No | Sí (sobre sus datasets) | Sí |

@@ -316,15 +316,31 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 >    `example_ipermissionlabels`). El nivel «solo el autor» se implementa en `ckanext-umss` agregando la
 >    etiqueta `creator-<id>` a los privados, sin hackear el core.
 >
-> #### Gaps del PRD que hay que escribir antes de replanificar
+> #### Gaps del PRD — **redactados el 2026-09-14, pendientes de tu revisión**
 >
-> - **Degradación de visibilidad** (los dos casos: pedido del usuario y acción directa del admin).
-> - **Que el flujo de solicitud sea obligatorio** (hoy solo se describe el camino feliz, no la
->   prohibición del atajo).
-> - **Nota de alcance para la auditoría:** RF-33/RF-34 piden `audit_logs` con triggers y cubren **mucho
->   más** que la visibilidad (todo CUD, colaboradores, equipos, colecciones, logins). Es su **propia
->   feature**, con su propio store, y el PRD ya admite (`:228`) que la `activity` nativa de CKAN no
->   alcanza.
+> - ✅ **Degradación de visibilidad** → **RF-41** (el usuario la solicita, con aprobación) y **RF-42** (el
+>   `org_admin` o superadmin la baja directo, sin solicitud, con motivo). Los **dos casos** que
+>   describiste, que no existían en el PRD. Más el flujo en §8 y las filas correspondientes en la matriz
+>   de §9.
+> - ✅ **Flujo obligatorio** → RF-15 paso 5: ninguna visibilidad cambia por otro camino salvo la
+>   degradación directa de RF-42.
+> - ✅ **Niveles de §3**: ahora dice que CKAN sólo ofrece los dos últimos de forma nativa, para que los
+>   tres niveles no parezcan igual de disponibles.
+> - ✅ **Auditoría**: RF-33 ahora exige registrar los cambios de visibilidad **en los dos sentidos**, con
+>   quién los solicitó, quién los aprobó o quién los ejecutó directo, y el motivo cuando fue directa.
+>   **Nota de alcance (sigue en pie):** RF-33/RF-34 piden `audit_logs` con triggers y cubren **mucho más**
+>   que la visibilidad (todo CUD, colaboradores, equipos, colecciones, logins). Es su **propia feature**, con
+>   su propio store, y el PRD ya admite (`:228`) que la `activity` nativa de CKAN no alcanza.
+>
+> **Puntos que tuve que decidir yo al redactar y conviene que confirmes:**
+> 1. Un `org_admin` que quiera **subir** la visibilidad también pasa por una solicitud — puede
+>    solicitarla y aprobarla él mismo. Sale de que el flujo sea obligatorio para todos, y la matriz ya lo
+>    permitía, pero es raro en la práctica.
+> 2. Una solicitud **pendiente queda anulada** si un admin degrada directo (RF-42).
+> 3. La degradación **exige motivo**. No lo pedía nadie; lo agregué porque es la excepción al flujo.
+> 4. **Sin tier asignado**: RF-41/RF-42 no están en `v0`, `v1` ni `v1+`. Y la degradación a «solo el
+>    autor» apunta a un nivel que CKAN no tiene: hay que decidir si el tercer nivel se difiere a `v1+` o
+>    si se construye con `IPermissionLabels` antes de poder cumplir esa dirección.
 >
 > **Artefactos** en `openspec/changes/2026-09-13-publication-lifecycle/`. El **autoritativo para la
 > evidencia medida** es `preproposal.md`: `explore.md` se escribió leyendo un checkout de CKAN
