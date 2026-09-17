@@ -15,6 +15,52 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Próxima sesión (2026-09-17) — replanificar el ciclo de vida de publicación
+
+> **Dónde quedó todo (2026-09-16).** El **modelo de producto fue revertido** y el PRD ya está firme para
+> esta feature. Los artefactos del cambio SDD quedaron **obsoletos** (el `proposal.md` lleva el aviso al
+> inicio) y el PR 2 viejo está **aparcado**. Nada quedó a medias ni roto: el stack de dev está `healthy`,
+> el catálogo intacto (5 orgs, 17 datasets) y el guard del PR 1 mergeado — aunque **insuficiente**, ver el
+> punto 1.
+>
+> **Leer primero, en este orden:**
+> 1. `PRD.md`: §3 y §7 (los 3 niveles y su mapeo real a CKAN), `RF-15` (flujo, con el **paso 5
+>    obligatorio**), `RF-41`/`RF-42` (degradación, los dos casos), §8, §9 y `RF-33` (auditoría).
+> 2. `BACKLOG.md` → «En curso» → el bloque del cambio: tiene **las decisiones, sus motivos y las citas de
+>    línea del PRD**. Es lo más denso y lo más útil de todo lo escrito hoy.
+> 3. `openspec/changes/2026-09-13-publication-lifecycle/proposal.md`: el aviso de obsolescencia de D1–D7.
+>
+> **Plan, en orden:**
+>
+> 1. **Replanificar el cambio** con el modelo del PRD: `proposal → spec → design → tasks`. Acá caen las
+>    decisiones de diseño grandes:
+>    - **`publication_requests` en `ckanext-umss`**: tabla + migración, con el esquema de `PRD:308`.
+>    - **Acciones y autorización de la cola**: crear solicitud, listar pendientes, aprobar, rechazar.
+>    - **Cómo el guard consulta la solicitud aprobada.** Es el trabajo que el PR 1 necesita y no tiene, y
+>      **la decisión más difícil del rediseño**: conviene resolverla antes de escribir una línea de código.
+>    - **Dónde vive la cola del aprobador en el portal.**
+> 2. **Confirmar 2 detalles del PRD** redactados hoy sin objeción pero sin confirmación explícita: que una
+>    solicitud **pendiente se anula** si un admin degrada directo, y que la degradación **exige motivo**.
+> 3. **Asignar tier** a `RF-41`/`RF-42` (`v0` / `v1` / `v1+`): hoy no tienen.
+> 4. **Lo aparcado que sirve**: la rama `wip/pr2-directo-publicacion` tiene el componente viejo. Lo
+>    reutilizable son el manejo honesto del `403`, la regla «un `200` que no concede no es un éxito» y las
+>    dos máquinas de estado — la cola del aprobador va a necesitar exactamente eso.
+> 5. Recién después, `apply`. **El gate de presupuesto va ANTES de aplicar**, con la regla nueva de
+>    `openspec/config.yaml` (tres líneas: código, tests derivados de la proporción medida, y material de
+>    revisión aparte que no compite).
+>
+> **Dos advertencias de repositorio:**
+> - La tabla, las acciones y el guard viven en **`odp-docker`**, que es **otro clon Git**. Ver «Deuda de
+>   revisión (RDD)» para el trámite de la revisión y **cuándo** hacerla (después del rediseño, no antes).
+> - **No reiniciar `odp-dev-ckan-dev-1`** sin reconstruir la imagen: el script horneado deja el token del
+>   datapusher vacío y el contenedor entra en crash loop. **Ya está arreglado y reconstruido** — el aviso
+>   queda solo para el caso de tocar ese archivo.
+>
+> **Trabajo independiente, cuando se decida:** los bugs `v0` de la revisión de UI (ver esa sección), la
+> pregunta del facet de licencia (`v1`), y las dos features pesadas que el usuario **aparcó
+> explícitamente**: el **análisis de CSV** y la **auditoría** (`RF-33`/`RF-34`, que es su propia feature
+> con su propio store). La **prueba de carga** va después de tener el CRUD completo.
+
 ## Plan B — dashboard + publicación (cerrado 2026-09-12)
 
 > Ejecutado y cerrado. «Plan B» = las features pendientes del plan S-A…S-E, ahora completas:
