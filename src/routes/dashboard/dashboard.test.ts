@@ -76,7 +76,7 @@ function makeOrganization(overrides: Partial<CkanOrganization> = {}): CkanOrgani
 beforeEach(() => {
 	auth.reset();
 	vi.clearAllMocks();
-	mocks.currentUser.mockResolvedValue([makePackage()]);
+	mocks.currentUser.mockResolvedValue({ count: 1, results: [makePackage()] });
 	mocks.listForUser.mockResolvedValue([makeOrganization()]);
 });
 
@@ -106,6 +106,16 @@ describe("Dashboard", () => {
 		expect(screen.getByText(/^administrador$/i)).toBeInTheDocument();
 	});
 
+	it("consulta «Mis datasets» con el id del usuario autenticado", async () => {
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		// El `fq` del creador se construye con este id: si el loader llama a `currentUser()`
+		// sin argumento, la consulta deja de medir la identidad y el resto de la suite no lo nota.
+		await waitFor(() => expect(mocks.currentUser).toHaveBeenCalledWith(baseUser.id));
+	});
+
 	it("ofrece el CTA al wizard y lista datasets y organizaciones enlazados", async () => {
 		auth.login("tok-123", baseUser);
 
@@ -132,16 +142,19 @@ describe("Dashboard", () => {
 	});
 
 	it("cada dataset muestra su cantidad de recursos, la fecha de actualización y su visibilidad", async () => {
-		mocks.currentUser.mockResolvedValue([
-			makePackage({
-				resources: [
-					makeResource({ id: "r1" }),
-					makeResource({ id: "r2" }),
-					makeResource({ id: "r3" }),
-				],
-				metadata_modified: "2026-09-04T00:00:00.000000",
-			}),
-		]);
+		mocks.currentUser.mockResolvedValue({
+			count: 1,
+			results: [
+				makePackage({
+					resources: [
+						makeResource({ id: "r1" }),
+						makeResource({ id: "r2" }),
+						makeResource({ id: "r3" }),
+					],
+					metadata_modified: "2026-09-04T00:00:00.000000",
+				}),
+			],
+		});
 		auth.login("tok-123", baseUser);
 
 		render(Dashboard);
@@ -194,7 +207,7 @@ describe("Dashboard", () => {
 	});
 
 	it("muestra estados vacíos explícitos cuando ambas listas están vacías", async () => {
-		mocks.currentUser.mockResolvedValue([]);
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
 		auth.login("tok-123", baseUser);
 

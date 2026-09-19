@@ -1,6 +1,6 @@
 // API: operaciones sobre datasets (packages en CKAN)
 
-import type { SearchParams, SearchResponse } from "$lib/types/api";
+import type { PaginationParams, SearchParams, SearchResponse } from "$lib/types/api";
 import type { CkanPackage, CkanPagination } from "$lib/types/ckan";
 import type { CkanClient } from "./client";
 
@@ -18,6 +18,7 @@ export function createDatasetApi(client: CkanClient) {
 				"facet.field": params.facet_field ?? ["organization", "tags", "res_format", "license_id"],
 				"facet.limit": params.facet_limit ?? 50,
 				"facet.mincount": params.facet_min_count ?? 1,
+				include_private: params.include_private,
 			});
 
 			return {
@@ -79,9 +80,36 @@ export function createDatasetApi(client: CkanClient) {
 			return this.search(mergedParams);
 		},
 
-		/** Datasets actuales del usuario (requiere auth) */
-		async currentUser(): Promise<CkanPackage[]> {
-			return client.post<CkanPackage[]>("current_package_list_with_resources");
+		/**
+		 * Datasets creados por el usuario actual — «Mis datasets».
+		 *
+		 * **No** usamos `current_package_list_with_resources`: fija `include_private =
+		 * is_sysadmin(user)` (`ckan/logic/action/get.py:143`), así que un no-sysadmin nunca recibe un
+		 * privado, ni siquiera el propio.
+		 *
+		 * Espejamos en cambio la condición del propio dashboard de CKAN (`user_show` con
+		 * `include_datasets`), apoyada en `package_search`:
+		 *
+		 * - `fq=+creator_user_id:<id>`: el `+` es la cláusula requerida de Solr, la misma forma que
+		 *   emite CKAN.
+		 * - `include_private: true` hace falta **además** del `fq`: medido, sin él el privado propio no
+		 *   vuelve en la lista.
+		 * - `sort` explícito (el default de `search`): sin él la paginación no es estable — medido,
+		 *   `start=0` y `start=2` devolvieron conjuntos disjuntos.
+		 * - `count` viaja en la respuesta para que la UI pueda decir el total real.
+		 *
+		 * `params` sólo aporta paginación (`limit`/`offset`); `fq` e `include_private` los fija esta
+		 * llamada.
+		 */
+		async currentUser(
+			userId: string,
+			params: PaginationParams = {},
+		): Promise<SearchResponse<CkanPackage>> {
+			return this.search({
+				fq: `+creator_user_id:${userId}`,
+				include_private: true,
+				...params,
+			});
 		},
 
 		/** Activar/desactivar un dataset */

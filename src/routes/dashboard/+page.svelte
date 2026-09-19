@@ -56,7 +56,12 @@ async function loadDatasets() {
 	try {
 		const client = makeClient();
 		const datasetApi = createDatasetApi(client);
-		datasets = await datasetApi.currentUser();
+		const userId = get(currentUser)?.id;
+		if (!userId) {
+			throw new Error("No se pudo identificar al usuario autenticado.");
+		}
+		const result = await datasetApi.currentUser(userId);
+		datasets = result.results;
 	} catch (err) {
 		datasets = [];
 		datasetsError = err instanceof Error ? err.message : "No se pudo cargar sus datasets.";
