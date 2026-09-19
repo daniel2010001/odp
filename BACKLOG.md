@@ -494,6 +494,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 >      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
 >      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
 >
+- [ ] **[v0] Crear dataset: con varias organizaciones y ninguna seleccionada, el resumen muestra la
+  organización vacía.** La «Ficha de publicación» pinta `orgDisplayTitle`, que queda vacío mientras no
+  haya selección, así que el bloque de organización aparece en blanco en vez de decir que falta elegir.
+  _Origen: reportado por el usuario, 2026-09-17._
+
+- [ ] **[v0] Dashboard: la descripción de la sección de organizaciones parte en dos líneas por una sola
+  palabra.** La de «Mis datasets» entra en una línea; la de organizaciones deja una segunda línea con una
+  palabra suelta, y el usuario lo señala como feo. Dirección: `text-pretty` (o `text-balance`) en lugar de
+  reescribir el copy a mano — es exactamente el caso que esa utilidad resuelve, y no hay que inventar
+  nada. _Origen: reportado por el usuario, 2026-09-17._
+
 - [ ] **[v0] «Mis datasets» está roto para todo usuario que no sea sysadmin** — **medido
   (2026-09-13)**: `current_package_list_with_resources` arma la respuesta con
   `"include_private": authz.is_sysadmin(user)` (`get.py:143`), así que un usuario normal recibe
@@ -535,6 +546,15 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
 
 ## v1 — producto usable en producción
+
+- [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
+  pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
+  `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
+  `snap-mandatory`) en el contenedor de scroll y `snap-start` en cada card. **La trampa es el encabezado
+  pegajoso**: hay que compensarlo con `scroll-mt-*`, porque el buscador ya tiene un `aside` con
+  `lg:sticky lg:top-40` y el encabezado del sitio mide `h-20`; sin ese margen la card se fija por debajo
+  de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
+  _Origen: pedido del usuario, 2026-09-17._
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
   del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque
@@ -603,6 +623,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   sobre un CRUD incompleto mide un sistema que todavía no es el que va a recibir la carga. Alcance a
   definir cuando llegue el momento (concurrencia, tamaño de archivo, escritura contra DataStore).
   _Origen: revisión del 2026-09-14._
+
+- [ ] **[v1+] Colaboradores por dataset y equipos, con la procedencia del permiso.** El PRD ya cubre las
+  entidades (`dataset_collaborators` en RF-18, `teams`/`team_members` en RF-19, y su mapeo en §7), y CKAN
+  trae `package_collaborator` nativo desde 2.9 — **apagado** por la bandera del ítem `[v0]` de más
+  arriba. **Lo que el PRD NO tiene, y hay que agregarle cuando se diseñe:** registrar **cómo** se otorgó el
+  permiso — **por un equipo** (grupo interno de la organización que sirve para administrar usuarios,
+  análogo a las colecciones de datasets) **o directo** al usuario. El resto de lo pedido ya está en el
+  esquema de §7 (`granted_by`, `created_at`, `role_alias`); la procedencia «equipo vs directo» no.
+
+  **Consecuencia en el producto, que ya se ve hoy:** «mis datasets» deja de significar «los que creé» y
+  pasa a ser «los que puedo editar (editor) o de los que soy steward», que es justamente lo que promete el
+  copy actual de la tarjeta del dashboard. El slice A del trabajo `v0-portal-honesty` lista **sólo los
+  creados por el usuario** y ajusta el copy a eso; cuando esta entidad exista, el copy y la consulta
+  vuelven a cambiar. _Origen: respuesta del usuario del 2026-09-17 sobre el alcance de «Mis datasets»._
 
 - [ ] **[v1+] Notas de UI de las páginas de organizaciones.** Al usuario **le gustan** las cards de
   `/organizations`; son mejoras para después, no defectos. Anotar concretamente qué mejorar cuando se

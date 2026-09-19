@@ -1,0 +1,716 @@
+"use strict";
+
+type DocumentStatus = 'active' | 'archived' | 'disabled'
+type EditorialState = 'draft' | 'review' | 'published'
+type Visibility = 'private' | 'restricted' | 'public'
+
+type ActorRole = 'admin' | 'reviewer'
+
+interface Actor {
+  id: string
+  role: ActorRole
+}
+
+interface Document {
+  id: string
+
+  // soft delete
+  deletedAt: Date | null
+
+  // acceso
+  status: DocumentStatus
+
+  // puntero lógico a la versión actual
+  currentVersionId: string | null
+
+  updatedAt: Date
+}
+
+interface DocumentVersion {
+  id: string
+  documentId: string
+
+  version: string
+
+  editorialState: EditorialState
+  visibility: Visibility
+
+  createdAt: Date
+  updatedAt: Date
+}
+
+interface VisibilityRequestBase {
+  id: string
+  versionId: string
+  targetVisibility: Visibility
+  createdAt: Date
+}
+
+interface VisibilityRequestPending extends VisibilityRequestBase {
+  status: 'pending'
+}
+
+interface VisibilityRequestResolved extends VisibilityRequestBase {
+  status: 'resolved'
+  resolution: 'approved' | 'rejected'
+  resolvedAt: Date
+}
+
+type VisibilityRequest = VisibilityRequestPending | VisibilityRequestResolved
+
+type Action =
+  | { type: 'activate' }
+  | { type: 'archive' }
+  | { type: 'disable' }
+  | { type: 'delete' }
+  | { type: 'restore' }
+
+  | { type: 'submit_review' }
+  | { type: 'approve' }
+  | { type: 'reject' }
+  | { type: 'back_to_draft' }
+
+  | { type: 'propose_visibility'; target: Visibility }
+  | { type: 'approve_visibility' }
+  | { type: 'reject_visibility' }
+  | { type: 'set_visibility'; target: Visibility }
+
+type RequestCancelReason = 'delete' | 'reject' | 'back_to_draft'
+
+type AuditChange =
+  | {
+      type: 'DOCUMENT_STATUS_CHANGED'
+      documentId: string
+      actorId: string
+      from: DocumentStatus
+      to: DocumentStatus
+      at: Date
+    }
+  | {
+      type: 'DOCUMENT_DELETED' | "DOCUMENT_RESTORED"
+      documentId: string
+      actorId: string
+      at: Date
+    }
+  | {
+      type: 'EDITORIAL_STATE_CHANGED'
+      documentId: string
+      versionId: string
+      actorId: string
+      from: EditorialState
+      to: EditorialState
+      at: Date
+    }
+  | {
+      type: 'VISIBILITY_CHANGED'
+      documentId: string
+      versionId: string
+      actorId: string
+      from: Visibility
+      to: Visibility
+      at: Date
+    }
+  | {
+      type: 'VISIBILITY_REQUEST_CREATED' | 'VISIBILITY_REQUEST_APPROVED' | 'VISIBILITY_REQUEST_REJECTED'
+      documentId: string
+      versionId: string
+      requestId: string
+      actorId: string
+      targetVisibility: Visibility
+      at: Date
+    }
+  | {
+      type: 'VISIBILITY_REQUEST_CANCELLED'
+      documentId: string
+      versionId: string
+      requestId: string
+      actorId: string
+      reason: RequestCancelReason
+      at: Date
+    }
+
+interface ExecutionContext {
+  doc: Document
+  version: DocumentVersion
+  request: VisibilityRequest | null
+  actor: Actor
+  now: Date
+}
+
+interface ApplyResult {
+  doc: Document
+  version: DocumentVersion
+  request: VisibilityRequest | null
+  audit: AuditChange[]
+}
+
+const visibilityRank: Record<Visibility, number> = {
+  private: 0,
+  restricted: 1,
+  public: 2,
+}
+
+function isSameVisibility(current: Visibility, target: Visibility): boolean {
+  return current === target
+}
+
+function isLowerVisibility(current: Visibility, target: Visibility): boolean {
+  return visibilityRank[target] < visibilityRank[current]
+}
+
+function isHigherVisibility(current: Visibility, target: Visibility): boolean {
+  return visibilityRank[target] > visibilityRank[current]
+}
+
+function isPendingRequest(request: VisibilityRequest | null): request is VisibilityRequestPending {
+  return request?.status === 'pending'
+}
+
+function isAdmin(actor: Actor): actor is Actor & { role: 'admin' } {
+  return actor.role === 'admin'
+}
+
+function isReviewer(actor: Actor): actor is Actor & { role: 'reviewer' } {
+  return actor.role === 'reviewer'
+}
+
+function canManageLifecycle(actor: Actor): boolean {
+  return isAdmin(actor)
+}
+
+function canWorkEditorial(actor: Actor): boolean {
+  return isAdmin(actor) || isReviewer(actor)
+}
+
+function cancelPendingRequest(
+  request: VisibilityRequest | null,
+  now: Date,
+  actor: Actor,
+  reason: RequestCancelReason,
+): { request: VisibilityRequest | null; audit: AuditChange[] } {
+  if (!isPendingRequest(request)) return { request, audit: [] }
+
+  return {
+    request: {
+      ...request,
+      status: 'resolved',
+      resolution: 'rejected',
+      resolvedAt: now,
+    },
+    audit: [
+      {
+        type: 'VISIBILITY_REQUEST_CANCELLED',
+        documentId: request.versionId, // placeholder temporal si lo quieres derivar distinto
+        versionId: request.versionId,
+        requestId: request.id,
+        actorId: actor.id,
+        reason,
+        at: now,
+      },
+    ],
+  }
+}
+
+function resolveVisibilityRequest(
+  request: VisibilityRequest | null,
+  now: Date,
+  resolution: 'approved' | 'rejected',
+): VisibilityRequestResolved {
+  if (!isPendingRequest(request)) {
+    throw new Error('No pending request to resolve')
+  }
+
+  return {
+    ...request,
+    status: 'resolved',
+    resolution,
+    resolvedAt: now,
+  }
+}
+
+type Handler<K extends Action['type']> = {
+  can: (ctx: ExecutionContext & { action: Extract<Action, { type: K }> }) => boolean
+  apply: (ctx: ExecutionContext & { action: Extract<Action, { type: K }> }) => ApplyResult
+}
+
+type HandlerMap = {
+  [K in Action['type']]: Handler<K>
+}
+
+const handlers: HandlerMap = {
+  activate: {
+    can: ({ doc, actor }) => canManageLifecycle(actor) && !doc.deletedAt && doc.status !== 'active',
+    apply: ({ doc, version, request, actor, now }) => ({
+      doc: {
+        ...doc,
+        status: 'active',
+        updatedAt: now,
+      },
+      version,
+      request,
+      audit: [
+        {
+          type: 'DOCUMENT_STATUS_CHANGED',
+          documentId: doc.id,
+          actorId: actor.id,
+          from: doc.status,
+          to: 'active',
+          at: now,
+        },
+      ],
+    }),
+  },
+
+  archive: {
+    can: ({ doc, version, actor }) =>
+      canManageLifecycle(actor) &&
+      !doc.deletedAt &&
+      (doc.status === 'disabled' || (doc.status === 'active' && version.editorialState === 'published')),
+    apply: ({ doc, version, request, actor, now }) => ({
+      doc: {
+        ...doc,
+        status: 'archived',
+        updatedAt: now,
+      },
+      version,
+      request,
+      audit: [
+        {
+          type: 'DOCUMENT_STATUS_CHANGED',
+          documentId: doc.id,
+          actorId: actor.id,
+          from: doc.status,
+          to: 'archived',
+          at: now,
+        },
+      ],
+    }),
+  },
+
+  disable: {
+    can: ({ doc, version, actor }) =>
+      canManageLifecycle(actor) &&
+      !doc.deletedAt &&
+      (doc.status === 'archived' || (doc.status === 'active' && version.editorialState === 'published')),
+    apply: ({ doc, version, request, actor, now }) => ({
+      doc: {
+        ...doc,
+        status: 'disabled',
+        updatedAt: now,
+      },
+      version,
+      request,
+      audit: [
+        {
+          type: 'DOCUMENT_STATUS_CHANGED',
+          documentId: doc.id,
+          actorId: actor.id,
+          from: doc.status,
+          to: 'disabled',
+          at: now,
+        },
+      ],
+    }),
+  },
+
+  delete: {
+    can: ({ doc, actor }) => canManageLifecycle(actor) && !doc.deletedAt,
+    apply: ({ doc, version, request, actor, now }) => {
+      const cancelled = cancelPendingRequest(request, now, actor, 'delete')
+
+      return {
+        doc: {
+          ...doc,
+          deletedAt: now,
+          updatedAt: now,
+        },
+        version,
+        request: cancelled.request,
+        audit: [
+          {
+            type: 'DOCUMENT_DELETED',
+            documentId: doc.id,
+            actorId: actor.id,
+            at: now,
+          },
+          ...cancelled.audit.map((event) => ({
+            ...event,
+            documentId: doc.id,
+          })),
+        ],
+      }
+    },
+  },
+
+  restore: {
+    can: ({ doc, actor }) => canManageLifecycle(actor) && !!doc.deletedAt,
+    apply: ({ doc, version, request, actor, now }) => ({
+      doc: {
+        ...doc,
+        deletedAt: null,
+        updatedAt: now,
+      },
+      version,
+      request,
+      audit: [
+        {
+          type: 'DOCUMENT_RESTORED',
+          documentId: doc.id,
+          actorId: actor.id,
+          at: now,
+        },
+      ],
+    }),
+  },
+
+  submit_review: {
+    can: ({ doc, version, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'draft',
+    apply: ({ doc, version, request, actor, now }) => ({
+      doc,
+      version: {
+        ...version,
+        editorialState: 'review',
+        updatedAt: now,
+      },
+      request,
+      audit: [
+        {
+          type: 'EDITORIAL_STATE_CHANGED',
+          documentId: doc.id,
+          versionId: version.id,
+          actorId: actor.id,
+          from: 'draft',
+          to: 'review',
+          at: now,
+        },
+      ],
+    }),
+  },
+
+  approve: {
+    can: ({ doc, version, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'review',
+    apply: ({ doc, version, request, actor, now }) => ({
+      doc,
+      version: {
+        ...version,
+        editorialState: 'published',
+        updatedAt: now,
+      },
+      request,
+      audit: [
+        {
+          type: 'EDITORIAL_STATE_CHANGED',
+          documentId: doc.id,
+          versionId: version.id,
+          actorId: actor.id,
+          from: 'review',
+          to: 'published',
+          at: now,
+        },
+      ],
+    }),
+  },
+
+  reject: {
+    can: ({ doc, version, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'review',
+    apply: ({ doc, version, request, actor, now }) => {
+      const cancelled = cancelPendingRequest(request, now, actor, 'reject')
+
+      return {
+        doc,
+        version: {
+          ...version,
+          editorialState: 'draft',
+          updatedAt: now,
+        },
+        request: cancelled.request,
+        audit: [
+          {
+            type: 'EDITORIAL_STATE_CHANGED',
+            documentId: doc.id,
+            versionId: version.id,
+            actorId: actor.id,
+            from: 'review',
+            to: 'draft',
+            at: now,
+          },
+          ...cancelled.audit.map((event) => ({
+            ...event,
+            documentId: doc.id,
+          })),
+        ],
+      }
+    },
+  },
+
+  back_to_draft: {
+    can: ({ doc, version, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState !== 'draft',
+    apply: ({ doc, version, request, actor, now }) => {
+      const cancelled = cancelPendingRequest(request, now, actor, 'back_to_draft')
+
+      return {
+        doc,
+        version: {
+          ...version,
+          editorialState: 'draft',
+          updatedAt: now,
+        },
+        request: cancelled.request,
+        audit: [
+          {
+            type: 'EDITORIAL_STATE_CHANGED',
+            documentId: doc.id,
+            versionId: version.id,
+            actorId: actor.id,
+            from: version.editorialState,
+            to: 'draft',
+            at: now,
+          },
+          ...cancelled.audit.map((event) => ({
+            ...event,
+            documentId: doc.id,
+          })),
+        ],
+      }
+    },
+  },
+
+  propose_visibility: {
+    can: ({ doc, version, request, action, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'published' &&
+      !isPendingRequest(request) &&
+      !isSameVisibility(version.visibility, action.target),
+    apply: ({ doc, version, request, actor, action, now }) => {
+      const requestId = crypto.randomUUID()
+
+      return {
+        doc,
+        version,
+        request: {
+          id: requestId,
+          versionId: version.id,
+          targetVisibility: action.target,
+          status: 'pending',
+          createdAt: now,
+        },
+        audit: [
+          {
+            type: 'VISIBILITY_REQUEST_CREATED',
+            documentId: doc.id,
+            versionId: version.id,
+            requestId,
+            actorId: actor.id,
+            targetVisibility: action.target,
+            at: now,
+          },
+        ],
+      }
+    },
+  },
+
+  approve_visibility: {
+    can: ({ doc, version, request, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'published' &&
+      isPendingRequest(request),
+    apply: ({ doc, version, request, actor, now }) => {
+      const resolved = resolveVisibilityRequest(request, now, 'approved')
+
+      return {
+        doc,
+        version: {
+          ...version,
+          visibility: resolved.targetVisibility,
+          updatedAt: now,
+        },
+        request: resolved,
+        audit: [
+          {
+            type: 'VISIBILITY_CHANGED',
+            documentId: doc.id,
+            versionId: version.id,
+            actorId: actor.id,
+            from: version.visibility,
+            to: resolved.targetVisibility,
+            at: now,
+          },
+          {
+            type: 'VISIBILITY_REQUEST_APPROVED',
+            documentId: doc.id,
+            versionId: version.id,
+            requestId: resolved.id,
+            actorId: actor.id,
+            targetVisibility: resolved.targetVisibility,
+            at: now,
+          },
+        ],
+      }
+    },
+  },
+
+  reject_visibility: {
+    can: ({ doc, version, request, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'published' &&
+      isPendingRequest(request),
+    apply: ({ doc, version, request, actor, now }) => {
+      const resolved = resolveVisibilityRequest(request, now, 'rejected')
+
+      return {
+        doc,
+        version,
+        request: resolved,
+        audit: [
+          {
+            type: 'VISIBILITY_REQUEST_REJECTED',
+            documentId: doc.id,
+            versionId: version.id,
+            requestId: resolved.id,
+            actorId: actor.id,
+            targetVisibility: resolved.targetVisibility,
+            at: now,
+          },
+        ],
+      }
+    },
+  },
+
+  set_visibility: {
+    can: ({ doc, version, request, action, actor }) =>
+      canWorkEditorial(actor) &&
+      !doc.deletedAt &&
+      doc.status === 'active' &&
+      version.editorialState === 'published' &&
+      !isPendingRequest(request) &&
+      (isLowerVisibility(version.visibility, action.target) ||
+        isHigherVisibility(version.visibility, action.target)),
+    apply: ({ doc, version, request, actor, action, now }) => ({
+      doc,
+      version: {
+        ...version,
+        visibility: action.target,
+        updatedAt: now,
+      },
+      request,
+      audit: [
+        {
+          type: 'VISIBILITY_CHANGED',
+          documentId: doc.id,
+          versionId: version.id,
+          actorId: actor.id,
+          from: version.visibility,
+          to: action.target,
+          at: now,
+        },
+      ],
+    }),
+  },
+}
+
+function executeAction(
+  doc: Document,
+  version: DocumentVersion,
+  request: VisibilityRequest | null,
+  actor: Actor,
+  action: Action,
+  now: Date = new Date(),
+): ApplyResult {
+  const handler = handlers[action.type] as Handler<Action['type']>
+  const ctx = { doc, version, request, actor, now, action } as ExecutionContext & { action: Action }
+
+  if (!handler.can(ctx)) {
+    throw new Error(`Action not allowed: ${action.type}`)
+  }
+
+  return handler.apply(ctx)
+}
+
+const documentStatus: DocumentStatus[] = ["active", "archived", "disabled"]
+const editorialState: EditorialState[] = ["draft", "published", "review"]
+const visibility: Visibility[] = ['private', 'restricted', 'public']
+const visibilityRequestStatus: (VisibilityRequest["status"] | null)[] = ["pending", "resolved", null]
+const visibilityResolution: VisibilityRequestResolved["resolution"][] = ['approved', 'rejected']
+const targetVisibility: Visibility[] = ['private', 'restricted', 'public']
+
+const doc: Document = {} as any;
+const ver: DocumentVersion = {} as any;
+const req: VisibilityRequest = {} as any;
+
+const actions: Action[] = [
+  { type: 'activate' },
+  { type: 'archive' },
+  { type: 'disable' },
+  { type: 'delete' },
+  { type: 'restore' },
+
+  { type: "submit_review" },
+  { type: "approve" },
+  { type: "reject" },
+  { type: "back_to_draft" },
+
+  { type: "propose_visibility", target: "private" },
+  { type: "propose_visibility", target: "public" },
+  { type: "propose_visibility", target: "restricted" },
+  { type: "approve_visibility" },
+  { type: "reject_visibility" },
+  { type: "set_visibility", target: "private" },
+  { type: "set_visibility", target: "public" },
+  { type: "set_visibility", target: "restricted" },
+];
+
+function cartesian6<A, B, C, D, E, F>(a: A[], b: B[], c: C[], d: D[], e: E[], f: F[]): [A, B, C, D, E, F][] {
+  const result: [A, B, C, D, E, F][] = [];
+  for (const x of a)
+    for (const y of b)
+      for (const z of c)
+        for (const w of d)
+          for (const v of e)
+            for (const u of f)
+              result.push([x, y, z, w, v, u]);
+  return result;
+}
+
+type Combinator = `${DocumentStatus}-${EditorialState}-${Visibility}-${`${VisibilityRequest["status"]}-${VisibilityRequestResolved["resolution"]}-${Visibility}` | null}`
+const result = {} as Record<string, { true: string, false: string }>
+
+for (const [a, b, c, d, e, f] of cartesian6(documentStatus, editorialState, visibility, visibilityRequestStatus, visibilityResolution, targetVisibility)) {
+  const acc = { true: [] as string[], false: [] as string[] }
+  const obj = { flag: !0, key: `${a}-${b}-${c}-${d ? `${d}-${e}-${f}` : null}` }
+
+  doc.status = a
+  ver.editorialState = b
+  ver.visibility = c
+  obj.flag = !!d
+  req.status = d!
+  // req.resolution = e
+  req.targetVisibility = f
+
+  // actions.forEach(act => acc[canExecute(doc, ver, d ? req : null, act) ? "true" : "false"].push(`${act.type}${"target" in act ? `:${act.target}` : ""}`))
+
+  result[obj.key] = { true: acc.true.join(", "), false: acc.false.join(", ") }
+}
+
+console.log(result)
