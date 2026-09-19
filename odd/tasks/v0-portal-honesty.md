@@ -54,15 +54,36 @@ Branch `feat/v0-portal-honesty`. One repository (`odp`). No dependency on B or C
   Adapt the return shape to carry items and count. `user_show {include_datasets: true}` is **not** used:
   it caps at `rows: 50` and returns no count, so it cannot paginate honestly — it is the **oracle** the
   tests check against. **Work unit 1.**
-- [ ] **A5 · Pagination UI + copy.** Real pagination — the 2026-09-17 decision; a high cap with a counter
+- [x] **A5 · Pagination UI + copy.** Real pagination — the 2026-09-17 decision; a high cap with a counter
   was rejected as still silent. Copy must match what the card lists: **the datasets the user created**.
   Today it promises "datasets que pueda editar", which is the *future* model (collaborators and teams,
   `RF-18`/`RF-19`; see `BACKLOG.md`). **Work unit 2.**
+  **DONE (2026-09-19):** the promoted variant is **V3 compact range**, **20 per page**, **badge = total**
+  — the author's choices after reviewing the three variants in the playground. Copy corrected to «Los
+  datasets que usted creó.»; the playground was deleted on promotion.
 - [x] **A6 · Gates.** `pnpm test`, `pnpm check`, `pnpm lint` clean.
-- [ ] **A7 · Live verification.** Through the real portal path against the running stack, with a fixture
+  **Final state (2026-09-19):** **316 tests passing**; `pnpm check` 0 errors; Biome clean on the changed
+  files; the repo baseline unchanged at **108 files / 4 warnings / 7 infos**.
+- [x] **A7 · Live verification.** Through the real portal path against the running stack, with a fixture
   that has created datasets: the card lists the creator's own private datasets, and count and paging are
   honest.
-- [ ] **A8 · Work-unit commits** on `feat/v0-portal-honesty`, one per work unit, tests beside their code.
+  **DONE (2026-09-19):** the author looked at the real portal with **42 datasets** and 3 pages — 25
+  temporary datasets were seeded (created by the author's own user) so the pagination footer would
+  appear, then purged. It is **not recorded** whether the author clicked the pagination arrows.
+- [x] **A8 · Work-unit commits** on `feat/v0-portal-honesty`, one per work unit, tests beside their code.
+  **DONE (2026-09-19):** `33158ee` (work unit 1 code), `c959285` (work unit 1 docs), `7d27547` (work unit
+  2). All three are **unpushed**.
+
+## Slice A — decisions recorded
+
+Author's decisions, 2026-09-19:
+
+- **Pagination variant V3** (compact range).
+- **20 rows per page.**
+- **Badge shows the total**, not the page length.
+- **Sort stays `metadata_modified desc`** — the alternatives were measured and rejected.
+- **The footer is hidden when a load fails**: a range beside an error panel would describe rows that are
+  not on screen.
 
 ## Slice B — D2 + D3: the portal knows whether the session is alive
 
@@ -85,6 +106,17 @@ Pending. Map the failure by status (`403` → permission/no-session; `404` → d
 DEV mock fallback that masks an authorization failure. Implement it as a **reusable helper**: this is the
 `Distinguishable Authorization Errors` requirement the publication-lifecycle spec already wrote, and
 slice B will want the same mapping.
+
+## Review disposition (2026-09-19)
+
+After the two work-unit lineages were approved and acknowledged, a third target appeared covering the
+**accumulated branch** (`b28757c..HEAD`, the same 9 paths); it was **inspected and deliberately not
+started**. Three reasons: the only content not already covered is two documentation bullets in
+`BACKLOG.md`, which is the contract's own "trivial passive documentation-only edit" exemption; the
+governing guidance says the accumulated feature branch is **never** the review candidate; and
+re-covering content approved the same day is the waste this repository already documented. **Nothing was
+created and nothing was burned**; if the author wanted a branch-level receipt before pushing, the cycle
+is cheap and can be run on request. The author reviewed this decision and confirmed it as correct.
 
 ---
 

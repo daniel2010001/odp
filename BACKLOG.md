@@ -15,7 +15,58 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión (2026-09-17) — replanificar el ciclo de vida de publicación
+## Próxima sesión — cerrar `v0-portal-honesty` (slices B y C)
+
+> **Dónde quedó todo (2026-09-19).** El **slice A está cerrado y commiteado** en la rama
+> `feat/v0-portal-honesty`, con tres commits **sin pushear**: `33158ee` (el listado respeta los
+> permisos), `c959285` (documentación del slice) y `7d27547` (paginación). «Mis datasets» ya trae los
+> datasets que el usuario creó —incluidos los privados—, pagina de a 20 con rango compacto, y el badge
+> muestra el total en vez del largo de la página.
+>
+> **Verificación viva hecha:** el usuario miró el portal real con 42 datasets (se sembraron 25
+> temporales, creados por su propio usuario, para que el pie de paginación apareciera con 3 páginas) y
+> confirmó que se ve bien. La siembra se purgó y se verificó: el catálogo volvió a **17 datasets, 1
+> privado**, con 0 datasets y 0 organizaciones de la siembra. **No consta que haya clickeado las
+> flechas**: si no lo hizo, A7 queda parcialmente verificado y hay que decirlo así.
+>
+> **Leer primero:** `odd/tasks/v0-portal-honesty.md` — tiene el plan de los tres slices, la
+> transcripción de las sondas y el registro de decisiones del usuario.
+>
+> **Lo que falta de la feature, en este orden:**
+> 1. **Slice B (D2 + D3) — la diagnosis falsa de permisos.** El orden es **obligatorio**: primero
+>    detectar la sesión inválida y forzar re-login; **recién después** gatear el CTA. Al revés, el CTA
+>    desaparece justo para quien tiene derecho a publicar, porque una sesión muerta devuelve `[]`.
+>    - Sonda de sesión candidata: `user_show {}` — con token válido da 200 y devuelve al propio
+>      usuario (medido); **falta medir qué responde con token muerto**.
+>    - **Hueco de spec a cerrar en el mismo trabajo:** `openspec/specs/authentication/spec.md` tiene
+>      nueve requisitos y **ninguno cubre un token inválido o vencido**. El slice B no la contradice:
+>      la completa.
+>    - El call site del dashboard ya lanza «No se pudo identificar al usuario autenticado.» cuando la
+>      sesión no trae id: **ese camino y la validez de sesión son la misma condición**, y no deben
+>      quedar con dos mensajes distintos.
+> 2. **Slice C (D4) — el mapeo honesto de estado a mensaje.** Hoy un `403` se muestra como «Recurso
+>    no encontrado» en `dataset/[id]/resource/[resourceId]/+page.svelte`, y en DEV un fallback a mock
+>    lo enmascara. Implementarlo como **helper reutilizable**: es el requisito
+>    `Distinguishable Authorization Errors` que la spec del ciclo de vida ya escribió.
+>
+> **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
+> - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
+>   revisores **no tiene fallback** y se niega tipado si falta la entrada del rol. Quedó configurado
+>   con los seis roles (`review-risk`, `review-resilience`, `review-readability`, `review-reliability`,
+>   `review-refuter`, `review-validator`) en `deepseek-flash` con `thinking: high`.
+> - **Mientras una revisión esté viva, no se toca el repo:** el binding lleva clavada la
+>   `expected-revision` y cualquier edición invalida el slot reofrecido.
+> - **`pnpm lint` falla de forma intermitente según la carga de la máquina** (exit 254, «Linter
+>   process terminated abnormally»). **No es del repo**: Biome no arranca ni para `--version`. La
+>   evidencia real de lint se obtiene invocando el binario directo —
+>   `node_modules/.pnpm/@biomejs+cli-linux-x64@2.5.0/node_modules/@biomejs/cli-linux-x64/biome` — y no
+>   el lanzador de Node.
+> - **La revisión nativa no se puede correr desde un subagente:** el tool no está en su inventario. El
+>   hijo debe **escalar el handoff al padre**, que es quien tiene la facade.
+> - **Biome escanea todo el repo** (no ignora `openspec/`): un archivo con extensión `.ts` fuera de
+>   `src/` se lintea y rompe el gate. Por eso el expediente del borrador está como `.ts.txt`.
+
+## Replanificación pendiente — cambio `2026-09-13-publication-lifecycle`
 
 > **Dónde quedó todo (2026-09-16).** El **modelo de producto fue revertido** y el PRD ya está firme para
 > esta feature. Los artefactos del cambio SDD quedaron **obsoletos** (el `proposal.md` lleva el aviso al
@@ -523,14 +574,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   deja de prometerla. _Origen: verificación independiente de la segunda unidad de trabajo,
   2026-09-17._
 
-- [ ] **[v0] «Mis datasets» está roto para todo usuario que no sea sysadmin** — **medido
-  (2026-09-13)**: `current_package_list_with_resources` arma la respuesta con
-  `"include_private": authz.is_sysadmin(user)` (`get.py:143`), así que un usuario normal recibe
-  **cero** datasets privados, **ni los propios**. El seed de dev lo enmascara porque su usuario es
-  sysadmin, y por eso nadie lo había visto. Decidido (D3 del cambio
-  `2026-09-13-publication-lifecycle`) **arreglarlo aparte, como corrección propia**. Verificar de paso
-  si el mismo problema afecta a «Mis organizaciones». _Origen: sondas de ese cambio._
-
 - [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
   la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte`: rótulo
   `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
@@ -803,6 +846,19 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Advisory de las dos revisiones de unidades de trabajo de `v0-portal-honesty`** — ambas
+  cerraron **`approved`** con la authority quemada, y el único hallazgo de cada una es un advisory
+  informativo. Es trabajo posterior, **nunca motivo para re-correr la revisión sobre ese candidato**:
+  - `review-56075851faccfca4` (unidad de trabajo 1 — el listado que respeta los permisos, más la
+    documentación de esa unidad): tier **medium**, lente `review-reliability`, **9 archivos,
+    1 271 líneas**. `R3-001` (WARNING) en `src/routes/dashboard/+page.svelte:64` — **la línea es la del
+    candidato**, el archivo cambió después.
+  - `review-aec04a603141bc1e` (unidad de trabajo 2 — la promoción de la paginación): tier **medium**,
+    lente `review-reliability`, **3 archivos, 227 líneas**. `R3-001` (WARNING) en
+    `src/routes/dashboard/+page.svelte:385`, el bloque de comentario que declara el costo aceptado (el
+    estado de página no va en la URL) — **la línea es la del candidato**.
+  _Origen: cierre del slice A de `v0-portal-honesty` (2026-09-19)._
 
 - [ ] **El guard de `odp-docker` NO se puede revisar desde una sesión en `odp` — y todavía no hay que revisarlo.**
   El código que **hace cumplir** la regla de publicación vive en
