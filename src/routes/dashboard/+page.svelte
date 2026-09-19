@@ -2,6 +2,7 @@
 import {
 	ArrowRight,
 	Building2,
+	ChevronLeft,
 	ChevronRight,
 	Database,
 	Inbox,
@@ -26,10 +27,15 @@ import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
 
 // ─── Estado ──────────────────────────────────────────────────────────
+// Tamaño de página acordado para «Mis datasets»: 20, igual que el default de `package_search`.
+const PAGE_SIZE = 20;
+
 let authed = $state(false);
 let datasets = $state<CkanPackage[]>([]);
 let datasetsLoading = $state(true);
 let datasetsError = $state<string | null>(null);
+let pagina = $state(1);
+let totalDatasets = $state(0);
 let organizations = $state<CkanOrganization[]>([]);
 let orgsLoading = $state(true);
 let orgsError = $state<string | null>(null);
@@ -50,7 +56,7 @@ onMount(() => {
 	void loadOrganizations();
 });
 
-async function loadDatasets() {
+async function loadDatasets(permitirCorreccion = true) {
 	datasetsLoading = true;
 	datasetsError = null;
 	try {
@@ -60,14 +66,33 @@ async function loadDatasets() {
 		if (!userId) {
 			throw new Error("No se pudo identificar al usuario autenticado.");
 		}
-		const result = await datasetApi.currentUser(userId);
+		const result = await datasetApi.currentUser(userId, {
+			limit: PAGE_SIZE,
+			offset: (pagina - 1) * PAGE_SIZE,
+		});
+		// Caso límite: si el `count` devuelto deja la página pedida más allá de la última (por
+		// ejemplo, borraron lo que quedaba en la última página), volvemos a la última válida y
+		// recargamos una sola vez. Mostrar la lista vacía con un rango «41–40 de 40» sería peor:
+		// el rango se ve legítimo y no habría forma de volver desde la UI.
+		const ultimaPagina = Math.max(1, Math.ceil(result.count / PAGE_SIZE));
+		if (pagina > ultimaPagina && permitirCorreccion) {
+			pagina = ultimaPagina;
+			await loadDatasets(false);
+			return;
+		}
 		datasets = result.results;
+		totalDatasets = result.count;
 	} catch (err) {
 		datasets = [];
 		datasetsError = err instanceof Error ? err.message : "No se pudo cargar sus datasets.";
 	} finally {
 		datasetsLoading = false;
 	}
+}
+
+function irAPagina(nueva: number) {
+	pagina = nueva;
+	void loadDatasets();
 }
 
 async function loadOrganizations() {
@@ -253,11 +278,11 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 					<span
 						class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
 					>
-						{datasetsLoading ? "—" : datasets.length}
+						{datasetsLoading ? "—" : totalDatasets}
 					</span>
 				</div>
 				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-					Datasets que puede editar en las organizaciones a las que pertenece.
+					Los datasets que usted creó.
 				</p>
 
 				<Card class="mt-4 p-2">
@@ -285,7 +310,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							</p>
 							<button
 								type="button"
-								onclick={loadDatasets}
+								onclick={() => loadDatasets()}
 								class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
 								<RotateCw class="size-4" aria-hidden="true" />
@@ -297,7 +322,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
 							<p class="mt-2 text-sm font-medium text-foreground">Publique su primer dataset</p>
 							<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-								Aún no tiene datasets que pueda editar. El asistente lo guía paso a paso.
+								Aún no ha creado ningún dataset. El asistente lo guía paso a paso.
 							</p>
 							<a
 								href="/dashboard/datasets/new"
@@ -348,6 +373,45 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 								</li>
 							{/each}
 						</ul>
+					{/if}
+
+					<!-- Los controles viven **fuera** de la cadena de estados a propósito: si estuvieran dentro
+					     del `{:else}` de la lista, desaparecerían en cada carga y los botones saltarían de lugar
+					     con cada cambio de página. Mientras carga se muestran igual, deshabilitados. -->
+					<!-- La excepción es el error: con el panel de error a la vista el pie se oculta, porque el rango
+					     («21–40 de 137») describe filas que no se están mostrando, y ése es exactamente el reporte
+					     engañoso que este trabajo vino a eliminar. Costo aceptado: si el fallo es persistente,
+					     «Reintentar» vuelve a pedir la misma página, así que recuperar la página 1 exige recargar
+					     (el número de página no viaja en la URL). -->
+					{#if totalDatasets > PAGE_SIZE && !datasetsError}
+						<div class="border-t border-border p-3">
+							<div class="flex items-center justify-between gap-3">
+								<button
+									type="button"
+									aria-label="Página anterior"
+									disabled={datasetsLoading || pagina <= 1}
+									onclick={() => irAPagina(pagina - 1)}
+									class="inline-flex size-9 items-center justify-center rounded-lg border border-input bg-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+								>
+									<ChevronLeft class="size-4" aria-hidden="true" />
+								</button>
+								<p class="text-xs text-muted-foreground" aria-live="polite">
+									{(pagina - 1) * PAGE_SIZE + 1}–{Math.min(
+										pagina * PAGE_SIZE,
+										totalDatasets,
+									)} de {totalDatasets}
+								</p>
+								<button
+									type="button"
+									aria-label="Página siguiente"
+									disabled={datasetsLoading || pagina * PAGE_SIZE >= totalDatasets}
+									onclick={() => irAPagina(pagina + 1)}
+									class="inline-flex size-9 items-center justify-center rounded-lg border border-input bg-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+								>
+									<ChevronRight class="size-4" aria-hidden="true" />
+								</button>
+							</div>
+						</div>
 					{/if}
 				</Card>
 			</section>

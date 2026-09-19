@@ -494,6 +494,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 >      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
 >      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
 >
+- [ ] **[v0] El encabezado del sitio es demasiado alto en 720p.** A 1080 el alto se ve bien; en una
+  pantalla de 720 el encabezado se come demasiado espacio vertical antes del contenido. Revisar su alto
+  (y el de la barra pegajosa, que se deriva de `HEADER_PX = 80` en el dashboard) contra **viewports
+  bajos**, no sólo anchos: las revisiones de responsive anteriores fueron a 375/768/1024/1440 de *ancho*,
+  y esto es una cuestión de *alto* — un eje que nunca se revisó.
+  _Origen: reportado por el usuario, 2026-09-17._
+
 - [ ] **[v0] Crear dataset: con varias organizaciones y ninguna seleccionada, el resumen muestra la
   organización vacía.** La «Ficha de publicación» pinta `orgDisplayTitle`, que queda vacío mientras no
   haya selección, así que el bloque de organización aparece en blanco en vez de decir que falta elegir.
@@ -504,6 +511,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   palabra suelta, y el usuario lo señala como feo. Dirección: `text-pretty` (o `text-balance`) en lugar de
   reescribir el copy a mano — es exactamente el caso que esa utilidad resuelve, y no hay que inventar
   nada. _Origen: reportado por el usuario, 2026-09-17._
+
+- [ ] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
+  el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
+  (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
+  dataset**: en `src/routes` sólo existen el wizard de creación y las vistas de lectura, y
+  `datasetApi.update` (`src/lib/api/datasets.ts:64`) está definido y **sin cablear** a ninguna
+  página. Es una promesa **preexistente** —no la introdujo el trabajo de paginación— y pertenece a
+  la misma familia que ese tramo de honestidad: si la capacidad queda diferida, el copy no debe
+  anunciarla. Se cierra de una de dos formas, no de las dos: se implementa la edición, o el copy
+  deja de prometerla. _Origen: verificación independiente de la segunda unidad de trabajo,
+  2026-09-17._
 
 - [ ] **[v0] «Mis datasets» está roto para todo usuario que no sea sysadmin** — **medido
   (2026-09-13)**: `current_package_list_with_resources` arma la respuesta con
@@ -546,6 +564,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
 
 ## v1 — producto usable en producción
+
+- [ ] **[v1+] Filtros dentro de la tarjeta «Mis datasets».** El usuario pregunta si conviene agregarlos
+  como en el buscador (y observa que ni el dashboard ni la página `user/<nombre>` de CKAN los tienen).
+  **Recomendación: no por ahora.** El buscador ya tiene búsqueda facetada; la tarjeta es una lista
+  personal y corta, y meter filtros ahí duplica maquinaria —y superficie de revisión— para un caso que el
+  buscador cubre. Cuando el volumen lo justifique, la vía barata es un **enlace al buscador prefiltrado
+  por creador** (`fq=+creator_user_id:<id>`, el mismo filtro que ya usa la tarjeta), que reutiliza las
+  facetas existentes en lugar de reimplementarlas. _Origen: pregunta del usuario, 2026-09-17._
 
 - [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
   pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
