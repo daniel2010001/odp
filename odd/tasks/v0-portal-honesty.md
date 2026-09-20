@@ -259,8 +259,15 @@ reviewed (1341 lines, tier high, four lenses) — see the disposition below.
   (`pnpm lint` is the documented machine flake).
 - [x] **C8 · Live verification** against the running stack, with a real token: the owner sees their private
   resource (200), an anonymous viewer gets the permission message, a dead token is expelled with the notice.
-- [ ] **C9 · Native review** of the slice C range (`committedOnly`, base at the slice B closing commit
-  `b68031b`).
+- [x] **C9 · Native review** of the slice C range — **`review-cd2510c28384457d`**, tier **medium**, one lens
+  (`review-reliability`), **13 files / 1663 lines**, correction budget 200. **Approved, authority burned**
+  (`gentle-ai.review-acknowledged/v1`); three non-blocking advisories recorded in `BACKLOG.md`'s review-debt
+  section. Started with an **explicit `baseRef` at the slice B closing commit** rather than the route
+  `inspect` derives by default: the inspection offers the **accumulated branch** (`base-ref = main`, 30 paths
+  = slices A + B + C), which this repository has twice recorded as never the candidate, whose content is
+  already covered by the per-slice receipts. Two notes for the next run: an abbreviated commit id is
+  rejected (`native-start-base-ref-unresolvable`: HEAD, a full 40/64-char id, or a ref name), and a
+  graph-v1 START needs both `mode` and the `lineageId` the inspection returned.
 
 **Outcome (2026-09-20).** Four commits on `feat/v0-portal-honesty`, tests and docs beside their code:
 `5219055` (helper + shared 403 branch + spec + the two BACKLOG prose corrections), `e99b81e` (resource

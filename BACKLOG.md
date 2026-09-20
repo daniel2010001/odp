@@ -15,7 +15,7 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión — cerrar `v0-portal-honesty` (slices B y C)
+## Próxima sesión — cerrar `v0-portal-honesty` (slices A, B y C implementados y revisados)
 
 > **Dónde quedó todo (2026-09-19).** El **slice A está cerrado y commiteado** en la rama
 > `feat/v0-portal-honesty`, con tres commits **ya pusheados** (la rama está en sincronía con
@@ -37,14 +37,25 @@
 > 1. **Slice B (D2 + D3) — CERRADO (2026-09-20).** La sonda de sesión, el CTA honesto y el aviso del login están
 >    commiteados y **pusheados** (`5d51452` … `f7b5562`). El detalle, la medición y la verificación viva están en
 >    `odd/tasks/v0-portal-honesty.md`. Lo que queda de la feature es sólo el slice C.
-> 2. **Slice C (D4) — IMPLEMENTADO (2026-09-20), pendiente de revisión nativa.** El mapeo honesto de
->    estado a mensaje, en tres commits sobre `feat/v0-portal-honesty`: `5219055` (el helper de
->    clasificación y la sonda que un `403` necesita), `e99b81e` (la página de recurso deja de reportar un
->    `403` como «Recurso no encontrado») y `d3e2692` (la página de dataset renderiza desde la presentación
->    compartida). Falta **sólo** la revisión nativa: no está cerrado ni revisado. La spec que este slice
->    enmienda —y donde vive su contrato— es `openspec/specs/resource-detail-view/spec.md`; **no** es el
->    requisito `Distinguishable Authorization Errors` del ciclo de vida, que gobierna las respuestas HTTP
->    del plugin de CKAN y no cómo el portal las muestra.
+> 2. **Slice C (D4) — CERRADO Y REVISADO (2026-09-20).** El mapeo honesto de estado a mensaje, en cuatro
+>    commits sobre `feat/v0-portal-honesty`: `5219055` (el helper de clasificación y la sonda que un `403`
+>    necesita), `e99b81e` (la página de recurso deja de reportar un `403` como «Recurso no encontrado»),
+>    `d3e2692` (la página de dataset renderiza desde la presentación compartida) y `05abdde` (la ronda de
+>    correcciones que salió de las dos verificaciones independientes). Revisión nativa
+>    `review-cd2510c28384457d`: **aprobada**, autoridad quemada, tres avisos no bloqueantes (ver la deuda
+>    de revisión al final de este archivo). La spec que este slice enmienda —y donde vive su contrato— es
+>    `openspec/specs/resource-detail-view/spec.md`; **no** es el requisito
+>    `Distinguishable Authorization Errors` del ciclo de vida, que gobierna las respuestas HTTP del plugin
+>    de CKAN y no cómo el portal las muestra.
+>
+> **Lo que queda de la feature, y no es código:**
+> - **Revisión visual del autor.** Nunca se miró en el navegador el cuarto estado de copia del estado
+>   vacío ni el aviso del login (slice B), y el slice C agrega tres textos de autorización más. Todos se
+>   pueden ver en `http://localhost:8082`. Es la misma regla 8 de `AGENTS.md`: el agente propone, el autor
+>   revisa. **La copia no está validada por el autor todavía.**
+> - **Decidir el push y el PR.** La rama quedó **5 commits adelante** de
+>   `origin/feat/v0-portal-honesty` (`6732dab` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
+>   merge siguen siendo decisión del autor.
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
@@ -876,6 +887,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Advisory de la revisión nativa del slice C de `v0-portal-honesty`** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:81bdb2362fef8260a068d381078c24340aa19976f0fa13d3c4220c0a836a877f` del candidato
+  `sha256:4e0aa7f34d5bd2faec3b4389be314a2298ac866d2199c830f62c9b2b7776f974`).
+  - `review-cd2510c28384457d`: tier **medium**, lente `review-reliability`, **13 archivos, 1 663 líneas**,
+    presupuesto de corrección 200. **Rango revisado: `b68031b..HEAD` con `baseRef` explícito** — sólo el
+    slice C—, no la rama acumulada que la inspección deriva por defecto (misma decisión registrada para el
+    slice B).
+  - Los **tres avisos** no bloqueantes, tal como los emitió el cierre —id, lente, ubicación, severidad y
+    disposición—, y **su texto no es recuperable**: el ledger se borra al cerrar la línea, igual que en las
+    revisiones anteriores. Ninguno abre corrección ni reabre la revisión.
+    1. `R3-001` · reliability · WARNING · informativo ·
+       `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:105`
+    2. `R3-002` · reliability · WARNING · informativo · `src/routes/dataset/[id]/+page.svelte:91`
+    3. `R3-003` · reliability · WARNING · informativo · `src/routes/dataset/[id]/dataset-page.test.ts:33-35`
+  - **Contexto de las ubicaciones, para que la próxima sesión no arranque de cero:** las dos primeras caen
+    en el cableado del token y de la construcción del cliente CKAN (donde el `token` se captura una vez para
+    decidir la sonda mientras el `apiKey` del cliente lee el store en vivo); la tercera, en los `vi.mock` de
+    módulo del archivo de test. Eso es lectura de las líneas, **no** el texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice C de `v0-portal-honesty` (2026-09-20)._
 
 - [ ] **Advisory de la revisión nativa del slice B de `v0-portal-honesty`** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión `sha256:b589c2b2…` del
