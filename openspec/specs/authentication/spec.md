@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define username/password login against CKAN via a SvelteKit server proxy, plus JWT storage, revocation, header menu, and dashboard guard. The password stays server-side; the browser stores only a revocable CKAN JWT. Bound to `/auth/login`, `/auth/logout`, `/dashboard`, and `src/lib/stores/auth.ts`.
+Define username/password login against CKAN via a SvelteKit server proxy, plus JWT storage, revocation, session validity, header menu, and dashboard guard. The password stays server-side; the browser stores only a revocable CKAN JWT. Bound to `/auth/login`, `/auth/logout`, `/dashboard`, and `src/lib/stores/auth.ts`.
 
 ## Requirements
 
@@ -65,6 +65,41 @@ The auth session MUST persist across reloads using localStorage.
 - GIVEN an authenticated session with a stored JWT and user
 - WHEN the user reloads the page
 - THEN the auth store rehydrates the token and user from localStorage
+
+### Requirement: Invalid Session Detection
+
+A stored token is evidence of a past login, never of a live session. An authenticated screen MUST verify that CKAN still accepts it before rendering anything derived from it, and an invalid session MUST force a re-login rather than degrade into an empty or permissionless view. CKAN does not report this condition as an authentication status: measured 2026-09-20, `organization_list_for_user` answers `200` with an empty list both for a dead token and for an anonymous caller, so degraded data is indistinguishable from "you have nothing" — and from "you lack permissions" — without a check.
+
+The check MUST be the authenticated action `user_show` **without `id`**: it answers `200` with the caller for a live token and `404` for an expired, revoked, or unknown one. Any other outcome (a `5xx`, a timeout, an unreachable host) describes the server or the transport, not the token, and MUST NOT be read as an invalid session. The stored session MUST be cleared **before** navigating away, because the login screen redirects a viewer that still holds a token back to the dashboard.
+
+#### Scenario: Dead session forces re-login
+
+- GIVEN a stored session whose token CKAN no longer accepts
+- WHEN an authenticated screen mounts
+- THEN the stored session is cleared before any navigation
+- AND the viewer lands on `/auth/login` carrying the reason and the original destination
+- AND nothing derived from the dead session is rendered
+
+#### Scenario: Unavailable CKAN is not an invalid session
+
+- GIVEN a stored session and a CKAN that answers `5xx`, times out, or is unreachable
+- WHEN an authenticated screen mounts
+- THEN the stored session is left untouched
+- AND the viewer is not sent to the login screen
+
+#### Scenario: A valid session passes the check
+
+- GIVEN a stored session whose token CKAN still accepts
+- WHEN an authenticated screen mounts
+- THEN the session is kept
+- AND the user CKAN returns replaces the stored one as the identity the screen acts on
+
+#### Scenario: Expired notice on the login screen
+
+- GIVEN the login screen was reached because the session was found invalid
+- WHEN the login screen renders
+- THEN it shows one notice in Spanish saying the session is no longer valid, together with the existing login errors in a single alert
+- AND submitting the form replaces that notice with the outcome of the attempt
 
 ### Requirement: Logout
 
