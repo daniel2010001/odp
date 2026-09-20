@@ -1,13 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { get } from "svelte/store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
-import { auth } from "$lib/stores/auth";
+import { sessionExpiredLoginUrl } from "$lib/session";
+import { auth, isAuthenticated } from "$lib/stores/auth";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanOrganization, CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import Dashboard from "./+page.svelte";
 
 const mocks = vi.hoisted(() => ({
 	currentUser: vi.fn(),
 	listForUser: vi.fn(),
+	sessionCheck: vi.fn(),
 }));
 
 vi.mock("$lib/env", () => ({
@@ -18,6 +22,10 @@ vi.mock("$lib/api/datasets", () => ({
 }));
 vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({ listForUser: mocks.listForUser }),
+}));
+// La sonda de sesión se controla por test: su veredicto decide qué se carga y qué se ofrece.
+vi.mock("$lib/api/session", () => ({
+	createSessionApi: () => ({ check: mocks.sessionCheck }),
 }));
 
 const baseUser: CkanUser = {
@@ -88,6 +96,9 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.currentUser.mockResolvedValue({ count: 1, results: [makePackage()] });
 	mocks.listForUser.mockResolvedValue([makeOrganization()]);
+	// Por defecto la sesión vive y el llamador es el usuario autenticado; los tests que necesitan
+	// una sesión muerta o inconclusa pisan este veredicto.
+	mocks.sessionCheck.mockResolvedValue({ state: "alive", user: baseUser });
 });
 
 describe("Dashboard", () => {
@@ -97,6 +108,8 @@ describe("Dashboard", () => {
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/auth/login"));
 		expect(mocks.currentUser).not.toHaveBeenCalled();
 		expect(mocks.listForUser).not.toHaveBeenCalled();
+		// El guard corta antes de la sonda: sin token no hay nada que sondear.
+		expect(mocks.sessionCheck).not.toHaveBeenCalled();
 	});
 
 	it("renderiza el saludo con el display_name cuando hay sesión", () => {
@@ -206,20 +219,22 @@ describe("Dashboard", () => {
 		expect(fila).toHaveTextContent("FC");
 	});
 
-	it("la barra de acciones arranca oculta", () => {
+	it("la barra de acciones arranca oculta", async () => {
 		auth.login("tok-123", baseUser);
 
 		const { container } = render(Dashboard);
 
+		// La barra sólo existe cuando hay al menos una acción (organización cargada): hay que esperar a
+		// que la carga termine para poder observarla.
+		await waitFor(() => expect(container.querySelector("[data-sticky-actions]")).not.toBeNull());
 		const barra = container.querySelector("[data-sticky-actions]");
-		expect(barra).not.toBeNull();
 		// El estado oculto es la clase de opacidad del contenedor. El `inert` (que además la saca del
 		// orden de tabulación) **no** se puede afirmar acá: jsdom no implementa `inert`. Ese
 		// comportamiento se verificó en un navegador real, no en esta suite.
 		expect(barra?.parentElement?.className).toContain("opacity-0");
 	});
 
-	it("muestra estados vacíos explícitos cuando ambas listas están vacías", async () => {
+	it("sin organizaciones no ofrece publicar en ninguna superficie (D3)", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
 		auth.login("tok-123", baseUser);
@@ -229,12 +244,10 @@ describe("Dashboard", () => {
 		await screen.findByText(/publique su primer dataset/i);
 		await screen.findByText(/aún no pertenece a ninguna organización/i);
 
-		// El CTA sigue disponible aunque no haya datos que listar.
-		const ctas = screen.getAllByRole("link", { name: /publicar dataset/i });
-		expect(ctas.length).toBeGreaterThan(0);
-		for (const cta of ctas) {
-			expect(cta).toHaveAttribute("href", "/dashboard/datasets/new");
-		}
+		// D3: sin organización la oferta no se puede cumplir (el wizard fallaría), así que desaparece
+		// de todas las superficies: ni CTA, ni grilla de acciones, ni encabezado «Acciones», ni barra.
+		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: /acciones/i })).not.toBeInTheDocument();
 	});
 
 	it("muestra error con reintento en una sección y mantiene visible la otra", async () => {
@@ -251,6 +264,161 @@ describe("Dashboard", () => {
 
 		await fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
 		await screen.findByRole("link", { name: /facultad de ciencias/i });
+	});
+});
+
+describe("Sonda de sesión (D2)", () => {
+	it("dead: limpia la sesión y navega al login sin cargar nada", async () => {
+		mocks.sessionCheck.mockResolvedValue({ state: "dead" });
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		await waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
+		// La sesión guardada se limpia **antes** de navegar: el guard de `/auth/login` reenvía al
+		// dashboard a quien todavía tiene un token, así que el orden inverso produciría un bucle.
+		expect(goto).toHaveBeenCalledWith(sessionExpiredLoginUrl("/dashboard"));
+		// El destino viaja en la URL: el motivo (`expired`) y la vuelta codificada (`returnTo`).
+		const destino = vi.mocked(goto).mock.calls[0][0] as string;
+		expect(destino).toContain("expired=1");
+		expect(destino).toContain("returnTo=%2Fdashboard");
+		// Y no se cargó nada: la sesión caída no debe producir ni una consulta.
+		expect(mocks.currentUser).not.toHaveBeenCalled();
+		expect(mocks.listForUser).not.toHaveBeenCalled();
+		expect(get(isAuthenticated)).toBe(false);
+		expect(localStorage.getItem("auth")).toBeNull();
+	});
+
+	it("inconclusive: carga las dos secciones y no expulsa ni navega", async () => {
+		mocks.sessionCheck.mockResolvedValue({
+			state: "inconclusive",
+			error: new CkanApiError("Server Error", 500),
+		});
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		// Un hipo de CKAN no puede dejar al usuario sin panel: se carga con la sesión guardada.
+		await waitFor(() => expect(mocks.currentUser).toHaveBeenCalledTimes(1));
+		expect(mocks.listForUser).toHaveBeenCalledTimes(1);
+		expect(goto).not.toHaveBeenCalled();
+		expect(get(isAuthenticated)).toBe(true);
+	});
+
+	it("alive: el llamador de la sonda reemplaza al usuario guardado obsoleto", async () => {
+		auth.login("tok-123", { ...baseUser, display_name: "Obsoleto" });
+		mocks.sessionCheck.mockResolvedValue({
+			state: "alive",
+			user: { ...baseUser, display_name: "Jane Doe" },
+		});
+
+		render(Dashboard);
+
+		// `$currentUser` sigue siendo la única fuente de identidad, y ahora refleja al llamador real.
+		expect(await screen.findByText(/hola, jane doe/i)).toBeInTheDocument();
+		await waitFor(() => expect(mocks.currentUser).toHaveBeenCalledTimes(1));
+	});
+
+	it("token sin identidad: mismo camino de expiración y sin un segundo mensaje", async () => {
+		mocks.sessionCheck.mockResolvedValue({
+			state: "inconclusive",
+			error: new CkanApiError("Server Error", 500),
+		});
+		// Sesión local corrupta: hay token pero ningún id de usuario utilizable.
+		auth.login("tok-123", { ...baseUser, id: "" });
+
+		render(Dashboard);
+
+		await waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
+		expect(goto).toHaveBeenCalledWith(sessionExpiredLoginUrl("/dashboard"));
+		// Una sola condición, un solo mensaje: el diagnóstico viejo ya no existe.
+		expect(
+			screen.queryByText(/no se pudo identificar al usuario autenticado/i),
+		).not.toBeInTheDocument();
+		expect(mocks.currentUser).not.toHaveBeenCalled();
+		expect(get(isAuthenticated)).toBe(false);
+	});
+});
+
+describe("Oferta de publicación (D3)", () => {
+	it("con una organización vuelven la grilla y el CTA del estado vacío", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		mocks.listForUser.mockResolvedValue([makeOrganization()]);
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		const acciones = await screen.findByRole("region", { name: /acciones/i });
+		// La sección de acciones tiene dos superficies (la tarjeta de la grilla y el botón de la barra
+		// pegajosa); las dos apuntan al wizard.
+		const enlacesDeAccion = within(acciones).getAllByRole("link", { name: /publicar dataset/i });
+		expect(enlacesDeAccion.length).toBeGreaterThan(0);
+		for (const enlace of enlacesDeAccion) {
+			expect(enlace).toHaveAttribute("href", "/dashboard/datasets/new");
+		}
+
+		const misDatasets = await screen.findByRole("region", { name: /mis datasets/i });
+		expect(within(misDatasets).getByRole("link", { name: /publicar dataset/i })).toHaveAttribute(
+			"href",
+			"/dashboard/datasets/new",
+		);
+	});
+});
+
+describe("Estado vacío de «Mis datasets»", () => {
+	it("con organización disponible muestra la copia base y el CTA", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		mocks.listForUser.mockResolvedValue([makeOrganization()]);
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		await screen.findByText(/aún no ha creado ningún dataset/i);
+		// Con organización la exigencia no se menciona: la premisa ya está cumplida.
+		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.getAllByRole("link", { name: /publicar dataset/i }).length).toBeGreaterThan(0);
+	});
+
+	it("con organizaciones cargadas y vacías exige pertenecer a una y retira el CTA", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		mocks.listForUser.mockResolvedValue([]);
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		await screen.findByText(/requiere pertenecer a una organización/i);
+		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+	});
+
+	it("mientras las organizaciones cargan no afirma que haga falta una", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		// Nunca resuelve: las organizaciones quedan en carga de forma indefinida.
+		mocks.listForUser.mockReturnValue(new Promise(() => {}));
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		await screen.findByText(/aún no ha creado ningún dataset/i);
+		// Corrección sobre el playground: sin saber si el usuario tiene una organización, el estado
+		// vacío **no** puede afirmar que publicar la exija.
+		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+	});
+
+	it("con la carga de organizaciones fallida no afirma que haga falta una y muestra el error honesto", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		mocks.listForUser.mockRejectedValue(new Error("boom"));
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		await screen.findByText(/aún no ha creado ningún dataset/i);
+		// Un fallo deja la pregunta abierta (¿tiene organizaciones o no?), así que el estado vacío
+		// conserva la copia neutra y el error es la lectura honesta: no se pudo saber.
+		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			/no se pudieron cargar sus organizaciones/i,
+		);
 	});
 });
 

@@ -18,9 +18,11 @@ import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
+import { createSessionApi } from "$lib/api/session";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
+import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
@@ -52,9 +54,48 @@ onMount(() => {
 		return;
 	}
 	authed = true;
+	void iniciarPanel();
+});
+
+// La sonda corre **antes** de cualquier decisión. Medido (2026-09-20): un token muerto y un usuario
+// vivo sin organizaciones reciben de CKAN el mismo `200 []`, así que sin la sonda el panel no puede
+// distinguir «no tengo organizaciones» de «mi sesión murió»: ofrece publicar a una sesión caída (D3)
+// y el asistente diagnostica un permiso inexistente (D2).
+async function iniciarPanel() {
+	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
+	// sesión vacía en el almacenamiento, un estado que el guard de `/auth/login` no puede distinguir de
+	// una sesión real y que expulsaría al usuario en el siguiente montaje.
+	const token = get(auth).token;
+	const check = await createSessionApi(makeClient()).check();
+
+	if (check.state === "dead") {
+		// Limpiar **antes** de navegar: el guard de `/auth/login` reenvía al dashboard a quien todavía
+		// tiene un token guardado, así que navegar primero produciría un bucle de redirección.
+		await expulsarSesionMuerta();
+		return;
+	}
+
+	if (check.state === "alive" && token) {
+		// El llamador que devolvió la sonda **es** la identidad: se refresca el store con él para que
+		// `$currentUser` siga siendo la única fuente y no sobreviva un usuario local obsoleto.
+		auth.login(token, check.user);
+	}
+
+	// `inconclusive` (5xx, timeout, red): un hipo de CKAN no expulsa a nadie autenticado. Se carga
+	// con la sesión guardada, sin limpiarla ni navegar.
 	void loadDatasets();
 	void loadOrganizations();
-});
+}
+
+/**
+ * Cierra una sesión que ya no sirve: la limpia y manda al login con el motivo. Es el **único** camino
+ * de expulsión, compartido por la sonda `dead` y por la sesión local corrupta (token sin identidad),
+ * para que una sola condición tenga un solo mensaje y una sola ruta.
+ */
+async function expulsarSesionMuerta() {
+	auth.logout();
+	await goto(sessionExpiredLoginUrl("/dashboard"));
+}
 
 async function loadDatasets(permitirCorreccion = true) {
 	datasetsLoading = true;
@@ -64,7 +105,11 @@ async function loadDatasets(permitirCorreccion = true) {
 		const datasetApi = createDatasetApi(client);
 		const userId = get(currentUser)?.id;
 		if (!userId) {
-			throw new Error("No se pudo identificar al usuario autenticado.");
+			// Sesión local corrupta: hay token pero no identidad. Medido, para la UI es la misma
+			// condición que un token muerto (la sonda `dead` respondió 404), así que va por el mismo
+			// camino —una condición, un mensaje, una ruta— en vez de un segundo diagnóstico.
+			await expulsarSesionMuerta();
+			return;
 		}
 		const result = await datasetApi.currentUser(userId, {
 			limit: PAGE_SIZE,
@@ -110,17 +155,32 @@ async function loadOrganizations() {
 	}
 }
 
-// ─── Acciones del panel ──────────────────────────────────────────────
-// Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice,
-// pero el panel no anuncia nada que el backend todavía no pueda cumplir (ver BACKLOG.md).
-const actions = [
-	{
-		title: "Publicar dataset",
-		description: "Cree un dataset y suba sus recursos con el asistente.",
-		href: "/dashboard/datasets/new",
-		icon: Database,
-	},
-];
+// ─── ¿Se puede ofrecer publicar? ─────────────────────────────────────
+// Una sola condición para las tres superficies que ofrecen publicar (la grilla, la barra pegajosa y
+// el CTA del estado vacío). Medido: `organization_list_for_user` responde `200 []` tanto a un usuario
+// vivo sin organizaciones como a un token muerto; la sonda de sesión resuelve una mitad y esta
+// condición la otra. Sin organización cargada y confirmada el wizard fallaría (D3), así que el panel
+// no anuncia nada que el backend todavía no pueda cumplir (ver BACKLOG.md).
+const puedePublicar = $derived(!orgsLoading && organizations.length > 0);
+
+// «No tiene ninguna organización» es una **afirmación**, no un fallo: sólo se puede hacer con la carga
+// terminada, sin error y con la lista vacía. Un fallo deja la pregunta abierta —¿tiene o no?—, así que
+// el estado vacío conserva la copia neutra y el panel de error dice, honestamente, que no se pudo saber.
+const confirmedNoOrganizations = $derived(!orgsLoading && !orgsError && organizations.length === 0);
+
+// Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice.
+const actions = $derived(
+	puedePublicar
+		? [
+				{
+					title: "Publicar dataset",
+					description: "Cree un dataset y suba sus recursos con el asistente.",
+					href: "/dashboard/datasets/new",
+					icon: Database,
+				},
+			]
+		: [],
+);
 
 // ─── Barra de acciones pegajosa ──────────────────────────────────────
 // El centinela vive justo después de la grilla: cuando queda detrás de la barra, la barra aparece;
@@ -193,7 +253,10 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 			pertenece.
 		</p>
 
-		<!-- Acciones -->
+		<!-- Acciones: la sección entera —encabezado, grilla, centinela y barra pegajosa— existe sólo
+		     cuando hay al menos una acción. La barra nunca puede quedar vacía y el centinela/observer
+		     no se registra si no hay acción. -->
+		{#if actions.length > 0}
 		<section aria-labelledby="actions-heading" class="mt-8">
 			<h2 id="actions-heading" class="text-xs font-medium uppercase tracking-wider text-destructive">
 				Acciones
@@ -262,6 +325,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 				</div>
 			</div>
 		</section>
+		{/if}
 
 		<div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 			<!-- Mis datasets -->
@@ -321,16 +385,27 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 						<div class="p-8 text-center">
 							<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
 							<p class="mt-2 text-sm font-medium text-foreground">Publique su primer dataset</p>
+							<!-- Tres estados, no dos: mientras las organizaciones cargan todavía **no sabemos** si
+							     el usuario tiene una, y si la carga falló tampoco lo sabemos. En ambos casos el estado
+							     vacío no puede afirmar que publicar exija pertenecer a una; esa frase sólo es cierta con
+							     la carga terminada, sin error y con la lista vacía (`confirmedNoOrganizations`). -->
 							<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-								Aún no ha creado ningún dataset. El asistente lo guía paso a paso.
+								{#if !confirmedNoOrganizations}
+									Aún no ha creado ningún dataset. El asistente lo guía paso a paso.
+								{:else}
+									Aún no ha creado ningún dataset. El asistente lo guía paso a paso. Publicar un dataset
+									requiere pertenecer a una organización.
+								{/if}
 							</p>
-							<a
-								href="/dashboard/datasets/new"
-								class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							>
-								<Plus class="size-4" aria-hidden="true" />
-								Publicar dataset
-							</a>
+							{#if puedePublicar}
+								<a
+									href="/dashboard/datasets/new"
+									class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<Plus class="size-4" aria-hidden="true" />
+									Publicar dataset
+								</a>
+							{/if}
 						</div>
 					{:else}
 						<ul class="space-y-1">
