@@ -115,9 +115,15 @@ the RED test». Measured through the dev proxy the browser actually uses
 
 **Decisions (author, 2026-09-20)**:
 
-1. **A dead session is cleared, then redirected**: `auth.invalidate()` (local clear, no server revoke) and
-   then `/auth/login?returnTo=/dashboard&expired=1`, where the login screen shows the notice. Same shape as
-   the existing Dashboard Guard, which redirects instead of blocking.
+1. **A dead session is cleared, then redirected**: the stored session is dropped locally and the browser
+   goes to `/auth/login?returnTo=/dashboard&expired=1`, where the login screen shows the notice. Same shape
+   as the existing Dashboard Guard, which redirects instead of blocking.
+
+   **Correction (2026-09-20), after reading the store:** this plan first named a new `auth.invalidate()`
+   beside `logout()` and described `logout()` as revoking on the server. That is wrong about the code:
+   `stores/auth.ts` `logout()` only clears state and `localStorage`, and the server-side revoke is a
+   separate call (`logout(token)` from `UserMenu.svelte`). A second method with an identical body would be
+   duplication, so the unit adds **no** store method; the intent lives in the caller and in the URL.
 2. **The slice also fixes the wizard's false diagnosis**, as its own work unit, because that is where the
    compound produces the false permissions message.
 3. **The UI is proposed in a playground first** (`AGENTS.md` rule 8), then promoted and deleted.
@@ -129,12 +135,16 @@ the RED test». Measured through the dev proxy the browser actually uses
 
 **Task list:**
 
-- [ ] **B1 · The session probe** (`src/lib/api/`): one function reporting three states — `alive` (200, with
-  the caller), `dead` (404 `Not Found Error`), **`inconclusive`** (5xx, timeout, network failure). **Only a
-  definite 404 closes a session**: a CKAN hiccup must never expel a signed-in user. Tests first.
-- [ ] **B2 · Store — one condition, one message**: `auth.invalidate()` beside `logout()` (which revokes on
-  the server and is useless with a dead token). Absorb the component-local throw at
-  `routes/dashboard/+page.svelte:67` into that single condition, so one condition never has two messages.
+- [x] **B1 · The session probe** (`src/lib/api/session.ts`, 9 tests): one function reporting three states —
+  `alive` (200, with the caller), `dead` (404 `Not Found Error`), **`inconclusive`** (5xx, timeout, network
+  failure). **Only a definite 404 closes a session**: a CKAN hiccup must never expel a signed-in user.
+  **DONE (2026-09-20):** `5d51452`; 325 tests passing, `pnpm check` 0 errors, Biome clean on the module.
+- [x] **B2 · One condition, one message**: `src/lib/session.ts` holds the single expiry text, the URL
+  parameter and the re-login URL. **No store method is added**: `logout()` already clears the session
+  locally and never calls the server, so `invalidate()` would be a duplicate body — recorded below as a
+  correction to this plan. The component-local throw at `routes/dashboard/+page.svelte:67` is absorbed in
+  B4, when the caller the probe returns becomes the identity.
+  **DONE (2026-09-20):** module plus its two tests.
 - [ ] **B3 · Playground** (`/dev/dashboard/...`): the action grid, the sticky bar, both empty states and the
   login notice, with a switcher for (a) live session with organizations, (b) live session without, (c)
   still loading, (d) dead session. Author reviews, we iterate, then promote and delete.
