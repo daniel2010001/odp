@@ -37,13 +37,14 @@
 > 1. **Slice B (D2 + D3) — CERRADO (2026-09-20).** La sonda de sesión, el CTA honesto y el aviso del login están
 >    commiteados y **pusheados** (`5d51452` … `f7b5562`). El detalle, la medición y la verificación viva están en
 >    `odd/tasks/v0-portal-honesty.md`. Lo que queda de la feature es sólo el slice C.
-> 2. **Slice C (D4) — en curso (2026-09-20), sin commit todavía.** El mapeo honesto de estado a mensaje.
->    Hoy un `403` se muestra como «Recurso no encontrado» en
->    `dataset/[id]/resource/[resourceId]/+page.svelte`, y en DEV un fallback a mock lo enmascara. Se está
->    implementando como **helper reutilizable**. La spec que este slice enmienda es
->    `openspec/specs/resource-detail-view/spec.md`; **no** es el requisito
->    `Distinguishable Authorization Errors` del ciclo de vida, que gobierna las respuestas HTTP del plugin
->    de CKAN y no cómo el portal las muestra.
+> 2. **Slice C (D4) — IMPLEMENTADO (2026-09-20), pendiente de revisión nativa.** El mapeo honesto de
+>    estado a mensaje, en tres commits sobre `feat/v0-portal-honesty`: `5219055` (el helper de
+>    clasificación y la sonda que un `403` necesita), `e99b81e` (la página de recurso deja de reportar un
+>    `403` como «Recurso no encontrado») y `d3e2692` (la página de dataset renderiza desde la presentación
+>    compartida). Falta **sólo** la revisión nativa: no está cerrado ni revisado. La spec que este slice
+>    enmienda —y donde vive su contrato— es `openspec/specs/resource-detail-view/spec.md`; **no** es el
+>    requisito `Distinguishable Authorization Errors` del ciclo de vida, que gobierna las respuestas HTTP
+>    del plugin de CKAN y no cómo el portal las muestra.
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
@@ -600,6 +601,24 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   responde `403` y la previsualización falla aunque la ficha del recurso ya cargue bien, de modo que el
   dueño ve el recurso pero no sus filas. _Origen: hallado mientras se arreglaba D4 (slice C,
   2026-09-20)._
+
+- [ ] **[v0] La vista previa de datos falla para todo el catálogo sembrado.** Verificado en vivo
+  (2026-09-20) en un navegador real contra el stack dev: la vista previa de un recurso **público** pide
+  `datastore_search` y recibe `404`, y el panel muestra «No se pudo cargar la vista previa de datos.»
+  Causa: los recursos sembrados son **enlaces, no archivos subidos**, así que no están en el DataStore y
+  la vista previa (RF-31) sólo puede funcionar para archivos subidos. Decidir si el panel debe decir que
+  la vista previa **no está disponible para este recurso** en vez de reportar un fallo de carga. Se
+  relaciona con el ítem `[v0] Sección "Data API" para recursos CSV` de esta misma lista.
+  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
+
+- [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
+  Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
+  `http://localhost:5000/dataset/<name>/resource/<file>/download/<file>` — el `ckan.site_url` de CKAN —,
+  no al origen del portal. Con la arquitectura vigente (CKAN **headless**, sólo su API REST; ver el
+  encabezado de este archivo), exponer el origen del backend y depender de su configuración merece una
+  decisión explícita: servir la descarga a través del portal, o aceptar el acoplamiento de forma
+  deliberada.
+  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
 
 - [ ] **[v0] Quitar los tabs simulados «Gráfico»/«Mapa» de la página del recurso** — hoy la página
   muestra un selector Tabla/Gráfico/Mapa donde sólo Tabla es real (CSV). Según el modelo de vistas

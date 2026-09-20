@@ -32,7 +32,15 @@ function stubClient(behaviour: (action: string) => Promise<unknown>) {
 	return { client, post };
 }
 
-/** Una sonda que correría si la rama decidiera sondear: falla ruidosamente si se la llama. */
+/**
+ * Una sonda que no debe correr en las ramas que deciden no sondear.
+ *
+ * Ojo con lo que esto prueba: el `throw` de acá **no** es una señal de fallo ruidosa.
+ * `createSessionApi().check()` atrapa cualquier error que no sea un `404` y devuelve `inconclusive`,
+ * así que la sonda podría correr y el test seguiría en verde. El pin real de estos tests es
+ * `expect(post).not.toHaveBeenCalled()`; el `throw` sólo impide que la sonda resuelva como si hubiera
+ * confirmado una sesión viva.
+ */
 function forbiddenProbe() {
 	return stubClient(async () => {
 		throw new Error("the probe must not run");

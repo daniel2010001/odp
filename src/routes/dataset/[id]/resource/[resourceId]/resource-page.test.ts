@@ -207,10 +207,14 @@ describe("Página de recurso — estados de fallo honestos", () => {
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
-		render(ResourcePage);
+		const { container } = render(ResourcePage);
 
 		await waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
 		expect(vi.mocked(goto).mock.calls[0][0]).toBe(sessionExpiredLoginUrl(RESOURCE_PATH));
+		// Guard de regresión, no un paso TDD: el camino `expelled` ya limpia `loading`. Sin esta
+		// aserción, una reescritura podría dejar el esqueleto de carga renderizado para siempre y los
+		// tests de arriba no lo notarían.
+		expect(container.querySelector(".animate-pulse")).toBeNull();
 		expect(
 			screen.queryByText(/no autorizada|es privado|no encontrado|no se pudo confirmar/i),
 		).toBeNull();
@@ -247,13 +251,15 @@ describe("Página de recurso — estados de fallo honestos", () => {
 		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 	});
 
-	it("ante un catálogo inalcanzable informa la conexión y ofrece reintentar, sin decir que falta o es privado", async () => {
+	it("ante un catálogo inalcanzable informa el fallo de la consulta y ofrece reintentar, sin decir que falta o es privado", async () => {
 		vi.stubEnv("DEV", true);
 		mocks.showResource.mockRejectedValue(new CkanApiError("Server Error", 500));
 
 		render(ResourcePage);
 
-		await screen.findByText(/no se pudo conectar con el catálogo de datos/i);
+		await screen.findByText(/no se pudo completar la consulta al catálogo de datos/i);
+		// Un 5xx es una respuesta del catálogo: el texto no puede culpar a la conexión.
+		expect(screen.queryByText(/conectar|conexión/i)).toBeNull();
 		expect(screen.queryByText(/no encontrado|privado/i)).toBeNull();
 		expect(screen.getByRole("button", { name: /Reintentar/i })).toBeTruthy();
 	});

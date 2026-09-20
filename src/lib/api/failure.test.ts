@@ -175,9 +175,34 @@ describe("describeFailure — el texto que ve el espectador", () => {
 		for (const subject of SUBJECTS) {
 			for (const access of ACCESS) {
 				const p = describeFailure(ERR_UNAVAILABLE, subject, access);
+				expect(p.message).toBe(
+					"No se pudo completar la consulta al catálogo de datos. Intente nuevamente más tarde.",
+				);
 				expect(p.message).toMatch(/catálogo/i);
 				expect(p.message).toMatch(/intente nuevamente/i);
 				expect(p.message).not.toMatch(/no (se )?encontr|privad|permis|inicie sesión/i);
+			}
+		}
+	});
+
+	// `unavailable` agrupa un estado `0` (sin respuesta), el `408` del cliente, cualquier 5xx y un
+	// `401`. En los tres últimos el catálogo **sí** respondió, así que un texto que afirme que no se
+	// pudo conectar inventa una causa: el mismo defecto que este slice existe para eliminar. El texto
+	// habla de la consulta, no de la conexión.
+	it("no atribuye a la conexión un fallo del catálogo que sí respondió", () => {
+		const CATALOG_ANSWERED: Array<[string, unknown]> = [
+			["el timeout del cliente (408)", new CkanApiError("Request timed out", 408)],
+			["un error del servidor (500)", new CkanApiError("Server Error", 500)],
+			["un error de pasarela (502)", new CkanApiError("Bad Gateway", 502)],
+			["un 401", new CkanApiError("Unauthorized", 401)],
+		];
+
+		for (const [label, err] of CATALOG_ANSWERED) {
+			for (const subject of SUBJECTS) {
+				for (const access of ACCESS) {
+					const p = describeFailure(err, subject, access);
+					expect(p.message, label).not.toMatch(/conectar|conexión/i);
+				}
 			}
 		}
 	});

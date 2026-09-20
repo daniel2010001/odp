@@ -48,10 +48,10 @@ export function classifyFailure(err: unknown): ApiFailureKind {
 	if (err instanceof CkanApiError) {
 		if (err.status === 403) return "unauthorized";
 		if (err.status === 404) return "not-found";
-		// Un `401` NO es `unauthorized`: medido, CKAN no emite `401` para un token muerto (responde
-		// `404`), así que un `401` sólo puede venir de una infraestructura delante de CKAN. Tomar el
-		// rechazo de esa infraestructura como una denegación de permisos inventaría una historia que
-		// el portal no puede sostener; por eso cae del lado seguro en `unavailable`.
+		// Un `401` NO es `unauthorized`. Lo medido: CKAN responde `404` a `user_show {}` y `403` a
+		// `resource_show` con un token muerto; en ninguno de los caminos sondeados el `401` es la forma
+		// de un token muerto. Tomar ese estado como una denegación de permisos afirmaría una causa que
+		// nadie observó, así que cae del lado seguro en `unavailable`.
 	}
 	return "unavailable";
 }
@@ -102,7 +102,11 @@ function messageFor(kind: ApiFailureKind, subject: ApiSubject, access: AccessCon
 	if (kind === "not-found") {
 		return `No se encontró el ${word} solicitado.`;
 	}
-	return "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
+	// El mensaje es cierto para toda la clase. Un estado `0` no obtuvo respuesta; un `408`, cualquier
+	// 5xx y un `401` sí la obtuvieron, así que nombrar la conexión afirmaría una causa que el portal
+	// no observó. Decir «no se pudo completar la consulta» es verdad en los dos casos y no nombra
+	// ninguna causa: la clase `unavailable` existe justamente para agrupar causas indistinguibles.
+	return "No se pudo completar la consulta al catálogo de datos. Intente nuevamente más tarde.";
 }
 
 /**

@@ -127,6 +127,14 @@ An authorization failure (HTTP `403`) MUST NOT be rendered as the "not found" st
 - THEN the message states that the resource is private and asks the viewer to sign in with an authorized account
 - AND the message does not state that the session expired
 
+#### Scenario: Session state could not be confirmed
+
+- GIVEN a viewer whose stored session cannot be confirmed as either valid or invalid
+- WHEN the catalog answers with a `403`
+- THEN the message states that access could not be confirmed
+- AND the message asserts neither that the session expired nor that the account lacks authorization
+- AND retrying is presented as reasonable
+
 #### Scenario: Unavailable catalog is not an absent or private resource
 
 - GIVEN the catalog cannot be reached, times out, or answers with a server error
