@@ -33,17 +33,9 @@
 > transcripción de las sondas y el registro de decisiones del usuario.
 >
 > **Lo que falta de la feature, en este orden:**
-> 1. **Slice B (D2 + D3) — la diagnosis falsa de permisos.** El orden es **obligatorio**: primero
->    detectar la sesión inválida y forzar re-login; **recién después** gatear el CTA. Al revés, el CTA
->    desaparece justo para quien tiene derecho a publicar, porque una sesión muerta devuelve `[]`.
->    - Sonda de sesión candidata: `user_show {}` — con token válido da 200 y devuelve al propio
->      usuario (medido); **falta medir qué responde con token muerto**.
->    - **Hueco de spec a cerrar en el mismo trabajo:** `openspec/specs/authentication/spec.md` tiene
->      nueve requisitos y **ninguno cubre un token inválido o vencido**. El slice B no la contradice:
->      la completa.
->    - El call site del dashboard ya lanza «No se pudo identificar al usuario autenticado.» cuando la
->      sesión no trae id: **ese camino y la validez de sesión son la misma condición**, y no deben
->      quedar con dos mensajes distintos.
+> 1. **Slice B (D2 + D3) — CERRADO (2026-09-20).** La sonda de sesión, el CTA honesto y el aviso del login están
+>    commiteados (`5d51452` … `f7b5562`, sin pushear). El detalle, la medición y la verificación viva están en
+>    `odd/tasks/v0-portal-honesty.md`. Lo que queda de la feature es sólo el slice C.
 > 2. **Slice C (D4) — el mapeo honesto de estado a mensaje.** Hoy un `403` se muestra como «Recurso
 >    no encontrado» en `dataset/[id]/resource/[resourceId]/+page.svelte`, y en DEV un fallback a mock
 >    lo enmascara. Implementarlo como **helper reutilizable**: es el requisito
@@ -65,6 +57,13 @@
 >   hijo debe **escalar el handoff al padre**, que es quien tiene la facade.
 > - **Biome escanea todo el repo** (no ignora `openspec/`): un archivo con extensión `.ts` fuera de
 >   `src/` se lintea y rompe el gate. Por eso el expediente del borrador está como `.ts.txt`.
+> - **Los tests de ruta NO se llaman `+page.test.ts`.** SvelteKit reserva los archivos con prefijo `+` bajo
+>   `src/routes` y `svelte-kit sync` se cae con `Files prefixed with + are reserved`. Se nombran por la ruta:
+>   `dashboard.test.ts`, `wizard.test.ts`, `login.test.ts`.
+> - **`pnpm lint` sigue siendo intermitente** (exit 254, «Linter process terminated abnormally»): el veredicto real
+>   sale del binario directo, y con él el repo queda en **115 archivos, 4 warnings, 7 infos**.
+> - **El prefijo `?expired=1` es el contrato entre la expulsión y el login**: si se renombra el parámetro hay que
+>   cambiarlo en `src/lib/session.ts` y en los tests que lo fijan por URL.
 
 ## Replanificación pendiente — cambio `2026-09-13-publication-lifecycle`
 

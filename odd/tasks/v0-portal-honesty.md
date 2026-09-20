@@ -133,38 +133,35 @@ the RED test». Measured through the dev proxy the browser actually uses
  token straight back to `/dashboard`. Navigating to the login screen **before** clearing the dead session
  produces a redirect loop. Clearing first, navigation second.
 
-**Task list:**
+**Task list (all closed 2026-09-20):**
 
-- [x] **B1 · The session probe** (`src/lib/api/session.ts`, 9 tests): one function reporting three states —
-  `alive` (200, with the caller), `dead` (404 `Not Found Error`), **`inconclusive`** (5xx, timeout, network
-  failure). **Only a definite 404 closes a session**: a CKAN hiccup must never expel a signed-in user.
-  **DONE (2026-09-20):** `5d51452`; 325 tests passing, `pnpm check` 0 errors, Biome clean on the module.
-- [x] **B2 · One condition, one message**: `src/lib/session.ts` holds the single expiry text, the URL
-  parameter and the re-login URL. **No store method is added**: `logout()` already clears the session
-  locally and never calls the server, so `invalidate()` would be a duplicate body — recorded below as a
-  correction to this plan. The component-local throw at `routes/dashboard/+page.svelte:67` is absorbed in
-  B4, when the caller the probe returns becomes the identity.
-  **DONE (2026-09-20):** module plus its two tests.
-- [ ] **B3 · Playground** (`/dev/dashboard/...`): the action grid, the sticky bar, both empty states and the
-  login notice, with a switcher for (a) live session with organizations, (b) live session without, (c)
-  still loading, (d) dead session. Author reviews, we iterate, then promote and delete.
-- [ ] **B4 · Dashboard — probe before the gate (D2)**: probe on mount, before any decision. Dead → clear,
-  then navigate. Alive → the caller the probe returned **is** the identity, and the `!userId` throw goes away.
-- [ ] **B5 · Dashboard — the CTA (D3)**: the action grid and the sticky bar share one condition,
-  «organizations loaded and non-empty». The organizations empty state keeps its copy, which only becomes
-  true once the session is known to be alive.
-- [ ] **B6 · Login — the notice**: reuse the existing `role="alert"` block; «Su sesión expiró o dejó de ser
-  válida. Inicie sesión nuevamente.»
-- [ ] **B7 · Wizard — the false diagnosis**: the same probe, so a dead session no longer reads as «ask an
-  administrator for a role».
-- [ ] **B8 · Spec extension (a real contract change)**: `openspec/specs/authentication/spec.md` has nine
-  requirements — Login Proxy, Success, Failure, Rate Limiting, **Session Persistence**, Logout, Header User
-  Menu, Dashboard Guard, Super Admin Flag — and **none covers an invalid or expired token**. Add one, with
-  scenarios: a dead token on an authenticated screen clears the session and forces re-login; **an
-  unavailable CKAN is not an invalid session**; a valid session is left alone.
-- [ ] **B9 · Gates and live verification**: `pnpm test`, `pnpm check`, `pnpm lint`, plus the live check —
-  revoke the token in CKAN, reload the dashboard, watch the re-login happen.
-- [ ] **B10 · Work-unit commits.**
+- [x] **B1 · The session probe** (`src/lib/api/session.ts`, 9 tests) — **`5d51452`**. Three states: `alive`
+  (200 + the caller), `dead` (the measured 404), `inconclusive` (5xx, 403, timeout, network, non-JSON). Only a
+  definite 404 closes a session.
+- [x] **B2 · One condition, one message** (`src/lib/session.ts`, 2 tests) — **`63d0b35`**. The single expiry text,
+  the URL parameter and the re-login URL. **No store method**: `logout()` already clears locally and never calls
+  the server, so `invalidate()` would have been a duplicate body — a correction to this plan, recorded above.
+- [x] **B3 · Playground** (`/dev/dashboard/session`) — **`537b9c0`**, deleted on promotion by **`3df5be4`** (git
+  keeps it). The author reviewed it and approved it.
+- [x] **B4 · Dashboard — probe before the gate (D2)** — **`069c011`**. Probe on mount, before any decision; `dead`
+  clears and then navigates (the order is what stops the redirect loop); `alive` refreshes the identity; `inconclusive`
+  loads with the stored session and expels nobody. The corrupt local session (token without identity) takes the same
+  single path instead of a second message.
+- [x] **B5 · Dashboard — the CTA (D3)** — **`069c011`**, corrected in **`f7b5562`**. The whole `Acciones` section
+  (heading, grid, sentinel, sticky bar) and the empty-state CTA hang from one condition, and that condition is now
+  the same question the wizard asks (`permission: "create_dataset"`), not the broader membership list.
+- [x] **B6 · Login — the notice** (`7b5d4b4`). One merged alert block for the login error and the expiry notice;
+  submitting replaces the notice with the attempt's outcome. The test lives at `login.test.ts`: SvelteKit reserves
+  `+`-prefixed files under `src/routes`.
+- [x] **B7 · Wizard — the false diagnosis** (`3d6529d`). The probe runs before the three loaders, so a dead session
+  never reaches «Necesita rol de editor…». The expiry path moved to `src/lib/session-guard.ts`, because two screens
+  now need it and its three steps must not diverge; its second test measures the order inside the `goto` mock.
+- [x] **B8 · Spec extension** (`4d25b3e`). `Invalid Session Detection` in
+  `openspec/specs/authentication/spec.md`, between Session Persistence and Logout, with four scenarios — including
+  that an unavailable CKAN is **not** an invalid session.
+- [x] **B9 · Gates and live verification** (2026-09-20). See the closing entry in the evidence log.
+- [x] **B10 · Work-unit commits**: `5d51452`, `63d0b35`, `537b9c0`, `069c011`, `7b5d4b4`, `3d6529d`, `4d25b3e`,
+  `3df5be4`, `f7b5562`. All **unpushed**; the push remains the author's decision.
 
 ## Slice C — D4: honest status-to-message mapping
 
@@ -379,3 +376,54 @@ package_search {include_private:true}  VALID editor -> count 17
   the sysadmin probe token was revoked as well. The catalogue was left intact: **16 public + 1 private**.
 - **Loop trap recorded**: with a dead token still in the store, navigating to `/auth/login` bounces back to
   `/dashboard` (`auth/login/+page.svelte:20-23`), so clearing must precede navigation.
+
+**B9 · gates and the live verification (2026-09-20).**
+
+The independent read-only verifier reproduced every gate and refuted part of the design's own claim:
+
+```
+pnpm test                                   34 files, 350 passed, 0 failed
+pnpm check                                  0 errors, 4 pre-existing warnings
+pnpm build                                  built in 30s, adapter-node done
+pnpm lint                                   exit 254 (the documented machine flake, not the repo)
+biome check .  (direct ELF binary)          115 files, 0 fixes, 4 warnings, 7 infos (baseline unchanged)
+```
+
+**The review found a third defect, and it was this slice's own.** `f7b5562`:
+
+- **The offer hung from a broader question than the action it offered.** The gate used the membership list
+  (`organization_list_for_user {}`, every membership with its `capacity`), while the wizard asks
+  `{permission:"create_dataset"}`. Measured with the same user and token: a `capacity: "member"` appears in the
+  broad list and gets `[]` from the scoped one; the same user promoted to `editor` gets the organization back. So
+  the panel offered «Publicar dataset» to a member who cannot create a dataset — D3 again, in the form this slice
+  had just introduced. The offer now asks the same question the wizard asks, in a loader whose failure means no
+  offer and no claim. That also closed a copy hole: a member **does** belong to an organization, so «requiere
+  pertenecer a una organización» would have been false for them; it now says the editor or administrator role.
+- **Identity rendered before the session was checked.** The greeting and the admin badge come from the stored
+  session and were drawn while the probe was in flight. They now render only once the probe resolves without
+  declaring the session dead — the flag means «comprobada y no declarada muerta», not «viva», because an
+  inconclusive probe also opens the panel.
+- **The spec overclaimed.** The scenario said «nothing derived from the dead session is rendered», which the shared
+  header cannot promise while it reads the same store. It now names what is guaranteed: no identity, no listing and
+  no offer on the authenticated screen.
+- **Test-quality notes taken, not hidden**: the inconclusive test would also pass on the pre-slice code (its
+  decisive contrast lives in the `dead` test), the offer tests never asserted the permission scope — which is how
+  the member hole stayed invisible — and one pre-existing assertion checks a CSS class rather than behavior.
+
+**Live verification in a real browser** (headless Chromium driven over CDP, a fixture `editor` in
+`direccion-investigacion`, token injected into `localStorage` exactly as the login writes it):
+
+```
+LIVE session, /dashboard            href=/dashboard  offer=yes  «Hola, Live probe»  organization row=yes
+revoke that token server-side       api_token_revoke -> success
+DEAD session, reload /dashboard     href=/auth/login?returnTo=%2Fdashboard&expired=1
+                                    offer=no  greeting=no  organization row=no  localStorage=cleared
+alert on the login screen           «Su sesión expiró o dejó de ser válida. Inicie sesión nuevamente.»
+reload again while anonymous        href=/auth/login  (the anonymous guard; no notice, no loop)
+```
+
+- **The redirect loop does not happen**: the final URL is the login screen, not the dashboard, which is the
+  measured proof that clearing before navigating works.
+- **Nothing from the dead session survives on screen**: no offer, no greeting, no organization row.
+- Fixture removed afterwards (`member_delete`, `user_delete`, `api_token_revoke`); catalogue back to **16 public
+  + 1 private**, and the deleted-user rows are the documented CKAN 2.11.6 residual.
