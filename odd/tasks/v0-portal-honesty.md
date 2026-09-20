@@ -165,10 +165,165 @@ the RED test». Measured through the dev proxy the browser actually uses
 
 ## Slice C — D4: honest status-to-message mapping
 
-Pending. Map the failure by status (`403` → permission/no-session; `404` → does not exist) and remove the
-DEV mock fallback that masks an authorization failure. Implement it as a **reusable helper**: this is the
-`Distinguishable Authorization Errors` requirement the publication-lifecycle spec already wrote, and
-slice B will want the same mapping.
+One repository (`odp`). Depends on **slice B**: the 403 branch reuses its session probe and its single
+expulsion path.
+
+**The defect, re-measured live (2026-09-20, stack up, through the browser's own dev proxy `:8082`):**
+
+```
+resource_show (resource of the PRIVATE dataset `test`), anonymous  -> 403  Authorization Error
+resource_show (the same resource), garbage token                   -> 403  Authorization Error   <- identical body
+resource_show (an unknown resource id)                             -> 404  Not Found Error
+resource_show (resource of a public dataset), anonymous            -> 200
+package_show  (the private dataset), anonymous                     -> 403  Authorization Error
+```
+
+Both 403 bodies read `"Access denied: User  not authorized to read resource <id>"` — the user name is
+**empty**. On this action a **dead session and a genuine permission denial are indistinguishable by
+status**, so any message that asserts one cause is a lie. Separating them is exactly what slice B's probe
+(`src/lib/api/session.ts`) can do.
+
+**Second defect in the same page, found while measuring.** `resource/[resourceId]/+page.svelte` builds its
+CKAN client **without `apiKey`** (`createCkanClient({ baseUrl: env.CKAN_URL })`) — the same omission
+`f8e6b09` fixed for the dataset page. An owner of a private dataset therefore gets a 403 on **their own**
+resource. Fixing the message without fixing this would leave the most common 403 unexplained.
+
+**Decisions (author, 2026-09-20):**
+
+1. **Probe and branch on a 403.** The page carries the session token and, on a 403 *with a token*, asks the
+   slice B probe: `dead` → the single expulsion path (`endInvalidSession`, clear-then-navigate); `alive` → a
+   real permission denial, named as such; `inconclusive` → one message that covers both readings without
+   asserting either. With **no token nobody is probed**: an anonymous viewer is not a dead session, and
+telling them «su sesión expiró» would be a new lie. They get «inicie sesión con una cuenta autorizada».
+2. **The mock fallback survives only for non-definitive failures.** A 403/404 is the catalogue's final answer
+   and is never masked with sample data; the mock stays for a refused network, a timeout or a 5xx. This is
+   the rule `dataset/[id]/+page.svelte` already applies, so no third convention appears.
+3. **One reusable helper, and both 403/404 call sites migrate to it** — the resource page and the dataset
+   page, which today carries the same judgment inline (`dataset/[id]/+page.svelte:64-72`).
+4. **The author reviews the UI on the real page.** Slice B's fourth empty-state text and the login notice are
+   still unreviewed, and this slice adds three more texts; they get reviewed together.
+5. **One commit per work unit**, tests and docs beside their code, on `feat/v0-portal-honesty`.
+
+**Forecast (corrected with measurements — the original was wrong by ~3.7×).** The forecast written before
+the first line of code said: code ~160 lines, tests ~220, review material 0, **total ~380** against the
+400-line review budget. Measured across `b68031b..HEAD` once the slice was done:
+
+```
+code  = 545   (failure.ts 148, session-guard.ts 40, session.ts 12, both pages 264)
+tests = 804   (failure.test.ts 232, session-guard.test.ts 121, session.test.ts 24,
+               resource-page.test.ts 227, dataset-page.test.ts 187)
+docs  =  71   (spec 47, BACKLOG 24)
+total = 1420
+```
+
+**Why it was wrong.** I applied the measured ratios from `openspec/config.yaml` (1.69 dense module, 0.38
+markup-heavy page) to a code size I had *guessed*, and I guessed the code at less than a third of what it
+cost: the helper grew three judgements and a full copy table, and the shared 403 branch needed `session.ts`
+and `session-guard.ts` as well. Worse, I then estimated the test surface from the ratio instead of from the
+matrix it actually had to cover — three access contexts × two subjects × two pages × the state rendering —
+which is 804 lines, not 220. The rule in `openspec/config.yaml` exists because two earlier deliveries broke
+the budget by ~2.5×; this was the third, and it broke the same rule the same way, by estimating.
+
+**Consequence, recorded rather than hidden.** Slice C exceeds the 400-line review budget on its own
+(1420 changed lines). It was reviewed as a whole range, which lands in the same size class slice B already
+reviewed (1341 lines, tier high, four lenses) — see the disposition below.
+
+**Task list:**
+
+- [x] **C1 · RED — the helper's contract** (`src/lib/api/failure.test.ts`), then **C2 · GREEN**
+  (`src/lib/api/failure.ts`). The three judgments it owns:
+  - `classifyFailure(err)`: `403` → `unauthorized`, `404` → `not-found`, everything else (`0`, `408`, 5xx, a
+    foreign throw) → `unavailable`. Must fail against today's code, which has no such module.
+  - `isDefinitive(kind)`: true for a 403/404, false for `unavailable` — the single condition the mock rule
+    hangs from.
+  - `describeFailure(err, subject, access)`: subject `dataset | resource`; access
+    `anonymous | session-alive | unknown`. Spanish copy, formal «usted», and the `unauthorized` message
+    **differs per access**: `anonymous` asks to sign in, `session-alive` names a real lack of authorization,
+    `unknown` asserts neither.
+  **Work unit 1.**
+- [x] **C3 · The shared 403 branch** (`src/lib/session-guard.ts`): given a token and a 403-shaped failure,
+  either expel — and the page stops — or report `alive`/`inconclusive` for the copy. Same module and same
+  philosophy slice B used for the expulsion path («una condición, un mensaje, una ruta»), so the decision is
+  not written twice. **Work unit 1.**
+- [x] **C4 · Resource page** (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte`): the token reaches
+  the client; the mock fallback moves behind `isDefinitive`; the error state stops hardcoding «Recurso no
+  encontrado» in both the heading and `<svelte:head>` and renders the presentation instead; retry is offered
+  only where a retry can change the answer. **Work unit 2.**
+- [x] **C5 · Dataset page** (`src/routes/dataset/[id]/+page.svelte`): the inline 403/404 mapping is replaced
+  by the helper, with the same rendering contract. **Work unit 3.**
+- [x] **C6 · Spec** (`openspec/specs/resource-detail-view/spec.md`): a new requirement —
+  `Authorization Failure Is Not a Missing Resource` — with scenarios: a 403 is not rendered as "not found";
+  an owner with a live session sees the resource; DEV does not mask a definitive failure with sample data.
+  `Missing Resource` already owns the 404 half and is left intact. **Work unit 1.**
+- [x] **C7 · Gates**: `pnpm test`, `pnpm check`, `pnpm build`, and Biome through the direct ELF binary
+  (`pnpm lint` is the documented machine flake).
+- [x] **C8 · Live verification** against the running stack, with a real token: the owner sees their private
+  resource (200), an anonymous viewer gets the permission message, a dead token is expelled with the notice.
+- [ ] **C9 · Native review** of the slice C range (`committedOnly`, base at the slice B closing commit
+  `b68031b`).
+
+**Outcome (2026-09-20).** Four commits on `feat/v0-portal-honesty`, tests and docs beside their code:
+`5219055` (helper + shared 403 branch + spec + the two BACKLOG prose corrections), `e99b81e` (resource
+page), `d3e2692` (dataset page; message amended — its first version claimed the dataset page had masked a
+definitive answer with sample data, which is false, it already mapped 403/404 before the DEV branch), and
+`05abdde` (the correction round below). `d3e2692` replaced the original `6402701` id by amendment; nothing
+was pushed.
+
+**Two independent verifications, both of which found real defects in the slice.**
+
+*Read-only code verification* reproduced every gate (433 tests, 35 files; `check` 0 errors with the four
+pre-existing warnings; `build` OK; Biome through the direct ELF binary at 117 files / 4 warnings / 7 infos,
+no new finding) and confirmed each of the four decisions at file:line with the test that pins it — while
+recording five weaknesses, three of them real:
+
+1. **The `unavailable` copy named a cause that is false for most of its own kind.** «No se pudo conectar con
+   el catálogo de datos» is untrue for the timeout, every 5xx and a 401, where the catalogue did answer. The
+   slice was repeating, in miniature, the dishonesty it exists to remove. Fixed in `05abdde`, with a test
+   that asserts the new message never mentions connecting.
+2. **The `401` comment generalized past the measurement** («only infrastructure in front of CKAN»). Rewritten
+   to claim only what was observed.
+3. **A false claim in a commit message** (`d3e2692`, see above). Fixed by amendment.
+4. Two weaker findings, both fixed: the successful expulsion path was unpinned (a rewrite could have left the
+   loading skeleton forever, and no test would have noticed), and the `forbiddenProbe` helper's comment
+   implied its `throw` was the pin when `createSessionApi` swallows it — the real pin is
+   `expect(post).not.toHaveBeenCalled()`.
+5. The `unavailable`/`unknown` state had no spec scenario. Added.
+
+*Live verification in a real browser* (headless Chromium over CDP, temporary `ckan_admin` token minted and
+revoked by jti, request headers read from `Network.requestWillBeSent`) confirmed all four claims against the
+real stack, and found two things nobody had looked for:
+
+```
+anonymous, private resource   no Authorization header, 403  -> «Recurso privado» + sign-in link
+                                                            (returnTo present, NO expired param)
+with token, private resource  Authorization = session token -> resource renders (200)
+anonymous, unknown id         no Authorization header, 404  -> «Recurso no encontrado», no retry
+anonymous, public resource    no Authorization header, 200  -> renders (control)
+dead session («garbage»)      Authorization = garbage       -> /auth/login?returnTo=…&expired=1,
+                                                            notice shown, no loop, storage cleared
+mock id that CKAN answers 404 -> «no encontrado», never the mock (the decisive DEV check)
+```
+
+- **Limitation stated, not glossed:** `ckan_admin` is a sysadmin and gets 200 on any private package, so the
+authenticated case proves the token is **sent**, not that an ordinary owner sees their own private dataset.
+The `session-alive` branch (a live session that lacks authorization) could not be exercised with the
+accounts available.
+- **Two incidental findings recorded in `BACKLOG.md`:** the download link renders CKAN's own
+  `ckan.site_url` origin rather than the portal's, which matters for a deliberately headless architecture;
+  and the data preview fails for the **whole seeded catalogue**, because the seeded resources are links, not
+  uploaded files, so `datastore_search` answers 404 and the panel reports a load failure.
+- The DataStore preview's own tokenless client is recorded as a `[v0]` follow-up, deliberately outside this
+  slice's four decisions.
+
+**Reference correction, so nobody re-cites it.** `BACKLOG.md` claims slice C «es el requisito
+`Distinguishable Authorization Errors` que la spec del ciclo de vida ya escribió». That requirement
+(`openspec/changes/2026-09-13-publication-lifecycle/specs/publication-lifecycle/spec.md:124`) governs **the
+CKAN plugin's** HTTP semantics: it demands a `403` with its own message instead of a `409` or a validation
+error. It says nothing about how the portal renders a failure. The spec this slice actually amends is
+`resource-detail-view`.
+
+**Out of scope, found while reading** (noted, not fixed here): `resource-detail-view`'s `Preview Placeholder`
+requirement still demands a «coming soon» placeholder where the page now renders a real DataStore preview.
 
 ## Review disposition (2026-09-19)
 
