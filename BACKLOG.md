@@ -692,6 +692,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Nota de UX:** al quitar el botón, en móvil el camino de inicio de sesión queda **dentro del menú
   hamburguesa** (el enlace del encabezado aparece de `md` para arriba). `layout-header.test.ts` prueba que
   el enlace existe.
+  **Revisión nativa: `review-249e073ef3489596` — APROBADA y con la authority quemada** (2026-09-20), tier
+  medium, una lente, 11 archivos / 467 líneas, con 2 avisos informativos registrados en la deuda de
+  revisión al final de este archivo.
   **Lo que SIGUE ABIERTO — la mitad que falta para la propiedad completa:** el **oráculo de la API**
   (siguiente párrafo). Cerrarlo exige la capa server-side que hoy no existe.
   **El documento aportado por el autor** describe la recomendación estándar de las plataformas de
@@ -985,6 +988,26 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Advisory de la revisión nativa de la política de existencia (2026-09-20)** — cerró **`approved`** con
+  la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:cd80727f19f480cd99be4134de44c23c168b75267ae222f152d09b32c8a50478` del candidato
+  `sha256:2345b5e956b071ff93b35195f9eeac555d217b487726e4c80e8c619d90e44e5a`).
+  - `review-249e073ef3489596`: tier **medium**, lente `review-reliability`, **11 archivos, 467 líneas**,
+    presupuesto de corrección 200. Rango revisado **`5068d0a..HEAD`** con `baseRef` explícito —sólo el
+    cambio de política, commit `a60b9dc`—, no la rama acumulada que la inspección deriva por defecto.
+  - Dos avisos no bloqueantes, con **texto no recuperable** (el ledger se borra al cerrar la línea):
+    1. `R3-1` · reliability · WARNING · informativo ·
+       `src/routes/dataset/[id]/dataset-page.test.ts:147`
+    2. `R3-2` · reliability · SUGGESTION · informativo ·
+       `openspec/specs/resource-detail-view/spec.md:100`
+    Ninguno abre corrección ni reabre la revisión. **Contexto de las ubicaciones, para que la próxima sesión
+    no arranque de cero:** la primera cae en el bloque de estados de fallo de la página de dataset (donde
+    viven las aserciones de indistinguishibilidad del anónimo); la segunda, en el requisito nuevo
+    `Unidentified Viewer Must Not Learn Existence`. Eso es **lectura de las líneas**, no el texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: revisión de la política de existencia, 2026-09-20._
 
 - [ ] **Advisory de la revisión nativa del slice C de `v0-portal-honesty`** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
