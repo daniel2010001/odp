@@ -846,6 +846,27 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Advisory de la revisión nativa del slice B de `v0-portal-honesty`** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión `sha256:b589c2b2…` del
+  candidato `sha256:6198424b…`). **Además de los avisos, encontró un hallazgo CRÍTICO propio del slice,
+  ya corregido** (`f7214f6`): la sonda de sesión trataba **cualquier** 404 de `user_show` como sesión
+  muerta, así que una configuración base o un proxy roto habría expulsado a **todos** los usuarios
+  autenticados (bloqueo masivo, un modo de falla que la base no tenía). Ahora un 404 sólo cierra la
+  sesión si CKAN sigue contestando (lectura pública `status_show`), y si no, la respuesta es
+  `inconclusive`.
+  - `review-086ad59599b720f1`: tier **high**, **18 archivos, 1 341 líneas**, cuatro lentes (riesgo,
+    resiliencia, legibilidad, confiabilidad), presupuesto de corrección 200. Los **nueve avisos**
+    no bloqueantes, con su id, lente, ubicación y severidad, están tabulados en
+    `odd/tasks/v0-portal-honesty.md`. Cierra: **`R2-stale-session-comment`** (`src/lib/session.ts:5-8`,
+    SUGGESTION) es un comentario **ya obsoleto** —describe un mensaje que `069c011` borró— y está listo
+    para corregir; y **`R4-PERM-SILENT`** (`src/routes/dashboard/+page.svelte:174-177`, WARNING) nombra
+    una limitación aceptada: si la pregunta de permiso falla, la oferta queda cerrada sin superficie de
+    reintento (fail closed).
+    > Nota de trazabilidad: esta entrada de deuda se agregó **después** de la aprobación. El candidato
+    > aprobado es el árbol de la revisión `sha256:b589c2b2…`; lo posterior es este apunte de ids y
+    > ubicaciones, no una decisión.
+  _Origen: cierre del slice B de `v0-portal-honesty` (2026-09-20)._
+
 - [ ] **Advisory de las dos revisiones de unidades de trabajo de `v0-portal-honesty`** — ambas
   cerraron **`approved`** con la authority quemada, y el único hallazgo de cada una es un advisory
   informativo. Es trabajo posterior, **nunca motivo para re-correr la revisión sobre ese candidato**:

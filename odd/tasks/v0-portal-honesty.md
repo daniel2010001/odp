@@ -377,6 +377,54 @@ package_search {include_private:true}  VALID editor -> count 17
 - **Loop trap recorded**: with a dead token still in the store, navigating to `/auth/login` bounces back to
   `/dashboard` (`auth/login/+page.svelte:20-23`), so clearing must precede navigation.
 
+**B10 · the native review of the slice (2026-09-20).**
+
+`review-086ad59599b720f1` — tier **high**, **18 files, 1341 changed lines**, four lenses (risk,
+resilience, readability, reliability), correction budget 200. The author chose to review **only the
+slice** (`baseRef` at the slice A closure, `committedOnly`) instead of the accumulated branch the
+inspection derived, which is the guidance this document already recorded. It closed **`approved`** and
+the authority was **burned** with evidence `gentle-ai.review-acknowledged/v1`, on revision
+`sha256:b589c2b2…` of candidate `sha256:6198424b…`.
+
+**It found one CRITICAL, deterministic, candidate-caused defect — this slice's own:**
+
+- **`R4-404-LOGOUT`** (`src/lib/api/session.ts:68-69`): the probe treated *every* 404 from `user_show`
+  as a dead session, without distinguishing CKAN rejecting the token from the deployment failing to
+  reach the action at all. One misconfigured base URL or proxy would have cleared **every** stored
+  session and sent every authenticated user to a login screen that might itself be unreachable: a mass
+  lockout, and a failure mode the base did not have. **Corrected in `f7214f6`** (117 diff lines of the
+  120 declared): a 404 closes a session only when CKAN is demonstrably answering — one public
+  `status_show` read (which needs no token and answers 200 even with a dead one, measured) must
+  succeed — and otherwise the answer is `inconclusive`, so nobody is evicted over infrastructure. The
+  corroboration is behavioral evidence, not a match on CKAN's message or error type. A targeted
+  validator run confirmed the correction, and `f7214f6` is part of the reviewed candidate.
+
+**Nine advisory findings — all non-blocking; the reviewers' own disposition is that none of them
+reopens the review and none opened a correction.** They are recorded rather than silently kept:
+
+| id | lens | where | severity |
+|---|---|---|---|
+| `R1-session-probe-404` | risk | `src/lib/api/session.ts:66-71` | WARNING |
+| `R2-duplicated-empty-copy` | readability | `src/routes/dashboard/+page.svelte:435-445` | SUGGESTION |
+| `R2-duplicated-probe` | readability | `src/routes/dashboard/+page.svelte:79-96` | SUGGESTION |
+| `R2-stale-session-comment` | readability | `src/lib/session.ts:5-8` | SUGGESTION |
+| `R3-001` | reliability | `src/lib/api/session.ts:67-69` | WARNING |
+| `R3-002` | reliability | `src/lib/session-guard.ts:30` | WARNING |
+| `R3-003` | reliability | `src/routes/auth/login/login.test.ts:1-90` | SUGGESTION |
+| `R3-004` | reliability | `src/routes/dashboard/datasets/new/wizard.test.ts:666-692` | SUGGESTION |
+| `R4-PERM-SILENT` | resilience | `src/routes/dashboard/+page.svelte:174-177` | WARNING |
+
+- **`R2-stale-session-comment` is confirmed stale by reading it**: the paragraph in
+  `src/lib/session.ts:5-8` still describes the dashboard throwing «No se pudo identificar al usuario
+  autenticado.», and `069c011` deleted that string. The comment is now wrong. It is deliberately **not**
+  touched here so the tree keeps matching the revision the receipt was burned on; it is a follow-up.
+- **`R4-PERM-SILENT` names a limitation this document should own**: a failure of the permission
+  question leaves the offer closed with no retry surface — fail closed, as decided, but the user gets
+  no way to ask again without a reload.
+- **Traceability**: this evidence-log entry is the only change made after the acknowledgement. The
+  approved candidate is the tree whose revision is `sha256:b589c2b2…`; the entry is a record of ids,
+  locations and decisions, not a new claim about that tree.
+
 **B9 · gates and the live verification (2026-09-20).**
 
 The independent read-only verifier reproduced every gate and refuted part of the design's own claim:
