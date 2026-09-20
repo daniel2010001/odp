@@ -122,3 +122,27 @@ export function describeFailure(
 		definitive: isDefinitive(kind),
 	};
 }
+
+/** Qué acciones ofrece el estado de error. */
+export interface FailureActions {
+	retry: boolean;
+	signIn: boolean;
+}
+
+/**
+ * Decide qué acciones acompañan al estado de error, para que ninguna página las vuelva a derivar.
+ *
+ * Un reintento sólo tiene sentido cuando podría cambiar la respuesta: un fallo no definitivo, o un
+ * 403 cuya sonda quedó no concluyente (ese texto pide «verifique su sesión e intente nuevamente»).
+ * El enlace de inicio de sesión sólo corresponde a un 403 sin sesión. Nunca se ofrece una
+ * instrucción sin la acción que la cumple.
+ */
+export function failureActions(
+	presentation: FailurePresentation,
+	access: AccessContext,
+): FailureActions {
+	const signIn = presentation.kind === "unauthorized" && access === "anonymous";
+	const retry =
+		!presentation.definitive || (presentation.kind === "unauthorized" && access === "unknown");
+	return { retry, signIn };
+}

@@ -39,3 +39,15 @@ export const SESSION_EXPIRED_MESSAGE =
 export function sessionExpiredLoginUrl(returnTo: string): string {
 	return `${LOGIN_PATH}?${new URLSearchParams({ returnTo, [SESSION_EXPIRED_PARAM]: "1" })}`;
 }
+
+/**
+ * Construye la URL de login **sin** declarar motivo.
+ *
+ * A diferencia de `sessionExpiredLoginUrl`, no lleva `SESSION_EXPIRED_PARAM`. Se usa cuando el
+ * espectador nunca tuvo sesión y el portal le pide iniciar sesión con una cuenta autorizada:
+ * declarar ahí una sesión expirada haría que la pantalla de login mienta, que es justo lo que la
+ * spec prohíbe. `returnTo` se conserva y se codifica igual que en la URL de re-login.
+ */
+export function loginUrl(returnTo: string): string {
+	return `${LOGIN_PATH}?${new URLSearchParams({ returnTo })}`;
+}

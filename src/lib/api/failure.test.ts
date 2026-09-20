@@ -15,6 +15,7 @@ import {
 	type ApiSubject,
 	classifyFailure,
 	describeFailure,
+	failureActions,
 	isDefinitive,
 } from "./failure";
 
@@ -190,5 +191,42 @@ describe("describeFailure — el texto que ve el espectador", () => {
 				}
 			}
 		}
+	});
+});
+
+describe("failureActions — qué acciones ofrecer según el fallo", () => {
+	const present = (kind: ApiFailureKind, access: AccessContext) => {
+		const presentation = describeFailure(ERROR_BY_KIND[kind], "resource", access);
+		return failureActions(presentation, access);
+	};
+
+	it("ofrece reintentar sólo cuando un reintento podría cambiar la respuesta", () => {
+		// Una sonda no concluyente pide «verifique su sesión e intente nuevamente»: el reintento la
+		// cumple. Una respuesta definitiva no cambia por reintentar.
+		expect(present("unauthorized", "unknown").retry).toBe(true);
+		expect(present("unavailable", "anonymous").retry).toBe(true);
+		expect(present("unauthorized", "anonymous").retry).toBe(false);
+		expect(present("unauthorized", "session-alive").retry).toBe(false);
+		expect(present("not-found", "anonymous").retry).toBe(false);
+	});
+
+	it("ofrece iniciar sesión sólo para un fallo de autorización sin sesión", () => {
+		expect(present("unauthorized", "anonymous").signIn).toBe(true);
+		expect(present("unauthorized", "session-alive").signIn).toBe(false);
+		expect(present("unauthorized", "unknown").signIn).toBe(false);
+		expect(present("not-found", "anonymous").signIn).toBe(false);
+		expect(present("unavailable", "anonymous").signIn).toBe(false);
+	});
+
+	it("nunca deja una instrucción sin la acción que la cumple", () => {
+		// El texto anónimo manda «inicie sesión»: el enlace tiene que estar. El texto desconocido manda
+		// «verifique su sesión e intente nuevamente»: el reintento tiene que estar.
+		const anonymous = present("unauthorized", "anonymous");
+		expect(anonymous.signIn).toBe(true);
+		expect(anonymous.retry).toBe(false);
+
+		const unknown = present("unauthorized", "unknown");
+		expect(unknown.retry).toBe(true);
+		expect(unknown.signIn).toBe(false);
 	});
 });

@@ -11,10 +11,19 @@ import {
 	Map as MapIcon,
 	Table,
 } from "@lucide/svelte";
+import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createDatastoreApi } from "$lib/api/datastore";
+import {
+	type AccessContext,
+	classifyFailure,
+	describeFailure,
+	type FailurePresentation,
+	failureActions,
+	isDefinitive,
+} from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -22,6 +31,9 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
+import { loginUrl } from "$lib/session";
+import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
+import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard } from "$lib/utils/citation";
@@ -31,11 +43,27 @@ import { safeExternalUrl } from "$lib/utils/external-url";
 // Cliente del DataStore para la vista previa de CSV (RF-31).
 const datastoreApi = createDatastoreApi(createCkanClient({ baseUrl: env.CKAN_URL }));
 
+/** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
+type ResourceFailure = {
+	presentation: FailurePresentation;
+	access: AccessContext;
+};
+
 // ─── State ───────────────────────────────────────────────────────
 let resource = $state<CkanResource | null>(null);
 let dataset = $state<CkanPackage | null>(null);
 let loading = $state(true);
-let error = $state<string | null>(null);
+let failure = $state<ResourceFailure | null>(null);
+
+// Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
+// una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
+// sobre el catálogo que no haya medido. Modelarla como `failure` sería inventar un diagnóstico.
+let invalidParams = $state(false);
+
+// El camino único de expulsión ya limpió la sesión y navegó: no se renderiza nada más ni se
+// vuelve a navegar.
+let expelled = $state(false);
+
 let endpointCopied = $state(false);
 let copiedLink = $state(false);
 
@@ -55,50 +83,88 @@ const resourceId = $derived($page.params.resourceId);
 // ─── Data fetching ───────────────────────────────────────────────
 async function loadData() {
 	if (!datasetId || !resourceId) {
-		error = "Parámetros de navegación inválidos";
+		// URL incompleta: estado propio, no un fallo del catálogo (ver el comentario de `invalidParams`).
+		invalidParams = true;
+		failure = null;
+		resource = null;
+		dataset = null;
 		loading = false;
 		return;
 	}
 
+	invalidParams = false;
+	expelled = false;
 	loading = true;
-	error = null;
+	failure = null;
+	resource = null;
+	dataset = null;
 
-	try {
-		const client = createCkanClient({ baseUrl: env.CKAN_URL });
-		const resourceApi = createResourceApi(client);
-		const datasetApi = createDatasetApi(client);
+	const token = get(auth).token;
+	// El cliente lleva el token de la sesión. Sin él, `resource_show` de un recurso de un dataset
+	// privado responde 403 incluso para su propio dueño.
+	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	const resourceApi = createResourceApi(client);
+	const datasetApi = createDatasetApi(client);
 
-		const [resourceResult, datasetResult] = await Promise.allSettled([
-			resourceApi.show(resourceId),
-			datasetApi.show(datasetId),
-		]);
+	// `allSettled` a propósito: una falla del dataset no debe vaciar un recurso que sí cargó, ni al
+	// revés. El recurso manda; el dataset sólo alimenta el breadcrumb.
+	const [resourceResult, datasetResult] = await Promise.allSettled([
+		resourceApi.show(resourceId),
+		datasetApi.show(datasetId),
+	]);
 
-		if (resourceResult.status === "fulfilled") {
-			resource = resourceResult.value;
-		} else if (import.meta.env.DEV) {
-			// Fallback a mock data solo en dev
+	if (resourceResult.status === "fulfilled") {
+		resource = resourceResult.value;
+	} else {
+		const err = resourceResult.reason;
+		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
+		let access: AccessContext = "anonymous";
+		if (classifyFailure(err) === "unauthorized" && token) {
+			let resolution: UnauthorizedResolution = "inconclusive";
+			try {
+				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+			} catch {
+				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
+				resolution = "inconclusive";
+			}
+			if (resolution === "expelled") {
+				// El camino único ya limpió la sesión y navegó: acá termina la carga.
+				expelled = true;
+				loading = false;
+				return;
+			}
+			access = resolution === "alive" ? "session-alive" : "unknown";
+		}
+
+		const presentation = describeFailure(err, "resource", access);
+
+		if (!presentation.definitive && import.meta.env.DEV) {
+			// Sólo una no-respuesta se enmascara con datos mock. Un 403/404 es la respuesta final del
+			// catálogo y enmascararlo es el defecto que este slice corrige.
 			const mockResource = getMockResourceById(resourceId);
 			if (mockResource) {
 				resource = mockResource;
 			} else {
-				throw new Error("Recurso no encontrado");
+				failure = { presentation, access };
 			}
 		} else {
-			throw new Error("No se pudo cargar el recurso. Intente nuevamente más tarde.");
+			failure = { presentation, access };
 		}
-
-		if (datasetResult.status === "fulfilled") {
-			dataset = datasetResult.value;
-		} else if (import.meta.env.DEV) {
-			const mockDataset = getMockDatasetById(datasetId);
-			if (mockDataset) dataset = mockDataset;
-		}
-	} catch (err) {
-		error = err instanceof Error ? err.message : "Error al cargar el recurso";
-		resource = null;
-	} finally {
-		loading = false;
 	}
+
+	// El dataset alimenta el breadcrumb: una respuesta definitiva no se enmascara y el breadcrumb
+	// simplemente degrada; sólo una no-respuesta puede caer al mock en DEV.
+	if (datasetResult.status === "fulfilled") {
+		dataset = datasetResult.value;
+	} else {
+		dataset =
+			!isDefinitive(classifyFailure(datasetResult.reason)) && import.meta.env.DEV
+				? (getMockDatasetById(datasetId) ?? null)
+				: null;
+	}
+
+	loading = false;
 }
 
 // ─── Effect: load on mount ──────────────────────────────────────
@@ -124,6 +190,30 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 		items.push({ label: resource.name });
 	}
 	return items;
+});
+
+// ─── Derived: estado de error ────────────────────────────────
+// Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla.
+const actions = $derived(
+	failure ? failureActions(failure.presentation, failure.access) : { retry: false, signIn: false },
+);
+
+const errorTitle = $derived(
+	invalidParams ? "Parámetros de navegación inválidos" : (failure?.presentation.title ?? ""),
+);
+
+const errorMessage = $derived(
+	invalidParams
+		? "La dirección no contiene un dataset y un recurso válidos."
+		: (failure?.presentation.message ?? ""),
+);
+
+const pageTitle = $derived.by(() => {
+	if (resource) return `${resource.name} — UMSS`;
+	if (loading) return "Cargando... — UMSS";
+	if (failure) return `${failure.presentation.title} — UMSS`;
+	if (invalidParams) return "Parámetros de navegación inválidos — UMSS";
+	return "Recurso — UMSS";
 });
 
 // ─── Derived: badges ────────────────────────────────────────────
@@ -252,14 +342,12 @@ async function handleCopyResourceLink() {
 </script>
 
 <svelte:head>
-	<title>
-		{resource ? `${resource.name} — UMSS` : loading ? "Cargando... — UMSS" : "Recurso no encontrado — UMSS"}
-	</title>
+	<title>{pageTitle}</title>
 </svelte:head>
 
 <div>
 	<!-- Breadcrumb bar -->
-	{#if !loading}
+	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
 				<Breadcrumb items={breadcrumbItems} />
@@ -284,12 +372,15 @@ async function handleCopyResourceLink() {
 			</div>
 		</div>
 
+	<!-- Expulsión: el guard ya limpió la sesión y navegó, no queda nada que renderizar -->
+	{:else if expelled}
+
 	<!-- Error / 404 state -->
-	{:else if error && !resource}
+	{:else if invalidParams || failure}
 		<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
 			<div class="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-				<p class="text-lg font-medium text-destructive">Recurso no encontrado</p>
-				<p class="mt-2 text-sm text-muted-foreground">{error}</p>
+				<p class="text-lg font-medium text-destructive">{errorTitle}</p>
+				<p class="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
 				<div class="mt-6 flex items-center justify-center gap-3">
 					{#if datasetId}
 						<a
@@ -308,12 +399,22 @@ async function handleCopyResourceLink() {
 							Volver al catálogo
 						</a>
 					{/if}
-					<button
-						onclick={() => loadData()}
-						class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-					>
-						Reintentar
-					</button>
+					{#if actions.signIn}
+						<a
+							href={loginUrl($page.url.pathname)}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+						>
+							Iniciar sesión
+						</a>
+					{/if}
+					{#if actions.retry}
+						<button
+							onclick={() => loadData()}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+						>
+							Reintentar
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>

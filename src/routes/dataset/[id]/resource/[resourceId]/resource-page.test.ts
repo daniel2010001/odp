@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/svelte";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { goto } from "$app/navigation";
 import { page } from "$app/stores";
-import type { CkanPackage, CkanResource } from "$lib/types/ckan";
+import { loginUrl, sessionExpiredLoginUrl } from "$lib/session";
+import { auth } from "$lib/stores/auth";
+import { CkanApiError } from "$lib/types/api";
+import type { CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import ResourcePage from "./+page.svelte";
 
 // El stub de `$app/stores` (ver vitest.config.ts) expone `page` como store escribible, pero el
@@ -14,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 	showResource: vi.fn(),
 	showDataset: vi.fn(),
 	search: vi.fn(),
+	check: vi.fn(),
 }));
 
 vi.mock("$lib/env", () => ({
@@ -29,6 +34,23 @@ vi.mock("$lib/api/datasets", () => ({
 vi.mock("$lib/api/datastore", () => ({
 	createDatastoreApi: () => ({ search: mocks.search }),
 }));
+// La sonda de sesión se inyecta como mock: la decisión `resolveUnauthorized` que la usa sigue
+// siendo la real, así que la expulsión y su orden se miden de verdad.
+vi.mock("$lib/api/session", () => ({
+	createSessionApi: () => ({ check: mocks.check }),
+}));
+
+const RESOURCE_PATH = "/dataset/matricula-2026/resource/res-1";
+const SHOWCASE_PATH = "/dataset/showcase-observatorio-movilidad/resource/res-showcase-1";
+
+const baseUser: CkanUser = {
+	id: "u-1",
+	name: "jdoe",
+	display_name: "Jane Doe",
+	created: "2026-01-01T00:00:00.000000",
+	state: "active",
+	sysadmin: false,
+};
 
 function makeResource(overrides: Partial<CkanResource> = {}): CkanResource {
 	return {
@@ -64,6 +86,10 @@ function makeDataset(): CkanPackage {
 	};
 }
 
+function setParams(params: Record<string, string>, path = RESOURCE_PATH) {
+	pageStore.set({ params, url: new URL(`http://localhost${path}`) });
+}
+
 /** Todos los `href` renderizados en la página. */
 function renderedHrefs(container: HTMLElement): string[] {
 	return Array.from(container.querySelectorAll("a[href]")).map(
@@ -73,13 +99,21 @@ function renderedHrefs(container: HTMLElement): string[] {
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	pageStore.set({
-		params: { id: "matricula-2026", resourceId: "res-1" },
-		url: new URL("http://localhost/"),
-	});
+	auth.reset();
+	setParams({ id: "matricula-2026", resourceId: "res-1" });
 	mocks.showResource.mockResolvedValue(makeResource());
 	mocks.showDataset.mockResolvedValue(makeDataset());
 	mocks.search.mockResolvedValue({ fields: [], records: [], total: 0 });
+	// Sonda por defecto no concluyente: sólo los tests de sesión viva/muerta la cambian.
+	mocks.check.mockResolvedValue({
+		state: "inconclusive",
+		error: new CkanApiError("Server Error", 500),
+	});
+});
+
+afterEach(() => {
+	vi.unstubAllEnvs();
+	auth.reset();
 });
 
 describe("Página de recurso — enlaces externos", () => {
@@ -120,5 +154,192 @@ describe("Página de recurso — enlaces externos", () => {
 
 		expect(renderedHrefs(container).some((href) => href.startsWith("javascript:"))).toBe(false);
 		expect(screen.queryByRole("link", { name: /Ver documentación de la API/i })).toBeNull();
+	});
+});
+
+describe("Página de recurso — estados de fallo honestos", () => {
+	it("ante un 403 anónimo dice que el recurso es privado y ofrece iniciar sesión, sin decir que no existe", async () => {
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await screen.findByText(/este recurso es privado/i);
+		expect(screen.getByText(/inicie sesión con una cuenta autorizada/i)).toBeTruthy();
+		expect(screen.queryByText(/no encontrado/i)).toBeNull();
+
+		const signIn = screen.getByRole("link", { name: /Iniciar sesión/i });
+		expect(signIn.getAttribute("href")).toBe(loginUrl(RESOURCE_PATH));
+		// El parámetro de expiración haría que el login mienta: el espectador nunca tuvo sesión.
+		expect(signIn.getAttribute("href")).not.toContain("expired");
+		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+	});
+
+	it("ante un 403 con sesión viva dice que la cuenta no está autorizada, sin pedir iniciar sesión ni ofrecer reintento", async () => {
+		auth.login("tok-123", baseUser);
+		mocks.check.mockResolvedValue({ state: "alive", user: baseUser });
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await screen.findByText(/su cuenta no está autorizada para ver este recurso/i);
+		expect(screen.queryByText(/inicie sesión/i)).toBeNull();
+		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
+		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+	});
+
+	it("ante un 403 con sonda no concluyente no afirma ninguna causa y ofrece reintentar", async () => {
+		auth.login("tok-123", baseUser);
+		mocks.check.mockResolvedValue({ state: "inconclusive", error: new CkanApiError("x", 500) });
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await screen.findByText(/puede que su sesión ya no sea válida/i);
+		expect(screen.getByText("No se pudo confirmar el acceso")).toBeTruthy();
+		// Subjuntivo («no esté autorizada») como posibilidad, no como hecho.
+		expect(screen.queryByText(/no está autorizada/i)).toBeNull();
+		expect(screen.getByRole("button", { name: /Reintentar/i })).toBeTruthy();
+		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
+	});
+
+	it("ante una sesión muerta expulsa al login con el motivo y no renderiza estado de fallo", async () => {
+		auth.login("tok-123", baseUser);
+		mocks.check.mockResolvedValue({ state: "dead" });
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
+		expect(vi.mocked(goto).mock.calls[0][0]).toBe(sessionExpiredLoginUrl(RESOURCE_PATH));
+		expect(
+			screen.queryByText(/no autorizada|es privado|no encontrado|no se pudo confirmar/i),
+		).toBeNull();
+		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+	});
+
+	it("si la navegación de la expulsión falla, no se queda cargando ni afirma una causa: cae al estado no concluyente", async () => {
+		// Caso defensivo: la sonda decidió `dead`, pero el `goto` de la expulsión rechaza. La sesión ya
+		// se limpió y la navegación no ocurrió, así que el portal no puede afirmar «su sesión expiró»
+		// (nadie llegó al login) ni «su cuenta no está autorizada». Debe salir del esqueleto de carga
+		// y aterrizar en el estado que no afirma ninguna de las dos causas, con reintento.
+		auth.login("tok-123", baseUser);
+		mocks.check.mockResolvedValue({ state: "dead" });
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+		vi.mocked(goto).mockRejectedValueOnce(new Error("navigation failed"));
+
+		const { container } = render(ResourcePage);
+
+		await screen.findByText("No se pudo confirmar el acceso");
+		expect(screen.getByText(/puede que su sesión ya no sea válida/i)).toBeTruthy();
+		expect(screen.queryByText(/no está autorizada/i)).toBeNull();
+		expect(screen.getByRole("button", { name: /Reintentar/i })).toBeTruthy();
+		expect(container.querySelector(".animate-pulse")).toBeNull();
+		expect(vi.mocked(goto).mock.calls[0][0]).toBe(sessionExpiredLoginUrl(RESOURCE_PATH));
+	});
+
+	it("ante un 404 muestra el estado no encontrado sin reintento ni inicio de sesión", async () => {
+		mocks.showResource.mockRejectedValue(new CkanApiError("Not Found", 404));
+
+		render(ResourcePage);
+
+		await screen.findByText(/no se encontró el recurso solicitado/i);
+		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
+	});
+
+	it("ante un catálogo inalcanzable informa la conexión y ofrece reintentar, sin decir que falta o es privado", async () => {
+		vi.stubEnv("DEV", true);
+		mocks.showResource.mockRejectedValue(new CkanApiError("Server Error", 500));
+
+		render(ResourcePage);
+
+		await screen.findByText(/no se pudo conectar con el catálogo de datos/i);
+		expect(screen.queryByText(/no encontrado|privado/i)).toBeNull();
+		expect(screen.getByRole("button", { name: /Reintentar/i })).toBeTruthy();
+	});
+
+	it("en DEV, un fallo no definitivo todavía puede enmascararse con datos mock", async () => {
+		vi.stubEnv("DEV", true);
+		setParams(
+			{ id: "showcase-observatorio-movilidad", resourceId: "res-showcase-1" },
+			SHOWCASE_PATH,
+		);
+		mocks.showResource.mockRejectedValue(new TypeError("Failed to fetch"));
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { name: /Flujos vehiculares/i });
+	});
+
+	it("en DEV, un 403 definitivo nunca se enmascara con el mock aunque el id exista", async () => {
+		vi.stubEnv("DEV", true);
+		setParams(
+			{ id: "showcase-observatorio-movilidad", resourceId: "res-showcase-1" },
+			SHOWCASE_PATH,
+		);
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await screen.findByText(/este recurso es privado/i);
+		expect(screen.queryByText(/Flujos vehiculares/i)).toBeNull();
+	});
+
+	it("en DEV, un 404 definitivo tampoco se enmascara con el mock aunque el id exista", async () => {
+		vi.stubEnv("DEV", true);
+		setParams(
+			{ id: "showcase-observatorio-movilidad", resourceId: "res-showcase-1" },
+			SHOWCASE_PATH,
+		);
+		mocks.showResource.mockRejectedValue(new CkanApiError("Not Found", 404));
+
+		render(ResourcePage);
+
+		await screen.findByText(/no se encontró el recurso solicitado/i);
+		expect(screen.queryByText(/Flujos vehiculares/i)).toBeNull();
+	});
+
+	it("el título del documento refleja el fallo y no siempre dice «Recurso no encontrado»", async () => {
+		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await screen.findByText(/este recurso es privado/i);
+		await waitFor(() => expect(document.title).toBe("Recurso privado — UMSS"));
+	});
+
+	it("con un segmento de ruta vacío muestra su propio estado, sin reintento ni inicio de sesión", async () => {
+		setParams({ id: "matricula-2026", resourceId: "" }, "/dataset/matricula-2026/resource/");
+
+		render(ResourcePage);
+
+		await screen.findByText(/parámetros de navegación inválidos/i);
+		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
+		expect(screen.getByRole("link", { name: /Volver al dataset/i })).toBeTruthy();
+		expect(mocks.showResource).not.toHaveBeenCalled();
+	});
+});
+
+describe("Página de recurso — el dataset del breadcrumb", () => {
+	it("un 403 definitivo del dataset no se enmascara en DEV: el recurso se muestra y el breadcrumb degrada", async () => {
+		vi.stubEnv("DEV", true);
+		setParams({ id: "showcase-observatorio-movilidad", resourceId: "res-1" }, SHOWCASE_PATH);
+		mocks.showDataset.mockRejectedValue(new CkanApiError("Access denied", 403));
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { name: /Matrícula 2026/i });
+		expect(screen.queryByText(/Observatorio de Movilidad/i)).toBeNull();
+	});
+
+	it("un fallo no definitivo del dataset todavía puede caer al mock del breadcrumb en DEV", async () => {
+		vi.stubEnv("DEV", true);
+		setParams({ id: "showcase-observatorio-movilidad", resourceId: "res-1" }, SHOWCASE_PATH);
+		mocks.showDataset.mockRejectedValue(new TypeError("Failed to fetch"));
+
+		render(ResourcePage);
+
+		await screen.findByText(/Observatorio de Movilidad/i);
 	});
 });
