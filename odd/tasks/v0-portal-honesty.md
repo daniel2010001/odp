@@ -87,18 +87,74 @@ Author's decisions, 2026-09-19:
 
 ## Slice B — D2 + D3: the portal knows whether the session is alive
 
-Pending. Ordering inside the slice is **D2 first**: detect the invalid session with a read-only
-authenticated probe, force re-login, and only then gate the CTA on "organizations loaded **and** session
-valid". Needs a measurement: which action answers `403` for a dead token and `200` for a valid
-non-sysadmin token. **Candidate from probe A2-prep**: `user_show {}` — with a valid token it answers
-`200` and returns the caller; its dead-token answer still has to be measured.
+**The measurement is closed (2026-09-20); full transcript in the evidence log**, entry «B1 · probe before
+the RED test». Measured through the dev proxy the browser actually uses
+(`http://localhost:8082/api/3/action`):
 
-**Contract gap to close in the spec, not in the portal alone.** `openspec/specs/authentication/spec.md`
-has nine requirements — Login Proxy, Success, Failure, Rate Limiting, **Session Persistence**,
-Logout, Header User Menu, Dashboard Guard, Super Admin Flag — and **none covers an invalid or expired
-token**. So this slice does not contradict that spec; it fills a hole in it. Extending
-`openspec/specs/authentication/spec.md` (an invalid session must be detected and must force re-login) is
-part of slice B, not an afterthought.
+| Caller | `user_show {}` | `organization_list_for_user {permission:create_dataset}` |
+|---|---|---|
+| no token / expired / revoked / garbage | **404** `Not Found Error` | **200 `[]`** |
+| valid non-sysadmin, with organizations | **200** + the caller | `200` + the organization |
+| valid non-sysadmin, **without** organizations | **200** + the caller | `200 []` |
+| valid sysadmin | 200 + the caller | 200 + the organization |
+
+- **The signal is a 404 and it is unambiguous.** `user_show {}` carries no id, so no resource can be
+  missing; and the dashboard only renders when the store holds a token. `200` = alive, `404` with a token
+  present = dead. **No 401 and no 403 exist for this condition.**
+- **`user_show {id: <someone>}` cannot be the probe**: it answers `200` to an anonymous caller.
+- **No new CKAN surface**: `user_show` is the action the login flow already uses to resolve the caller.
+- **The D2 × D3 compound is confirmed at the source**: an expired token and an anonymous caller get the
+  *identical* `200 []` from `organization_list_for_user`, which is the `[]` the wizard turns into
+  «Necesita rol de editor… Solicite a un administrador». A **live** user with no organizations also gets
+  `[]` — correct for them — so only the probe tells the two apart.
+- **Extra finding (D1 × D2), not previously recorded**: `package_search {include_private:true}` answers
+  count **17** with a live editor token and **16** with that same token revoked. A dead session makes
+  «Mis datasets» report a **plausible, wrong total with no error** — the honest counter slice A delivered
+  depends on a live session. With the slice A `fq=+creator_user_id:<me>` the same case returns 0, which is
+  exactly the false empty state this feature exists to kill.
+
+**Decisions (author, 2026-09-20)**:
+
+1. **A dead session is cleared, then redirected**: `auth.invalidate()` (local clear, no server revoke) and
+   then `/auth/login?returnTo=/dashboard&expired=1`, where the login screen shows the notice. Same shape as
+   the existing Dashboard Guard, which redirects instead of blocking.
+2. **The slice also fixes the wizard's false diagnosis**, as its own work unit, because that is where the
+   compound produces the false permissions message.
+3. **The UI is proposed in a playground first** (`AGENTS.md` rule 8), then promoted and deleted.
+4. **One commit per work unit**, tests and docs beside their code, on `feat/v0-portal-honesty`.
+
+**Ordering trap, read in the code**: `src/routes/auth/login/+page.svelte:20-23` sends a viewer holding a
+ token straight back to `/dashboard`. Navigating to the login screen **before** clearing the dead session
+ produces a redirect loop. Clearing first, navigation second.
+
+**Task list:**
+
+- [ ] **B1 · The session probe** (`src/lib/api/`): one function reporting three states — `alive` (200, with
+  the caller), `dead` (404 `Not Found Error`), **`inconclusive`** (5xx, timeout, network failure). **Only a
+  definite 404 closes a session**: a CKAN hiccup must never expel a signed-in user. Tests first.
+- [ ] **B2 · Store — one condition, one message**: `auth.invalidate()` beside `logout()` (which revokes on
+  the server and is useless with a dead token). Absorb the component-local throw at
+  `routes/dashboard/+page.svelte:67` into that single condition, so one condition never has two messages.
+- [ ] **B3 · Playground** (`/dev/dashboard/...`): the action grid, the sticky bar, both empty states and the
+  login notice, with a switcher for (a) live session with organizations, (b) live session without, (c)
+  still loading, (d) dead session. Author reviews, we iterate, then promote and delete.
+- [ ] **B4 · Dashboard — probe before the gate (D2)**: probe on mount, before any decision. Dead → clear,
+  then navigate. Alive → the caller the probe returned **is** the identity, and the `!userId` throw goes away.
+- [ ] **B5 · Dashboard — the CTA (D3)**: the action grid and the sticky bar share one condition,
+  «organizations loaded and non-empty». The organizations empty state keeps its copy, which only becomes
+  true once the session is known to be alive.
+- [ ] **B6 · Login — the notice**: reuse the existing `role="alert"` block; «Su sesión expiró o dejó de ser
+  válida. Inicie sesión nuevamente.»
+- [ ] **B7 · Wizard — the false diagnosis**: the same probe, so a dead session no longer reads as «ask an
+  administrator for a role».
+- [ ] **B8 · Spec extension (a real contract change)**: `openspec/specs/authentication/spec.md` has nine
+  requirements — Login Proxy, Success, Failure, Rate Limiting, **Session Persistence**, Logout, Header User
+  Menu, Dashboard Guard, Super Admin Flag — and **none covers an invalid or expired token**. Add one, with
+  scenarios: a dead token on an authenticated screen clears the session and forces re-login; **an
+  unavailable CKAN is not an invalid session**; a valid session is left alone.
+- [ ] **B9 · Gates and live verification**: `pnpm test`, `pnpm check`, `pnpm lint`, plus the live check —
+  revoke the token in CKAN, reload the dashboard, watch the re-login happen.
+- [ ] **B10 · Work-unit commits.**
 
 ## Slice C — D4: honest status-to-message mapping
 
@@ -258,3 +314,58 @@ passed 11/11 earlier today on an idle machine. The evidence above comes from inv
 and config **directly** (the ELF, not the Node launcher), which is what makes the repo-wide baseline
 checkable at all. So: the changed files are clean, the repo baseline is unchanged, and the npm-script path
 remains unverified until the machine is idle.
+
+**B1 · probe before the RED test (2026-09-20), PASS — the slice's open question is answered, and the answer
+is not the one the document guessed.**
+
+What had to be measured: **can the portal tell a dead session from an anonymous caller?** The document
+previously guessed `403` for a dead token. **There is no 403 anywhere in this condition.**
+
+Method: four probe rounds (scripts in `/tmp/probe_sliceB*.sh`, not in the repository) against the running
+`odp-dev` stack through the dev proxy, which is the same path the browser uses —
+`http://localhost:8082/api/3/action` — plus a sysadmin token minted inside the container with
+`ckan -c /srv/app/ckan.ini user token add ckan_admin <name> expires_in=1 unit=86400 -q`.
+
+```
+                                                     user_show {}   org_list_for_user{create_dataset}
+no token         (anonymous)                         404 Not Found  200 []
+expired token    (exp in the past)                   404 Not Found  200 []
+revoked token    (api_token_revoke)                 404 Not Found  200 []
+garbage token    ("not-a-token", truncated JWT)      404 Not Found  200 []
+VALID non-sysadmin, editor in an organization        200 + caller   200 [direccion-investigacion]
+VALID non-sysadmin, no organizations                 200 + caller   200 []
+VALID sysadmin                                       200 + caller   200 [direccion-investigacion]
+public control   expired token on status_show         200 (public reads give nothing away)
+```
+
+And the D1 × D2 measurement the document did not ask for:
+
+```
+package_search {include_private:true}  VALID editor -> count 17
+                                       REVOKED same token -> count 16
+```
+
+- **`user_show {}` is the probe**, and it needs no new permission surface: the login flow already calls it
+  (`src/lib/server/ckan-auth.ts`) to resolve the caller. It carries no id, so a 404 there cannot mean
+  "missing resource"; and the dashboard renders only with a token in `localStorage`, so "token present and
+  404" is unambiguous. `user_show {id: X}` was rejected as a candidate: it answers 200 to an anonymous
+  caller.
+- **The `` `403` `` guess in the earlier revision of this document is refuted.** Any design that maps
+  `404 → does not exist` (slice C, D4) must exclude this probe explicitly, or it will read "your session
+  died" as "the resource is missing".
+- **The dead session's `200 []` is byte-identical to a live user with no organizations** — the compound
+  D2 × D3, measured rather than inferred. The wizard's «Solicite a un administrador» is therefore a false
+  diagnosis for exactly the case in which the user needs no permission at all.
+- **A live session is required for slice A's own honesty**: with the token revoked, the counter drops by the
+  private dataset (17 → 16) with no error at all.
+- **Fixture discipline**: a non-sysadmin fixture user was created, granted editor in
+  `direccion-investigacion`, given a token, measured, and removed (`user_create` · `member_create` ·
+  `api_token_create {expires_in:1, unit:86400}` · `api_token_revoke` · `member_delete` · `user_delete`). In
+  this CKAN `expires_in` and `unit` are **mandatory** on `api_token_create` — both in the CLI and in the
+  action — and `unit` is seconds, so `expires_in:1 unit:1` mints a token that dies in one second, which is
+  how the expired case was produced.
+- **Residual, stated rather than hidden**: the three fixture users survive as `state='deleted'` rows, the
+  same residual `probe.sh` documents (CKAN 2.11.6 exposes no user hard-delete). Their tokens were revoked;
+  the sysadmin probe token was revoked as well. The catalogue was left intact: **16 public + 1 private**.
+- **Loop trap recorded**: with a dead token still in the store, navigating to `/auth/login` bounces back to
+  `/dashboard` (`auth/login/+page.svelte:20-23`), so clearing must precede navigation.
