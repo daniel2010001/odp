@@ -7,6 +7,7 @@ import { login as apiLogin } from "$lib/api/auth";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { loginSchema } from "$lib/schemas/auth";
+import { SESSION_EXPIRED_MESSAGE, SESSION_EXPIRED_PARAM } from "$lib/session";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 
 let username = $state("");
@@ -14,16 +15,26 @@ let password = $state("");
 let loading = $state(false);
 let error = $state<string | null>(null);
 let fieldErrors = $state<{ username?: string; password?: string }>({});
+// El motivo de la vuelta al login vive en el estado, no en el store de la página: es un dato del
+// montaje, y el aviso se apaga en cuanto el usuario vuelve a intentar entrar.
+let avisoSesionExpirada = $state(false);
 
 onMount(() => {
 	if (get(isAuthenticated)) {
 		void goto("/dashboard");
+		return;
 	}
+	// Se lee una sola vez en el montaje: `get(page)` dentro de un `$derived` no es reactivo aquí,
+	// y la URL no puede cambiar sin un remontaje.
+	avisoSesionExpirada = get(page).url.searchParams.has(SESSION_EXPIRED_PARAM);
 });
 
 async function handleSubmit(event: SubmitEvent) {
 	event.preventDefault();
 	error = null;
+	// Un intento nuevo es una causa nueva: el aviso de la vuelta anterior no puede sobrevivir al
+	// envío, o el usuario vería a la vez el mensaje viejo y el error del intento actual.
+	avisoSesionExpirada = false;
 	fieldErrors = {};
 
 	const parsed = loginSchema.safeParse({ username, password });
@@ -98,12 +109,12 @@ async function handleSubmit(event: SubmitEvent) {
 				{/if}
 			</div>
 
-			{#if error}
+			{#if error || avisoSesionExpirada}
 				<div
 					role="alert"
 					class="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
 				>
-					{error}
+					{error ?? SESSION_EXPIRED_MESSAGE}
 				</div>
 			{/if}
 
