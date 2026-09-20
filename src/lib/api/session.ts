@@ -13,10 +13,21 @@
 // un estado de autenticación, devuelve un 404 seco. Por eso el 404 es la única
 // señal de sesión muerta.
 //
-// **Por qué el 404 es inequívoco acá.** La sonda no pide ningún `id`, así que un
-// 404 no puede significar «el recurso no existe»: no hay recurso que falte. Y el
-// dashboard sólo ejecuta la sonda cuando ya tiene un token guardado, de modo que
-// «hay token y `user_show {}` da 404» sólo admite una lectura: el token murió.
+// **Por qué el 404 se corrobora.** La sonda no pide ningún `id`, así que un 404
+// no puede significar «el recurso no existe»: no hay recurso que falte. Pero un
+// 404 tampoco prueba por sí solo que el token murió: una base URL o un proxy mal
+// configurados hacen que `/api/3/action/user_show` devuelva 404 aunque CKAN esté
+// sano. Por eso el 404 no cierra la sesión por sí mismo; se corrobora con una
+// lectura pública.
+//
+// **La corroboración: `status_show`.** Medido, `status_show {}` responde 200
+// tanto con token válido como con token muerto: no depende de la sesión. Por eso
+// un 200 es prueba conductual de que CKAN está contestando y el 404 de
+// `user_show` fue el rechazo del token. Si la lectura pública falla (404, 5xx,
+// timeout, red, cuerpo no-JSON), el despliegue no llega a la acción: eso es
+// infraestructura, no una sesión muerta, y se responde `inconclusive`. Expulsar a
+// todos los usuarios autenticados es peor que no saber; las pantallas informan su
+// propio error de carga.
 //
 // **Por qué la sonda no es `user_show {id}`.** Se descartó como sonda: medido,
 // `user_show` con `id` responde 200 a un llamador anónimo, así que jamás
@@ -66,7 +77,18 @@ export function createSessionApi(client: CkanClient) {
 			} catch (err) {
 				// Sólo el 404 medido cierra la sesión; cualquier otro fallo se informa sin tocarla.
 				if (err instanceof CkanApiError && err.status === 404) {
-					return { state: "dead" };
+					// Corroboración conductual (ver encabezado): un 404 de `user_show {}`
+					// puede venir de CKAN (token rechazado) o de una base URL/proxy roto.
+					// `status_show` no depende de la sesión, así que un 200 prueba que CKAN
+					// está contestando. Si la lectura pública falla, el despliegue no llega
+					// a la acción: es infraestructura, no una sesión muerta, y expulsar a
+					// todos los usuarios es peor que responder `inconclusive`.
+					try {
+						await client.post("status_show", {});
+						return { state: "dead" };
+					} catch {
+						return { state: "inconclusive", error: err };
+					}
 				}
 				return { state: "inconclusive", error: toCkanApiError(err) };
 			}
