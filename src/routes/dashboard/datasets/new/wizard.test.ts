@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { get } from "svelte/store";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
-import { auth } from "$lib/stores/auth";
+import { sessionExpiredLoginUrl } from "$lib/session";
+import { auth, isAuthenticated } from "$lib/stores/auth";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanLicense, CkanOrganization, CkanPackage, CkanUser } from "$lib/types/ckan";
 import Wizard from "./+page.svelte";
 
@@ -12,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 	resourceCreate: vi.fn(),
 	licenseList: vi.fn(),
 	tagSuggestions: vi.fn(),
+	sessionCheck: vi.fn(),
 }));
 
 vi.mock("$lib/env", () => ({
@@ -31,6 +35,11 @@ vi.mock("$lib/api/upload", () => ({
 }));
 vi.mock("$lib/api/resources", () => ({
 	createResourceApi: () => ({ create: mocks.resourceCreate }),
+}));
+// La sonda de sesión se controla por test: su veredicto decide si las cargas corren o si se expulsa
+// al usuario por el mismo camino que el dashboard. Por defecto la sesión vive.
+vi.mock("$lib/api/session", () => ({
+	createSessionApi: () => ({ check: mocks.sessionCheck }),
 }));
 
 beforeAll(() => {
@@ -123,6 +132,9 @@ beforeEach(() => {
 	mocks.resourceCreate.mockResolvedValue({} as never);
 	mocks.licenseList.mockResolvedValue(licenseListFixture);
 	mocks.tagSuggestions.mockResolvedValue(["matrícula", "estudiantes"]);
+	// Por defecto la sesión vive y el llamador es el usuario autenticado; los tests que necesitan una
+	// sesión muerta o inconclusa pisan este veredicto.
+	mocks.sessionCheck.mockResolvedValue({ state: "alive", user: baseUser });
 });
 
 describe("Wizard de publicación", () => {
@@ -648,5 +660,67 @@ describe("Wizard de publicación", () => {
 				url: "https://example.org/diccionario.pdf",
 			}),
 		);
+	});
+});
+
+describe("Sonda de sesión del asistente (D2)", () => {
+	it("dead: no carga nada, deja la sesión anónima y no diagnostica un permiso inexistente", async () => {
+		mocks.sessionCheck.mockResolvedValue({ state: "dead" });
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		await waitFor(() =>
+			expect(goto).toHaveBeenCalledWith(sessionExpiredLoginUrl("/dashboard/datasets/new")),
+		);
+		// El destino viaja en la URL: el motivo (`expired`) y la vuelta codificada (`returnTo`).
+		const destino = vi.mocked(goto).mock.calls[0][0] as string;
+		expect(destino).toContain("expired=1");
+		expect(destino).toContain("returnTo=%2Fdashboard%2Fdatasets%2Fnew");
+
+		// Una sesión caída no produce ni una consulta: el `200 []` de organizaciones nunca se lee.
+		expect(mocks.listForUser).not.toHaveBeenCalled();
+		expect(mocks.licenseList).not.toHaveBeenCalled();
+		expect(mocks.tagSuggestions).not.toHaveBeenCalled();
+
+		// La sesión muerta se limpia antes de navegar y no deja rastro para el guard de `/auth/login`.
+		expect(get(isAuthenticated)).toBe(false);
+		expect(localStorage.getItem("auth")).toBeNull();
+
+		// Medido: un token muerto y un editor vivo sin organizaciones reciben el mismo `200 []`. Sin la
+		// sonda, ese `[]` se leía como un diagnóstico de permiso falso. Acá no debe aparecer nunca.
+		expect(screen.queryByText(/necesita rol de editor/i)).not.toBeInTheDocument();
+	});
+
+	it("inconclusive: carga organizaciones, licencias y etiquetas, y no expulsa", async () => {
+		mocks.sessionCheck.mockResolvedValue({
+			state: "inconclusive",
+			error: new CkanApiError("Server Error", 500),
+		});
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		// Un hipo de CKAN no puede dejar al usuario sin asistente: se carga con la sesión guardada.
+		await waitFor(() => expect(mocks.listForUser).toHaveBeenCalledTimes(1));
+		expect(mocks.licenseList).toHaveBeenCalledTimes(1);
+		expect(mocks.tagSuggestions).toHaveBeenCalledTimes(1);
+		expect(goto).not.toHaveBeenCalled();
+		expect(get(isAuthenticated)).toBe(true);
+	});
+
+	it("viva sin organización: conserva el mensaje honesto en vez del de sesión expirada", async () => {
+		// La sonda confirma que la sesión vive, pero el llamador no tiene ninguna organización: es el
+		// caso legítimo del `200 []` que la sonda **no** debe confundir con una sesión muerta.
+		mocks.listForUser.mockResolvedValue([]);
+		auth.login("tok-123", baseUser);
+
+		render(Wizard);
+
+		await screen.findByText(/necesita rol de editor/i);
+		expect(
+			screen.getByText(/solicite a un administrador que le asigne permisos/i),
+		).toBeInTheDocument();
+		expect(goto).not.toHaveBeenCalled();
 	});
 });

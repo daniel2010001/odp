@@ -24,6 +24,7 @@ import { createDatasetApi } from "$lib/api/datasets";
 import { createLicenseApi } from "$lib/api/licenses";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createResourceApi } from "$lib/api/resources";
+import { createSessionApi } from "$lib/api/session";
 import { UploadError, uploadResourceFile } from "$lib/api/upload";
 import TagsInput from "$lib/components/form/TagsInput.svelte";
 import MarkdownEditor from "$lib/components/markdown/MarkdownEditor.svelte";
@@ -44,6 +45,7 @@ import {
 	MAX_RESOURCE_URL_LENGTH,
 	resourceCreateSchema,
 } from "$lib/schemas/resource";
+import { endInvalidSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 import type { CkanLicense, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
@@ -282,10 +284,38 @@ onMount(() => {
 		return;
 	}
 	authed = true;
+	void iniciarAsistente();
+});
+
+// La sonda corre **antes** de las cargas. Medido (2026-09-20): `organization_list_for_user` con
+// `create_dataset` responde `200 []` igual para una sesión muerta que para un editor vivo sin
+// organizaciones. Sin la sonda, el asistente leería ese `[]` como «no tiene organización» y
+// diagnosticaría un permiso inexistente a quien sólo perdió la sesión.
+async function iniciarAsistente() {
+	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
+	// sesión vacía que el guard de `/auth/login` no puede distinguir de una real.
+	const token = get(auth).token;
+	const check = await createSessionApi(makeClient()).check();
+
+	if (check.state === "dead") {
+		// Sesión caída: se limpia y se vuelve al login sin cargar nada; el `[]` de organizaciones nunca
+		// llega a leerse como un diagnóstico de permiso.
+		await endInvalidSession("/dashboard/datasets/new");
+		return;
+	}
+
+	if (check.state === "alive" && token) {
+		// El llamador que devolvió la sonda **es** la identidad: se refresca el store con él para que
+		// la sesión guardada no sobreviva obsoleta.
+		auth.login(token, check.user);
+	}
+
+	// `inconclusive` (5xx, timeout, red): un hipo de CKAN no expulsa a nadie autenticado. Se carga
+	// con la sesión guardada, sin limpiarla ni navegar.
 	void loadOrganizations();
 	void loadLicenses();
 	void loadTagSuggestions();
-});
+}
 
 async function loadOrganizations() {
 	orgLoading = true;

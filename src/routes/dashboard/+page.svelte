@@ -22,7 +22,7 @@ import { createSessionApi } from "$lib/api/session";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
-import { sessionExpiredLoginUrl } from "$lib/session";
+import { endInvalidSession } from "$lib/session-guard";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
@@ -71,7 +71,7 @@ async function iniciarPanel() {
 	if (check.state === "dead") {
 		// Limpiar **antes** de navegar: el guard de `/auth/login` reenvía al dashboard a quien todavía
 		// tiene un token guardado, así que navegar primero produciría un bucle de redirección.
-		await expulsarSesionMuerta();
+		await endInvalidSession("/dashboard");
 		return;
 	}
 
@@ -87,16 +87,6 @@ async function iniciarPanel() {
 	void loadOrganizations();
 }
 
-/**
- * Cierra una sesión que ya no sirve: la limpia y manda al login con el motivo. Es el **único** camino
- * de expulsión, compartido por la sonda `dead` y por la sesión local corrupta (token sin identidad),
- * para que una sola condición tenga un solo mensaje y una sola ruta.
- */
-async function expulsarSesionMuerta() {
-	auth.logout();
-	await goto(sessionExpiredLoginUrl("/dashboard"));
-}
-
 async function loadDatasets(permitirCorreccion = true) {
 	datasetsLoading = true;
 	datasetsError = null;
@@ -108,7 +98,7 @@ async function loadDatasets(permitirCorreccion = true) {
 			// Sesión local corrupta: hay token pero no identidad. Medido, para la UI es la misma
 			// condición que un token muerto (la sonda `dead` respondió 404), así que va por el mismo
 			// camino —una condición, un mensaje, una ruta— en vez de un segundo diagnóstico.
-			await expulsarSesionMuerta();
+			await endInvalidSession("/dashboard");
 			return;
 		}
 		const result = await datasetApi.currentUser(userId, {
