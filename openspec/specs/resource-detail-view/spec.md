@@ -94,3 +94,50 @@ If the requested resource does not exist, the page MUST render a "Resource not f
 - WHEN the user navigates to that resource detail page
 - THEN a "Resource not found" message is displayed
 - AND a link back to the parent dataset is provided
+
+### Requirement: Authorization Failure Is Not a Missing Resource
+
+An authorization failure (HTTP `403`) MUST NOT be rendered as the "not found" state, and the two MUST remain distinguishable to the viewer. Because the catalog answers the same `403` to a session that is no longer valid and to a genuine permission denial, the message MUST agree with what is known about the viewer's session instead of asserting a single cause.
+
+#### Scenario: Authorization failure is not a missing resource
+
+- GIVEN a resource that exists but is not readable by the current viewer
+- WHEN the catalog answers with a `403` authorization failure
+- THEN the page renders an authorization state
+- AND the state does not state that the resource was not found
+
+#### Scenario: Viewer with a live session is not authorized
+
+- GIVEN a viewer whose stored session is still valid and whose account is not authorized to read the resource
+- WHEN the catalog answers with a `403`
+- THEN the message states that the resource exists but the account is not authorized to see it
+- AND the message does not ask the viewer to sign in
+
+#### Scenario: Stored session is no longer valid
+
+- GIVEN a viewer whose stored session is no longer valid
+- WHEN the catalog answers with a `403`
+- THEN the viewer is handled as holding an invalid session, as the authentication capability defines
+- AND the viewer is not shown an authorization message as if the account lacked permission
+
+#### Scenario: Viewer with no session
+
+- GIVEN a viewer with no stored session
+- WHEN the catalog answers with a `403` for a private resource
+- THEN the message states that the resource is private and asks the viewer to sign in with an authorized account
+- AND the message does not state that the session expired
+
+#### Scenario: Unavailable catalog is not an absent or private resource
+
+- GIVEN the catalog cannot be reached, times out, or answers with a server error
+- WHEN the page loads
+- THEN the page reports a connection or catalog failure
+- AND the state does not state that the resource is missing or private
+- AND retrying is presented as reasonable
+
+#### Scenario: Development does not mask a definitive answer
+
+- GIVEN the application runs in development
+- WHEN the catalog answers with a definitive `403` or `404`
+- THEN the failure is reported to the viewer
+- AND sample data is not substituted for the catalog's answer

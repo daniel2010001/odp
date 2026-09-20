@@ -18,7 +18,8 @@
 ## Próxima sesión — cerrar `v0-portal-honesty` (slices B y C)
 
 > **Dónde quedó todo (2026-09-19).** El **slice A está cerrado y commiteado** en la rama
-> `feat/v0-portal-honesty`, con tres commits **sin pushear**: `33158ee` (el listado respeta los
+> `feat/v0-portal-honesty`, con tres commits **ya pusheados** (la rama está en sincronía con
+> `origin/feat/v0-portal-honesty`): `33158ee` (el listado respeta los
 > permisos), `c959285` (documentación del slice) y `7d27547` (paginación). «Mis datasets» ya trae los
 > datasets que el usuario creó —incluidos los privados—, pagina de a 20 con rango compacto, y el badge
 > muestra el total en vez del largo de la página.
@@ -34,12 +35,15 @@
 >
 > **Lo que falta de la feature, en este orden:**
 > 1. **Slice B (D2 + D3) — CERRADO (2026-09-20).** La sonda de sesión, el CTA honesto y el aviso del login están
->    commiteados (`5d51452` … `f7b5562`, sin pushear). El detalle, la medición y la verificación viva están en
+>    commiteados y **pusheados** (`5d51452` … `f7b5562`). El detalle, la medición y la verificación viva están en
 >    `odd/tasks/v0-portal-honesty.md`. Lo que queda de la feature es sólo el slice C.
-> 2. **Slice C (D4) — el mapeo honesto de estado a mensaje.** Hoy un `403` se muestra como «Recurso
->    no encontrado» en `dataset/[id]/resource/[resourceId]/+page.svelte`, y en DEV un fallback a mock
->    lo enmascara. Implementarlo como **helper reutilizable**: es el requisito
->    `Distinguishable Authorization Errors` que la spec del ciclo de vida ya escribió.
+> 2. **Slice C (D4) — en curso (2026-09-20), sin commit todavía.** El mapeo honesto de estado a mensaje.
+>    Hoy un `403` se muestra como «Recurso no encontrado» en
+>    `dataset/[id]/resource/[resourceId]/+page.svelte`, y en DEV un fallback a mock lo enmascara. Se está
+>    implementando como **helper reutilizable**. La spec que este slice enmienda es
+>    `openspec/specs/resource-detail-view/spec.md`; **no** es el requisito
+>    `Distinguishable Authorization Errors` del ciclo de vida, que gobierna las respuestas HTTP del plugin
+>    de CKAN y no cómo el portal las muestra.
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
