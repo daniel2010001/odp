@@ -78,7 +78,7 @@ The check MUST be the authenticated action `user_show` **without `id`**: it answ
 - WHEN an authenticated screen mounts
 - THEN the stored session is cleared before any navigation
 - AND the viewer lands on `/auth/login` carrying the reason and the original destination
-- AND nothing derived from the dead session is rendered
+- AND the authenticated screen renders no content derived from the dead session: no identity, no listing, and no offer
 
 #### Scenario: Unavailable CKAN is not an invalid session
 

@@ -11,6 +11,7 @@ import Dashboard from "./+page.svelte";
 const mocks = vi.hoisted(() => ({
 	currentUser: vi.fn(),
 	listForUser: vi.fn(),
+	canCreateDataset: vi.fn(),
 	sessionCheck: vi.fn(),
 }));
 
@@ -21,7 +22,10 @@ vi.mock("$lib/api/datasets", () => ({
 	createDatasetApi: () => ({ currentUser: mocks.currentUser }),
 }));
 vi.mock("$lib/api/organizations", () => ({
-	createOrganizationApi: () => ({ listForUser: mocks.listForUser }),
+	createOrganizationApi: () => ({
+		listForUser: mocks.listForUser,
+		canCreateDataset: mocks.canCreateDataset,
+	}),
 }));
 // La sonda de sesión se controla por test: su veredicto decide qué se carga y qué se ofrece.
 vi.mock("$lib/api/session", () => ({
@@ -96,6 +100,9 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.currentUser.mockResolvedValue({ count: 1, results: [makePackage()] });
 	mocks.listForUser.mockResolvedValue([makeOrganization()]);
+	// La compuerta del panel pregunta lo mismo que el asistente; por defecto puede crear. Los tests
+	// que representan un `member` la pisan con `false`.
+	mocks.canCreateDataset.mockResolvedValue(true);
 	// Por defecto la sesión vive y el llamador es el usuario autenticado; los tests que necesitan
 	// una sesión muerta o inconclusa pisan este veredicto.
 	mocks.sessionCheck.mockResolvedValue({ state: "alive", user: baseUser });
@@ -112,21 +119,27 @@ describe("Dashboard", () => {
 		expect(mocks.sessionCheck).not.toHaveBeenCalled();
 	});
 
-	it("renderiza el saludo con el display_name cuando hay sesión", () => {
+	it("renderiza el saludo con el display_name cuando hay sesión", async () => {
 		auth.login("tok-123", baseUser);
 
 		render(Dashboard);
 
-		expect(screen.getByText(/hola, jane doe/i)).toBeInTheDocument();
+		// La identidad no se dibuja hasta que la sonda resuelve sin declarar la sesión muerta.
+		expect(await screen.findByText(/hola, jane doe/i)).toBeInTheDocument();
 		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it("muestra el badge de administrador cuando isSuperAdmin es true", () => {
+	it("muestra el badge de administrador cuando isSuperAdmin es true", async () => {
 		auth.login("tok-123", { ...baseUser, sysadmin: true });
+		// La identidad que manda es la que devuelve la sonda `alive`, no la guardada.
+		mocks.sessionCheck.mockResolvedValue({
+			state: "alive",
+			user: { ...baseUser, sysadmin: true },
+		});
 
 		render(Dashboard);
 
-		expect(screen.getByText(/^administrador$/i)).toBeInTheDocument();
+		expect(await screen.findByText(/^administrador$/i)).toBeInTheDocument();
 	});
 
 	it("consulta «Mis datasets» con el id del usuario autenticado", async () => {
@@ -237,6 +250,7 @@ describe("Dashboard", () => {
 	it("sin organizaciones no ofrece publicar en ninguna superficie (D3)", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
+		mocks.canCreateDataset.mockResolvedValue(false);
 		auth.login("tok-123", baseUser);
 
 		render(Dashboard);
@@ -285,8 +299,27 @@ describe("Sonda de sesión (D2)", () => {
 		// Y no se cargó nada: la sesión caída no debe producir ni una consulta.
 		expect(mocks.currentUser).not.toHaveBeenCalled();
 		expect(mocks.listForUser).not.toHaveBeenCalled();
+		expect(mocks.canCreateDataset).not.toHaveBeenCalled();
 		expect(get(isAuthenticated)).toBe(false);
 		expect(localStorage.getItem("auth")).toBeNull();
+	});
+
+	it("dead: no renderiza la identidad de la sesión guardada", async () => {
+		mocks.sessionCheck.mockResolvedValue({ state: "dead" });
+		auth.login("tok-123", { ...baseUser, sysadmin: true });
+
+		render(Dashboard);
+
+		await waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
+		// El saludo y el badge salen de la sesión guardada: no pueden dibujarse mientras no se sepa que
+		// la sesión no está muerta, y acá CKAN ya dijo que lo está.
+		expect(screen.queryByText(/hola,/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/^administrador$/i)).not.toBeInTheDocument();
+		// Y ningún dato derivado de la sesión muerta.
+		expect(
+			screen.queryByRole("link", { name: /matrícula estudiantil 2026/i }),
+		).not.toBeInTheDocument();
+		expect(mocks.currentUser).not.toHaveBeenCalled();
 	});
 
 	it("inconclusive: carga las dos secciones y no expulsa ni navega", async () => {
@@ -363,6 +396,43 @@ describe("Oferta de publicación (D3)", () => {
 			"/dashboard/datasets/new",
 		);
 	});
+
+	it("no ofrece publicar a un `member`: pertenece pero no puede crear (D3)", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "member" })]);
+		mocks.canCreateDataset.mockResolvedValue(false);
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		// La tarjeta «Mis organizaciones» sigue listando la membresía con su rol: eso es lo que promete.
+		expect(await screen.findByRole("link", { name: /facultad de ciencias/i })).toBeInTheDocument();
+		// Pero ninguna superficie ofrece publicar, porque el backend no podría cumplirlo.
+		await screen.findByText(/requiere rol de editor o administrador en una organización/i);
+		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: /acciones/i })).not.toBeInTheDocument();
+		// La frase de «pertenecer» sería falsa para un miembro: el miembro sí pertenece.
+		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		// La compuerta preguntó lo mismo que el asistente, no la lista amplia de membresías.
+		expect(mocks.canCreateDataset).toHaveBeenCalledTimes(1);
+	});
+
+	it("si la pregunta de permiso falla, no ofrece nada, no afirma un rol y no borra la membresía", async () => {
+		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
+		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "member" })]);
+		mocks.canCreateDataset.mockRejectedValue(new Error("boom"));
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		// Un fallo de permiso no toca la lista de membresías: la tarjeta la sigue mostrando.
+		expect(await screen.findByRole("link", { name: /facultad de ciencias/i })).toBeInTheDocument();
+		// Fail closed: sin respuesta no se ofrece publicar y la copia queda neutra.
+		await screen.findByText(/aún no ha creado ningún dataset/i);
+		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/requiere rol de editor o administrador/i)).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+	});
 });
 
 describe("Estado vacío de «Mis datasets»", () => {
@@ -382,6 +452,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 	it("con organizaciones cargadas y vacías exige pertenecer a una y retira el CTA", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
+		mocks.canCreateDataset.mockResolvedValue(false);
 		auth.login("tok-123", baseUser);
 
 		render(Dashboard);
