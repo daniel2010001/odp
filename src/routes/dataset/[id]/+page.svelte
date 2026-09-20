@@ -15,13 +15,22 @@ import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import {
+	type AccessContext,
+	classifyFailure,
+	describeFailure,
+	type FailurePresentation,
+	failureActions,
+	isDefinitive,
+} from "$lib/api/failure";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
+import { loginUrl } from "$lib/session";
+import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
-import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
@@ -29,12 +38,28 @@ import { formatDate } from "$lib/utils/ckan";
 import { renderMarkdown } from "$lib/utils/markdown";
 
 // ─── State ───────────────────────────────────────────────────────
+
+/** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
+type DatasetFailure = {
+	presentation: FailurePresentation;
+	access: AccessContext;
+};
+
 let dataset = $state<CkanPackage | null>(null);
 let loading = $state(true);
-let error = $state<string | null>(null);
+let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
 let copied = $state(false);
 let copiedLink = $state(false);
+
+// Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
+// una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
+// sobre el catálogo que no haya medido. Modelarla como `failure` sería inventar un diagnóstico.
+let invalidParams = $state(false);
+
+// El camino único de expulsión ya limpió la sesión y navegó: no se renderiza nada más ni se
+// vuelve a navegar.
+let expelled = $state(false);
 
 // ─── ID from URL ────────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
@@ -42,44 +67,66 @@ const datasetId = $derived($page.params.id);
 // ─── Data fetching ───────────────────────────────────────────────
 async function loadDataset() {
 	if (!datasetId) {
-		error = "ID de dataset no especificado";
+		// URL incompleta: estado propio, no un fallo del catálogo (ver el comentario de `invalidParams`).
+		invalidParams = true;
+		failure = null;
+		dataset = null;
 		loading = false;
 		return;
 	}
 
+	invalidParams = false;
+	expelled = false;
 	loading = true;
-	error = null;
+	failure = null;
+	dataset = null;
+
+	const token = get(auth).token;
+	// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
+	// responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
+	// flujo de publicación defina su visibilidad.
+	const client = createCkanClient({
+		baseUrl: env.CKAN_URL,
+		apiKey: () => get(auth).token,
+	});
+	const datasetApi = createDatasetApi(client);
 
 	try {
-		// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
-		// responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
-		// flujo de publicación defina su visibilidad.
-		const client = createCkanClient({
-			baseUrl: env.CKAN_URL,
-			apiKey: () => get(auth).token,
-		});
-		const datasetApi = createDatasetApi(client);
 		dataset = await datasetApi.show(datasetId);
 	} catch (err) {
-		// Un 403/404 es una respuesta **definitiva** del catálogo (privado o inexistente), no una
-		// caída: se explica el motivo y no se enmascara con datos mock.
-		if (err instanceof CkanApiError && (err.status === 403 || err.status === 404)) {
-			error =
-				err.status === 403
-					? "Este dataset es privado. Inicie sesión con una cuenta autorizada para verlo."
-					: "No se encontró el dataset solicitado.";
-			dataset = null;
-		} else if (import.meta.env.DEV) {
+		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
+		let access: AccessContext = "anonymous";
+		if (classifyFailure(err) === "unauthorized" && token) {
+			let resolution: UnauthorizedResolution = "inconclusive";
+			try {
+				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+			} catch {
+				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
+				resolution = "inconclusive";
+			}
+			if (resolution === "expelled") {
+				// El camino único ya limpió la sesión y navegó: acá termina la carga.
+				expelled = true;
+				loading = false;
+				return;
+			}
+			access = resolution === "alive" ? "session-alive" : "unknown";
+		}
+
+		const presentation = describeFailure(err, "dataset", access);
+
+		if (!presentation.definitive && import.meta.env.DEV) {
+			// Sólo una no-respuesta se enmascara con datos mock. Un 403/404 es la respuesta final del
+			// catálogo y enmascararlo es el defecto que este slice corrige.
 			const mock = getMockDatasetById(datasetId);
 			if (mock) {
 				dataset = mock;
 			} else {
-				error = err instanceof Error ? err.message : "Error al cargar el dataset";
-				dataset = null;
+				failure = { presentation, access };
 			}
 		} else {
-			error = "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
-			dataset = null;
+			failure = { presentation, access };
 		}
 	} finally {
 		loading = false;
@@ -90,6 +137,30 @@ async function loadDataset() {
 $effect(() => {
 	void datasetId;
 	loadDataset();
+});
+
+// ─── Derived: estado de error ────────────────────────────────
+// Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla.
+const actions = $derived(
+	failure ? failureActions(failure.presentation, failure.access) : { retry: false, signIn: false },
+);
+
+const errorTitle = $derived(
+	invalidParams ? "Parámetros de navegación inválidos" : (failure?.presentation.title ?? ""),
+);
+
+const errorMessage = $derived(
+	invalidParams
+		? "La dirección no contiene un dataset válido."
+		: (failure?.presentation.message ?? ""),
+);
+
+const pageTitle = $derived.by(() => {
+	if (dataset) return `${dataset.title || dataset.name} — UMSS`;
+	if (loading) return "Cargando... — UMSS";
+	if (failure) return `${failure.presentation.title} — UMSS`;
+	if (invalidParams) return "Parámetros de navegación inválidos — UMSS";
+	return "Dataset — UMSS";
 });
 
 // ─── Derived ─────────────────────────────────────────────────────
@@ -225,14 +296,12 @@ async function handleCopyLink() {
 </script>
 
 <svelte:head>
-	<title>
-		{dataset ? `${dataset.title || dataset.name} — UMSS` : "Cargando... — UMSS"}
-	</title>
+	<title>{pageTitle}</title>
 </svelte:head>
 
 <div>
 	<!-- Breadcrumb bar -->
-	{#if !loading}
+	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
 				<nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-1.5 text-sm">
@@ -284,12 +353,15 @@ async function handleCopyLink() {
 			</div>
 		</div>
 
-	<!-- Error state -->
-	{:else if error && !dataset}
+	<!-- Expulsión: el guard ya limpió la sesión y navegó, no queda nada que renderizar -->
+	{:else if expelled}
+
+	<!-- Error / 404 state -->
+	{:else if invalidParams || failure}
 		<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
 			<div class="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-				<p class="text-lg font-medium text-destructive">Error al cargar el dataset</p>
-				<p class="mt-2 text-sm text-muted-foreground">{error}</p>
+				<p class="text-lg font-medium text-destructive">{errorTitle}</p>
+				<p class="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
 				<div class="mt-6 flex items-center justify-center gap-3">
 					<a
 						href="/search"
@@ -298,12 +370,22 @@ async function handleCopyLink() {
 						<ArrowLeft class="size-4" />
 						Volver al catálogo
 					</a>
-					<button
-						onclick={() => loadDataset()}
-						class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-					>
-						Reintentar
-					</button>
+					{#if actions.signIn}
+						<a
+							href={loginUrl($page.url.pathname)}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+						>
+							Iniciar sesión
+						</a>
+					{/if}
+					{#if actions.retry}
+						<button
+							onclick={() => loadDataset()}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+						>
+							Reintentar
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>

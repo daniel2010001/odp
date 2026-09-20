@@ -593,6 +593,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
   4. `R3-loading-state-untested`: estado de carga sin test.
 
+- [ ] **[v0] La vista previa CSV del recurso no manda el token de la sesión.** El `datastoreApi`
+  que se construye al inicio de `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte` usa
+  `createCkanClient({ baseUrl })` **sin `apiKey`**: la misma omisión que el slice C acaba de corregir
+  para el cliente de carga. Costo real: el `datastore_search` de un recurso de un dataset privado
+  responde `403` y la previsualización falla aunque la ficha del recurso ya cargue bien, de modo que el
+  dueño ve el recurso pero no sus filas. _Origen: hallado mientras se arreglaba D4 (slice C,
+  2026-09-20)._
+
 - [ ] **[v0] Quitar los tabs simulados «Gráfico»/«Mapa» de la página del recurso** — hoy la página
   muestra un selector Tabla/Gráfico/Mapa donde sólo Tabla es real (CSV). Según el modelo de vistas
   (PRD §3, 2026-09-13), los gráficos pertenecen al Módulo de Análisis, no a la vista previa. La vista
