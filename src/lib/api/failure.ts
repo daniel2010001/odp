@@ -14,6 +14,16 @@
 // un segundo chequeo en línea de `status === 403 || status === 404` sería un segundo lugar donde
 // equivocarse.
 //
+// ─── Indistinguibilidad sin sesión (decisión del autor, 2026-09-20) ────
+// Quien no tiene sesión no puede distinguir un recurso privado de uno inexistente: recibe el mismo
+// encabezado, la misma oración y ninguna acción. La UI de CKAN tampoco distingue los dos casos
+// —atrapa `NotFound` y `NotAuthorized` en la misma rama—, y para el espectador sin sesión eso es lo
+// correcto: cualquier diferencia filtraría la existencia de un recurso privado. Un espectador
+// identificado, en cambio, recibe la respuesta honesta (autorización denegada o sesión muerta):
+// engañarlo no le da ningún valor de seguridad y sí le quita un diagnóstico útil. Esa es la
+// desviación deliberada respecto de CKAN, y vive acá y no en la página para que haya un solo lugar
+// donde pueda equivocarse.
+//
 // Este módulo es un clasificador puro más una tabla de textos: sin Svelte, sin navegación y sin más
 // imports que el tipo de error, para que sea trivial de testear.
 
@@ -71,26 +81,27 @@ function subjectWord(subject: ApiSubject): string {
 
 function titleFor(kind: ApiFailureKind, subject: ApiSubject, access: AccessContext): string {
 	const word = subjectWord(subject);
-	if (kind === "unauthorized") {
-		if (access === "anonymous") return `${word === "dataset" ? "Dataset" : "Recurso"} privado`;
-		if (access === "session-alive") return "Acceso no autorizado";
-		return "No se pudo confirmar el acceso";
+	if (kind === "unavailable") return `No se pudo cargar el ${word}`;
+	// `not-found` y el 403 de un espectador sin sesión comparten encabezado: es la mitad visible de
+	// la indistinguibilidad. El 403 de un espectador identificado y el no concluyente conservan el
+	// suyo, porque un encabezado honesto no le filtra nada a quien ya está identificado.
+	if (kind === "not-found" || access === "anonymous") {
+		return `${word === "dataset" ? "Dataset" : "Recurso"} no encontrado`;
 	}
-	if (kind === "not-found") return `${word === "dataset" ? "Dataset" : "Recurso"} no encontrado`;
-	return `No se pudo cargar el ${word}`;
+	if (access === "session-alive") return "Acceso no autorizado";
+	return "No se pudo confirmar el acceso";
 }
 
 function messageFor(kind: ApiFailureKind, subject: ApiSubject, access: AccessContext): string {
 	const word = subjectWord(subject);
+	// Un espectador sin sesión recibe la misma oración para las dos respuestas: nombra la ausencia y
+	// la falta de permiso como alternativas, sin confirmar que el ítem existe ni afirmar que no. Es
+	// una sola oración sirviendo a las dos clases a propósito; separarlas por `kind` reintroduciría
+	// exactamente la fuga que esta política prohíbe.
+	if (access === "anonymous" && (kind === "unauthorized" || kind === "not-found")) {
+		return `No se encontró el ${word} solicitado, o no tiene permiso para verlo.`;
+	}
 	if (kind === "unauthorized") {
-		if (access === "anonymous") {
-			// Sin token guardado: el ítem es privado y no hay sesión a la que culpar.
-			//
-			// Base de la afirmación «es privado»: en estas acciones un `403` es atribuible a que el
-			// paquete es privado, porque un paquete público responde `200` (medido), y esta plataforma
-			// crea todo dataset con `private: true`.
-			return `Este ${word} es privado. Inicie sesión con una cuenta autorizada para verlo.`;
-		}
 		if (access === "session-alive") {
 			// Una sesión viva a la que simplemente le falta permiso. Decirle que inicie sesión sería
 			// falso.
@@ -111,7 +122,10 @@ function messageFor(kind: ApiFailureKind, subject: ApiSubject, access: AccessCon
 
 /**
  * Convierte un valor lanzado, el sujeto y el contexto de sesión en el texto que la página renderiza.
- * El mensaje de autorización cambia según el contexto de acceso; los otros tipos no dependen de él.
+ *
+ * El texto de un fallo de autorización cambia según el contexto de acceso. Un ítem inexistente sólo
+ * cambia cuando el espectador no tiene sesión: ahí comparte el texto ambiguo del 403 anónimo, para
+ * que las dos respuestas sean el mismo estado (ver el encabezado del módulo).
  */
 export function describeFailure(
 	err: unknown,
@@ -127,10 +141,13 @@ export function describeFailure(
 	};
 }
 
-/** Qué acciones ofrece el estado de error. */
+// ─── Qué acciones ofrece el estado de error ───────────────────────────
+// Una sola: reintentar. No hay acción de inicio de sesión, y esa ausencia es parte de la política:
+// un botón «Iniciar sesión» en el estado de error le confirmaría al espectador que el recurso existe.
+// El camino hacia el login está en el encabezado de la aplicación, que no lleva información sobre el
+// recurso solicitado.
 export interface FailureActions {
 	retry: boolean;
-	signIn: boolean;
 }
 
 /**
@@ -138,15 +155,15 @@ export interface FailureActions {
  *
  * Un reintento sólo tiene sentido cuando podría cambiar la respuesta: un fallo no definitivo, o un
  * 403 cuya sonda quedó no concluyente (ese texto pide «verifique su sesión e intente nuevamente»).
- * El enlace de inicio de sesión sólo corresponde a un 403 sin sesión. Nunca se ofrece una
- * instrucción sin la acción que la cumple.
+ *
+ * No hay acción de inicio de sesión: ofrecerla en el estado de error delataría la existencia de un
+ * recurso privado. El enlace del encabezado cubre ese camino sin filtrar nada.
  */
 export function failureActions(
 	presentation: FailurePresentation,
 	access: AccessContext,
 ): FailureActions {
-	const signIn = presentation.kind === "unauthorized" && access === "anonymous";
 	const retry =
 		!presentation.definitive || (presentation.kind === "unauthorized" && access === "unknown");
-	return { retry, signIn };
+	return { retry };
 }

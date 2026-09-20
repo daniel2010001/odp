@@ -322,6 +322,21 @@ accounts available.
 - The DataStore preview's own tokenless client is recorded as a `[v0]` follow-up, deliberately outside this
   slice's four decisions.
 
+**Amendment after the review (author, 2026-09-20) — a NEW candidate, NOT covered by the burned receipt.**
+The author brought a standard file-hosting recommendation (a private file must answer `404` to a stranger,
+so existence cannot be enumerated) and chose a split policy: **ambiguous 404 for the session-less viewer
+(no sign-in invitation — the button is what discloses), honest diagnosis for the identified one**. This
+amends the spec that the receipt above covers, so the receipt no longer describes the current contract:
+the requirement was **split into two** — `Unidentified Viewer Must Not Learn Existence` (new) and
+`Authorization Failure Is Not a Missing Resource` (now scoped to an identified viewer, which makes its
+name true again) — and `loginUrl` was deleted because the invitation is gone. Grounded in measurement:
+CKAN's own **UI** answers `404` with «Dataset not found or you have no permission to view it»
+(`ckan/views/dataset.py:406-407` catches `(NotFound, NotAuthorized)` in one branch) while its **API**
+answers `403` naming the package — two layers, two policies, and the portal (headless) inherits the API's
+`403` and must choose. Accepted consequence, stated: an **authenticated** viewer can distinguish the two
+on the page; that is no more than the API already gives anyone. Still open: the API oracle itself, which
+needs a proxy-layer normalization the portal does not have.
+
 **Reference correction, so nobody re-cites it.** `BACKLOG.md` claims slice C «es el requisito
 `Distinguishable Authorization Errors` que la spec del ciclo de vida ya escribió». That requirement
 (`openspec/changes/2026-09-13-publication-lifecycle/specs/publication-lifecycle/spec.md:124`) governs **the

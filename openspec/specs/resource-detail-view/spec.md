@@ -95,13 +95,36 @@ If the requested resource does not exist, the page MUST render a "Resource not f
 - THEN a "Resource not found" message is displayed
 - AND a link back to the parent dataset is provided
 
+### Requirement: Unidentified Viewer Must Not Learn Existence
+
+For a viewer with no session, a `403` for a private resource and a `404` for a resource that does not exist MUST render the same state: the page MUST NOT disclose whether the resource exists, MUST NOT describe the resource as private, and MUST NOT invite the viewer to sign in from that state. The site's persistent sign-in affordance MUST remain available, because it carries no information about the requested resource.
+
+#### Scenario: Viewer with no session
+
+- GIVEN a viewer with no stored session
+- WHEN the catalog answers with a `403` for a private resource
+- THEN the page renders the same state it renders for a resource that does not exist
+- AND the state does not confirm that the resource exists
+- AND the state does not invite the viewer to sign in
+- AND the message does not state that the session expired
+
+#### Scenario: Viewer with no session cannot tell a private resource from a missing one
+
+- GIVEN a viewer with no stored session
+- WHEN the catalog answers with a `403` for a private resource, or with a `404` for a resource that does not exist
+- THEN the page renders the same state in both cases
+- AND the same actions are offered in both cases
+- AND the state neither confirms nor denies that the resource exists
+
 ### Requirement: Authorization Failure Is Not a Missing Resource
 
-An authorization failure (HTTP `403`) MUST NOT be rendered as the "not found" state, and the two MUST remain distinguishable to the viewer. Because the catalog answers the same `403` to a session that is no longer valid and to a genuine permission denial, the message MUST agree with what is known about the viewer's session instead of asserting a single cause.
+For a viewer whose session identifies them — a live session, or one that cannot be confirmed — an authorization failure (HTTP `403`) MUST NOT be rendered as the "not found" state, and the diagnosis MUST agree with what is known about that session instead of asserting a single cause. An unavailable catalog is not an absent or private resource, and a definitive answer is not masked in development.
+
+This requirement deliberately deviates from CKAN's own web interface, which does not distinguish the two cases even for an identified viewer: an identified viewer gains no security value from being misled and does gain a useful diagnosis.
 
 #### Scenario: Authorization failure is not a missing resource
 
-- GIVEN a resource that exists but is not readable by the current viewer
+- GIVEN an identified viewer and a resource that exists but is not readable by them
 - WHEN the catalog answers with a `403` authorization failure
 - THEN the page renders an authorization state
 - AND the state does not state that the resource was not found
@@ -119,13 +142,6 @@ An authorization failure (HTTP `403`) MUST NOT be rendered as the "not found" st
 - WHEN the catalog answers with a `403`
 - THEN the viewer is handled as holding an invalid session, as the authentication capability defines
 - AND the viewer is not shown an authorization message as if the account lacked permission
-
-#### Scenario: Viewer with no session
-
-- GIVEN a viewer with no stored session
-- WHEN the catalog answers with a `403` for a private resource
-- THEN the message states that the resource is private and asks the viewer to sign in with an authorized account
-- AND the message does not state that the session expired
 
 #### Scenario: Session state could not be confirmed
 

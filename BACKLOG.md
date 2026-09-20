@@ -503,6 +503,15 @@ privado y no hay ninguna forma de publicarlo.
   el `private: true` hardcodeado del wizard. En cambio, un `package_update` **completo que omite
   `private`** deja el valor intacto (200, sigue `true`): la omisión es un intento de publicación **sólo
   al crear**.
+  - **CERRADO, y re-medido el 2026-09-20 (este stack).** Con un `editor` real de
+    `direccion-investigacion` y su propio token: `package_create {private: false}` → **403
+    `Authorization Error`: «Access denied: Only an organization administrator can publish a dataset»**, y
+    `package_patch {private: false}` sobre un dataset privado → **403 con el mismo mensaje**. Control:
+    `package_create {private: true}` → 200 con `private=true` y anónimo → 403. El guard de
+    `ckanext-umss` **cierra el bypass de este ítem** en los dos puntos de entrada que la sonda tocó.
+    **No re-medido hoy, y hay que decirlo así:** la variante de **omitir** la clave (el caso peor de
+    arriba) y la de `state` (P4a). Ambas están cubiertas por la verificación **25/25** registrada en
+    `apply-progress.md`, no por esta sonda. _Origen: sonda del autor, 2026-09-20._
 - **`state` sigue siendo mutable por un editor (medido 2026-09-14, P4a):** `package_patch
   {state:"draft"}` como editor → **200 con `state=draft` guardado**. Causa: `ROLE_PERMISSIONS` le da
   `update_dataset` al editor, `package_change_state` autoriza delegando en `package_update`, y
@@ -636,6 +645,95 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (PRD §3, 2026-09-13), los gráficos pertenecen al Módulo de Análisis, no a la vista previa. La vista
   previa debe ofrecer sólo el render que permite el `format` (tabla para CSV, embed para PDF, imagen,
   texto). _Origen: decisión de arquitectura 2026-09-13._
+
+- [ ] **TODO: la acción principal del wizard promete publicación y el dataset se crea privado.**
+  El botón de envío dice «Publicar dataset» y «Publicando...»
+  (`src/routes/dashboard/datasets/new/+page.svelte:1715-1717`), y debajo «Podrá editarlo después de
+  publicarlo.» (línea 1726). Lo que ocurre en realidad es una **creación privada**: `formValues()` fija
+  `private: true` (línea 149) y `buildPackagePayload` escribe ese valor
+  (`src/lib/utils/dataset-payload.ts:56`), así que **nada se publica**. Es el mismo defecto de clase que
+  `v0-portal-honesty`: la UI afirma un estado que no ocurre. Alcance: la acción principal debe nombrar lo
+  que hace (crear, privado), **conservando** las referencias honestas al flujo futuro que hoy están bien
+  («la visibilidad del dataset la definirá el flujo de publicación», 922 y 1599). Antes de tocar, separar
+  en las otras apariciones (1008, 1365, 1630, 1642) lo que es una **promesa** de lo que es **descripción
+  del flujo futuro**. _Origen: reporte del autor, 2026-09-20._
+
+- [ ] **TODO: los recursos de tipo enlace no tienen distintivo de tipo, y se les ofrecen las vistas
+  simuladas.** Hoy el distintivo de la página de recurso sale de `resource.format` (`formatLabel`, línea
+  220) y el `resource_type` sólo aparece como fila de metadatos (línea 246); `ResourceCard.svelte:16`
+  deriva `formatBadge` igual. Falta un distintivo que diga **enlace/URL**, análogo a PDF o CSV, y debe
+  agregarse **en todos los lugares**, no sólo en esa página. Segundo punto del mismo ítem: **ocultar el
+  selector de vistas** (Tabla/Gráfico/Mapa) cuando el recurso es un enlace — un enlace no tiene filas ni
+  datos locales que previsualizar.
+  **Bloqueo de modelo, medido (2026-09-20):** `src/lib/types/ckan.ts:76` define
+  `resource_type?: "file" | "api" | string` — **no existe** un valor `url`/`link` — y en el catálogo real
+  los recursos sembrados tienen `resource_type: None` **y** `url_type: None`. Es decir: hoy no hay señal
+  fiable para decidir «es un enlace». Hay que decidir **con qué** se detecta (`url_type === "upload"` para
+  archivos subidos **no está medido**: no existe ningún archivo subido en el catálogo) y, antes, **qué
+  nombre y qué semántica** tiene el tipo (¿`link`? ¿`url`?) y **dónde se escribe** (lo natural: que el
+  wizard lo fije al crear). _Origen: reporte del autor, 2026-09-20._
+
+- [ ] **TODO: decidir si un recurso de tipo enlace tiene página propia de recurso.** Pendiente de decisión
+  del autor: una página sólo para una URL es raro, aunque su metadata tampoco es mucha. Si la respuesta es
+  **no**, hay que decidir dónde vive esa metadata (tarjeta en la página del dataset, fila expandible) y qué
+  pasa con los enlaces entrantes y con los recursos ya existentes. _Origen: reporte del autor,
+  2026-09-20._
+
+- [ ] **TODO — DECIDIDO Y CERRADO EN PÁGINA (2026-09-20): política de existencia, opción 3. Queda abierta la mitad de la API.**
+  **Decisión del autor:** `404` **ambiguo para el anónimo** (mismo estado que un recurso inexistente y
+  **sin** botón de iniciar sesión: el botón es lo que revela) y **honesto para el identificado** («su
+  cuenta no está autorizada»). Implementado en `src/lib/api/failure.ts`, los dos call sites, y la spec
+  **partida en dos requisitos** (`Unidentified Viewer Must Not Learn Existence` +
+  `Authorization Failure Is Not a Missing Resource`, este último acotado al espectador identificado — con
+  lo cual su nombre volvió a ser cierto).
+  **Consecuencia aceptada, explícita:** un usuario **autenticado** cualquiera puede distinguir `403` de
+  `404` **en la página**. No es una fuga nueva —la API se la da a cualquiera, incluso anónimo— y cerrarla
+  es una línea en la rama `session-alive` si algún día se quiere.
+  **Nota de UX:** al quitar el botón, en móvil el camino de inicio de sesión queda **dentro del menú
+  hamburguesa** (el enlace del encabezado aparece de `md` para arriba). `layout-header.test.ts` prueba que
+  el enlace existe.
+  **Lo que SIGUE ABIERTO — la mitad que falta para la propiedad completa:** el **oráculo de la API**
+  (siguiente párrafo). Cerrarlo exige la capa server-side que hoy no existe.
+  **El documento aportado por el autor** describe la recomendación estándar de las plataformas de
+  archivos: para un visitante, un archivo privado «no existe» → `404`, y no «es privado» ni «no tiene
+  permiso», para no habilitar la enumeración. Adoptarlo del todo **enmienda la spec**, no es copia suelta.
+  **Medición que hay que mirar antes de decidir (2026-09-20):** el portal **no es la frontera de la
+  enumeración**, porque el mismo origen que sirve la página proxya la API cruda de CKAN:
+  `GET /api/3/action/package_show?id=test` **sin token** → **`403`** con un cuerpo que **nombra el
+  recurso**, mientras un id inventado (`id=no-existe-x`) → **`404` `Not Found Error`**. Es un oráculo de
+  existencia perfecto, anónimo y accesible desde el navegador. (`package_search` sí filtra: count 16 vs
+  17 reales, y `resource_show` de un recurso privado también da `403` nombrando el recurso.)
+  ⇒ **enmascarar la página y dejar la API como está no compra la propiedad deseada**; comprarla exige
+  una capa server-side — el «middleware» que hoy **no existe**: `src/routes/api/` no existe y las únicas
+  rutas server son `auth/login` y `auth/logout` — que normalice `403` → `404` para llamadores **sin
+  sesión** y deje `403` para los autenticados.
+  **El precedente más fuerte está en el propio CKAN, y son DOS capas con políticas opuestas (medido el
+  2026-09-20):**
+  - **Su interfaz web enmascara exactamente como pide el documento.** `GET /dataset/test` sin sesión →
+    **HTTP `404`**, y el cuerpo dice literalmente **«Dataset not found or you have no permission to view
+    it»**. El recurso privado, igual: `404` «Resource not found». El mecanismo, en su código:
+    `ckan/views/dataset.py:406-407` (y :396-397, :509, :608, :744, :780) atrapa **`(NotFound,
+    NotAuthorized)` en la MISMA rama** → `abort(404, _('Dataset not found'))`; `ckan/views/resource.py:68-69,
+    91, 164-165` hace lo mismo. Es decir: **CKAN no distingue «no existe» de «existe pero no puedes
+    verlo», ni siquiera para un usuario logueado sin permiso**, y su mensaje es el ambiguo del documento.
+  - **Su API REST hace lo contrario**: `package_show?id=test` sin token → **`403` que nombra el UUID del
+    paquete**; `id=no-existe` → **`404`**. Ahí la existencia se revela y los dos casos se distinguen.
+  - **Los listados no filtran en ninguna capa**: `/dataset` anónimo lista 16 y no incluye `test`; la
+    página de la organización dueña tampoco lo lista; `package_search` anónimo → 16.
+  - **Consecuencia para el portal:** el portal es headless y consume la **API**, así que **hereda el
+    `403`** y tiene que elegir cuál de las dos políticas de CKAN reproduce. Y un dato incómodo que
+    conviene tener escrito: **el comportamiento anterior del portal (403 → «Recurso no encontrado»)
+    reproducía fielmente la política de la UI de CKAN.** Lo genuinamente defectuoso de D4 era
+    (a) el mock de DEV tapando un fallo real con datos falsos y (b) perder la mitad «o no tiene
+    permiso» del mensaje, que es la que no confirma nada y no miente.
+  *El punto medio existe, y es el de CKAN:* **`404` ambiguo sin botón de iniciar sesión** (el botón es lo
+  que revela). Si se conserva el botón, no hay punto medio: invitar es revelar. Fuga menor ya existente:
+  la expulsión por sesión muerta revela existencia a quien llegue con un token vencido.
+  **Lo decidido se aparta a propósito de la política de CKAN en un punto y la copia en otro:** para el
+  anónimo reproduce lo que hace su UI (ambiguo, sin invitación); para el identificado se aparta y le dice
+  la verdad útil («su cuenta no está autorizada» le dice que debe pedir permiso, no que escribió mal la
+  dirección). _Origen: documento aportado por el autor + medición del 2026-09-20; decisión del autor,
+  2026-09-20._
 
 - [ ] **[v0] Sección "Data API" para recursos CSV** — la sección "Acceso por API" de la página
   de recurso hoy está gateada a `resource_type === "api"` (oculta para archivos). Lo correcto,

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
-import { loginUrl, sessionExpiredLoginUrl } from "$lib/session";
+import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
@@ -42,6 +42,9 @@ vi.mock("$lib/api/session", () => ({
 
 const RESOURCE_PATH = "/dataset/matricula-2026/resource/res-1";
 const SHOWCASE_PATH = "/dataset/showcase-observatorio-movilidad/resource/res-showcase-1";
+// Sin sesión, un 403 y un 404 rinden el mismo estado: mismo rótulo, misma oración, ninguna acción.
+const NOT_FOUND_TITLE = "Recurso no encontrado";
+const AMBIGUOUS_MESSAGE = "No se encontró el recurso solicitado, o no tiene permiso para verlo.";
 
 const baseUser: CkanUser = {
 	id: "u-1",
@@ -158,20 +161,27 @@ describe("Página de recurso — enlaces externos", () => {
 });
 
 describe("Página de recurso — estados de fallo honestos", () => {
-	it("ante un 403 anónimo dice que el recurso es privado y ofrece iniciar sesión, sin decir que no existe", async () => {
+	it("ante un 403 anónimo renderiza el mismo estado que un 404, sin inicio de sesión ni reintento", async () => {
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
+		const { unmount } = render(ResourcePage);
+
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		expect(screen.getByText(NOT_FOUND_TITLE)).toBeTruthy();
+		// El estado de error no ofrece inicio de sesión: ese botón delataría que el recurso existe. El
+		// camino al login vive en el encabezado, que no lleva información sobre el recurso solicitado.
+		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
+		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+
+		unmount();
+
+		// La propiedad de carga: el 404 rinde exactamente el mismo estado, sin filtrar la existencia.
+		mocks.showResource.mockRejectedValue(new CkanApiError("Not Found", 404));
 		render(ResourcePage);
 
-		await screen.findByText(/este recurso es privado/i);
-		expect(screen.getByText(/inicie sesión con una cuenta autorizada/i)).toBeTruthy();
-		expect(screen.queryByText(/no encontrado/i)).toBeNull();
-
-		const signIn = screen.getByRole("link", { name: /Iniciar sesión/i });
-		expect(signIn.getAttribute("href")).toBe(loginUrl(RESOURCE_PATH));
-		// El parámetro de expiración haría que el login mienta: el espectador nunca tuvo sesión.
-		expect(signIn.getAttribute("href")).not.toContain("expired");
-		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		expect(screen.getByText(NOT_FOUND_TITLE)).toBeTruthy();
+		expect(screen.queryByText(/privad/i)).toBeNull();
 	});
 
 	it("ante un 403 con sesión viva dice que la cuenta no está autorizada, sin pedir iniciar sesión ni ofrecer reintento", async () => {
@@ -246,7 +256,8 @@ describe("Página de recurso — estados de fallo honestos", () => {
 
 		render(ResourcePage);
 
-		await screen.findByText(/no se encontró el recurso solicitado/i);
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		expect(screen.getByText(NOT_FOUND_TITLE)).toBeTruthy();
 		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
 		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 	});
@@ -287,7 +298,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 
 		render(ResourcePage);
 
-		await screen.findByText(/este recurso es privado/i);
+		await screen.findByText(AMBIGUOUS_MESSAGE);
 		expect(screen.queryByText(/Flujos vehiculares/i)).toBeNull();
 	});
 
@@ -301,17 +312,17 @@ describe("Página de recurso — estados de fallo honestos", () => {
 
 		render(ResourcePage);
 
-		await screen.findByText(/no se encontró el recurso solicitado/i);
+		await screen.findByText(AMBIGUOUS_MESSAGE);
 		expect(screen.queryByText(/Flujos vehiculares/i)).toBeNull();
 	});
 
-	it("el título del documento refleja el fallo y no siempre dice «Recurso no encontrado»", async () => {
+	it("el título del documento refleja el fallo y no siempre dice «Cargando...»", async () => {
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
 		render(ResourcePage);
 
-		await screen.findByText(/este recurso es privado/i);
-		await waitFor(() => expect(document.title).toBe("Recurso privado — UMSS"));
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		await waitFor(() => expect(document.title).toBe("Recurso no encontrado — UMSS"));
 	});
 
 	it("con un segmento de ruta vacío muestra su propio estado, sin reintento ni inicio de sesión", async () => {

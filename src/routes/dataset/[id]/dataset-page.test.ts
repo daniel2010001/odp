@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
-import { loginUrl, sessionExpiredLoginUrl } from "$lib/session";
+import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
 import { type ApiClientConfig, CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanUser } from "$lib/types/ckan";
@@ -37,9 +37,9 @@ vi.mock("$lib/api/session", () => ({
 }));
 
 const DATASET_PATH = "/dataset/matricula-2026";
-const PRIVATE_MESSAGE =
-	"Este dataset es privado. Inicie sesión con una cuenta autorizada para verlo.";
-const NOT_FOUND_MESSAGE = "No se encontró el dataset solicitado.";
+// Sin sesión, un 403 y un 404 rinden el mismo estado: mismo rótulo, misma oración, ninguna acción.
+const NOT_FOUND_TITLE = "Dataset no encontrado";
+const AMBIGUOUS_MESSAGE = "No se encontró el dataset solicitado, o no tiene permiso para verlo.";
 const MOCK_TITLE = "Dataset Mock De Desarrollo";
 
 function makeUser(): CkanUser {
@@ -106,21 +106,21 @@ describe("Página de dataset — carga con API key", () => {
 		expect((config.apiKey as () => string | null)()).toBe("token-de-prueba");
 	});
 
-	it("muestra el mensaje de dataset privado y no el mock cuando package_show responde 403", async () => {
+	it("no revela que el dataset existe cuando package_show responde 403 y no cae al mock", async () => {
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Forbidden", 403));
 
 		render(DatasetPage);
 
-		expect(await screen.findByText(PRIVATE_MESSAGE)).toBeTruthy();
+		expect(await screen.findByText(AMBIGUOUS_MESSAGE)).toBeTruthy();
 		expect(screen.queryByText(MOCK_TITLE)).toBeNull();
 	});
 
-	it("muestra el mensaje de no encontrado cuando package_show responde 404", async () => {
+	it("muestra el mensaje ambiguo de no encontrado cuando package_show responde 404", async () => {
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Not Found", 404));
 
 		render(DatasetPage);
 
-		expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeTruthy();
+		expect(await screen.findByText(AMBIGUOUS_MESSAGE)).toBeTruthy();
 	});
 
 	it("renderiza el título del dataset cuando package_show resuelve", async () => {
@@ -133,25 +133,32 @@ describe("Página de dataset — carga con API key", () => {
 });
 
 describe("Página de dataset — estados de fallo honestos", () => {
-	it("ante un 403 anónimo dice que el dataset es privado y ofrece iniciar sesión, sin decir que no existe", async () => {
+	it("ante un 403 anónimo renderiza el mismo estado que un 404, sin inicio de sesión ni reintento", async () => {
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Access denied", 403));
 
-		render(DatasetPage);
+		const { unmount } = render(DatasetPage);
 
-		await screen.findByText(/este dataset es privado/i);
+		await screen.findByText(AMBIGUOUS_MESSAGE);
 		// El rótulo nombra el estado; ya no es un «Error al cargar el dataset» genérico.
-		expect(screen.getByText("Dataset privado")).toBeTruthy();
-		expect(screen.getByText(/inicie sesión con una cuenta autorizada/i)).toBeTruthy();
-		expect(screen.queryByText(/no encontrado/i)).toBeNull();
+		expect(screen.getByText(NOT_FOUND_TITLE)).toBeTruthy();
 		// Sin token nadie sondea: un espectador anónimo no es una sesión muerta (sondear
 		// `user_show {}` sin token responde 404 y lo etiquetaría como expirado).
 		expect(mocks.check).not.toHaveBeenCalled();
 
-		const signIn = screen.getByRole("link", { name: /Iniciar sesión/i });
-		expect(signIn.getAttribute("href")).toBe(loginUrl(DATASET_PATH));
-		// El parámetro de expiración haría que el login mienta: el espectador nunca tuvo sesión.
-		expect(signIn.getAttribute("href")).not.toContain("expired");
+		// El estado de error no ofrece inicio de sesión: ese botón delataría que el recurso existe. El
+		// camino al login vive en el encabezado, que no lleva información sobre el recurso solicitado.
+		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
+
+		unmount();
+
+		// La propiedad de carga: el 404 rinde exactamente el mismo estado, sin filtrar la existencia.
+		mocks.showDataset.mockRejectedValue(new CkanApiError("Not Found", 404));
+		render(DatasetPage);
+
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		expect(screen.getByText(NOT_FOUND_TITLE)).toBeTruthy();
+		expect(screen.queryByText(/privad/i)).toBeNull();
 	});
 
 	it("ante un 403 con sesión viva dice que la cuenta no está autorizada, sin pedir iniciar sesión ni ofrecer reintento", async () => {
@@ -227,8 +234,8 @@ describe("Página de dataset — estados de fallo honestos", () => {
 
 		render(DatasetPage);
 
-		await screen.findByText(NOT_FOUND_MESSAGE);
-		expect(screen.getByText("Dataset no encontrado")).toBeTruthy();
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		expect(screen.getByText(NOT_FOUND_TITLE)).toBeTruthy();
 		expect(screen.queryByRole("button", { name: /Reintentar/i })).toBeNull();
 		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 		expect(screen.queryByText(MOCK_TITLE)).toBeNull();
@@ -240,7 +247,7 @@ describe("Página de dataset — estados de fallo honestos", () => {
 
 		render(DatasetPage);
 
-		await screen.findByText(/este dataset es privado/i);
+		await screen.findByText(AMBIGUOUS_MESSAGE);
 		expect(screen.queryByText(MOCK_TITLE)).toBeNull();
 	});
 
@@ -250,7 +257,7 @@ describe("Página de dataset — estados de fallo honestos", () => {
 
 		render(DatasetPage);
 
-		await screen.findByText(NOT_FOUND_MESSAGE);
+		await screen.findByText(AMBIGUOUS_MESSAGE);
 		expect(screen.queryByText(MOCK_TITLE)).toBeNull();
 	});
 
@@ -282,8 +289,8 @@ describe("Página de dataset — estados de fallo honestos", () => {
 
 		render(DatasetPage);
 
-		await screen.findByText(/este dataset es privado/i);
-		await waitFor(() => expect(document.title).toBe("Dataset privado — UMSS"));
+		await screen.findByText(AMBIGUOUS_MESSAGE);
+		await waitFor(() => expect(document.title).toBe("Dataset no encontrado — UMSS"));
 	});
 
 	it("con un id de ruta vacío muestra su propio estado, sin reintento ni inicio de sesión", async () => {

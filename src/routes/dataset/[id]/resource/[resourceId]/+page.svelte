@@ -31,7 +31,6 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
-import { loginUrl } from "$lib/session";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
@@ -193,9 +192,11 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 });
 
 // ─── Derived: estado de error ────────────────────────────────
-// Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla.
+// Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla. Hoy
+// sólo puede ofrecer reintento: un enlace de inicio de sesión en este estado delataría que el
+// recurso existe, así que el camino al login vive en el encabezado de la aplicación.
 const actions = $derived(
-	failure ? failureActions(failure.presentation, failure.access) : { retry: false, signIn: false },
+	failure ? failureActions(failure.presentation, failure.access) : { retry: false },
 );
 
 const errorTitle = $derived(
@@ -397,14 +398,6 @@ async function handleCopyResourceLink() {
 						>
 							<ArrowLeft class="size-4" />
 							Volver al catálogo
-						</a>
-					{/if}
-					{#if actions.signIn}
-						<a
-							href={loginUrl($page.url.pathname)}
-							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-						>
-							Iniciar sesión
 						</a>
 					{/if}
 					{#if actions.retry}

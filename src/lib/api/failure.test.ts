@@ -6,6 +6,12 @@
 // vivo, una sesión muerta y una denegación real de permisos responden el mismo `403` en
 // `resource_show`, así que el estado por sí solo no puede elegir el mensaje; el estado de la sesión
 // sí.
+//
+// ─── Política de indistinguibilidad anónima (decisión del autor, 2026-09-20) ───
+// Quien no tiene sesión no puede distinguir un recurso privado de uno inexistente, mientras que un
+// espectador identificado recibe la respuesta honesta. Eso hace de esta tabla una tabla de dos
+// políticas: la indistinguibilidad del anónimo es una propiedad de carga y se asertan más abajo, en
+// su propio bloque, en vez de quedar como un comentario que una reescritura pueda contradecir.
 
 import { describe, expect, it } from "vitest";
 import { CkanApiError } from "$lib/types/api";
@@ -21,6 +27,8 @@ import {
 
 const SUBJECTS: ApiSubject[] = ["dataset", "resource"];
 const ACCESS: AccessContext[] = ["anonymous", "session-alive", "unknown"];
+/** Contextos en los que la sonda de sesión identificó al espectador (o al menos lo descartó como anónimo). */
+const IDENTIFIED_ACCESS: AccessContext[] = ["session-alive", "unknown"];
 const KINDS: ApiFailureKind[] = ["unauthorized", "not-found", "unavailable"];
 
 const ERR_UNAUTHORIZED = new CkanApiError("Access denied", 403);
@@ -127,11 +135,18 @@ describe("describeFailure — el texto que ve el espectador", () => {
 		expect(new Set(messages).size).toBe(ACCESS.length);
 	});
 
-	it("le dice a un espectador anónimo que el ítem es privado y que inicie sesión, sin afirmar nunca una sesión expirada", () => {
+	it("ante un espectador anónimo cubre las dos lecturas sin afirmar ninguna y sin invitarlo a iniciar sesión", () => {
 		for (const subject of SUBJECTS) {
+			const word = subject === "dataset" ? "dataset" : "recurso";
 			const p = describeFailure(ERR_UNAUTHORIZED, subject, "anonymous");
-			expect(p.message).toMatch(/privad/i);
-			expect(p.message).toMatch(/inicie sesión/i);
+			// La formulación es la de CKAN: nombra la ausencia y la falta de permiso como alternativas.
+			// Confirmar que el ítem existe delataría un recurso privado; afirmar que no existe le negaría
+			// al dueño legítimo la pista de que le falta sesión.
+			expect(p.message).toBe(
+				`No se encontró el ${word} solicitado, o no tiene permiso para verlo.`,
+			);
+			expect(p.message).not.toMatch(/privad/i);
+			expect(p.message).not.toMatch(/inicie sesión/i);
 			expect(p.message).not.toMatch(/expir/i);
 		}
 	});
@@ -139,6 +154,7 @@ describe("describeFailure — el texto que ve el espectador", () => {
 	it("le dice a un espectador con sesión viva que su cuenta no está autorizada, y nunca le pide iniciar sesión", () => {
 		for (const subject of SUBJECTS) {
 			const p = describeFailure(ERR_UNAUTHORIZED, subject, "session-alive");
+			expect(p.title).toBe("Acceso no autorizado");
 			expect(p.message).toMatch(/no está autorizada/i);
 			expect(p.message).not.toMatch(/inicie sesión/i);
 			expect(p.message).not.toMatch(/expir/i);
@@ -148,6 +164,7 @@ describe("describeFailure — el texto que ve el espectador", () => {
 	it("no afirma ninguna de las dos lecturas cuando el estado de la sesión es desconocido, pero cubre ambas", () => {
 		for (const subject of SUBJECTS) {
 			const p = describeFailure(ERR_UNAUTHORIZED, subject, "unknown");
+			expect(p.title).toBe("No se pudo confirmar el acceso");
 			// Con reserva, no asertado: las dos lecturas pueden nombrarse como posibilidades…
 			expect(p.message).toMatch(/puede que/i);
 			expect(p.message).toMatch(/sesión/i);
@@ -159,10 +176,12 @@ describe("describeFailure — el texto que ve el espectador", () => {
 		}
 	});
 
-	it("informa un ítem inexistente sin mencionar permisos ni sesiones", () => {
+	it("informa un ítem inexistente sin mencionar permisos ni sesiones cuando el espectador está identificado", () => {
 		for (const subject of SUBJECTS) {
 			const word = subject === "dataset" ? "dataset" : "recurso";
-			for (const access of ACCESS) {
+			// El espectador anónimo no entra acá: para él la ausencia y la falta de permiso son la
+			// misma respuesta (ver el bloque de indistinguibilidad más abajo).
+			for (const access of IDENTIFIED_ACCESS) {
 				const p = describeFailure(ERR_NOT_FOUND, subject, access);
 				// La copia existente de la página del dataset no puede degradarse al migrar.
 				expect(p.message).toBe(`No se encontró el ${word} solicitado.`);
@@ -174,7 +193,9 @@ describe("describeFailure — el texto que ve el espectador", () => {
 	it("informa un catálogo inalcanzable sin afirmar que el ítem falta o es privado, y ofrece reintentar", () => {
 		for (const subject of SUBJECTS) {
 			for (const access of ACCESS) {
+				const word = subject === "dataset" ? "dataset" : "recurso";
 				const p = describeFailure(ERR_UNAVAILABLE, subject, access);
+				expect(p.title).toBe(`No se pudo cargar el ${word}`);
 				expect(p.message).toBe(
 					"No se pudo completar la consulta al catálogo de datos. Intente nuevamente más tarde.",
 				);
@@ -219,6 +240,41 @@ describe("describeFailure — el texto que ve el espectador", () => {
 	});
 });
 
+// ─── La propiedad de carga ────────────────────────────────────────────
+// Sin sesión, el estado de error no puede filtrar si el recurso existe. Es el corazón de la
+// decisión del autor, así que vive como test: si alguien reintroduce un texto propio del 403
+// anónimo, o un campo nuevo en la presentación que dependa de la clase, esto se cae.
+describe("indistinguibilidad anónima — un 403 y un 404 son el mismo estado sin sesión", () => {
+	for (const subject of SUBJECTS) {
+		it(`presenta el mismo estado ante un 403 y un 404 para el sujeto «${subject}»`, () => {
+			const forbidden = describeFailure(ERR_UNAUTHORIZED, subject, "anonymous");
+			const missing = describeFailure(ERR_NOT_FOUND, subject, "anonymous");
+
+			// Comparación profunda salvo `kind`: es el único campo que puede diferir, es la clave
+			// interna del clasificador (la consume el enmascarado de DEV) y el estado de error no lo
+			// renderiza. Cualquier campo nuevo que delate la existencia del recurso hace fallar esto.
+			expect({ ...forbidden, kind: null }).toEqual({ ...missing, kind: null });
+			expect(forbidden.title).toBe(missing.title);
+			expect(forbidden.message).toBe(missing.message);
+			expect(forbidden.definitive).toBe(missing.definitive);
+			// Las acciones también: en ninguna de las dos respuestas hay algo que hacer.
+			expect(failureActions(forbidden, "anonymous")).toEqual(failureActions(missing, "anonymous"));
+			expect(failureActions(forbidden, "anonymous")).toEqual({ retry: false });
+		});
+	}
+
+	it("sólo difiere en `kind`, el dato que el estado de error no renderiza", () => {
+		for (const subject of SUBJECTS) {
+			const forbidden = describeFailure(ERR_UNAUTHORIZED, subject, "anonymous");
+			const missing = describeFailure(ERR_NOT_FOUND, subject, "anonymous");
+			// Si esto dejara de ser cierto, la comparación de arriba confrontaría el mismo error
+			// consigo mismo y no probaría nada.
+			expect(forbidden.kind).toBe("unauthorized");
+			expect(missing.kind).toBe("not-found");
+		}
+	});
+});
+
 describe("failureActions — qué acciones ofrecer según el fallo", () => {
 	const present = (kind: ApiFailureKind, access: AccessContext) => {
 		const presentation = describeFailure(ERROR_BY_KIND[kind], "resource", access);
@@ -235,23 +291,21 @@ describe("failureActions — qué acciones ofrecer según el fallo", () => {
 		expect(present("not-found", "anonymous").retry).toBe(false);
 	});
 
-	it("ofrece iniciar sesión sólo para un fallo de autorización sin sesión", () => {
-		expect(present("unauthorized", "anonymous").signIn).toBe(true);
-		expect(present("unauthorized", "session-alive").signIn).toBe(false);
-		expect(present("unauthorized", "unknown").signIn).toBe(false);
-		expect(present("not-found", "anonymous").signIn).toBe(false);
-		expect(present("unavailable", "anonymous").signIn).toBe(false);
+	it("no ofrece ninguna acción de inicio de sesión: el botón delataría que el ítem existe", () => {
+		for (const kind of KINDS) {
+			for (const access of ACCESS) {
+				// La forma del objeto es parte del contrato: sólo `retry`. El camino hacia el login vive en
+				// el encabezado, que no lleva información sobre el recurso solicitado.
+				expect(Object.keys(present(kind, access))).toEqual(["retry"]);
+			}
+		}
 	});
 
 	it("nunca deja una instrucción sin la acción que la cumple", () => {
-		// El texto anónimo manda «inicie sesión»: el enlace tiene que estar. El texto desconocido manda
-		// «verifique su sesión e intente nuevamente»: el reintento tiene que estar.
-		const anonymous = present("unauthorized", "anonymous");
-		expect(anonymous.signIn).toBe(true);
-		expect(anonymous.retry).toBe(false);
-
-		const unknown = present("unauthorized", "unknown");
-		expect(unknown.retry).toBe(true);
-		expect(unknown.signIn).toBe(false);
+		// El texto anónimo no manda ninguna acción, así que no hay nada que ofrecer. El texto
+		// desconocido manda «verifique su sesión e intente nuevamente»: el reintento tiene que estar.
+		expect(present("unauthorized", "anonymous").retry).toBe(false);
+		expect(present("unauthorized", "unknown").retry).toBe(true);
+		expect(present("unavailable", "anonymous").retry).toBe(true);
 	});
 });
