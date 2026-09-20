@@ -195,9 +195,11 @@ const confirmedNoOrganizations = $derived(!orgsLoading && !orgsError && organiza
 
 // El usuario sí pertenece a organizaciones, pero en ninguna puede crear. Exige la pregunta de permiso
 // **respondida** (no alcanza con `puedeCrear === false`, porque eso también es el estado de carga o de
-// fallo): si no se pudo preguntar, la copia no puede afirmar que falte el rol.
+// fallo): si no se pudo preguntar, la copia no puede afirmar que falte el rol. El `!puedeCrear` va
+// explícito: la condición ya no depende de evaluarse después de `puedePublicar` en la cadena de copia,
+// así se describe a sí misma.
 const confirmedNoCreatePermission = $derived(
-	!orgsLoading && !orgsError && organizations.length > 0 && permisoResuelto,
+	!orgsLoading && !orgsError && organizations.length > 0 && permisoResuelto && !puedeCrear,
 );
 
 // Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice.
