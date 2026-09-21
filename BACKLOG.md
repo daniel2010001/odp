@@ -227,12 +227,23 @@
 >   **200**, basura → **403**, sin token → **403**). **El registro correcto del bug real del datapusher ya estaba
 >   en el repo:** `apply-progress.md:438-453` y `tasks.md:74-75` —era `01_setup_datapusher.sh` blanqueando el
 >   token— y ya está arreglado.
-> - **Latente, útil antes de «arreglar» el README:** el `start_ckan_development.sh.override` del repo trae un
->   **loop de auto-instalación de extensiones** (`pip install -r requirements.txt`, `setup.py develop`, y
->   reescribir el `use = config:` de cada `test.ini`) que el script efectivo **no tiene**. Si alguien agrega la
->   línea `COPY` que el README pide, **activa ese loop** y deja de usar el de la imagen base. Hoy no rompe nada
->   (umss lo instala el Dockerfile y `test.ini` apunta bien) y **explica por qué existe `bin/install_src`**: ese
->   loop no corre.
+> - **El escenario de la línea `COPY` quedó CERRADO, con una nota histórica que vale:** los tres `.override`
+>   muertos **se borraron** en `9cb4fff` (`chore(ckan): drop the setup/*.override scripts that nothing copied`,
+>   4 archivos, **+1 −369**), junto con el bullet del README que documentaba el patrón. Así que ya no hay nada
+>   que se pueda activar por accidente. Lo que ese override traía —un **loop de auto-instalación de extensiones**
+>   (`pip install -r requirements.txt`, `setup.py develop`, reescribir el `use = config:` de cada `test.ini`) que
+>   el script efectivo no tiene— **explica por qué existe `bin/install_src`**: ese loop nunca corrió.
+> - **Riesgo residual CORRECTO, y el modo de falla NO es el crash loop** (análisis de la sesión de `odp-docker`,
+>   **corroborado por el propio código**: el comentario de `docker-entrypoint.d/01_setup_datapusher.sh:12` dice
+>   que un token **vacío** hace que el plugin se niegue a configurarse): el único escritor del token es ese
+>   entrypoint, con el guard `if [ -z "$CKAN__DATAPUSHER__API_TOKEN" ]`, y la imagen base deja
+>   `ckan.datapusher.api_token=xxx` (guardado por el chequeo de plugins). Entonces, si alguien setea
+>   `CKAN__DATAPUSHER__API_TOKEN` con un valor **no vacío pero inválido** —un token viejo, un placeholder—, el
+>   mint se saltea, el ini queda en `xxx` —que es **truthy**, así que el plugin **configura sin protestar**— y el
+>   datapusher recibe **403 en la callback y no manda nada al DataStore, EN SILENCIO**. **No es «vuelve el crash
+>   loop»: es un fallo silencioso**, y eso es **más difícil de detectar** que el crash loop que arregló `aa916e7`.
+>   Con un valor vivo todo funciona, que es la intención del env var. **Estado actual: SANO** — el token es real
+>   (197 chars) y autentica (200 · basura 403 · sin token 403, medido desde acá).
 > - **Y un arreglo real, ya hecho del otro lado (commit `3e4399e`):** los siete `bin/*` apuntaban a
 >   `docker-compose.dev.yml`, que sin `name:` resuelve al proyecto `ckan-docker` (sin contenedores); ahora usan
 >   el unificado. Verificado desde acá: **`bin/compose ps` lista los siete `odp-dev-*`**.
