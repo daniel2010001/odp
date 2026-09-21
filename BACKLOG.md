@@ -659,7 +659,57 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   inesperado** (5xx), que hoy también cae en la página por defecto. _Origen: reporte del autor + medición
   2026-09-20 (`GET /ruta-que-no-existe`)._
 
-- [ ] **TODO: la acción principal del wizard promete publicación y el dataset se crea privado.**
+- [ ] **TODO (respuesta a una duda del autor): la oración «requiere rol de editor o administrador» es la regla
+  de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
+  por roles con capacidad de pasar a permisos, y **es exactamente esto**: `RF-01` define roles **a nivel de
+  organización** (`superadmin`, `org_admin`, `editor`, `viewer`) **y además roles por dataset** (`viewer`,
+  `editor`, `steward`); `RF-18`/`RF-19` agregan **colaboradores con permisos explícitos** por dataset y
+  **equipos**. Hoy el único mecanismo que existe es el rol de organización —lo que CKAN puede aplicar, la
+  capacidad `member`/`editor`/`admin`—, así que la oración es **correcta para el presente** y tendrá que decir
+  «rol **o** permiso explícito» cuando aterricen los roles por dataset. Esos roles y colaboradores están en
+  `v1+`, y **el PRD anota que varios requisitos de esa familia no son alcanzables con la API de CKAN**
+  (`PRD.md:255`: RF-14 a RF-17, RF-19, RF-23, RF-33 a RF-36), así que la decisión de fondo es cuánto se
+  construye por fuera de CKAN. **No hay que tocar la copia por esto**: el cambio de verbo del ítem de
+  «publicar» es independiente y no debe esperar a los roles por dataset.
+  _Origen: pregunta del autor, 2026-09-20._
+
+- [ ] **TODO (pregunta del autor): ¿internacionalizar la UI (i18n)?** Notó que CKAN define el idioma y que en
+  `src/lib/api/failure.ts` hay mucho español embebido. **Hechos, leídos y medidos:**
+  (a) **el PRD NO pide multi-idioma**: la única mención de «idioma» es `RF-09` y es un **metadato del
+  dataset** (el idioma de los datos), no de la interfaz;
+  (b) **CKAN sí tiene i18n completo** (`ckan.locale`, `ckan.locales_offered`, traducciones en
+  `ckan/i18n/<lang>/LC_MESSAGES/ckan.po`, decenas de idiomas), pero eso traduce **su** UI y sus mensajes de
+  error, no la del portal;
+  (c) el español de `failure.ts` es **copia de UI, no lógica**: es justo lo que se puede mover a un catálogo
+  cuando toque, y el seam ya empezó (`src/lib/copy/` es la primera pieza).
+  **Recomendación honesta: no hacerlo ahora.** No hay requisito ni segundo idioma pedido, y con un solo idioma
+  multiplica el trabajo sin cambiar la experiencia. Lo que **sí** conviene —y ya está en marcha— es seguir
+  sacando la copia a módulos: **es el trabajo que i18n necesita igual**, así que hacerlo ahora no cuesta
+  extra. Cuando exista un segundo idioma real (pedido institucional, intercambio, alumnos extranjeros), el
+  camino en SvelteKit es Paraglide JS o `svelte-i18n` más rutas por locale; no conviene decidir el
+  anteproyecto antes de tener el requisito.
+  _Origen: pregunta del autor, 2026-09-20._
+
+- [ ] **TODO (pregunta del autor): ¿conviene un tutorial/onboarding que explique las acciones?**
+  **Factible, sí, y técnicamente barato**: una librería de tours (Driver.js, Shepherd) o un `<dialog>` propio
+  con una secuencia de pasos; no toca la arquitectura. **La dificultad no es implementarlo, es mantenerlo
+  honesto:** un tour apunta a elementos que se mueven, se vuelve obsoleto en silencio y **ningún test lo
+  detecta** — es documentación que envejece, pero peor, porque se le muestra al usuario con autoridad. Y hay
+  una señal que conviene escuchar antes: **un tour suele ser el síntoma de que la interfaz necesita
+  explicación**. Acá el problema conocido del asistente no es falta de guía —hoy tiene ficha lateral,
+  metadatos siempre visibles y campos explicados— sino que **la copia miente** (el ítem del verbo «publicar»
+  de arriba): un tutorial que diga «publique su dataset» repetiría la misma mentira con más pasos.
+  **Recomendación: no hacerlo ahora.** Orden que sí recomiendo: primero la copia y los estados vacíos;
+  después, **sólo con evidencia** de que la gente se pierde (soporte, analítica o tu propia observación), un
+  tour **de una sola acción** —la de crear un dataset— antes que un tour general; y lo más barato, que no
+  necesita librería: una página «Cómo funciona» de dos pantallas.
+  _Origen: pregunta del autor, 2026-09-20._
+
+- [ ] **TODO: la UI usa «publicar» para lo que en realidad es CREAR — y lo creado es privado, interno a la
+  organización.** Este ítem **absorbe** la observación del autor sobre el estado vacío de «Mis datos»: es la
+  **misma decisión de copia** repetida en varios lugares, no dos arreglos. El modelo mental del autor es el
+  correcto y conviene escribirlo: **si la UI dice «publicar», el usuario entiende que ya es visible en el
+  buscador y para cualquiera** — y hoy eso es falso.
   El botón de envío dice «Publicar dataset» y «Publicando...»
   (`src/routes/dashboard/datasets/new/+page.svelte:1715-1717`), y debajo «Podrá editarlo después de
   publicarlo.» (línea 1726). Lo que ocurre en realidad es una **creación privada**: `formValues()` fija
@@ -670,6 +720,21 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   («la visibilidad del dataset la definirá el flujo de publicación», 922 y 1599). Antes de tocar, separar
   en las otras apariciones (1008, 1365, 1630, 1642) lo que es una **promesa** de lo que es **descripción
   del flujo futuro**. _Origen: reporte del autor, 2026-09-20._
+  **Superficies medidas (2026-09-20), todas con el mismo verbo equivocado:**
+  - `src/lib/copy/dashboard.ts` (extraído hoy, así que el arreglo tiene una sola fuente):
+    `EMPTY_STATE_HEADING` = «**Publique** su primer dataset», `EMPTY_STATE_PRIMARY_ACTION_LABEL` =
+    «**Publicar** dataset», y las dos oraciones de requisito: «**Publicar** un dataset requiere pertenecer a
+    una organización.» / «**Publicar** un dataset requiere rol de editor o administrador en una
+    organización.». Los cuatro usan el verbo equivocado: el requisito es para **crear**, y lo que se crea
+    **no** se publica.
+  - El botón del wizard: «Publicar dataset» / «Publicando...» (`datasets/new/+page.svelte:1715-1717`) y «Podrá
+    editarlo después de publicarlo.» (1726).
+  - El `.svelte` del wizard, líneas 1365 y 1630 («Puede publicar el dataset sin recursos»).
+  - **Conservar** las referencias honestas al flujo futuro (922, 1599): dicen que la visibilidad la definirá
+    el flujo de publicación, y eso es cierto.
+  - **Es una sola decisión de verbo** («crear» donde hoy dice «publicar») aplicada de una vez a todas las
+    superficies, con sus tests (`src/lib/copy/dashboard.test.ts` fija las cadenas literales y habrá que
+    actualizarlo).
 
 - [ ] **TODO: los recursos de tipo enlace no tienen distintivo de tipo, y se les ofrecen las vistas
   simuladas.** Hoy el distintivo de la página de recurso sale de `resource.format` (`formatLabel`, línea
