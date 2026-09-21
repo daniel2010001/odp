@@ -206,9 +206,21 @@
 > **Dos advertencias de repositorio:**
 > - La tabla, las acciones y el guard viven en **`odp-docker`**, que es **otro clon Git**. Ver «Deuda de
 >   revisión (RDD)» para el trámite de la revisión y **cuándo** hacerla (después del rediseño, no antes).
-> - **No reiniciar `odp-dev-ckan-dev-1`** sin reconstruir la imagen: el script horneado deja el token del
->   datapusher vacío y el contenedor entra en crash loop. **Ya está arreglado y reconstruido** — el aviso
->   queda solo para el caso de tocar ese archivo.
+> - **`odp-dev-ckan-dev-1` y el datapusher: el arranque funciona, pero por un margen más fino de lo que
+>   parece.** Los dos start scripts horneados hacen un mint **roto** —`start_ckan.sh.override:22` y
+>   `start_ckan_development.sh.override:80` corren `ckan user token add ckan_admin datapusher` **sin**
+>   `expires_in`/`unit`, que bajo `expire_api_token` **falla y captura un string vacío**, escribiendo
+>   `ckan.datapusher.api_token=`—. Lo salva que `docker-entrypoint.d/01_setup_datapusher.sh` corre **después** y
+>   lo re-mintea bien (`expires_in=365 unit=86400`). **La protección tiene un único punto de falla:** el guard
+>   `if [ -z "$CKAN__DATAPUSHER__API_TOKEN" ]`. **Si alguien setea `CKAN__DATAPUSHER__API_TOKEN` —algo
+>   razonable, para fijar un token— el mint bueno se saltea, queda el vacío y vuelve el crash loop** (el que
+>   arregló `aa916e7`). El registro anterior decía «ya está arreglado y reconstruido»: era **optimista**.
+>   Limpiar los dos scripts es un punto propio, **pendiente del autor**.
+> - **Un restart ya no hace falta para nada urgente.** `prerun.py.override:160-195` recrea el admin
+>   (idempotente: si el usuario existe, sale) y reescribe `test-core.ini` desde los `TEST_CKAN_*` corregidos;
+>   lo segundo es **decorativo dentro del contenedor**, porque el entorno gana. Y **el restart no re-siembra**:
+>   eso lo hace `scripts/seed-ckan.mjs`. El admin se restauró **sin** restart, ejecutando lo que el `prerun`
+>   haría.
 >
 > **Trabajo independiente, cuando se decida:** los bugs `v0` de la revisión de UI (ver esa sección), la
 > pregunta del facet de licencia (`v1`), y las dos features pesadas que el usuario **aparcó
