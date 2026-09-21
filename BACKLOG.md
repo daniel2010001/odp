@@ -214,16 +214,28 @@
 > **Dos advertencias de repositorio:**
 > - La tabla, las acciones y el guard viven en **`odp-docker`**, que es **otro clon Git**. Ver «Deuda de
 >   revisión (RDD)» para el trámite de la revisión y **cuándo** hacerla (después del rediseño, no antes).
-> - **`odp-dev-ckan-dev-1` y el datapusher: el arranque funciona, pero por un margen más fino de lo que
->   parece.** Los dos start scripts horneados hacen un mint **roto** —`start_ckan.sh.override:22` y
->   `start_ckan_development.sh.override:80` corren `ckan user token add ckan_admin datapusher` **sin**
->   `expires_in`/`unit`, que bajo `expire_api_token` **falla y captura un string vacío**, escribiendo
->   `ckan.datapusher.api_token=`—. Lo salva que `docker-entrypoint.d/01_setup_datapusher.sh` corre **después** y
->   lo re-mintea bien (`expires_in=365 unit=86400`). **La protección tiene un único punto de falla:** el guard
->   `if [ -z "$CKAN__DATAPUSHER__API_TOKEN" ]`. **Si alguien setea `CKAN__DATAPUSHER__API_TOKEN` —algo
->   razonable, para fijar un token— el mint bueno se saltea, queda el vacío y vuelve el crash loop** (el que
->   arregló `aa916e7`). El registro anterior decía «ya está arreglado y reconstruido»: era **optimista**.
->   Limpiar los dos scripts es un punto propio, **pendiente del autor**.
+> - **Los `.override` de `ckan-docker/ckan/setup/` son archivos MUERTOS — y acá había un defecto INVENTADO.**
+>   Medido (2026-09-21): **ningún Dockerfile los copia** (`override` aparece **0** veces en `Dockerfile.umss`,
+>   `Dockerfile.dev.umss`, `ckan/Dockerfile` y `ckan/Dockerfile.dev`); lo único que los menciona es
+>   `ckan-docker/README.md:217`, que **instruye** a agregar la línea `COPY …/start_ckan.sh.override …` y esa línea
+>   **nunca se agregó**. Por eso el script **efectivo** del contenedor es el de la imagen base —**idéntico byte a
+>   byte a `ckan/ckan-dev:2.11`**— y **no tiene ningún mint**: `grep -c "user token add"` da **0** en
+>   `start_ckan.sh` y en `start_ckan_development.sh`, y ambos escriben el **placeholder `xxx`**. **Consecuencia:
+>   la versión anterior de esta entrada describía un «mint roto en el arranque» que NO EXISTE** — una afirmación
+>   que llegó escrita como medida y que la sesión de `odp-docker` retractó con evidencia. El único mint real es
+>   `docker-entrypoint.d/01_setup_datapusher.sh`, y **funciona** (verificado desde acá: el token autentica →
+>   **200**, basura → **403**, sin token → **403**). **El registro correcto del bug real del datapusher ya estaba
+>   en el repo:** `apply-progress.md:438-453` y `tasks.md:74-75` —era `01_setup_datapusher.sh` blanqueando el
+>   token— y ya está arreglado.
+> - **Latente, útil antes de «arreglar» el README:** el `start_ckan_development.sh.override` del repo trae un
+>   **loop de auto-instalación de extensiones** (`pip install -r requirements.txt`, `setup.py develop`, y
+>   reescribir el `use = config:` de cada `test.ini`) que el script efectivo **no tiene**. Si alguien agrega la
+>   línea `COPY` que el README pide, **activa ese loop** y deja de usar el de la imagen base. Hoy no rompe nada
+>   (umss lo instala el Dockerfile y `test.ini` apunta bien) y **explica por qué existe `bin/install_src`**: ese
+>   loop no corre.
+> - **Y un arreglo real, ya hecho del otro lado (commit `3e4399e`):** los siete `bin/*` apuntaban a
+>   `docker-compose.dev.yml`, que sin `name:` resuelve al proyecto `ckan-docker` (sin contenedores); ahora usan
+>   el unificado. Verificado desde acá: **`bin/compose ps` lista los siete `odp-dev-*`**.
 > - **RESUELTO (2026-09-21): el reinicio se hizo y el datapusher quedó arreglado — verificado por mí.** Con el
 >   token leído de `ckan.ini` (**197** chars): `api_token_list` → **200**; con token basura → **403**; sin token →
 >   **403**. Discrimina. Y `test-core.ini` se regeneró correcto (`ckandbuser@db/ckan_test`, `solr/ckan_test`). El
