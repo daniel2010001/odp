@@ -49,12 +49,15 @@
 >    de CKAN y no cómo el portal las muestra.
 >
 > **Lo que queda de la feature, y no es código:**
-> - **Revisión visual del autor.** Nunca se miró en el navegador el cuarto estado de copia del estado
->   vacío ni el aviso del login (slice B), y el slice C agrega tres textos de autorización más. Todos se
->   pueden ver en `http://localhost:8082`. Es la misma regla 8 de `AGENTS.md`: el agente propone, el autor
->   revisa. **La copia no está validada por el autor todavía.**
-> - **Decidir el push y el PR.** La rama quedó **5 commits adelante** de
->   `origin/feat/v0-portal-honesty` (`6732dab` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
+> - **Revisión visual del autor — HECHA (2026-09-20), sin objeciones.** El autor abrió las URLs del
+>   checklist en `http://localhost:8082` y aprobó lo que vio: los estados de la política de existencia
+>   (anónimo indistinguible del inexistente, sesión viva sin permiso, sesión muerta con el aviso) y el
+>   aviso del login. **Lo único que sigue sin ver** es la **cuarta variante** de copia del estado vacío del
+>   dashboard (la de «requiere rol de editor o administrador»), que necesita una sesión sin permiso de
+>   creación y por eso no se puede provocar a mano; la **hoja de copia** (`/dev/copy`) existe justamente
+>   para cubrirla.
+> - **Decidir el push y el PR.** La rama quedó **8 commits adelante** de
+>   `origin/feat/v0-portal-honesty` (`ac17010` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
 >   merge siguen siendo decisión del autor.
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
@@ -645,6 +648,16 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (PRD §3, 2026-09-13), los gráficos pertenecen al Módulo de Análisis, no a la vista previa. La vista
   previa debe ofrecer sólo el render que permite el `format` (tabla para CSV, embed para PDF, imagen,
   texto). _Origen: decisión de arquitectura 2026-09-13._
+
+- [ ] **[v0] TODO: página de error 404 propia del portal.** Hoy una ruta inexistente devuelve **`404`
+  correctamente** pero renderiza la **página por defecto de SvelteKit**: el cuerpo dice «**404 Not Found**»
+  en **inglés**, sin botón de vuelta al catálogo. El encabezado y el pie del portal sí aparecen, porque el
+  `+layout.svelte` la envuelve, y eso hace que el contraste se note más. **No existe ningún `+error.svelte`
+  en `src/routes`** (verificado, tampoco en subrutas). Debe ser una página propia, en español formal y con
+  el sistema de diseño —tipografía, tokens, iconos Lucide—, con un camino de vuelta claro (catálogo y, si
+  corresponde, buscador). Alcanza a dos casos distintos: una **ruta que no existe** y un **error de carga
+  inesperado** (5xx), que hoy también cae en la página por defecto. _Origen: reporte del autor + medición
+  2026-09-20 (`GET /ruta-que-no-existe`)._
 
 - [ ] **TODO: la acción principal del wizard promete publicación y el dataset se crea privado.**
   El botón de envío dice «Publicar dataset» y «Publicando...»

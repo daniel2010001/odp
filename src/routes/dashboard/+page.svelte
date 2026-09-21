@@ -21,6 +21,11 @@ import { createOrganizationApi } from "$lib/api/organizations";
 import { createSessionApi } from "$lib/api/session";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import {
+	EMPTY_STATE_HEADING,
+	EMPTY_STATE_PRIMARY_ACTION_LABEL,
+	emptyStateMessage,
+} from "$lib/copy/dashboard";
 import { env } from "$lib/env";
 import { endInvalidSession } from "$lib/session-guard";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
@@ -423,7 +428,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 					{:else if datasets.length === 0}
 						<div class="p-8 text-center">
 							<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
-							<p class="mt-2 text-sm font-medium text-foreground">Publique su primer dataset</p>
+							<p class="mt-2 text-sm font-medium text-foreground">{EMPTY_STATE_HEADING}</p>
 							<!-- Cuatro estados, no dos: mientras las organizaciones cargan todavía **no sabemos** si
 							     el usuario tiene una; si la carga falló tampoco; y si la pregunta de permiso quedó sin
 							     responder, tampoco. En esos casos el estado vacío no puede afirmar nada sobre el requisito
@@ -432,17 +437,11 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							     administrador», con la lista no vacía y la pregunta de permiso respondida
 							     (`confirmedNoCreatePermission`). -->
 							<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-								{#if puedePublicar}
-									Aún no ha creado ningún dataset. El asistente lo guía paso a paso.
-								{:else if confirmedNoOrganizations}
-									Aún no ha creado ningún dataset. El asistente lo guía paso a paso. Publicar un dataset
-									requiere pertenecer a una organización.
-								{:else if confirmedNoCreatePermission}
-									Aún no ha creado ningún dataset. El asistente lo guía paso a paso. Publicar un dataset
-									requiere rol de editor o administrador en una organización.
-								{:else}
-									Aún no ha creado ningún dataset. El asistente lo guía paso a paso.
-								{/if}
+								{emptyStateMessage({
+									canPublish: puedePublicar,
+									confirmedNoOrganizations,
+									confirmedNoCreatePermission,
+								})}
 							</p>
 							{#if puedePublicar}
 								<a
@@ -450,7 +449,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 									class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<Plus class="size-4" aria-hidden="true" />
-									Publicar dataset
+									{EMPTY_STATE_PRIMARY_ACTION_LABEL}
 								</a>
 							{/if}
 						</div>
