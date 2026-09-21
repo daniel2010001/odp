@@ -15,7 +15,34 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión — cerrar `v0-portal-honesty` (slices A, B y C implementados y revisados)
+## Próxima sesión — el plan en bloques (estado 2026-09-21)
+
+> **Estado al cierre (2026-09-21).** `v0-portal-honesty` está **cerrada en sus tres slices** (A, B y C, con
+> recibos quemados: `review-cd2510c28384457d` para el slice C y `review-249e073ef3489596` para la política de
+> existencia) y la rama `feat/v0-portal-honesty` tiene **38 commits sin pushear** con **árbol limpio**. La
+> sesión del 21 se fue **entera** en un incidente del entorno dev ya resuelto y verificado (ver «Advertencias
+> de entorno» más abajo), así que **el producto no avanzó** desde el slice C.
+>
+> **ACCIÓN 1, y es de un minuto: decidir el `push`.** Los 38 commits viven en esta máquina, y **los recibos de
+> revisión también** (`.git/gentle-ai/`, que git **no** trackea): un clon nuevo no los tendría.
+>
+> **ACCIÓN 2: el plan en bloques. El orden importa porque unos dependen de decisiones y otros no.**
+>
+> | Bloque | Qué resuelve | Decisión que necesita |
+> |---|---|---|
+> | **A** | **El verbo: «publicar» → «crear».** 4 cadenas de `src/lib/copy/dashboard.ts` (heading, CTA y las dos oraciones de requisito), el botón del wizard («Publicar dataset»/«Publicando...») y sus dos notas, más los tests. Hoy el portal dice «Publicar dataset» y lo crea **privado**: el usuario entiende que ya es visible para todos. | **NINGUNA** ← *empezar acá* |
+> | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Hoy sale la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | ninguna |
+> | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, ocultar las vistas (Tabla/Gráfico/Mapa) cuando el recurso es un enlace, y si un enlace merece página propia. | **DOS**: (1) cómo se detecta un enlace —hoy `resource_type` es `None` en todo el catálogo y el tipo no tiene `link`/`url`— y (2) dónde se escribe |
+> | **D** | **Vista previa de datos:** el cliente sin token, el fallo para el catálogo sembrado, los 4 hallazgos, quitar los tabs simulados, la sección «Data API». | 1: qué dice el panel cuando el recurso no está en el DataStore. **Ojo: el datapusher YA NO es causa** (ver su ítem) |
+> | **E** | **Pulido de layout y cards de `v0`:** encabezado alto en 720p, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador. | ninguna — **comodín para intercalar** |
+> | **F** | **Permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubre antes de decidir cuánto construir fuera (equipos, `RF-19`). | grande, **se decide al empezar** |
+> | **G** | **La mitad abierta de la política de existencia:** el oráculo de la API (`403` que nombra el recurso vs `404`), que exige capa de proxy. | arquitectura — **diferido** |
+>
+> **Cada bloque cierra con sus commits y su propia revisión nativa**, como el slice C. Los `v1`/`v1+`/`v2+`
+> y la deuda de revisión viven en sus secciones propias de este archivo.
+
+> **Detalle histórico de los tres slices** — plan, mediciones, decisiones del autor y evidencia de las
+> revisones, en `odd/tasks/v0-portal-honesty.md` y en las entradas que siguen.
 
 > **Dónde quedó todo (2026-09-19).** El **slice A está cerrado y commiteado** en la rama
 > `feat/v0-portal-honesty`, con tres commits **ya pusheados** (la rama está en sincronía con
