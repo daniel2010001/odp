@@ -255,7 +255,8 @@
 > - **Y un arreglo real, ya hecho del otro lado (commit `3e4399e`):** los siete `bin/*` apuntaban a
 >   `docker-compose.dev.yml`, que sin `name:` resuelve al proyecto `ckan-docker` (sin contenedores); ahora usan
 >   el unificado. Verificado desde acá: **`bin/compose ps` lista los siete `odp-dev-*`**.
-> - **RESUELTO (2026-09-21): el reinicio se hizo y el datapusher quedó arreglado — verificado por mí.** Con el
+> - **RESUELTO (2026-09-21, 17:07): el reinicio se hizo** —autorizado por el autor, y **motivado por el token
+>   huérfano**, no por `test-core.ini`— **y el datapusher quedó arreglado — verificado por mí.** Con el
 >   token leído de `ckan.ini` (**197** chars): `api_token_list` → **200**; con token basura → **403**; sin token →
 >   **403**. Discrimina. Y `test-core.ini` se regeneró correcto (`ckandbuser@db/ckan_test`, `solr/ckan_test`). El
 >   catálogo **sobrevivió** (17/17) porque `prerun` corre `init_db` idempotente y no re-siembra. Lo de abajo es el
@@ -824,6 +825,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   la vista previa (RF-31) sólo puede funcionar para archivos subidos. Decidir si el panel debe decir que
   la vista previa **no está disponible para este recurso** en vez de reportar un fallo de carga. Se
   relaciona con el ítem `[v0] Sección "Data API" para recursos CSV` de esta misma lista.
+  **Puntero (2026-09-21), para no perseguir una causa muerta:** el **datapusher ya NO es** una causa posible — el
+  token se re-minteó con el reinicio de las 17:07 y **autentica** (200 · basura 403 · sin token 403). Si la vista
+  previa falla para archivos **subidos**, la causa es **otra y todavía no está identificada**: no la busques en el
+  token.
   _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
 
 - [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
