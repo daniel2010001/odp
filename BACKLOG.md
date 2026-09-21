@@ -231,6 +231,13 @@
 >   **200**, basura → **403**, sin token → **403**). **El registro correcto del bug real del datapusher ya estaba
 >   en el repo:** `apply-progress.md:438-453` y `tasks.md:74-75` —era `01_setup_datapusher.sh` blanqueando el
 >   token— y ya está arreglado.
+>   **FAMILIA DE TRAMPA Y SU CONTRA-MEDIDA** (aporte de esa sesión, y **es lo que zanjó el caso**): afirmar **qué
+>   archivo se ejecuta** es una afirmación sobre el **build**, no sobre el árbol de fuentes — y la variante cruel
+>   es que los archivos citados **existan, se lean bien y no se ejecuten**. Se derrota con **un solo movimiento:
+>   `diff` del artefacto contra la fuente** —`/srv/app/start_ckan_development.sh` del contenedor contra el de
+>   `ckan/ckan-dev:2.11` → **idénticos**, más `grep -c "user token add"` → **0**—. Sin ese diff, los `.override`
+>   seguían pareciendo código vivo y la afirmación seguía siendo plausible. **Cuando el reclamo es «este archivo
+>   hace X», la medición es el diff contra lo que corre, no la lectura del repo.**
 > - **El escenario de la línea `COPY` quedó CERRADO, con una nota histórica que vale:** los tres `.override`
 >   muertos **se borraron** en `9cb4fff` (`chore(ckan): drop the setup/*.override scripts that nothing copied`,
 >   4 archivos, **+1 −369**), junto con el bullet del README que documentaba el patrón. Así que ya no hay nada
