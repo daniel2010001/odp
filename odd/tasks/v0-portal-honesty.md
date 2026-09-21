@@ -347,6 +347,43 @@ error. It says nothing about how the portal renders a failure. The spec this sli
 **Out of scope, found while reading** (noted, not fixed here): `resource-detail-view`'s `Preview Placeholder`
 requirement still demands a «coming soon» placeholder where the page now renders a real DataStore preview.
 
+## Copy review sheet (`/dev/copy`) — added after the feature slices
+
+The author reviews copy, and one state of the slice B/C work could never be reproduced by hand: the dashboard
+empty state that requires a session without create permission. The sheet renders every state string in one
+place, and it **imports** the strings from the modules that produce them (`describeFailure`, `failureActions`,
+`emptyStateMessage`, `SESSION_EXPIRED_MESSAGE`) instead of repeating them — a sheet that re-types the text
+can drift, and approving it would mean approving something that never ships. `dev-copy.test.ts` pins that
+property by computing every expected string through the producing module.
+
+- Commit `7844863`. Module `src/lib/copy/dashboard.ts` (the empty-state copy plus a pure selector) was
+extracted from the page's four-branch inline `{#if}` — four branches, three distinct sentences, because
+`canPublish` and the neutral fallback say the same thing. The page now calls it and renders **identically**
+(+12/−13: the import and three substitutions; the pre-existing 30 tests still pass).
+- The route is gated out of production: `+page.ts` throws `error(404)` when `!import.meta.env.DEV`. It is
+**deliberately kept**, like `ThemePlayground`, and the file says so — it is not a playground to delete.
+- **Live URL: `http://localhost:8082/dev/copy`.** Port `5173` is down in this environment; the app is served
+by the dev container behind the nginx proxy on `8082`.
+- Honest limit, recorded rather than hidden: the sheet's **descriptive labels** (which situation each row
+represents) are prose from the sheet itself, not module output. Only the copy is pinned; the descriptions
+can drift without a test noticing.
+
+**Native review — clean, no debt (2026-09-20).** `review-c677bdc8c09e4791`: tier **medium**, lens
+`review-reliability`, **7 files / 864 lines**, budget 200; range `ac17010..HEAD` with an explicit `baseRef`
+(the copy-sheet unit only, not the accumulated branch). Closed **`approved` with zero advisories** — the
+first review of this feature that found nothing — and the authority is burned
+(`gentle-ai.review-acknowledged/v1`, revision
+`sha256:352f8106bbbdd76ae53fe4a4101396e4a8986693cb424ed846a1b37915f74097` of candidate
+`sha256:59e273dc53ee325349b3d8e18a2b5131fdf2589dd65b75e9d61b79c191af67c8`). Leaving no debt is why this
+record lives here and not in `BACKLOG.md`'s review-debt section.
+
+**Mechanics worth remembering:** the first `start` for this candidate was blocked with
+`consent-binding-stale` — the consent binding **expires after 10 minutes** without an answer — with
+`lineage_created: false` and nothing mutated. The fix is to call `start` again for a fresh envelope, never to
+resend the stale binding.
+
+---
+
 ## Review disposition (2026-09-19)
 
 After the two work-unit lineages were approved and acknowledged, a third target appeared covering the
