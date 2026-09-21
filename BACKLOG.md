@@ -60,6 +60,16 @@
 >   `origin/feat/v0-portal-honesty` (`ac17010` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
 >   merge siguen siendo decisión del autor.
 >
+> - **El índice de Solr del stack dev puede quedar desincronizado con la base: `package_search` (Solr) y
+>   `package_list` (base) pueden discrepar.** Medido el 2026-09-20 por el mismo CKAN: `package_search?rows=0`
+>   → **21** y `package_list` → **1**. Los ~20 documentos huérfanos son restos del catálogo sembrado, que ya
+>   **no existe** en la base (las 2 organizaciones que quedan tienen nombres de fixture de pytest). **Ya había
+>   pasado:** el `apply-progress.md` del ciclo de vida registra el mismo fenómeno (contaba 57 donde el diseño
+>   esperaba 16, «orphaned index documents»). **Consecuencia práctica: cualquier verificación viva que lea
+>   `package_search` puede estar leyendo datos fantasma** — el buscador del portal incluido. Antes de
+>   verificar, comparar ambos caminos y, si hay que reconciliar, `ckan search-index rebuild`. No se hizo desde
+>   `odp` porque el stack lo opera otra sesión.
+>
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
 >   revisores **no tiene fallback** y se niega tipado si falta la entrada del rol. Quedó configurado
@@ -515,6 +525,18 @@ privado y no hay ninguna forma de publicarlo.
     **No re-medido hoy, y hay que decirlo así:** la variante de **omitir** la clave (el caso peor de
     arriba) y la de `state` (P4a). Ambas están cubiertas por la verificación **25/25** registrada en
     `apply-progress.md`, no por esta sonda. _Origen: sonda del autor, 2026-09-20._
+  - **Huecos cerrados, y una trampa anotada (2026-09-20, medido por la sesión de `odp-docker` con
+    `check_access`, que es la entrada real de auth):** `package_create` con `private: false`, con `'banana'`
+    **y con la clave omitida** → **403** con el mismo mensaje del plugin. `package_update` y `package_patch`
+    con `false` o `'banana'` → 403; **omitida en update → permitido** (deja el valor intacto), que es la
+    asimetría create/update ya documentada. El guard vive en `ckanext-umss` **vendorizado dentro de
+    `odp-docker`** (commit `86f130b`), no como submódulo; `package_patch` lo hereda porque el core lo define
+    como `authz.is_authorized('package_update', …)`, que resuelve la función CHAINED. `state` sigue sin
+    re-medirse.
+  - **Trampa para cualquier sonda futura:** `roles_that_cascade_to_sub_groups = ['admin']`, así que un
+    «editor» que además sea admin de la organización **padre** hereda el permiso y **parece** un bypass — el
+    primer fixture de esa sesión cayó en eso. Una sonda que obtiene **403** es robusta a la cascada (la
+    cascada sólo **agrega** permisos); una que obtiene 200, no.
 - **`state` sigue siendo mutable por un editor (medido 2026-09-14, P4a):** `package_patch
   {state:"draft"}` como editor → **200 con `state=draft` guardado**. Causa: `ROLE_PERMISSIONS` le da
   `update_dataset` al editor, `package_change_state` autoriza delegando en `package_update`, y
@@ -531,6 +553,11 @@ colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
 `ckanext/umss/tests/test_plugin.py:57` llama `plugin_loaded("umss")` sin declararlo como fixture.
+**CORRECCIÓN (2026-09-20): no reproduce.** Medido por la sesión de `odp-docker` con
+`python -m pytest --ckan-ini=test.ini -q` en `/srv/app/src_extensions/ckanext-umss`: **22 passed, 0 fallos**.
+El registro de arriba es de una sesión del 2026-09-13/14 y **quedó sin confirmar** (no se guardó el comando
+ni el estado exacto), así que no se puede defender. Mientras no vuelva a reproducirse, **no tratar esto como
+prerrequisito roto**: verificar de nuevo y, si sigue en rojo, anotar el comando con el estado.
 Medido el 2026-09-14: `1 failed`, `NameError: name 'plugin_loaded' is not defined`. `pytest 8.3.4` y
 `pytest-ckan 2.11.6` **sí están instalados en la imagen de dev**, así que la suite corre en el lugar y
 no hace falta el contenedor descartable que el diseño contemplaba como fallback. Y el `plugin.py`
