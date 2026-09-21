@@ -219,10 +219,16 @@
 >   razonable, para fijar un token— el mint bueno se saltea, queda el vacío y vuelve el crash loop** (el que
 >   arregló `aa916e7`). El registro anterior decía «ya está arreglado y reconstruido»: era **optimista**.
 >   Limpiar los dos scripts es un punto propio, **pendiente del autor**.
+> - **RESUELTO (2026-09-21): el reinicio se hizo y el datapusher quedó arreglado — verificado por mí.** Con el
+>   token leído de `ckan.ini` (**197** chars): `api_token_list` → **200**; con token basura → **403**; sin token →
+>   **403**. Discrimina. Y `test-core.ini` se regeneró correcto (`ckandbuser@db/ckan_test`, `solr/ckan_test`). El
+>   catálogo **sobrevivió** (17/17) porque `prerun` corre `init_db` idempotente y no re-siembra. Lo de abajo es el
+>   registro de **por qué** hacía falta.
 > - **CORRECCIÓN de lo que escribí antes: el restart SÍ tiene hoy un motivo real, y NO es cosmético — el token
 >   del datapusher está MUERTO.** `ckan.datapusher.api_token` de `ckan.ini` es **huérfano**: `clean_db`
 >   **truncó la tabla `api_token`** a las 16:33 y nadie re-minteó, así que **ningún** token autentica (medido:
->   `api_token_list?user_id=<ckan_admin>` con el token configurado → **403**, idéntico a un token basura y a sin
+>   `api_token_list?user_id=<el id de `default`, `366a437a-…` — **no** el de `ckan_admin`, que es `224fbb8f-…`>` con
+>   el token configurado → **403**, idéntico a un token basura y a sin
 >   token; la tabla tiene **0 filas**). **Consecuencia: la callback del DataPusher no se autentica → los recursos
 >   NUEVOS no llegan al DataStore**, así que la vista previa de CSV falla **también para archivos subidos**, no
 >   sólo para los sembrados (que son enlaces). **El restart es el arreglo de diseño y es seguro para el
@@ -236,7 +242,11 @@
 >   eso lo hace `scripts/seed-ckan.mjs`. El admin se restauró **sin** restart, ejecutando lo que el `prerun`
 >   haría. **Mientras no se reinicie, `test-core.ini` conserva los valores viejos** (`postgres://ckan:ckan@db/ckan_test`
 >   y `solr_url = …/solr/ckan`): un `pytest` corrido **a mano** ahí sigue siendo **la ruta destructiva**. El
->   runner es la salida, y hasta que se reinicie (cuando la app esté ociosa) esa trampa queda latente.
+>   runner es la salida. **OJO — esto corrige una conclusión optimista de la otra sesión:** el reinicio regeneró
+>   `test-core.ini`, pero **el contenedor SIGUE exportando `CKAN_SQLALCHEMY_URL=ckandb`, `CKAN_SOLR_URL=ckan` y
+>   `CKAN_SITE_ID=default`** (verificado después del reinicio), así que **dentro del contenedor el entorno sigue
+>   pisando el ini: un `pytest` corrido a mano ahí SIGUE truncando la base de dev.** La regeneración cierra el
+>   caso **fuera** del contenedor; **el runner sigue siendo obligatorio dentro** — no es redundante.
 >   **Verificación independiente de la recuperación (2026-09-21):** `package_list` (base) = **17**,
 >   Solr `fq=site_id:default` = **17**, y **el diff de los dos conjuntos de nombres está vacío** — son
 >   idénticos; `package_search` anónimo = 17. Es la primera vez en todo el incidente que la regla (c) pasa
