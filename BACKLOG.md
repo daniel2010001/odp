@@ -291,6 +291,15 @@
 >   que hay que recordar: «el archivo quedó bien» NO es «la ruta quedó cerrada».** Y el error fue **simétrico**:
 >   yo escribí «el ini es decorativo» (sin acotar) y la otra sesión escribió «la ruta quedó cerrada por el ini»
 >   (tras el reinicio); los dos mezclamos **el archivo** con **el runtime que ejecuta pytest**.
+>   **El MECANISMO, que hace la regla derivable en vez de memorizable — el `.env` tiene dos mitades que se
+>   comportan distinto:** `TEST_CKAN_*` alimenta el `test-core.ini` que se **regenera en cada arranque** → cambia
+>   **el archivo**, y el archivo pierde contra el entorno. En cambio `CKAN_SQLALCHEMY_URL` / `CKAN_SOLR_URL` /
+>   `CKAN_SITE_ID` son lo que el contenedor **exporta** y lo que `update_config()` aplica **después** del ini →
+>   **esa mitad es la que decide** para cualquier proceso que corra adentro. Por eso el `.env` vivo importa
+>   **exactamente lo mismo que el `test-core.ini`: sólo fuera del contenedor.**
+>   **Y la inferencia falsa que hay que matar de entrada, porque es la que va a cometer cualquiera:** «ya arreglé
+>   las `TEST_CKAN_*`, entonces puedo correr `pytest` a mano» → **trunca `ckandb` igual**. Arreglar el `.env` de
+>   tests **no cierra** la ruta destructiva; lo único que la cierra **adentro** es `bin/test-umss`.
 >   **Verificación independiente de la recuperación (2026-09-21):** `package_list` (base) = **17**,
 >   Solr `fq=site_id:default` = **17**, y **el diff de los dos conjuntos de nombres está vacío** — son
 >   idénticos; `package_search` anónimo = 17. Es la primera vez en todo el incidente que la regla (c) pasa
