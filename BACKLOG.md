@@ -673,37 +673,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   «publicar» es independiente y no debe esperar a los roles por dataset.
   _Origen: pregunta del autor, 2026-09-20._
 
-- [ ] **TODO (pregunta del autor): ¿internacionalizar la UI (i18n)?** Notó que CKAN define el idioma y que en
-  `src/lib/api/failure.ts` hay mucho español embebido. **Hechos, leídos y medidos:**
-  (a) **el PRD NO pide multi-idioma**: la única mención de «idioma» es `RF-09` y es un **metadato del
-  dataset** (el idioma de los datos), no de la interfaz;
-  (b) **CKAN sí tiene i18n completo** (`ckan.locale`, `ckan.locales_offered`, traducciones en
-  `ckan/i18n/<lang>/LC_MESSAGES/ckan.po`, decenas de idiomas), pero eso traduce **su** UI y sus mensajes de
-  error, no la del portal;
-  (c) el español de `failure.ts` es **copia de UI, no lógica**: es justo lo que se puede mover a un catálogo
-  cuando toque, y el seam ya empezó (`src/lib/copy/` es la primera pieza).
-  **Recomendación honesta: no hacerlo ahora.** No hay requisito ni segundo idioma pedido, y con un solo idioma
-  multiplica el trabajo sin cambiar la experiencia. Lo que **sí** conviene —y ya está en marcha— es seguir
-  sacando la copia a módulos: **es el trabajo que i18n necesita igual**, así que hacerlo ahora no cuesta
-  extra. Cuando exista un segundo idioma real (pedido institucional, intercambio, alumnos extranjeros), el
-  camino en SvelteKit es Paraglide JS o `svelte-i18n` más rutas por locale; no conviene decidir el
-  anteproyecto antes de tener el requisito.
-  _Origen: pregunta del autor, 2026-09-20._
-
-- [ ] **TODO (pregunta del autor): ¿conviene un tutorial/onboarding que explique las acciones?**
-  **Factible, sí, y técnicamente barato**: una librería de tours (Driver.js, Shepherd) o un `<dialog>` propio
-  con una secuencia de pasos; no toca la arquitectura. **La dificultad no es implementarlo, es mantenerlo
-  honesto:** un tour apunta a elementos que se mueven, se vuelve obsoleto en silencio y **ningún test lo
-  detecta** — es documentación que envejece, pero peor, porque se le muestra al usuario con autoridad. Y hay
-  una señal que conviene escuchar antes: **un tour suele ser el síntoma de que la interfaz necesita
-  explicación**. Acá el problema conocido del asistente no es falta de guía —hoy tiene ficha lateral,
-  metadatos siempre visibles y campos explicados— sino que **la copia miente** (el ítem del verbo «publicar»
-  de arriba): un tutorial que diga «publique su dataset» repetiría la misma mentira con más pasos.
-  **Recomendación: no hacerlo ahora.** Orden que sí recomiendo: primero la copia y los estados vacíos;
-  después, **sólo con evidencia** de que la gente se pierde (soporte, analítica o tu propia observación), un
-  tour **de una sola acción** —la de crear un dataset— antes que un tour general; y lo más barato, que no
-  necesita librería: una página «Cómo funciona» de dos pantallas.
-  _Origen: pregunta del autor, 2026-09-20._
+  **Cuándo se decide:** no ahora, sino **al empezar el trabajo de permisos** (el ítem de colaboradores
+  nativos de CKAN en `v0`): ahí se mide si lo nativo alcanza antes de construir equipos por fuera de CKAN.
 
 - [ ] **TODO: la UI usa «publicar» para lo que en realidad es CREAR — y lo creado es privado, interno a la
   organización.** Este ítem **absorbe** la observación del autor sobre el estado vacío de «Mis datos»: es la
@@ -990,6 +961,45 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   _Referencias: PRD RF-19/RF-20, design-system §9 item 12._
 
 ## v2+ — mejoras futuras no solicitadas
+
+- [ ] **TODO (pregunta del autor): ¿internacionalizar la UI (i18n)?** Notó que CKAN define el idioma y que en
+  `src/lib/api/failure.ts` hay mucho español embebido. **Hechos, leídos y medidos:**
+  (a) **el PRD NO pide multi-idioma**: la única mención de «idioma» es `RF-09` y es un **metadato del
+  dataset** (el idioma de los datos), no de la interfaz;
+  (b) **CKAN sí tiene i18n completo** (`ckan.locale`, `ckan.locales_offered`, traducciones en
+  `ckan/i18n/<lang>/LC_MESSAGES/ckan.po`, decenas de idiomas), pero eso traduce **su** UI y sus mensajes de
+  error, no la del portal;
+  (c) el español de `failure.ts` es **copia de UI, no lógica**: es justo lo que se puede mover a un catálogo
+  cuando toque, y el seam ya empezó (`src/lib/copy/` es la primera pieza).
+  **Recomendación honesta: no hacerlo ahora.** No hay requisito ni segundo idioma pedido, y con un solo idioma
+  multiplica el trabajo sin cambiar la experiencia. Lo que **sí** conviene —y ya está en marcha— es seguir
+  sacando la copia a módulos: **es el trabajo que i18n necesita igual**, así que hacerlo ahora no cuesta
+  extra. Cuando exista un segundo idioma real (pedido institucional, intercambio, alumnos extranjeros), el
+  camino en SvelteKit es Paraglide JS o `svelte-i18n` más rutas por locale; no conviene decidir el
+  anteproyecto antes de tener el requisito.
+  _Origen: pregunta del autor, 2026-09-20._
+
+  **Tier: `[v2+]`.** El disparador para revisitarlo es un **segundo idioma pedido de verdad** (pedido
+  institucional, intercambio, alumnos extranjeros); sin eso, el único trabajo que ya conviene —sacar la copia
+  a módulos— sigue en marcha como parte del trabajo normal, no de i18n.
+
+- [ ] **TODO (pregunta del autor): ¿conviene un tutorial/onboarding que explique las acciones?**
+  **Factible, sí, y técnicamente barato**: una librería de tours (Driver.js, Shepherd) o un `<dialog>` propio
+  con una secuencia de pasos; no toca la arquitectura. **La dificultad no es implementarlo, es mantenerlo
+  honesto:** un tour apunta a elementos que se mueven, se vuelve obsoleto en silencio y **ningún test lo
+  detecta** — es documentación que envejece, pero peor, porque se le muestra al usuario con autoridad. Y hay
+  una señal que conviene escuchar antes: **un tour suele ser el síntoma de que la interfaz necesita
+  explicación**. Acá el problema conocido del asistente no es falta de guía —hoy tiene ficha lateral,
+  metadatos siempre visibles y campos explicados— sino que **la copia miente** (el ítem del verbo «publicar»
+  de arriba): un tutorial que diga «publique su dataset» repetiría la misma mentira con más pasos.
+  **Recomendación: no hacerlo ahora.** Orden que sí recomiendo: primero la copia y los estados vacíos;
+  después, **sólo con evidencia** de que la gente se pierde (soporte, analítica o tu propia observación), un
+  tour **de una sola acción** —la de crear un dataset— antes que un tour general; y lo más barato, que no
+  necesita librería: una página «Cómo funciona» de dos pantallas.
+  _Origen: pregunta del autor, 2026-09-20._
+
+  **Tier: `[v2+]`.** El disparador es que la UI tenga **más acciones** (después de v1) **y** evidencia de que la
+  gente se pierde; el primer paso entonces es un tour de **una sola** acción, no un tour general.
 
 - [ ] **[v2+] Roles / perfiles de usuario** — profundizar la gestión de roles más allá de
   `isSuperAdmin`. Se haría vía delta specs sobre `openspec/specs/authentication/spec.md`
