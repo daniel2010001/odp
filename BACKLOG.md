@@ -76,11 +76,30 @@
 >   escribe en el core compartido», después «purges por SQL», después «documentos inertes con
 >   `site_id=test.ckan.net`» — falso, porque en este contenedor la suite escribe `default`.
 >   **ESTADO MEDIDO desde `odp`:** la base de dev quedó con **1** dataset (`dataset-gxfq-3729-arej`), **2**
->   organizaciones y **1** usuario (`odean`), todo residuo de factory creado el `2026-09-21T16:33:55`; el
->   catálogo sembrado **no existe** y **`ckan_admin` tampoco: no hay ningún sysadmin en el CKAN de dev**. Y
->   **0 filas en `state=deleted` significa que la suite TRUNCÓ, no borró** — por eso el catálogo no dejó rastro
->   alguno. No hay dump de la base: se recupera re-sembrando (`scripts/seed-ckan.mjs`), que **necesita un
->   sysadmin** que hoy no existe.
+>   organizaciones y **1** usuario (`odean`), todo residuo de factory creado el `2026-09-21T16:33:55`. Y
+>   **0 filas en `state=deleted` significa que la suite TRUNCÓ, no borró** — por eso el catálogo no dejó rastro.
+>   **CORRECCIÓN (2026-09-21): «no hay ningún sysadmin» era FALSO, y el error fue de medición.** `user_list`
+>   llamado **sin sesión no devuelve la tabla: devuelve el llamante**, y de esa respuesta inferí «1 usuario,
+>   ningún sysadmin». El CLI dice la verdad: **2 usuarios, y `default` es `sysadmin=true`** — pero `default` es
+>   **residuo de tests** (`created` dentro de la corrida; `test_auth.py:62` usa
+>   `ctx = {"user": "default", "ignore_auth": True}`) y su contraseña es **inalcanzable** (`fake.password` de la
+>   fábrica `User`). O sea: el problema no era «no hay sysadmin» sino **«el admin de dev no existe y nadie tiene
+>   su contraseña»**. **Trampa de medición, de la misma familia que las otras: `user_list` es *caller-scoped*.**
+>   **RECUPERACIÓN, HECHA Y VERIFICADA (2026-09-21).** No hizo falta ninguna credencial nueva: `prerun.py:161`
+>   recrea el admin **desde el propio entorno del stack** (`CKAN_SYSADMIN_NAME`/`CKAN_SYSADMIN_PASSWORD`/
+>   `CKAN_SYSADMIN_EMAIL`, ya definidas en el contenedor), así que alcanza con ejecutar lo que el `prerun` haría:
+>   `docker exec odp-dev-ckan-dev-1 sh -lc 'ckan -c /srv/app/ckan.ini user add "$CKAN_SYSADMIN_NAME"
+>   password="$CKAN_SYSADMIN_PASSWORD" email="$CKAN_SYSADMIN_EMAIL" && ckan -c /srv/app/ckan.ini sysadmin add
+>   "$CKAN_SYSADMIN_NAME"'`. **La contraseña nunca se imprimió** (se lee del entorno del contenedor). Después,
+>   `scripts/seed-ckan.mjs` con ese mismo valor vía `docker exec … printenv`: **16 datasets creados, 0 existían**,
+>   y el token del seed **revocado de verdad** (`ckan_admin` quedó con **0 tokens**, verificado listando —
+>   `success` no es evidencia). **Estado tras la recuperación:** `package_search` (Solr) = **17** y
+>   `package_list` (base) = **17** —**las dos capas coinciden**, que es la condición para creer cualquier
+>   medición viva—, con **16 del seed** y **1 residuo de fábrica** (`dataset-gxfq-3729-arej`) más 2 orgs de
+>   fábrica y 2 usuarios (`default`, `odean`).
+>   **Ojo con un dato:** el contenedor arrancó el `2026-09-20T00:45:51Z` (≈1,7 días, **no** 40 como se dijo), y
+>   como **no se reinició después** de la truncación del 2026-09-21 16:33, nada recreó al admin — de ahí que
+>   faltara.
 >   **REGLAS OPERATIVAS (adoptadas):**
 >   1. **Nunca correr la suite sin neutralizar las cinco variables del entorno**
 >      (`docker exec -e CKAN_SQLALCHEMY_URL=…/ckan_test -e CKAN_DATASTORE_WRITE_URL=…/datastore_test

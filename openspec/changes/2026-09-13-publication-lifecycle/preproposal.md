@@ -80,6 +80,11 @@ reasoning was not a hedge — it was a real hole, twice over.**
 | Extension test baseline | `pytest 8.3.4` + `pytest-ckan 2.11.6` **are installed in the dev image**, so no throwaway container is needed. Baseline `1 failed`: `NameError: name 'plugin_loaded' is not defined` at `tests/test_plugin.py:57` |
 | **P10 — the approver cascade.** An `admin` of a **parent** organization publishing a dataset owned by a **child** organization | **`200`, stored `private=false`.** The cascade is real for the `admin` capacity: `authz.py:322-333` walks `get_parent_group_hierarchy` for the capacities listed in `ckan.auth.roles_that_cascade_to_sub_groups`, which the running ini sets to `admin` (:98) — the same capacity the approver check uses |
 
+> **WARNING (added 2026-09-21): «installed in the dev image, so no throwaway container is needed» invites the destructive path.** Being installed means the suite *can* run inside `ckan-dev`, and if it does it runs against **`ckandb`** and the **shared Solr core**: the container exports `CKAN_SQLALCHEMY_URL`, `CKAN_SOLR_URL` and `CKAN_SITE_ID=default`, and `update_config()` (`ckan/config/environment.py:100-113`) applies `CONFIG_FROM_ENV_VARS` **after** the ini, so the ini is decorative. `clean_db` then **truncates the dev catalogue**, and the run leaves 12–20 orphan documents in the shared core that anonymous `package_search` reads as real.
+> **Use `ckan-docker/bin/test-umss`**, which derives the test URLs from the app's own values inside the container and refuses to run when any of them lacks `_test`. Measured on 2026-09-21: three plain `pytest --ckan-ini=test.ini` runs truncated `ckandb` to one factory dataset, two factory organizations and one factory user, **destroyed the seeded catalogue, and destroyed the dev admin account (`ckan_admin`), leaving only a
+> test-factory user as sysadmin whose password is random and unreachable** (recovered the same day by
+> recreating the admin from the stack's own environment and re-seeding; see `odp/BACKLOG.md`). With the runner: 22 passed, `ckandb` untouched. Full record in `odp/BACKLOG.md` (environment warnings).
+
 Two API behaviours reconfirmed or newly measured while driving the probes:
 
 - `api_token_create {user: <other user>}` — a sysadmin minting for someone else — returns the token but
