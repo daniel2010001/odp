@@ -94,6 +94,10 @@
 >   **sospechá del instrumento de medición —la extracción— antes que de la hipótesis.** Mi doble 403 era
 >   *correcto por la razón equivocada*: la extracción del token devolvía **vacío**, así que lo que probé como
 >   «token» era, literalmente, la ausencia de token. **El control negativo también hay que verificarlo.**
+>   **Y una SÉPTIMA, medida hoy en carne propia: `pgrep -f <patrón>` matchea su PROPIO comando** cuando la línea
+>   de comando del shell contiene el patrón. Casi reporto «hay un `pytest` corriendo y puede truncar la base de
+>   dev» —**falso**: `pgrep` se encontraba a sí mismo. El instrumento medía el instrumento. **Verificación:**
+>   filtrar el propio `pgrep`/`grep` de la salida, o mirar `/proc/*/cmdline`.
 >   **RECUPERACIÓN, HECHA Y VERIFICADA (2026-09-21).** No hizo falta ninguna credencial nueva: `prerun.py:161`
 >   recrea el admin **desde el propio entorno del stack** (`CKAN_SYSADMIN_NAME`/`CKAN_SYSADMIN_PASSWORD`/
 >   `CKAN_SYSADMIN_EMAIL`, ya definidas en el contenedor), así que alcanza con ejecutar lo que el `prerun` haría:
