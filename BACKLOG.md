@@ -86,7 +86,10 @@
 >   fábrica `User`). **Formulación correcta, y la diferencia es operativa: «falta la CREDENCIAL, no el
 >   sysadmin»** — decir «no hay sysadmin» mandaría a alguien a **crear el primero**, cuando lo que hace falta es
 >   **reponer la credencial de un rol que ya existe como fila de test**. **Trampa de medición, de la misma
->   familia que las otras: `user_list` es *caller-scoped*.**
+>   familia que las otras: `user_list` es *caller-scoped*.** **Y la QUINTA, que se comió la otra sesión:
+>   comprobar un token contra una acción que NO discrimina** — `user_show` sin `id` da **404 para todos** y
+>   `api_token_list` sin `user_id` da **409 para todos**, así que «token válido» y «basura» responden igual.
+>   Familia: **una medición que devuelve el mismo resultado para la hipótesis y para el control no mide nada.**
 >   **RECUPERACIÓN, HECHA Y VERIFICADA (2026-09-21).** No hizo falta ninguna credencial nueva: `prerun.py:161`
 >   recrea el admin **desde el propio entorno del stack** (`CKAN_SYSADMIN_NAME`/`CKAN_SYSADMIN_PASSWORD`/
 >   `CKAN_SYSADMIN_EMAIL`, ya definidas en el contenedor), así que alcanza con ejecutar lo que el `prerun` haría:
@@ -216,7 +219,18 @@
 >   razonable, para fijar un token— el mint bueno se saltea, queda el vacío y vuelve el crash loop** (el que
 >   arregló `aa916e7`). El registro anterior decía «ya está arreglado y reconstruido»: era **optimista**.
 >   Limpiar los dos scripts es un punto propio, **pendiente del autor**.
-> - **Un restart ya no hace falta para nada urgente.** `prerun.py.override:160-195` recrea el admin
+> - **CORRECCIÓN de lo que escribí antes: el restart SÍ tiene hoy un motivo real, y NO es cosmético — el token
+>   del datapusher está MUERTO.** `ckan.datapusher.api_token` de `ckan.ini` es **huérfano**: `clean_db`
+>   **truncó la tabla `api_token`** a las 16:33 y nadie re-minteó, así que **ningún** token autentica (medido:
+>   `api_token_list?user_id=<ckan_admin>` con el token configurado → **403**, idéntico a un token basura y a sin
+>   token; la tabla tiene **0 filas**). **Consecuencia: la callback del DataPusher no se autentica → los recursos
+>   NUEVOS no llegan al DataStore**, así que la vista previa de CSV falla **también para archivos subidos**, no
+>   sólo para los sembrados (que son enlaces). **El restart es el arreglo de diseño y es seguro para el
+>   catálogo** (`prerun` corre `init_db`, idempotente, y **no re-siembra**): `CKAN__DATAPUSHER__API_TOKEN` está
+>   **ausente** del entorno, así que `docker-entrypoint.d/01_setup_datapusher.sh` re-mintea con la forma correcta
+>   (`expires_in=365 unit=86400`). **Recomendación: reiniciar cuando la app esté ociosa, y antes de cualquier
+>   trabajo que toque subida de recursos o la vista previa del DataStore.**
+> - **Aparte de eso, lo que el restart aporta es secundario.** `prerun.py.override:160-195` recrea el admin
 >   (idempotente: si el usuario existe, sale) y reescribe `test-core.ini` desde los `TEST_CKAN_*` corregidos;
 >   lo segundo es **decorativo dentro del contenedor**, porque el entorno gana. Y **el restart no re-siembra**:
 >   eso lo hace `scripts/seed-ckan.mjs`. El admin se restauró **sin** restart, ejecutando lo que el `prerun`
