@@ -95,6 +95,23 @@
 >   `TEST_CKAN_SQLALCHEMY_URL` usa el rol `ckan`, que **no existe** (el env var lo enmascaraba), y
 >   `TEST_CKAN_SOLR_URL` apunta al core compartido; además los `TEST_CKAN_*` son **decorativos** porque los
 >   `CKAN_*` del entorno ganan. El arreglo durable es un runner que exporte los `CKAN_*` desde los `TEST_CKAN_*`.
+>   **ACTUALIZACIÓN (2026-09-21): el runner ya existe y está verificado.** `ckan-docker/bin/test-umss` (nuevo,
+>   ejecutable) **deriva** las URLs de test de los valores propios de la app **dentro** del contenedor
+>   (`${CKAN_SQLALCHEMY_URL%ckandb}ckan_test`) —así no pueden desincronizarse del `.env`— y **se niega a correr
+>   si alguna no contiene `_test`**; también crea el core `ckan_test` si falta. Verificado:
+>   `./ckan-docker/bin/test-umss -q` → **22 passed**, `ckandb` idéntica (mismos timestamps), core compartido
+>   23 → 23, core `ckan_test` 22 → 44. **Este comando reemplaza a la receta manual de la regla 1.**
+>   **Pendiente que NO es nuestro y sigue abierto:** tres líneas de `.env` / `.env.example` de `odp-docker` que la
+>   sesión de allá **no puede escribir** (su política de seguridad bloquea esas rutas) y que hay que editar a
+>   mano. Son defensa en profundidad —`test-core.ini` lo pisa el entorno— pero corrigen defectos reales:
+>   `TEST_CKAN_SQLALCHEMY_URL=postgresql://ckandbuser:ckandbpassword@db/ckan_test` (hoy usa el rol `ckan`, **que no
+>   existe**), `TEST_CKAN_DATASTORE_WRITE_URL=postgresql://ckandbuser:ckandbpassword@db/datastore_test` y
+>   `TEST_CKAN_SOLR_URL=http://solr:8983/solr/ckan_test` (hoy apunta al core compartido).
+>   **Defecto lateral reportado (en `odp-docker`, sin tocar):** `ckan-docker/docker-compose.dev.yml` **no declara
+>   `name:`**, así que resuelve a otro proyecto Compose — los otros `bin/*` (`ckan`, `reload`, `compose`, `shell`,
+>   `restart`) **están rotos** contra este stack.
+>   **Y lo importante para nosotros: hasta que no se re-siembre, NINGUNA medición viva es válida.** `ckandb`
+>   sigue con el residuo de la corrida de las 16:33 y `package_search` devuelve 1, que **también** es residuo.
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
