@@ -142,6 +142,21 @@
 >   si alguna no contiene `_test`**; también crea el core `ckan_test` si falta. Verificado:
 >   `./ckan-docker/bin/test-umss -q` → **22 passed**, `ckandb` idéntica (mismos timestamps), core compartido
 >   23 → 23, core `ckan_test` 22 → 44. **Este comando reemplaza a la receta manual de la regla 1.**
+>   **Y una advertencia que sale de su propia revisión nativa: la versión que citábamos tenía un AGUJERO en el
+>   guard.** `review-df2b5906cb9cc5ea` (tier high, 4 lentes) encontró **dos CRITICAL `introduced`**: el guard
+>   verificaba `*_test*` contra el **string entero**, así que una URL con query string lo pasaba y `pytest`
+>   quedaba apuntando a `ckandb`. Se cerró en **`a52b789`** (ahora chequea el **nombre de la base**, no el string)
+>   y **`537bd5d`** (comillas dentro del payload remoto, que mataban la invocación al arrancar; la corrección
+>   anterior de ese mismo arreglo fue **rechazada por el validador dirigido** y dejó el linaje **escalado**).
+>   **La regla 1 cita esos dos commits: un `bin/test-umss` anterior a ellos protege menos de lo que parece.**
+>   La segunda revisión (`review-a170de21520dccd5`, mismo tier y lentes, 16 archivos / 536 líneas) cerró
+>   **aprobada** con 11 hallazgos informativos.
+>   **Dos trampas operativas que dejó, y valen para nuestras propias recetas:** (a) **`bash -n` NO valida el
+>   payload embebido** — pasa aunque el payload esté roto, porque el fallo ocurre en **expansión**, no en el
+>   parseo; hay que ejecutar el camino real. Aplica directo a nuestras recetas con `docker exec … bash -lc '…'`,
+>   que embeben payload igual. (b) **El relay concurrente de un grupo de lentes puede truncar un resultado** (se
+>   cortó en el byte 3015): correr las lentes **de a una** si pasa — single-slot no falló nunca, con payloads de
+>   2 954 a 5 738 bytes.
 >   **RESUELTO EN EFECTO (2026-09-21), y con una corrección de ruta nuestra:** el archivo es
 >   **`odp-docker/ckan-docker/.env`** (hay **dos** `.env`: el de la raíz para el compose, y este) — antes lo
 >   citamos sin el tramo `ckan-docker/`. Verificado por mí: el contenedor ve los `TEST_CKAN_*` **correctos**
@@ -260,10 +275,10 @@
 >   `bin/*`**, ofrecido por esa sesión y **sin detalle medido de mi lado**. Del resto del hilo **no queda nada**: el
 >   «mint roto» era falso, los tres `.override` muertos ya se borraron y los siete `bin/*` ya apuntan al compose
 >   correcto.
->   **Estado del repo `odp-docker`, verificado desde acá:** **4 commits sin pushear** —`3adab85` (runner de tests +
->   `.env.example`), `346764c` (ignorar el runtime local de Pi), `3e4399e` (los siete `bin/*` al compose
->   unificado) y `9cb4fff` (borrar los tres `.override`)— con **árbol limpio**. El hilo entre sesiones quedó
->   **cerrado de los dos lados** el 2026-09-21.
+>   **Estado del repo `odp-docker`, verificado desde acá:** **6 commits sin pushear** —`3adab85` (runner de tests
+>   + `.env.example`), `346764c` (ignorar el runtime local de Pi), `3e4399e` (los siete `bin/*` al compose
+>   unificado), `9cb4fff` (borrar los tres `.override`), y los dos que **cierran el agujero del guard**: `a52b789`
+>   y `537bd5d`— con **árbol limpio**. El hilo entre sesiones quedó **cerrado de los dos lados** el 2026-09-21.
 > - **Y un arreglo real, ya hecho del otro lado (commit `3e4399e`):** los siete `bin/*` apuntaban a
 >   `docker-compose.dev.yml`, que sin `name:` resuelve al proyecto `ckan-docker` (sin contenedores); ahora usan
 >   el unificado. Verificado desde acá: **`bin/compose ps` lista los siete `odp-dev-*`**.
