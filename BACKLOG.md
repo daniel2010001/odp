@@ -136,12 +136,15 @@
 >   si alguna no contiene `_test`**; también crea el core `ckan_test` si falta. Verificado:
 >   `./ckan-docker/bin/test-umss -q` → **22 passed**, `ckandb` idéntica (mismos timestamps), core compartido
 >   23 → 23, core `ckan_test` 22 → 44. **Este comando reemplaza a la receta manual de la regla 1.**
->   **Pendiente que NO es nuestro y sigue abierto:** tres líneas de `.env` / `.env.example` de `odp-docker` que la
->   sesión de allá **no puede escribir** (su política de seguridad bloquea esas rutas) y que hay que editar a
->   mano. Son defensa en profundidad —`test-core.ini` lo pisa el entorno— pero corrigen defectos reales:
->   `TEST_CKAN_SQLALCHEMY_URL=postgresql://ckandbuser:ckandbpassword@db/ckan_test` (hoy usa el rol `ckan`, **que no
+>   **RESUELTO EN EFECTO (2026-09-21), y con una corrección de ruta nuestra:** el archivo es
+>   **`odp-docker/ckan-docker/.env`** (hay **dos** `.env`: el de la raíz para el compose, y este) — antes lo
+>   citamos sin el tramo `ckan-docker/`. Verificado por mí: el contenedor ve los `TEST_CKAN_*` **correctos**
+>   (`@db/ckan_test`, `solr/ckan_test`, `@db/datastore_test`), `test-core.ini` se regeneró correcto tras el
+>   reinicio, y **`.env.example` quedó arreglado y comiteado** en `3adab85`. Las tres líneas que pedíamos eran:
+>   `TEST_CKAN_SQLALCHEMY_URL=postgresql://ckandbuser:ckandbpassword@db/ckan_test` (usaba el rol `ckan`, **que no
 >   existe**), `TEST_CKAN_DATASTORE_WRITE_URL=postgresql://ckandbuser:ckandbpassword@db/datastore_test` y
->   `TEST_CKAN_SOLR_URL=http://solr:8983/solr/ckan_test` (hoy apunta al core compartido).
+>   `TEST_CKAN_SOLR_URL=http://solr:8983/solr/ckan_test` (apuntaba al core compartido). **No queda nada abierto
+>   acá.**
 >   **Defecto lateral reportado (en `odp-docker`, sin tocar):** `ckan-docker/docker-compose.dev.yml` **no declara
 >   `name:`**, así que resuelve a otro proyecto Compose — los otros `bin/*` (`ckan`, `reload`, `compose`, `shell`,
 >   `restart`) **están rotos** contra este stack.
