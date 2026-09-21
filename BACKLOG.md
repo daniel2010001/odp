@@ -244,6 +244,14 @@
 >   loop»: es un fallo silencioso**, y eso es **más difícil de detectar** que el crash loop que arregló `aa916e7`.
 >   Con un valor vivo todo funciona, que es la intención del env var. **Estado actual: SANO** — el token es real
 >   (197 chars) y autentica (200 · basura 403 · sin token 403, medido desde acá).
+>   **Es el ÚNICO punto abierto que queda en ese repo, y es decisión del autor:** qué hacer con el guard
+>   (documentarlo, dejar de depender de la variable, o aceptar el riesgo). Del resto del hilo **no queda nada**:
+>   el «mint roto» era falso, los tres `.override` muertos ya se borraron y los siete `bin/*` ya apuntan al
+>   compose correcto.
+>   **Estado del repo `odp-docker`, verificado desde acá:** **4 commits sin pushear** —`3adab85` (runner de tests +
+>   `.env.example`), `346764c` (ignorar el runtime local de Pi), `3e4399e` (los siete `bin/*` al compose
+>   unificado) y `9cb4fff` (borrar los tres `.override`)— con **árbol limpio**. El hilo entre sesiones quedó
+>   **cerrado de los dos lados** el 2026-09-21.
 > - **Y un arreglo real, ya hecho del otro lado (commit `3e4399e`):** los siete `bin/*` apuntaban a
 >   `docker-compose.dev.yml`, que sin `name:` resuelve al proyecto `ckan-docker` (sin contenedores); ahora usan
 >   el unificado. Verificado desde acá: **`bin/compose ps` lista los siete `odp-dev-*`**.
