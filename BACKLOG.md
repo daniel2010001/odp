@@ -60,22 +60,33 @@
 >   `origin/feat/v0-portal-honesty` (`ac17010` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
 >   merge siguen siendo decisión del autor.
 >
-> - **El índice de Solr del stack dev se contamina con CADA corrida de la suite de pytest de la extensión.**
->   Medido el 2026-09-20 por la sesión de `odp-docker`: el core tiene **62** documentos activos de dataset, la
->   base **1**, y `package_search` anónimo ve **21** (20 fantasmas). **Causa raíz, no sospecha:**
->   `ckanext-umss/test.ini` hereda `../../src/ckan/test-core.ini`, que **sí** aísla la base
->   (`sqlalchemy.url = …/ckan_test`) pero **no el índice**: `solr_url = http://solr:8983/solr/ckan`, **el mismo
->   core que usa dev**. Prueba por timestamps: 12 documentos `dataset-xxxx-…` creados entre 16:20:53 y 16:21:23,
->   dentro de la corrida de pytest de 16:20:41–16:21:40; y 20 más de 2026-09-14 23:40:46–23:41:18 — **esos son
->   los «orphaned index documents»** que el `apply-progress.md` del ciclo de vida registró dos veces: corridas
->   de la suite, **no** un sembrado que quedó huérfano. El registro viejo explicaba el síntoma, no la causa.
->   **Consecuencia: cualquier verificación viva que lea `package_search` —el buscador del portal incluido—
->   puede estar leyendo datos fantasma, y va a volver a pasar en cada corrida de la suite.**
->   **Arreglo de raíz (vive en `odp-docker`, NO aplicado):** override de `solr_url` en `ckanext-umss/test.ini`
->   apuntando a un core dedicado (p. ej. `ckan_test`). **Ojo: `ckan.search.automatic_indexing` no existe en
->   CKAN 2.11.6** (verificado con grep en el paquete `ckan`) — no sirve como atajo. Reconciliar el índice
->   actual: `ckan -c /srv/app/ckan.ini search-index rebuild` (lo corre la sesión de `odp-docker`).
->   **Antes de cualquier verificación viva nuestra: comparar `package_search` contra `package_list`.**
+> - **El índice de Solr del stack dev puede quedar con documentos que no tienen fila en la base, y hay DOS
+>   mecanismos distintos.** Los dos medidos el 2026-09-20 por la sesión de `odp-docker`, que corrigió una
+>   atribución suya **y una nuestra**.
+>   **(A) Datasets PURGADOS que dejan su documento de Solr atrás — el que produjo los fantasmas visibles.**
+>   `ckan/logic/action/delete.py` **no tiene una sola referencia al índice**, y el deindexado depende de
+>   `IDomainObjectModification`, que un **purge por SQL no dispara**. Medido: la base tenía **1** fila de
+>   `package` y **ninguna** en `state=deleted`, mientras Solr tenía 20 documentos `site_id=default` de datasets
+>   que **ya no existían** — sin fila alguna. **El origen casi seguro de esos 20 son nuestras propias sondas
+>   P0–P9 del ciclo de vida**, que crearon y purgaron datasets contra la config real. Es decir: **nuestra
+>   explicación original («un purge que quedó huérfano») era la correcta**, y la reescritura anterior de esta
+>   entrada la atribuyó a la suite de tests y **estaba equivocada**.
+>   **(B) La suite de pytest de la extensión escribe en el MISMO core**, con `site_id=test.ckan.net`:
+>   `ckanext-umss/test.ini` hereda `../../src/ckan/test-core.ini`, que **sí** aísla la base (`ckan_test`) pero
+>   **no** `solr_url`. A esos documentos **no los lee nada** (CKAN filtra por `site_id`) y **ningún rebuild los
+>   limpia**: `clear_index()` borra con `+site_id:"<ckan.site_id>"`, o sea sólo los del site configurado
+>   (`default`). Engordan el core para siempre (22 medidos). Es un defecto de higiene de tests **en
+>   `odp-docker`**; el arreglo es override de `solr_url` a un core dedicado.
+>   **Ojo: `ckan.search.automatic_indexing` no existe en CKAN 2.11.6** (verificado con grep en el paquete
+>   `ckan`) — no sirve como atajo.
+>   **REGLA OPERATIVA, medida (nos aplica):** después de **cualquier sesión de sondas que cree o purgue
+>   datasets contra la config real**, correr `ckan -c /srv/app/ckan.ini search-index rebuild --clear`. **Un
+>   `dataset_purge` NO basta: deja el documento de Solr.** Y antes de verificar en vivo, comparar
+>   `package_search` (Solr) contra `package_list` (base).
+>   **Estado tras la reconciliación (verificado desde `odp`):** `package_search` = **1**, `package_list` = **1**,
+>   y `q=movilidad` / `q=cochabamba` / `q=observatorio` → **0**. Las búsquedas del catálogo sembrado ya no
+>   devuelven fantasmas. La base tiene **1** dataset (un fixture de pytest), así que **antes de cualquier
+>   verificación viva hay que re-sembrar** (`scripts/seed-ckan.mjs`).
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
