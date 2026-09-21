@@ -220,7 +220,14 @@
 >   (idempotente: si el usuario existe, sale) y reescribe `test-core.ini` desde los `TEST_CKAN_*` corregidos;
 >   lo segundo es **decorativo dentro del contenedor**, porque el entorno gana. Y **el restart no re-siembra**:
 >   eso lo hace `scripts/seed-ckan.mjs`. El admin se restauró **sin** restart, ejecutando lo que el `prerun`
->   haría.
+>   haría. **Mientras no se reinicie, `test-core.ini` conserva los valores viejos** (`postgres://ckan:ckan@db/ckan_test`
+>   y `solr_url = …/solr/ckan`): un `pytest` corrido **a mano** ahí sigue siendo **la ruta destructiva**. El
+>   runner es la salida, y hasta que se reinicie (cuando la app esté ociosa) esa trampa queda latente.
+>   **Verificación independiente de la recuperación (2026-09-21):** `package_list` (base) = **17**,
+>   Solr `fq=site_id:default` = **17**, y **el diff de los dos conjuntos de nombres está vacío** — son
+>   idénticos; `package_search` anónimo = 17. Es la primera vez en todo el incidente que la regla (c) pasa
+>   exacta. El core compartido tiene **39** documentos: 17 de `default` (legibles, todos con fila) + **22 de
+>   `test.ckan.net`** (inertes, sin fila, que ningún rebuild limpia — se dejan como están, por acuerdo).
 >
 > **Trabajo independiente, cuando se decida:** los bugs `v0` de la revisión de UI (ver esa sección), la
 > pregunta del facet de licencia (`v1`), y las dos features pesadas que el usuario **aparcó
