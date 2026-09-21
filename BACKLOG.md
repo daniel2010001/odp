@@ -60,15 +60,22 @@
 >   `origin/feat/v0-portal-honesty` (`ac17010` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
 >   merge siguen siendo decisión del autor.
 >
-> - **El índice de Solr del stack dev puede quedar desincronizado con la base: `package_search` (Solr) y
->   `package_list` (base) pueden discrepar.** Medido el 2026-09-20 por el mismo CKAN: `package_search?rows=0`
->   → **21** y `package_list` → **1**. Los ~20 documentos huérfanos son restos del catálogo sembrado, que ya
->   **no existe** en la base (las 2 organizaciones que quedan tienen nombres de fixture de pytest). **Ya había
->   pasado:** el `apply-progress.md` del ciclo de vida registra el mismo fenómeno (contaba 57 donde el diseño
->   esperaba 16, «orphaned index documents»). **Consecuencia práctica: cualquier verificación viva que lea
->   `package_search` puede estar leyendo datos fantasma** — el buscador del portal incluido. Antes de
->   verificar, comparar ambos caminos y, si hay que reconciliar, `ckan search-index rebuild`. No se hizo desde
->   `odp` porque el stack lo opera otra sesión.
+> - **El índice de Solr del stack dev se contamina con CADA corrida de la suite de pytest de la extensión.**
+>   Medido el 2026-09-20 por la sesión de `odp-docker`: el core tiene **62** documentos activos de dataset, la
+>   base **1**, y `package_search` anónimo ve **21** (20 fantasmas). **Causa raíz, no sospecha:**
+>   `ckanext-umss/test.ini` hereda `../../src/ckan/test-core.ini`, que **sí** aísla la base
+>   (`sqlalchemy.url = …/ckan_test`) pero **no el índice**: `solr_url = http://solr:8983/solr/ckan`, **el mismo
+>   core que usa dev**. Prueba por timestamps: 12 documentos `dataset-xxxx-…` creados entre 16:20:53 y 16:21:23,
+>   dentro de la corrida de pytest de 16:20:41–16:21:40; y 20 más de 2026-09-14 23:40:46–23:41:18 — **esos son
+>   los «orphaned index documents»** que el `apply-progress.md` del ciclo de vida registró dos veces: corridas
+>   de la suite, **no** un sembrado que quedó huérfano. El registro viejo explicaba el síntoma, no la causa.
+>   **Consecuencia: cualquier verificación viva que lea `package_search` —el buscador del portal incluido—
+>   puede estar leyendo datos fantasma, y va a volver a pasar en cada corrida de la suite.**
+>   **Arreglo de raíz (vive en `odp-docker`, NO aplicado):** override de `solr_url` en `ckanext-umss/test.ini`
+>   apuntando a un core dedicado (p. ej. `ckan_test`). **Ojo: `ckan.search.automatic_indexing` no existe en
+>   CKAN 2.11.6** (verificado con grep en el paquete `ckan`) — no sirve como atajo. Reconciliar el índice
+>   actual: `ckan -c /srv/app/ckan.ini search-index rebuild` (lo corre la sesión de `odp-docker`).
+>   **Antes de cualquier verificación viva nuestra: comparar `package_search` contra `package_list`.**
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
@@ -553,11 +560,19 @@ colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
 `ckanext/umss/tests/test_plugin.py:57` llama `plugin_loaded("umss")` sin declararlo como fixture.
-**CORRECCIÓN (2026-09-20): no reproduce.** Medido por la sesión de `odp-docker` con
-`python -m pytest --ckan-ini=test.ini -q` en `/srv/app/src_extensions/ckanext-umss`: **22 passed, 0 fallos**.
-El registro de arriba es de una sesión del 2026-09-13/14 y **quedó sin confirmar** (no se guardó el comando
-ni el estado exacto), así que no se puede defender. Mientras no vuelva a reproducirse, **no tratar esto como
-prerrequisito roto**: verificar de nuevo y, si sigue en rojo, anotar el comando con el estado.
+**CORRECCIÓN (2026-09-20): el baseline rojo ERA real, y el diagnóstico grabado era incorrecto.** Medido
+por la sesión de `odp-docker`:
+- **No era una fixture faltante.** En la revisión padre (`279e453`) la fixture **ya estaba declarada**, línea
+  55: `@pytest.mark.usefixtures("with_plugins")`.
+- El fallo real era un **`NameError`**: `plugin_loaded` se usaba **sin importar** — en ese commit las únicas
+  importaciones eran `import pytest` y `import ckanext.umss.plugin as plugin`.
+- Lo arregló **`86f130b`** —el **mismo commit que introdujo el guard**— con +6 líneas:
+  `from ckan.plugins import plugin_loaded`, más el comentario que aclara que **no** es una fixture de
+  pytest-ckan en CKAN 2.11.6.
+
+**Que nadie busque una fixture faltante: nunca lo fue.** Ese es el motivo por el que esta entrada se reescribe
+en vez de marcarse como no reproducible — el diagnóstico viejo manda a buscar en el lugar equivocado. Hoy la
+suite pasa (22 passed, medido allá) y el archivo declara las cuatro piezas y el `assert`.
 Medido el 2026-09-14: `1 failed`, `NameError: name 'plugin_loaded' is not defined`. `pytest 8.3.4` y
 `pytest-ckan 2.11.6` **sí están instalados en la imagen de dev**, así que la suite corre en el lugar y
 no hace falta el contenedor descartable que el diseño contemplaba como fallback. Y el `plugin.py`
