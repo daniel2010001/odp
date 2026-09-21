@@ -102,9 +102,11 @@
 >   `package_list` (base) = **17** —**las dos capas coinciden**, que es la condición para creer cualquier
 >   medición viva—, con **16 del seed** y **1 residuo de fábrica** (`dataset-gxfq-3729-arej`) más 2 orgs de
 >   fábrica y 2 usuarios (`default`, `odean`).
->   **Ojo con un dato:** el contenedor arrancó el `2026-09-20T00:45:51Z` (≈1,7 días, **no** 40 como se dijo), y
->   como **no se reinició después** de la truncación del 2026-09-21 16:33, nada recreó al admin — de ahí que
->   faltara.
+>   **AUSENCIA MEDIDA, no causalidad medida:** `ckan_admin` **no existía** (medido a las 16:46), y el contenedor
+>   arrancó el `2026-09-20T00:45:51Z` (≈1,7 días, **no** 40 como se dijo). **Sin dump no se puede saber *cuándo*
+>   desapareció ni *quién* la borró**: lo que sí está medido es que **el único mecanismo del stack que borra
+>   usuarios es la truncación de `user` que hace `clean_db`**, y que nada lo recreó porque **no hubo reinicio
+>   después**.
 >   **REGLAS OPERATIVAS (adoptadas):**
 >   1. **Nunca correr la suite sin neutralizar las cinco variables del entorno**
 >      (`docker exec -e CKAN_SQLALCHEMY_URL=…/ckan_test -e CKAN_DATASTORE_WRITE_URL=…/datastore_test
