@@ -83,8 +83,10 @@
 >   ningún sysadmin». El CLI dice la verdad: **2 usuarios, y `default` es `sysadmin=true`** — pero `default` es
 >   **residuo de tests** (`created` dentro de la corrida; `test_auth.py:62` usa
 >   `ctx = {"user": "default", "ignore_auth": True}`) y su contraseña es **inalcanzable** (`fake.password` de la
->   fábrica `User`). O sea: el problema no era «no hay sysadmin» sino **«el admin de dev no existe y nadie tiene
->   su contraseña»**. **Trampa de medición, de la misma familia que las otras: `user_list` es *caller-scoped*.**
+>   fábrica `User`). **Formulación correcta, y la diferencia es operativa: «falta la CREDENCIAL, no el
+>   sysadmin»** — decir «no hay sysadmin» mandaría a alguien a **crear el primero**, cuando lo que hace falta es
+>   **reponer la credencial de un rol que ya existe como fila de test**. **Trampa de medición, de la misma
+>   familia que las otras: `user_list` es *caller-scoped*.**
 >   **RECUPERACIÓN, HECHA Y VERIFICADA (2026-09-21).** No hizo falta ninguna credencial nueva: `prerun.py:161`
 >   recrea el admin **desde el propio entorno del stack** (`CKAN_SYSADMIN_NAME`/`CKAN_SYSADMIN_PASSWORD`/
 >   `CKAN_SYSADMIN_EMAIL`, ya definidas en el contenedor), así que alcanza con ejecutar lo que el `prerun` haría:
@@ -121,7 +123,10 @@
 >   en CKAN 2.11.6 (verificado con grep). **Defectos latentes del `.env` de `odp-docker`:**
 >   `TEST_CKAN_SQLALCHEMY_URL` usa el rol `ckan`, que **no existe** (el env var lo enmascaraba), y
 >   `TEST_CKAN_SOLR_URL` apunta al core compartido; además los `TEST_CKAN_*` son **decorativos** porque los
->   `CKAN_*` del entorno ganan. El arreglo durable es un runner que exporte los `CKAN_*` desde los `TEST_CKAN_*`.
+>   `CKAN_*` del entorno ganan. **Pero «decorativos» sólo vale DENTRO del contenedor de la app**: fuera de él
+>   —un venv pelado, otro host, un CI que no exporte `CKAN_SOLR_URL`— el ini es **la única protección**, así que
+>   **la línea `solr_url` de `test.ini` se conserva**: el runner cubre la **invocación**, no la **portabilidad**.
+>   Son dos defensas distintas y no una redundante. El arreglo durable es un runner que exporte los `CKAN_*` desde los `TEST_CKAN_*`.
 >   **ACTUALIZACIÓN (2026-09-21): el runner ya existe y está verificado.** `ckan-docker/bin/test-umss` (nuevo,
 >   ejecutable) **deriva** las URLs de test de los valores propios de la app **dentro** del contenedor
 >   (`${CKAN_SQLALCHEMY_URL%ckandb}ckan_test`) —así no pueden desincronizarse del `.env`— y **se niega a correr
