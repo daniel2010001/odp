@@ -90,6 +90,10 @@
 >   comprobar un token contra una acción que NO discrimina** — `user_show` sin `id` da **404 para todos** y
 >   `api_token_list` sin `user_id` da **409 para todos**, así que «token válido» y «basura» responden igual.
 >   Familia: **una medición que devuelve el mismo resultado para la hipótesis y para el control no mide nada.**
+>   **Y su corolario, que me comí yo una hora después:** cuando la hipótesis y el control coinciden,
+>   **sospechá del instrumento de medición —la extracción— antes que de la hipótesis.** Mi doble 403 era
+>   *correcto por la razón equivocada*: la extracción del token devolvía **vacío**, así que lo que probé como
+>   «token» era, literalmente, la ausencia de token. **El control negativo también hay que verificarlo.**
 >   **RECUPERACIÓN, HECHA Y VERIFICADA (2026-09-21).** No hizo falta ninguna credencial nueva: `prerun.py:161`
 >   recrea el admin **desde el propio entorno del stack** (`CKAN_SYSADMIN_NAME`/`CKAN_SYSADMIN_PASSWORD`/
 >   `CKAN_SYSADMIN_EMAIL`, ya definidas en el contenedor), así que alcanza con ejecutar lo que el `prerun` haría:
@@ -283,7 +287,10 @@
 >   `test-core.ini`, pero **el contenedor SIGUE exportando `CKAN_SQLALCHEMY_URL=ckandb`, `CKAN_SOLR_URL=ckan` y
 >   `CKAN_SITE_ID=default`** (verificado después del reinicio), así que **dentro del contenedor el entorno sigue
 >   pisando el ini: un `pytest` corrido a mano ahí SIGUE truncando la base de dev.** La regeneración cierra el
->   caso **fuera** del contenedor; **el runner sigue siendo obligatorio dentro** — no es redundante.
+>   caso **fuera** del contenedor; **el runner sigue siendo obligatorio dentro** — no es redundante. **La frase
+>   que hay que recordar: «el archivo quedó bien» NO es «la ruta quedó cerrada».** Y el error fue **simétrico**:
+>   yo escribí «el ini es decorativo» (sin acotar) y la otra sesión escribió «la ruta quedó cerrada por el ini»
+>   (tras el reinicio); los dos mezclamos **el archivo** con **el runtime que ejecuta pytest**.
 >   **Verificación independiente de la recuperación (2026-09-21):** `package_list` (base) = **17**,
 >   Solr `fq=site_id:default` = **17**, y **el diff de los dos conjuntos de nombres está vacío** — son
 >   idénticos; `package_search` anónimo = 17. Es la primera vez en todo el incidente que la regla (c) pasa
