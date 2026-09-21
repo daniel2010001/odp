@@ -77,16 +77,24 @@
 >   `site_id=test.ckan.net`» — falso, porque en este contenedor la suite escribe `default`.
 >   **ESTADO MEDIDO desde `odp`:** la base de dev quedó con **1** dataset (`dataset-gxfq-3729-arej`), **2**
 >   organizaciones y **1** usuario (`odean`), todo residuo de factory creado el `2026-09-21T16:33:55`; el
->   catálogo sembrado **no existe** y **`ckan_admin` tampoco: no hay ningún sysadmin en el CKAN de dev**. No
->   hay dump de la base: se recupera re-sembrando (`scripts/seed-ckan.mjs`), que **necesita un sysadmin** que
->   hoy no existe.
+>   catálogo sembrado **no existe** y **`ckan_admin` tampoco: no hay ningún sysadmin en el CKAN de dev**. Y
+>   **0 filas en `state=deleted` significa que la suite TRUNCÓ, no borró** — por eso el catálogo no dejó rastro
+>   alguno. No hay dump de la base: se recupera re-sembrando (`scripts/seed-ckan.mjs`), que **necesita un
+>   sysadmin** que hoy no existe.
 >   **REGLAS OPERATIVAS (adoptadas):**
 >   1. **Nunca correr la suite sin neutralizar las cinco variables del entorno**
 >      (`docker exec -e CKAN_SQLALCHEMY_URL=…/ckan_test -e CKAN_DATASTORE_WRITE_URL=…/datastore_test
 >      -e CKAN_DATASTORE_READ_URL=… -e CKAN_SOLR_URL=…/solr/ckan_test -e CKAN_SITE_ID=test.ckan.net …`).
 >      Receta **verificada**: 22 passed y la base de dev **intacta**.
->   2. Después de **cualquier sesión de sondas que cree o purgue datasets contra la config real**:
->      `ckan -c /srv/app/ckan.ini search-index rebuild --clear`. Un `dataset_purge` **no** basta.
+>   2. **Después de correr los tests de la extensión** —que es lo que produce los huérfanos, **medido**—:
+>      `ckan -c /srv/app/ckan.ini search-index rebuild --clear`. **El sujeto importa y antes estuvo mal escrito:**
+>      la pasada de sondas del 2026-09-14 **dejó el índice consistente** —§5 del `preproposal.md`:
+>      «anonymous `*:*` back to the 16 seeded datasets, **0 probe datasets**, 0 probe organizations»—, mientras
+>      que **cada corrida de la suite** deja 12–20 documentos con nombres de factory. Atribuir los huérfanos a
+>      nuestras sondas fue un error que **nuestro propio `preproposal.md` refuta** (§2.4 fecha la pasada a las
+>      `21:54:46`; los 20 documentos son de las `23:40:46–23:41:18`, una hora y cuarenta y seis minutos después).
+>      Que un `dataset_purge` por CLI/SQL **también** pueda dejar el documento es **lectura de código**
+>      (`delete.py` no referencia el índice), **no medición** — no lo trates como medido.
 >   3. Antes de cualquier verificación viva: comparar `package_search` (Solr) contra `package_list` (base) y
 >      **re-sembrar si la base quedó con residuo de tests**.
 >   **Datos extra que sirven:** `clear_index()` borra filtrando por el `ckan.site_id` configurado, así que un
@@ -595,8 +603,11 @@ falta el fallback), no hay hook de veto previo en `IPackageController`, y las do
 colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
-`ckanext/umss/tests/test_plugin.py:57` llama `plugin_loaded("umss")` sin declararlo como fixture.
-**CORRECCIÓN (2026-09-20): el baseline rojo ERA real, y el diagnóstico grabado era incorrecto.** Medido
+`ckanext/umss/tests/test_plugin.py:57`: baseline **`1 failed`** por
+**`NameError: name 'plugin_loaded' is not defined`**. Redacción **restaurada del `preproposal.md` §2.4**, que ya
+la tenía correcta; la versión anterior de esta línea («sin declararlo como fixture») era una **derivada
+corrompida** de un registro que estaba bien, y mandaba a buscar una fixture que nunca faltó.
+**CORRECCIÓN (2026-09-20): el baseline rojo ERA real** (la redacción de arriba ya quedó restaurada). Medido
 por la sesión de `odp-docker`:
 - **No era una fixture faltante.** En la revisión padre (`279e453`) la fixture **ya estaba declarada**, línea
   55: `@pytest.mark.usefixtures("with_plugins")`.
