@@ -40,6 +40,29 @@
 >
 > **Cada bloque cierra con sus commits y su propia revisión nativa**, como el slice C. Los `v1`/`v1+`/`v2+`
 > y la deuda de revisión viven en sus secciones propias de este archivo.
+>
+> **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
+> el 2026-09-21:
+> - **La sync nunca se rompió: el proyecto se RENOMBRÓ.** El servidor tiene
+>   `project=open-data-plataform candidates=389 already_materialized=389` —el portal de este repo, **completo**,
+>   bajo su **nombre viejo**—. Las sesiones ahora escriben en **`odp`** (resuelto del remoto git) y la allowlist
+>   del servidor quedó con el nombre viejo → `403 project_forbidden`, no un fallo de red ni de auth.
+> - **Hecho del lado cliente:** `engram cloud enroll odp` y `engram cloud enroll odp-docker`, más el token en
+>   `~/.engram/cloud.json` → `Auth status: ready` y `Project enrollment: enrolled` en los dos. El chequeo
+>   bloqueante del doctor pasó de `blocked: 1` a **`0`**.
+> - **FALTA, y está bloqueado para el agente por política de seguridad** (el archivo tiene secretos): agregar
+>   **`odp,odp-docker`** a `ENGRAM_CLOUD_ALLOWED_PROJECTS` en **`/home/danielblc/docker/engram-cloud/.env`**
+>   (línea 9) y recrear el servicio:
+>   `cd /home/danielblc/docker/engram-cloud && docker compose up -d --force-recreate cloud`.
+>   Hay backup del `.env` en `.env.bak-20260921-195048`.
+> - **Los otros tres targets legados del doctor son el MISMO desajuste de nombres** (`proyectos` vs `projects` en
+>   la allowlist; `danielblc` y `omarchy-on-cachyos` ausentes) → **decisión del autor: no entran**.
+> - **Nota para no perder tiempo:** el `repair materialize-mutations` del cliente **no corre desde el host**
+>   (quiere la base de la nube en `127.0.0.1:5433`, que no está expuesta). **No es un bloqueo**: el **servidor**
+>   materializa solo para los proyectos que permite. **No exponer esa base para contentar a un CLI.**
+> - **Y una deuda de seguridad de esta sesión:** un `docker inspect` volcó el entorno del contenedor e imprimió
+>   `ENGRAM_CLOUD_TOKEN`, `ENGRAM_JWT_SECRET` y la contraseña de Postgres en el log de la conversación.
+>   **Rotarlos** si ese log sale de esta máquina; para leer variables, filtrar **por nombre**, no volcar todo.
 
 > **Detalle histórico de los tres slices** — plan, mediciones, decisiones del autor y evidencia de las
 > revisones, en `odd/tasks/v0-portal-honesty.md` y en las entradas que siguen.
