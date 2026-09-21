@@ -60,33 +60,41 @@
 >   `origin/feat/v0-portal-honesty` (`ac17010` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
 >   merge siguen siendo decisión del autor.
 >
-> - **El índice de Solr del stack dev puede quedar con documentos que no tienen fila en la base, y hay DOS
->   mecanismos distintos.** Los dos medidos el 2026-09-20 por la sesión de `odp-docker`, que corrigió una
->   atribución suya **y una nuestra**.
->   **(A) Datasets PURGADOS que dejan su documento de Solr atrás — el que produjo los fantasmas visibles.**
->   `ckan/logic/action/delete.py` **no tiene una sola referencia al índice**, y el deindexado depende de
->   `IDomainObjectModification`, que un **purge por SQL no dispara**. Medido: la base tenía **1** fila de
->   `package` y **ninguna** en `state=deleted`, mientras Solr tenía 20 documentos `site_id=default` de datasets
->   que **ya no existían** — sin fila alguna. **El origen casi seguro de esos 20 son nuestras propias sondas
->   P0–P9 del ciclo de vida**, que crearon y purgaron datasets contra la config real. Es decir: **nuestra
->   explicación original («un purge que quedó huérfano») era la correcta**, y la reescritura anterior de esta
->   entrada la atribuyó a la suite de tests y **estaba equivocada**.
->   **(B) La suite de pytest de la extensión escribe en el MISMO core**, con `site_id=test.ckan.net`:
->   `ckanext-umss/test.ini` hereda `../../src/ckan/test-core.ini`, que **sí** aísla la base (`ckan_test`) pero
->   **no** `solr_url`. A esos documentos **no los lee nada** (CKAN filtra por `site_id`) y **ningún rebuild los
->   limpia**: `clear_index()` borra con `+site_id:"<ckan.site_id>"`, o sea sólo los del site configurado
->   (`default`). Engordan el core para siempre (22 medidos). Es un defecto de higiene de tests **en
->   `odp-docker`**; el arreglo es override de `solr_url` a un core dedicado.
->   **Ojo: `ckan.search.automatic_indexing` no existe en CKAN 2.11.6** (verificado con grep en el paquete
->   `ckan`) — no sirve como atajo.
->   **REGLA OPERATIVA, medida (nos aplica):** después de **cualquier sesión de sondas que cree o purgue
->   datasets contra la config real**, correr `ckan -c /srv/app/ckan.ini search-index rebuild --clear`. **Un
->   `dataset_purge` NO basta: deja el documento de Solr.** Y antes de verificar en vivo, comparar
->   `package_search` (Solr) contra `package_list` (base).
->   **Estado tras la reconciliación (verificado desde `odp`):** `package_search` = **1**, `package_list` = **1**,
->   y `q=movilidad` / `q=cochabamba` / `q=observatorio` → **0**. Las búsquedas del catálogo sembrado ya no
->   devuelven fantasmas. La base tiene **1** dataset (un fixture de pytest), así que **antes de cualquier
->   verificación viva hay que re-sembrar** (`scripts/seed-ckan.mjs`).
+> - **INCIDENTE DEL ENTORNO DEV: la suite de pytest de la extensión corre contra la BASE DE DEV y borra el
+>   catálogo.** Causa raíz medida (sesión de `odp-docker`), y **no es el ini**: `test.ini` pide `ckan_test`,
+>   pero el contenedor exporta `CKAN_SQLALCHEMY_URL=…/ckandb`, `CKAN_SOLR_URL=…/solr/ckan` y
+>   `CKAN_SITE_ID=default`, y `update_config()` (`ckan/config/environment.py:100-113`) aplica
+>   `CONFIG_FROM_ENV_VARS` **después** de leer el ini, así que **el entorno pisa el ini**. A/B medido: tras
+>   `load_config("test.ini")` el dict dice `ckan_test`/`solr/ckan_test`/`test.ckan.net`; tras `make_app()` el
+>   proceso ve `ckandb`/`solr/ckan`/`default`. Y `clean_db` **trunca**. Consecuencia: la suite **borra el
+>   catálogo de dev** y deja documentos de Solr de datasets que ya no tienen fila — con `site_id=default`, así
+>   que `package_search` **sí los ve**.
+>   **Esto explica de una vez** los «orphaned index documents» que el `apply-progress.md` registró dos veces
+>   (ventana `2026-09-14T23:40:46–23:41:18`, ~30 s = **una corrida de la suite**, no nuestras sondas) y el
+>   catálogo que aparece y desaparece entre sesiones. **Nuestra explicación original era la correcta; las tres
+>   reescrituras posteriores de esta entrada fueron atribuciones plausibles sin verificar:** primero «la suite
+>   escribe en el core compartido», después «purges por SQL», después «documentos inertes con
+>   `site_id=test.ckan.net`» — falso, porque en este contenedor la suite escribe `default`.
+>   **ESTADO MEDIDO desde `odp`:** la base de dev quedó con **1** dataset (`dataset-gxfq-3729-arej`), **2**
+>   organizaciones y **1** usuario (`odean`), todo residuo de factory creado el `2026-09-21T16:33:55`; el
+>   catálogo sembrado **no existe** y **`ckan_admin` tampoco: no hay ningún sysadmin en el CKAN de dev**. No
+>   hay dump de la base: se recupera re-sembrando (`scripts/seed-ckan.mjs`), que **necesita un sysadmin** que
+>   hoy no existe.
+>   **REGLAS OPERATIVAS (adoptadas):**
+>   1. **Nunca correr la suite sin neutralizar las cinco variables del entorno**
+>      (`docker exec -e CKAN_SQLALCHEMY_URL=…/ckan_test -e CKAN_DATASTORE_WRITE_URL=…/datastore_test
+>      -e CKAN_DATASTORE_READ_URL=… -e CKAN_SOLR_URL=…/solr/ckan_test -e CKAN_SITE_ID=test.ckan.net …`).
+>      Receta **verificada**: 22 passed y la base de dev **intacta**.
+>   2. Después de **cualquier sesión de sondas que cree o purgue datasets contra la config real**:
+>      `ckan -c /srv/app/ckan.ini search-index rebuild --clear`. Un `dataset_purge` **no** basta.
+>   3. Antes de cualquier verificación viva: comparar `package_search` (Solr) contra `package_list` (base) y
+>      **re-sembrar si la base quedó con residuo de tests**.
+>   **Datos extra que sirven:** `clear_index()` borra filtrando por el `ckan.site_id` configurado, así que un
+>   rebuild **no puede** alcanzar documentos de otro `site_id`; y `ckan.search.automatic_indexing` **no existe**
+>   en CKAN 2.11.6 (verificado con grep). **Defectos latentes del `.env` de `odp-docker`:**
+>   `TEST_CKAN_SQLALCHEMY_URL` usa el rol `ckan`, que **no existe** (el env var lo enmascaraba), y
+>   `TEST_CKAN_SOLR_URL` apunta al core compartido; además los `TEST_CKAN_*` son **decorativos** porque los
+>   `CKAN_*` del entorno ganan. El arreglo durable es un runner que exporte los `CKAN_*` desde los `TEST_CKAN_*`.
 >
 > **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
 > - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
