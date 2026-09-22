@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Link } from "@lucide/svelte";
+import { resourceKind } from "$lib/resources/kind";
 import type { CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { formatSize } from "$lib/utils/ckan";
@@ -12,6 +14,12 @@ let {
 	datasetSlug: string;
 	class?: string;
 } = $props();
+
+// El chip de la tarjeta es uno solo y lo decide el tipo de recurso (`url_type`): un archivo alojado
+// muestra su formato, una referencia externa muestra «Enlace». Un enlace nunca lleva el chip de
+// formato —esa era la mentira: un `format` y un `size` sobre una URL externa— y un archivo nunca
+// lleva el de enlace.
+const kind = $derived(resourceKind(resource));
 
 const formatBadge = $derived.by(() => {
 	const fmt = (resource.format ?? "").toUpperCase();
@@ -68,7 +76,10 @@ const formatBadge = $derived.by(() => {
 		},
 	};
 	return (
-		badges[fmt] ?? { label: fmt || "FILE", class: "bg-muted text-muted-foreground border-border" }
+		badges[fmt] ?? {
+			label: fmt || "Archivo",
+			class: "bg-muted text-muted-foreground border-border",
+		}
 	);
 });
 </script>
@@ -81,15 +92,24 @@ const formatBadge = $derived.by(() => {
 	)}
 	aria-label="{resource.name || 'Recurso'}, detalle del recurso"
 >
-	<!-- Format badge -->
-	<div
-		class={cn(
-			"flex shrink-0 items-center justify-center rounded-md border px-2.5 py-1 text-xs font-bold",
-			formatBadge.class,
-		)}
-	>
-		{formatBadge.label}
-	</div>
+	<!-- Kind badge: formato para un archivo alojado, «Enlace» para una referencia externa -->
+	{#if kind === "link"}
+		<div
+			class="flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-bold text-muted-foreground"
+		>
+			<Link class="size-3.5" aria-hidden="true" />
+			Enlace
+		</div>
+	{:else}
+		<div
+			class={cn(
+				"flex shrink-0 items-center justify-center rounded-md border px-2.5 py-1 text-xs font-bold",
+				formatBadge.class,
+			)}
+		>
+			{formatBadge.label}
+		</div>
+	{/if}
 
 	<!-- Resource info -->
 	<div class="min-w-0 flex-1">

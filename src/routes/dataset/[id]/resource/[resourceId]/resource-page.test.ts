@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/svelte";
+import { render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
@@ -335,6 +335,41 @@ describe("Página de recurso — estados de fallo honestos", () => {
 		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 		expect(screen.getByRole("link", { name: /Volver al dataset/i })).toBeTruthy();
 		expect(mocks.showResource).not.toHaveBeenCalled();
+	});
+});
+
+// ─── El tipo de recurso en el encabezado (block C, C1) ───────────────
+// El chip del encabezado es exclusivo: un archivo alojado (`url_type: "upload"`) muestra su formato,
+// una referencia externa muestra «Enlace» y deja de mostrar el formato. La aserción de ausencia del
+// formato en un enlace es la decisión, no un detalle: un enlace es un enlace y no conserva el chip
+// de formato. Las aserciones se acotan a la fila de insignias del encabezado, porque el formato
+// declarado sigue presente en la fila de metadatos (que es otra superficie).
+describe("Página de recurso — el tipo de recurso en el encabezado", () => {
+	async function renderHeader(): Promise<HTMLElement> {
+		render(ResourcePage);
+		const heading = await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const header = heading.closest("section");
+		expect(header).toBeTruthy();
+		return header as HTMLElement;
+	}
+
+	it('un recurso alojado (`url_type: "upload"`) muestra su formato y nunca «Enlace»', async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ url_type: "upload", format: "CSV" }));
+
+		const header = await renderHeader();
+
+		expect(within(header).getByText("CSV")).toBeTruthy();
+		expect(within(header).queryByText("Enlace")).toBeNull();
+	});
+
+	it("un recurso sin `url_type` (referencia externa) muestra «Enlace» y no el formato", async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ format: "CSV" }));
+
+		const header = await renderHeader();
+
+		expect(within(header).getByText("Enlace")).toBeTruthy();
+		// La decisión del autor: el chip es exclusivo, así que el formato declarado no se muestra aquí.
+		expect(within(header).queryByText("CSV")).toBeNull();
 	});
 });
 

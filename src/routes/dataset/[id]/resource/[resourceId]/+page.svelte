@@ -7,6 +7,7 @@ import {
 	Download,
 	ExternalLink,
 	FileText,
+	Link,
 	Link2,
 	Map as MapIcon,
 	Table,
@@ -31,6 +32,7 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
+import { resourceKind } from "$lib/resources/kind";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
@@ -219,6 +221,11 @@ const pageTitle = $derived.by(() => {
 
 // ─── Derived: badges ────────────────────────────────────────────
 const formatLabel = $derived(resource?.format?.trim().toUpperCase() ?? null);
+
+// El tipo de recurso (`url_type`, la regla de CKAN) decide el chip del encabezado, y es exclusivo:
+// un recurso alojado muestra su insignia de formato; una referencia externa muestra «Enlace» y deja
+// de mostrar el formato declarado —un enlace es un enlace, no un archivo con formato.
+const isLink = $derived(resource ? resourceKind(resource) === "link" : false);
 
 const stateLabel = $derived.by(() => {
 	switch (resource?.state) {
@@ -445,9 +452,17 @@ async function handleCopyResourceLink() {
 				{/if}
 
 
-				<!-- Badges row -->
+				<!-- Badges row: el chip de tipo es exclusivo — un enlace muestra «Enlace» y no el formato,
+				     un archivo alojado muestra su formato y nunca «Enlace». -->
 				<div class="mt-4 flex flex-wrap items-center gap-2">
-					{#if formatLabel}
+					{#if isLink}
+						<span
+							class="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-semibold text-muted-foreground"
+						>
+							<Link class="size-3.5" aria-hidden="true" />
+							Enlace
+						</span>
+					{:else if formatLabel}
 						<span
 							class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
 						>

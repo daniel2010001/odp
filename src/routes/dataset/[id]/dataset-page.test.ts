@@ -1,11 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/svelte";
+import { render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
 import { type ApiClientConfig, CkanApiError } from "$lib/types/api";
-import type { CkanPackage, CkanUser } from "$lib/types/ckan";
+import type { CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import DatasetPage from "./+page.svelte";
 
 // El stub de `$app/stores` (ver vitest.config.ts) expone `page` como store escribible, pero el
@@ -304,5 +304,64 @@ describe("Página de dataset — estados de fallo honestos", () => {
 		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 		expect(screen.getByRole("link", { name: /Volver al catálogo/i })).toBeTruthy();
 		expect(mocks.showDataset).not.toHaveBeenCalled();
+	});
+});
+
+// ─── El tipo de recurso en la tarjeta del listado (block C, C1) ───────
+// La tarjeta decide su único chip por `url_type`: un archivo alojado muestra su formato, una
+// referencia externa muestra «Enlace». La prueba de las dos direcciones es el punto: un `format` y
+// un `size` no pueden promover un enlace a archivo, y un archivo no puede perder su formato.
+
+/** Un recurso del listado, con la forma de `resource_show`. */
+function makeCardResource(overrides: Partial<CkanResource> = {}): CkanResource {
+	return {
+		id: "res-card-1",
+		package_id: "pkg-1",
+		name: "Recurso de prueba",
+		description: "Recurso que el listado renderiza",
+		format: "CSV",
+		url: "https://data.umss.edu.bo/dataset/x/resource/res-card-1",
+		resource_type: "file",
+		mimetype: "text/csv",
+		size: 1024,
+		created: "2026-01-01T00:00:00.000000",
+		last_modified: "2026-01-01T00:00:00.000000",
+		state: "active",
+		position: 0,
+		...overrides,
+	};
+}
+
+/** Renderiza la página con un único recurso y devuelve su tarjeta ya montada. */
+async function renderResourceCard(resource: CkanResource): Promise<HTMLElement> {
+	mocks.showDataset.mockResolvedValue(makeDataset({ resources: [resource] }));
+
+	render(DatasetPage);
+
+	return screen.findByRole("link", { name: /Recurso de prueba, detalle del recurso/i });
+}
+
+describe("Página de dataset — el tipo de recurso en la tarjeta del listado", () => {
+	it('un recurso alojado (`url_type: "upload"`) muestra su formato y nunca «Enlace»', async () => {
+		const card = await renderResourceCard(makeCardResource({ url_type: "upload", format: "CSV" }));
+
+		expect(within(card).getByText("CSV")).toBeTruthy();
+		expect(within(card).queryByText("Enlace")).toBeNull();
+	});
+
+	it("un archivo alojado sin formato dice «Archivo» y no el rótulo inglés «FILE»", async () => {
+		const card = await renderResourceCard(
+			makeCardResource({ url_type: "upload", format: undefined }),
+		);
+
+		expect(within(card).getByText("Archivo")).toBeTruthy();
+		expect(within(card).queryByText("FILE")).toBeNull();
+	});
+
+	it("un recurso sin `url_type` (referencia externa) muestra «Enlace» y no el chip de formato", async () => {
+		const card = await renderResourceCard(makeCardResource({ format: "CSV" }));
+
+		expect(within(card).getByText("Enlace")).toBeTruthy();
+		expect(within(card).queryByText("CSV")).toBeNull();
 	});
 });
