@@ -74,6 +74,13 @@ export interface CkanResource {
 	format?: string; // CSV, PDF, JSON, etc.
 	url: string;
 	resource_type?: "file" | "api" | string;
+	/**
+	 * CKAN's own marker for a hosted file. `"upload"` when the resource's bytes live in CKAN, `""`
+	 * when an upload was cleared, and absent when the resource was created with a plain URL (both
+	 * measured in this catalogue). This is the field that decides file from link — see
+	 * `src/lib/resources/kind.ts`.
+	 */
+	url_type?: string;
 	mimetype?: string;
 	size?: number;
 	created: string;
