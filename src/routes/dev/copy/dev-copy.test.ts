@@ -56,9 +56,9 @@ const REACHABLE_CASES: { subject: ApiSubject; kind: ApiFailureKind; access: Acce
 /** Las cuatro variantes del estado vacío del panel, por su bandera característica. */
 const EMPTY_STATE_CASES = [
 	{
-		id: "can-publish",
+		id: "can-create",
 		flags: {
-			canPublish: true,
+			canCreate: true,
 			confirmedNoOrganizations: false,
 			confirmedNoCreatePermission: false,
 		},
@@ -66,7 +66,7 @@ const EMPTY_STATE_CASES = [
 	{
 		id: "no-organizations",
 		flags: {
-			canPublish: false,
+			canCreate: false,
 			confirmedNoOrganizations: true,
 			confirmedNoCreatePermission: false,
 		},
@@ -74,7 +74,7 @@ const EMPTY_STATE_CASES = [
 	{
 		id: "no-create-permission",
 		flags: {
-			canPublish: false,
+			canCreate: false,
 			confirmedNoOrganizations: false,
 			confirmedNoCreatePermission: true,
 		},
@@ -82,7 +82,7 @@ const EMPTY_STATE_CASES = [
 	{
 		id: "neutral",
 		flags: {
-			canPublish: false,
+			canCreate: false,
 			confirmedNoOrganizations: false,
 			confirmedNoCreatePermission: false,
 		},

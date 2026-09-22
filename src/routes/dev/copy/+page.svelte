@@ -155,7 +155,7 @@ const failureRows = FAILURE_SUBJECTS.flatMap((entry) =>
 );
 
 // ─── Estado vacío del panel ──────────────────────────────────────
-// Cuatro estados, tres oraciones: «puede publicar» y el relleno neutro dicen lo mismo.
+// Cuatro estados, tres oraciones: «puede crear» y el relleno neutro dicen lo mismo.
 const EMPTY_STATE_CASES: {
 	id: string;
 	label: string;
@@ -163,12 +163,12 @@ const EMPTY_STATE_CASES: {
 	flags: EmptyStateFlags;
 }[] = [
 	{
-		id: "can-publish",
-		label: "Puede publicar (permiso afirmativo)",
+		id: "can-create",
+		label: "Puede crear (permiso afirmativo)",
 		condition:
-			"El usuario puede publicar: la pregunta de permiso se resolvió y fue afirmativa. El llamado a la acción «Publicar dataset» aparece sólo en esta variante.",
+			"El usuario puede crear: la pregunta de permiso se resolvió y fue afirmativa. El llamado a la acción «Crear dataset» aparece sólo en esta variante.",
 		flags: {
-			canPublish: true,
+			canCreate: true,
 			confirmedNoOrganizations: false,
 			confirmedNoCreatePermission: false,
 		},
@@ -179,7 +179,7 @@ const EMPTY_STATE_CASES: {
 		condition:
 			"El usuario no pertenece a ninguna organización: la lista terminó de cargar, sin error y vacía.",
 		flags: {
-			canPublish: false,
+			canCreate: false,
 			confirmedNoOrganizations: true,
 			confirmedNoCreatePermission: false,
 		},
@@ -190,7 +190,7 @@ const EMPTY_STATE_CASES: {
 		condition:
 			'El usuario pertenece a organizaciones, la pregunta de permiso se respondió y fue negativa. No se puede producir a mano: exige una sesión autenticada a la que le falte el permiso de creación (medido: una membresía `capacity: "member"` figura en `organization_list_for_user {}` pero no en `{permission: "create_dataset"}`).',
 		flags: {
-			canPublish: false,
+			canCreate: false,
 			confirmedNoOrganizations: false,
 			confirmedNoCreatePermission: true,
 		},
@@ -199,9 +199,9 @@ const EMPTY_STATE_CASES: {
 		id: "neutral",
 		label: "Pregunta abierta (relleno neutro)",
 		condition:
-			"Pregunta abierta: las organizaciones siguen cargando, la carga falló, o la pregunta de permiso quedó sin responder. La copia no afirma nada sobre el requisito, y por eso dice lo mismo que la variante de «puede publicar».",
+			"Pregunta abierta: las organizaciones siguen cargando, la carga falló, o la pregunta de permiso quedó sin responder. La copia no afirma nada sobre el requisito, y por eso dice lo mismo que la variante de «puede crear».",
 		flags: {
-			canPublish: false,
+			canCreate: false,
 			confirmedNoOrganizations: false,
 			confirmedNoCreatePermission: false,
 		},
@@ -367,12 +367,12 @@ function flagSummary(flags: EmptyStateFlags): string {
 				Se renderiza en el panel cuando la grilla no tiene datasets
 				(<code class="font-mono text-xs">src/routes/dashboard/+page.svelte</code>). El texto se elige
 				en <code class="font-mono text-xs">src/lib/copy/dashboard.ts</code>. Cuatro estados, tres
-				oraciones: «puede publicar» y el relleno neutro dicen exactamente lo mismo.
+				oraciones: «puede crear» y el relleno neutro dicen exactamente lo mismo.
 			</p>
 
 			<div class="mt-4 space-y-2">
 				<p class="text-xs font-medium text-muted-foreground">
-					Encabezado (siempre presente) y llamado a la acción (sólo con permiso para publicar):
+					Encabezado (siempre presente) y llamado a la acción (sólo con permiso para crear):
 				</p>
 				<p
 					data-testid="empty-state-heading"
