@@ -674,7 +674,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 </script>
 
 <svelte:head>
-	<title>Publicar dataset — UMSS</title>
+	<title>Crear dataset — UMSS</title>
 </svelte:head>
 
 {#snippet contador(valor: string, max: number, id: string)}
@@ -698,7 +698,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 {#if authed}
 	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 		<header class="mb-8">
-			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Publicar dataset</h1>
+			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Crear dataset</h1>
 			<p class="mt-2 text-sm text-muted-foreground">
 				Complete los metadatos y adjunte los recursos. Los archivos se suben directamente a
 				CKAN, sin pasar por el servidor del portal.
@@ -737,7 +737,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 			<div class="rounded-xl border border-border bg-card p-8 text-center">
 				<Info class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
 				<p class="mt-2 text-sm font-medium text-foreground">
-					Necesita rol de editor en una organización para publicar datasets.
+					Necesita rol de editor en una organización para crear datasets.
 				</p>
 				<p class="mt-1 text-xs text-muted-foreground">
 					Solicite a un administrador que le asigne permisos de editor o administrador en una
@@ -944,7 +944,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									</p>
 								{/if}
 								<p class="text-xs text-muted-foreground">
-									Pertenece a más de una organización: elija dónde publicar. La visibilidad del
+									Pertenece a más de una organización: elija dónde crear. La visibilidad del
 									dataset la definirá el flujo de publicación.
 								</p>
 							{/if}
@@ -1005,7 +1005,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									<p class="text-xs text-muted-foreground">Cargando licencias...</p>
 								{:else if licensesError}
 									<p class="text-xs text-destructive" role="alert">
-										No se pudo cargar la lista de licencias. La licencia es opcional: puede publicar
+										No se pudo cargar la lista de licencias. La licencia es opcional: puede crear
 										el dataset sin declarar una.
 									</p>
 								{/if}
@@ -1362,7 +1362,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 								<Info class="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
 								<p class="mt-2 text-sm font-medium text-foreground">Todavía no agregó recursos</p>
 								<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-									Puede publicar el dataset sin recursos y agregarlos después.
+									Puede crear el dataset sin recursos y agregarlos después.
 								</p>
 							</div>
 						{:else}
@@ -1538,7 +1538,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 				</div>
 
 				<aside class="min-w-0 space-y-4 lg:sticky lg:top-24 lg:self-start">
-					<!-- Ficha de publicación -->
+					<!-- Ficha de creación -->
 					<Card class="overflow-hidden">
 						<div
 							class="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5"
@@ -1627,7 +1627,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									{/if}
 								{:else}
 									<p class="mt-1 text-[11px] text-muted-foreground">
-										Puede publicar sin recursos y agregarlos después.
+										Puede crear sin recursos y agregarlos después.
 									</p>
 								{/if}
 							</div>
@@ -1639,7 +1639,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 										Faltan datos recomendados
 									</p>
 									<p class="mt-0.5 text-[11px] text-muted-foreground">
-										Son opcionales: no bloquean la publicación.
+										Son opcionales: no bloquean la creación.
 									</p>
 									<ul class="mt-1.5 flex flex-wrap gap-1.5">
 										{#each recomendadosPendientes as campo (campo.label)}
@@ -1669,8 +1669,8 @@ const hayTitulo = $derived(title.trim().length > 0);
 						>
 							<p class="text-sm font-medium text-destructive">
 								{errorList.length === 1
-									? "Corrija 1 campo antes de publicar:"
-									: `Corrija ${errorList.length} campos antes de publicar:`}
+									? "Corrija 1 campo antes de crear:"
+									: `Corrija ${errorList.length} campos antes de crear:`}
 							</p>
 							<ul class="mt-2 space-y-1">
 								{#each errorList as error (error.id)}
@@ -1710,10 +1710,10 @@ const hayTitulo = $derived(title.trim().length > 0);
 						>
 							{#if submitting}
 								<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-								Publicando...
+								Creando...
 							{:else}
 								<Upload class="size-4" aria-hidden="true" />
-								Publicar dataset
+								Crear dataset
 							{/if}
 						</button>
 						<a
@@ -1723,7 +1723,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 							Cancelar
 						</a>
 						<p class="text-center text-xs text-muted-foreground">
-							Podrá editarlo después de publicarlo.
+							Podrá editarlo después de crearlo.
 						</p>
 					</div>
 				</aside>

@@ -137,7 +137,7 @@ beforeEach(() => {
 	mocks.sessionCheck.mockResolvedValue({ state: "alive", user: baseUser });
 });
 
-describe("Wizard de publicación", () => {
+describe("Wizard de creación", () => {
 	it("redirige a /auth/login sin sesión y no toca CKAN", async () => {
 		render(Wizard);
 
@@ -235,7 +235,7 @@ describe("Wizard de publicación", () => {
 		expect(container.querySelector("#slug")).toBeInTheDocument();
 	});
 
-	it("no muestra el campo de visibilidad y publica siempre como privado", async () => {
+	it("no muestra el campo de visibilidad y crea siempre como privado", async () => {
 		auth.login("tok-123", baseUser);
 
 		const { container } = render(Wizard);
@@ -338,7 +338,7 @@ describe("Wizard de publicación", () => {
 		expect(labels.filter((label) => label === "Sin especificar")).toHaveLength(1);
 	});
 
-	it("cuando license_list falla, deshabilita el select y permite publicar sin licencia", async () => {
+	it("cuando license_list falla, deshabilita el select y permite crear sin licencia", async () => {
 		auth.login("tok-123", baseUser);
 		mocks.licenseList.mockRejectedValueOnce(new Error("boom"));
 
