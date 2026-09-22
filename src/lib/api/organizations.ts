@@ -40,7 +40,7 @@ export function createOrganizationApi(client: CkanClient) {
 		 * crear datasets. Medido contra CKAN (2026-09-20), con el mismo usuario y la misma sesión:
 		 * `organization_list_for_user {}` devuelve una organización con `capacity: "member"`, mientras
 		 * que `{ permission: "create_dataset" }` devuelve `[]`; tras promover a ese usuario a `editor`,
-		 * la misma llamada filtrada vuelve a devolver la organización. Un panel que ofrezca publicar a
+		 * la misma llamada filtrada vuelve a devolver la organización. Un panel que ofrezca crear a
 		 * partir de la lista amplia estaría ofreciendo una acción que el backend no puede cumplir.
 		 *
 		 * Por eso esta consulta debe seguir siendo **la misma pregunta** que hace el asistente
@@ -57,7 +57,7 @@ export function createOrganizationApi(client: CkanClient) {
 		 * Organizaciones donde el usuario actual tiene rol.
 		 *
 		 * Ojo: esta es la pregunta **amplia** (toda membresía, con su `capacity`). Para decidir si se
-		 * ofrece publicar use `canCreateDataset()`, que pregunta exactamente lo que la acción exige.
+		 * ofrece crear use `canCreateDataset()`, que pregunta exactamente lo que la acción exige.
 		 *
 		 * Son **dos** llamadas, y no por capricho: `organization_list_for_user` devuelve `capacity`
 		 * siempre y `package_count` sólo con `include_dataset_count: true`, pero **no acepta

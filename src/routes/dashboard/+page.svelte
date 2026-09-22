@@ -75,7 +75,7 @@ onMount(() => {
 
 // La sonda corre **antes** de cualquier decisión. Medido (2026-09-20): un token muerto y un usuario
 // vivo sin organizaciones reciben de CKAN el mismo `200 []`, así que sin la sonda el panel no puede
-// distinguir «no tengo organizaciones» de «mi sesión murió»: ofrece publicar a una sesión caída (D3)
+// distinguir «no tengo organizaciones» de «mi sesión murió»: ofrece crear a una sesión caída (D3)
 // y el asistente diagnostica un permiso inexistente (D2).
 async function iniciarPanel() {
 	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
@@ -177,21 +177,21 @@ async function loadCreatePermission() {
 		puedeCrear = await orgApi.canCreateDataset();
 		permisoResuelto = true;
 	} catch {
-		// Pregunta sin respuesta: no se ofrece publicar y la copia no afirma nada sobre el rol.
+		// Pregunta sin respuesta: no se ofrece crear y la copia no afirma nada sobre el rol.
 		puedeCrear = false;
 		permisoResuelto = false;
 	}
 }
 
-// ─── ¿Se puede ofrecer publicar? ─────────────────────────────────────
-// Una sola condición para las tres superficies que ofrecen publicar (la grilla, la barra pegajosa y
+// ─── ¿Se puede ofrecer crear? ────────────────────────────────────────
+// Una sola condición para las tres superficies que ofrecen crear (la grilla, la barra pegajosa y
 // el CTA del estado vacío). NO alcanza con pertenecer a una organización: medido contra CKAN
 // (2026-09-20), un `capacity: "member"` figura en `organization_list_for_user {}` pero no en
 // `{permission:"create_dataset"}`, así que la oferta colgaba de una pregunta más amplia que la
 // acción que ofrece (D3). `puedeCrear` responde la pregunta exacta del asistente y su loader es fail
 // closed. Sin organización donde crear, el wizard fallaría (D3), así que el panel no anuncia nada que
 // el backend todavía no pueda cumplir (ver BACKLOG.md).
-const puedePublicar = $derived(!orgsLoading && puedeCrear);
+const puedeOfrecerCreacion = $derived(!orgsLoading && puedeCrear);
 
 // «No tiene ninguna organización» es una **afirmación**, no un fallo: sólo se puede hacer con la carga
 // terminada, sin error y con la lista vacía. Un fallo deja la pregunta abierta —¿tiene o no?—, así que
@@ -201,7 +201,7 @@ const confirmedNoOrganizations = $derived(!orgsLoading && !orgsError && organiza
 // El usuario sí pertenece a organizaciones, pero en ninguna puede crear. Exige la pregunta de permiso
 // **respondida** (no alcanza con `puedeCrear === false`, porque eso también es el estado de carga o de
 // fallo): si no se pudo preguntar, la copia no puede afirmar que falte el rol. El `!puedeCrear` va
-// explícito: la condición ya no depende de evaluarse después de `puedePublicar` en la cadena de copia,
+// explícito: la condición ya no depende de evaluarse después de `puedeOfrecerCreacion` en la cadena de copia,
 // así se describe a sí misma.
 const confirmedNoCreatePermission = $derived(
 	!orgsLoading && !orgsError && organizations.length > 0 && permisoResuelto && !puedeCrear,
@@ -209,10 +209,10 @@ const confirmedNoCreatePermission = $derived(
 
 // Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice.
 const actions = $derived(
-	puedePublicar
+	puedeOfrecerCreacion
 		? [
 				{
-					title: "Publicar dataset",
+					title: "Crear dataset",
 					description: "Cree un dataset y suba sus recursos con el asistente.",
 					href: "/dashboard/datasets/new",
 					icon: Database,
@@ -293,7 +293,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 			</div>
 		{/if}
 		<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-			Este es su panel personal. Desde aquí publica datasets y revisa las organizaciones a las que
+			Este es su panel personal. Desde aquí crea datasets y revisa las organizaciones a las que
 			pertenece.
 		</p>
 
@@ -438,12 +438,12 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							     (`confirmedNoCreatePermission`). -->
 							<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
 								{emptyStateMessage({
-									canPublish: puedePublicar,
+									canCreate: puedeOfrecerCreacion,
 									confirmedNoOrganizations,
 									confirmedNoCreatePermission,
 								})}
 							</p>
-							{#if puedePublicar}
+							{#if puedeOfrecerCreacion}
 								<a
 									href="/dashboard/datasets/new"
 									class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -597,7 +597,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 								Aún no pertenece a ninguna organización
 							</p>
 							<p class="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-								Solicite a un administrador que lo agregue a una para publicar datasets.
+								Solicite a un administrador que lo agregue a una para crear datasets.
 							</p>
 						</div>
 					{:else}

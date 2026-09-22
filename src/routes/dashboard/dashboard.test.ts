@@ -162,7 +162,7 @@ describe("Dashboard", () => {
 
 		// La acción aparece dos veces por diseño: la tarjeta de la grilla y el botón de la barra
 		// pegajosa. Las dos tienen que apuntar al wizard.
-		const ctas = await screen.findAllByRole("link", { name: /publicar dataset/i });
+		const ctas = await screen.findAllByRole("link", { name: /crear dataset/i });
 		expect(ctas.length).toBeGreaterThan(0);
 		for (const cta of ctas) {
 			expect(cta).toHaveAttribute("href", "/dashboard/datasets/new");
@@ -247,7 +247,7 @@ describe("Dashboard", () => {
 		expect(barra?.parentElement?.className).toContain("opacity-0");
 	});
 
-	it("sin organizaciones no ofrece publicar en ninguna superficie (D3)", async () => {
+	it("sin organizaciones no ofrece crear en ninguna superficie (D3)", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
 		mocks.canCreateDataset.mockResolvedValue(false);
@@ -255,12 +255,12 @@ describe("Dashboard", () => {
 
 		render(Dashboard);
 
-		await screen.findByText(/publique su primer dataset/i);
+		await screen.findByText(/cree su primer dataset/i);
 		await screen.findByText(/aún no pertenece a ninguna organización/i);
 
 		// D3: sin organización la oferta no se puede cumplir (el wizard fallaría), así que desaparece
 		// de todas las superficies: ni CTA, ni grilla de acciones, ni encabezado «Acciones», ni barra.
-		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 		expect(screen.queryByRole("heading", { name: /acciones/i })).not.toBeInTheDocument();
 	});
 
@@ -373,7 +373,7 @@ describe("Sonda de sesión (D2)", () => {
 	});
 });
 
-describe("Oferta de publicación (D3)", () => {
+describe("Oferta de creación (D3)", () => {
 	it("con una organización vuelven la grilla y el CTA del estado vacío", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([makeOrganization()]);
@@ -384,20 +384,20 @@ describe("Oferta de publicación (D3)", () => {
 		const acciones = await screen.findByRole("region", { name: /acciones/i });
 		// La sección de acciones tiene dos superficies (la tarjeta de la grilla y el botón de la barra
 		// pegajosa); las dos apuntan al wizard.
-		const enlacesDeAccion = within(acciones).getAllByRole("link", { name: /publicar dataset/i });
+		const enlacesDeAccion = within(acciones).getAllByRole("link", { name: /crear dataset/i });
 		expect(enlacesDeAccion.length).toBeGreaterThan(0);
 		for (const enlace of enlacesDeAccion) {
 			expect(enlace).toHaveAttribute("href", "/dashboard/datasets/new");
 		}
 
 		const misDatasets = await screen.findByRole("region", { name: /mis datasets/i });
-		expect(within(misDatasets).getByRole("link", { name: /publicar dataset/i })).toHaveAttribute(
+		expect(within(misDatasets).getByRole("link", { name: /crear dataset/i })).toHaveAttribute(
 			"href",
 			"/dashboard/datasets/new",
 		);
 	});
 
-	it("no ofrece publicar a un `member`: pertenece pero no puede crear (D3)", async () => {
+	it("no ofrece crear a un `member`: pertenece pero no puede crear (D3)", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "member" })]);
 		mocks.canCreateDataset.mockResolvedValue(false);
@@ -407,9 +407,9 @@ describe("Oferta de publicación (D3)", () => {
 
 		// La tarjeta «Mis organizaciones» sigue listando la membresía con su rol: eso es lo que promete.
 		expect(await screen.findByRole("link", { name: /facultad de ciencias/i })).toBeInTheDocument();
-		// Pero ninguna superficie ofrece publicar, porque el backend no podría cumplirlo.
+		// Pero ninguna superficie ofrece crear, porque el backend no podría cumplirlo.
 		await screen.findByText(/requiere rol de editor o administrador en una organización/i);
-		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 		expect(screen.queryByRole("heading", { name: /acciones/i })).not.toBeInTheDocument();
 		// La frase de «pertenecer» sería falsa para un miembro: el miembro sí pertenece.
 		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
@@ -427,11 +427,11 @@ describe("Oferta de publicación (D3)", () => {
 
 		// Un fallo de permiso no toca la lista de membresías: la tarjeta la sigue mostrando.
 		expect(await screen.findByRole("link", { name: /facultad de ciencias/i })).toBeInTheDocument();
-		// Fail closed: sin respuesta no se ofrece publicar y la copia queda neutra.
+		// Fail closed: sin respuesta no se ofrece crear y la copia queda neutra.
 		await screen.findByText(/aún no ha creado ningún dataset/i);
 		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
 		expect(screen.queryByText(/requiere rol de editor o administrador/i)).not.toBeInTheDocument();
-		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 	});
 });
 
@@ -446,7 +446,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 		await screen.findByText(/aún no ha creado ningún dataset/i);
 		// Con organización la exigencia no se menciona: la premisa ya está cumplida.
 		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
-		expect(screen.getAllByRole("link", { name: /publicar dataset/i }).length).toBeGreaterThan(0);
+		expect(screen.getAllByRole("link", { name: /crear dataset/i }).length).toBeGreaterThan(0);
 	});
 
 	it("con organizaciones cargadas y vacías exige pertenecer a una y retira el CTA", async () => {
@@ -458,7 +458,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 		render(Dashboard);
 
 		await screen.findByText(/requiere pertenecer a una organización/i);
-		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 	});
 
 	it("mientras las organizaciones cargan no afirma que haga falta una", async () => {
@@ -471,9 +471,9 @@ describe("Estado vacío de «Mis datasets»", () => {
 
 		await screen.findByText(/aún no ha creado ningún dataset/i);
 		// Corrección sobre el playground: sin saber si el usuario tiene una organización, el estado
-		// vacío **no** puede afirmar que publicar la exija.
+		// vacío **no** puede afirmar que crear un dataset la exija.
 		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
-		expect(screen.queryByRole("link", { name: /publicar dataset/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 	});
 
 	it("con la carga de organizaciones fallida no afirma que haga falta una y muestra el error honesto", async () => {
