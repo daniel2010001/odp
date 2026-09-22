@@ -19,12 +19,14 @@
 
 > **Estado al cierre (2026-09-21).** `v0-portal-honesty` está **cerrada en sus tres slices** (A, B y C, con
 > recibos quemados: `review-cd2510c28384457d` para el slice C y `review-249e073ef3489596` para la política de
-> existencia) y la rama `feat/v0-portal-honesty` tiene **38 commits sin pushear** con **árbol limpio**. La
-> sesión del 21 se fue **entera** en un incidente del entorno dev ya resuelto y verificado (ver «Advertencias
-> de entorno» más abajo), así que **el producto no avanzó** desde el slice C.
+> existencia). La sesión del 21 se fue **entera** en un incidente del entorno dev ya resuelto y verificado (ver
+> «Advertencias de entorno» más abajo), así que **el producto no avanzó** desde el slice C.
 >
-> **ACCIÓN 1, y es de un minuto: decidir el `push`.** Los 38 commits viven en esta máquina, y **los recibos de
-> revisión también** (`.git/gentle-ai/`, que git **no** trackea): un clon nuevo no los tendría.
+> **ACCIÓN 1 — HECHA Y VERIFICADA (2026-09-22): el `push` está hecho.** `origin/feat/v0-portal-honesty` pasó de
+> `b68031b` (fin del slice B) a `1f60930`: los 42 commits que estaban sólo acá quedaron publicados (`git
+> ls-remote` lo confirma, rama **en sincronía**). **Lo que el push NO llevó son los recibos de revisión**
+> (`.git/gentle-ai/`, que git **no** trackea): siguen viviendo sólo en esta máquina. Eso sigue siendo un riesgo
+> abierto — merece su propio ítem si van a trabajar desde otro clon.
 >
 > **ACCIÓN 2: el plan en bloques. El orden importa porque unos dependen de decisiones y otros no.**
 >
@@ -40,6 +42,21 @@
 >
 > **Cada bloque cierra con sus commits y su propia revisión nativa**, como el slice C. Los `v1`/`v1+`/`v2+`
 > y la deuda de revisión viven en sus secciones propias de este archivo.
+>
+> **BLOQUE A — código cerrado (2026-09-22), revisión nativa pendiente de decisión del autor.** Cuatro commits
+> por unidad de trabajo: `9d7be01` (copia) · `e3136a9` (panel) · `4265137` (asistente) · `8081260` (hoja
+> `/dev/copy`). Diff **88/88 líneas**, `openspec/` y `about` intactos, gates verdes (`pnpm test` **472/472**,
+> `pnpm check` **0 errores**, `pnpm build` OK; `pnpm lint` cae por el problema de entorno conocido, no por el
+> código). **El alcance real fue mayor que el enumerado: 9 archivos, no 3** — el asistente se contradecía
+> consigo mismo (`h1` y `<title>` decían «Publicar dataset» mientras el cuerpo decía «para publicar
+> datasets»), y **`grep` del verbo antes de dimensionar** es la lección. Motivo nuevo que lo vuelve
+> obligatorio: **«Publicar dataset» ya está reservado** para el control real del aprobador
+> (`2026-09-13-publication-lifecycle/specs/publication-lifecycle/spec.md:246`), así que el botón del asistente
+> **ocupaba la etiqueta de la acción que viene**. Expediente y evidencia completos:
+> `odd/tasks/block-a-verb-create.md`.
+> **Decisión que tomó el autor en el camino:** además de la copia visible, se renombraron los identificadores
+> que codificaban el mismo error (`EmptyStateFlags.canPublish` → `canCreate`, `puedePublicar` →
+> **`puedeOfrecerCreacion`**, que NO es `puedeCrear`: ese ya existía y significa sólo el permiso de CKAN).
 >
 > **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
 > el 2026-09-21:
@@ -243,11 +260,9 @@
 >   `review-refuter`, `review-validator`) en `deepseek-flash` con `thinking: high`.
 > - **Mientras una revisión esté viva, no se toca el repo:** el binding lleva clavada la
 >   `expected-revision` y cualquier edición invalida el slot reofrecido.
-> - **`pnpm lint` falla de forma intermitente según la carga de la máquina** (exit 254, «Linter
->   process terminated abnormally»). **No es del repo**: Biome no arranca ni para `--version`. La
->   evidencia real de lint se obtiene invocando el binario directo —
->   `node_modules/.pnpm/@biomejs+cli-linux-x64@2.5.0/node_modules/@biomejs/cli-linux-x64/biome` — y no
->   el lanzador de Node.
+> - **`pnpm lint`: la evidencia real sale del binario directo, no del lanzador de pnpm.** El binario es
+>   `node_modules/.pnpm/@biomejs+cli-linux-x64@2.5.0/node_modules/@biomejs/cli-linux-x64/biome`. Diagnóstico
+>   corregido y arreglo pendiente, **más abajo** (entrada del 2026-09-22).
 > - **La revisión nativa no se puede correr desde un subagente:** el tool no está en su inventario. El
 >   hijo debe **escalar el handoff al padre**, que es quien tiene la facade.
 > - **Biome escanea todo el repo** (no ignora `openspec/`): un archivo con extensión `.ts` fuera de
@@ -255,8 +270,18 @@
 > - **Los tests de ruta NO se llaman `+page.test.ts`.** SvelteKit reserva los archivos con prefijo `+` bajo
 >   `src/routes` y `svelte-kit sync` se cae con `Files prefixed with + are reserved`. Se nombran por la ruta:
 >   `dashboard.test.ts`, `wizard.test.ts`, `login.test.ts`.
-> - **`pnpm lint` sigue siendo intermitente** (exit 254, «Linter process terminated abnormally»): el veredicto real
->   sale del binario directo, y con él el repo queda en **115 archivos, 4 warnings, 7 infos**.
+> - **`pnpm lint` falla en el camino de `spawn` de pnpm, NO por el código ni por la carga de la máquina
+>   (medido 2026-09-22).** `pnpm lint` → exit 254 («Linter process terminated abnormally») **y `pnpm exec biome
+>   --version`, que no lee ningún archivo, falla igual** → la causa no puede estar en el repo. El binario
+>   directo arranca sin problema y sobre el árbol actual reporta **122 archivos, 0 errores, 4 warnings, 7
+>   infos**. En esta sesión fue **determinista (2/2)**, así que «intermitente según la carga» era una causa no
+>   medida: lo que discrimina es **`npm_config_shell_emulator=true pnpm lint` → exit 0** (deducción, no
+>   medición: apunta al spawn de pnpm — Node 26.9.0 + pnpm 10.12.1 — y no a Biome).
+>   **Consecuencia operativa: el gancho `.husky/pre-commit` cancela el commit**, porque corre `pnpm exec biome
+>   check --staged --write`. La evidencia equivalente se obtiene corriendo **ese mismo comando con el binario
+>   directo** (0 fixes aplicados sobre los archivos staged), y recién entonces `git commit --no-verify`.
+>   **Arreglo pendiente para el autor** (commit de infraestructura propio, avisado): o `shell-emulator=true` en
+>   `.npmrc`, o fijar Node LTS en `mise` (el CI corre Node 22 y no se ve afectado).
 > - **El prefijo `?expired=1` es el contrato entre la expulsión y el login**: si se renombra el parámetro hay que
 >   cambiarlo en `src/lib/session.ts` y en los tests que lo fijan por URL.
 
