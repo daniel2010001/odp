@@ -50,11 +50,13 @@
 > - **Hecho del lado cliente:** `engram cloud enroll odp` y `engram cloud enroll odp-docker`, más el token en
 >   `~/.engram/cloud.json` → `Auth status: ready` y `Project enrollment: enrolled` en los dos. El chequeo
 >   bloqueante del doctor pasó de `blocked: 1` a **`0`**.
-> - **FALTA, y está bloqueado para el agente por política de seguridad** (el archivo tiene secretos): agregar
->   **`odp,odp-docker`** a `ENGRAM_CLOUD_ALLOWED_PROJECTS` en **`/home/danielblc/docker/engram-cloud/.env`**
->   (línea 9) y recrear el servicio:
->   `cd /home/danielblc/docker/engram-cloud && docker compose up -d --force-recreate cloud`.
->   Hay backup del `.env` en `.env.bak-20260921-195048`.
+> - **HECHO Y VERIFICADO (2026-09-21): el autor agregó `odp,odp-docker` a la allowlist y recreó el servicio, y los
+>   dos proyectos SE SINCRONIZARON.** Prueba triple: la base de la nube lista **`odp | 383`** y
+>   **`odp-docker | 19`** mutaciones; el log del servidor materializa los dos (`candidates=381` y `17`, todos
+>   `already_materialized`); y el doctor bajó `pending_mutations_evaluated` de **398 a 1**. Se editó la línea 9 de
+>   `/home/danielblc/docker/engram-cloud/.env` (backup en `.env.bak-20260921-195048`) y se recreó con
+>   `docker compose up -d --force-recreate cloud`. **El paso era del autor**: el agente no puede editar ese archivo
+>   (política de seguridad: contiene secretos).
 > - **Los otros tres targets legados del doctor son el MISMO desajuste de nombres** (`proyectos` vs `projects` en
 >   la allowlist; `danielblc` y `omarchy-on-cachyos` ausentes) → **decisión del autor: no entran**.
 > - **Nota para no perder tiempo:** el `repair materialize-mutations` del cliente **no corre desde el host**
