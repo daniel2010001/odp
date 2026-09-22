@@ -69,6 +69,49 @@
 > mismo), y el renombre del verbo lo dejó a la vista. Arreglo: o se parte el título, o se trae la aserción a
 > este test.
 >
+> **BLOQUE B — CERRADO (2026-09-22): página de error propia, aprobada por el autor y revisada.** Tres
+> unidades de trabajo + el expediente: `716af7e` (componente de presentación) · `ce15382` (hoja
+> `/dev/error`) · `07803f5` (promoción) · `34bba4f` (expediente). **El portal ya no muestra la página por
+> defecto de SvelteKit** («404 Not Found» en inglés, sin vuelta al catálogo).
+>
+> **MEDICIÓN EN VIVO (la que zanja el asunto, no los tests):** `http://localhost:8082/no-existe` →
+> **HTTP 404** y renderiza el **estado de cliente** («No se pudo abrir esta página»: 1) y **no** el del
+> servidor (0). Con el defecto que apareció en el camino, ese marcador habría estado invertido. Gates:
+> `pnpm test` **520/520** · `pnpm check` **0 errores** · Biome directo **129 archivos / exit 0** ·
+> `pnpm build` OK.
+>
+> **EL HALLAZGO DEL BLOQUE, y fue un error de MI especificación:** el envoltorio leía
+> `$page.error.status`. En SvelteKit el estado **no** está ahí: `Page.status: number` es «HTTP status code
+> of the current page», `Page.error` es `App.Error | null`, y el `App.Error` por defecto trae **sólo
+> `message`** (este repo no lo amplía: `src/app.d.ts` tiene `interface Error {}` comentada). En producción
+> ese `status` era `undefined`, así que **todo error —404 incluido— habría renderizado el estado del
+> servidor**. Lo detectó el subagente escritor al negarse a aplicar contenido que no pasaba `pnpm check`.
+> **Y lo que más importa: mis propios tests lo tapaban**, porque el doble de `$app/stores` declaraba un
+> `error` **más ancho** que el del framework y fabricaba el campo inexistente. *Un doble que no copia la
+> forma real no verifica: bendice.* El stub ahora declara `{ message: string }`, igual que `App.Error`, y
+> hay un test que ancla la clasificación **con el mensaje ausente**.
+>
+> **Recibo quemado: `review-13d22ebddf82eef0` — APROBADA** (tier `medium`, lente `review-reliability`,
+> 9 archivos / 957 líneas, presupuesto de corrección 200, 1 revisor, 0 bloqueantes). Rango por `baseRef`
+> explícito: sólo el bloque. **Dos sugerencias informativas, anotadas y NO corregidas** (corregirlas
+> pediría su propia revisión, y la de este recibo ya está quemada):
+> - `TODO:` `src/routes/+error.svelte:27` — el reintento usa `$page.url.pathname`, que **pierde la query
+>   y el fragmento**: un 5xx en `/search?q=salud` reintenta `/search` y el usuario pierde su búsqueda.
+>   Arreglo: `pathname` + `search` (+ `hash` si corresponde).
+> - `TODO:` `src/lib/components/error/error-page.test.ts:237-240` — el test del ícono toma el **primer**
+>   `<svg>` del contenedor, pero el estado 5xx renderiza **dos** (el del estado y el de `Reintentar`), así
+>   que la aserción es frágil y el `aria-hidden` del segundo no queda cubierto. Arreglo: acotar la
+>   consulta al ícono del estado.
+>
+> **DESVIACIÓN MEDIDA, para que no sorprenda: el bloque tiene 957 líneas de diff y el presupuesto de
+> revisión acordado es 400.** El código de producción son ~315 y el resto es test (531) y la hoja (121).
+> La revisión lo tomó igual como **una** revisión de tier `medium`. **Lección para los bloques que vienen
+> (C, D, E, F): separar el componente, la hoja y la promoción en revisiones propias** si el diff vuelve a
+> pasar de 400.
+>
+> **Decisión del autor:** la hoja `/dev/error` **se queda como herramienta permanente**, con el mismo
+> criterio documentado que `/dev/copy` — un 5xx no se provoca a mano.
+>
 > **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
 > el 2026-09-21:
 > - **La sync nunca se rompió: el proyecto se RENOMBRÓ.** El servidor tiene

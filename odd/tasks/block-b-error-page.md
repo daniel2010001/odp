@@ -84,13 +84,59 @@ rendered heading and body), so a later session cannot quietly add a permission-f
 - [ ] **B5 · Author review** of `/dev/error` at 375/768/1024/1440 and in dark mode. Then, and only
   then, **B6 · promotion**: `src/routes/+error.svelte` + the decision in the backtick below.
 
-## Open decision for the author
+## Open decision — RESOLVED
 
-**Does the sheet stay, or does it go?** `AGENTS.md` rule 8 says the `/dev/<page>` playground is
-deleted at promotion; `/dev/copy` is the documented exception because its state cannot be reproduced
-by hand. **A 5xx cannot be reproduced by hand either**, which is the same justification — but it is
-your rule, so it is your call (asked at review time).
+**The sheet stays, as a permanent review tool**, with the same documented criterion as `/dev/copy`: a
+5xx cannot be provoked by hand, so the sheet is the only way to read that state without breaking code
+on purpose. Decided by the author at review time.
 
 ## Evidence
 
-_(filled per task: commit identity + observed result.)_
+**Commits.** `716af7e` (the presentation component + its tests) · `ce15382` (the review sheet) ·
+`07803f5` (the promotion: `+error.svelte`, its test, the stub) · `34bba4f` (this plan).
+
+**Gates — measured by the parent, never taken from the writer's report.**
+
+| Gate | Result |
+|---|---|
+| `pnpm test` | **520 passed / 520** (40 files) |
+| `pnpm check` | **0 errors**, 4 pre-existing warnings |
+| direct Biome: `$(readlink -f node_modules/.bin/biome) check .` | **129 files, exit 0**; 4 warnings + 7 infos, all pre-existing |
+| `pnpm build` | exit 0 |
+| **Live** (`http://localhost:8082/no-existe`) | **HTTP 404** and the **client** state (1 occurrence) with **no** server state (0); `<title>Página no disponible — UMSS</title>`; the DEV diagnostic prints `404 · /no-existe · Not Found`; the layout header survives; `/dev/error` and `/` still 200 |
+
+**The defect found on the way — and it was this plan's error.** The wrapper first read
+`$page.error.status`. Verified against `node_modules/@sveltejs/kit/types/index.d.ts`: `Page.status:
+number` («HTTP status code of the current page»), `Page.error: App.Error | null` («Filled from the
+`handleError` hooks»), and the default `App.Error` is `{ message: string }` — this repo does not widen
+it (`src/app.d.ts` has `// interface Error {}`). That read is therefore `undefined` in production, and
+**every** error — a 404 included — would have rendered the server state. The delegated writer refused
+to apply content that failed `pnpm check` and escalated with the evidence; the parent verified the types
+before accepting, and chose `$page.status`, with no `App.Error` widening and no `handleError` hook
+(unnecessary: `page.status` already carries it). The writer's RED reproduced the defect: three tests
+expected the client state and received the server state.
+
+**Why the tests did not catch it — the durable part.** The specified test double declared
+`error: { status: number; message: string }`, **wider than the framework's**, so it fabricated the field
+the runtime never provides and the suite stayed green over broken behaviour. *A double that does not copy
+the framework's real shape does not verify: it blesses.* The stub now mirrors `App.Error`
+(`{ message: string }`), and a test pins the classification **with the message absent**, so reading the
+status from the wrong place cannot come back green.
+
+**Live versus unit, stated honestly.** The live measurement covers the 404 — the case the defect broke.
+The 5xx branch is covered by the wrapper test and by the reviewed sheet variant, not live: no route in
+this app can be made to fail on demand.
+
+**Review.** `review-13d22ebddf82eef0` — **APPROVED, receipt burned** (tier `medium`, lens
+`review-reliability`, 9 files / 957 lines, correction budget 200, one reviewer, zero blockers), over the
+block's committed range only (`baseRef=3a334bf`). **Two advisory findings, recorded and deliberately NOT
+fixed**: fixing them would need their own review, and this receipt is burned.
+- The retry target uses `$page.url.pathname`, which **drops the query string and the fragment**: a 5xx
+  on `/search?q=salud` would retry `/search` and lose the search.
+- The icon assertion takes the **first** `<svg>`, but the 5xx state renders **two** (the state icon and
+  `Reintentar`'s), so the assertion is brittle and the second icon's `aria-hidden` is unasserted.
+
+**Measured deviation, recorded so it does not surprise anyone: this block is 957 diff lines against an
+agreed review budget of 400.** Production code is ~315 of them; tests are 531 and the sheet 121. The
+review took it as one `medium` review anyway. Lesson for the blocks that follow: split the component, the
+sheet and the promotion into separate reviews when the diff passes 400 again.
