@@ -123,3 +123,18 @@ user-visible instance of the verb when it means create»): the dashboard intro �
 datasets» → «crea datasets», and the multi-organization wizard note «elija dónde publicar» → «elija
 dónde crear». Both user-visible, both inside allowed surfaces, both coherent with the sentence that
 follows them about the publication flow.
+
+## Review
+
+**`review-169119db13ffab2c` — APPROVED, receipt burned** (tier `medium`, lens `review-reliability`, 11
+files / 350 lines, correction budget 175, one reviewer). Reviewed range: `baseRef=1f60930` with
+`committedOnly: true` — **the block only**, not the accumulated branch. **One advisory finding, no
+blockers, no correction transition:**
+
+- **R3-001** (reliability, WARNING, informational) — `src/routes/dashboard/datasets/new/wizard.test.ts:238`.
+  The test is titled «no muestra el campo de visibilidad y crea siempre como privado», but its body only
+  asserts the **absent** visibility field; `private: true` is asserted in a *different* test (`:203`). The
+  mismatch is **pre-existing** — the old title promised the same thing — and this block's rename made it
+  visible. Recorded as a `TODO:` in `BACKLOG.md`; it does not reopen this review.
+
+The candidate is public: `origin/feat/v0-portal-honesty` at `356d42a`.

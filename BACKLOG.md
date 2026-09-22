@@ -43,7 +43,7 @@
 > **Cada bloque cierra con sus commits y su propia revisión nativa**, como el slice C. Los `v1`/`v1+`/`v2+`
 > y la deuda de revisión viven en sus secciones propias de este archivo.
 >
-> **BLOQUE A — código cerrado (2026-09-22), revisión nativa pendiente de decisión del autor.** Cuatro commits
+> **BLOQUE A — CERRADO (2026-09-22): código, gates, push y revisión nativa APROBADA.** Cuatro commits
 > por unidad de trabajo: `9d7be01` (copia) · `e3136a9` (panel) · `4265137` (asistente) · `8081260` (hoja
 > `/dev/copy`). Diff **88/88 líneas**, `openspec/` y `about` intactos, gates verdes (`pnpm test` **472/472**,
 > `pnpm check` **0 errores**, `pnpm build` OK; `pnpm lint` cae por el problema de entorno conocido, no por el
@@ -57,6 +57,17 @@
 > **Decisión que tomó el autor en el camino:** además de la copia visible, se renombraron los identificadores
 > que codificaban el mismo error (`EmptyStateFlags.canPublish` → `canCreate`, `puedePublicar` →
 > **`puedeOfrecerCreacion`**, que NO es `puedeCrear`: ese ya existía y significa sólo el permiso de CKAN).
+>
+> **Recibo quemado: `review-169119db13ffab2c` — APROBADA** (tier `medium`, lente `review-reliability`, **11
+> archivos / 350 líneas**, presupuesto de corrección 175, **1 revisor, 0 bloqueantes**). Rango revisado **por
+> `baseRef` explícito**: `1f60930..HEAD`, o sea **sólo el bloque A** — no la rama acumulada, que sigue excluida
+> por decisión del autor. **Pusheado y en sincronía** con `origin/feat/v0-portal-honesty` (`356d42a`).
+> **Aviso informativo del recibo (R3-001, no bloqueante, no reabre la revisión):**
+> `TODO:` en `wizard.test.ts:238` el test se llama «no muestra el campo de visibilidad y **crea siempre como
+> privado**», pero su cuerpo **sólo** verifica que no hay campo de visibilidad; el `private: true` **sí** está
+> verificado, pero **en otro test** (`:203`). El desajuste es **preexistente** (el título viejo prometía lo
+> mismo), y el renombre del verbo lo dejó a la vista. Arreglo: o se parte el título, o se trae la aserción a
+> este test.
 >
 > **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
 > el 2026-09-21:
