@@ -112,6 +112,47 @@
 > **Decisión del autor:** la hoja `/dev/error` **se queda como herramienta permanente**, con el mismo
 > criterio documentado que `/dev/copy` — un 5xx no se provoca a mano.
 >
+> **BLOQUE C — EN CURSO: recurso según su tipo. C1 CERRADO (2026-09-22).** El portal presentaba todo
+> recurso como archivo: insignia de formato, vistas de datos y botón de descarga. **Medido: los 35
+> recursos del catálogo sembrado son URLs externas** (`https://data.umss.edu.bo/...`) con `url_type`
+> ausente, `mimetype` ausente y sin `hash` — enlaces disfrazados de archivos, con un `format` CSV/PDF/
+> GeoJSON y un `size` inventado.
+>
+> **La regla de detección es la de CKAN, con evidencia de su propio código** (no una convención
+> nuestra): `ckan/lib/uploader.py:301` escribe `url_type = 'upload'` para un archivo subido y lo vacía
+> en `:324`; y `ckan/lib/dictization/model_dictize.py:132` reescribe la `url` al enlace de descarga
+> **sólo** con `url_type == 'upload'`. Así que la prueba es positiva —`url_type === "upload"`— y todo lo
+> demás (`""`, ausente) es una referencia externa. **No se escribe ningún marcador en CKAN y no se
+> re-siembra**: el asistente distingue archivo de enlace en su formulario pero **nunca lo persiste**
+> (`createLinkEntry` manda sólo `package_id`, `name`, `url`, `description`), así que no hay marcador
+> propio que leer.
+>
+> **Decisiones del autor (2026-09-22):** (1) detección por `url_type`; (2) la regla en **un módulo puro
+> compartido** (`src/lib/resources/kind.ts`), como `failure.ts` y `copy/dashboard.ts`; (3) **el chip de
+> tipo es exclusivo en los dos lugares** —un enlace muestra «Enlace» y **no** conserva su formato—, con
+> el costo aceptado de que el formato declarado deja de verse ahí (sigue en el cuadro de metadatos);
+> (4) **diferida y anotada: si un enlace merece ficha propia.**
+>
+> **C1 CERRADO**: `ed0b171` (expediente) · `fa96d5c` (la regla + el tipo + las fixtures honestas) ·
+> `15b016d` (el chip en la lista y en la ficha). **Recibo quemado: `review-c282f17baf9309ea` — APROBADA,
+> CERO hallazgos** (tier `medium`, lente `review-reliability`, **9 archivos / 342 líneas**, presupuesto
+> de corrección 171, 1 revisor). Rango por `baseRef=f4fe203` explícito. **342 líneas: por debajo del
+> presupuesto de 400**, que es la razón por la que este bloque se cortó en C1/C2 después de que el bloque
+> B diera 957.
+> Detalle que C1 arregló de paso: la etiqueta de relleno de la card decía **`FILE` en inglés** cuando no
+> había formato — pasa a `Archivo`, la misma familia de defecto que el bloque A.
+> Consecuencia honesta en DEV: **ninguna fixture declaraba `url_type`**, así que sin tocarlas todos los
+> recursos de mock habrían pasado a leerse como enlaces; ahora las fixtures de archivo lo declaran.
+>
+> **C2 PENDIENTE**: ocultar las vistas (Tabla/Gráfico/Mapa) cuando el recurso es un enlace — hoy se
+> muestran siempre. Con su propia revisión.
+> **Fuera de alcance, anotado y no olvidado:** el botón «Descargar recurso» sobre un enlace y las filas
+> del cuadro de metadatos que dicen «Nombre del archivo» (inventado desde la URL) **esperan la decisión
+> diferida de la ficha**; y los chips de formato del buscador son **de dataset** (agregan varios
+> recursos), no del tipo de un recurso.
+> `TODO:` **decidir si un enlace merece ficha propia** — la ficha lleva sus metadatos y su procedencia,
+> así que sacarla no es gratis.
+>
 > **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
 > el 2026-09-21:
 > - **La sync nunca se rompió: el proyecto se RENOMBRÓ.** El servidor tiene

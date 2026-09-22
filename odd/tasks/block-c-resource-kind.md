@@ -78,4 +78,29 @@ lie in the other direction.
 
 ## Evidence
 
-_(filled per slice: commit identity, gates, live measurement, review receipt.)_
+**C1 — CERRADO (2026-09-22).** `ed0b171` (this plan) · `fa96d5c` (the rule, the `url_type` field, the
+honest fixtures) · `15b016d` (the chip in the resource list and in the detail header).
+
+| Gate | Result |
+|---|---|
+| `pnpm test` | **531 passed / 531** (41 files) |
+| `pnpm check` | **0 errors**, 4 pre-existing warnings |
+| direct Biome | **131 files, exit 0**; 4 warnings + 7 infos, all pre-existing |
+| `pnpm build` | exit 0 |
+
+**Review.** `review-c282f17baf9309ea` — **APPROVED, receipt burned, ZERO findings** (tier `medium`,
+lens `review-reliability`, 9 files / 342 lines, correction budget 171, one reviewer), over the slice's
+committed range only (`baseRef=f4fe203`). **Under the 400-line review budget** — the C1/C2 split is why,
+after block B ran 957.
+
+**The decision the author made while reviewing.** The kind chip is **exclusive in both places**. The
+first implementation was asymmetric — exclusive in the card, additive in the detail header — because
+this plan's wording was ambiguous. The author chose one meaning per chip: a link is a link. The accepted
+cost, stated at the time: the declared format stops being visible in those two surfaces (it remains in
+the metadata table), and since every seeded resource is a link, the list shows no format chips.
+
+**Two verifications worth keeping.** (1) The live check of the resource list needs a browser: the
+dataset page renders that list client-side, so its initial HTML is a loading shell — a `curl` that finds
+no chips is blind, not negative, and this plan's author nearly recorded it as a false negative.
+(2) The classifier's test includes the **seeded shape** (an external URL with `format: "CSV"` and a
+`size` but no `url_type` → link), so a declared format can never promote a link to a file.
