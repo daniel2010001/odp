@@ -62,9 +62,17 @@
 > - **Nota para no perder tiempo:** el `repair materialize-mutations` del cliente **no corre desde el host**
 >   (quiere la base de la nube en `127.0.0.1:5433`, que no está expuesta). **No es un bloqueo**: el **servidor**
 >   materializa solo para los proyectos que permite. **No exponer esa base para contentar a un CLI.**
-> - **Y una deuda de seguridad de esta sesión:** un `docker inspect` volcó el entorno del contenedor e imprimió
->   `ENGRAM_CLOUD_TOKEN`, `ENGRAM_JWT_SECRET` y la contraseña de Postgres en el log de la conversación.
->   **Rotarlos** si ese log sale de esta máquina; para leer variables, filtrar **por nombre**, no volcar todo.
+> **ACCIÓN 4: rotar los tres secretos que esta sesión imprimió.** Un `docker inspect` volcó el entorno del
+> contenedor de la nube e imprimió **`ENGRAM_CLOUD_TOKEN`**, **`ENGRAM_JWT_SECRET`** y la **contraseña de
+> Postgres** en el log de la conversación. Como la memoria **ya está sincronizada en la nube**, rotarlos es una
+> operación **limpia y sin riesgo de perder nada**: cambiar los tres en
+> `/home/danielblc/docker/engram-cloud/.env`, recrear el servicio, y actualizar el token del cliente en
+> `~/.engram/cloud.json` (esa última parte el agente puede hacerla; el `.env` está bloqueado por política de
+> seguridad). **Lección, para no repetirla:** para leer variables de entorno, filtrar **por nombre de variable**,
+> no volcar el entorno completo.
+>
+> **La sesión del 2026-09-21 cerró acá.** Nada quedó sin comitear en ninguno de los dos repos, la memoria de la
+> sesión quedó en Engram (local **y** nube) y este bloque es el punto de arranque de la próxima.
 
 > **Detalle histórico de los tres slices** — plan, mediciones, decisiones del autor y evidencia de las
 > revisones, en `odd/tasks/v0-portal-honesty.md` y en las entradas que siguen.
