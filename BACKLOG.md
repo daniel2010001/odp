@@ -15,12 +15,29 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión — el plan en bloques (estado 2026-09-21)
+## Próxima sesión — el plan en bloques (estado 2026-09-22)
 
-> **Estado al cierre (2026-09-21).** `v0-portal-honesty` está **cerrada en sus tres slices** (A, B y C, con
-> recibos quemados: `review-cd2510c28384457d` para el slice C y `review-249e073ef3489596` para la política de
-> existencia). La sesión del 21 se fue **entera** en un incidente del entorno dev ya resuelto y verificado (ver
-> «Advertencias de entorno» más abajo), así que **el producto no avanzó** desde el slice C.
+> **Estado al cierre (2026-09-22).** El **plan en bloques** avanzó: **bloque A** (el verbo «publicar» →
+> «crear»), **bloque B** (página de error propia) y **bloque C1** (el distintivo de enlace) quedaron
+> **cerrados, aprobados con recibo quemado y publicados**; **C2** (ocultar las vistas Tabla/Gráfico/Mapa
+> para un enlace) es lo primero de la próxima sesión. Los **slices** A/B/C de `v0-portal-honesty` —el trabajo
+> anterior— ya estaban cerrados.
+> **Aviso de nomenclatura: «slices» y «bloques» comparten el alfabeto A/B/C y son dos series distintas.**
+> Cuando este archivo dice «bloque A» habla del verbo, no del slice.
+>
+> **Los tres recibos de la sesión del 22**: `review-169119db13ffab2c` (bloque A, 1 aviso informativo) ·
+> `review-13d22ebddf82eef0` (bloque B, 2 sugerencias) · `review-c282f17baf9309ea` (bloque C1, **0
+> hallazgos**). Los tres se pidieron con `baseRef` explícito, o sea que revisaron **sólo su bloque** y nunca
+> la rama acumulada. Los commits están en `origin/feat/v0-portal-honesty` (en sincronía).
+>
+> **Cuatro `TODO:` quedaron anotados y sin corregir a propósito** —corregirlos pide su propia revisión, y los
+> recibos de esos bloques ya están quemados: el título del test del asistente (bloque A) · el reintento del
+> error que pierde la query y el test del ícono (bloque B) · la decisión diferida de la ficha del enlace
+> (bloque C).
+>
+> **Dos acciones siguen siendo del autor, no del agente**: la **rotación de los tres secretos** (acción 4,
+> sobre el `.env` del servidor de Engram, que el agente no puede tocar por política) y el arreglo de **`pnpm
+> lint` y el gancho de pre-commit** (ver «Advertencias de entorno»).
 >
 > **ACCIÓN 1 — HECHA Y VERIFICADA (2026-09-22): el `push` está hecho.** `origin/feat/v0-portal-honesty` pasó de
 > `b68031b` (fin del slice B) a `1f60930`: los 42 commits que estaban sólo acá quedaron publicados (`git
