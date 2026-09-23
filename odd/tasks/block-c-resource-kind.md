@@ -104,3 +104,27 @@ dataset page renders that list client-side, so its initial HTML is a loading she
 no chips is blind, not negative, and this plan's author nearly recorded it as a false negative.
 (2) The classifier's test includes the **seeded shape** (an external URL with `format: "CSV"` and a
 `size` but no `url_type` → link), so a declared format can never promote a link to a file.
+
+**C1 — segunda vuelta (2026-09-22).** `6191b1d` (the shared chip) · `ee6086b` (the `/dev/kind` sheet) ·
+`d650a64` (the two `v1+` TODOs). Receipt `review-5f36113f971853de` — **APPROVED, ZERO findings** (tier
+`medium`, lens `review-reliability`, 9 files / 493 lines, correction budget 200). Of those 493 lines,
+**309 are the DEV sheet** and the production change is ~150.
+
+The author reviewed the chip and reported two defects, both fixed: the `Link` icon made the link chip
+taller than the format chip, and the variable width (`CSV` vs `GEOJSON`) shifted everything after it in
+the row. The chip is now one component used by both surfaces, with no icon and a uniform `w-20`.
+
+**A loss this round caused, and its decision.** This plan's own specification replaced `ResourceCard`'s
+per-format colour map with a neutral chip — the map lived inside the component with raw `oklch` literals,
+two documented violations (`AGENTS.md` rule 3 and the design-system's hardcoded-colour anti-pattern) and
+ten saturated hues where the system allows two per screen. The author decided to **keep the chip neutral
+for now** and define the format palette in the detail pass, as tokens in `src/app.css` with their roles in
+the design-system README. **Do not restore the raw map** without that decision: it would reinstate both
+violations.
+
+**Why the colour slipped past both the writer and the reviewer.** This plan specified *classes*, and a
+muted class is a perfectly valid chip, so nothing failed and nothing warned. What was lost — that the
+list encoded format by colour — was only visible by **reading the file being replaced**, not the line
+being cited. That is the lesson of the round, and it is the same shape as the two earlier spec defects of
+this session.
+

@@ -161,6 +161,24 @@
 > Consecuencia honesta en DEV: **ninguna fixture declaraba `url_type`**, así que sin tocarlas todos los
 > recursos de mock habrían pasado a leerse como enlaces; ahora las fixtures de archivo lo declaran.
 >
+> **C1 — SEGUNDA VUELTA (2026-09-22), a partir de la revisión visual del autor:** `6191b1d` (el chip
+> compartido) · `ee6086b` (la hoja `/dev/kind`) · `d650a64` (los dos `TODO:`). **Recibo quemado:
+> `review-5f36113f971853de` — APROBADA, CERO hallazgos** (tier `medium`, lente `review-reliability`,
+> **9 archivos / 493 líneas**, presupuesto de corrección 200). **Nota de presupuesto: de esas 493 líneas,
+> 309 son la hoja `/dev/kind`** —herramienta de desarrollo, sin efecto en producción—; el cambio de
+> producción son ~150. La revisión lo tomó igual como un `medium`.
+> **Lo que el autor vio y pidió:** (1) el ícono `Link` hacía más grande el chip de enlace — **se fue el
+> ícono**; (2) el ancho variaba con la etiqueta (`CSV` vs `GEOJSON`) y **corría todo lo que sigue en la
+> fila** — ahora es **uniforme** (`w-20`), y el chip vive en **un solo componente**
+> (`src/lib/components/resource/ResourceKindChip.svelte`) que usan las dos superficies, para que no se
+> bifurque.
+> **Y una pérdida que causó este paso, con su decisión:** la especificación del padre reemplazó el mapa
+> de color por formato de la card por un chip **neutro**. El autor decidió **dejarlo neutro por ahora** y
+> definir la paleta en la pasada de detalles, como **tokens** (ver el `TODO:` de `v1+`). **No restaurar el
+> mapa crudo**: repone las dos violaciones documentadas (`AGENTS.md` regla 3 y el anti-patrón del
+> design-system §11).
+> **Hoja permanente nueva: `/dev/kind`** — la matriz de etiquetas con el componente **real** (en fila y en
+> columna) más una sección de comparación que declara que **no** es el componente real.
 > **C2 PENDIENTE**: ocultar las vistas (Tabla/Gráfico/Mapa) cuando el recurso es un enlace — hoy se
 > muestran siempre. Con su propia revisión.
 > **Fuera de alcance, anotado y no olvidado:** el botón «Descargar recurso» sobre un enlace y las filas
