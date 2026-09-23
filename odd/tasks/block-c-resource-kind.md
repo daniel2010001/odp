@@ -148,3 +148,22 @@ this block already recorded for the dataset page.
 (`toHaveLength(3)`). When D removes the simulated views that assertion must change, and that is the intent:
 a change of behaviour should force a deliberate change of the test that pins it.
 
+## Slice C3 — the link's page stops stating facts nobody measured (2026-09-22)
+
+`02caa9d`. Receipt `review-1e0335f5b0d1ee80` — **APPROVED, one informational advisory** (tier `medium`,
+2 files / 72 lines, correction budget 36), over the code's range only (`baseRef=4033357`).
+
+The author decided that a link **keeps** its page, thinned to what a link actually has. The measured
+consequence: the page declared a `«Tamaño»` for external references, and for the 35 seeded links that number
+is **invented by the seed script** — CKAN cannot weigh an external URL without downloading it — and a
+`«Nombre del archivo»` parsed out of the URL's last segment, which is a guess, not metadata. Both rows are
+gone for a link; a hosted file keeps them, because there CKAN rewrote the URL to the download path and
+measured the size on upload. The primary action also stopped promising a download: `Abrir enlace` with the
+`ExternalLink` icon for a link, `Descargar recurso` with `Download` for a file.
+
+**The advisory is a verified FALSE POSITIVE, and the reason is worth keeping.** It flagged the action's
+`{#if isLink}` as an undefined symbol — but `isLink` is declared at line 332, **outside the reviewed
+range**: C2 added it, with its own burned receipt. A review scoped to a diff cannot see a declaration that
+lives outside it, and this class of false positive is the known price of reviewing by slice — which is
+exactly what protects review focus. Nothing to fix: the 540 tests cover both directions.
+

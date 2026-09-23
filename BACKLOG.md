@@ -204,6 +204,22 @@
 > botones de pestaña (`toHaveLength(3)`). Cuando D quite las vistas simuladas, esa aserción tendrá que
 > cambiar — y esa es la intención: un cambio de comportamiento debe obligar a cambiar a mano el test que lo
 > fija.
+> **C3 CERRADO (2026-09-22): la ficha de un enlace dice la verdad.** `02caa9d` (+ los documentos).
+> **Recibo quemado: `review-1e0335f5b0d1ee80` — APROBADA, 1 aviso informativo** (tier `medium`, **2 archivos
+> / 72 líneas**, presupuesto de corrección 36), sobre el rango del código.
+> **Qué cambió, y por qué era una afirmación falsa:** la ficha declaraba un **«Tamaño»** para los enlaces
+> externos, y en los 35 recursos sembrados ese número **lo inventó el seed** — CKAN no puede pesar una URL
+> externa sin descargarla. También declaraba un **«Nombre del archivo»** deducido del último segmento de la
+> URL: una adivinanza, no un metadato. Las dos filas se van para un enlace; un **archivo alojado las
+> conserva**, porque ahí CKAN reescribió la URL al camino de descarga y midió el tamaño al subirlo. La acción
+> principal deja de prometer una descarga: para un enlace dice **«Abrir enlace»** (ícono `ExternalLink`), y
+> para un archivo sigue «Descargar recurso».
+> **El aviso del recibo (`R3-ISLINK-UNDEFINED`, línea 514) es un FALSO POSITIVO verificado, y la causa
+> importa:** señaló el `{#if isLink}` de la acción como símbolo indefinido, pero **`isLink` se declara en la
+> línea 332, que está FUERA del rango revisado** — la declaración la agregó C2, con su propio recibo quemado.
+> O sea: **una revisión acotada al diff no puede ver una declaración que vive fuera del rango**, y esta clase
+> de falso positivo es el precio conocido de revisar por slice, que es lo que protege el foco. **No hay nada
+> que arreglar**: los 540 tests cubren las dos direcciones y ambas ramas renderizan lo correcto.
 > **Fuera de alcance, anotado y no olvidado:** el botón «Descargar recurso» sobre un enlace y las filas
 > del cuadro de metadatos que dicen «Nombre del archivo» (inventado desde la URL) **esperan la decisión
 > diferida de la ficha**; y los chips de formato del buscador son **de dataset** (agregan varios
@@ -1503,6 +1519,28 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (`/search?format=…`). **Dos decisiones abiertas al implementarlo:** (a) el chip **«Enlace»** no tiene
   formato que filtrar —¿no es clicable, o filtra por otra cosa?—; (b) un chip clicable **dentro** del
   dataset cambia el clic que hoy lleva a la ficha del recurso, así que hay que resolver esa superposición.
+
+- [ ] **[v1+]** `TODO:` **Reordenar los recursos del asistente (arrastrar para mover, estilo lista de reproducción).**
+  Pedido del autor (2026-09-22). **Factibilidad medida, para no volver a medirla:**
+  (1) **La lista ya está lista para moverse:** `recursos = $state<RecursoEntry[]>([])` se renderiza con
+  `{#each recursos as recurso (recurso.key)}` —está **claveada**—, así que reordenar es reordenar el array y
+  Svelte **mueve los nodos** en vez de recrearlos: los archivos elegidos y el progreso de subida siguen
+  pegados a su fila (con `File` y `AbortController` en juego, eso es lo que evita el bug).
+  (2) **El orden llega a CKAN sin mandar `position`:** `ckan/model/resource.py:180` usa
+  `ordering_list('position')` —renumera la colección como enteros ascendentes en cada modificación— y
+  `ckan/lib/dictization/model_dictize.py:96` **devuelve los recursos ordenados por `position`**. El asistente
+  crea recorriendo el array en orden (`for (const entry of recursos)`), así que **el orden del formulario es
+  el que CKAN guarda y devuelve**. Gratis en la creación: `resource_create` ni menciona el campo.
+  (3) **En móvil no habría arrastre igual:** el design-system §9 ya lo decidió («En móvil no hay arrastrar y
+  soltar»), así que el arrastre no puede ser *el* mecanismo.
+  **Escalera de costos:** (a) **botones ↑/↓ por fila** — chico, sin dependencias, funciona en táctil y con
+  teclado, va al lado del `quitarRecurso` que la fila ya tiene, y resuelve el 100% de la capacidad;
+  (b) **arrastre como extra para puntero** — decisión de dependencia (`svelte-dnd-action` es la habitual en
+  Svelte; **hoy no hay ninguna**) o DnD nativo a mano (que **no** funciona en táctil ni por teclado), y **no
+  reemplaza** a los botones: los complementa.
+  **Lo que se vuelve caro:** si algún día hay **edición** de recursos, el orden deja de ser gratis — hay que
+  persistir `position` con un `resource_update` por recurso. Hoy no hay edición: `resourceUpdate` existe en
+  `src/lib/api/resources.ts` y **no tiene llamadores**.
 
 ## v2+ — mejoras futuras no solicitadas
 
