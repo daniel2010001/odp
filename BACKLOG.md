@@ -208,8 +208,16 @@
 > del cuadro de metadatos que dicen «Nombre del archivo» (inventado desde la URL) **esperan la decisión
 > diferida de la ficha**; y los chips de formato del buscador son **de dataset** (agregan varios
 > recursos), no del tipo de un recurso.
-> `TODO:` **decidir si un enlace merece ficha propia** — la ficha lleva sus metadatos y su procedencia,
-> así que sacarla no es gratis.
+> **DECIDIDO (autor, 2026-09-22): un enlace CONSERVA su ficha**, adelgazada a lo que un enlace realmente
+> tiene. La duda era si valía una página «sólo por dos datos» (título y descripción, lo único que captura
+> el mini-formulario de recursos); **el inventario medido muestra que no son dos**: `resource_show` de un
+> enlace trae `name`, `description`, `url`, `created`, `metadata_modified`, `state`, `position` y
+> `package_id` (el dataset, o sea la **procedencia**), y `format` **sólo si está declarado** — el asistente
+> **no** manda `format` al crear un enlace. **Vacíos en un enlace** (son propiedades de un archivo
+> alojado): `mimetype`, `hash`, `url_type`, `datastore_active`, `last_modified`. **Pesa además un argumento
+> de comportamiento:** sin ficha, la misma fila de la lista se comportaría distinto según el tipo —una
+> lleva adentro del portal y la otra saca al sitio externo sin avisar— y en un dataset mixto eso es peor
+> que una página corta. **Lo implementa C3.**
 >
 > **COPIA — REVISIÓN DEL AUTOR (2026-09-22): el «asistente» que no era un nombre, y el requisito que ahora explica.**
 > `187b5ba` (la copia) · `c823e37` (la cita del `TODO:`). **Recibo quemado: `review-11cc383a48faf9e7` —
@@ -1476,6 +1484,25 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   salida correcta por las reglas es **tokens en `src/app.css`** más la sección de roles en
   `design-system/datos-umss/README.md`, explicando por qué la paleta de formato extiende ese límite.
   **No restaurar el mapa crudo** sin esa decisión: repone las dos violaciones.
+
+- [ ] **[v1+]** `TODO:` **Unificar los colores de los chips en las tres superficies, y resolver el del «Enlace».**
+  Pedido del autor (2026-09-22). Hoy hay **dos paletas y un neutro**: el buscador (`DatasetCard.svelte`)
+  tiene su propio mapa `FORMAT_ACCENT` con ~8 matices en **clases Tailwind** (`text-blue-700`,
+  `text-emerald-700`, …) sobre un marco apagado; la lista del dataset y el encabezado de la ficha usan el
+  chip **neutro**; y el chip «Enlace» usa `bg-muted/50` mientras el de archivo usa `bg-muted`. **Esa
+  diferencia de intensidad era intencional** —distinguía el enlace del archivo cuando el archivo llevaba
+  color propio— **pero al pasar todo a neutro quedó sin razón**, y el autor la notó («veo que el color es
+  un poco distinto»). **El patrón del buscador es el mejor candidato para la paleta unificada**: marco
+  apagado y **sólo el texto** con el color del formato, que respeta mucho mejor el límite de «máximo 2
+  colores saturados por pantalla» que un chip relleno de color. Une con el `TODO:` de la paleta de arriba.
+
+- [ ] **[v1+]** `TODO:` **Chips y badges clicables: que manden al buscador filtrado por formato.**
+  Pedido del autor (2026-09-22): que los chips de formato —los de las cards del buscador **y** los de
+  dentro del dataset y de la ficha del recurso— sean un enlace al catálogo filtrado por ese formato. La
+  pieza ya existe: la búsqueda soporta el filtro por `res_format`, en la faceta y en la URL
+  (`/search?format=…`). **Dos decisiones abiertas al implementarlo:** (a) el chip **«Enlace»** no tiene
+  formato que filtrar —¿no es clicable, o filtra por otra cosa?—; (b) un chip clicable **dentro** del
+  dataset cambia el clic que hoy lleva a la ficha del recurso, así que hay que resolver esa superposición.
 
 ## v2+ — mejoras futuras no solicitadas
 
