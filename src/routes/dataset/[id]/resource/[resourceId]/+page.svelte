@@ -252,7 +252,21 @@ const fieldList = $derived.by(() => {
 		{ label: "Creado", value: formatDate(resource.created), raw: resource.created },
 		{ label: "Hash", value: resource.hash, raw: resource.hash },
 	];
-	return fields.filter((f) => f.raw !== undefined && f.raw !== null && f.raw !== "");
+	// Decisión del autor (2026-09-22): la ficha de un enlace dice la verdad. Un enlace es una
+	// referencia externa, así que estas dos filas no son del portal: el **tamaño** de una URL externa
+	// nadie lo midió —CKAN no puede pesarla sin descargarla y el valor sembrado es inventado— y el
+	// **nombre del archivo** sería un adivinazo parseado del último segmento de la URL, no un metadato.
+	// Un archivo alojado conserva ambas: CKAN reescribe su URL al camino de descarga y midió el tamaño
+	// al subirlo, así que ahí las dos filas son hechos medidos.
+	const LINK_FORBIDDEN_ROWS = new Set(["Nombre del archivo", "Tamaño"]);
+	const isExternalLink = resourceKind(resource) === "link";
+	return fields.filter(
+		(f) =>
+			f.raw !== undefined &&
+			f.raw !== null &&
+			f.raw !== "" &&
+			!(isExternalLink && LINK_FORBIDDEN_ROWS.has(f.label)),
+	);
 });
 
 // ─── Derived: API extras ───────────────────────────────────────
@@ -497,8 +511,13 @@ async function handleCopyResourceLink() {
 						rel="noopener noreferrer"
 						class="mt-5 inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
 					>
-						<Download class="size-4" />
-						Descargar recurso
+						{#if isLink}
+							<ExternalLink class="size-4" />
+							Abrir enlace
+						{:else}
+							<Download class="size-4" />
+							Descargar recurso
+						{/if}
 					</a>
 				{/if}
 			</div>

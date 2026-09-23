@@ -120,11 +120,12 @@ afterEach(() => {
 });
 
 describe("Página de recurso — enlaces externos", () => {
-	it("renderiza el enlace de descarga cuando la URL del recurso es http/https", async () => {
+	it("renderiza el enlace del recurso cuando la URL es http/https", async () => {
 		const { container } = render(ResourcePage);
 
-		const download = await screen.findByRole("link", { name: /Descargar recurso/i });
-		expect(download.getAttribute("href")).toBe("https://datos.umss.edu/matricula-2026.pdf");
+		// El recurso por defecto es una referencia externa: su acción abre el enlace, no descarga.
+		const action = await screen.findByRole("link", { name: /Abrir enlace/i });
+		expect(action.getAttribute("href")).toBe("https://datos.umss.edu/matricula-2026.pdf");
 		expect(renderedHrefs(container)).toContain("https://datos.umss.edu/matricula-2026.pdf");
 	});
 
@@ -429,5 +430,45 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		render(ResourcePage);
 
 		await screen.findByText(/Observatorio de Movilidad/i);
+	});
+});
+
+// ─── La ficha de un enlace dice la verdad (block C, C3) ─────────────
+// La decisión del autor (2026-09-22) tiene una consecuencia medible: un enlace no aloja contenido
+// en el portal, así que la ficha no puede declarar un «Tamaño» que nadie midió —CKAN no pesa una
+// URL externa sin descargarla y el valor sembrado es inventado— ni un «Nombre del archivo»
+// adivinado del último segmento de la URL. Un archivo alojado conserva ambas filas: su nombre es
+// real (CKAN reescribe la URL al camino de descarga) y su tamaño lo midió CKAN al subirlo.
+describe("Página de recurso — la ficha de un enlace dice la verdad", () => {
+	it("un enlace (sin `url_type`) no declara «Nombre del archivo» ni «Tamaño», y su acción abre el enlace", async () => {
+		// El tamaño existe en el payload y la URL termina en un nombre de archivo: ese es el caso
+		// que hoy miente y el que este test fija.
+		mocks.showResource.mockResolvedValue(
+			makeResource({ size: 13_000_000, url: "https://datos.umss.edu/otros/informe.pdf" }),
+		);
+
+		render(ResourcePage);
+
+		await screen.findByRole("link", { name: /Abrir enlace/i });
+		expect(screen.queryByText("Nombre del archivo")).toBeNull();
+		expect(screen.queryByText("Tamaño")).toBeNull();
+		expect(screen.queryByRole("link", { name: /Descargar recurso/i })).toBeNull();
+	});
+
+	it('un archivo alojado (`url_type: "upload"`) declara «Nombre del archivo» y «Tamaño», y su acción descarga', async () => {
+		mocks.showResource.mockResolvedValue(
+			makeResource({
+				url_type: "upload",
+				size: 1024,
+				url: "http://localhost:5000/dataset/x/resource/y/download/matricula-2026.pdf",
+			}),
+		);
+
+		render(ResourcePage);
+
+		await screen.findByRole("link", { name: /Descargar recurso/i });
+		expect(screen.getByText("Nombre del archivo")).toBeTruthy();
+		expect(screen.getByText("Tamaño")).toBeTruthy();
+		expect(screen.queryByRole("link", { name: /Abrir enlace/i })).toBeNull();
 	});
 });
