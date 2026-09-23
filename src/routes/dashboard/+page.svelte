@@ -213,7 +213,7 @@ const actions = $derived(
 		? [
 				{
 					title: "Crear dataset",
-					description: "Cree un dataset y suba sus recursos con el asistente.",
+					description: "Cree un dataset y suba sus recursos.",
 					href: "/dashboard/datasets/new",
 					icon: Database,
 				},

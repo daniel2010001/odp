@@ -16,12 +16,12 @@ import {
 	emptyStateMessage,
 } from "./dashboard";
 
-const BASE = "Aún no ha creado ningún dataset. El asistente lo guía paso a paso.";
-const ORG = "Crear un dataset requiere pertenecer a una organización.";
-const PERM = "Crear un dataset requiere rol de editor o administrador en una organización.";
+const BASE = "Aún no ha creado ningún dataset.";
+const ORG = "Para crear el primero, necesita pertenecer a una organización.";
+const PERM = "Para crear el primero, necesita rol de editor o administrador en una organización.";
 
 describe("emptyStateMessage — la copia del estado vacío de «Mis datasets»", () => {
-	it("con permiso para crear enuncia sólo el paso a paso", () => {
+	it("con permiso para crear enuncia sólo la oración base", () => {
 		expect(
 			emptyStateMessage({
 				canCreate: true,

@@ -408,11 +408,11 @@ describe("Oferta de creación (D3)", () => {
 		// La tarjeta «Mis organizaciones» sigue listando la membresía con su rol: eso es lo que promete.
 		expect(await screen.findByRole("link", { name: /facultad de ciencias/i })).toBeInTheDocument();
 		// Pero ninguna superficie ofrece crear, porque el backend no podría cumplirlo.
-		await screen.findByText(/requiere rol de editor o administrador en una organización/i);
+		await screen.findByText(/necesita rol de editor o administrador en una organización/i);
 		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 		expect(screen.queryByRole("heading", { name: /acciones/i })).not.toBeInTheDocument();
 		// La frase de «pertenecer» sería falsa para un miembro: el miembro sí pertenece.
-		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/necesita pertenecer a una organización/i)).not.toBeInTheDocument();
 		// La compuerta preguntó lo mismo que el asistente, no la lista amplia de membresías.
 		expect(mocks.canCreateDataset).toHaveBeenCalledTimes(1);
 	});
@@ -429,8 +429,8 @@ describe("Oferta de creación (D3)", () => {
 		expect(await screen.findByRole("link", { name: /facultad de ciencias/i })).toBeInTheDocument();
 		// Fail closed: sin respuesta no se ofrece crear y la copia queda neutra.
 		await screen.findByText(/aún no ha creado ningún dataset/i);
-		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
-		expect(screen.queryByText(/requiere rol de editor o administrador/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/necesita pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/necesita rol de editor o administrador/i)).not.toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 	});
 });
@@ -445,7 +445,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 
 		await screen.findByText(/aún no ha creado ningún dataset/i);
 		// Con organización la exigencia no se menciona: la premisa ya está cumplida.
-		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/necesita pertenecer a una organización/i)).not.toBeInTheDocument();
 		expect(screen.getAllByRole("link", { name: /crear dataset/i }).length).toBeGreaterThan(0);
 	});
 
@@ -457,7 +457,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 
 		render(Dashboard);
 
-		await screen.findByText(/requiere pertenecer a una organización/i);
+		await screen.findByText(/necesita pertenecer a una organización/i);
 		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 	});
 
@@ -472,7 +472,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 		await screen.findByText(/aún no ha creado ningún dataset/i);
 		// Corrección sobre el playground: sin saber si el usuario tiene una organización, el estado
 		// vacío **no** puede afirmar que crear un dataset la exija.
-		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/necesita pertenecer a una organización/i)).not.toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: /crear dataset/i })).not.toBeInTheDocument();
 	});
 
@@ -486,7 +486,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 		await screen.findByText(/aún no ha creado ningún dataset/i);
 		// Un fallo deja la pregunta abierta (¿tiene organizaciones o no?), así que el estado vacío
 		// conserva la copia neutra y el error es la lectura honesta: no se pudo saber.
-		expect(screen.queryByText(/requiere pertenecer a una organización/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/necesita pertenecer a una organización/i)).not.toBeInTheDocument();
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			/no se pudieron cargar sus organizaciones/i,
 		);

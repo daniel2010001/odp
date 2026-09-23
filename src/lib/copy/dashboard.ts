@@ -20,23 +20,22 @@ export const EMPTY_STATE_HEADING = "Cree su primer dataset";
 export const EMPTY_STATE_PRIMARY_ACTION_LABEL = "Crear dataset";
 
 /** Oración base, siempre presente en las tres variantes. */
-export const EMPTY_STATE_BASE_MESSAGE =
-	"Aún no ha creado ningún dataset. El asistente lo guía paso a paso.";
+export const EMPTY_STATE_BASE_MESSAGE = "Aún no ha creado ningún dataset.";
 
 /** Requisito que sólo es cierto con la lista de organizaciones terminada, sin error y vacía. */
 export const EMPTY_STATE_NO_ORGANIZATION_REQUIREMENT =
-	"Crear un dataset requiere pertenecer a una organización.";
+	"Para crear el primero, necesita pertenecer a una organización.";
 
 /** Requisito que sólo es cierto con la pregunta de permiso respondida y negada. */
 export const EMPTY_STATE_NO_CREATE_PERMISSION_REQUIREMENT =
-	"Crear un dataset requiere rol de editor o administrador en una organización.";
+	"Para crear el primero, necesita rol de editor o administrador en una organización.";
 
 /**
  * Banderas que seleccionan la variante. Cada una ya es una **afirmación** resuelta por la página; la
  * función no vuelve a decidir si se sabe algo, sólo elige el texto.
  */
 export interface EmptyStateFlags {
-	/** Hay permiso de creación y se puede ofrecer el asistente. */
+	/** Hay permiso de creación: se puede ofrecer el formulario. */
 	canCreate: boolean;
 	/** La carga terminó, sin error, y el usuario no pertenece a ninguna organización. */
 	confirmedNoOrganizations: boolean;
