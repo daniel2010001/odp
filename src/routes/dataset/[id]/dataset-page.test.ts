@@ -363,5 +363,10 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 
 		expect(within(card).getByText("Enlace")).toBeTruthy();
 		expect(within(card).queryByText("CSV")).toBeNull();
+
+		// El ícono se fue por decisión del autor: sin él, el chip de enlace deja de ser más grande
+		// que el de formato. Un `svg` acá sería la regresión silenciosa de esa decisión.
+		const linkChip = within(card).getByText("Enlace");
+		expect(linkChip.querySelectorAll("svg").length).toBe(0);
 	});
 });

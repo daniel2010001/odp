@@ -6,8 +6,6 @@ import {
 	Copy,
 	Download,
 	ExternalLink,
-	FileText,
-	Link,
 	Link2,
 	Map as MapIcon,
 	Table,
@@ -26,6 +24,7 @@ import {
 	isDefinitive,
 } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
+import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -220,12 +219,10 @@ const pageTitle = $derived.by(() => {
 });
 
 // ─── Derived: badges ────────────────────────────────────────────
-const formatLabel = $derived(resource?.format?.trim().toUpperCase() ?? null);
-
 // El tipo de recurso (`url_type`, la regla de CKAN) decide el chip del encabezado, y es exclusivo:
-// un recurso alojado muestra su insignia de formato; una referencia externa muestra «Enlace» y deja
-// de mostrar el formato declarado —un enlace es un enlace, no un archivo con formato.
-const isLink = $derived(resource ? resourceKind(resource) === "link" : false);
+// un recurso alojado muestra su formato; una referencia externa muestra «Enlace» y deja de mostrar
+// el formato declarado —un enlace es un enlace, no un archivo con formato—. El cómo vive en
+// `ResourceKindChip`, compartido con la lista del dataset.
 
 const stateLabel = $derived.by(() => {
 	switch (resource?.state) {
@@ -455,21 +452,7 @@ async function handleCopyResourceLink() {
 				<!-- Badges row: el chip de tipo es exclusivo — un enlace muestra «Enlace» y no el formato,
 				     un archivo alojado muestra su formato y nunca «Enlace». -->
 				<div class="mt-4 flex flex-wrap items-center gap-2">
-					{#if isLink}
-						<span
-							class="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-semibold text-muted-foreground"
-						>
-							<Link class="size-3.5" aria-hidden="true" />
-							Enlace
-						</span>
-					{:else if formatLabel}
-						<span
-							class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
-						>
-							<FileText class="size-3.5" />
-							{formatLabel}
-						</span>
-					{/if}
+					<ResourceKindChip kind={resourceKind(resource)} format={resource.format} />
 
 					{#if stateLabel}
 						<span

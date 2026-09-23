@@ -370,6 +370,11 @@ describe("Página de recurso — el tipo de recurso en el encabezado", () => {
 		expect(within(header).getByText("Enlace")).toBeTruthy();
 		// La decisión del autor: el chip es exclusivo, así que el formato declarado no se muestra aquí.
 		expect(within(header).queryByText("CSV")).toBeNull();
+
+		// El ícono se fue por decisión del autor: sin él, el chip de enlace deja de ser más grande
+		// que el de formato. Un `svg` acá sería la regresión silenciosa de esa decisión.
+		const linkChip = within(header).getByText("Enlace");
+		expect(linkChip.querySelectorAll("svg").length).toBe(0);
 	});
 });
 
