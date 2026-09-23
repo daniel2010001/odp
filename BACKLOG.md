@@ -17,23 +17,30 @@
 
 ## Próxima sesión — el plan en bloques (estado 2026-09-22)
 
-> **Estado al cierre (2026-09-22).** El **plan en bloques** avanzó: **bloque A** (el verbo «publicar» →
-> «crear»), **bloque B** (página de error propia) y **bloque C1** (el distintivo de enlace) quedaron
-> **cerrados, aprobados con recibo quemado y publicados**; **C2** (ocultar las vistas Tabla/Gráfico/Mapa
-> para un enlace) es lo primero de la próxima sesión. Los **slices** A/B/C de `v0-portal-honesty` —el trabajo
-> anterior— ya estaban cerrados.
+> **Estado al cierre (2026-09-22).** El **plan en bloques** avanzó hasta el **bloque C completo**: **A** (el
+> verbo «publicar» → «crear»), **B** (página de error propia) y **C** (recurso según su tipo: la regla, el
+> distintivo de enlace y —C2— ocultar las vistas de datos para un enlace) quedaron **cerrados, aprobados con
+> recibo quemado y publicados**. **La próxima arranca con D** (vista previa de datos: **una** decisión —qué
+> dice el panel cuando el recurso no está en el DataStore—) **o con E** (pulido de layout y cards, **sin**
+> decisiones: el comodín para intercalar). Los **slices** A/B/C de `v0-portal-honesty` —el trabajo anterior—
+> ya estaban cerrados.
 > **Aviso de nomenclatura: «slices» y «bloques» comparten el alfabeto A/B/C y son dos series distintas.**
 > Cuando este archivo dice «bloque A» habla del verbo, no del slice.
 >
-> **Los tres recibos de la sesión del 22**: `review-169119db13ffab2c` (bloque A, 1 aviso informativo) ·
-> `review-13d22ebddf82eef0` (bloque B, 2 sugerencias) · `review-c282f17baf9309ea` (bloque C1, **0
-> hallazgos**). Los tres se pidieron con `baseRef` explícito, o sea que revisaron **sólo su bloque** y nunca
-> la rama acumulada. Los commits están en `origin/feat/v0-portal-honesty` (en sincronía).
+> **Los seis recibos de la sesión del 22**, todos pedidos con `baseRef` explícito —o sea que cada uno revisó
+> **sólo su slice**, nunca la rama acumulada—: `review-169119db13ffab2c` (bloque A, 1 aviso informativo) ·
+> `review-13d22ebddf82eef0` (bloque B, 2 sugerencias) · `review-c282f17baf9309ea` (C1, **0**) ·
+> `review-5f36113f971853de` (el chip: sin ícono y de ancho uniforme, **0**) · `review-11cc383a48faf9e7` (la
+> copia: el «asistente» que no era un nombre, y el requisito causal, **0**) · `review-74d83299cafabe6f` (C2,
+> **0**). Los commits están en `origin/feat/v0-portal-honesty` (en sincronía).
 >
 > **Cuatro `TODO:` quedaron anotados y sin corregir a propósito** —corregirlos pide su propia revisión, y los
 > recibos de esos bloques ya están quemados: el título del test del asistente (bloque A) · el reintento del
 > error que pierde la query y el test del ícono (bloque B) · la decisión diferida de la ficha del enlace
 > (bloque C).
+> **Más dos `TODO:` de `v1+`** que el autor pidió en esta misma sesión: el **pulido visual de las páginas de
+> error** (los mensajes quedaron bien; falta la densidad visual) y **la paleta de formato como tokens** —
+> incluido por qué **no** se restaura el mapa crudo de colores. Los dos viven en su sección `v1+`.
 >
 > **Dos acciones siguen siendo del autor, no del agente**: la **rotación de los tres secretos** (acción 4,
 > sobre el `.env` del servidor de Engram, que el agente no puede tocar por política) y el arreglo de **`pnpm
