@@ -1320,6 +1320,30 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
 
+- [ ] **[v0]** `TODO:` **El breadcrumb no tiene tratamiento móvil y ocupa demasiado.** Observación del autor
+  (2026-09-22): «en móviles se ve mal, ocupa mucho espacio». **Medido:** `Breadcrumb.svelte` (45 líneas, en
+  `src/lib/components/ui/breadcrumb/`) renderiza un `<ol class="flex flex-wrap items-center gap-1 text-sm">` y
+  **no tiene una sola clase responsive, ni truncado, ni colapso** (un `grep` de `sm:`/`md:`/`hidden`/
+  `truncate` en ese componente da cero coincidencias). Con las **cuatro** migas de la ficha del recurso
+  —Datasets → organización → dataset → recurso— y nombres largos como «Observatorio de Movilidad Urbana
+  Cochabamba», **envuelve en varias líneas** arriba del contenido. El autor observó que este tipo de
+  componente cambia según el responsive en otras plataformas; acá no cambia. **Opciones a decidir cuando se
+  tome:** colapsar a las migas extremas con un «…», truncar las intermedias, o mostrar sólo el padre
+  inmediato con un «volver». Pertenece a la familia del **bloque E** (pulido de layout de `v0`).
+
+- [ ] **[v0]** `TODO:` **Pulir la vista del enlace: el bloque que reemplazó a las vistas de datos es
+  demasiado grande para lo poco que dice.** Observación del autor (2026-09-22): sigue pareciéndole «mucho
+  para tan poco», y sospecha del espacio que sustituye a las vistas de los archivos. **Medido y confirmado:**
+  el estado que puso C2 es `class="flex min-h-[220px] flex-col items-center justify-center gap-3 p-10
+  text-center"` con un círculo de `size-16` (64px) y un ícono de `size-8` (32px)
+  (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte`, alrededor de la línea 553) — o sea **220px
+  de alto mínimo, 40px de padding y un ícono de 64px para una sola oración**. Una nota compacta, sin ícono y
+  sin caja alta, diría lo mismo sin el hueco. **Contexto para quien lo tome:** un enlace **conserva** su
+  ficha (decisión del autor del mismo día), y C3 ya le quitó las filas que no aplicaban (`«Tamaño»` y
+  `«Nombre del archivo»`), así que lo que queda es título, descripción, el enlace y las fechas — y eso es
+  lo que tiene que justificar la página. Conviene revisarlo junto con el **pulido visual** de `v1+` (las páginas
+  de error y la paleta de formato): es la misma familia, densidad visual.
+
 ## v1 — producto usable en producción
 
 - [ ] **[v1+] Filtros dentro de la tarjeta «Mis datasets».** El usuario pregunta si conviene agregarlos
