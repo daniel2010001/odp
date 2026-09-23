@@ -1397,6 +1397,24 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   colaboradores por dataset son nativos (ver `v0`); los equipos multi-organización son custom.
   _Referencias: PRD RF-19/RF-20, design-system §9 item 12._
 
+- [ ] **[v1+]** `TODO:` **Pulido visual de las páginas de error.** El autor las revisó y los *mensajes*
+  quedaron bien; lo que falta es la densidad visual: «se ven planas, sin color, sin gracia». Pedido:
+  mejorarlas «como hicimos con las otras pages», cuando haya tiempo de detalles. Alcanza a
+  `src/routes/+error.svelte` (el componente `ErrorPage`) y a la hoja `/dev/error`. No es un defecto de
+  contenido: no cambiar la copia ni los dos estados al hacerlo.
+
+- [ ] **[v1+]** `TODO:` **La paleta de formato, en la misma pasada de detalles.** Decisión del autor
+  (2026-09-22): el chip de tipo de recurso queda **neutro** por ahora y la paleta se define **una sola
+  vez** para todas las superficies (la lista del dataset, la ficha del recurso y, si corresponde, los
+  chips del buscador). **Lo que hay que resolver cuando toque:** el chip compartido reemplazó un mapa de
+  **10 formatos con color propio** (en `ResourceCard.svelte`, en HEAD antes de `fa96d5c`) cuyos valores
+  eran `oklch` **crudos dentro del componente** —dos violaciones documentadas: `AGENTS.md` regla 3
+  («Colores vía tokens, nunca hex crudos») y el anti-patrón del design-system §11 («Colores hardcodeados
+  en componentes»)— y que ponía ~10 matices saturados donde el sistema admite **2 por pantalla**. La
+  salida correcta por las reglas es **tokens en `src/app.css`** más la sección de roles en
+  `design-system/datos-umss/README.md`, explicando por qué la paleta de formato extiende ese límite.
+  **No restaurar el mapa crudo** sin esa decisión: repone las dos violaciones.
+
 ## v2+ — mejoras futuras no solicitadas
 
 - [ ] **TODO (pregunta del autor): ¿internacionalizar la UI (i18n)?** Notó que CKAN define el idioma y que en
