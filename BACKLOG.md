@@ -1114,7 +1114,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   inesperado** (5xx), que hoy también cae en la página por defecto. _Origen: reporte del autor + medición
   2026-09-20 (`GET /ruta-que-no-existe`)._
 
-- [ ] **TODO (respuesta a una duda del autor): la oración «requiere rol de editor o administrador» es la regla
+- [ ] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
   por roles con capacidad de pasar a permisos, y **es exactamente esto**: `RF-01` define roles **a nivel de
   organización** (`superadmin`, `org_admin`, `editor`, `viewer`) **y además roles por dataset** (`viewer`,
