@@ -129,7 +129,7 @@
 > **Decisión del autor:** la hoja `/dev/error` **se queda como herramienta permanente**, con el mismo
 > criterio documentado que `/dev/copy` — un 5xx no se provoca a mano.
 >
-> **BLOQUE C — EN CURSO: recurso según su tipo. C1 CERRADO (2026-09-22).** El portal presentaba todo
+> **BLOQUE C — CERRADO: recurso según su tipo. C1 CERRADO (2026-09-22).** El portal presentaba todo
 > recurso como archivo: insignia de formato, vistas de datos y botón de descarga. **Medido: los 35
 > recursos del catálogo sembrado son URLs externas** (`https://data.umss.edu.bo/...`) con `url_type`
 > ausente, `mimetype` ausente y sin `hash` — enlaces disfrazados de archivos, con un `format` CSV/PDF/
@@ -179,8 +179,24 @@
 > design-system §11).
 > **Hoja permanente nueva: `/dev/kind`** — la matriz de etiquetas con el componente **real** (en fila y en
 > columna) más una sección de comparación que declara que **no** es el componente real.
-> **C2 PENDIENTE**: ocultar las vistas (Tabla/Gráfico/Mapa) cuando el recurso es un enlace — hoy se
-> muestran siempre. Con su propia revisión.
+> **C2 CERRADO (2026-09-22):** `83412f5`. **Recibo quemado: `review-74d83299cafabe6f` — APROBADA, CERO
+> hallazgos** (tier `medium`, **2 archivos / 87 líneas**, presupuesto de corrección 44). Rango
+> `baseRef=ee11794` explícito.
+> Para una **referencia externa** la tarjeta «Vista previa» ya no ofrece Tabla/Gráfico/Mapa ni la
+> simulación: la misma regla del chip (`resourceKind`) decide, derivada una vez por render. En su lugar hay
+> un **estado que explica la ausencia** («Este recurso es un enlace externo…»), porque la pantalla en blanco
+> sin sugerencias es un anti-patrón del propio sistema de diseño. Para un **archivo alojado** no cambia
+> nada: quitar las vistas simuladas es del **bloque D**, y mezclarlo acá habría dejado sin significado el
+> recibo del próximo.
+> **Verificación en las dos direcciones** por test: un enlace no renderiza ningún botón de vista previa y sí
+> la explicación; un archivo conserva sus pestañas. **Y un límite honesto: la medición en vivo NO fue
+> posible** — la página de recurso se renderiza en el cliente (su HTML inicial es `<title>Cargando…`), así
+> que `curl` no ve ninguna de las dos ramas. Es un instrumento que no llega, no un negativo; la revisión
+> visual de esa superficie es del autor.
+> **Un test que el bloque D va a romper a propósito:** la dirección del archivo afirma **exactamente tres**
+> botones de pestaña (`toHaveLength(3)`). Cuando D quite las vistas simuladas, esa aserción tendrá que
+> cambiar — y esa es la intención: un cambio de comportamiento debe obligar a cambiar a mano el test que lo
+> fija.
 > **Fuera de alcance, anotado y no olvidado:** el botón «Descargar recurso» sobre un enlace y las filas
 > del cuadro de metadatos que dicen «Nombre del archivo» (inventado desde la URL) **esperan la decisión
 > diferida de la ficha**; y los chips de formato del buscador son **de dataset** (agregan varios

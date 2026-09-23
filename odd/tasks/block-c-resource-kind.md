@@ -128,3 +128,23 @@ list encoded format by colour — was only visible by **reading the file being r
 being cited. That is the lesson of the round, and it is the same shape as the two earlier spec defects of
 this session.
 
+## Slice C2 — an external reference has no preview to offer (2026-09-22)
+
+`83412f5`. Receipt `review-74d83299cafabe6f` — **APPROVED, ZERO findings** (tier `medium`, 2 files /
+87 lines, correction budget 44), over the slice's committed range only (`baseRef=ee11794`).
+
+The same rule as the kind chip decides it: `resourceKind(resource)`, derived once per render. For a link
+the tabs and the `ResourcePreview` body are not rendered, and a short state explains the absence, because a
+blank panel is an anti-pattern in this project's own design system. A hosted file is untouched — removing
+the simulated views belongs to block D, and mixing it in here would have emptied the meaning of that
+block's receipt.
+
+**Verified in both directions by test**, and one limit recorded honestly: **the live measurement was not
+possible**. The resource page renders its content client-side, so its initial HTML is a loading shell and
+`curl` sees neither branch. That is an instrument that cannot reach, not a negative result — the same trap
+this block already recorded for the dataset page.
+
+**A test block D will break on purpose.** The hosted-file direction asserts exactly three tab buttons
+(`toHaveLength(3)`). When D removes the simulated views that assertion must change, and that is the intent:
+a change of behaviour should force a deliberate change of the test that pins it.
+
