@@ -138,3 +138,28 @@ blockers, no correction transition:**
   visible. Recorded as a `TODO:` in `BACKLOG.md`; it does not reopen this review.
 
 The candidate is public: `origin/feat/v0-portal-honesty` at `356d42a`.
+
+## Second round — the author's copy review (2026-09-22)
+
+`187b5ba` (the copy) · `c823e37` (the backlog TODO quote). Receipt `review-11cc383a48faf9e7` —
+**APPROVED, ZERO findings** (tier `medium`, 5 files / **37 lines**, correction budget 19), over the
+slice's committed range only (`baseRef=41b8670`).
+
+**Two decisions.** (1) «El asistente lo guía paso a paso» is **removed**: the word named something the
+portal never labels that way (that screen's `h1` says «Crear dataset») and it collided with the
+still-undecided onboarding idea. The path is still offered by the «Crear dataset» button right below, and
+the same word left the grid action's description. (2) The requirement sentences became **causal** —
+«**Para crear el primero**, necesita pertenecer a una organización.» — so the first sentence describes what
+the reader sees and the second explains why they cannot change it, instead of piling three claims with no
+stated relation.
+
+**An agent error, with its lesson.** The parent asserted that «asistente» appeared in **one user-visible
+string**; that was false — it had truncated its own `grep` with `head -12` and the output had reached
+exactly the limit, hiding a second occurrence in the grid action's description
+(`src/routes/dashboard/+page.svelte:216`). Thence the rule: **never truncate a search and then claim
+completeness over it**; the detector is comparing `grep … | wc -l` against `grep … | head -N | wc -l`.
+
+**The trap the tests had to survive.** Six assertions in `dashboard.test.ts` assert the requirement's
+**absence**, so a stale matcher would have left them **green by vacuity** — passing without checking
+anything. All were migrated, and each keeps a positive witness in the branch where the sentence must
+appear (`:460` for «pertenecer», `:411` for «rol»).

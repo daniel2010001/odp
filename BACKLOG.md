@@ -188,6 +188,27 @@
 > `TODO:` **decidir si un enlace merece ficha propia** — la ficha lleva sus metadatos y su procedencia,
 > así que sacarla no es gratis.
 >
+> **COPIA — REVISIÓN DEL AUTOR (2026-09-22): el «asistente» que no era un nombre, y el requisito que ahora explica.**
+> `187b5ba` (la copia) · `c823e37` (la cita del `TODO:`). **Recibo quemado: `review-11cc383a48faf9e7` —
+> APROBADA, CERO hallazgos** (tier `medium`, **5 archivos / 37 líneas**, presupuesto de corrección 19).
+> Rango por `baseRef=41b8670` explícito.
+> **Las dos decisiones:** (1) «El asistente lo guía paso a paso» se **elimina** — la palabra nombraba algo
+> que el portal nunca rotula así (el `h1` de esa pantalla dice «Crear dataset») y colisionaba con la idea
+> de tutorial que sigue sin decidirse; el camino lo sigue ofreciendo el botón «Crear dataset» de abajo.
+> (2) Los requisitos pasan a ser **causales**: «**Para crear el primero**, necesita pertenecer a una
+> organización.» — así la primera oración describe lo que el lector ve y la segunda por qué no puede
+> cambiarlo, en vez de apilar tres afirmaciones sin relación declarada.
+> **Corrección de un error del agente, con su lección:** el agente afirmó que «asistente» aparecía en
+> **una sola cadena visible**, y era falso — había truncado su propio `grep` con `head -12` y la salida
+> llegó justo al límite. Quedaba una segunda aparición, en la descripción del CTA del panel
+> (`dashboard/+page.svelte:216`), cerrada en el mismo slice. **Regla durable: nunca truncar una búsqueda y
+> después afirmar completitud sobre ella**; el detector es comparar `grep … | wc -l` contra
+> `grep … | head -N | wc -l` — si coinciden con N, el `head` está cortando.
+> **Trampa evitada en los tests:** seis aserciones de `dashboard.test.ts` afirman la **ausencia** del
+> requisito, así que un matcher viejo las habría dejado **verdes por vacío**. Se migraron todas, y cada
+> una conserva un testigo **positivo** en la rama donde la oración debe aparecer (`:460` el de
+> «pertenecer», `:411` el de «rol»).
+>
 > **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
 > el 2026-09-21:
 > - **La sync nunca se rompió: el proyecto se RENOMBRÓ.** El servidor tiene
