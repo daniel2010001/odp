@@ -312,6 +312,11 @@ const docsUrl = $derived(safeExternalUrl(apiExtras.find((e) => e.key === "docs_u
 // salida es lo que impide un `javascript:` almacenado (XSS almacenado).
 const downloadUrl = $derived(safeExternalUrl(resource?.url));
 
+// La misma regla del chip decide la vista previa: una referencia externa no aloja contenido en el
+// portal, así que no hay nada que previsualizar. Derivarlo acá y no repetir la comparación en la
+// plantilla mantiene una sola lectura de `resourceKind` por render.
+const isLink = $derived(resource ? resourceKind(resource) === "link" : false);
+
 // ─── Actions ────────────────────────────────────────────────────
 async function handleCopyEndpoint() {
 	const ok = await copyToClipboard(apiEndpoint);
@@ -504,26 +509,39 @@ async function handleCopyResourceLink() {
 			<Card class="overflow-hidden border-primary/20">
 				<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
-					<div class="flex items-center gap-1 rounded-md border border-border bg-background p-0.5">
-						{#each previewViews as view (view.id)}
-							{@const Icon = view.icon}
-							<button
-								type="button"
-								onclick={() => (previewView = view.id)}
-								class={cn(
-									"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
-									previewView === view.id
-										? "bg-primary text-primary-foreground"
-										: "text-muted-foreground hover:text-foreground",
-								)}
-							>
-								<Icon class="size-3.5" />
-								{view.label}
-							</button>
-						{/each}
-					</div>
+					{#if !isLink}
+						<div class="flex items-center gap-1 rounded-md border border-border bg-background p-0.5">
+							{#each previewViews as view (view.id)}
+								{@const Icon = view.icon}
+								<button
+									type="button"
+									onclick={() => (previewView = view.id)}
+									class={cn(
+										"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
+										previewView === view.id
+											? "bg-primary text-primary-foreground"
+											: "text-muted-foreground hover:text-foreground",
+									)}
+								>
+									<Icon class="size-3.5" />
+									{view.label}
+								</button>
+							{/each}
+						</div>
+					{/if}
 				</div>
-				{#if previewView === "tabla"}
+				{#if isLink}
+					<div class="flex min-h-[220px] flex-col items-center justify-center gap-3 p-10 text-center">
+						<div class="flex size-16 items-center justify-center rounded-full bg-muted">
+							<ExternalLink class="size-8 text-muted-foreground" aria-hidden="true" />
+						</div>
+						<p class="font-heading text-xl font-bold text-foreground">Este recurso es un enlace externo</p>
+						<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
+							Su contenido está en el sitio de origen, no en el portal, así que no hay nada que
+							previsualizar aquí.
+						</p>
+					</div>
+				{:else if previewView === "tabla"}
 					<ResourcePreview resource={resource} datastore={datastoreApi} />
 				{:else}
 					<div class="flex min-h-[420px] flex-col items-center justify-center gap-3 p-10 text-center">

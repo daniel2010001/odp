@@ -378,6 +378,37 @@ describe("Página de recurso — el tipo de recurso en el encabezado", () => {
 	});
 });
 
+// ─── La vista previa según el tipo de recurso (block C, C2) ─────────
+// La misma regla del chip (`resourceKind`) decide si hay algo que previsualizar: un archivo alojado
+// conserva las pestañas, una referencia externa no las ofrece y explica por qué en su lugar. El
+// matcher de las pestañas es amplio a propósito: cualquier botón de la vista previa lo satisface,
+// así que nombra la superficie ausente y no un solo rótulo.
+const PREVIEW_TABS = /tabla|gr[aá]fico|mapa/i;
+const RESOURCE_PREVIEW_CSV_HINT =
+	/vista previa de datos está disponible únicamente para recursos CSV/i;
+
+describe("Página de recurso — la vista previa según el tipo de recurso", () => {
+	it("un enlace externo (sin `url_type`) no ofrece las pestañas ni el cuerpo de `ResourcePreview`, y explica la ausencia", async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ format: "CSV" }));
+
+		render(ResourcePage);
+
+		await screen.findByText("Este recurso es un enlace externo");
+		expect(screen.queryAllByRole("button", { name: PREVIEW_TABS })).toHaveLength(0);
+		expect(screen.queryByText(RESOURCE_PREVIEW_CSV_HINT)).toBeNull();
+	});
+
+	it('un archivo alojado (`url_type: "upload"`) conserva las tres pestañas y no muestra la explicación de enlace', async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ url_type: "upload", format: "CSV" }));
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		expect(screen.queryAllByRole("button", { name: PREVIEW_TABS })).toHaveLength(3);
+		expect(screen.queryByText("Este recurso es un enlace externo")).toBeNull();
+	});
+});
+
 describe("Página de recurso — el dataset del breadcrumb", () => {
 	it("un 403 definitivo del dataset no se enmascara en DEV: el recurso se muestra y el breadcrumb degrada", async () => {
 		vi.stubEnv("DEV", true);
