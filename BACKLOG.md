@@ -480,6 +480,13 @@
 >   directo** (0 fixes aplicados sobre los archivos staged), y recién entonces `git commit --no-verify`.
 >   **Arreglo pendiente para el autor** (commit de infraestructura propio, avisado): o `shell-emulator=true` en
 >   `.npmrc`, o fijar Node LTS en `mise` (el CI corre Node 22 y no se ve afectado).
+> - **CORRECCIÓN (2026-09-23): «determinista» no se sostiene.** Medido en esta máquina y sobre este mismo
+>   árbol: **`pnpm lint` corrió 7 veces y 6 dieron exit 0** (`Checked 135 files · 4 warnings · 7 infos`); sólo
+>   la **primera** de la sesión imprimió `[warn] Linter process terminated abnormally`. Es una
+>   **intermitencia**, no un fallo determinista — el «2/2» de arriba era una muestra demasiado chica.
+>   El arreglo del `.npmrc`/Node LTS **sigue valiendo** (elimina la causa del spawn), pero **ya no hay que
+>   asumir que el gate está roto**: probá `pnpm lint` antes de darlo por caído y usá el binario directo sólo
+>   si vuelve a caer. `pnpm exec biome --version` sigue siendo la sonda que separa repo de entorno.
 > - **El prefijo `?expired=1` es el contrato entre la expulsión y el login**: si se renombra el parámetro hay que
 >   cambiarlo en `src/lib/session.ts` y en los tests que lo fijan por URL.
 
@@ -1155,7 +1162,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   token se re-minteó con el reinicio de las 17:07 y **autentica** (200 · basura 403 · sin token 403). Si la vista
   previa falla para archivos **subidos**, la causa es **otra y todavía no está identificada**: no la busques en el
   token.
-  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
+  **CERRADO (2026-09-23) — la causa está identificada y NO era el pusher.** Sonda viva (bloque D, tarea D0): se
+  subieron tres archivos reales (CSV, PDF, PNG) a un dataset descartable y **el pusher cargó el CSV en el
+  DataStore al instante** — `datastore_active: true` en el primer sondeo y `datastore_search` devolviendo las 3
+  filas con los campos correctos. Lo que fallaba era el **catálogo sembrado**: sus 35 recursos son **enlaces**
+  (`url_type` ausente), y el pusher los somete por `format` sin exigir archivo alojado
+  (`ckanext/datapusher/plugin.py:88-92`), así que intentaba descargar `https://data.umss.edu.bo/...` — una URL que
+  el seed inventó — y no había ninguna tabla que leer. Datos y purga: `odd/tasks/block-d-data-preview.md`.
+  **Corrección de un criterio de C1 que conviene tener escrito:** `hash` es **`null` también en un archivo
+  alojado** (medido en los tres de la sonda), así que «no tiene `hash`» **no** discrimina enlace de archivo; el
+  único discriminador es `url_type === "upload"`, que es lo que quedó implementado.
+  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20; sonda D0, 2026-09-23._
 
 - [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
   Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
@@ -1565,6 +1582,30 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Lo que se vuelve caro:** si algún día hay **edición** de recursos, el orden deja de ser gratis — hay que
   persistir `position` con un `resource_update` por recurso. Hoy no hay edición: `resourceUpdate` existe en
   `src/lib/api/resources.ts` y **no tiene llamadores**.
+
+- [ ] **[v1+]** `TODO:` **Los 11 diagnósticos de Biome: 4 son falsos positivos que NO hay que aplicar, 7 son cosméticos.**
+  Medido el 2026-09-23 con el binario directo sobre el árbol actual: `Checked 135 files · 4 warnings · 7 infos`,
+  **exit 0**. Lo que importa y no es obvio: **los 11 están marcados `FIXABLE`, pero los 11 son «Unsafe fix» y
+  ninguno es «Safe fix»**. Consecuencia, y es buena noticia: **`pnpm lint:fix` no aplica nada**
+  (`biome check --write` sólo aplica fixes seguros) y **el gancho de pre-commit tampoco los toca**. Sólo
+  `--unsafe` los aplica, y **ahí está la trampa**:
+  - **`src/app.css:139-142` (`lint/complexity/noImportantStyles`, 4 warnings) — NO TOCAR.** Son los `!important`
+    del bloque `@media (prefers-reduced-motion: reduce)`. **Probado en una copia fuera del repo:**
+    `biome check --write --unsafe` **los borra** (`animation-duration: 0.01ms !important` pasa a
+    `animation-duration: 0.01ms`), y sin `!important` cualquier animación declarada con más especificidad vuelve
+    a correr: es una **regresión de accesibilidad** y choca con la regla 7 de `AGENTS.md`. Arreglo correcto:
+    **suprimir la regla** en ese bloque (`/* biome-ignore lint/complexity/noImportantStyles: … */`) o apagarla
+    por override para `app.css`.
+  - **`src/routes/search/+page.svelte:86-89` (`lint/complexity/useLiteralKeys`, 4 infos) — real y trivial:**
+    `filterMap["organization"]` → `filterMap.organization` (y lo mismo con `res_format`, `tags`, `license_id`).
+    Verificado que **no** rompe `pnpm check`: `tsconfig.json` —y el `.svelte-kit/tsconfig.json` generado— **no**
+    activan `noPropertyAccessFromIndexSignature`, que es el flag que habría rechazado el acceso por punto.
+  - **3 infos `lint/style/useTemplate` — reales, cosméticos:** `scripts/seed-ckan.mjs:119` y
+    `src/lib/components/ThemePlayground.svelte:107`.
+  - **`src/routes/search/+page.svelte:67` (`useTemplate`) — real, pero el fix automático es peor:** queda
+    `` `/search${params.toString() ? `?${params.toString()}` : ""}` ``, un template anidado menos legible que
+    **evalúa `params.toString()` dos veces**. A mano: `const qs = params.toString()` y usarlo una sola vez.
+  _Origen: pedido del autor de comprobar los «fixeables» que muestra `pnpm lint`, 2026-09-23._
 
 ## v2+ — mejoras futuras no solicitadas
 
