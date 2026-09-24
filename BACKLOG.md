@@ -1286,12 +1286,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   dirección). _Origen: documento aportado por el autor + medición del 2026-09-20; decisión del autor,
   2026-09-20._
 
-- [ ] **[v0] Sección "Data API" para recursos CSV** — la sección "Acceso por API" de la página
-  de recurso hoy está gateada a `resource_type === "api"` (oculta para archivos). Lo correcto,
-  como data.gov.au y otros portales CKAN: mostrar una "Data API" con `datastore_search` para
-  recursos tabulares (CSV) en el DataStore, en lugar de un `resource_show`. Diferido durante la
-  revisión de la UI de recurso (2026-09-11). _Origen: observación del usuario + verificación.
-
 - [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
@@ -1665,6 +1659,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Sección «Data API» para recursos con tabla (bloque D, slice D3)** | **Implementado y aprobado** (2026-09-23). La sección «Acceso por API» estaba gateada a `resource_type === "api"`, un campo **heredado que nada escribe** —el propio formulario de CKAN lo tiene comentado y es `None` en los 35 recursos del catálogo—, así que **no se renderizaba nunca**: era UI muerta. Ahora el gate es `datastore_active === true` (el mismo marcador que usa la vista previa) y el endpoint que muestra es **`datastore_search`**, el que devuelve filas, en vez de `resource_show`, que no. El ejemplo de curl y las dos piezas de copy acompañan. **Reconciliación de la spec en el mismo paso, con dos defectos:** «Preview Placeholder» exigía un área reservada prometiendo una vista previa que ya existe, y «API Metadata» describía un gate que no coincidía ni con el código ni con la realidad. Revisión nativa `review-03b5057b001e6f9b` **aprobada** (tier medium, lente reliability, 3 archivos / 150 líneas, presupuesto 75), 2 avisos informativos. Gates: `check` 0 errores · `test` **601/601**. |
 | **Endurecer la vista previa de datos (bloque D, slice D2)** | **Implementado y aprobado** (2026-09-23). Los 4 hallazgos de `review-ca9abb1187a39513`. El sustantivo —`R3-stale-search-race`— se arregló con la guarda de corrida superada (el `cleanup` del efecto marca su corrida y los dos handlers comprueban antes de escribir; sin `AbortController` porque el cliente no acepta `signal`), y **el test que lo cubre fue verificado en contra: se neutralizó la guarda y el test FALLÓ** (aparecía la fila vieja), con el archivo restaurado byte-idéntico por sha256. Los otros tres: una celda con objeto ya no pinta `[object Object]` (va a JSON, con funciones y símbolos cayendo al guion y los primitivos intactos), el prop `limit` —declarado, con default y **sin uso**— **se eliminó** (lo que limita las filas es el fetch, y un prop que no hace nada declara un contrato falso), y el estado de carga tiene test con promesa diferida. Revisión nativa `review-891f798293c18235` **aprobada** (tier medium, lente reliability, 4 archivos / 129 líneas, presupuesto 65), 2 avisos informativos. Gates: `check` 0 errores · `test` **593/593** · Biome limpio. |
 | **La vista previa del recurso, por tipo (bloque D, slice D1)** | **Implementado y aprobado** (2026-09-23). El panel dejó de decidir con un `format === "csv"` propio —regla nuestra, no de CKAN, y falso negativo: el DataPusher carga `csv, xls, xlsx, tsv, ods` por defecto y `datastore_search` sirve cualquier tabla que exista— y ahora usa la marca de CKAN **`datastore_active`** para la tabla y el **tipo del archivo** para el embed (PDF, imagen, TXT/JSON). Se eliminaron los tabs simulados `Tabla`/`Gráfico`/`Mapa`: `Gráfico` y `Mapa` no son clases de vista previa (el modelo de vistas del PRD los pone en el módulo de análisis, RF-24/25/26), así que el portal dejó de contradecir su propio modelo. El cliente del DataStore ahora manda el token de la sesión, y todo embed pasa por `safeExternalUrl`. Hoja de revisión permanente nueva: **`/dev/preview`**. Revisión nativa `review-4fb694e5160560c1` **aprobada** (tier medium, lente reliability, 12 archivos / 1 182 líneas, presupuesto 200), authority quemada, **2 avisos informativos** registrados en «Deuda de revisión». Gates: `check` 0 errores · `test` **588/588** · Biome en su baseline (4 warnings + 7 infos, ninguno nuevo). |
 | **La causa del fallo de la vista previa en el catálogo sembrado** | **Cerrado e identificado** (2026-09-23, sonda D0). **No era el DataPusher**: se subieron tres archivos reales (CSV, PDF, PNG) a un dataset descartable y el pusher cargó el CSV al DataStore al instante (`datastore_active: true` en el primer sondeo y `datastore_search` con las filas). Lo que fallaba eran los **enlaces sembrados**, que nunca tuvieron tabla. Corolario corregido: `hash` es `null` **también** en un archivo alojado, así que «no tiene `hash`» no discrimina enlace de archivo; el único discriminador es `url_type === "upload"`. Catálogo dev restaurado a 17 datasets / 7 orgs. |
@@ -1702,6 +1697,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Advisory de la revisión nativa del slice D3 (bloque D) (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:f0fed33b17ce7fa674719cff96ed9861e57e6e169308f147f72883e110a6aa50` del candidato
+  `sha256:08dad6ad4eaa7489f134e80c33bd197d1321a2ec15782c4fc502c9437fcff92b`).
+  - `review-03b5057b001e6f9b`: tier **medium**, lente `review-reliability`, **3 archivos, 150 líneas**,
+    presupuesto de corrección 75. Rango revisado **`c3a882b..HEAD`** con `baseRef` explícito.
+  - Dos avisos no bloqueantes, tal como los emitió el cierre:
+    1. `R3-001` · reliability · WARNING · informativo · `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:299`
+    2. `R3-002` · reliability · SUGGESTION · informativo · `.../resource-page.test.ts:467`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Contexto de las ubicaciones:** la primera cae en la construcción del `curlCommand` —donde el ejemplo
+    de la sección ahora arma `datastore_search` con `resource_id`, y donde vive el `??` que decide entre el
+    ejemplo declarado en los `extras` y el generado—; la segunda, en el bloque de tests que la propia slice
+    agregó para la sección. Eso es **lectura de las líneas**, no el texto del hallazgo.
+  - **Observación propia, fuera del alcance de la slice:** el cuadro de metadatos sigue mostrando una fila
+    «Tipo de recurso» alimentada por `resource_type` (`+page.svelte:238`). No es un gate —es exhibición de un
+    campo declarado— y la fila sólo aparece si el valor existe, así que hoy no pinta nada. Se deja: si el
+    portal algún día crea recursos con ese campo, corresponde mostrarlo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice D3 del bloque D (2026-09-23)._
 
 - [ ] **Advisory de la revisión nativa del slice L1 de «localhost» (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión

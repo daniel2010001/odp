@@ -170,7 +170,9 @@ Both requirements are reconciled **in place** (the file is the source of truth; 
    guard neutralised it **failed** (the stale row appeared), and the file was restored byte-identical by
    sha256. The `limit` prop was removed rather than implemented: what limits the rows is the fetch, and a
    prop that does nothing misstates the component's contract.
-8. **D3** — the Data API gate + the spec reconciliation. *Design above; in progress.*
+8. **D3** — the Data API gate + the spec reconciliation. **DONE** — `9443e0f` · 3 files / +126/−24. Receipt
+   `review-03b5057b001e6f9b` **approved** (medium, reliability, 150 lines, budget 75), two informational
+   advisories, authority burned. **Block D is closed: D0, D1, D2 and D3 all shipped and reviewed.**
 
 ## D1 receipt
 
