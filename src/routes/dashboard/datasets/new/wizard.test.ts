@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("$lib/env", () => ({
-	env: { CKAN_URL: "", APP_URL: "http://localhost:5173" },
+	env: { CKAN_URL: "" },
 }));
 vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({ listForUser: mocks.listForUser }),

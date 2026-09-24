@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
 // devuelve un dataset centinela: si la página cayera al fallback de desarrollo, su título aparecería
 // renderizado y el test lo detecta.
 vi.mock("$lib/env", () => ({
-	env: { CKAN_URL: "http://localhost:5000", APP_URL: "http://localhost:5173" },
+	env: { CKAN_URL: "http://localhost:5000" },
 }));
 vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
 vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.showDataset }) }));
