@@ -61,5 +61,11 @@ describe("Breadcrumb", () => {
 		}
 		// Las cuatro etiquetas truncables (la última también: es la más larga del catálogo).
 		expect(container.querySelectorAll(".truncate")).toHaveLength(items.length);
+
+		// Y la RAÍZ tiene que poder encogerse. El `<nav>` es el item flexible de la fila que lo contiene,
+		// y sin `min-w-0` su `min-width: auto` no lo deja bajar de su ancho de contenido: los `truncate`
+		// de adentro no llegan a actuar y el nav desborda en horizontal en vez de recortar. Lo encontró la
+		// revisión nativa (`R3-001`, CRITICAL, `review-5ab16f231f1adb49`) y esta aserción lo ancla.
+		expect(container.querySelector("nav")?.className).toContain("min-w-0");
 	});
 });

@@ -307,8 +307,13 @@ async function handleCopyLink() {
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
 				<!-- Mismo tratamiento que el componente del breadcrumb en móvil: no envuelve, cada etiqueta se
 				     recorta y el «Catálogo» no se encoge. Acá el marcado es propio (este breadcrumb es distinto:
-				     una vuelta al catálogo más el recorrido), así que unificarlos sigue siendo una decisión aparte. -->
-				<nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-sm sm:flex-wrap">
+				     una vuelta al catálogo más el recorrido), así que unificarlos sigue siendo una decisión aparte.
+				     `min-w-0`: este `<nav>` es el item flexible de la fila de arriba, y sin esto no baja de su
+				     ancho de contenido y desborda en horizontal en vez de recortar. -->
+				<nav
+					aria-label="Breadcrumb"
+					class="flex min-w-0 items-center gap-1.5 text-sm sm:flex-wrap"
+				>
 					<a
 						href="/search"
 						class="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
