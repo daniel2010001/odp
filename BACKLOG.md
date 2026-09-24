@@ -15,57 +15,105 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión — el plan en bloques (estado 2026-09-22)
+## Estado al cierre (2026-09-23) — handoff de la próxima sesión
 
-> **Estado al cierre (2026-09-22).** El **plan en bloques** avanzó hasta el **bloque C completo**: **A** (el
-> verbo «publicar» → «crear»), **B** (página de error propia) y **C** (recurso según su tipo: la regla, el
-> distintivo de enlace y —C2— ocultar las vistas de datos para un enlace) quedaron **cerrados, aprobados con
-> recibo quemado y publicados**. **La próxima arranca con D** (vista previa de datos: **una** decisión —qué
-> dice el panel cuando el recurso no está en el DataStore—) **o con E** (pulido de layout y cards, **sin**
-> decisiones: el comodín para intercalar). Los **slices** A/B/C de `v0-portal-honesty` —el trabajo anterior—
-> ya estaban cerrados.
+> **Qué está cerrado.** De la sesión del 22: los bloques **A**, **B** y **C**. De esta sesión: el **bloque D
+> completo** (D0 la sonda, D1 la vista previa por tipo, D2 los cuatro hallazgos, D3 el gate de Data API y la
+> spec) **más el `localhost`** — reportado por el autor, medido, y arreglado en **los dos repositorios**
+> (`odp` y `odp-docker`), con verificación en vivo.
+>
+> **Los recibos de esta sesión**, todos con `baseRef` explícito —cada uno revisó **sólo su slice**, nunca la
+> rama acumulada, que sigue excluida por decisión del autor—:
+> `review-4fb694e5160560c1` (D1, medium, 12 archivos / 1 182 líneas, **2 avisos**) ·
+> `review-891f798293c18235` (D2, medium, 4/129, **2 avisos**) ·
+> `review-03b5057b001e6f9b` (D3, medium, 3/150, **2 avisos**) ·
+> `review-344a93dbb8243ef2` (**high, 4 lentes** —subió por ser camino de autenticación—, 10/139, **4 avisos**).
+> Ninguno tuvo bloqueantes. **Un patrón que conviene leer antes de tocar nada: los 4 avisos de L1 convergen
+> en una sola línea** —`logout/+server.ts:29`— desde tres lentes distintas, y son la única decisión de
+> contrato que quedó abierta (fila 1 de la tabla de abajo). El detalle está en «Deuda de revisión (RDD)»,
+> entrada por entrada.
+> **Más cinco cierres de compuerta** sobre commits de sólo-documentación (`review-3d4f52fb03dd4885`,
+> `review-ec24349d37735565`, `review-073903f10c4facf0`, `review-2cc2052d6a63184a`, `review-922f6871ff173ef9`):
+> el provider los clasifica `non_executable_only`, los aprueba **sin lentes y sin correr un solo modelo**, y
+> por decisión registrada **no se anotan** (la entrada correspondiente en «Deuda de revisión» dice dónde
+> termina el registro, para no encadenar recibos-de-recibos).
+>
+> **Código, al cierre:** 16 commits en `feat/v0-portal-honesty`, **sin pushear** (decisión del autor). Gates
+> verdes: `pnpm test` **601/601** · `pnpm check` **0 errores** · Biome directo en su baseline (4 warnings + 7
+> infos, ninguno nuevo). El `push` y la rotación de secretos siguen siendo del autor.
+>
 > **Aviso de nomenclatura: «slices» y «bloques» comparten el alfabeto A/B/C y son dos series distintas.**
-> Cuando este archivo dice «bloque A» habla del verbo, no del slice.
+> Cuando este archivo dice «bloque A» habla del verbo, no del slice. Y el bloque D tiene su propio expediente
+> en `odd/tasks/block-d-data-preview.md`; el `localhost`, en `odd/tasks/localhost-urls.md`.
+
+### Cómo arrancar la próxima sesión (receta, en orden)
+
+> **Paso 0 — la compuerta de RDD.** Al abrir, el worktree va a traer un candidato sin revisar: el commit de
+> documentación del cierre (sólo `.md`). Corré el ciclo **acotado a ese delta**: `gentle_review` con
+> `{"operation":"inspect"}`, y después `start` con `{"mode":"ordinary","baseRef":"<sha completo del commit
+> anterior>","committedOnly":true}`. Devuelve `approved` en el acto, **sin consentimiento, sin lentes y con
+> cero corridas de modelo**. Seguí con un `status` y el `acknowledge-approved` que devuelve. **No lo anotes**
+> otra vez. El `baseRef` **exige el sha completo de 40 caracteres**: uno abreviado da
+> `native-start-base-ref-unresolvable` y no crea lineage (se reintenta con clave de idempotencia nueva).
 >
-> **Los seis recibos de la sesión del 22**, todos pedidos con `baseRef` explícito —o sea que cada uno revisó
-> **sólo su slice**, nunca la rama acumulada—: `review-169119db13ffab2c` (bloque A, 1 aviso informativo) ·
-> `review-13d22ebddf82eef0` (bloque B, 2 sugerencias) · `review-c282f17baf9309ea` (C1, **0**) ·
-> `review-5f36113f971853de` (el chip: sin ícono y de ancho uniforme, **0**) · `review-11cc383a48faf9e7` (la
-> copia: el «asistente» que no era un nombre, y el requisito causal, **0**) · `review-74d83299cafabe6f` (C2,
-> **0**). Los commits están en `origin/feat/v0-portal-honesty` (en sincronía).
+> **Paso 1 — leer, en este orden:** `odd/tasks/localhost-urls.md` (lo que quedó abierto del `localhost`) y
+> `odd/tasks/block-d-data-preview.md` (el bloque D completo). Los dos tienen las mediciones, las decisiones y
+> las desviaciones declaradas. **No hace falta releer las narrativas históricas de A, B y C** que están más
+> abajo en este archivo: cada bloque tiene su expediente y el «Historial de cierre» lo resume.
 >
-> **Cuatro `TODO:` quedaron anotados y sin corregir a propósito** —corregirlos pide su propia revisión, y los
-> recibos de esos bloques ya están quemados: el título del test del asistente (bloque A) · el reintento del
-> error que pierde la query y el test del ícono (bloque B) · la decisión diferida de la ficha del enlace
-> (bloque C).
-> **Más dos `TODO:` de `v1+`** que el autor pidió en esta misma sesión: el **pulido visual de las páginas de
-> error** (los mensajes quedaron bien; falta la densidad visual) y **la paleta de formato como tokens** —
-> incluido por qué **no** se restaura el mapa crudo de colores. Los dos viven en su sección `v1+`.
+> **Paso 2 — la receta de revisión nativa de un slice de código** (la que funcionó cuatro veces): `inspect` →
+> `start` con `baseRef` **explícito** y `committedOnly: true` → `status` → captura de grupo o de slot → **el
+> primer capture devuelve un `forecast` y no corre nada: relayalo y reenviá el mismo binding con
+> `reviewerRunAcknowledged: true`** → `status` → `acknowledge-approved`. **Trampa medida: el `base-ref` que
+> ofrece `inspect` es la base de la RAMA (66 rutas acumuladas), no la del slice — nunca lo sigas tal cual.**
 >
-> **Dos acciones siguen siendo del autor, no del agente**: la **rotación de los tres secretos** (acción 4,
-> sobre el `.env` del servidor de Engram, que el agente no puede tocar por política) y el arreglo de **`pnpm
-> lint` y el gancho de pre-commit** (ver «Advertencias de entorno»).
+> **Paso 3 — los gates, con los binarios que sí son evidencia:** `pnpm test` · `pnpm check` ·
+> `./node_modules/.bin/biome check <archivos tocados>`. **`pnpm lint` es intermitente** (medido: 6 de 7
+> corridas pasan) y sus 11 diagnósticos son los 11 «Unsafe fix», así que ni `lint:fix` ni el pre-commit los
+> aplican — y `--unsafe` **borraría los `!important` del bloque `prefers-reduced-motion`**. Ver el ítem
+> `[v1+]` de los diagnósticos de Biome.
 >
-> **ACCIÓN 1 — HECHA Y VERIFICADA (2026-09-22): el `push` está hecho.** `origin/feat/v0-portal-honesty` pasó de
-> `b68031b` (fin del slice B) a `1f60930`: los 42 commits que estaban sólo acá quedaron publicados (`git
-> ls-remote` lo confirma, rama **en sincronía**). **Lo que el push NO llevó son los recibos de revisión**
-> (`.git/gentle-ai/`, que git **no** trackea): siguen viviendo sólo en esta máquina. Eso sigue siendo un riesgo
-> abierto — merece su propio ítem si van a trabajar desde otro clon.
+> **Paso 4 — si se toca el stack de dev: `docker restart` NO alcanza.** El entorno del contenedor se fija al
+> **crearlo**, así que un cambio de `env_file` pide **recrear**:
+> `docker compose -p odp-dev -f docker-compose.dev.unified.yml up -d <servicio>`. Trampa adicional: tras
+> recrear, el `ckan.ini` de dentro del contenedor puede seguir mostrando el valor viejo — **el env gana**, y
+> eso es lo que hay que verificar midiendo el síntoma, no leyendo el archivo.
 >
-> **ACCIÓN 2: el plan en bloques. El orden importa porque unos dependen de decisiones y otros no.**
+> **Paso 5 — entregar.** Un slice = commits por unidad de trabajo + su propia revisión + su apunte en este
+> archivo. El `push`, el PR y el merge siguen siendo decisiones del autor.
+
+### Lo que falta, en orden de conveniencia
+
+| # | Qué | Quién decide | Coste | Depende de |
+|---|---|---|---|---|
+| **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev, contra su contrato declarado de best-effort. Recomendación registrada: **login ruidoso, logout a best-effort** | el autor (decisión de contrato) | chico: un slice con test y su revisión | nada |
+| **2** | **Bloque E — pulido de layout y cards de `v0`:** encabezado alto en 720p, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil. **Cero decisiones: es el comodín para intercalar** | nadie — se puede empezar ya | medio, varios slices | nada |
+| **3** | **Ingesta (`[v1+] Datos de muestra para las vistas`):** falta la fuente. **El autor tiene un ejemplo de cómo hacer la carga de datos y todavía no lo pasó**; con eso se decide. El camino «upload + datapusher» **ya está medido y funciona** | el autor (aporta el ejemplo) | medio | el ejemplo |
+| **4** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) | se decide al empezar | grande | nada, pero conviene medir primero |
+| **5** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
+| **6** | **Los `v1+` que el autor pidió:** pulido visual de las páginas de error · la paleta de formato como **tokens** · unificar los colores de los chips en las tres superficies · chips clicables al buscador · reordenar los recursos del asistente · los 11 diagnósticos de Biome · el breadcrumb móvil y la vista del enlace | el autor, cuando quiera detalles | chico cada uno | nada |
+| **7** | **Acciones que son sólo del autor:** el `push` de los 16 commits · la **rotación de los tres secretos** del `.env` de Engram · el arreglo de `pnpm lint` y el gancho de pre-commit (`shell-emulator=true` en `.npmrc` o Node LTS en `mise`) | el autor | — | — |
+
+
+### El plan en bloques — **registro histórico de A, B y C** (cerrado; la narrativa está en los expedientes)
+
+> **Los bloques A, B, C y D están CERRADOS.** Lo que sigue es el registro de cómo cerraron A, B y C — el
+> contenido operativo ya está arriba, en el handoff, y cada bloque tiene su expediente en `odd/tasks/`.
+> Se conserva acá porque tiene las mediciones, las decisiones del autor y las lecciones que no conviene
+> re-descubrir; **no hace falta releerlo para arrancar**.
 >
-> | Bloque | Qué resuelve | Decisión que necesita |
+> | Bloque | Qué resolvió | Estado |
 > |---|---|---|
-> | **A** | **El verbo: «publicar» → «crear».** 4 cadenas de `src/lib/copy/dashboard.ts` (heading, CTA y las dos oraciones de requisito), el botón del wizard («Publicar dataset»/«Publicando...») y sus dos notas, más los tests. Hoy el portal dice «Publicar dataset» y lo crea **privado**: el usuario entiende que ya es visible para todos. | **NINGUNA** ← *empezar acá* |
-> | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Hoy sale la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | ninguna |
-> | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, ocultar las vistas (Tabla/Gráfico/Mapa) cuando el recurso es un enlace, y si un enlace merece página propia. | **DOS**: (1) cómo se detecta un enlace —hoy `resource_type` es `None` en todo el catálogo y el tipo no tiene `link`/`url`— y (2) dónde se escribe |
-> | **D** | **Vista previa de datos:** el cliente sin token, el fallo para el catálogo sembrado, los 4 hallazgos, quitar los tabs simulados, la sección «Data API». | 1: qué dice el panel cuando el recurso no está en el DataStore. **Ojo: el datapusher YA NO es causa** (ver su ítem) |
-> | **E** | **Pulido de layout y cards de `v0`:** encabezado alto en 720p, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador. | ninguna — **comodín para intercalar** |
-> | **F** | **Permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubre antes de decidir cuánto construir fuera (equipos, `RF-19`). | grande, **se decide al empezar** |
-> | **G** | **La mitad abierta de la política de existencia:** el oráculo de la API (`403` que nombra el recurso vs `404`), que exige capa de proxy. | arquitectura — **diferido** |
+> | **A** | **El verbo: «publicar» → «crear».** 4 cadenas de `src/lib/copy/dashboard.ts`, el botón del wizard y sus dos notas, más los tests. El portal decía «Publicar dataset» y lo creaba **privado**: el usuario entendía que ya era visible para todos. | **CERRADO** (2026-09-22) · `review-169119db13ffab2c` |
+> | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Antes salía la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | **CERRADO** (2026-09-22) · `review-13d22ebddf82eef0` |
+> | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, y ocultar las vistas de datos cuando el recurso es un enlace. | **CERRADO** (2026-09-22) · `review-c282f17baf9309ea`, `review-5f36113f971853de`, `review-11cc383a48faf9e7`, `review-74d83299cafabe6f` |
+> | **D** | **Vista previa de datos y sección «Data API».** | **CERRADO** (2026-09-23) · `review-4fb694e5160560c1`, `review-891f798293c18235`, `review-03b5057b001e6f9b` |
+> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente, sin decisiones.** | pendiente (arriba, en el handoff) |
+> | **F** | **Permisos:** colaboradores nativos de CKAN, medir antes de construir. | pendiente |
+> | **G** | **El oráculo de la API.** | diferido |
 >
-> **Cada bloque cierra con sus commits y su propia revisión nativa**, como el slice C. Los `v1`/`v1+`/`v2+`
-> y la deuda de revisión viven en sus secciones propias de este archivo.
+> **Cada bloque cierra con sus commits y su propia revisión nativa**, con `baseRef` explícito. Los
+> `v1`/`v1+`/`v2+` y la deuda de revisión viven en sus secciones propias de este archivo.
 >
 > **BLOQUE A — CERRADO (2026-09-22): código, gates, push y revisión nativa APROBADA.** Cuatro commits
 > por unidad de trabajo: `9d7be01` (copia) · `e3136a9` (panel) · `4265137` (asistente) · `8081260` (hoja
