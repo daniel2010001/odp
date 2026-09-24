@@ -1422,11 +1422,37 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Preferencia expresada por el usuario: extensión propia, con algo más liviano si conviene.
   **Bloquea RF-14 a RF-17, RF-23 y RF-33.**
 
-- [ ] **[v1] Token en cookie httpOnly + nginx (endurecimiento)** — hoy el JWT vive en
-  `localStorage` (vulnerable a XSS). Patrón más seguro: guardar el API token en una cookie
-  httpOnly/secure/samesite y que el reverse proxy la convierta en header `Authorization`
-  (`proxy_set_header 'Authorization' $cookie_<nombre>`). Combinar con
-  `ckan.auth.disable_cookie_auth_in_api = true`.
+- [ ] **[v1] El token de CKAN no debe ser legible por JavaScript (endurecimiento)** — hoy el JWT
+  vive en `localStorage` y el navegador lo manda en `Authorization`. En `v0` es un trade-off
+  aceptado, no un bug. El costo real es XSS: el portal renderiza contenido que viene de CKAN
+  (descripciones markdown, `url`s, nombres de recursos) y el token dura 24 h y además puede
+  acuñar y revocar tokens de esa cuenta.
+
+  **Lo que este ítem decía antes quedó retirado el 2026-09-24: era incorrecto y no era
+  ejecutable.** Tres mediciones, todas contra el CKAN 2.11.6 que corre:
+  1. **`ckan.auth.disable_cookie_auth_in_api` no existe.** `grep` sobre todo el árbol de CKAN:
+     cero ocurrencias. La opción real es **`ckan.auth.enable_cookie_auth_in_api`**
+     (`config/config_declaration.yaml`, `default: True`; `ckan.ini:107` la fija en `true`). Tal
+     como estaba escrito, el ítem habría sido un **no-op silencioso**.
+  2. **Poner la real en `false` hoy rompería el login.** `mintToken`
+     (`src/lib/server/ckan-auth.ts`) autentica `POST /api/3/action/api_token_create` con
+     **cookie de sesión + `X-CSRFToken`**, no con un token, y `ckan/logic/auth/create.py` exige
+     identidad autenticada (`user.name == context['user']`). La doc de la propia opción advierte
+     que rompe módulos del frontend que llaman a la API.
+  3. **El truco de nginx no cubre CSRF.** El navegador manda la cookie sola, así que
+     `proxy_set_header 'Authorization' $cookie_<nombre>` autenticaría *cualquier* request que la
+     traiga, incluidas las que mutan.
+
+  **Diseño propuesto (BFF):** el servidor del portal guarda la credencial de CKAN y el navegador
+  sólo tiene una cookie de sesión httpOnly del portal; `hooks.server.ts` inyecta `Authorization`
+  server-side hacia `CKAN_INTERNAL_URL`. Con eso, `enable_cookie_auth_in_api = false` pasa a ser
+  una **consecuencia** del diseño, y segura.
+
+  **Restricción que hay que decidir ANTES de implementarlo:** sin credencial de CKAN en el
+  navegador, **las descargas de datasets privados fallan** — `/dataset/.../download/...` autoriza
+  con cookie o con token. Si hay que servir archivos privados desde el navegador, el portal tiene
+  que streamear los bytes (con soporte de `Range`, que el visor de PDF necesita) o emitir un token
+  de vida corta. Los datasets públicos no tienen ese problema.
 
   **Efecto obligado sobre las subidas:** al sacar el token del browser, el archivo ya no puede ir
   directo a `/api/`; pasa a un `+server.ts` propio y por lo tanto aparecen dos requisitos:
@@ -1444,6 +1470,87 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
   rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
   2026-09-11._
+
+- [ ] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
+
+  Hoy el stack corre **2.11.6**, que es el **último patch de su línea** (2.11.6 se publicó el mismo
+  día que 2.12.0, y 2.10 también recibió el suyo: quedarse en 2.11.x es una posición soportada, no
+  un abandono). **CKAN 2.12.0 existe** (2026-08-26) y trae dos cosas que tocan este proyecto:
+  *«Files are now first-class entities and can be uploaded and managed separately from resources»*
+  y el tema `midnight_blue`.
+
+  **Lo que la actualización exige, medido:**
+  - El changelog oficial pide `ckan db upgrade` **más** el script SQL de
+    `ckan datastore set-permissions` **más** upgrade de requirements. **En dev eso es evitable:**
+    los datos son de prueba, así que un volumen nuevo (`down -v`) instala desde cero y de paso
+    valida el camino de instalación limpia.
+  - Las imágenes de 2.12 son **`2.12-py3.14`** (2.10 y 2.11 publican `py3.10`), y el compose de dev
+    monta `site_packages:/usr/local/lib/python3.10/site-packages` — ruta específica de py3.10.
+    El changelog dice «supports Python 3.10 and later», así que el requisito es el *mount*, no el
+    intérprete.
+  - **El empaquetado Docker no está listo:** `ckan/ckan-docker` **no tiene tags** y su `master`
+    sigue en `FROM ckan/ckan-base:2.11`, con `SOLR_IMAGE_VERSION=2.10-solr9`. Subir a 2.12 es
+    mantener el empaquetado, no cambiar una línea. (Existen `ckan/ckan-solr:2.12-solr9` y
+    `ckan/ckan-base:2.12.0-py3.14`.)
+  - **Re-medir las suposiciones del portal contra 2.12**, porque el proyecto tiene evidencia
+    medida contra 2.11.6 y esa evidencia no se hereda: el `404` de `user_show` con token muerto
+    (`src/lib/api/session.ts`), el `expires_in`/`unit` obligatorios de `api_token_create` por
+    `expire_api_token`, y sobre todo **la forma de la `url` de descarga que arma
+    `resource_dictize`** — justo lo que cambia si «files» pasa a ser una entidad de primera clase.
+  - Verificar además los plugins habilitados (`image_view text_view datatables_view datastore
+    datapusher envvars expire_api_token umss`), la imagen del DataPusher (`0.0.21`) y el job
+    `umss-tests` del CI, hoy pineado a `ckan/ckan-dev:2.11`.
+
+  **Recomendación:** hacerlo como **slice propio** (backup, rama, CI) y **en aislamiento** — no
+  mezclarlo con el arreglo de `ckan.site_url` ni con el endurecimiento de auth, o no se va a poder
+  atribuir ninguna causa a ninguno de los dos. A favor de hacerlo pronto: cuanto más se construya
+  sobre 2.11, más mediciones específicas de 2.11 hay que rehacer.
+
+  _Origen: pregunta del autor, 2026-09-24; medición propia del mismo día (changelog oficial,
+  tags de Docker Hub y estado del repo `ckan/ckan-docker`)._
+
+- [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
+  Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
+  `http://192.168.1.201:5000/` sin autenticarse recibía la configuración entera de CKAN, con
+  `postgresql://ckandbuser:ckandbpassword@db/...` y `postgresql://datastore_ro:datastore@db/...`
+  en claro (medido: 9 apariciones en la home). El toolbar **ya está apagado** (ver abajo), pero las
+  credenciales siguen siendo las mismas que estuvieron publicadas: hay que rotarlas. Cuando se
+  rehaga el volumen para el upgrade a 2.12 es el momento natural, porque el cambio va en
+  `ckan-docker/.env`.
+  *(Pendiente: `.env` y `.env.example` son rutas de entorno que el harness no autoriza a editar
+  desde acá — las aplica el autor a mano.)*
+
+  **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
+  arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
+  Flask-DebugToolbar. Una variable de entorno **no** lo apaga: `CKAN___DEBUG` sí llega a la config
+  global (`debug` quedaba en `False`, verificado) pero el toolbar lee el **ini**, no esa config; y
+  las variantes son traicioneras por silencio — `CKAN__DEBUG` mapea a `ckan.debug` y `CKAN_DEBUG`
+  a `ckan_debug`, una clave que no lee nadie. La solución es un script en `/docker-entrypoint.d/`,
+  que corre DESPUÉS de esa línea y ANTES de levantar el servidor:
+  `ckan-docker/ckan/docker-entrypoint.d/02_disable_debug_toolbar.sh`, montado por el compose de dev
+  (y horneado por el `COPY` del Dockerfile para quien reconstruya). **No afecta al hot reload**,
+  medido: se tocó `ckanext-umss/plugin.py` y CKAN se recargó igual; tampoco al depurador de
+  Werkzeug, que depende de `--disable-debugger`, no de `debug`.
+
+  **Lo que sí se pierde:** el JS/CSS sin minificar de la UI nativa de CKAN y su modo debug de
+  plantillas. Irrelevante mientras la interfaz sea el portal.
+
+- [ ] **[v0] Higiene de configuración de versión** — `CKAN_VERSION=2.10.0` en
+  `ckan-docker/.env` y `.env.example` es **config muerta** y hay que quitarlo: cero referencias en
+  este repo y también cero en el upstream (cuyo compose usa `build:`, no `image:` con ese valor).
+  Es lo que hacía creer que el stack corría 2.10 cuando corre 2.11.6; la versión real la fija el
+  `FROM` de los cuatro Dockerfiles. *(Pendiente al 2026-09-24: la edición de `.env` y
+  `.env.example` requiere autorización explícita del autor, porque son rutas de entorno.)*
+
+  **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
+  upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
+  `2.12-solr9` y **reindexar**.
+
+  Y **los `FROM` quedan flotando en el minor (`2.11`)**: es una decisión, no un descuido. Pinear el
+  patch (`2.11.6`) da reproducibilidad byte a byte, pero obliga a bumpear a mano para recibir los
+  parches de seguridad y despega el archivo del upstream congelado. Si algún día importa la
+  reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
+  natural para decidirlo.
 
 - [ ] **[v1] Un editor de organización pierde la capacidad de cambiar `state` cuando entre el guard de
   publicación** — **medido (2026-09-14, P4a):** hoy un editor de org **sí** puede `package_patch
