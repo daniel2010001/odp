@@ -6,7 +6,7 @@ blank organization block in the wizard summary, an orphan-wrapped description on
 duplicated format chips in the search cards, a breadcrumb with no mobile treatment, and a link view
 that is mostly empty box.
 
-**Status:** open · **Branch:** `feat/v0-portal-honesty` · **Started:** 2026-09-24
+**Status:** in progress · **Branch:** `feat/v0-portal-honesty` · **Started:** 2026-09-24 · **E1 and E2 closed 2026-09-24**
 
 **Why this document exists.** Every item below was measured on a different day (2026-09-13 to
 2026-09-22) and the code has changed since (blocks A–D and the `localhost` work all touched these
@@ -174,3 +174,20 @@ closes three backlog entries), then E3, E4, E5, E6.
 - Dev playground convention: `src/routes/dev/<page>/{+page.svelte,+page.ts}` where `+page.ts` throws
   `error(404)` unless `import.meta.env.DEV`. A **playground** is throwaway (deleted on promotion); the
   permanent **sheets** (`/dev/kind`, `/dev/copy`, `/dev/error`) render real components and stay.
+
+## Progress
+
+| Slice | Status | Receipt | Notes |
+|---|---|---|---|
+| **E1** | closed 2026-09-24 | `review-35a2937ca35fd6fc` · medium · reliability · 3 files / 130 lines · 0 blockers | Three defects, not one: the chips were not deduplicated, `moreFormats` counted **resources** instead of unique formats, and `filter(Boolean)` let a whitespace-only `format` through as a blank chip. The derivation moved to a pure `formatChips()` in `src/lib/resources/formats.ts` (`src/lib/resources/formats.test.ts`, 10 tests, 8 of which fail against the old behaviour). Measured live on the dev catalogue: `observatorio-de-movilidad-urbana-cochabamba` had 5 resources and 4 unique formats, and the card showed a duplicate chip plus `+1 más`. |
+| **E2** | closed 2026-09-24 | `review-aae5dd97579ec543` · medium · reliability · 7 files / 124 lines · 0 blockers · 1 informational (`R3-1`) | **The author's decision on item 1 was: do NOT reduce the height.** It stays `5rem` at every viewport. The reported 720p problem was measured in the `/dev/header` frames (600 / 650 / 760 / 1080 px of viewport) and did not justify the shrink. What shipped is the single source: `--header-h` in `app.css`, every offset derived from it, the observer measuring the real element instead of a constant, and 5 anti-drift assertions in `src/routes/layout-header.test.ts` (RED measured: 5 of 7 fail with the implementation reverted). Verified beyond jsdom by reading the CSS **compiled by Vite**, which contains `height: var(--header-h)`, `top: var(--header-h)`, `top: calc(var(--header-h) + 1px)` and the `calc(+1rem)` inside `@media (width >= 64rem)`. |
+| **E2 residual** | open | `R3-1` | The height is read **once**, at mount: if it changed later (a height media query, a late font, a layout change) the observer's `rootMargin` and threshold would go stale — the same failure as the old constant, minus the constant. Proper fix: a `ResizeObserver` on the header rebuilding the observer. Recorded, not fixed: informational advisory, and the receipt was already burned when it arrived. |
+| **E3–E6** | open | — | unchanged, see the slicing table above. |
+
+**Promoted and deleted:** the `/dev/header` playground was the decision instrument for item 1 and was deleted
+on promotion, as the block C/D playgrounds were (rule 8). No slice's diff contains it.
+
+**Residual observation from E2, deliberately not acted on:** the search aside keeps
+`lg:top-40 lg:max-h-[calc(100vh-11rem)]`. That offset looks like header + results bar, but the results bar's
+height is content-driven and was never measured, so no derivation was invented for it. If the results bar's
+height ever changes, that pair drifts with it — and nothing links them.
