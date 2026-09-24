@@ -1,15 +1,5 @@
 <script lang="ts">
-import {
-	ArrowLeft,
-	ChartBar,
-	Check,
-	Copy,
-	Download,
-	ExternalLink,
-	Link2,
-	Map as MapIcon,
-	Table,
-} from "@lucide/svelte";
+import { ArrowLeft, Check, Copy, Download, ExternalLink, Link2 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
@@ -40,8 +30,12 @@ import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
 import { safeExternalUrl } from "$lib/utils/external-url";
 
-// Cliente del DataStore para la vista previa de CSV (RF-31).
-const datastoreApi = createDatastoreApi(createCkanClient({ baseUrl: env.CKAN_URL }));
+// Cliente del DataStore para la vista previa (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla). Lleva el
+// token de la sesión, el mismo idiom que el cliente de carga: sin él, el `datastore_search` de un
+// recurso de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
+const datastoreApi = createDatastoreApi(
+	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
+);
 
 /** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
 type ResourceFailure = {
@@ -67,13 +61,6 @@ let expelled = $state(false);
 let endpointCopied = $state(false);
 let copiedLink = $state(false);
 
-// Vistas simuladas de la previsualización (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla CSV).
-const previewViews = [
-	{ id: "tabla", label: "Tabla", icon: Table },
-	{ id: "grafico", label: "Gráfico", icon: ChartBar },
-	{ id: "mapa", label: "Mapa", icon: MapIcon },
-];
-let previewView = $state("tabla");
 let hashCopied = $state(false);
 
 // ─── Params from URL ─────────────────────────────────────────────
@@ -528,26 +515,6 @@ async function handleCopyResourceLink() {
 			<Card class="overflow-hidden border-primary/20">
 				<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
-					{#if !isLink}
-						<div class="flex items-center gap-1 rounded-md border border-border bg-background p-0.5">
-							{#each previewViews as view (view.id)}
-								{@const Icon = view.icon}
-								<button
-									type="button"
-									onclick={() => (previewView = view.id)}
-									class={cn(
-										"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
-										previewView === view.id
-											? "bg-primary text-primary-foreground"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									<Icon class="size-3.5" />
-									{view.label}
-								</button>
-							{/each}
-						</div>
-					{/if}
 				</div>
 				{#if isLink}
 					<div class="flex min-h-[220px] flex-col items-center justify-center gap-3 p-10 text-center">
@@ -560,25 +527,8 @@ async function handleCopyResourceLink() {
 							previsualizar aquí.
 						</p>
 					</div>
-				{:else if previewView === "tabla"}
-					<ResourcePreview resource={resource} datastore={datastoreApi} />
 				{:else}
-					<div class="flex min-h-[420px] flex-col items-center justify-center gap-3 p-10 text-center">
-						<div class="flex size-16 items-center justify-center rounded-full bg-primary/10">
-							{#if previewView === "grafico"}
-								<ChartBar class="size-8 text-primary" />
-							{:else}
-								<MapIcon class="size-8 text-primary" />
-							{/if}
-						</div>
-						<p class="font-heading text-xl font-bold text-foreground">
-							{previewView === "grafico" ? "Gráfico" : "Mapa"}
-						</p>
-						<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
-							Vista simulada. En la versión real, cada vista renderiza su propio contenido según los datos
-							del recurso.
-						</p>
-					</div>
+					<ResourcePreview resource={resource} datastore={datastoreApi} />
 				{/if}
 			</Card>
 

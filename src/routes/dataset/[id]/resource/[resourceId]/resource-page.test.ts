@@ -17,22 +17,18 @@ const pageStore = page as unknown as {
 const mocks = vi.hoisted(() => ({
 	showResource: vi.fn(),
 	showDataset: vi.fn(),
-	search: vi.fn(),
 	check: vi.fn(),
+	fetch: vi.fn(),
 }));
 
 vi.mock("$lib/env", () => ({
 	env: { CKAN_URL: "http://localhost:5000", APP_URL: "http://localhost:5173" },
 }));
-vi.mock("$lib/api/client", () => ({ createCkanClient: () => ({}) }));
 vi.mock("$lib/api/resources", () => ({
 	createResourceApi: () => ({ show: mocks.showResource }),
 }));
 vi.mock("$lib/api/datasets", () => ({
 	createDatasetApi: () => ({ show: mocks.showDataset }),
-}));
-vi.mock("$lib/api/datastore", () => ({
-	createDatastoreApi: () => ({ search: mocks.search }),
 }));
 // La sonda de sesión se inyecta como mock: la decisión `resolveUnauthorized` que la usa sigue
 // siendo la real, así que la expulsión y su orden se miden de verdad.
@@ -106,7 +102,20 @@ beforeEach(() => {
 	setParams({ id: "matricula-2026", resourceId: "res-1" });
 	mocks.showResource.mockResolvedValue(makeResource());
 	mocks.showDataset.mockResolvedValue(makeDataset());
-	mocks.search.mockResolvedValue({ fields: [], records: [], total: 0 });
+	// `createCkanClient` y `createDatastoreApi` NO se mockean: el cliente real corre contra este
+	// `fetch` stub, así que la vista previa de tabla y la cabecera `Authorization` se miden de verdad.
+	mocks.fetch.mockResolvedValue({
+		ok: true,
+		json: async () => ({
+			success: true,
+			result: {
+				fields: [{ id: "ciudad", type: "text" }],
+				records: [{ ciudad: "Cochabamba" }],
+				total: 1,
+			},
+		}),
+	});
+	vi.stubGlobal("fetch", mocks.fetch);
 	// Sonda por defecto no concluyente: sólo los tests de sesión viva/muerta la cambian.
 	mocks.check.mockResolvedValue({
 		state: "inconclusive",
@@ -116,6 +125,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllEnvs();
+	vi.unstubAllGlobals();
 	auth.reset();
 });
 
@@ -379,11 +389,13 @@ describe("Página de recurso — el tipo de recurso en el encabezado", () => {
 	});
 });
 
-// ─── La vista previa según el tipo de recurso (block C, C2) ─────────
+// ─── La vista previa según el tipo de recurso (block C, C2; promoción D1) ─────────
 // La misma regla del chip (`resourceKind`) decide si hay algo que previsualizar: un archivo alojado
-// conserva las pestañas, una referencia externa no las ofrece y explica por qué en su lugar. El
-// matcher de las pestañas es amplio a propósito: cualquier botón de la vista previa lo satisface,
-// así que nombra la superficie ausente y no un solo rótulo.
+// delega en `ResourcePreview` —que resuelve embed o tabla vía `preview.ts`— y una referencia externa
+// no previsualiza nada y explica por qué. Las pestañas simuladas se eliminaron (D1): ya no hay
+// ninguna para ningún tipo. El matcher sigue siendo amplio a propósito: nombra la superficie ausente
+// y no un rótulo, así que una regresión que reintrodujera un botón «Tabla»/«Gráfico»/«Mapa» lo
+// satisfaría.
 const PREVIEW_TABS = /tabla|gr[aá]fico|mapa/i;
 const RESOURCE_PREVIEW_CSV_HINT =
 	/vista previa de datos está disponible únicamente para recursos CSV/i;
@@ -399,14 +411,41 @@ describe("Página de recurso — la vista previa según el tipo de recurso", () 
 		expect(screen.queryByText(RESOURCE_PREVIEW_CSV_HINT)).toBeNull();
 	});
 
-	it('un archivo alojado (`url_type: "upload"`) conserva las tres pestañas y no muestra la explicación de enlace', async () => {
-		mocks.showResource.mockResolvedValue(makeResource({ url_type: "upload", format: "CSV" }));
+	it('un archivo alojado (`url_type: "upload"`, `datastore_active: true`) no ofrece pestañas y su vista previa real renderiza la tabla', async () => {
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
 
 		render(ResourcePage);
 
-		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
-		expect(screen.queryAllByRole("button", { name: PREVIEW_TABS })).toHaveLength(3);
+		// La tabla real del DataStore reemplaza a las vistas simuladas: la fila del recurso prueba
+		// que el cuerpo de `ResourcePreview` se renderiza, no sólo que faltan botones.
+		expect(await screen.findByText("Cochabamba")).toBeTruthy();
+		expect(screen.queryAllByRole("button", { name: PREVIEW_TABS })).toHaveLength(0);
 		expect(screen.queryByText("Este recurso es un enlace externo")).toBeNull();
+	});
+});
+
+// ─── El cliente del DataStore lleva el token de la sesión (BACKLOG) ─────────
+// Sin `apiKey`, el `datastore_search` de un recurso de un dataset privado responde 403 y el dueño ve
+// la ficha pero nunca sus filas. El cliente real corre contra un `fetch` stubbeado, así que la
+// aserción mira la cabecera HTTP que de verdad sale: `Authorization` con el token de la sesión.
+describe("Página de recurso — el cliente del DataStore lleva el token", () => {
+	it("manda `Authorization` con el token de la sesión en `datastore_search`", async () => {
+		auth.login("tok-123", baseUser);
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
+
+		render(ResourcePage);
+
+		await waitFor(() => expect(mocks.fetch).toHaveBeenCalled());
+		const call = mocks.fetch.mock.calls.find((args) =>
+			String(args[0]).includes("datastore_search"),
+		);
+		expect(call).toBeTruthy();
+		const init = call?.[1] as RequestInit | undefined;
+		expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBe("tok-123");
 	});
 });
 
