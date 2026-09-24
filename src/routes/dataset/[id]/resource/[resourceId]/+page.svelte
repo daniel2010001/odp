@@ -517,12 +517,14 @@ async function handleCopyResourceLink() {
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
 				</div>
 				{#if isLink}
-					<div class="flex min-h-[220px] flex-col items-center justify-center gap-3 p-10 text-center">
-						<div class="flex size-16 items-center justify-center rounded-full bg-muted">
-							<ExternalLink class="size-8 text-muted-foreground" aria-hidden="true" />
-						</div>
-						<p class="font-heading text-xl font-bold text-foreground">Este recurso es un enlace externo</p>
-						<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
+					<!-- Nota compacta. La CAJA era el problema, no el texto: 220px de alto mínimo, 40px de padding
+					     y un círculo de 64px para una sola oración. El copy se conserva palabra por palabra porque
+					     los tests lo anclan, y sin ícono: no agregaba información al lado de una oración. -->
+					<div class="space-y-1 p-5">
+						<p class="font-heading text-base font-bold text-foreground">
+							Este recurso es un enlace externo
+						</p>
+						<p class="max-w-2xl text-sm leading-relaxed text-muted-foreground">
 							Su contenido está en el sitio de origen, no en el portal, así que no hay nada que
 							previsualizar aquí.
 						</p>

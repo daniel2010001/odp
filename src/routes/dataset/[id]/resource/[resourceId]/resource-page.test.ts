@@ -419,6 +419,22 @@ describe("Página de recurso — la vista previa según el tipo de recurso", () 
 		expect(screen.queryByText(RESOURCE_PREVIEW_CSV_HINT)).toBeNull();
 	});
 
+	it("esa nota es compacta: sin caja alta, sin centrado y sin el ícono de 64px", async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ format: "CSV" }));
+
+		render(ResourcePage);
+
+		const title = await screen.findByText("Este recurso es un enlace externo");
+		const note = title.parentElement;
+
+		// Lo que estaba mal era la CAJA, no el texto: 220px de alto mínimo, 40px de padding y un
+		// círculo de 64px para una sola oración. El copy se conserva palabra por palabra —los otros
+		// tests lo anclan— así que lo que se ancla acá es la caja.
+		expect(note?.className).not.toContain("min-h-[220px]");
+		expect(note?.className).not.toContain("text-center");
+		expect(note?.querySelector(".size-16")).toBeNull();
+	});
+
 	it('un archivo alojado (`url_type: "upload"`, `datastore_active: true`) no ofrece pestañas y su vista previa real renderiza la tabla', async () => {
 		mocks.showResource.mockResolvedValue(
 			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
