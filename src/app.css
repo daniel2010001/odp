@@ -129,13 +129,16 @@
 
 /*
  * El encabezado se achica mientras el contenido manda: cuando la página deja el tope, la variable baja
- * 8px (80px → 72px) y **todos** los pegados la siguen, porque todos la leen. El estado lo pone el
+ * 16px (80px → 64px) y **todos** los pegados la siguen, porque todos la leen. El estado lo pone el
  * layout en el documento (`data-header-shrunk`), no en el encabezado: la variable tiene que llegar
  * también a los pegados que son hermanos suyos. La transición la apaga `prefers-reduced-motion` (el
  * bloque de abajo la neutraliza con `!important`).
+ *
+ * El número es decisión del autor (2026-09-24): primero fueron 8px y, al verlo en movimiento, los subió
+ * a 16px. Cambiarlo es este valor y nada más, porque ningún offset lo lleva escrito.
  */
 html[data-header-shrunk] {
-	--header-h: 4.5rem;
+	--header-h: 4rem;
 }
 
 /* ─── Base styles ─────────────────────────────────────────────────── */

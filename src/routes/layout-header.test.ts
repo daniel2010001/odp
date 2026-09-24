@@ -74,6 +74,21 @@ describe("Alto del encabezado: una sola fuente", () => {
 		expect(css.match(/--header-h\s*:/g) ?? []).toHaveLength(2);
 	});
 
+	it("el estado achicado es más chico que el del tope: si no, el encabezado crecería al scrollear", () => {
+		const css = readFileSync(join(routesDir, "..", "app.css"), "utf8");
+		const remOf = (pattern: RegExp) => {
+			const match = (css.match(pattern) ?? []).join(" ").match(/--header-h\s*:\s*([\d.]+)rem/);
+			return match ? Number(match[1]) : undefined;
+		};
+
+		const base = remOf(/:root\s*\{([^}]*)\}/gs);
+		const shrunk = remOf(/\[data-header-shrunk\][^{]*\{([^}]*)\}/gs);
+
+		expect(base).toBeDefined();
+		expect(shrunk).toBeDefined();
+		expect(shrunk as number).toBeLessThan(base as number);
+	});
+
 	it("el encabezado deriva su alto del token y no de un literal", () => {
 		const layout = source("+layout.svelte");
 
