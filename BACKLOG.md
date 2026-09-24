@@ -1506,6 +1506,18 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   atribuir ninguna causa a ninguno de los dos. A favor de hacerlo pronto: cuanto más se construya
   sobre 2.11, más mediciones específicas de 2.11 hay que rehacer.
 
+  **El plan está escrito:** `odd/tasks/ckan-2.12-upgrade.md` (acá, versionado) — slices S0–S6, la base
+  medida, las siete suposiciones del portal a re-medir y las superficies de edición. **No ejecutado:**
+  espera revisión del autor. Vive en este repo y no en `odp-docker` porque ahí `odd/` está excluido
+  por `.git/info/exclude` y no viajaría con el repo.
+
+  **Y un dato que cambia la urgencia:** los ocho `GHSA` que anunció 2.12.0 **también figuran en el
+  changelog de 2.11.6**. La versión que corre ya está parchada, así que **la seguridad no es el
+  motivo para subir**. El motivo real es que 2.12 rehace el manejo de archivos —`Upload` y
+  `ResourceUpload` pasan a `FKUpload`/`FKResourceUpload`, aparecen storages configurables y acciones
+  nuevas de files— y ese es el dominio central del portal: si hay que adaptarse, mejor antes de
+  construir `v1` encima de la semántica de 2.11.
+
   _Origen: pregunta del autor, 2026-09-24; medición propia del mismo día (changelog oficial,
   tags de Docker Hub y estado del repo `ckan/ckan-docker`)._
 
