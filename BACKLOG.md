@@ -38,7 +38,7 @@
 > por decisión registrada **no se anotan** (la entrada correspondiente en «Deuda de revisión» dice dónde
 > termina el registro, para no encadenar recibos-de-recibos).
 >
-> **Código, al cierre:** 16 commits en `feat/v0-portal-honesty`, **sin pushear** (decisión del autor). Gates
+> **Código, al cierre:** 17 commits en `feat/v0-portal-honesty`, **sin pushear** (decisión del autor). Gates
 > verdes: `pnpm test` **601/601** · `pnpm check` **0 errores** · Biome directo en su baseline (4 warnings + 7
 > infos, ninguno nuevo). El `push` y la rotación de secretos siguen siendo del autor.
 >
@@ -56,8 +56,10 @@
 > otra vez. El `baseRef` **exige el sha completo de 40 caracteres**: uno abreviado da
 > `native-start-base-ref-unresolvable` y no crea lineage (se reintenta con clave de idempotencia nueva).
 >
-> **Paso 1 — leer, en este orden:** `odd/tasks/localhost-urls.md` (lo que quedó abierto del `localhost`) y
-> `odd/tasks/block-d-data-preview.md` (el bloque D completo). Los dos tienen las mediciones, las decisiones y
+> **Paso 1 — leer, en este orden:** `odd/tasks/localhost-urls.md` (lo que quedó abierto del `localhost`),
+> `odd/tasks/block-d-data-preview.md` (el bloque D completo) y `odd/tasks/block-e-layout-polish.md` (**el bloque
+> en curso**: sus 7 ítems re-verificados contra el árbol actual, el corte en seis slices y las tres decisiones
+> que piden el ojo del autor). Los tres tienen las mediciones, las decisiones y
 > las desviaciones declaradas. **No hace falta releer las narrativas históricas de A, B y C** que están más
 > abajo en este archivo: cada bloque tiene su expediente y el «Historial de cierre» lo resume.
 >
@@ -86,13 +88,16 @@
 
 | # | Qué | Quién decide | Coste | Depende de |
 |---|---|---|---|---|
-| **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev, contra su contrato declarado de best-effort. Recomendación registrada: **login ruidoso, logout a best-effort** | el autor (decisión de contrato) | chico: un slice con test y su revisión | nada |
-| **2** | **Bloque E — pulido de layout y cards de `v0`:** encabezado alto en 720p, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil. **Cero decisiones: es el comodín para intercalar** | nadie — se puede empezar ya | medio, varios slices | nada |
+| **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev. **La recomendación que vivía acá —«login ruidoso, logout a best-effort»— quedó retirada el 2026-09-24: su premisa (impacto en el usuario) es falsa y está medida** —el cliente descarta el status, y el login ya denuncia la misma variable con la misma fuerza—. Lo único que sigue en pie es si el encabezado de la ruta merece precisar que la revocación *en sí* es best-effort. **Puede cerrarse sin una línea de código**; las mediciones están en «Deuda de revisión (RDD)» | el autor | chico, y probablemente cero código | nada |
+| **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
 | **3** | **Ingesta (`[v1+] Datos de muestra para las vistas`):** falta la fuente. **El autor tiene un ejemplo de cómo hacer la carga de datos y todavía no lo pasó**; con eso se decide. El camino «upload + datapusher» **ya está medido y funciona** | el autor (aporta el ejemplo) | medio | el ejemplo |
 | **4** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) | se decide al empezar | grande | nada, pero conviene medir primero |
 | **5** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
-| **6** | **Los `v1+` que el autor pidió:** pulido visual de las páginas de error · la paleta de formato como **tokens** · unificar los colores de los chips en las tres superficies · chips clicables al buscador · reordenar los recursos del asistente · los 11 diagnósticos de Biome · el breadcrumb móvil y la vista del enlace | el autor, cuando quiera detalles | chico cada uno | nada |
-| **7** | **Acciones que son sólo del autor:** el `push` de los 16 commits · la **rotación de los tres secretos** del `.env` de Engram · el arreglo de `pnpm lint` y el gancho de pre-commit (`shell-emulator=true` en `.npmrc` o Node LTS en `mise`) | el autor | — | — |
+| **6** | **Los `v1+` que el autor pidió:** pulido visual de las páginas de error · la paleta de formato como **tokens** · unificar los colores de los chips en las tres superficies · chips clicables al buscador · reordenar los recursos del asistente · los 11 diagnósticos de Biome | el autor, cuando quiera detalles | chico cada uno | nada |
+| **7** | **Acciones que son sólo del autor:** el `push` de los commits de la rama (17 al cierre del 2026-09-23) · la **rotación de los tres secretos** del `.env` de Engram · el arreglo de `pnpm lint` y el gancho de pre-commit (`shell-emulator=true` en `.npmrc` o Node LTS en `mise`) | el autor | — | — |
+
+> **Dos ítems salieron de la lista de `v1+` el 2026-09-24:** el **breadcrumb móvil** y la **vista del enlace**.
+> Los dos son `[v0]` y los dos estaban listados **también** en el bloque E — duplicados. Quedan sólo en el bloque E.
 
 
 ### El plan en bloques — **registro histórico de A, B y C** (cerrado; la narrativa está en los expedientes)
@@ -108,7 +113,7 @@
 > | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Antes salía la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | **CERRADO** (2026-09-22) · `review-13d22ebddf82eef0` |
 > | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, y ocultar las vistas de datos cuando el recurso es un enlace. | **CERRADO** (2026-09-22) · `review-c282f17baf9309ea`, `review-5f36113f971853de`, `review-11cc383a48faf9e7`, `review-74d83299cafabe6f` |
 > | **D** | **Vista previa de datos y sección «Data API».** | **CERRADO** (2026-09-23) · `review-4fb694e5160560c1`, `review-891f798293c18235`, `review-03b5057b001e6f9b` |
-> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente, sin decisiones.** | pendiente (arriba, en el handoff) |
+> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente**; tres de sus ítems piden decisión del autor (plan en `odd/tasks/block-e-layout-polish.md`). | en curso (2026-09-24: E1) |
 > | **F** | **Permisos:** colaboradores nativos de CKAN, medir antes de construir. | pendiente |
 > | **G** | **El oráculo de la API.** | diferido |
 >
@@ -1176,10 +1181,15 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   2026-09-17._
 
 - [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
-  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte`: rótulo
+  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
   `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
-  similar a la del **dataset**, conservando el detalle que agrega valor a la card. Revisar ambos
-  antes de normalizar. _Origen: revisión de UI del dashboard (2026-09-12)._
+  similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
+  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** «Detalles», la del cuerpo
+  (`dataset/[id]/+page.svelte:527-554`), **ya cumple** lo que este ítem pide —`p-6 sm:p-8`, tabla Campo/Valor y
+  el rótulo idéntico al de recurso—; la que no cumple es la del sidebar, «Metadatos» (`:608-624`: `p-5`, filas
+  con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
+  el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
+  _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
 
 - [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
   Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
@@ -1799,6 +1809,21 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
     puerta de entrada) y volver a **best-effort en logout**, registrando el error en el servidor sin fallar la
     respuesta, porque el usuario ya está cerrando sesión y la revocación es por diseño best-effort. La (b) pide
     su propio slice y su propia revisión: la authority de este recibo ya está quemada.
+  - **Corrección medida (2026-09-24) — la premisa de (b) es falsa y la recomendación queda retirada.** Tres
+    mediciones sobre el árbol actual: (1) `revokeToken` **ya se traga todos los fallos**, de red y de HTTP, con
+    `try/catch` (`src/lib/server/ckan-auth.ts:347-358`) y eso está anclado por **dos tests**
+    (`ckan-auth.test.ts:411` y `:417`) — así que lo **único** que puede devolver `500` en logout es el resolvedor
+    de `logout/+server.ts:29` cuando falta la variable; (2) esa misma variable faltante rompe
+    `login/+server.ts:27` con el mismo resolvedor, o sea que un despliegue así **no loguea a nadie**: la señal
+    ruidosa y accionable ya está en la puerta de entrada; (3) el cliente **descarta el status**
+    (`src/lib/api/auth.ts:48-58` hace `await fetch(...)` sin mirar `response.ok`, y `UserMenu.svelte:45-46`
+    limpia la sesión igual), así que el `500` es **invisible para el usuario**. Conclusión: la (b) convertiría un
+    `500` invisible en un `200` invisible —en un despliegue donde el login ya está roto— a cambio de un slice, un
+    ciclo de revisión y un camino que se traga un error de configuración. Los tres lentes convergieron en esa
+    línea porque no podían ver (1) ni (2). **Lo único que sigue en pie de los cuatro avisos es precisión de
+    documentación**: el encabezado de la ruta no dice que la revocación *en sí* es best-effort porque
+    `revokeToken` se traga los fallos. **El autor difirió la decisión el 2026-09-24: el ítem sigue abierto y no
+    cambia ningún comportamiento por ahora.**
   - Contexto de las ubicaciones: la 1 y la 4 caen en el encabezado y en la resolución dentro del handler de
     logout; la 3, en el nuevo archivo de test (probablemente el límite de cobertura que el escritor ya declaró:
     las rutas no se pueden testear con los alias actuales de Vitest). Eso es **lectura de las líneas**, no el
