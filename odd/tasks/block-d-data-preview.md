@@ -103,12 +103,31 @@ resource's own download URL work. No alternative mechanism needed.
 3. `R3-limit-prop-unenforced` — the `limit` prop is accepted and unused.
 4. `R3-loading-state-untested` — the loading state has no test.
 
-### D3 — the Data API section *(D-b)*
+### D3 — the Data API section *(decision D-b)*
 
-Replace the `resource_type === "api"` gate with `datastore_active === true`; show
-`datastore_search?resource_id=<id>`. Reconcile `openspec/specs/resource-detail-view/spec.md`, whose
-«Preview Placeholder» requirement («reserve a visible placeholder for a future data preview widget …
-preview is coming soon», lines 76-85) is now obsolete and contradicts the shipped behaviour.
+Replace the `resource_type === "api"` gate with `datastore_active === true`, and show the endpoint that
+actually works: `{CKAN_URL}/api/3/action/datastore_search?resource_id=<id>` — not `resource_show`, which is
+what the section computes today. The curl example follows the endpoint, and the extras-driven rows
+(`api_base_url`, `docs_url`, `example_request`, `example_response`) stay as **optional additions inside the
+new gate**: a table-backed resource that also carries docs still shows them.
+
+**Considered and rejected:** gating on `resource_type === "api"` **or** `datastore_active`. `resource_type`
+is a legacy label nothing writes (CKAN's own form has the field commented out; measured `None` on all 35
+catalogue resources), so a branch on it cannot be verified against real data. If the portal ever creates
+API-typed resources, that is its own decision.
+
+**Spec reconciliation — two defects, not one:**
+1. «Preview Placeholder» (`openspec/specs/resource-detail-view/spec.md:76-85`) requires «a clearly bounded
+   area … reserved for a preview widget» that «indicates that preview is coming soon». The preview shipped
+   in D1: the requirement is obsolete and contradicts the page. Replace it with what the page does — render
+   by kind: a table when the resource has a DataStore table, an embed for PDF/image/text, and an explicit
+   state when there is none.
+2. «API Metadata» (`:27-43`) says the section appears «when a resource's `extras` indicate it is an
+   API-type resource», while the code gates on `resource_type` — another spec/code mismatch, and neither
+   matched reality. Restate it: the section appears when the resource has a DataStore table; the endpoint
+   is `datastore_search`; the extras add the documentation link and examples **if present**.
+
+Both requirements are reconciled **in place** (the file is the source of truth; no new file per session).
 
 ## Allowed edit surfaces
 
@@ -151,7 +170,7 @@ preview is coming soon», lines 76-85) is now obsolete and contradicts the shipp
    guard neutralised it **failed** (the stale row appeared), and the file was restored byte-identical by
    sha256. The `limit` prop was removed rather than implemented: what limits the rows is the fetch, and a
    prop that does nothing misstates the component's contract.
-8. **D3** — the Data API gate + the spec reconciliation. *PENDING — next.*
+8. **D3** — the Data API gate + the spec reconciliation. *Design above; in progress.*
 
 ## D1 receipt
 
