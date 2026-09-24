@@ -305,25 +305,28 @@ async function handleCopyLink() {
 	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
-				<nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-1.5 text-sm">
+				<!-- Mismo tratamiento que el componente del breadcrumb en móvil: no envuelve, cada etiqueta se
+				     recorta y el «Catálogo» no se encoge. Acá el marcado es propio (este breadcrumb es distinto:
+				     una vuelta al catálogo más el recorrido), así que unificarlos sigue siendo una decisión aparte. -->
+				<nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-sm sm:flex-wrap">
 					<a
 						href="/search"
-						class="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+						class="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
 					>
 						<ArrowLeft class="size-4" />
 						Catálogo
 					</a>
 					{#each breadcrumbItems.slice(1) as item}
-						<ChevronRight class="size-3.5 text-muted-foreground" aria-hidden="true" />
+						<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 						{#if item.href}
 							<a
 								href={item.href}
-								class="text-muted-foreground transition-colors hover:text-foreground"
+								class="min-w-0 truncate text-muted-foreground transition-colors hover:text-foreground"
 							>
 								{item.label}
 							</a>
 						{:else}
-							<span class="font-medium text-foreground">{item.label}</span>
+							<span class="min-w-0 truncate font-medium text-foreground">{item.label}</span>
 						{/if}
 					{/each}
 				</nav>
