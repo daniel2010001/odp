@@ -127,6 +127,17 @@
 	--header-h: 5rem;
 }
 
+/*
+ * El encabezado se achica mientras el contenido manda: cuando la página deja el tope, la variable baja
+ * 8px (80px → 72px) y **todos** los pegados la siguen, porque todos la leen. El estado lo pone el
+ * layout en el documento (`data-header-shrunk`), no en el encabezado: la variable tiene que llegar
+ * también a los pegados que son hermanos suyos. La transición la apaga `prefers-reduced-motion` (el
+ * bloque de abajo la neutraliza con `!important`).
+ */
+html[data-header-shrunk] {
+	--header-h: 4.5rem;
+}
+
 /* ─── Base styles ─────────────────────────────────────────────────── */
 html {
 	scroll-behavior: smooth;

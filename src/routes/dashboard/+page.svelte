@@ -237,6 +237,9 @@ const STICKY_GAP_PX = 8; // aire aprobado entre el encabezado y la barra (`pt-2`
  * otro viejo y nada lo detectaba (entrada `[v1]` del backlog). El alto sale del token `--header-h`
  * (`src/app.css`) y lo aplica el layout; acá se lee el resultado.
  *
+ * Desde E2b el valor **cambia en caliente**: el encabezado se achica cuando la página deja el tope,
+ * así que quien lo llame no puede cachear el resultado (ver el `ResizeObserver` del efecto).
+ *
  * Devuelve 0 si el encabezado no está en el documento. En la app siempre está; en jsdom no hay
  * layout y `getBoundingClientRect` da 0 para todo, pero ahí el efecto sale antes por la ausencia de
  * `IntersectionObserver`.
@@ -253,18 +256,45 @@ $effect(() => {
 	if (!actionsSentinel) return;
 	if (typeof IntersectionObserver === "undefined") return;
 
-	const stickyTopPx = headerHeightPx() + STICKY_GAP_PX;
+	const sentinel = actionsSentinel;
+	let observer: IntersectionObserver | undefined;
 
-	const observer = new IntersectionObserver(
-		([entry]) => {
-			// `top < stickyTopPx` distingue «quedó arriba, detrás de la barra» de «todavía está más
-			// abajo del pliegue» (viewport chico o página corta), que no debe mostrar la barra.
-			actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < stickyTopPx;
-		},
-		{ rootMargin: `-${stickyTopPx}px 0px 0px 0px` },
-	);
-	observer.observe(actionsSentinel);
-	return () => observer.disconnect();
+	/**
+	 * (Re)construye el observer con el alto **actual** del encabezado.
+	 *
+	 * `rootMargin` no se puede cambiar después de construir el observer, así que un alto dinámico
+	 * obliga a reconstruirlo. Antes esto era una lectura única: el aviso `R3-1` de
+	 * `review-aae5dd97579ec543` señaló que cambié una constante rígida por una lectura cacheada, y con
+	 * el encabezado achicándose esa lectura habría quedado mal justo al achicarse.
+	 */
+	const connect = () => {
+		const stickyTopPx = headerHeightPx() + STICKY_GAP_PX;
+		observer?.disconnect();
+		observer = new IntersectionObserver(
+			([entry]) => {
+				// `top < stickyTopPx` distingue «quedó arriba, detrás de la barra» de «todavía está más
+				// abajo del pliegue» (viewport chico o página corta), que no debe mostrar la barra.
+				actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < stickyTopPx;
+			},
+			{ rootMargin: `-${stickyTopPx}px 0px 0px 0px` },
+		);
+		observer.observe(sentinel);
+	};
+
+	connect();
+
+	// Durante la transición de 200ms del encabezado el `ResizeObserver` avisa varias veces y cada aviso
+	// reconstruye el observer: son unas pocas reconstrucciones baratas dentro de esa ventana, y a cambio
+	// el umbral sigue al alto en todo momento.
+	const header = document.querySelector<HTMLElement>("[data-site-header]");
+	const resizeObserver =
+		typeof ResizeObserver === "undefined" || !header ? undefined : new ResizeObserver(connect);
+	resizeObserver?.observe(header as Element);
+
+	return () => {
+		observer?.disconnect();
+		resizeObserver?.disconnect();
+	};
 });
 
 // ─── Etiquetas de las filas ──────────────────────────────────────────

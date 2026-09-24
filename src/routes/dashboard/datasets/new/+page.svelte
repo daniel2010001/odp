@@ -1538,7 +1538,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 				</div>
 
 				<aside
-					class="min-w-0 space-y-4 lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start"
+					class="min-w-0 space-y-4 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start"
 				>
 					<!-- Ficha de creación -->
 					<Card class="overflow-hidden">
