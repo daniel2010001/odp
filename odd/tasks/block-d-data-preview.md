@@ -137,11 +137,39 @@ preview is coming soon», lines 76-85) is now obsolete and contradicts the shipp
 
 1. **D0** — live probe: upload CSV + PDF + PNG, measure, purge. **DONE 2026-09-23** (results above;
    catalogue restored to 17 datasets / 7 orgs).
-2. **D1a** — `preview.ts` + tests (RED first).
-3. **D1b** — `ResourcePreview.svelte` renders by kind; `datastore_active` in the type; fixtures declare
-   `datastore_active` / `url_type`.
-4. **D1c** — playground sheet `/dev/preview`.
-5. **D1d** — author review of the sheet, iterate.
-6. **D2** — the four findings.
-7. **D3** — Data API gate + the spec reconciliation.
-8. **D-promote** — promote the approved sheet, delete the playground, gates green.
+2. **D1a** — `preview.ts` + tests (RED first). **DONE** — `8582120` · 84 + 140 lines · 40 tests.
+3. **D1b** — `ResourcePreview.svelte` renders by kind; `datastore_active` in the type. **DONE** — same
+   commit for the module, `c12a92b` for the component · 11 tests.
+4. **D1c** — playground sheet `/dev/preview`. **DONE** — `c12a92b` · 444 lines + `+page.ts` (24) + four
+   ASCII samples (61).
+5. **D1d** — author review of the sheet, iterate. **DONE 2026-09-23** — reviewed via
+   `http://localhost:5173/dev/preview`, approved with no observations.
+6. **D1-promote** — the resource page drops the simulated tabs and sends its token. **DONE** — `ce8670a`.
+7. **D2** — the four findings of `review-ca9abb1187a39513`. *PENDING — next.*
+8. **D3** — the Data API gate + the spec reconciliation. *PENDING.*
+
+## D1 receipt
+
+**`review-4fb694e5160560c1` — APPROVED.** Tier `medium`, lens `review-reliability`, **12 files / 1 182
+lines**, correction budget 200, **two informational advisories, zero blockers**. Range reviewed with an
+explicit `baseRef` (`cdd69dd..HEAD`), so only block D's code — not the accumulated branch, which the
+default inspection derives. Authority burned (`gentle-ai.review-acknowledged/v1`).
+
+- `R3-001` · `reliability` · WARNING · informational · `src/lib/resources/preview.ts:18-23`
+- `R3-002` · `reliability` · WARNING · informational · `src/lib/resources/preview.ts:29`
+
+The closure states that neither opens a correction, neither reopens the review, and no correction
+transition is offered for this candidate. Recorded in `BACKLOG.md` → «Deuda de revisión (RDD)».
+
+**Budget deviation, disclosed:** 1 182 lines against the agreed 400. **529 of them are the review sheet
+and its four samples** (dev-only surface with no production effect); the production surface is 653.
+Same class of deviation as block B (957 lines, accepted as one `medium`).
+
+### What D1 changed on the live page
+
+1. A hosted PDF, image, TXT or JSON now **embeds** instead of reading «únicamente para recursos CSV».
+2. A hosted CSV/XLS/XLSX/TSV/ODS **without** a DataStore table no longer calls `datastore_search` (so no
+   CKAN `404` turned into «no se pudo cargar») and says the data is not loaded yet.
+3. An unknown format says the portal cannot preview that kind of file.
+4. Table error and empty states are compact; the loading state is unchanged.
+5. The simulated `Tabla`/`Gráfico`/`Mapa` tabs are gone, and the DataStore client carries the session token.

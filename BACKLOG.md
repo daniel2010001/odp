@@ -1143,37 +1143,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
   4. `R3-loading-state-untested`: estado de carga sin test.
 
-- [ ] **[v0] La vista previa CSV del recurso no manda el token de la sesión.** El `datastoreApi`
-  que se construye al inicio de `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte` usa
-  `createCkanClient({ baseUrl })` **sin `apiKey`**: la misma omisión que el slice C acaba de corregir
-  para el cliente de carga. Costo real: el `datastore_search` de un recurso de un dataset privado
-  responde `403` y la previsualización falla aunque la ficha del recurso ya cargue bien, de modo que el
-  dueño ve el recurso pero no sus filas. _Origen: hallado mientras se arreglaba D4 (slice C,
-  2026-09-20)._
-
-- [ ] **[v0] La vista previa de datos falla para todo el catálogo sembrado.** Verificado en vivo
-  (2026-09-20) en un navegador real contra el stack dev: la vista previa de un recurso **público** pide
-  `datastore_search` y recibe `404`, y el panel muestra «No se pudo cargar la vista previa de datos.»
-  Causa: los recursos sembrados son **enlaces, no archivos subidos**, así que no están en el DataStore y
-  la vista previa (RF-31) sólo puede funcionar para archivos subidos. Decidir si el panel debe decir que
-  la vista previa **no está disponible para este recurso** en vez de reportar un fallo de carga. Se
-  relaciona con el ítem `[v0] Sección "Data API" para recursos CSV` de esta misma lista.
-  **Puntero (2026-09-21), para no perseguir una causa muerta:** el **datapusher ya NO es** una causa posible — el
-  token se re-minteó con el reinicio de las 17:07 y **autentica** (200 · basura 403 · sin token 403). Si la vista
-  previa falla para archivos **subidos**, la causa es **otra y todavía no está identificada**: no la busques en el
-  token.
-  **CERRADO (2026-09-23) — la causa está identificada y NO era el pusher.** Sonda viva (bloque D, tarea D0): se
-  subieron tres archivos reales (CSV, PDF, PNG) a un dataset descartable y **el pusher cargó el CSV en el
-  DataStore al instante** — `datastore_active: true` en el primer sondeo y `datastore_search` devolviendo las 3
-  filas con los campos correctos. Lo que fallaba era el **catálogo sembrado**: sus 35 recursos son **enlaces**
-  (`url_type` ausente), y el pusher los somete por `format` sin exigir archivo alojado
-  (`ckanext/datapusher/plugin.py:88-92`), así que intentaba descargar `https://data.umss.edu.bo/...` — una URL que
-  el seed inventó — y no había ninguna tabla que leer. Datos y purga: `odd/tasks/block-d-data-preview.md`.
-  **Corrección de un criterio de C1 que conviene tener escrito:** `hash` es **`null` también en un archivo
-  alojado** (medido en los tres de la sonda), así que «no tiene `hash`» **no** discrimina enlace de archivo; el
-  único discriminador es `url_type === "upload"`, que es lo que quedó implementado.
-  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20; sonda D0, 2026-09-23._
-
 - [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
   Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
   `http://localhost:5000/dataset/<name>/resource/<file>/download/<file>` — el `ckan.site_url` de CKAN —,
@@ -1680,6 +1649,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   contenido durable en el DataStore para demoear las vistas. Decidir la fuente (CSVs chicos
   commiteados vs. generador determinista vs. upload real + datapusher) y hacerlo idempotente y
   determinista. _Origen: sesión 2026-09-11 (diferido); relacionado con "Endurecer la vista previa CSV"._
+  **Estado del camino «upload real + datapusher» (2026-09-23):** la sonda D0 lo midió y **funciona** —subir
+  un CSV lo dejó en el DataStore al instante, con `datastore_search` devolviendo las filas y la descarga
+  sirviendo `Content-Disposition: inline` (que es lo que hace posible el embed de PDF/imagen de RF-30)—,
+  así que esa opción dejó de ser una apuesta. **Falta una entrada del autor:** pidió aportar un **ejemplo de
+  cómo hacer la carga de datos**; hasta tenerlo, la decisión de la fuente queda abierta. Consumidor concreto
+  hoy: los visores por tipo del bloque D necesitan archivos **alojados** para verse con datos reales — los
+  35 recursos del catálogo son enlaces.
 
 ---
 
@@ -1689,6 +1665,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **La vista previa del recurso, por tipo (bloque D, slice D1)** | **Implementado y aprobado** (2026-09-23). El panel dejó de decidir con un `format === "csv"` propio —regla nuestra, no de CKAN, y falso negativo: el DataPusher carga `csv, xls, xlsx, tsv, ods` por defecto y `datastore_search` sirve cualquier tabla que exista— y ahora usa la marca de CKAN **`datastore_active`** para la tabla y el **tipo del archivo** para el embed (PDF, imagen, TXT/JSON). Se eliminaron los tabs simulados `Tabla`/`Gráfico`/`Mapa`: `Gráfico` y `Mapa` no son clases de vista previa (el modelo de vistas del PRD los pone en el módulo de análisis, RF-24/25/26), así que el portal dejó de contradecir su propio modelo. El cliente del DataStore ahora manda el token de la sesión, y todo embed pasa por `safeExternalUrl`. Hoja de revisión permanente nueva: **`/dev/preview`**. Revisión nativa `review-4fb694e5160560c1` **aprobada** (tier medium, lente reliability, 12 archivos / 1 182 líneas, presupuesto 200), authority quemada, **2 avisos informativos** registrados en «Deuda de revisión». Gates: `check` 0 errores · `test` **588/588** · Biome en su baseline (4 warnings + 7 infos, ninguno nuevo). |
+| **La causa del fallo de la vista previa en el catálogo sembrado** | **Cerrado e identificado** (2026-09-23, sonda D0). **No era el DataPusher**: se subieron tres archivos reales (CSV, PDF, PNG) a un dataset descartable y el pusher cargó el CSV al DataStore al instante (`datastore_active: true` en el primer sondeo y `datastore_search` con las filas). Lo que fallaba eran los **enlaces sembrados**, que nunca tuvieron tabla. Corolario corregido: `hash` es `null` **también** en un archivo alojado, así que «no tiene `hash`» no discrimina enlace de archivo; el único discriminador es `url_type === "upload"`. Catálogo dev restaurado a 17 datasets / 7 orgs. |
 | **Wizard: validación completa (Zod v4)** | **Implementado** (2026-09-12). El schema ahora cubre `url` (opcional, http/https con la **misma** política de enlaces del fix de seguridad), `maintainer_email` (opcional, validado con el **mismo regex de CKAN**, con sus tres lookaheads) y `maintainer`, y `tag_string` valida el formato real de CKAN (largo 2..100 y charset) normalizando al mismo tiempo: recorta, descarta vacíos y quita duplicados. Trampa encontrada al medir: el `\\w` de JavaScript es ASCII y habría rechazado «gestión», «año» o «educación», etiquetas que CKAN sí acepta; se usa `\\p{L}\\p{N}_`. El payload se construye **desde el resultado validado**, no desde el estado crudo, así que lo que se ve es lo que CKAN guarda. Validación en vivo (al perder foco, y se limpia al corregir) y resumen de errores con foco al primer campo inválido. **Defecto real corregido en el camino**: la UI leía `fieldErrors.slug` mientras el schema emitía `name`, así que el error del slug **nunca se mostraba** y el botón parecía no responder (test en RED antes del fix). Verificado en Chromium con eventos reales de entrada (focus/blur/input por CDP) y capturando el payload real con `fetch` interceptado, sin mutar CKAN. |
 | **Pulido de UI del dashboard (`/dashboard`)** | **Implementado y aprobado** (2026-09-12). Iterado en el playground `/dev/dashboard` (regla 8 de `AGENTS.md`) durante 6 rondas de revisión del usuario, y promovido luego de la aprobación; el playground se borró. Resultado: encabezado sin CTA compitiendo, **grilla de acciones** (hoy sólo «Publicar dataset», preparada para crecer) + **barra de acciones pegajosa** que aparece al scrollear (aire de 8 px bajo el encabezado, `inert` mientras está oculta), listas con contenedor propio y metadatos por fila (recursos + actualización + privacidad; sigla + datasets + rol en organizaciones) y descripción por sección. Verificado en Chromium: posición de la barra, que los clics atraviesan la franja transparente y que el enlace oculto no se puede enfocar. Auditoría responsive a 375/390/768/1024/1280/1440/1920 px sin desborde horizontal. Incluye `MAX_SIGLA_LENGTH` exportado por `OrganizationLogo` y la sigla declarada respetada verbatim. |
 | **Saneamiento del `href` de recursos (borde de salida)** | **Implementado** (2026-09-12). Política única de enlaces externos en `src/lib/utils/external-url.ts` (`safeExternalUrl` / `unsafeUrlReason`, allowlist `http:`/`https:` fail-closed) aplicada en los dos bordes de salida de la página de recurso (`resource.url` y el extra `docs_url`) y reusada por el wizard en la entrada. Primer test de componente de la página de recurso (`resource-page.test.ts`; el RED reprodujo el `href="javascript:..."` real) gracias a un stub de `$app/stores` en `vitest.config.ts`. Gates: check 0 errores, 169 tests, lint 0 errores, build 0. |
@@ -1723,6 +1701,31 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Advisory de la revisión nativa del slice D1 del bloque D (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:6ac8045df9096a350f2c78f763d63412398d877a9c0e6a735f89a9368015882b` del candidato
+  `sha256:ce6e259644ae284869e63c3c9264755c27df0d95ff5008d3dabfd0bc666c85e0`).
+  - `review-4fb694e5160560c1`: tier **medium**, lente `review-reliability`, **12 archivos, 1 182 líneas**,
+    presupuesto de corrección 200. Rango revisado **`cdd69dd..HEAD`** con `baseRef` explícito —sólo el código del
+    bloque D—, no la rama acumulada que la inspección deriva por defecto (misma decisión que en A, B y C).
+  - Dos avisos no bloqueantes, tal como los emitió el cierre:
+    1. `R3-001` · reliability · WARNING · informativo · `src/lib/resources/preview.ts:18-23`
+    2. `R3-002` · reliability · WARNING · informativo · `src/lib/resources/preview.ts:29`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y **no se ofrece
+    transición de corrección** para este candidato. Son trabajo posterior por separado, nunca motivo para
+    re-revisar.
+  - **Contexto de las ubicaciones, para que la próxima sesión no arranque de cero:** la primera cae en
+    `TABULAR_MIMETYPES`, el conjunto de MIME que espeja `ckan.datapusher.formats` (y que además se compara contra
+    el `mimetype` del recurso); la segunda, en `TEXT_FORMATS`. Eso es **lectura de las líneas**, no el texto del
+    hallazgo.
+  - **Nota de presupuesto:** el rango tiene **1 182 líneas** contra el presupuesto de 400 acordado, y **529 de
+    ellas son la hoja `/dev/preview` y sus cuatro muestras** (superficie sólo-dev, sin efecto en producción). Es
+    la misma desviación que el bloque B (957 líneas, aceptado como un `medium`); lo que mantiene el foco es
+    revisar por bloque y no por rama acumulada.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el árbol
+    de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice D1 del bloque D (2026-09-23)._
 
 - [ ] **Advisory de la revisión nativa de la política de existencia (2026-09-20)** — cerró **`approved`** con
   la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
