@@ -101,6 +101,22 @@
 	--chart-5: oklch(0.72 0.07 300);
 	--footer: oklch(0.26 0.05 257); /* azul profundo, más oscuro que el fondo */
 	--footer-foreground: oklch(0.93 0.008 250);
+
+	/* ─── Layout ────────────────────────────────────────────────────── */
+	/*
+	 * Alto del encabezado del sitio: **única fuente**. Lo consumen el encabezado del layout y todos
+	 * los offsets que deben quedar pegados justo debajo de él: la barra de acciones del panel, la
+	 * barra de resultados del buscador y los paneles laterales de la ficha del dataset y del asistente.
+	 *
+	 * Antes cada uno era un literal suelto (`h-20`, `top-20`, `top-[81px]`, `lg:top-24`) y el observer
+	 * del panel guardaba además una constante `HEADER_PX = 80` en JS: cambiar el alto del encabezado
+	 * dejaba la barra pegajosa desincronizada y **nada lo detectaba** (entrada `[v1]` del backlog).
+	 *
+	 * Decisión del autor (2026-09-24): el alto **no se recorta** en viewports bajos. Se midió el
+	 * problema reportado en 720p en la hoja `/dev/header` (marcos de 600/650/760/1080 px de viewport)
+	 * y no justificó el recorte: lo que se arregla es la fuente única, sin mover un píxel.
+	 */
+	--header-h: 5rem;
 }
 
 /* ─── Base styles ─────────────────────────────────────────────────── */

@@ -289,8 +289,11 @@ const activeFilterCount = $derived(
 	</div>
 </section>
 
-<!-- ResultsBar: sticky debajo del header global (80px nav + 1px borde) -->
-<section class="sticky top-[81px] z-20 border-b border-border bg-background/95 backdrop-blur">
+<!-- ResultsBar: sticky debajo del encabezado global —su alto sale del token `--header-h`— más su
+     borde inferior de 1px -->
+<section
+	class="sticky top-[calc(var(--header-h)+1px)] z-20 border-b border-border bg-background/95 backdrop-blur"
+>
 	<div
 		class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6 lg:px-8"
 	>

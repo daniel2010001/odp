@@ -555,7 +555,7 @@ async function handleCopyLink() {
 				</div>
 
 				<!-- Sidebar -->
-				<aside class="min-w-0 space-y-6 lg:sticky lg:top-24">
+				<aside class="min-w-0 space-y-6 lg:sticky lg:top-[calc(var(--header-h)+1rem)]">
 					<!-- Cite card -->
 					<Card class="p-5">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>

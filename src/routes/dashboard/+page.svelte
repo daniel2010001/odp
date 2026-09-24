@@ -225,12 +225,26 @@ const actions = $derived(
 // El centinela vive justo después de la grilla: cuando queda detrás de la barra, la barra aparece;
 // al volver a subir, se esconde.
 //
-// Ojo con la condición (medido en Chromium): con `rootMargin` igual a `STICKY_TOP_PX` el callback
-// llega cuando el centinela cruza esa altura, y en ese momento `boundingClientRect.top` todavía es
+// Ojo con la condición (medido en Chromium): con `rootMargin` igual al alto pegado el callback llega
+// cuando el centinela cruza esa altura, y en ese momento `boundingClientRect.top` todavía es
 // **positivo** (+22 en la medición). Comparar contra 0 nunca se cumple y la barra no aparece.
-const HEADER_PX = 80; // altura del encabezado del sitio (`h-20` del layout)
 const STICKY_GAP_PX = 8; // aire aprobado entre el encabezado y la barra (`pt-2`)
-const STICKY_TOP_PX = HEADER_PX + STICKY_GAP_PX;
+
+/**
+ * Alto del encabezado del sitio, **medido del elemento real**.
+ *
+ * Antes era `HEADER_PX = 80`, una constante paralela al `h-20` del layout: cambiar el uno dejaba al
+ * otro viejo y nada lo detectaba (entrada `[v1]` del backlog). El alto sale del token `--header-h`
+ * (`src/app.css`) y lo aplica el layout; acá se lee el resultado.
+ *
+ * Devuelve 0 si el encabezado no está en el documento. En la app siempre está; en jsdom no hay
+ * layout y `getBoundingClientRect` da 0 para todo, pero ahí el efecto sale antes por la ausencia de
+ * `IntersectionObserver`.
+ */
+function headerHeightPx(): number {
+	const header = document.querySelector<HTMLElement>("[data-site-header]");
+	return header?.getBoundingClientRect().height ?? 0;
+}
 
 let actionsSentinel: HTMLDivElement | undefined = $state();
 let actionsStuck = $state(false);
@@ -239,13 +253,15 @@ $effect(() => {
 	if (!actionsSentinel) return;
 	if (typeof IntersectionObserver === "undefined") return;
 
+	const stickyTopPx = headerHeightPx() + STICKY_GAP_PX;
+
 	const observer = new IntersectionObserver(
 		([entry]) => {
-			// `top < STICKY_TOP_PX` distingue «quedó arriba, detrás de la barra» de «todavía está más
+			// `top < stickyTopPx` distingue «quedó arriba, detrás de la barra» de «todavía está más
 			// abajo del pliegue» (viewport chico o página corta), que no debe mostrar la barra.
-			actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < STICKY_TOP_PX;
+			actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < stickyTopPx;
 		},
-		{ rootMargin: `-${STICKY_TOP_PX}px 0px 0px 0px` },
+		{ rootMargin: `-${stickyTopPx}px 0px 0px 0px` },
 	);
 	observer.observe(actionsSentinel);
 	return () => observer.disconnect();
@@ -338,12 +354,13 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 			<!-- Centinela: marca el momento en que la grilla deja de estar a la vista. -->
 			<div bind:this={actionsSentinel} class="h-px" aria-hidden="true"></div>
 
-			<!-- Barra de acciones pegajosa: se pega en `top-20` más el aire elegido (`pt-2`). Mientras
+			<!-- Barra de acciones pegajosa: se pega justo debajo del encabezado —su alto sale del token
+			     `--header-h`, el mismo que usa el layout— más el aire elegido (`pt-2`). Mientras
 			     está oculta, `inert` la saca del foco y de los clics. El `pointer-events-none` del
 			     contenedor evita que el aire transparente se trague los clics del contenido detrás. -->
 			<div
 				class={cn(
-					"pointer-events-none fixed inset-x-0 top-20 z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
+					"pointer-events-none fixed inset-x-0 top-[var(--header-h)] z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
 					actionsStuck ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
 				)}
 				inert={!actionsStuck}
