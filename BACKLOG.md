@@ -1863,6 +1863,26 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa del ajuste de E2b a 16px (2026-09-24)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`). `review-639ebd76af60c244`: tier **medium**,
+  lente `review-reliability`, **3 archivos, 139 líneas**, presupuesto 70. Rango revisado **`1d3a225..HEAD`**, que
+  **incluye un commit de documentación que no es de esta sesión** —el `docs(backlog)` de la sesión paralela del
+  autor, `9fbde67`—: se declara acá para que nadie le atribuya ese texto a esta línea de revisión.
+  - **Un aviso informativo**: `R3-TEST-SHRINK-DELTA` · reliability · SUGGESTION · `src/routes/layout-header.test.ts:89`.
+    El id nombra el punto: la aserción nueva comprueba que el valor achicado es **menor** que el del tope, pero
+    **no fija el delta** (16px), así que un cambio de magnitud no la rompería. Eso es lo que la aserción quiso ser
+    —una invariante, no un pin del número—, así que queda anotado y **no se corrige**: el recibo ya está quemado.
+  - El cambio: el valor del estado achicado pasa de `4.5rem` a `4rem` en `--header-h`, y **ninguna otra línea de
+    código lo necesitó** — que es exactamente lo que compró E2: ningún offset lleva el número escrito. Gates:
+    `pnpm test` **620/620** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **Incidente de escritura concurrente, registrado:** mientras esta sesión corría los gates de ese ajuste,
+    **otra sesión del mismo repo** modificó `BACKLOG.md` **sin commitear** (112 líneas: la reescritura del ítem del
+    token con mediciones de hoy, la decisión de CKAN 2.12 y dos ítems de configuración). Verificado que **no** se
+    coló en los commits de esta sesión (0 ocurrencias de su texto en los míos), el autor autorizó commitearlo tal
+    cual, y se commiteó como unidad propia (`9fbde67`) declarando la procedencia en el mensaje. **Dos escritores en
+    el mismo worktree y sin aislamiento no es una hipótesis: pasó hoy.**
+  _Origen: ajuste del slice E2b del bloque E, 2026-09-24._
+
 - [ ] **Recibo de la revisión nativa del slice E2b (bloque E, el encabezado se achica al scrollear) (2026-09-24)** —
   cerró **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   - `review-6e034ec319f46e52`: tier **medium**, lente `review-reliability`, **7 archivos, 195 líneas**,
