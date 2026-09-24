@@ -26,20 +26,33 @@ The detail page MUST display every field returned by `resource_show`: name, desc
 
 ### Requirement: API Metadata
 
-When a resource's `extras` indicate it is an API-type resource, the page MUST surface endpoint metadata, documentation URL, and request/response examples if present.
+When a resource has a DataStore table, the page MUST surface a section explaining how to read its rows. `datastore_active` MUST be the only gate for that section: it is CKAN's own marker for an existing table, and CKAN answers the same `404` for a resource that has no table and for a resource that does not exist, so neither `resource_type` nor the shape of the error can decide this. The endpoint MUST be the one that returns the rows — `{CKAN base URL}/api/3/action/datastore_search?resource_id=<resource id>` — and the request example MUST address that same action. When the resource's `extras` carry `docs_url`, `example_request` or `example_response`, the page MUST render them as part of the section; when they are absent, the section MUST render without them.
 
-#### Scenario: API resource with complete extras
+#### Scenario: Resource with a DataStore table
 
-- GIVEN a resource whose extras contain `api_base_url`, `docs_url`, and `example_request`
-- WHEN the user opens the detail page
-- THEN the API endpoint, documentation link, and example are displayed in a dedicated section
+- GIVEN a resource whose `datastore_active` is `true`
+- WHEN the user opens the resource detail page
+- THEN a section displays the `datastore_search` endpoint for that resource
+- AND the request example addresses the same action
 
-#### Scenario: API resource with partial extras
+#### Scenario: DataStore table with authored API extras
 
-- GIVEN a resource whose extras contain only `api_base_url`
-- WHEN the user opens the detail page
-- THEN only the endpoint metadata is shown
-- AND the missing documentation link and example are omitted
+- GIVEN a resource whose `datastore_active` is `true` and whose extras contain `docs_url` and `example_request`
+- WHEN the user opens the resource detail page
+- THEN the documentation link and the request example are displayed inside the section
+
+#### Scenario: DataStore table without API extras
+
+- GIVEN a resource whose `datastore_active` is `true` and which carries none of the API extras
+- WHEN the user opens the resource detail page
+- THEN the section displays the endpoint and the request example
+- AND no documentation link and no response example are displayed
+
+#### Scenario: No DataStore table
+
+- GIVEN a resource with no DataStore table
+- WHEN its extras contain `api_base_url`, `docs_url` and `example_request`
+- THEN the section is not rendered
 
 ### Requirement: Download Action
 
@@ -73,16 +86,36 @@ The page MUST display breadcrumbs: `Datasets > [Organization name] > [Dataset ti
 - WHEN the user opens the resource detail page
 - THEN the breadcrumb omits the organization level
 
-### Requirement: Preview Placeholder
+### Requirement: Resource Preview
 
-The page MUST reserve a visible placeholder area for a future data preview widget.
+The page MUST render a preview of the resource according to what the portal can actually show, and MUST NOT reserve a bounded area for a preview that does not exist yet. A resource whose `datastore_active` is `true` MUST render its rows in a table, fetched through `datastore_search`. A hosted resource whose format is PDF, an image type, TXT or JSON MUST embed the file from the resource's own download URL. A resource the portal cannot preview MUST render an explicit state that says so. A resource that is an external reference MUST NOT be previewed: the page MUST state that its content lives at the origin site.
 
-#### Scenario: Placeholder present
+#### Scenario: Resource with a DataStore table
 
-- GIVEN any resource detail page
-- WHEN the page renders
-- THEN a clearly bounded area is reserved for a preview widget
-- AND the placeholder indicates that preview is coming soon
+- GIVEN a resource whose `datastore_active` is `true`
+- WHEN the user opens the resource detail page
+- THEN the page renders the resource's rows in a table
+- AND the rows are fetched through `datastore_search`
+
+#### Scenario: Embeddable hosted file
+
+- GIVEN a hosted resource whose format is PDF, an image type, TXT or JSON
+- WHEN the user opens the resource detail page
+- THEN the page embeds the file from the resource's own download URL
+
+#### Scenario: No preview available
+
+- GIVEN a resource the portal cannot preview
+- WHEN the user opens the resource detail page
+- THEN the page renders an explicit state explaining that no preview is available
+- AND the page does not reserve a bounded area for a future preview
+
+#### Scenario: External reference
+
+- GIVEN a resource that is an external reference instead of a hosted file
+- WHEN the user opens the resource detail page
+- THEN the page states that the content lives at the origin site
+- AND the page does not attempt to preview the resource
 
 ### Requirement: Missing Resource
 

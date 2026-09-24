@@ -96,6 +96,11 @@ function renderedHrefs(container: HTMLElement): string[] {
 	);
 }
 
+/** El texto de cada bloque `code` renderizado: endpoints y ejemplos son bloques, no prosa. */
+function renderedCodeBlocks(container: HTMLElement): string[] {
+	return Array.from(container.querySelectorAll("code")).map((code) => code.textContent ?? "");
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
@@ -153,9 +158,12 @@ describe("Página de recurso — enlaces externos", () => {
 	});
 
 	it("no renderiza un href javascript: guardado en el extra docs_url", async () => {
+		// El recurso necesita una tabla para que la sección de acceso por API se renderice: si no, el
+		// enlace no se renderizaría por ausencia de sección y el test pasaría sin ejercitar el saneo.
 		mocks.showResource.mockResolvedValue(
 			makeResource({
-				resource_type: "api",
+				url_type: "upload",
+				datastore_active: true,
 				extras: [
 					{ key: "api_base_url", value: "https://datos.umss.edu/api" },
 					{ key: "docs_url", value: "javascript:alert(document.cookie)" },
@@ -446,6 +454,62 @@ describe("Página de recurso — el cliente del DataStore lleva el token", () =>
 		expect(call).toBeTruthy();
 		const init = call?.[1] as RequestInit | undefined;
 		expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBe("tok-123");
+	});
+});
+
+// ─── La sección de acceso por API (block D, D3) ─────────────────────
+// La sección se gatea con `datastore_active === true`, el mismo marcador que la vista previa: es lo
+// que CKAN responde cuando la tabla existe, y sin tabla no hay filas que consultar. El endpoint que
+// anuncia es el que devuelve las filas (`datastore_search`), no `resource_show`, que devuelve
+// metadatos. Se prueba en las dos direcciones: aparece con tabla y no aparece sin ella.
+const DATASTORE_ENDPOINT = "http://localhost:5000/api/3/action/datastore_search?resource_id=res-1";
+
+describe("Página de recurso — la sección de acceso por API", () => {
+	it("un recurso con tabla (`datastore_active: true`) muestra la sección y el endpoint `datastore_search`", async () => {
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
+
+		const { container } = render(ResourcePage);
+
+		await screen.findByRole("heading", { name: /Acceso por API/i });
+		const codeBlocks = renderedCodeBlocks(container);
+		expect(codeBlocks).toContain(DATASTORE_ENDPOINT);
+
+		// El ejemplo curl tiene que apuntar a la misma acción que el endpoint: un ejemplo que llame a
+		// `resource_show` mientras la sección promete filas es la misma mentira, un renglón más abajo.
+		const curl = codeBlocks.find((block) => block.startsWith("curl -X POST")) ?? "";
+		expect(curl).toContain("datastore_search");
+		expect(curl).toContain('"resource_id": "res-1"');
+		expect(codeBlocks.some((block) => block.includes("resource_show"))).toBe(false);
+	});
+
+	it("un archivo alojado sin tabla (`datastore_active: false`) no muestra la sección ni ningún endpoint de datos", async () => {
+		// El valor medido en el catálogo real: un archivo subido que el DataPusher no cargó conserva
+		// `datastore_active: false`. Antes esta ficha quedaba sin sección por el gate de `resource_type`.
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: false }),
+		);
+
+		const { container } = render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		expect(screen.queryByRole("heading", { name: /Acceso por API/i })).toBeNull();
+		expect(renderedCodeBlocks(container).some((block) => block.includes("datastore_search"))).toBe(
+			false,
+		);
+	});
+
+	it("un enlace externo (sin `url_type`) tampoco muestra la sección de acceso por API", async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ format: "CSV" }));
+
+		const { container } = render(ResourcePage);
+
+		await screen.findByText("Este recurso es un enlace externo");
+		expect(screen.queryByRole("heading", { name: /Acceso por API/i })).toBeNull();
+		expect(renderedCodeBlocks(container).some((block) => block.includes("datastore_search"))).toBe(
+			false,
+		);
 	});
 });
 

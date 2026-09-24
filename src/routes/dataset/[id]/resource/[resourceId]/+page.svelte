@@ -287,7 +287,7 @@ const apiBaseUrl = $derived(
 );
 
 const apiEndpoint = $derived(
-	resource ? `${apiBaseUrl}/api/3/action/resource_show?id=${resource.id}` : "",
+	resource ? `${apiBaseUrl}/api/3/action/datastore_search?resource_id=${resource.id}` : "",
 );
 
 const curlCommand = $derived.by(() => {
@@ -295,9 +295,9 @@ const curlCommand = $derived.by(() => {
 	const extraRequest = apiExtras.find((e) => e.key === "example_request")?.value;
 	if (extraRequest) return extraRequest;
 	return [
-		`curl -X POST ${apiBaseUrl}/api/3/action/resource_show \\`,
+		`curl -X POST ${apiBaseUrl}/api/3/action/datastore_search \\`,
 		`  -H "Content-Type: application/json" \\`,
-		`  -d '{"id": "${resource.id}"}'`,
+		`  -d '{"resource_id": "${resource.id}"}'`,
 	].join("\n");
 });
 
@@ -533,13 +533,18 @@ async function handleCopyResourceLink() {
 			</Card>
 
 		<!-- API content -->
-		{#if resource.resource_type === "api"}
+		<!-- El gate es `datastore_active`, no `resource_type`: `resource_type` es un campo heredado que
+		     nada escribe (el formulario de CKAN lo tiene comentado; medido `None` en los 35 recursos del
+		     catálogo), así que la sección no se renderizaba nunca. `datastore_active` es el marcador de
+		     CKAN para «existe una tabla real» —el mismo que usa la vista previa— y sin tabla no hay filas
+		     que consultar. -->
+		{#if resource.datastore_active === true}
 			<div>
 				<div>
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">API · Endpoint</p>
 					<h2 class="mt-1 font-heading text-xl font-bold text-primary">Acceso por API</h2>
 					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-						Use estos endpoints para acceder programáticamente a los datos del recurso.
+						Consulte las filas de este recurso desde el endpoint del DataStore.
 					</p>
 				</div>
 	
@@ -595,7 +600,7 @@ async function handleCopyResourceLink() {
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 							Ejemplo de consulta · curl
 						</p>
-						<p class="mt-1 text-sm text-muted-foreground">Obtenga los metadatos del recurso.</p>
+						<p class="mt-1 text-sm text-muted-foreground">Obtenga las filas de la tabla del recurso.</p>
 						<div class="mt-3 overflow-x-auto rounded-lg bg-foreground p-4">
 							<pre class="font-mono text-xs leading-relaxed text-background"><code>{curlCommand}</code></pre>
 						</div>
