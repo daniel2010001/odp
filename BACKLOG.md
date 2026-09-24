@@ -1781,6 +1781,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   - **Dos entradas `[v1]` tocadas por este slice**: la del desfase de la barra pegajosa quedó **cerrada en su
     mitad de desincronización** (el resto —el test de comportamiento en navegador real— sigue abierto), y la del
     scroll snapping quedó **actualizada** (`h-20` ya no es un literal: es `--header-h`).
+  - **Regresión introducida por este mismo slice, medida y corregida el 2026-09-24** (commit `775f129`,
+    `review-8caa93a99e7dc4a6` **aprobada y quemada**, 2 archivos / 48 líneas, presupuesto 24, **0 hallazgos**).
+    El token quedó declarado **dentro del bloque `.dark`** (línea 119), porque la inserción se ancló en el último
+    token de la paleta oscura, no en el de `:root`. El modo claro es el default (sin esa clase), así que ahí
+    `--header-h` **no existía**: `height: var(--header-h)` caía a `auto` —el encabezado medía la mitad— y cada
+    `top:` caía a `auto`, con los **cuatro** offsets rotos: la barra del buscador, la barra del panel, el lateral
+    del dataset y el del asistente. En oscuro funcionaba, por eso se leía como un bug de tema. **Las dos
+    verificaciones de este slice fallaron de la misma manera: comprobaron presencia, no alcance** — el test
+    contaba apariciones de la declaración, y el chequeo del CSS compilado grepeaba `--header-h: 5rem;` sin
+    preguntar qué selector la contenía. Las dos ahora sí preguntan: el test exige que el token viva en un bloque
+    `:root` y **nunca** dentro de `.dark` (**RED medido** contra el archivo roto: esa aserción falló), y el CSS
+    compilado se volvió a leer ubicando el bloque contenedor de cada aparición (1 en `:root`, 0 en `.dark`).
+    **El recibo de E2 sigue en pie como registro de lo que se aprobó: lo que se aprobó tenía este defecto, y el
+    revisor no lo señaló.**
   _Origen: cierre del slice E2 del bloque E, 2026-09-24._
 
 - [ ] **Recibo de la revisión nativa del slice E1 (bloque E, chips de formato) (2026-09-24)** — cerró **`approved`**
