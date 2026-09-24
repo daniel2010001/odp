@@ -436,7 +436,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 						{datasetsLoading ? "—" : totalDatasets}
 					</span>
 				</div>
-				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+				<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
 					Los datasets que usted creó.
 				</p>
 
@@ -601,7 +601,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 						{orgsLoading ? "—" : organizations.length}
 					</span>
 				</div>
-				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+				<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
 					Organizaciones de las que forma parte y el rol que tiene en cada una.
 				</p>
 

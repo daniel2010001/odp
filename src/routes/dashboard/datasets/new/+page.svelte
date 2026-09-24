@@ -646,6 +646,10 @@ const singleOrg = $derived(organizations.length === 1 ? organizations[0] : null)
 const orgDisplayTitle = $derived(
 	singleOrg ? singleOrg.title : (organizations.find((org) => org.name === ownerOrg)?.title ?? ""),
 );
+// La ficha no puede quedar **en blanco**: mientras haya más de una organización y ninguna elegida, el
+// bloque tiene que decir que falta elegir. Antes pintaba `orgDisplayTitle`, que en ese estado es "", y
+// el usuario veía un hueco sin explicación.
+const orgIsMissing = $derived(orgDisplayTitle === "");
 
 const selectedLicense = $derived(licenses.find((license) => license.id === licenseId) ?? null);
 const safeLicenseUrl = $derived(selectedLicense ? safeExternalUrl(selectedLicense.url) : null);
@@ -1578,7 +1582,11 @@ const hayTitulo = $derived(title.trim().length > 0);
 							<ul class="space-y-2 text-sm">
 								<li class="flex items-center gap-2">
 									<Building2 class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-									<span class="truncate">{orgDisplayTitle}</span>
+									{#if orgIsMissing}
+										<span class="truncate text-muted-foreground">Falta elegir una organización</span>
+									{:else}
+										<span class="truncate">{orgDisplayTitle}</span>
+									{/if}
 								</li>
 								<li class="flex items-center gap-2">
 									<Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

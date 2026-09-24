@@ -218,6 +218,22 @@ describe("Wizard de creación", () => {
 		expect(container.querySelector("#owner-org")).not.toBeInTheDocument();
 	});
 
+	it("con varias organizaciones y ninguna elegida, la ficha nombra lo que falta en vez de quedar en blanco", async () => {
+		auth.login("tok-123", baseUser);
+		mocks.listForUser.mockResolvedValue([
+			org,
+			{ ...org, id: "org-2", name: "facultad-de-tecnologia", title: "Facultad de Tecnología" },
+		]);
+
+		render(Wizard);
+		// `findByLabelText` espera a que la organización haya resuelto y el formulario esté armado.
+		await screen.findByLabelText(/título/i);
+
+		// Sin esto, el bloque de la organización queda VACÍO en la ficha mientras no hay selección:
+		// ni el nombre, ni el aviso de que falta elegir.
+		expect(screen.getByText(/falta elegir una organización/i)).toBeInTheDocument();
+	});
+
 	it("muestra el slug bloqueado y lo desbloquea con la acción de editar", async () => {
 		auth.login("tok-123", baseUser);
 
