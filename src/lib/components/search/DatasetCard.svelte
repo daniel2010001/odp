@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Building2, Calendar, FileText } from "@lucide/svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { formatChips } from "$lib/resources/formats";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { datasetSummary } from "$lib/utils/dataset-summary";
@@ -13,16 +14,7 @@ let {
 	class?: string;
 } = $props();
 
-const resourceFormats = $derived(
-	dataset.resources
-		?.map((r) => r.format?.toUpperCase())
-		.filter((f): f is string => Boolean(f))
-		.slice(0, 4) ?? [],
-);
-
-const moreFormats = $derived(
-	dataset.resources ? dataset.resources.length - resourceFormats.length : 0,
-);
+const formatSummary = $derived(formatChips(dataset.resources));
 
 const resourceCount = $derived(dataset.resources?.length ?? 0);
 const resourceCountLabel = $derived(
@@ -116,15 +108,15 @@ function shortDate(iso: string): string {
 			<!-- Footer: format chips (acento sobre neutro) + count de recursos + fecha -->
 			<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border/70 pt-3">
 				<div class="flex flex-wrap items-center gap-1.5">
-					{#each resourceFormats as format}
+					{#each formatSummary.chips as format}
 						<span
 							class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-xs font-semibold {getFormatAccent(format)}"
 						>
 							{format}
 						</span>
 					{/each}
-					{#if moreFormats > 0}
-						<span class="text-xs text-muted-foreground">+{moreFormats} más</span>
+					{#if formatSummary.more > 0}
+						<span class="text-xs text-muted-foreground">+{formatSummary.more} más</span>
 					{/if}
 				</div>
 
