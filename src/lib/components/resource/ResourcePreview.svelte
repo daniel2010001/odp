@@ -75,16 +75,27 @@ $effect(() => {
 	loading = true;
 	error = false;
 	data = null;
+	// El efecto no cancela la consulta: marca su corrida como superada. Si el recurso cambia antes
+	// de que resuelva la promesa anterior, esa respuesta vieja llegaría al final y pintaría filas
+	// de otro recurso —el peor fallo posible en una vista previa, datos silenciosamente ajenos—.
+	// El cleanup corre antes de la próxima ejecución y neutraliza los `then`/`catch` de la corrida
+	// vieja. No usamos `AbortController` porque el cliente de la API no acepta un `signal`.
+	let superseded = false;
 	api
 		.search(id, { limit: 20 })
 		.then((result) => {
+			if (superseded) return;
 			data = result;
 			loading = false;
 		})
 		.catch(() => {
+			if (superseded) return;
 			error = true;
 			loading = false;
 		});
+	return () => {
+		superseded = true;
+	};
 });
 </script>
 
@@ -108,7 +119,7 @@ $effect(() => {
 	{:else if data && data.records.length === 0}
 		{@render compactState(tableEmpty)}
 	{:else if data}
-		<DataPreviewTable fields={data.fields} records={data.records} total={data.total} limit={20} />
+		<DataPreviewTable fields={data.fields} records={data.records} total={data.total} />
 	{/if}
 {:else if kind === "none" || sourceUrl === null}
 	{@render compactState(noneCopy)}

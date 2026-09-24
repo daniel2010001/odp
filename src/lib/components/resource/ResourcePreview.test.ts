@@ -8,9 +8,9 @@
 // Las fixtures de los casos que renderizan algo declaran `url_type: "upload"`: sin eso `previewKind`
 // los clasifica como enlace y devuelve «none» antes de mirar el formato.
 
-import { render, screen } from "@testing-library/svelte";
+import { render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import type { DatastoreApi } from "$lib/api/datastore";
+import type { DatastoreApi, DatastoreSearchResult } from "$lib/api/datastore";
 import type { CkanResource } from "$lib/types/ckan";
 import ResourcePreview from "./ResourcePreview.svelte";
 
@@ -36,6 +36,15 @@ function makeDatastore() {
 		api: { search } as unknown as DatastoreApi,
 		search,
 	};
+}
+
+// Promesa que el test resuelve a mano: deja el datastore «pendiente» sin depender de un timeout.
+function deferred<T>() {
+	let resolve!: (value: T) => void;
+	const promise = new Promise<T>((res) => {
+		resolve = res;
+	});
+	return { promise, resolve };
 }
 
 const NONE_TITLE = /Sin vista previa disponible/i;
@@ -154,6 +163,68 @@ describe("ResourcePreview — el tipo del archivo decide el embed", () => {
 		expect(screen.getByText(NONE_TITLE)).toBeInTheDocument();
 		expect(container.querySelector("iframe")).toBeNull();
 		expect(search).not.toHaveBeenCalled();
+	});
+});
+
+describe("ResourcePreview — estados de carga y carrera de consultas", () => {
+	it("muestra el estado de carga mientras el datastore responde y luego la tabla", async () => {
+		const { api, search } = makeDatastore();
+		const pending = deferred<DatastoreSearchResult>();
+		search.mockReturnValue(pending.promise);
+		const { container } = render(ResourcePreview, {
+			props: { resource: makeResource({ datastore_active: true }), datastore: api },
+		});
+
+		expect(await screen.findByText("Cargando vista previa…")).toBeInTheDocument();
+		expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+		expect(screen.queryByRole("table")).toBeNull();
+
+		pending.resolve({
+			fields: [{ id: "ciudad", type: "text" }],
+			records: [{ ciudad: "Cochabamba" }],
+			total: 1,
+		});
+
+		expect(await screen.findByText("Cochabamba")).toBeInTheDocument();
+		expect(screen.queryByText("Cargando vista previa…")).toBeNull();
+		expect(container.querySelector('[aria-busy="true"]')).toBeNull();
+	});
+
+	it("una respuesta vieja no pisa las filas del recurso nuevo", async () => {
+		const { api, search } = makeDatastore();
+		const vieja = deferred<DatastoreSearchResult>();
+		const nueva = deferred<DatastoreSearchResult>();
+		search.mockImplementation((id: string) => (id === "res-a" ? vieja.promise : nueva.promise));
+
+		const { rerender } = render(ResourcePreview, {
+			props: {
+				resource: makeResource({ id: "res-a", datastore_active: true }),
+				datastore: api,
+			},
+		});
+		await rerender({
+			resource: makeResource({ id: "res-b", datastore_active: true }),
+			datastore: api,
+		});
+
+		// B resuelve primero y ya pinta sus filas...
+		nueva.resolve({
+			fields: [{ id: "ciudad", type: "text" }],
+			records: [{ ciudad: "Quillacollo" }],
+			total: 1,
+		});
+		expect(await screen.findByText("Quillacollo")).toBeInTheDocument();
+
+		// ...y A resuelve después: la respuesta vieja no debe pisarlas.
+		vieja.resolve({
+			fields: [{ id: "ciudad", type: "text" }],
+			records: [{ ciudad: "Cochabamba" }],
+			total: 1,
+		});
+		await waitFor(() => {
+			expect(screen.queryByText("Cochabamba")).toBeNull();
+		});
+		expect(screen.getByText("Quillacollo")).toBeInTheDocument();
 	});
 });
 

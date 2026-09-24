@@ -5,18 +5,22 @@ let {
 	fields,
 	records,
 	total,
-	limit = 20,
 }: {
 	fields: DatastoreField[];
 	records: Record<string, unknown>[];
 	total: number;
-	limit?: number;
 } = $props();
 
 const columns = $derived(fields.filter((f) => f.id !== "_id"));
 
 function cellValue(value: unknown): string {
 	if (value === null || value === undefined || value === "") return "—";
+	// Los tipos compuestos (objetos, arrays y también funciones y símbolos) van a JSON en vez de a
+	// `String`, que para un objeto devuelve el literal `[object Object]`. `JSON.stringify` devuelve
+	// `undefined` para funciones y símbolos sueltos: ese caso cae al guion, igual que un vacío.
+	if (typeof value === "object" || typeof value === "function" || typeof value === "symbol") {
+		return JSON.stringify(value) ?? "—";
+	}
 	return String(value);
 }
 </script>
