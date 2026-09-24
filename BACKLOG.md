@@ -1756,6 +1756,50 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa del slice E2b (bloque E, el encabezado se achica al scrollear) (2026-09-24)** —
+  cerró **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  - `review-6e034ec319f46e52`: tier **medium**, lente `review-reliability`, **7 archivos, 195 líneas**,
+    presupuesto de corrección 98, `risk_reasons: executable_change` (por `src/app.css`). Rango revisado
+    **`d2f53eb..HEAD`** con `baseRef` explícito. **Un revisor por `pi_host_relay`, 0 bloqueantes.**
+  - **Dos sugerencias informativas**, tal como las emitió el cierre:
+    1. `R3-001` · reliability · SUGGESTION · informativo · `src/routes/dashboard/+page.svelte:290-293`
+    2. `R3-002` · reliability · SUGGESTION · informativo · `src/routes/+layout.svelte:63-68`
+    El cierre lo dice explícitamente: ninguna abre corrección, ninguna reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Lectura de las líneas señaladas** (eso es lectura de las líneas, no el texto del hallazgo; el sobre trae
+    id, lente, severidad y ubicación, nunca la prosa): la del dashboard son las líneas donde se construye el
+    `ResizeObserver` y se hace `resizeObserver?.observe(header as Element)` — **el cast es mío y es innecesario**,
+    se evita estrechando con un `if (header)`; la del layout es el bloque de limpieza del efecto (el
+    `disconnect()` y el `removeAttribute`), donde lo único discutible es que la limpieza corre tanto al desmontar
+    como al re-ejecutar el efecto — y como la única dependencia reactiva es el centinela, que no cambia después
+    del montaje, se ejecuta una sola vez. Ninguna de las dos se corrige: son sugerencias, y tocar el código
+    habría invalidado un recibo ya quemado.
+  - Evidencia del slice: **3 tests nuevos** (el centinela existe; salir del tope pone el atributo en el documento
+    y volver lo quita, conducido por un `IntersectionObserver` falso; el estado vive en el documento y **no** en
+    el encabezado, porque los pegados son hermanos suyos), con **RED medido: 4 de 10 fallaban** antes de
+    implementar. Uno de ellos encontró un error real mío: la variable de estado estaba declarada y **nunca
+    enlazada** al elemento. Y la verificación que jsdom no puede dar: leído el CSS compilado por selector, el
+    token se declara en **dos** ámbitos (`:root` y `html[data-header-shrunk]`) y se generan
+    `height/top: var(--header-h)`, `top: calc(var(--header-h) + 1px)`, las dos propiedades de transición y los
+    200ms.
+  - Gates: `pnpm test` **619/619** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **El aviso `R3-1` de E2 queda cerrado acá**, que es donde se volvió obligatorio: el `rootMargin` de un
+    `IntersectionObserver` no se puede cambiar después de construirlo, así que con un alto dinámico el observer
+    se reconstruye cada vez que el alto cambia.
+  - **Tres obstáculos del arnés, los tres medidos y los tres reutilizables:** (1) **deriva de proyección**: con la
+    hoja `/dev/header` sin trackear en el árbol, el START fue rechazado con `candidate-target-projection-drift`
+    —el inventario de no-versionados cambia y la proyección del candidato no cuadra— aunque el `inspect` previo
+    hubiera pasado `untrackedScope: exclude`; se resolvió sacando la hoja del árbol, y se restauró después del
+    cierre; (2) **`consent-binding-stale` dos veces seguidas** y resuelto en el **tercer** START con clave nueva,
+    igual que lo ya registrado en este archivo; (3) **`capture-binding-rejected`** al reenviar el binding con
+    `reviewerRunAcknowledged`, con el `forecast` ya aceptado: el `STATUS` acotado **volvió a ofrecer el mismo
+    slot** (mismo `subject-hash` y misma revisión) y el relanzamiento cerró bien. Sin mutación en ninguno de los
+    tres fallos previos.
+  - **La hoja `/dev/header` se rehizo al revés que la primera versión**: ya no imita el encabezado —el demo en vivo
+    es el encabezado **real** de esa misma página, que se achica al scrollear— así que no hay marcado duplicado
+    que pueda derivar. El autor la había reportado como ilegible.
+  _Origen: cierre del slice E2b del bloque E, 2026-09-24._
+
 - [ ] **Recibo de la revisión nativa del slice E2 (bloque E, alto del encabezado) (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   - `review-aae5dd97579ec543`: tier **medium**, lente `review-reliability`, **7 archivos, 124 líneas**,
