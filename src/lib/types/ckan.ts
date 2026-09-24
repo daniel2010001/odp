@@ -81,6 +81,16 @@ export interface CkanResource {
 	 * `src/lib/resources/kind.ts`.
 	 */
 	url_type?: string;
+	/**
+	 * CKAN's own marker for a resource whose bytes were loaded into the DataStore (the tabular
+	 * PostgreSQL store that `datastore_search` reads). `true` only when the table exists, so it is
+	 * the honest answer to “is there data to show?” — the format is not.
+	 *
+	 * MEASURED against the dev stack (CKAN 2.11.6, 2026-09-23): present in every `resource_show`
+	 * response, `false` on all 35 seeded link resources, and `true` immediately after the DataPusher
+	 * loaded a real uploaded CSV.
+	 */
+	datastore_active?: boolean;
 	mimetype?: string;
 	size?: number;
 	created: string;
