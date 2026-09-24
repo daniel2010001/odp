@@ -1875,6 +1875,27 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa del slice E3 (bloque E, dos superficies del dashboard) (2026-09-24)** — cerró
+  **`approved`** con la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  `review-29ba39931af7f59a`: tier **medium**, lente `review-reliability`, **5 archivos, 226 líneas**, presupuesto
+  113. Rango revisado **`032046f..HEAD`**, que incluye además el commit de la sesión paralela del autor
+  (`f34dab3`, el plan de CKAN 2.12): se declara por la misma razón que en el recibo anterior, para que nadie le
+  atribuya ese plan a esta línea de revisión.
+  - **Un aviso informativo**: `R3-001` · reliability · WARNING · `dashboard/datasets/new/+page.svelte:652`.
+    **Lectura de la línea** (no el texto del hallazgo): es `const orgIsMissing = $derived(orgDisplayTitle === "")`
+    — la condición infiere «falta elegir» de que el **título resuelto** esté vacío, en vez del **estado de la
+    selección**. La diferencia importa si alguna organización tiene el `title` en cadena vacía: ahí la ficha diría
+    «Falta elegir una organización» con una organización ya elegida. El arreglo propio es derivarlo del estado
+    (`!singleOrg && !ownerOrg`), no del título. **Anotado, no corregido**: el recibo ya está quemado y el aviso no
+    reabre el candidato.
+  - Evidencia del slice: **el test fue primero** y **1 de 28 fallaba** antes del arreglo — «varias organizaciones,
+    ninguna elegida» era el único de los cuatro estados sin cobertura, porque el mock tenía una sola y con una el
+    campo se auto-selecciona. Gates: `pnpm test` **621/621** · `svelte-check` **0 errores** · Biome **exit 0**. El
+    `text-pretty` se verificó como clase **generada** en el CSS compilado (`text-wrap: pretty`), con el límite
+    declarado: **jsdom no maqueta nada**, así que si esa oración puntual deja de huérfanar lo confirma el autor en
+    la página real.
+  _Origen: cierre del slice E3 del bloque E, 2026-09-24._
+
 - [ ] **Recibo de la revisión nativa del ajuste de E2b a 16px (2026-09-24)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`). `review-639ebd76af60c244`: tier **medium**,
   lente `review-reliability`, **3 archivos, 139 líneas**, presupuesto 70. Rango revisado **`1d3a225..HEAD`**, que
