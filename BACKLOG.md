@@ -89,7 +89,7 @@
 | # | Qué | Quién decide | Coste | Depende de |
 |---|---|---|---|---|
 | **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev. **La recomendación que vivía acá —«login ruidoso, logout a best-effort»— quedó retirada el 2026-09-24: su premisa (impacto en el usuario) es falsa y está medida** —el cliente descarta el status, y el login ya denuncia la misma variable con la misma fuerza—. Lo único que sigue en pie es si el encabezado de la ruta merece precisar que la revocación *en sí* es best-effort. **Puede cerrarse sin una línea de código**; las mediciones están en «Deuda de revisión (RDD)» | el autor | chico, y probablemente cero código | nada |
-| **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
+| **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no — **E1 cerrado el 2026-09-24** (`review-35a2937ca35fd6fc`) | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
 | **3** | **Ingesta (`[v1+] Datos de muestra para las vistas`):** falta la fuente. **El autor tiene un ejemplo de cómo hacer la carga de datos y todavía no lo pasó**; con eso se decide. El camino «upload + datapusher» **ya está medido y funciona** | el autor (aporta el ejemplo) | medio | el ejemplo |
 | **4** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) | se decide al empezar | grande | nada, pero conviene medir primero |
 | **5** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
@@ -113,7 +113,7 @@
 > | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Antes salía la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | **CERRADO** (2026-09-22) · `review-13d22ebddf82eef0` |
 > | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, y ocultar las vistas de datos cuando el recurso es un enlace. | **CERRADO** (2026-09-22) · `review-c282f17baf9309ea`, `review-5f36113f971853de`, `review-11cc383a48faf9e7`, `review-74d83299cafabe6f` |
 > | **D** | **Vista previa de datos y sección «Data API».** | **CERRADO** (2026-09-23) · `review-4fb694e5160560c1`, `review-891f798293c18235`, `review-03b5057b001e6f9b` |
-> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente**; tres de sus ítems piden decisión del autor (plan en `odd/tasks/block-e-layout-polish.md`). | en curso (2026-09-24: E1) |
+> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente**; tres de sus ítems piden decisión del autor (plan en `odd/tasks/block-e-layout-polish.md`). | **en curso** (2026-09-24: **E1 cerrado**, `review-35a2937ca35fd6fc`) |
 > | **F** | **Permisos:** colaboradores nativos de CKAN, medir antes de construir. | pendiente |
 > | **G** | **El oráculo de la API.** | diferido |
 >
@@ -1755,6 +1755,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibo de la revisión nativa del slice E1 (bloque E, chips de formato) (2026-09-24)** — cerró **`approved`**
+  y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  - `review-35a2937ca35fd6fc`: tier **medium**, lente `review-reliability`, **3 archivos, 130 líneas**,
+    presupuesto de corrección 65, `risk_reasons: executable_change` (por `search/DatasetCard.svelte`). Rango
+    revisado **`ce8fb17..HEAD`** con `baseRef` explícito. **Un revisor por `pi_host_relay`, 0 bloqueantes.**
+  - **Lo que el cierre NO trajo: ningún hallazgo** — y esta sección copia los avisos «tal como los emitió el
+    cierre», así que acá no hay nada que copiar. **No se escribe «cero hallazgos»: se escribe que el cierre no
+    reportó ninguno.** Medido, para que nadie lo lea como un olvido: el artefacto del revisor **no está en ningún
+    store legible** — los registros de `review-transactions/terminal-consumption/v1/` tienen **los mismos cuatro
+    campos** en todas las líneas (incluidas D3 y L1, que sí tenían avisos), `review-transactions/v2/` sólo
+    conserva cuatro líneas viejas (Sep 10-14) cuyo `state` **tampoco** tiene un campo `findings`, y
+    `candidate-views/` quedó vacío al cerrar. Las dos lecturas compatibles —el revisor no emitió hallazgos, o esta
+    versión (3.7.0) no los expone— **no están discriminadas**, y no se inventan ids, severidades ni ubicaciones.
+  - Evidencia del slice: **10 tests** en `src/lib/resources/formats.test.ts`, **8 de los cuales fallan** contra el
+    comportamiento anterior (RED medido antes del arreglo: `chips: [' ', '   ', 'CSV']` y `more: 1` con un solo
+    formato único). Medición en vivo del defecto contra el catálogo de dev:
+    `observatorio-de-movilidad-urbana-cochabamba` tiene **5 recursos y 4 formatos únicos**, así que la card
+    mostraba un chip duplicado **y `+1 más`** — un formato oculto que no existe.
+  - Gates: `pnpm test` **611/611** · `svelte-check` **0 errores** (4 advertencias preexistentes, ninguna del
+    diff: dos `label` sin control asociado, un `value` capturado y el tipo `node`) · Biome directo **exit 0**
+    sobre los tres archivos tocados.
+  _Origen: cierre del slice E1 del bloque E, 2026-09-24._
 
 - [ ] **Advisory de la revisión nativa del slice D3 (bloque D) (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
