@@ -51,9 +51,19 @@ describe("Header (layout)", () => {
 });
 
 describe("Alto del encabezado: una sola fuente", () => {
-	it("el token `--header-h` se declara una sola vez, en app.css", () => {
+	it("el token `--header-h` se declara en `:root` —nunca dentro de un modo— y una sola vez", () => {
 		const css = readFileSync(join(routesDir, "..", "app.css"), "utf8");
 
+		// Declararlo dentro de `.dark` deja al modo claro SIN el token: `var(--header-h)` queda
+		// inválido, el `height` cae a `auto` (el encabezado mide la mitad) y cada `top:` cae a
+		// `auto` (todos los pegados se rompen). Pasó exactamente eso el 2026-09-24, y las
+		// verificaciones de entonces no lo vieron porque contaban apariciones en vez de mirar el
+		// selector que las contiene. Estas dos aserciones son esa mirada.
+		const rootBlocks = css.match(/:root\s*\{([^}]*)\}/gs) ?? [];
+		const darkBlocks = css.match(/\.dark\s*\{([^}]*)\}/gs) ?? [];
+
+		expect(rootBlocks.some((block) => /--header-h\s*:/.test(block))).toBe(true);
+		expect(darkBlocks.some((block) => /--header-h\s*:/.test(block))).toBe(false);
 		expect(css.match(/--header-h\s*:/g) ?? []).toHaveLength(1);
 	});
 
