@@ -1133,16 +1133,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   similar a la del **dataset**, conservando el detalle que agrega valor a la card. Revisar ambos
   antes de normalizar. _Origen: revisión de UI del dashboard (2026-09-12)._
 
-- [ ] **[v0] Endurecer la vista previa CSV (hallazgos de revisión)** — 4 hallazgos informativos
-  no bloqueantes de la revisión de la vista previa (lineage `review-ca9abb1187a39513`, lente
-  reliability). Sólo el primero es sustantivo:
-  1. `R3-stale-search-race` (WARNING): `ResourcePreview.svelte` puede resolver un
-     `datastore_search` viejo después de uno nuevo si el recurso cambia rápido (carrera de
-     estados → filas de un recurso distinto).
-  2. `R3-cellvalue-object-stringify`: `DataPreviewTable` hace `String(obj)` → `"[object Object]"`.
-  3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
-  4. `R3-loading-state-untested`: estado de carga sin test.
-
 - [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
   Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
   `http://localhost:5000/dataset/<name>/resource/<file>/download/<file>` — el `ckan.site_url` de CKAN —,
@@ -1665,6 +1655,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Endurecer la vista previa de datos (bloque D, slice D2)** | **Implementado y aprobado** (2026-09-23). Los 4 hallazgos de `review-ca9abb1187a39513`. El sustantivo —`R3-stale-search-race`— se arregló con la guarda de corrida superada (el `cleanup` del efecto marca su corrida y los dos handlers comprueban antes de escribir; sin `AbortController` porque el cliente no acepta `signal`), y **el test que lo cubre fue verificado en contra: se neutralizó la guarda y el test FALLÓ** (aparecía la fila vieja), con el archivo restaurado byte-idéntico por sha256. Los otros tres: una celda con objeto ya no pinta `[object Object]` (va a JSON, con funciones y símbolos cayendo al guion y los primitivos intactos), el prop `limit` —declarado, con default y **sin uso**— **se eliminó** (lo que limita las filas es el fetch, y un prop que no hace nada declara un contrato falso), y el estado de carga tiene test con promesa diferida. Revisión nativa `review-891f798293c18235` **aprobada** (tier medium, lente reliability, 4 archivos / 129 líneas, presupuesto 65), 2 avisos informativos. Gates: `check` 0 errores · `test` **593/593** · Biome limpio. |
 | **La vista previa del recurso, por tipo (bloque D, slice D1)** | **Implementado y aprobado** (2026-09-23). El panel dejó de decidir con un `format === "csv"` propio —regla nuestra, no de CKAN, y falso negativo: el DataPusher carga `csv, xls, xlsx, tsv, ods` por defecto y `datastore_search` sirve cualquier tabla que exista— y ahora usa la marca de CKAN **`datastore_active`** para la tabla y el **tipo del archivo** para el embed (PDF, imagen, TXT/JSON). Se eliminaron los tabs simulados `Tabla`/`Gráfico`/`Mapa`: `Gráfico` y `Mapa` no son clases de vista previa (el modelo de vistas del PRD los pone en el módulo de análisis, RF-24/25/26), así que el portal dejó de contradecir su propio modelo. El cliente del DataStore ahora manda el token de la sesión, y todo embed pasa por `safeExternalUrl`. Hoja de revisión permanente nueva: **`/dev/preview`**. Revisión nativa `review-4fb694e5160560c1` **aprobada** (tier medium, lente reliability, 12 archivos / 1 182 líneas, presupuesto 200), authority quemada, **2 avisos informativos** registrados en «Deuda de revisión». Gates: `check` 0 errores · `test` **588/588** · Biome en su baseline (4 warnings + 7 infos, ninguno nuevo). |
 | **La causa del fallo de la vista previa en el catálogo sembrado** | **Cerrado e identificado** (2026-09-23, sonda D0). **No era el DataPusher**: se subieron tres archivos reales (CSV, PDF, PNG) a un dataset descartable y el pusher cargó el CSV al DataStore al instante (`datastore_active: true` en el primer sondeo y `datastore_search` con las filas). Lo que fallaba eran los **enlaces sembrados**, que nunca tuvieron tabla. Corolario corregido: `hash` es `null` **también** en un archivo alojado, así que «no tiene `hash`» no discrimina enlace de archivo; el único discriminador es `url_type === "upload"`. Catálogo dev restaurado a 17 datasets / 7 orgs. |
 | **Wizard: validación completa (Zod v4)** | **Implementado** (2026-09-12). El schema ahora cubre `url` (opcional, http/https con la **misma** política de enlaces del fix de seguridad), `maintainer_email` (opcional, validado con el **mismo regex de CKAN**, con sus tres lookaheads) y `maintainer`, y `tag_string` valida el formato real de CKAN (largo 2..100 y charset) normalizando al mismo tiempo: recorta, descarta vacíos y quita duplicados. Trampa encontrada al medir: el `\\w` de JavaScript es ASCII y habría rechazado «gestión», «año» o «educación», etiquetas que CKAN sí acepta; se usa `\\p{L}\\p{N}_`. El payload se construye **desde el resultado validado**, no desde el estado crudo, así que lo que se ve es lo que CKAN guarda. Validación en vivo (al perder foco, y se limpia al corregir) y resumen de errores con foco al primer campo inválido. **Defecto real corregido en el camino**: la UI leía `fieldErrors.slug` mientras el schema emitía `name`, así que el error del slug **nunca se mostraba** y el botón parecía no responder (test en RED antes del fix). Verificado en Chromium con eventos reales de entrada (focus/blur/input por CDP) y capturando el payload real con `fetch` interceptado, sin mutar CKAN. |
@@ -1701,6 +1692,25 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Advisory de la revisión nativa del slice D2 del bloque D (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:6ea50eb32373453dddcec23138b43f67337bdd5dd28df9cb9c73b2a07718c6cc` del candidato
+  `sha256:783426ed187ec0c3512d82c67e6b2415d0fdbd03839ce136cbe779eed2f4f97d`).
+  - `review-891f798293c18235`: tier **medium**, lente `review-reliability`, **4 archivos, 129 líneas**,
+    presupuesto de corrección 65. Rango revisado **`3517ae1..HEAD`** con `baseRef` explícito.
+  - Dos avisos no bloqueantes, tal como los emitió el cierre:
+    1. `R3-001` · reliability · WARNING · informativo · `src/lib/components/resource/DataPreviewTable.svelte:22`
+    2. `R3-002` · reliability · SUGGESTION · informativo · `src/lib/components/resource/ResourcePreview.svelte:92`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Contexto de las ubicaciones:** la primera cae en `cellValue`, la función que decide cómo se pinta una
+    celda (donde acaba de entrar la rama de JSON para tipos compuestos); la segunda, dentro del `$effect` de
+    la vista previa, en la zona donde resuelve la consulta al DataStore. Eso es **lectura de las líneas**,
+    no el texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice D2 del bloque D (2026-09-23)._
 
 - [ ] **Advisory de la revisión nativa del slice D1 del bloque D (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión

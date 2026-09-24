@@ -145,8 +145,13 @@ preview is coming soon», lines 76-85) is now obsolete and contradicts the shipp
 5. **D1d** — author review of the sheet, iterate. **DONE 2026-09-23** — reviewed via
    `http://localhost:5173/dev/preview`, approved with no observations.
 6. **D1-promote** — the resource page drops the simulated tabs and sends its token. **DONE** — `ce8670a`.
-7. **D2** — the four findings of `review-ca9abb1187a39513`. *PENDING — next.*
-8. **D3** — the Data API gate + the spec reconciliation. *PENDING.*
+7. **D2** — the four findings of `review-ca9abb1187a39513`. **DONE** — `faa62eb` · 4 files / +120/−9 · 5 new tests
+   (588 → 593). Receipt `review-891f798293c18235` **approved** (medium, reliability, 129 lines, budget 65),
+   two informational advisories, authority burned. The race test's power was verified the hard way: with the
+   guard neutralised it **failed** (the stale row appeared), and the file was restored byte-identical by
+   sha256. The `limit` prop was removed rather than implemented: what limits the rows is the fetch, and a
+   prop that does nothing misstates the component's contract.
+8. **D3** — the Data API gate + the spec reconciliation. *PENDING — next.*
 
 ## D1 receipt
 
