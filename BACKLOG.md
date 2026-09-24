@@ -89,7 +89,7 @@
 | # | Qué | Quién decide | Coste | Depende de |
 |---|---|---|---|---|
 | **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev. **La recomendación que vivía acá —«login ruidoso, logout a best-effort»— quedó retirada el 2026-09-24: su premisa (impacto en el usuario) es falsa y está medida** —el cliente descarta el status, y el login ya denuncia la misma variable con la misma fuerza—. Lo único que sigue en pie es si el encabezado de la ruta merece precisar que la revocación *en sí* es best-effort. **Puede cerrarse sin una línea de código**; las mediciones están en «Deuda de revisión (RDD)» | el autor | chico, y probablemente cero código | nada |
-| **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no — **E1 cerrado el 2026-09-24** (`review-35a2937ca35fd6fc`) | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
+| **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no — **E1 y E2 cerrados el 2026-09-24** (`review-35a2937ca35fd6fc`, `review-aae5dd97579ec543`) | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
 | **3** | **Ingesta (`[v1+] Datos de muestra para las vistas`):** falta la fuente. **El autor tiene un ejemplo de cómo hacer la carga de datos y todavía no lo pasó**; con eso se decide. El camino «upload + datapusher» **ya está medido y funciona** | el autor (aporta el ejemplo) | medio | el ejemplo |
 | **4** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) | se decide al empezar | grande | nada, pero conviene medir primero |
 | **5** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
@@ -113,7 +113,7 @@
 > | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Antes salía la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | **CERRADO** (2026-09-22) · `review-13d22ebddf82eef0` |
 > | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, y ocultar las vistas de datos cuando el recurso es un enlace. | **CERRADO** (2026-09-22) · `review-c282f17baf9309ea`, `review-5f36113f971853de`, `review-11cc383a48faf9e7`, `review-74d83299cafabe6f` |
 > | **D** | **Vista previa de datos y sección «Data API».** | **CERRADO** (2026-09-23) · `review-4fb694e5160560c1`, `review-891f798293c18235`, `review-03b5057b001e6f9b` |
-> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente**; tres de sus ítems piden decisión del autor (plan en `odd/tasks/block-e-layout-polish.md`). | **en curso** (2026-09-24: **E1 cerrado**, `review-35a2937ca35fd6fc`) |
+> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente**; tres de sus ítems piden decisión del autor (plan en `odd/tasks/block-e-layout-polish.md`). | **en curso** (2026-09-24: **E1** `review-35a2937ca35fd6fc` · **E2** `review-aae5dd97579ec543`) |
 > | **F** | **Permisos:** colaboradores nativos de CKAN, medir antes de construir. | pendiente |
 > | **G** | **El oráculo de la API.** | diferido |
 >
@@ -1397,8 +1397,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
   `snap-mandatory`) en el contenedor de scroll y `snap-start` en cada card. **La trampa es el encabezado
   pegajoso**: hay que compensarlo con `scroll-mt-*`, porque el buscador ya tiene un `aside` con
-  `lg:sticky lg:top-40` y el encabezado del sitio mide `h-20`; sin ese margen la card se fija por debajo
-  de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
+  `lg:sticky lg:top-40` y el encabezado del sitio mide `var(--header-h)` (5rem, `src/app.css`); sin ese margen
+  la card se fija por debajo de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
   _Origen: pedido del usuario, 2026-09-17._
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
@@ -1756,6 +1756,33 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa del slice E2 (bloque E, alto del encabezado) (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  - `review-aae5dd97579ec543`: tier **medium**, lente `review-reliability`, **7 archivos, 124 líneas**,
+    presupuesto de corrección 62, `risk_reasons: executable_change` (por `src/app.css`). Rango revisado
+    **`9afdcea..HEAD`** con `baseRef` explícito. **Un revisor por `pi_host_relay`, 0 bloqueantes.**
+  - **Un aviso informativo**, tal como lo emitió el cierre:
+    1. `R3-1` · reliability · WARNING · informativo · `src/routes/dashboard/+page.svelte:256`
+    El cierre lo dice explícitamente: no abre corrección, no reabre la revisión y no se ofrece transición de
+    corrección para este candidato.
+  - **Lectura de la línea señalada (eso es lectura de las líneas, no el texto del hallazgo):** la 256 es
+    `const stickyTopPx = headerHeightPx() + STICKY_GAP_PX;` — el alto del encabezado se **lee una sola vez**, al
+    construir el observer. La lectura probable: se cambió una constante rígida por una **lectura cacheada**, así
+    que si el alto cambia *después* de montar (la media query de alto que este mismo bloque evaluó, una fuente
+    que carga tarde, un cambio de layout) el `rootMargin` y el umbral quedan viejos igual que antes, sólo que
+    sin constante a la vista. El arreglo propio sería un `ResizeObserver` sobre el encabezado que reconstruya el
+    observer; **no se hizo**: el recibo ya está quemado y un aviso informativo no reabre el candidato.
+  - Evidencia del slice: **5 aserciones anti-deriva** en `src/routes/layout-header.test.ts`, con **RED medido**
+    (5 de 7 fallan con la implementación revertida). Y la verificación que jsdom no puede dar: el CSS **compilado
+    por Vite** contiene `--header-h: 5rem`, `height: var(--header-h)`, `top: var(--header-h)`,
+    `top: calc(var(--header-h) + 1px)` y el `calc(var(--header-h) + 1rem)` dentro del `@media (width >= 64rem)`.
+  - Gates: `pnpm test` **616/616** · `svelte-check` **0 errores** · Biome **exit 0** (sus 4 warnings y 5 infos
+    son los diagnósticos preexistentes del baseline).
+  - **Dos entradas `[v1]` tocadas por este slice**: la del desfase de la barra pegajosa quedó **cerrada en su
+    mitad de desincronización** (el resto —el test de comportamiento en navegador real— sigue abierto), y la del
+    scroll snapping quedó **actualizada** (`h-20` ya no es un literal: es `--header-h`).
+  _Origen: cierre del slice E2 del bloque E, 2026-09-24._
+
 - [ ] **Recibo de la revisión nativa del slice E1 (bloque E, chips de formato) (2026-09-24)** — cerró **`approved`**
   y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   - `review-35a2937ca35fd6fc`: tier **medium**, lente `review-reliability`, **3 archivos, 130 líneas**,
@@ -1767,8 +1794,11 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
     store legible** — los registros de `review-transactions/terminal-consumption/v1/` tienen **los mismos cuatro
     campos** en todas las líneas (incluidas D3 y L1, que sí tenían avisos), `review-transactions/v2/` sólo
     conserva cuatro líneas viejas (Sep 10-14) cuyo `state` **tampoco** tiene un campo `findings`, y
-    `candidate-views/` quedó vacío al cerrar. Las dos lecturas compatibles —el revisor no emitió hallazgos, o esta
-    versión (3.7.0) no los expone— **no están discriminadas**, y no se inventan ids, severidades ni ubicaciones.
+    `candidate-views/` quedó vacío al cerrar. **Discriminado el mismo día, minutos después, por el cierre del
+    slice E2**: ese sobre de cierre —misma versión 3.7.0, mismo repo— **sí** traía el bloque `advisory_findings`
+    con un aviso. El campo existe y viaja cuando hay hallazgos, así que el cierre de E1 no los traía **porque el
+    revisor no emitió ninguno: este candidato cerró limpio**. (Lo que sigue sin poder recorrerse es el texto
+    completo del hallazgo, que tampoco llegó en E2: el sobre trae id, lente, severidad y ubicación.)
   - Evidencia del slice: **10 tests** en `src/lib/resources/formats.test.ts`, **8 de los cuales fallan** contra el
     comportamiento anterior (RED medido antes del arreglo: `chips: [' ', '   ', 'CSV']` y `more: 1` con un solo
     formato único). Medición en vivo del defecto contra el catálogo de dev:
@@ -2114,14 +2144,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (2026-09-12)._ **(Hoy sólo existe una acción real: el problema reaparece cuando aterricen las
   demás.)_**
 
-- [ ] **[v1] La barra pegajosa no tiene test automatizado** — su comportamiento (aparición a 88 px,
+- [ ] **[v1] La barra pegajosa no tiene test de comportamiento** — su comportamiento (aparición a 88 px,
   `inert` mientras está oculta, clics que atraviesan la franja transparente) se verificó **a mano en
-  Chromium por CDP**, no en la suite: jsdom no implementa `inert` ni `IntersectionObserver`. Si el
-  layout del encabezado cambia de alto (`h-20`), `STICKY_TOP_PX` queda desincronizado y **nada lo
-  detecta**. Opciones: un test de navegador real (playwright/puppeteer, hoy no instalados) o mover el
-  offset a una variable CSS compartida con el layout para que no pueda derivar. _Origen: revisión RDD
+  Chromium por CDP**, no en la suite: jsdom no implementa `inert` ni `IntersectionObserver`. Opción: un
+  test de navegador real (playwright/puppeteer, hoy no instalados). **Su otra mitad quedó cerrada el
+  2026-09-24 (slice E2):** «si el layout del encabezado cambia de alto, `STICKY_TOP_PX` queda
+  desincronizado y nada lo detecta» **ya no aplica** — el alto vive en un token (`--header-h`,
+  `src/app.css`), todos los offsets lo consumen, el observer mide el elemento real y hay aserciones
+  anti-deriva en `src/routes/layout-header.test.ts` que fallan si alguien vuelve a un literal. Queda el
+  aviso `R3-1` de E2: esa medición es **una sola vez**, al montar. _Origen: revisión RDD
   `review-1c90076e8986652c`, hallazgo advisory `R3-001` (el texto no se pudo recuperar: el ledger se
-  borra al cerrar la línea), 2026-09-12._
+  borra al cerrar la línea), 2026-09-12; mitad del desfase cerrada el 2026-09-24._
 
 - [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
   datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
