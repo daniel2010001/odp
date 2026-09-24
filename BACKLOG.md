@@ -1727,6 +1727,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
     de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: cierre del slice D1 del bloque D (2026-09-23)._
 
+- [x] **El commit de documentación posterior al recibo de D1 — revisado aparte, sin hallazgos.** El cierre del
+  bloque D dejó un commit de sólo-documentación (`3e03798`, `BACKLOG.md` + `odd/tasks/block-d-data-preview.md`,
+  2 archivos / 109 líneas) que quedó como **candidato sin revisar** frente a la compuerta de RDD. Se revisó
+  acotado a ese delta con `baseRef` explícito (`ce8670a..HEAD`), no a la rama acumulada: `review-3d4f52fb03dd4885`
+  cerró **`approved`**, tier **`low`**, **sin lentes** y **sin correr ningún modelo** — el propio provider lo
+  clasificó `non_executable_only`, que es la categoría que existe para que documentación pura no consuma
+  revisores. `correction_budget` 55, **0 hallazgos**. Authority quemada.
+  **Advertencia para la próxima sesión: acá termina el registro, por diseño.** La nota que documenta esta
+  revisión es a su vez un cambio de sólo-documentación, así que volver a registrarla produciría una cadena
+  infinita de recibos-de-recibos. Si la compuerta vuelve a ofrecer `review.start` para un delta de puro `.md`,
+  **corré el ciclo igual** (cuesta dos llamadas y **cero** corridas de modelo: el provider lo aprueba solo) y
+  **no lo anote acá otra vez**.
+  _Origen: compuerta de RDD sobre el commit de cierre de D1, 2026-09-23._
+
 - [ ] **Advisory de la revisión nativa de la política de existencia (2026-09-20)** — cerró **`approved`** con
   la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:cd80727f19f480cd99be4134de44c23c168b75267ae222f152d09b32c8a50478` del candidato
