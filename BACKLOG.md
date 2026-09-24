@@ -1703,6 +1703,44 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Advisory de la revisión nativa del slice L1 de «localhost» (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:cdae297f4106d8926fcff832cad1fba6acaffebf313ec615a279533f9065c161` del candidato
+  `sha256:e1d614ade4da0d357909cf0847c3a267b002cf92d79e12947ed4e7aa4c00be2c`).
+  - `review-344a93dbb8243ef2`: tier **high** —el provider lo subió por ser camino de autenticación
+    (`hot_path` / `auth`)—, **4 lentes** (`review-risk`, `review-resilience`, `review-readability`,
+    `review-reliability`), **10 archivos, 139 líneas**, presupuesto de corrección 70. Rango revisado
+    **`23d4f3c..HEAD`** con `baseRef` explícito. **Cuatro revisores corridos, 0 bloqueantes.**
+  - Los cuatro avisos, tal como los emitió el cierre:
+    1. `R2-logout-comment` · readability · SUGGESTION · informativo · `src/routes/auth/logout/+server.ts:5-8`
+    2. `R3-LOGOUT-CONFIG-500` · reliability · WARNING · informativo · `src/routes/auth/logout/+server.ts:29`
+    3. `R3-ROUTE-COVERAGE-GAP` · reliability · SUGGESTION · informativo · `src/lib/server/ckan-internal-url.test.ts:8-12`
+    4. `R4-LOGOUT-CONTRACT` · resilience · WARNING · informativo · `src/routes/auth/logout/+server.ts:29`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Lo que estos cuatro avisos tienen de notable, y por qué no se archivan sin más:** **tres de los cuatro
+    apuntan al mismo lugar** —`logout/+server.ts:29`, la resolución de la URL interna dentro del handler de
+    logout— desde **tres lentes distintas** (reliability, resilience, y el comentario en readability). Dos
+    lentes independientes convergiendo en una línea no es ruido. Y coinciden con el riesgo que el escritor
+    delegado ya había declarado por su cuenta: al quitar el fallback, **`POST /auth/logout` pasa a responder
+    `500` cuando `CKAN_INTERNAL_URL` falta fuera de desarrollo**, mientras el encabezado de la ruta prometía
+    «best-effort». La consecuencia práctica es leve —`logout()` del cliente ignora el status y limpia
+    `localStorage` igual, así que el usuario sale del portal, pero el token de CKAN **no se revoca** y el
+    servidor registra un error—, pero **es un cambio de contrato que introdujimos sin decidirlo**.
+  - **Decisión pendiente del autor, con recomendación:** (a) dejar el fallo ruidoso en las dos rutas —simple y
+    coherente, pero rompe el contrato declarado de logout por una mala configuración que **el login ya delata
+    con la misma fuerza**—; o **(b) recomendada**: mantenerlo ruidoso en **login** (donde es accionable y es la
+    puerta de entrada) y volver a **best-effort en logout**, registrando el error en el servidor sin fallar la
+    respuesta, porque el usuario ya está cerrando sesión y la revocación es por diseño best-effort. La (b) pide
+    su propio slice y su propia revisión: la authority de este recibo ya está quemada.
+  - Contexto de las ubicaciones: la 1 y la 4 caen en el encabezado y en la resolución dentro del handler de
+    logout; la 3, en el nuevo archivo de test (probablemente el límite de cobertura que el escritor ya declaró:
+    las rutas no se pueden testear con los alias actuales de Vitest). Eso es **lectura de las líneas**, no el
+    texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice L1 del trabajo «localhost», 2026-09-23._
+
 - [ ] **Advisory de la revisión nativa del slice D2 del bloque D (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:6ea50eb32373453dddcec23138b43f67337bdd5dd28df9cb9c73b2a07718c6cc` del candidato

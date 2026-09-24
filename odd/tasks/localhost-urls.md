@@ -44,30 +44,58 @@ Two consequences that shape the fix:
 
 ## Slices
 
-### L1 — the portal's internal URL (this repo)
+### L1 — the portal's internal URL (this repo) — **DONE, reviewed, approved**
 
-- One rule in a shared server module so `login` and `logout` cannot diverge:
-  `src/lib/server/ckan-internal-url.ts`.
-- `src/routes/auth/login/+server.ts` and `src/routes/auth/logout/+server.ts` consume it and lose their
-  duplicated `|| "http://localhost:5000"`.
-- Tests for the three branches: configured, unset-in-dev, unset-in-production (the last must fail
-  loudly, not return a URL).
-- Remove `APP_URL` from `src/lib/env.ts` and from the four test stubs that declare it.
-- **Not** a test gap to skip: no test touches these two `+server.ts` routes today.
+Commit `4f06bbf`. Receipt **`review-344a93dbb8243ef2` — APPROVED**, tier `high` (the provider raised it for
+the auth path), **4 lenses**, 10 files / 139 lines, budget 70, **four informational findings, zero
+blockers**, authority burned. Range `23d4f3c..HEAD` with an explicit `baseRef`.
 
-### L2 — `odp-docker` (separate repository)
+Gates, verified by the parent: `pnpm test` **598/598** (593 + 5), `pnpm check` 0 errors, `biome check` exit 0
+on the 11 touched files.
 
-- `ckan-docker/.env`: `CKAN_SITE_URL=http://192.168.1.201:5000`.
-- `ckan-docker/.env.example`: replace the `https://localhost:8443` example with a real placeholder plus
-  a comment saying it must be the URL visitors actually use, because CKAN bakes it into every absolute
-  URL — including the download URL the portal embeds.
-- Restart `ckan-dev` and verify **live** that the LAN origin stops emitting `localhost`.
+- One rule in `src/lib/server/ckan-internal-url.ts`: configured wins; unset **in dev** falls back to the dev
+  CKAN; unset outside dev throws, naming the variable. Pure on purpose — `$env/dynamic/private` and
+  `$app/environment` are virtual modules Vitest does not resolve, so the value arrives as a parameter and
+  the decision is testable without mocking either. 5 tests over the three branches.
+- Both auth routes consume it and lost the `|| "http://localhost:5000"`.
+- `APP_URL` removed (unused) plus its `PUBLIC_APP_URL` declaration in `.env` and `.env.example`.
+- **A bad acceptance criterion of mine, corrected:** I asked for `grep -rn "localhost:5000" src/routes/ src/lib/env.ts`
+  to be empty. It is not, because it also matches three **inert test fixtures** (`CKAN_URL` stubs and a mocked
+  `resource_show` url) in the two dataset test files. Those are legitimate and rewriting them would be churn for
+  a criterion that was wrong, not code that was wrong. The right criterion is the one that matters, and it passes:
+  `grep -rn "localhost:5000" src/routes --include="+server.ts"` → empty, and the only non-test occurrence left in
+  `src/` is the single exported `DEV_CKAN_INTERNAL_URL` constant.
+- **Route-level test not possible, and disclosed rather than forced:** importing the route in Vitest fails at
+  `vite:import-analysis` («Failed to resolve import `$app/environment`»), because only `$app/navigation` and
+  `$app/stores` are aliased. Making it work needs new aliases in `vitest.config.ts`, which was outside the
+  authorized surfaces. Coverage stays at the pure-function level, which exercises the same decision.
 
-### L3 — verification
+### L2 — `odp-docker` (separate repository) — **DONE and verified live**
 
-- `curl http://192.168.1.201:5000/` must no longer return `localhost` links.
-- A real hosted file's `resource_show` must report the LAN origin (a tiny upload, then purge, exactly
-  like probe D0 — the catalogue has no hosted files otherwise).
+- `ckan-docker/.env`: `CKAN_SITE_URL=http://192.168.1.201:5000`. The edit is surgical and proven — `diff`
+  against a backup shows **exactly one changed line** out of 79, and the file holds credentials.
+- `ckan-docker/.env.example`: the `https://localhost:8443` example replaced with a real placeholder plus the
+  reason.
+- **Operational finding worth keeping: `docker restart` is not enough.** The container's environment is fixed
+  when it is created, so `env_file` changes need a **recreate**:
+  `docker compose -p odp-dev -f docker-compose.dev.unified.yml up -d ckan-dev`. After the recreate the
+  container env is right while `/srv/app/ckan.ini:79` still reads `http://localhost:5000` — the ini is baked and
+  the env wins, which is why the emitted links changed.
+
+### L3 — verification *(DONE)*
+
+- `curl http://192.168.1.201:5000/` → **7 links to `http://192.168.1.201:5000`, zero to `localhost`**.
+- A repeated D0-style probe (three real uploads, then purge) shows the hosted resources' `url` now carrying the
+  LAN origin — so the PDF iframe and the image img resolve off-server — and **the DataPusher still works after the
+  recreate** (`datastore_active: true` on the first poll, `datastore_search` with the rows), which retires the
+  callback risk. Catalogue restored to **17 datasets / 7 orgs**, probe tokens revoked.
+
+## Open follow-up decision
+
+Three of L1's four advisories converge on `logout/+server.ts:29` — the route now answers `500` when
+`CKAN_INTERNAL_URL` is missing outside dev, which contradicts its documented best-effort contract. Recommendation:
+keep the loud failure on **login** (actionable, and the entry point) and return logout to best-effort, logging the
+config error without failing the response. That needs its own slice and its own review.
 
 ## Allowed edit surfaces
 
