@@ -1891,6 +1891,40 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa del slice E7 (bloque E, el chip de contexto del breadcrumb) (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada. `review-c918f32f7c87a968`: tier **medium**, lente
+  `review-reliability`, **5 archivos, 286 líneas**, presupuesto 143. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Los cuatro avisos son informativos**, y el cierre lo dice: ninguno abre corrección ni reabre el candidato.
+    **Lectura de las líneas** (no el texto del hallazgo):
+    1. `R3-002` · WARNING · `Breadcrumb.svelte:37` — es el `<ol>` del recorrido de escritorio (`hidden lg:flex`):
+       el componente mantiene **dos DOMs** para la misma navegación (recorrido y chip), uno oculto por breakpoint.
+       Es deliberado —`display:none` deja sólo uno en el árbol de accesibilidad— a costa de duplicar marcado.
+    2. `R3-001` · WARNING · `Breadcrumb.svelte:92` — es `{#each ancestors as item (item.label)}`: **la clave usa la
+       etiqueta**, y una etiqueta no está garantizada única (un recurso y su dataset con el mismo nombre
+       colisionan). Es un olor real y chico; el arreglo sería una clave por índice o por `href`.
+    3. `R3-003` · WARNING · `Breadcrumb.svelte:96-108` — el item con `href` y el item sin él renderizan la misma
+       fila por dos ramas, y la rama sin enlace queda como **item de menú que no hace nada** (misma apariencia,
+       ninguna acción). Olor real: correspondería no ofrecer fila para un ancestro sin destino.
+    4. `R3-004` · SUGGESTION · `Breadcrumb.test.ts:89` — la aserción del chip usa un cast (`as HTMLElement`) y una
+       negación sobre un glifo (`not.toContain("←")`), que es frágil.
+
+    Los cuatro quedan **anotados, no corregidos**: el recibo ya está quemado y ninguno reabre el candidato.
+  - Evidencia del slice: el test encontró un **bug real antes de commitear** —`DropdownMenu.GroupHeading` exige
+    un `Group` que lo envuelva, y sin él el desplegable **reventaba al abrirse** (`Context "Menu.Group |
+    Menu.RadioGroup" not found`)—. El chip se veía bien y fallaba al hacer clic: es exactamente lo que un test de
+    componente que abre el menú atrapa y una captura de pantalla no. El componente pasó de **4 a 8 tests**
+    (abriendo el desplegable y verificando que el nivel actual no se liste dos veces) más una aserción de
+    integración en la página del recurso.
+  - Gates: `pnpm test` **631/631** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **Cambio de escritorio declarado:** al unificar los dos breadcrumbs, la página del dataset pasó de tener su
+    nav propio (flecha + «Catálogo») al recorrido del componente: en `lg+` arranca con «Catálogo» sin flecha, y
+    las dos páginas ganan los rótulos de nivel. Es consecuencia de la decisión del autor («en un dataset sería
+    `[] My Dataset`, en un resource `[] My Resource`»), no un efecto colateral buscado.
+  - **Pendiente junto a este slice:** la hoja `/dev/nav` tiene su última edición **sin commitear** (se versionó
+    para no romper la proyección del candidato), y la sesión paralela tiene `BACKLOG.md` y su expediente de
+    CKAN 2.12 también **sin commitear**. Nada de eso entró en este candidato: el rango se pidió versionado.
+  _Origen: cierre del slice E7 del bloque E, 2026-09-24._
+
 - [ ] **Recibo de la revisión nativa de la hoja de navegación y los dos ítems del backlog (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada. `review-a6ba876369a3dd53`: tier **medium** —la hoja es
   ejecutable, vive bajo `src/routes/dev/`—, lente `review-reliability`, **3 archivos, 372 líneas**, presupuesto
