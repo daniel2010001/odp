@@ -200,7 +200,7 @@ height ever changes, that pair drifts with it — and nothing links them.
 |---|---|---|---|
 | **E3** | closed | `review-29ba39931af7f59a` | The wizard's summary named the missing organisation (test first, 1 of 28 failing) and both dashboard descriptions got `text-pretty`. One advisory: the missing state is derived from the resolved title rather than from the selection, which would misreport an organisation whose title is empty. |
 | **E7** | closed | `review-c918f32f7c87a968` | The breadcrumb is a **context chip** on mobile (the current level, with its type icon, and the trail inside its dropdown) and one single component in both pages - the dataset page's own inline nav is gone. Four advisories, two of them fixed later in E8. The test caught a real bug before committing: `GroupHeading` needs a `Group` wrapper and without it the dropdown crashed on open. |
-| **E8** | code closed, **gate pending** | — | The author corrected their choice: the resource jump is the dropdown in the breadcrumb (a second group with the siblings, each with its format, the current one without an `href`) plus previous/next with `Recurso 4 de 5`. Order and extremes live in the pure `resourceNeighbours` with eight tests. **The review could not run**: the parallel session's untracked file makes the bounded START ask for the untracked selection, and both routes failed. Resume in a fresh process with `baseRef=448190a`, `committedOnly: true`. |
+| **E8** | closed 2026-09-25 | `review-865b14e1f735a37a` · medium · reliability · 9 files / 931 lines · 0 blockers · 1 informational (`R3-001` `src/lib/resources/order.ts:55-57`) | The author corrected their choice: the resource jump is the dropdown in the breadcrumb (a second group with the siblings, each with its format, the current one without an `href`) plus previous/next with «Recurso 4 de 5». Order and extremes live in the pure `resourceNeighbours` with eight tests. **The gate ran on the third attempt, a day later.** It was blocked by the parallel session's untracked `odd/tasks/tokens-page-patch.md`: with one eligible untracked path **no bounded `START` advances**, and resolving the selection **creates its own working-tree lineage**. It was unblocked by committing that file and the other two docs of the parallel session (`b83cd38`) with the foreign authorship declared in the message — the untracked inventory went empty and the `START` took on the first try. Accepted and declared cost: those docs are inside the E8 candidate (9 files instead of 7), passive documentation, no extra lens. |
 
 **New items from the author, both design, both measured (they are in `BACKLOG.md`):**
 the previous/next buttons are too small to be noticed (`p-1.5`, `size-4` icon, counter hidden below `sm`); and
@@ -217,3 +217,23 @@ flow.
 **Still blocked from earlier in the session:** the E5 correction plan (`review-5ab16f231f1adb49` in
 `correction_required`, fix already committed as `e5d2411`, 25 diff lines to declare in a fresh process) and
 **E4**, which needs the author's decision on which of the two dataset metadata cards is the one to normalise.
+
+## Gate closure of E8 (2026-09-25)
+
+**A second accidental lineage, this time cleaned.** Resolving the intended-untracked selection created
+`review-7fc73fed89978ad8` over the **working tree** —4 files, 529 lines, the parallel session's uncommitted
+content, not the E8 candidate—. The author authorized its `ABANDON`; the native record is
+`gentle-ai.review-reclaim-record/v1` (`reason: operator_disposition`, `actor: pi`), the transaction is in
+`/home/danielblc/projects/odp/.git/gentle-ai/review-transactions/quarantine/`, and
+`discarded_work.captured_lens_results` is `[]` — nothing was thrown away. Measured on the way: `ABANDON` needs
+`reason` as an **enum** (`operator_disposition` | `retired_schema`), and a free-text reason fails with
+`mutation_outcome: unknown`, which a target-scoped `STATUS` resolves (unchanged revision = no mutation).
+
+**The previous session's accidental lineage (`review-c73d757362ca2fa1`) is still open** and is the candidate for
+the same treatment: while any lineage is open on this workspace, capture resubmissions get stuck.
+
+**Gates at closure:** `pnpm test` **640/640** (47 files) · `svelte-check` **0 errors, 4 warnings** (pre-existing)
+· Biome **exit 0**, **4 warnings + 7 infos**, the exact baseline. Measured caveat: the same `biome check .`
+without a raised heap died twice with `Linter process terminated abnormally` and exit 254, emitting no counts;
+`NODE_OPTIONS=--max-old-space-size=6144` completes, and so does `biome check src`. It is memory pressure, not
+deterministic.

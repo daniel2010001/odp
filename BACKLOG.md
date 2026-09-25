@@ -108,22 +108,33 @@
 > El detalle de cada uno está en «Deuda de revisión (RDD)», y el plan en
 > `odd/tasks/block-e-layout-polish.md`.
 >
-> **Estado del árbol:** rama `feat/v0-portal-honesty`, **44 commits sin pushear**, `pnpm test` **640/640**,
-> `svelte-check` 0 errores, Biome exit 0.
+> **Estado del árbol:** rama `feat/v0-portal-honesty`, **48 commits sin pushear**, `pnpm test` **640/640** (47
+> archivos), `svelte-check` **0 errores / 4 advertencias** (las preexistentes), Biome **exit 0** con **4 warnings
+> + 7 infos** (el baseline exacto).
 >
-> **E8 —saltar de un recurso a otro— está commiteado (`524af04`) y su COMPUERTA QUEDÓ PENDIENTE.** No se pudo
-> correr por un archivo **sin versionar** de la sesión paralela (`odd/tasks/tokens-page-patch.md`): con un no
-> versionado elegible en el árbol, el `START` exige la selección de no-versionados, y las dos rutas fallaron
-> —una creó un linaje sobre el **árbol de trabajo** (`review-c73d757362ca2fa1`: **no colectarlo**, no es el
-> candidato de nadie y no capturó nada) y la otra fue rechazada con el binding fresco. **Qué hacer:** en un
-> **proceso nuevo**, `inspect` y `start` acotado a `448190a..HEAD` con `committedOnly: true`.
+> **E8 —saltar de un recurso a otro— CERRADO (2026-09-25): el código está en `524af04` y la compuerta corrió y
+> aprobó.** Recibo `review-865b14e1f735a37a`: tier **medium**, lente `review-reliability`, **9 archivos / 931
+> líneas**, presupuesto 200, **0 bloqueantes y 1 aviso informativo**, authority quemada. El aviso, la lectura de
+> sus líneas y el alcance del candidato están en «Deuda de revisión (RDD)».
 >
-> **Tres cosas bloqueadas o esperando decisión, ninguna es código a medias:**
-> 1. **La compuerta de E8** (arriba).
-> 2. **La corrección de E5**: `review-5ab16f231f1adb49` quedó en `correction_required` con el arreglo **ya
->    commiteado** (`e5d2411`) y el plan rechazado tres veces. Declarar **25 líneas de diff** en un proceso
->    nuevo; el detalle completo está en «Deuda de revisión (RDD)».
-> 3. **E4** — normalizar la card de metadatos del dataset: falta **la decisión del autor** (la página tiene
+> **El obstáculo que la frenó ayer quedó resuelto:** era `odd/tasks/tokens-page-patch.md` **sin versionar** —con
+> un no versionado elegible en el árbol, **ningún `START` acotado avanza**—. Se resolvió commiteando ese archivo
+> y los otros dos docs de la sesión paralela (`b83cd38`, autoría ajena declarada en el mensaje): el inventario
+> de no versionados quedó **vacío** y el `START` pasó a la primera. **Consecuencia asumida:** los docs de ese
+> commit entran al candidato de E8 (9 archivos en vez de 7).
+>
+> **Un linaje accidental más, y esta vez cerrado.** Resolver la selección de no versionados creó
+> `review-7fc73fed89978ad8` sobre el **árbol de trabajo** —4 archivos, 529 líneas de la otra línea, no el
+> candidato de E8—. **Abandonado con la autorización del autor** (registro `gentle-ai.review-reclaim-record/v1`,
+> en cuarentena, `captured_lens_results: []`, sin mutación previa). **Sigue abierto el de la sesión anterior,
+> `review-c73d757362ca2fa1`**, candidato al mismo cierre: mientras haya un linaje abierto sobre este workspace,
+> los reenvíos de captura se traban.
+>
+> **Dos cosas bloqueadas o esperando decisión, ninguna es código a medias:**
+> 1. **La corrección de E5**: `review-5ab16f231f1adb49` quedó en `correction_required` con el arreglo **ya
+>    commiteado** (`e5d2411`) y el plan rechazado tres veces. Declarar **25 líneas de diff**; el detalle
+>    completo está en «Deuda de revisión (RDD)».
+> 2. **E4** — normalizar la card de metadatos del dataset: falta **la decisión del autor** (la página tiene
 >    dos cards y la principal ya cumple). Pide antes/después.
 >
 > **Dos TODO nuevos del autor (2026-09-24), los dos de diseño y los dos con su medida:** los **botones de
@@ -148,12 +159,27 @@
 >   git apply --cached m`) o con `git add -p`. **Nunca** `git add -A` ni `git checkout -- <archivo>`.
 > - El **gancho de pre-commit** (`biome --staged --write`) puede dejar un diff de **sólo formato** después de
 >   commitear.
+> - **Resolver la selección de no versionados no es una selección: es un `START`.** `select-intended-untracked`
+>   —y el `inspect` con `untrackedScope`— **crean un linaje** sobre la proyección de **árbol de trabajo**, con
+>   el contenido sin commitear de quien sea. Costó **dos linajes accidentales en dos sesiones**. Con un no
+>   versionado elegible, la decisión correcta **antes** de tocar el arnés es versionarlo o ignorarlo.
+> - **`ABANDON` exige `reason` como enum**, no texto libre: `operator_disposition` o `retired_schema`. Con texto
+>   libre el nativo falla (`review abandon requires reason …`) y deja `mutation_outcome: unknown`, que se
+>   resuelve con un `STATUS` del objetivo: si el `revision` no cambió, **no hubo mutación**. Con el enum, el
+>   cierre es `gentle-ai.review-reclaim-record/v1` (`committed`) y la transacción queda **en cuarentena**.
+> - **`acknowledge-approved` por la fachada no acepta `input`**: devuelve `controller-only-input` y pide
+>   reenviar «el linaje exacto sin input de controlador». Con sólo `lineageId` quema la autoridad
+>   (`gentle-ai.review-acknowledged/v1`).
+> - **Biome puede morir por memoria con `exit 254`** (`Linter process terminated abnormally`) **sin imprimir
+>   conteos**: `NODE_OPTIONS=--max-old-space-size=6144 pnpm exec biome check .` completa y da el baseline
+>   (4 warnings + 7 infos), y `pnpm exec biome check src` completa sin tocar el heap. **No es determinista.**
 > - El worktree de aislamiento para la sesión paralela está creado: `/home/danielblc/projects/odp-token-hardening`
 >   (rama `feat/token-hardening`), y **no se movió**: la otra sesión siguió escribiendo acá.
 >
-> **De la sesión paralela, sin tocar:** `BACKLOG.md` y `odd/tasks/ckan-2.12-upgrade.md` tienen ediciones
-> **sin commitear**, y hay **un archivo nuevo sin versionar** (`odd/tasks/tokens-page-patch.md`). No los
-> commiteé: son suyos.
+> **De la sesión paralela (corregido el 2026-09-25):** `BACKLOG.md`, `odd/tasks/ckan-2.12-upgrade.md` y
+> `odd/tasks/tokens-page-patch.md` **se commitearon** (`b83cd38`) por decisión del autor y con la **autoría
+> ajena declarada en el mensaje**. Fue la única salida que dejaba el inventario de no versionados **vacío** sin
+> una regla de ignore que después estorbara. El contenido quedó **exactamente** como la otra sesión lo dejó.
 
 ## Estado al cierre (2026-09-23) — handoff de la próxima sesión
 
@@ -2058,6 +2084,34 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibo de la revisión nativa del slice E8 (bloque E, el salto entre recursos) (2026-09-25)** — cerró
+  **`approved`** y la authority quedó quemada. `review-865b14e1f735a37a`: tier **medium**, lente
+  `review-reliability`, **9 archivos, 931 líneas**, presupuesto 200. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Un aviso informativo:** `R3-001` · reliability · SUGGESTION · `src/lib/resources/order.ts:55-57`. **El
+    envelope de cierre no trajo su texto** —sólo id, lente, ubicación, severidad y disposición, como pasó con
+    los tres avisos del upgrade—. **Lectura de las líneas** (esto es mi lectura, no el texto del proveedor): es
+    la firma y el cuerpo de `resourcePositionLabel`: con `index >= 0` arma «Recurso N de total» y si no, sólo
+    «N recursos». La guarda cubre el «no está en la lista» (`index: -1`) pero **no el tope superior**:
+    un índice positivo fuera de rango renderizaría «Recurso 6 de 5» en vez de caer al total. Es defensivo y hoy
+    inalcanzable —el único llamador pasa `neighbours.index` y `neighbours.ordered.length` de la misma lista—,
+    así que queda **anotado, no corregido**: el recibo ya está quemado y ningún aviso reabre el candidato.
+  - **Alcance del candidato, declarado y no ideal.** El rango pedido fue
+    `448190a48cb0b70bf206ed911e4063cb5a161e12..HEAD` con `committedOnly: true` —el slice E8 solo: 7 archivos,
+    414 inserciones / 39 borrados— **más el commit `b83cd38`** de documentación de la otra línea, que entró por
+    estar en la punta. Son documentación pasiva: no aportan riesgo y **no agregaron lentes** (una sola, la del
+    cambio ejecutable). Separarlas exigía reescribir la rama; se prefirió el candidato algo más grande y
+    declarado.
+  - **Cómo se destrabó, que es la parte reutilizable.** El árbol tenía `odd/tasks/tokens-page-patch.md` **sin
+    versionar**, y con un no versionado elegible **ningún `START` acotado avanza**. Además, resolver la
+    selección **crea un linaje propio sobre el árbol de trabajo**. Se commiteó ese archivo y los otros dos docs
+    de la sesión paralela (`b83cd38`, autoría ajena declarada en el mensaje) y el inventario quedó vacío: el
+    `START` pasó a la primera.
+  - Gates: `pnpm test` **640/640** (47 archivos) · `svelte-check` **0 errores, 4 advertencias** (las
+    preexistentes: dos `label` sin control, un `value` capturado y el tipo `node`) · Biome **exit 0** con **4
+    warnings + 7 infos**, exactamente el baseline (medido con heap ampliado: la corrida sin `NODE_OPTIONS`
+    murió con `Linter process terminated abnormally` y exit 254, sin imprimir conteos).
+  _Origen: cierre de la compuerta de E8, 2026-09-25._
 
 - [ ] **Recibo de la revisión nativa del slice E7 (bloque E, el chip de contexto del breadcrumb) (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada. `review-c918f32f7c87a968`: tier **medium**, lente
