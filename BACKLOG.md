@@ -1348,16 +1348,32 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
 
-- [ ] **[v0]** `TODO:` **El breadcrumb no tiene tratamiento móvil y ocupa demasiado.** Observación del autor
-  (2026-09-22): «en móviles se ve mal, ocupa mucho espacio». **Medido:** `Breadcrumb.svelte` (45 líneas, en
-  `src/lib/components/ui/breadcrumb/`) renderiza un `<ol class="flex flex-wrap items-center gap-1 text-sm">` y
-  **no tiene una sola clase responsive, ni truncado, ni colapso** (un `grep` de `sm:`/`md:`/`hidden`/
-  `truncate` en ese componente da cero coincidencias). Con las **cuatro** migas de la ficha del recurso
-  —Datasets → organización → dataset → recurso— y nombres largos como «Observatorio de Movilidad Urbana
-  Cochabamba», **envuelve en varias líneas** arriba del contenido. El autor observó que este tipo de
-  componente cambia según el responsive en otras plataformas; acá no cambia. **Opciones a decidir cuando se
-  tome:** colapsar a las migas extremas con un «…», truncar las intermedias, o mostrar sólo el padre
-  inmediato con un «volver». Pertenece a la familia del **bloque E** (pulido de layout de `v0`).
+- [ ] **[v0]** `TODO:` **El breadcrumb en móvil: qué estrategia.** Observación del autor (2026-09-22): «en
+  móviles se ve mal, ocupa mucho espacio». **Estado (2026-09-24):** el slice **E5** implementó **truncar** las
+  migas (una línea, con el texto y los enlaces intactos, y tests que lo anclan). **El autor lo revisó y no le
+  conforma del todo:** propone mirar el patrón de un **desplegable con el árbol completo** en móvil, «algo como
+  `< Test Dataset` o `< Test Resource`». **Opciones concretas y clicables en la hoja `/dev/nav`, sección A:**
+  **A1** truncado (lo de hoy) · **A2** sólo el padre con rótulo de rol · **A3** el padre con el árbol adentro en
+  un desplegable · **A4** extremos + «…» con el árbol (el «collapsed» de shadcn). **Falta la decisión del
+  autor.** El desplegable se hace con el primitivo de **bits-ui** (`DropdownMenu`, ya instalado: el proyecto
+  tiene muy pocos componentes vendorizados).
+
+- [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
+  Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
+  float-menu del dashboard es más pequeño que el de los menús del search, o que los resúmenes del
+  form-create-dataset». **Medido — son TRES aires distintos más un número mágico:**
+  - la **barra de acciones del panel**: `fixed inset-x-0 top-[var(--header-h)] … pt-2` → **8px** de aire, y
+    **flota** como tarjeta (`rounded-xl border shadow-lg`, con `p-2` adentro);
+  - la **barra de resultados del buscador**: `sticky top-[calc(var(--header-h)+1px)]` → **1px** (el borde del
+    encabezado), y va **a ras**, ancho completo, con `border-b` y `py-4` adentro;
+  - los **laterales** de la ficha del dataset y del asistente: `lg:top-[calc(var(--header-h)+1rem)]` → **16px**;
+  - y el lateral de **facetas del buscador** sigue con `lg:top-40` → **160px**, un valor que nunca se midió
+    (estaba anotado como observación no actuada en el recibo de E2).
+
+  Y son **dos tratamientos**: tarjeta flotante (panel) contra barra a ras (buscador). **Propuesta:** es el mismo
+  problema que el alto del encabezado, así que se arregla igual — **un token** (`--sticky-air` en
+  `src/app.css`) del que salen todos los offsets pegados, **más una decisión del autor**: ¿flotante o a ras para
+  todas? Pertenece al **bloque E**.
 
 - [ ] **[v0]** `TODO:` **Pulir la vista del enlace: el bloque que reemplazó a las vistas de datos es
   demasiado grande para lo poco que dice.** Observación del autor (2026-09-22): sigue pareciéndole «mucho
