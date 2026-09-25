@@ -15,6 +15,67 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-09-24) — handoff del **bloque E** (sesión paralela)
+
+> **Dos sesiones trabajaron en este repo el mismo día.** La sección de arriba es el handoff de la otra línea
+> de trabajo (el upgrade a CKAN 2.12, `odp-docker`, el proxy y la higiene de configuración). **Ésta es la del
+> bloque E** (pulido de layout y navegación del portal) y la de los obstáculos del arnés de revisión.
+>
+> **Lo cerrado hoy, cada cosa con su recibo quemado** (13 recibos, 7 con corrida de modelo): **E1** (los chips
+> de formato) · **E2** (el alto del encabezado en una sola fuente) · **la regresión del modo claro** que
+> introdujo E2 y su corrección · **E2b** (el encabezado se achica al scrollear, más el `ResizeObserver` que
+> lo vuelve necesario) · el ajuste a **16px** · **E3** (la organización faltante en la ficha del asistente y
+> `text-pretty`) · **E6** (la nota del enlace: de 220px a nota compacta) · **E7** (el breadcrumb como **chip
+> de contexto** en móvil, y **un** breadcrumb en las dos páginas) · y la hoja **`/dev/nav`**, versionada.
+> El detalle de cada uno está en «Deuda de revisión (RDD)», y el plan en
+> `odd/tasks/block-e-layout-polish.md`.
+>
+> **Estado del árbol:** rama `feat/v0-portal-honesty`, **44 commits sin pushear**, `pnpm test` **640/640**,
+> `svelte-check` 0 errores, Biome exit 0.
+>
+> **E8 —saltar de un recurso a otro— está commiteado (`524af04`) y su COMPUERTA QUEDÓ PENDIENTE.** No se pudo
+> correr por un archivo **sin versionar** de la sesión paralela (`odd/tasks/tokens-page-patch.md`): con un no
+> versionado elegible en el árbol, el `START` exige la selección de no-versionados, y las dos rutas fallaron
+> —una creó un linaje sobre el **árbol de trabajo** (`review-c73d757362ca2fa1`: **no colectarlo**, no es el
+> candidato de nadie y no capturó nada) y la otra fue rechazada con el binding fresco. **Qué hacer:** en un
+> **proceso nuevo**, `inspect` y `start` acotado a `448190a..HEAD` con `committedOnly: true`.
+>
+> **Tres cosas bloqueadas o esperando decisión, ninguna es código a medias:**
+> 1. **La compuerta de E8** (arriba).
+> 2. **La corrección de E5**: `review-5ab16f231f1adb49` quedó en `correction_required` con el arreglo **ya
+>    commiteado** (`e5d2411`) y el plan rechazado tres veces. Declarar **25 líneas de diff** en un proceso
+>    nuevo; el detalle completo está en «Deuda de revisión (RDD)».
+> 3. **E4** — normalizar la card de metadatos del dataset: falta **la decisión del autor** (la página tiene
+>    dos cards y la principal ya cumple). Pide antes/después.
+>
+> **Dos TODO nuevos del autor (2026-09-24), los dos de diseño y los dos con su medida:** los **botones de
+> anterior/siguiente** se ven chicos y pasan desapercibidos (`p-1.5`, ícono `size-4`, contador en `text-[10px]`
+> y oculto debajo de `sm`); y **en escritorio no se ven ni se pueden saltar los demás recursos**, porque el
+> grupo «Recursos de este dataset» vive en el chip, que es `lg:hidden`.
+>
+> **Y un defecto medido que introdujo E2b:** el navegador **desactiva el anclaje de desplazamiento** del
+> contenedor porque el encabezado cambia su **alto en el flujo** (16px) al achicarse y el anclaje intenta
+> compensarlo en cada transición: tras 10 ajustes seguidos lo apaga. El mensaje textual, la causa y las tres
+> opciones de arreglo están en su ítem del backlog. **Medir primero si produce un salto visible.**
+>
+> **Recetas medidas del arnés (las que costaron tiempo hoy):**
+> - **Un archivo sin versionar frena cualquier `START` acotado**: pide la selección de no-versionados, y
+>   `untrackedScope: "exclude"` en el `inspect` **no sobrevive** al `START` limpio. Lo durable es
+>   `.gitignore`/`.git/info/exclude`, o no tener no-versionados.
+> - **`consent-binding-stale`** aparece una o dos veces seguidas: se resuelve con un `START` nuevo (clave
+>   nueva). El mensaje de «10 minutos» es falso.
+> - **`capture-binding-rejected`** en el reenvío posterior al forecast: se resuelve con `STATUS` y relanzar
+>   el mismo binding — salvo que haya un linaje abierto sobre el mismo workspace, y ahí queda trabado.
+> - **Dos escritores en un worktree:** se aísla por hunks (`git diff > p; head -4 p > m; tail -n +N p >> m;
+>   git apply --cached m`) o con `git add -p`. **Nunca** `git add -A` ni `git checkout -- <archivo>`.
+> - El **gancho de pre-commit** (`biome --staged --write`) puede dejar un diff de **sólo formato** después de
+>   commitear.
+> - El worktree de aislamiento para la sesión paralela está creado: `/home/danielblc/projects/odp-token-hardening`
+>   (rama `feat/token-hardening`), y **no se movió**: la otra sesión siguió escribiendo acá.
+>
+> **De la sesión paralela, sin tocar:** `BACKLOG.md` y `odd/tasks/ckan-2.12-upgrade.md` tienen ediciones
+> **sin commitear**, y hay **un archivo nuevo sin versionar** (`odd/tasks/tokens-page-patch.md`). No los
+> commiteé: son suyos.
 ## Estado al cierre (2026-09-23) — handoff de la próxima sesión
 
 > **Qué está cerrado.** De la sesión del 22: los bloques **A**, **B** y **C**. De esta sesión: el **bloque D
@@ -1357,6 +1418,34 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   un desplegable · **A4** extremos + «…» con el árbol (el «collapsed» de shadcn). **Falta la decisión del
   autor.** El desplegable se hace con el primitivo de **bits-ui** (`DropdownMenu`, ya instalado: el proyecto
   tiene muy pocos componentes vendorizados).
+
+- [ ] **[v0]** `TODO:` **Los botones de anterior/siguiente se ven chicos y pasan desapercibidos.** Observación del
+  autor (2026-09-24) sobre el slice E8: funcionan, pero no se ven. **Medido:** son dos enlaces con `p-1.5`
+  y un ícono `size-4`, y el contador «Recurso 4 de 5» va en `text-[10px]` y **oculto por debajo de `sm`**
+  (`hidden sm:inline`) — o sea que en móvil no hay ni contador. El control es correcto (no ofrece acción en
+  los extremos) y el problema es **de presencia**: no se lee como navegación. **Es de diseño y espera
+  decisión del autor.**
+
+- [ ] **[v0]** `TODO:` **En escritorio no hay forma de ver ni saltar a los demás recursos del dataset.**
+  Observación del autor (2026-09-24): en móvil lo ve, en escritorio no. **Causa medida:** el grupo «Recursos
+  de este dataset» vive en el desplegable del **chip**, que es `lg:hidden`; el recorrido de `lg+` es un `<ol>`
+  sin hermanos. El sidebar (variante B4 de la hoja) quedó descartado por el autor, así que la solución tiene
+  que vivir en otro lado: un desplegable en la miga del dataset del recorrido, un selector en el encabezado
+  (B2, descartado antes por espacio) o la lista lateral sólo de `lg` para arriba. **Es de diseño.**
+
+- [ ] **[v0]** `TODO:` **El navegador desactiva el anclaje de desplazamiento por culpa del encabezado que se achica.**
+  Observación del autor (2026-09-24), **mensaje textual de la consola**: «El anclaje de desplazamiento se
+  desactivó en un contenedor de desplazamiento debido a demasiados ajustes consecutivos (10) con muy poca
+  distancia total (-1.12666664123535 px promedio, -11.2667 px total)». **Causa medida por lectura del
+  mecanismo:** el encabezado se achica cambiando su **alto en el flujo** (`h-[var(--header-h)]` de `5rem` a
+  `4rem`), así que al cruzar el umbral **todo el contenido de abajo sube 16px** y el anclaje de desplazamiento
+  intenta compensarlo en cada transición; tras diez ajustes seguidos con una distancia total diminuta, el
+  navegador **desactiva el anclaje** en ese contenedor. Es la consecuencia directa del slice E2b y no aparecía
+  antes. **Opciones:** (1) `overflow-anchor: none` en el contenedor de scroll, para que el navegador no
+  compense algo que ya es intencional; (2) achicar **sin tocar el flujo** (el encabezado conserva su alto y el
+  recorte es visual, p. ej. con `transform`/`scale`), que es lo correcto si el salto se nota; (3) dejarlo y
+  documentarlo, si el efecto es sólo el aviso en consola. **Medir primero si produce un salto visible.**
+  Pertenece al **bloque E**.
 
 - [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
