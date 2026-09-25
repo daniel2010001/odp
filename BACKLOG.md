@@ -1875,6 +1875,47 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **BLOQUEADO — la corrección de E5 no se pudo declarar (2026-09-24, `review-5ab16f231f1adb49`)** — el linaje
+  quedó en **`correction_required`** con el hallazgo `R3-001` (CRITICAL, `causal_disposition: introduced`)
+  **ya corregido y commiteado** (`e5d2411`), pero el plan de corrección **no se pudo enviar**: el slot
+  `capture-correction-plan` rechazó **tres** envíos con `capture-binding-rejected` («binding desconocido,
+  expirado o de otra ruta de sesión»), cada uno con el binding **recién emitido por un `STATUS`** y con el
+  `request-hash` que el propio proveedor publica (`sha256:037ced9970dd6fd8…`, sin cambios entre intentos).
+  - **Datos para retomarlo**: declarar **25 líneas de diff** (21 inserciones + 4 borrados: el diff exacto del
+    commit `e5d2411`), dentro del tope propio del proveedor (1..47). Candidato corregido `sha256:73ad4d8d…`,
+    autoridad original `sha256:507f9cad…`. Los tres rechazos fueron **sin mutación** (`mutation_performed:
+    false`): nada quedó consumido. **Retomar en un proceso nuevo**, que reconstruye la ruta de sesión.
+  - **Qué NO hacer**: invocar los comandos nativos del historial por shell (sería reconstruir rutas e
+    invocaciones del proveedor), ni abrir otro linaje para el mismo candidato.
+  - **Lo que sí está**: el arreglo es correcto y el árbol lo tiene. Gates sobre el árbol corregido:
+    `pnpm test` **626/626** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **El hallazgo, que era real**: el `<nav>` del breadcrumb es **flex item** del contenedor flex externo, y sin
+    `min-w-0` su `min-width: auto` no lo deja encogerse por debajo del ancho de la etiqueta completa: los
+    `truncate` de los hijos **no podían actuar** y el nav **desbordaba en horizontal** en vez de recortar —lo
+    contrario de lo que el slice prometía, y con scroll horizontal en móvil (regla 7 de `AGENTS.md`). El arreglo
+    es `min-w-0` en los dos `<nav>` (el del componente y el propio de la página del dataset) más una aserción
+    que lo ancla.
+  - **Lección de método (la importante)**: el playground de E5 puso el `<nav>` dentro de un `div` de **bloque**,
+    así que la restricción de `min-width` **nunca se activaba ahí** y los cuatro marcos se veían bien. El
+    playground reprodujo **el componente pero no el contenedor en el que vive**, que es exactamente la clase de
+    error que la hoja existía para atrapar.
+  _Origen: slice E5 del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa del slice E6 (bloque E, la nota del enlace) (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada. `review-97eb68d9224321c5`: tier **medium**, lente
+  `review-reliability`, **2 archivos, 30 líneas**, presupuesto 15. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Un aviso informativo**: `R3-001` · reliability · SUGGESTION · `resource-page.test.ts:433-435`.
+    **Lectura de las líneas** (no el texto del hallazgo): son las tres aserciones nuevas, y las tres son
+    **negativas sobre cadenas de clase** (`not.toContain("min-h-[220px]")`, `not.toContain("text-center")`,
+    `.size-16` ausente). La lectura probable: anclar por ausencia de clases es frágil — el test pasaría igual si
+    el bloque se reemplazara por otro elemento igual de alto que no llevara exactamente esas clases. Se anota y
+    **no se corrige**: el recibo ya está quemado.
+  - Evidencia: el test fue primero y la aserción de la caja **falló antes del arreglo** (1 de 28 en ese
+    archivo). El copy del aviso se conservó palabra por palabra porque otros tests lo anclan: lo que estaba mal
+    era la caja (220px de alto mínimo, 40px de padding y un círculo de 64px para una oración), no el texto.
+  - Gates: `pnpm test` **626/626** · `svelte-check` **0 errores** · Biome **exit 0**.
+  _Origen: cierre del slice E6 del bloque E, 2026-09-24._
+
 - [ ] **Recibo de la revisión nativa del slice E3 (bloque E, dos superficies del dashboard) (2026-09-24)** — cerró
   **`approved`** con la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   `review-29ba39931af7f59a`: tier **medium**, lente `review-reliability`, **5 archivos, 226 líneas**, presupuesto
