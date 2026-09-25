@@ -1,5 +1,15 @@
 <script lang="ts">
-import { ArrowLeft, Check, Copy, Download, ExternalLink, FileText, Link2 } from "@lucide/svelte";
+import {
+	ArrowLeft,
+	Check,
+	ChevronLeft,
+	ChevronRight,
+	Copy,
+	Download,
+	ExternalLink,
+	FileText,
+	Link2,
+} from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
@@ -22,6 +32,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { resourceKind } from "$lib/resources/kind";
+import { resourceNeighbours, resourcePositionLabel } from "$lib/resources/order";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
@@ -178,6 +189,21 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 		items.push({ label: resource.name, role: "Recurso" });
 	}
 	return items;
+});
+
+// ─── Derived: vecinos del recurso (navegar sin volver al dataset) ───
+// El orden y los extremos son decisiones y viven en una función pura (`$lib/resources/order`): el dataset ya
+// viene con sus recursos y con la `position` de cada uno, así que esto **no pide nada nuevo a CKAN**.
+const neighbours = $derived(resourceNeighbours(dataset?.resources, resourceId));
+
+/** Los hermanos, para el segundo grupo del desplegable del chip. El actual va **sin `href`**. */
+const relatedResources = $derived({
+	heading: "Recursos de este dataset",
+	items: neighbours.ordered.map((item) => ({
+		label: item.name ?? item.id,
+		role: item.format,
+		href: item.id === resourceId ? undefined : `/dataset/${datasetId}/resource/${item.id}`,
+	})),
 });
 
 // ─── Derived: estado de error ────────────────────────────────
@@ -361,8 +387,47 @@ async function handleCopyResourceLink() {
 	<!-- Breadcrumb bar -->
 	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
-			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
-				<Breadcrumb items={breadcrumbItems} icon={FileText} />
+			<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+				<Breadcrumb items={breadcrumbItems} icon={FileText} related={relatedResources} />
+
+				<!-- Navegación secuencial: recorrer el dataset en orden es el uso más común, y el desplegable del
+				     chip cubre el salto directo. En los extremos el control **no se ofrece** en vez de quedar
+				     deshabilitado: no hay destino, así que no hay enlace muerto. -->
+				{#if neighbours.ordered.length > 1}
+					<div class="flex shrink-0 items-center gap-1">
+						<span class="mr-1 hidden font-mono text-[10px] text-muted-foreground sm:inline">
+							{resourcePositionLabel(neighbours.index, neighbours.ordered.length)}
+						</span>
+						{#if neighbours.previous}
+							<a
+								href={`/dataset/${datasetId}/resource/${neighbours.previous.id}`}
+								aria-label={`Recurso anterior: ${neighbours.previous.name ?? neighbours.previous.id}`}
+								title={neighbours.previous.name ?? neighbours.previous.id}
+								class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							>
+								<ChevronLeft class="size-4" aria-hidden="true" />
+							</a>
+						{:else}
+							<span class="p-1.5 text-muted-foreground/40" aria-hidden="true">
+								<ChevronLeft class="size-4" />
+							</span>
+						{/if}
+						{#if neighbours.next}
+							<a
+								href={`/dataset/${datasetId}/resource/${neighbours.next.id}`}
+								aria-label={`Recurso siguiente: ${neighbours.next.name ?? neighbours.next.id}`}
+								title={neighbours.next.name ?? neighbours.next.id}
+								class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							>
+								<ChevronRight class="size-4" aria-hidden="true" />
+							</a>
+						{:else}
+							<span class="p-1.5 text-muted-foreground/40" aria-hidden="true">
+								<ChevronRight class="size-4" />
+							</span>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}

@@ -108,4 +108,29 @@ describe("Breadcrumb — el chip de móvil", () => {
 		expect(screen.queryByRole("link", { name: items[3].label })).toBeNull();
 		expect(screen.getByText("Organización")).toBeInTheDocument();
 	});
+
+	it("con hermanos suma un segundo grupo, y el actual va sin enlace", async () => {
+		// El salto entre recursos vive en el mismo desplegable que el recorrido: contesta «¿dónde estoy?» y
+		// «¿qué más hay?» de una sola vez. El rótulo del rol entra en el nombre accesible del enlace, así
+		// que las consultas van con expresión regular.
+		render(Breadcrumb, {
+			props: {
+				items,
+				related: {
+					heading: "Recursos de este dataset",
+					items: [
+						{ label: "Flujos vehiculares por punto de conteo", href: "/r/1", role: "CSV" },
+						{ label: items[3].label, role: "CSV" },
+					],
+				},
+			},
+		});
+
+		await fireEvent.click(screen.getByRole("button"));
+
+		expect(await screen.findByText("Recursos de este dataset")).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /Flujos vehiculares/ })).toHaveAttribute("href", "/r/1");
+		// El actual es información, no destino: no es enlace.
+		expect(screen.queryByRole("link", { name: /movilidad_urbana_2026/ })).toBeNull();
+	});
 });
