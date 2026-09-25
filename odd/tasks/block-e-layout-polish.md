@@ -193,3 +193,27 @@ on promotion, as the block C/D playgrounds were (rule 8). No slice's diff contai
 `lg:top-40 lg:max-h-[calc(100vh-11rem)]`. That offset looks like header + results bar, but the results bar's
 height is content-driven and was never measured, so no derivation was invented for it. If the results bar's
 height ever changes, that pair drifts with it — and nothing links them.
+
+## Close of the session (2026-09-24)
+
+| Slice | Status | Receipt | Notes |
+|---|---|---|---|
+| **E3** | closed | `review-29ba39931af7f59a` | The wizard's summary named the missing organisation (test first, 1 of 28 failing) and both dashboard descriptions got `text-pretty`. One advisory: the missing state is derived from the resolved title rather than from the selection, which would misreport an organisation whose title is empty. |
+| **E7** | closed | `review-c918f32f7c87a968` | The breadcrumb is a **context chip** on mobile (the current level, with its type icon, and the trail inside its dropdown) and one single component in both pages - the dataset page's own inline nav is gone. Four advisories, two of them fixed later in E8. The test caught a real bug before committing: `GroupHeading` needs a `Group` wrapper and without it the dropdown crashed on open. |
+| **E8** | code closed, **gate pending** | — | The author corrected their choice: the resource jump is the dropdown in the breadcrumb (a second group with the siblings, each with its format, the current one without an `href`) plus previous/next with `Recurso 4 de 5`. Order and extremes live in the pure `resourceNeighbours` with eight tests. **The review could not run**: the parallel session's untracked file makes the bounded START ask for the untracked selection, and both routes failed. Resume in a fresh process with `baseRef=448190a`, `committedOnly: true`. |
+
+**New items from the author, both design, both measured (they are in `BACKLOG.md`):**
+the previous/next buttons are too small to be noticed (`p-1.5`, `size-4` icon, counter hidden below `sm`); and
+**on desktop there is no way to see or jump to the sibling resources**, because that group lives in the chip,
+which is `lg:hidden` — the sidebar variant was discarded by the author, so the solution has to live somewhere
+else.
+
+**Defect introduced by E2b, measured by the browser itself:** scroll anchoring is disabled in the container
+because the header changes its **in-flow height** by 16px when it shrinks and the browser compensates on every
+transition; after ten consecutive adjustments it turns anchoring off. Three options are recorded in the item.
+**Measure first whether it produces a visible jump**; if it does, the fix is to shrink without touching the
+flow.
+
+**Still blocked from earlier in the session:** the E5 correction plan (`review-5ab16f231f1adb49` in
+`correction_required`, fix already committed as `e5d2411`, 25 diff lines to declare in a fresh process) and
+**E4**, which needs the author's decision on which of the two dataset metadata cards is the one to normalise.
