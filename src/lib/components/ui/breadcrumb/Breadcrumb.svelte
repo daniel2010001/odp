@@ -2,31 +2,39 @@
 export interface BreadcrumbItem {
 	label: string;
 	href?: string;
+	/**
+	 * Rótulo del **nivel** de esta miga («Catálogo», «Organización», «Dataset»). Es lo que hace legible el
+	 * desplegable del chip: sin él, una lista de nombres largos no dice **qué es** cada cosa. Lo provee quien
+	 * arma la lista, porque el componente no puede conocer la forma del portal.
+	 */
+	role?: string;
 }
 </script>
 
 <script lang="ts">
-import { ChevronRight } from "@lucide/svelte";
+	import { ChevronDown, ChevronRight } from "@lucide/svelte";
+	import { DropdownMenu } from "bits-ui";
+	import type { Component } from "svelte";
 
-let {
-	items,
-}: {
-	items: BreadcrumbItem[];
-} = $props();
+	let {
+		items,
+		icon: Icon,
+	}: {
+		items: BreadcrumbItem[];
+		/** Ícono del nivel **actual** (un dataset, un recurso…). Sólo lo usa el chip de móvil. */
+		icon?: Component;
+	} = $props();
+
+	/** Todo menos la miga actual: el recorrido del que se viene. */
+	const ancestors = $derived(items.slice(0, -1));
+	const current = $derived(items[items.length - 1]);
 </script>
 
 <nav aria-label="Breadcrumb" class="min-w-0">
-	<!-- En móvil la lista **no envuelve**: cada etiqueta se recorta antes que partirse en varias líneas
-	     arriba del contenido. Desde `sm` vuelve el comportamiento anterior (envolver), así el escritorio
-	     no cambia. El recorte es **visual**: el texto y el nombre accesible quedan enteros, que es lo que
-	     lo hace seguro, y hay tests que lo anclan (`Breadcrumb.test.ts`).
-
-	     `min-w-0` en la raíz NO es decorativo: el `<nav>` es el item flexible de un contenedor flex en
-	     quien lo usa, y un item flexible no baja de su ancho de contenido sin esto. Sin él, un
-	     `truncate` adentro no puede actuar y el nav desborda en horizontal en vez de recortar — lo
-	     encontró la revisión nativa `review-5ab16f231f1adb49` (`R3-001`, CRITICAL) y hay una aserción
-	     que lo ancla. -->
-	<ol class="flex items-center gap-1 text-sm sm:flex-wrap">
+	<!-- Escritorio y tabletas: el recorrido completo. `min-w-0` en la raíz y en cada miga es lo que deja
+	     actuar al `truncate`: sin él, un item flexible no baja de su ancho de contenido y la fila desborda
+	     en horizontal en vez de recortar (lo encontró `review-5ab16f231f1adb49`). -->
+	<ol class="hidden items-center gap-1 text-sm lg:flex lg:flex-wrap">
 		{#each items as item, index}
 			<li class="flex min-w-0 items-center gap-1">
 				{#if index > 0}
@@ -52,4 +60,67 @@ let {
 			</li>
 		{/each}
 	</ol>
+
+	<!-- Móvil: un chip con el nivel ACTUAL y el árbol adentro. El ícono dice **de qué tipo de cosa** se
+	     trata, no a dónde va; volver es el botón del navegador, y por eso no hay flecha. El chip no cambia
+	     de tamaño cuando el recorrido crece: el nombre se recorta. -->
+	<div class="lg:hidden">
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger
+				class="inline-flex min-w-0 max-w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
+			>
+				{#if Icon}
+					<Icon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+				{/if}
+				<span class="truncate font-medium text-foreground">{current?.label}</span>
+				<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content
+				class="z-50 min-w-72 rounded-md border border-border bg-popover p-1 shadow-md"
+				sideOffset={6}
+			>
+				{#if ancestors.length > 0}
+					<!-- `GroupHeading` exige un `Group` que lo envuelva: sin él el desplegable **revienta al
+					     abrirse** con `Context "Menu.Group | Menu.RadioGroup" not found`. Lo encontró el test, no
+					     el ojo: el chip se veía bien y fallaba al abrirlo. -->
+					<DropdownMenu.Group>
+						<DropdownMenu.GroupHeading
+							class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground"
+						>
+							Recorrido
+						</DropdownMenu.GroupHeading>
+						{#each ancestors as item (item.label)}
+						<!-- El enlace ocupa la FILA ENTERA (el item va sin padding y el ancla lleva el suyo): así
+						     el clic en cualquier parte de la fila navega, en vez de dejar relleno muerto, y el
+						     enlace conserva su semántica nativa. Lo señaló `review-a6ba876369a3dd53`. -->
+						<DropdownMenu.Item class="rounded-sm p-0 outline-none data-[highlighted]:bg-accent">
+							{#if item.href}
+								<a
+									href={item.href}
+									class="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+								>
+									{#if item.role}
+										<span class="w-24 shrink-0 text-[11px] text-muted-foreground">
+											{item.role}
+										</span>
+									{/if}
+									<span class="truncate">{item.label}</span>
+								</a>
+							{:else}
+								<span class="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+									{#if item.role}
+										<span class="w-24 shrink-0 text-[11px] text-muted-foreground">
+											{item.role}
+										</span>
+									{/if}
+									<span class="truncate">{item.label}</span>
+								</span>
+							{/if}
+						</DropdownMenu.Item>
+					{/each}
+					</DropdownMenu.Group>
+				{/if}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	</div>
 </nav>

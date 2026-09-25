@@ -550,6 +550,21 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 
 		await screen.findByText(/Observatorio de Movilidad/i);
 	});
+
+	it("el breadcrumb es el chip de contexto: muestra el RECURSO actual y el recorrido va adentro", async () => {
+		// Integración de la decisión del autor (2026-09-24): el mismo componente en las dos páginas, y en
+		// móvil el chip con el nivel actual —no una flecha de volver— con el árbol en el desplegable.
+		setParams({ id: "showcase-observatorio-movilidad", resourceId: "res-1" }, SHOWCASE_PATH);
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { name: /Matrícula 2026/i });
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		expect(nav).not.toBeNull();
+		// El chip (móvil) muestra la miga ACTUAL; el recorrido completo es de escritorio.
+		expect(nav?.textContent).toContain("Matrícula 2026");
+		expect(nav?.querySelector("ol")?.className).toContain("lg:flex");
+	});
 });
 
 // ─── La ficha de un enlace dice la verdad (block C, C3) ─────────────

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Check, Copy, Download, ExternalLink, Link2 } from "@lucide/svelte";
+import { ArrowLeft, Check, Copy, Download, ExternalLink, FileText, Link2 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
@@ -163,18 +163,19 @@ $effect(() => {
 
 // ─── Derived: breadcrumbs ──────────────────────────────────────
 const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
-	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search" }];
+	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search", role: "Catálogo" }];
 	if (dataset?.organization?.title) {
-		items.push({ label: dataset.organization.title });
+		items.push({ label: dataset.organization.title, role: "Organización" });
 	}
 	if (dataset?.title || dataset?.name) {
 		items.push({
 			label: dataset.title || dataset.name,
 			href: `/dataset/${datasetId}`,
+			role: "Dataset",
 		});
 	}
 	if (resource?.name) {
-		items.push({ label: resource.name });
+		items.push({ label: resource.name, role: "Recurso" });
 	}
 	return items;
 });
@@ -361,7 +362,7 @@ async function handleCopyResourceLink() {
 	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
-				<Breadcrumb items={breadcrumbItems} />
+				<Breadcrumb items={breadcrumbItems} icon={FileText} />
 			</div>
 		</div>
 	{/if}

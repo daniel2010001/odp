@@ -4,9 +4,9 @@ import {
 	Building2,
 	Calendar,
 	Check,
-	ChevronRight,
 	Clock,
 	Copy,
+	Database,
 	Link2,
 	Shield,
 	User,
@@ -25,6 +25,7 @@ import {
 } from "$lib/api/failure";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
+import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
@@ -211,16 +212,17 @@ const metadataItems = $derived.by(() => {
 });
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
-const breadcrumbItems = $derived.by(() => {
-	const items: { label: string; href?: string }[] = [{ label: "Catálogo", href: "/search" }];
+const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
+	const items: BreadcrumbItem[] = [{ label: "Catálogo", href: "/search", role: "Catálogo" }];
 	if (dataset?.organization?.title) {
 		items.push({
 			label: dataset.organization.title,
 			href: `/search?org=${dataset.organization.name}`,
+			role: "Organización",
 		});
 	}
 	if (dataset?.title || dataset?.name) {
-		items.push({ label: dataset.title || dataset.name });
+		items.push({ label: dataset.title || dataset.name, role: "Dataset" });
 	}
 	return items;
 });
@@ -305,36 +307,11 @@ async function handleCopyLink() {
 	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
-				<!-- Mismo tratamiento que el componente del breadcrumb en móvil: no envuelve, cada etiqueta se
-				     recorta y el «Catálogo» no se encoge. Acá el marcado es propio (este breadcrumb es distinto:
-				     una vuelta al catálogo más el recorrido), así que unificarlos sigue siendo una decisión aparte.
-				     `min-w-0`: este `<nav>` es el item flexible de la fila de arriba, y sin esto no baja de su
-				     ancho de contenido y desborda en horizontal en vez de recortar. -->
-				<nav
-					aria-label="Breadcrumb"
-					class="flex min-w-0 items-center gap-1.5 text-sm sm:flex-wrap"
-				>
-					<a
-						href="/search"
-						class="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
-					>
-						<ArrowLeft class="size-4" />
-						Catálogo
-					</a>
-					{#each breadcrumbItems.slice(1) as item}
-						<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-						{#if item.href}
-							<a
-								href={item.href}
-								class="min-w-0 truncate text-muted-foreground transition-colors hover:text-foreground"
-							>
-								{item.label}
-							</a>
-						{:else}
-							<span class="min-w-0 truncate font-medium text-foreground">{item.label}</span>
-						{/if}
-					{/each}
-				</nav>
+				<!-- Unificado con el componente: el mismo breadcrumb en las dos páginas, y en móvil el chip de
+				     contexto con el árbol adentro. La decisión del autor (2026-09-24) cubría los dos casos —«en un
+				     dataset sería `[] My Dataset`, en un recurso `[] My Resource`»— así que la asimetría de tener
+				     dos breadcrumbs distintos se cierra acá. -->
+				<Breadcrumb items={breadcrumbItems} icon={Database} />
 			</div>
 		</div>
 	{/if}
