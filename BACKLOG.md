@@ -15,6 +15,84 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-09-24) — handoff de la próxima sesión
+
+> **Qué se cerró.** Tres unidades commiteadas en `odp-docker` — `9857186` (el leak del
+> Flask-DebugToolbar), `44ac587` (`$host` → `$http_host` en el proxy), `a128b4f` (la clave muerta
+> `CKAN_VERSION`) — **y el slice del upgrade a CKAN 2.12: verificado en vivo, aprobado por la revisión
+> nativa y SIN COMMITEAR.**
+>
+> **El expediente del upgrade es `odd/tasks/ckan-2.12-upgrade.md`** (337 líneas: la base medida, los
+> slices S0–S6, la re-medición de S5, los dos hallazgos de S4 y el resultado de la revisión). Leerlo
+> antes de tocar cualquier cosa del upgrade.
+>
+> **Lo que está corriendo:** CKAN **2.12.0** sobre Python 3.14.7, Solr `2.12-solr9`, catálogo
+> re-sembrado (16 datasets / 5 orgs), portal funcionando, DebugToolbar apagado.
+
+### Lo que falta, en orden
+
+1. **Commitear los 8 archivos aprobados del upgrade** (`feat/ckan-2.12-upgrade`, 28 líneas de diff)
+   **antes de tocar el parche de tokens.** La aprobación nativa está atada al hash del contenido, y el
+   árbol de trabajo ya tiene *además* el parche y los dos Dockerfiles sin revisar: si se dispara la
+   revisión ahora, el candidato incluye los 28 líneas ya aprobadas y se paga dos veces el mismo
+   trabajo. Orden correcto: commit de lo aprobado → el parche queda como candidato propio → su revisión.
+2. **`SOLR_IMAGE_VERSION=2.12-solr9` en `ckan-docker/.env` y `.env.example`** — 2 líneas que aplica el
+   autor (el harness bloquea esas rutas) — **y matar el comentario obsoleto de `.env:31`**, que
+   todavía dice `CKAN served directly on http://localhost:5000` arriba de la IP. **Es lo más urgente
+   de la lista:** el stack que corre usa 2.12-solr9 por una variable de shell en la invocación, así
+   que **el repo no describe lo que corre**, y levantar desde `.env` reintroduce el tag viejo contra
+   un volumen de Solr ya poblado por 2.12.
+3. **El healthcheck roto — CRITICAL para producción.** Las imágenes 2.12 **no tienen `wget`** y todos
+   los compose lo usan como healthcheck: CKAN queda `unhealthy` mientras sirve bien. En producción
+   `nginx` depende de `condition: service_healthy` ⇒ **nginx nunca arrancaría**. Se arregla con una
+   sonda que exista en la imagen (p. ej. `python -c "import urllib.request; ..."`), en
+   `ckan-docker/docker-compose.dev.yml` **y** `ckan-docker/docker-compose.yml`. Es cambio nuevo ⇒
+   candidato nuevo y su propio ciclo de revisión.
+4. ~~**El `PermissionError` de `test-core.ini`**: en 2.12 ese archivo ya no es escribible por el
+   usuario del contenedor, así que el último paso de `start_ckan_development.sh` falla (no fatal, el
+   server arranca). Toca el flujo `test-umss`.~~ **Resuelto en el slice del parche de tokens**
+   (`odd/tasks/tokens-page-patch.md`): misma causa que el muro de permisos del loop de parches, y se
+   arregla en el mismo cambio. Verificado: el `PermissionError` ya no aparece en el arranque.
+5. **La decisión de dominios y del contenido mixto** — el problema original sigue abierto: el portal
+   se sirve por `https://odp.hs.lan` y CKAN firma sus URLs absolutas con `http://192.168.1.201:5000`,
+   así que el visor de PDF sigue bloqueado por el navegador. Opciones (A: un solo origen con una
+   regla nginx para la ruta de descarga; B: `data.` + `api.` con allowlist) más el acoplamiento a
+   documentar. **El upgrade no cambió nada de esto** (medido: la forma de la `url` es idéntica).
+6. **Rotar las contraseñas de la base y del sysadmin** que el DebugToolbar publicó. **No es
+   emergencia:** el leak está cerrado, así que no hay exposición activa — es higiene. Con el volumen
+   limpio ya se regeneraron solos los secretos del ini.
+7. **El lineage huérfano** `review-7e3ab346bc8b3f85`, en `correction_required`, sin veredicto y sin
+   recuperación posible. Limpiarlo es `ABANDON`: destructivo, con inputs exactos del autor.
+8. **Las filas 4, 7 y 9 de S5 quedaron sin medir**: la semántica de `package_update` (toca el
+   wizard), la forma de `datastore_search`, y si los validadores de `ckanext-umss` ven sólo los
+   recursos cambiados (necesita la suite de la extensión).
+9. **Los tres avisos de la revisión aprobada**, todos informativos y sin reabrir el review: `R2-001`
+   (readability, `docker-compose.yml:48`), `R3-001` (reliability, `docker-compose.dev.yml:32`),
+   `R3-002` (reliability, `docker-compose.yml:48`). El envelope de cierre no trajo su texto.
+
+10. **La página nativa de tokens — RESUELTA, pero con dos cosas pendientes.** Era un bug de
+    **upstream**: el `ApiTokenView.get` de 2.12 dejó de pedir `include_plugin_extras` en el contexto
+    que le pasa a `api_token_list`, y la extensión `expire_api_token` —empaquetada **dentro del propio
+    release**— lo desreferencia ⇒ 500 en cuanto el usuario tiene un token (con cero tokens la página
+    renderiza, y por eso un `down -v` *parece* arreglarla hasta el primer login).
+    *(Dos de mis diagnósticos previos quedaron corregidos: `api_token_dictize` **sí** soporta
+    `plugin_extras` —lo que cambió es quién lo pide—, y los Dockerfiles **sí** aplican los parches;
+    lo que faltaba era permiso de escritura.)*
+    Artefactos: `ckan-docker/ckan/patches/ckan/001_api_tokens_include_plugin_extras.patch` +
+    `Dockerfile.dev.umss` y `Dockerfile.umss` (el loop de parches corre como **root**, y el dev hace
+    `chmod g+w` sobre `ckan/test-core.ini`). Verificado con `down -v` + rebuild: la página da **200**
+    con la caducidad real, y el `PermissionError` del ítem 4 desapareció. Expediente:
+    `odd/tasks/tokens-page-patch.md`.
+    **Pendiente:** (a) la **revisión nativa** de ese candidato (toca 2 Dockerfiles ⇒ candidato nuevo);
+    (b) el **borrador del issue upstream** está escrito en el expediente y **no publicado** -- es una
+    acción externa y necesita el OK del autor.
+
+> **Sin commitear al cerrar:** en `odp-docker`, los 8 archivos aprobados del upgrade **más** el parche
+> de tokens y los dos Dockerfiles (candidato **nuevo, sin revisar**). En `odp`, este archivo y los dos
+> expedientes (`odd/tasks/ckan-2.12-upgrade.md`, `odd/tasks/tokens-page-patch.md`).
+> **Aviso de escritor concurrente:** hay otra sesión trabajando en este repo; si commitea, que deje el
+> hunk ajeno intacto — así se hizo una vez esta semana y es lo correcto.
+
 ## Estado al cierre (2026-09-24) — handoff del **bloque E** (sesión paralela)
 
 > **Dos sesiones trabajaron en este repo el mismo día.** La sección de arriba es el handoff de la otra línea
@@ -76,6 +154,7 @@
 > **De la sesión paralela, sin tocar:** `BACKLOG.md` y `odd/tasks/ckan-2.12-upgrade.md` tienen ediciones
 > **sin commitear**, y hay **un archivo nuevo sin versionar** (`odd/tasks/tokens-page-patch.md`). No los
 > commiteé: son suyos.
+
 ## Estado al cierre (2026-09-23) — handoff de la próxima sesión
 
 > **Qué está cerrado.** De la sesión del 22: los bloques **A**, **B** y **C**. De esta sesión: el **bloque D
