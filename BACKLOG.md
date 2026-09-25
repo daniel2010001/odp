@@ -1891,6 +1891,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de la hoja de navegación y los dos ítems del backlog (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada. `review-a6ba876369a3dd53`: tier **medium** —la hoja es
+  ejecutable, vive bajo `src/routes/dev/`—, lente `review-reliability`, **3 archivos, 372 líneas**, presupuesto
+  186. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Un aviso informativo, y aplica a la implementación real**: `R3-001` · reliability · SUGGESTION ·
+    `src/routes/dev/nav/+page.svelte:200-205`. **Lectura de las líneas**: es el `<a>` **dentro** del
+    `DropdownMenu.Item`, así que sólo el texto de la etiqueta es clickeable y el relleno del item es **espacio
+    muerto** —con `cursor-pointer` prometiendo lo que no hace—. En un desplegable el usuario hace clic en
+    cualquier parte de la fila. **Para la implementación: el item navega** (el enlace ocupa la fila entera, o el
+    item lleva el `onSelect`), no un ancla suelta adentro.
+  - La hoja queda **versionada** (`fac7cd3`) y es **permanente**: no es un duplicado de página sino una hoja de
+    revisión, como `/dev/kind`, `/dev/copy`, `/dev/error` y `/dev/preview`. Se versionó también por una razón
+    mecánica medida: una hoja **sin** versionar hace que el proveedor rechace un START acotado con
+    `candidate-target-projection-drift`, y el `untrackedScope: exclude` del `inspect` **no sobrevive** a un
+    `START` limpio.
+  - Los dos ítems que esta hoja instrumenta (el breadcrumb en móvil con sus cuatro opciones y el aire de los
+    pegados con sus tres medidas más el `top-40` sin medir) quedaron registrados en el backlog con las
+    mediciones, y **esperan decisión del autor**.
+  - Gates: `svelte-check` **0 errores** (las 4 advertencias son las preexistentes: dos `label` sin control, un
+    `value` capturado y el tipo `node`) · Biome **exit 0** · la hoja responde **200** y las otras cinco rutas
+    `dev/` también.
+  _Origen: hoja `/dev/nav` y los dos ítems del bloque E, 2026-09-24._
+
 - [ ] **BLOQUEADO — la corrección de E5 no se pudo declarar (2026-09-24, `review-5ab16f231f1adb49`)** — el linaje
   quedó en **`correction_required`** con el hallazgo `R3-001` (CRITICAL, `causal_disposition: introduced`)
   **ya corregido y commiteado** (`e5d2411`), pero el plan de corrección **no se pudo enviar**: el slot
