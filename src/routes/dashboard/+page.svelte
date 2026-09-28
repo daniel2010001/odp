@@ -333,7 +333,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 						class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/30"
 					>
 						<ShieldCheck class="size-3.5" aria-hidden="true" />
-						Administrador
+						Administrador del sistema
 					</span>
 				{/if}
 			</div>

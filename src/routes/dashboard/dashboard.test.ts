@@ -129,7 +129,7 @@ describe("Dashboard", () => {
 		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it("muestra el badge de administrador cuando isSuperAdmin es true", async () => {
+	it("muestra el badge de administrador del sistema cuando isSuperAdmin es true", async () => {
 		auth.login("tok-123", { ...baseUser, sysadmin: true });
 		// La identidad que manda es la que devuelve la sonda `alive`, no la guardada.
 		mocks.sessionCheck.mockResolvedValue({
@@ -139,7 +139,26 @@ describe("Dashboard", () => {
 
 		render(Dashboard);
 
-		expect(await screen.findByText(/^administrador$/i)).toBeInTheDocument();
+		// `sysadmin` es el administrador del sistema de CKAN; «Administrador» a secas es un rol de
+		// organización y lo dibujan las tarjetas. Una palabra no puede nombrar las dos cosas.
+		expect(await screen.findByText(/^administrador del sistema$/i)).toBeInTheDocument();
+	});
+
+	it("la tarjeta de organización conserva «Administrador» como rol de la organización", async () => {
+		// La desambiguación no puede arrastrar el rol de organización: las dos etiquetas conviven, y el
+		// badge del sistema se distingue de la capacidad dentro de la organización.
+		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "admin" })]);
+		auth.login("tok-123", { ...baseUser, sysadmin: true });
+		mocks.sessionCheck.mockResolvedValue({
+			state: "alive",
+			user: { ...baseUser, sysadmin: true },
+		});
+
+		render(Dashboard);
+
+		expect(await screen.findByText(/^administrador del sistema$/i)).toBeInTheDocument();
+		const card = await screen.findByRole("link", { name: /facultad de ciencias/i });
+		expect(within(card).getByText(/^administrador$/i)).toBeTruthy();
 	});
 
 	it("consulta «Mis datasets» con el id del usuario autenticado", async () => {
@@ -314,7 +333,9 @@ describe("Sonda de sesión (D2)", () => {
 		// El saludo y el badge salen de la sesión guardada: no pueden dibujarse mientras no se sepa que
 		// la sesión no está muerta, y acá CKAN ya dijo que lo está.
 		expect(screen.queryByText(/hola,/i)).not.toBeInTheDocument();
-		expect(screen.queryByText(/^administrador$/i)).not.toBeInTheDocument();
+		// El texto del badge es el del sistema: si vuelve a decir sólo «Administrador», este guard vuelve
+		// a cubrir la insignia sin cambiar la intención de la prueba.
+		expect(screen.queryByText(/^administrador del sistema$/i)).not.toBeInTheDocument();
 		// Y ningún dato derivado de la sesión muerta.
 		expect(
 			screen.queryByRole("link", { name: /matrícula estudiantil 2026/i }),

@@ -176,7 +176,13 @@ $effect(() => {
 const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search", role: "Catálogo" }];
 	if (dataset?.organization?.title) {
-		items.push({ label: dataset.organization.title, role: "Organización" });
+		// Con `href`: la organización tiene página propia (la ruta resuelve name o id). Sin él la miga se
+		// dibujaba como texto plano y no había nada que clicar, que es el defecto que este slice corrige.
+		items.push({
+			label: dataset.organization.title,
+			href: `/organization/${dataset.organization.name}`,
+			role: "Organización",
+		});
 	}
 	if (dataset?.title || dataset?.name) {
 		items.push({

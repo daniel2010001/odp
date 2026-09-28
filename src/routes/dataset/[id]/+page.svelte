@@ -217,7 +217,9 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 	if (dataset?.organization?.title) {
 		items.push({
 			label: dataset.organization.title,
-			href: `/search?org=${dataset.organization.name}`,
+			// La organización tiene página propia; la ruta resuelve name o id. Una búsqueda filtrada por
+			// `org` no es la organización: el lector pedía navegar a ella, no a un listado.
+			href: `/organization/${dataset.organization.name}`,
 			role: "Organización",
 		});
 	}
@@ -244,7 +246,7 @@ const stateLabel = $derived.by(() => {
 });
 
 const orgHref = $derived(
-	dataset?.organization?.name ? `/search?org=${dataset.organization.name}` : null,
+	dataset?.organization?.name ? `/organization/${dataset.organization.name}` : null,
 );
 
 // ─── Technical metadata table ───────────────────────────────────

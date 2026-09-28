@@ -5,7 +5,7 @@ import { page } from "$app/stores";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
 import { type ApiClientConfig, CkanApiError } from "$lib/types/api";
-import type { CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
+import type { CkanOrganization, CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import DatasetPage from "./+page.svelte";
 
 // El stub de `$app/stores` (ver vitest.config.ts) expone `page` como store escribible, pero el
@@ -65,6 +65,18 @@ function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 		extras: [],
 		metadata_created: "2026-01-01T00:00:00.000000",
 		metadata_modified: "2026-01-01T00:00:00.000000",
+		...overrides,
+	};
+}
+
+function makeOrganization(overrides: Partial<CkanOrganization> = {}): CkanOrganization {
+	return {
+		id: "org-1",
+		name: "facultad-de-ciencias",
+		title: "Facultad de Ciencias",
+		description: "",
+		created: "2026-01-01T00:00:00.000000",
+		state: "active",
 		...overrides,
 	};
 }
@@ -304,6 +316,55 @@ describe("Página de dataset — estados de fallo honestos", () => {
 		expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
 		expect(screen.getByRole("link", { name: /Volver al catálogo/i })).toBeTruthy();
 		expect(mocks.showDataset).not.toHaveBeenCalled();
+	});
+});
+
+// ─── El enlace de la organización ─────────────────────────────────────
+// La organización tiene página propia (`/organization/[id]`, que resuelve name o id) y es ahí donde
+// el lector espera aterrizar; una búsqueda filtrada por `org` no es la organización. Las tres
+// superficies que nombran a la organización —el breadcrumb, la insignia del hero y la tarjeta del
+// panel lateral— comparten la misma forma que ya usan las tarjetas del panel.
+describe("Página de dataset — el enlace de la organización", () => {
+	async function renderWithOrganization(): Promise<HTMLElement> {
+		mocks.showDataset.mockResolvedValue(makeDataset({ organization: makeOrganization() }));
+
+		const { container } = render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		return container;
+	}
+
+	it("el breadcrumb lleva la organización a su página, no a una búsqueda filtrada", async () => {
+		await renderWithOrganization();
+
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		expect(nav).not.toBeNull();
+		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
+		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
+	});
+
+	it("la insignia del hero y la tarjeta lateral llevan la organización a su página", async () => {
+		await renderWithOrganization();
+
+		// La insignia del hero comparte el nombre con la miga del breadcrumb: se miden las dos, en orden
+		// de aparición, y ninguna puede quedar fuera del destino de la organización.
+		const named = screen.getAllByRole("link", { name: "Facultad de Ciencias" });
+		expect(named.map((link) => link.getAttribute("href"))).toEqual([
+			"/organization/facultad-de-ciencias",
+			"/organization/facultad-de-ciencias",
+		]);
+
+		const card = screen.getByRole("link", { name: /Ver datasets de Facultad de Ciencias/i });
+		expect(card).toHaveAttribute("href", "/organization/facultad-de-ciencias");
+	});
+
+	it("ninguna superficie del dataset apunta a la búsqueda filtrada por organización", async () => {
+		const container = await renderWithOrganization();
+
+		const hrefs = Array.from(container.querySelectorAll("a[href]")).map(
+			(anchor) => anchor.getAttribute("href") ?? "",
+		);
+		expect(hrefs.some((href) => href.includes("search?org="))).toBe(false);
 	});
 });
 

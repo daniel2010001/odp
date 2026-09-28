@@ -5,7 +5,7 @@ import { page } from "$app/stores";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
-import type { CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
+import type { CkanOrganization, CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import ResourcePage from "./+page.svelte";
 
 // El stub de `$app/stores` (ver vitest.config.ts) expone `page` como store escribible, pero el
@@ -69,7 +69,7 @@ function makeResource(overrides: Partial<CkanResource> = {}): CkanResource {
 	};
 }
 
-function makeDataset(): CkanPackage {
+function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 	return {
 		id: "pkg-1",
 		name: "matricula-2026",
@@ -82,6 +82,19 @@ function makeDataset(): CkanPackage {
 		extras: [],
 		metadata_created: "2026-01-01T00:00:00.000000",
 		metadata_modified: "2026-01-01T00:00:00.000000",
+		...overrides,
+	};
+}
+
+function makeOrganization(overrides: Partial<CkanOrganization> = {}): CkanOrganization {
+	return {
+		id: "org-1",
+		name: "facultad-de-ciencias",
+		title: "Facultad de Ciencias",
+		description: "",
+		created: "2026-01-01T00:00:00.000000",
+		state: "active",
+		...overrides,
 	};
 }
 
@@ -549,6 +562,20 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		render(ResourcePage);
 
 		await screen.findByText(/Observatorio de Movilidad/i);
+	});
+
+	it("el breadcrumb lleva la organización a su página, no a texto plano", async () => {
+		// Defecto medido: la miga de la organización se empujaba sin `href`, así que se dibujaba como texto
+		// y no había nada que clicar. La organización tiene página propia y resuelve name o id.
+		mocks.showDataset.mockResolvedValue(makeDataset({ organization: makeOrganization() }));
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		expect(nav).not.toBeNull();
+		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
+		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
 	});
 
 	it("el breadcrumb es el chip de contexto: muestra el RECURSO actual y el recorrido va adentro", async () => {
