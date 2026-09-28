@@ -41,22 +41,29 @@
 
 ### Lo que falta, en orden
 
-1. **La decisión de dominios y del contenido mixto** — el problema original sigue abierto: el portal
-   se sirve por `https://odp.hs.lan` y CKAN firma sus URLs absolutas con `http://192.168.1.201:5000`,
-   así que el visor de PDF sigue bloqueado por el navegador. Opciones (A: un solo origen con una
-   regla nginx para la ruta de descarga; B: `data.` + `api.` con allowlist) más el acoplamiento a
-   documentar. **El upgrade no cambió nada de esto** (medido: la forma de la `url` es idéntica).
-   **Medido el 2026-09-28:** el portal responde en `https://odp.hs.lan` (200) y el proxy ya enruta
-   `/api/` a CKAN por HTTPS; lo que falla es que `ckan.site_url = http://192.168.1.201:5000`.
-   Y el dato que **decide la arquitectura**: `ResourcePreview.svelte` muestra el PDF en un `<iframe>`
-   **a propósito**, con un comentario propio que dice que lo hace así porque la API de CKAN no manda
-   CORS ⇒ **el portal ya está diseñado para leer el PDF desde otro origen**, y unificar orígenes
-   obligaría a escribir el proxy de descargas que precisamente se evitó. **La decisión del
-   2026-09-24 se mantiene**: dos nombres — el portal en `data.umss.edu.bo` y CKAN en
-   `api.data.umss.edu.bo`, con `ckan.site_url=https://api.data.umss.edu.bo`. El equivalente en dev es
-   `odp.hs.lan` + `api.odp.hs.lan`. **Y el nombre nuevo hay que agregarlo en DNS**: medido, `hs.lan`
-   **no tiene comodín** — `odp.hs.lan` resuelve, `api.odp.hs.lan` todavía no; el DNS es AdGuard Home
-   (`adguard.hs.lan`, corriendo). _(Medición de la sesión de la línea CKAN, 2026-09-28.)_
+1. ~~**La decisión de dominios y del contenido mixto**~~ — **RESUELTO EN DEV (2026-09-28) y verificado
+   de punta a punta.**
+   **El problema**: el portal se servía por `https://odp.hs.lan` y CKAN firmaba sus URLs absolutas con
+   `http://192.168.1.201:5000` ⇒ el navegador bloqueaba el PDF por contenido mixto.
+   **El dato que decidió la arquitectura**: `ResourcePreview.svelte` muestra el PDF en un `<iframe>`
+   **a propósito** —con un comentario propio que dice que lo hace así porque la API de CKAN no manda
+   CORS— ⇒ **el portal ya estaba diseñado para leer el recurso desde otro origen**, y unificar orígenes
+   habría obligado a escribir el proxy de descargas que precisamente se evitó.
+   **El arreglo** (commit `f4c4ca0` en `odp-docker`, `master`, gateado): Caddy sirve
+   **`https://api.odp.hs.lan` directo al contenedor de CKAN** —sin nginx intermedio, porque CKAN ignora
+   el `Host` y arma sus URLs desde `ckan.site_url`— y `CKAN_SITE_URL` apunta ahí. **El portal no
+   necesitó ningún cambio de código**: el `<iframe>` sin CORS ya cubría el caso.
+   **Verificado**: un PDF subido por API devuelve
+   `https://api.odp.hs.lan/dataset/…/resource/…/download/…` (`url_type: upload`) y esa URL sirve el
+   archivo (`200 · %PDF-1.4`); el autor lo abrió en el portal y se ve.
+   **Producción** (decisión del 2026-09-24, sin cambios): portal en `data.umss.edu.bo`, CKAN en
+   `api.data.umss.edu.bo`, `ckan.site_url=https://api.data.umss.edu.bo`. El **invariante** que viaja:
+   `ckan.site_url` debe ser exactamente la URL pública de CKAN, **con el mismo esquema que el portal**.
+   El andamiaje de `hs.lan` (labels de Caddy + `hs-net`) es de dev y vive **sólo** en
+   `docker-compose.dev.unified.yml`, comentado como tal. El nombre `api.odp.hs.lan` ya está en el DNS
+   de AdGuard (lo agregó el autor; verificado: resuelve a `192.168.1.201`).
+   _(Medición y arreglo de la sesión de la línea CKAN, 2026-09-28.)_
+
 2. **El borrador del issue upstream del `ApiTokenView`** — escrito en
    `odd/tasks/tokens-page-patch.md` y **sin publicar**: es una acción externa y necesita el OK del
    autor. El parche local ya está aplicado (`affb4b4`), así que esto sólo cierra el círculo con
