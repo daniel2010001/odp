@@ -378,6 +378,29 @@ describe("Página de dataset — el enlace de la organización", () => {
 		expect(card).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
 	});
 
+	it("una organización con título pero sin `name` muestra la miga como texto y nunca como `/organization/undefined`", async () => {
+		// Guarda que señaló la revisión `R3-ORG-NAME-GUARD`: el guard miraba `title` mientras el `href`
+		// se armaba con `name`, así que una organización con título y sin `name` producía
+		// `/organization/undefined`. Se exige `name`, que es lo que el enlace necesita; la miga sigue.
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ organization: makeOrganization({ name: undefined }) }),
+		);
+
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		expect(nav).not.toBeNull();
+		// La miga sigue mostrándose como texto (la información de dónde estás no se pierde)…
+		expect(within(nav).getByText("Facultad de Ciencias")).toBeTruthy();
+		// …pero ya no es un enlace, porque no hay destino que ofrecer.
+		expect(within(nav).queryByRole("link", { name: "Facultad de Ciencias" })).toBeNull();
+		const hrefs = Array.from(nav.querySelectorAll("a[href]")).map(
+			(anchor) => anchor.getAttribute("href") ?? "",
+		);
+		expect(hrefs.some((href) => href.includes("undefined"))).toBe(false);
+	});
+
 	it("ninguna superficie del dataset apunta a la búsqueda filtrada por organización", async () => {
 		const container = await renderWithOrganization();
 
@@ -385,6 +408,25 @@ describe("Página de dataset — el enlace de la organización", () => {
 			(anchor) => anchor.getAttribute("href") ?? "",
 		);
 		expect(hrefs.some((href) => href.includes("search?org="))).toBe(false);
+	});
+});
+
+// ─── La primera miga del breadcrumb ───────────────────────────────────
+// Las dos páginas —dataset y recurso— nombran el mismo destino (`/search`) con la misma palabra. La
+// miga lleva el rótulo como texto visible y conserva su `role: "Catálogo"`, que es quien dice el nivel.
+describe("Página de dataset — la primera miga del breadcrumb", () => {
+	it("nombra el catálogo con la misma palabra que la página de recurso: «Datasets» hacia /search", async () => {
+		mocks.showDataset.mockResolvedValue(makeDataset());
+
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		expect(nav).not.toBeNull();
+		const crumb = within(nav).getByRole("link", { name: "Datasets" });
+		expect(crumb).toHaveAttribute("href", "/search");
+		// El portal no puede nombrar el mismo destino con dos palabras.
+		expect(within(nav).queryByRole("link", { name: "Catálogo" })).toBeNull();
 	});
 });
 

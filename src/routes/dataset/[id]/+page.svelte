@@ -213,13 +213,17 @@ const metadataItems = $derived.by(() => {
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
 const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
-	const items: BreadcrumbItem[] = [{ label: "Catálogo", href: "/search", role: "Catálogo" }];
+	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search", role: "Catálogo" }];
 	if (dataset?.organization?.title) {
+		// Con `href`: la organización tiene página propia (la ruta resuelve name o id). El `href` se
+		// arma con `name`, así que se exige `name`, no `title`: una organización con título pero sin
+		// `name` conserva la miga como texto y no inventa `/organization/undefined` (la revisión
+		// `R3-ORG-NAME-GUARD`).
 		items.push({
 			label: dataset.organization.title,
-			// La organización tiene página propia; la ruta resuelve name o id. Una búsqueda filtrada por
-			// `org` no es la organización: el lector pedía navegar a ella, no a un listado.
-			href: `/organization/${encodeURIComponent(dataset.organization.name)}`,
+			href: dataset.organization.name
+				? `/organization/${encodeURIComponent(dataset.organization.name)}`
+				: undefined,
 			role: "Organización",
 		});
 	}
