@@ -178,9 +178,14 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 	if (dataset?.organization?.title) {
 		// Con `href`: la organización tiene página propia (la ruta resuelve name o id). Sin él la miga se
 		// dibujaba como texto plano y no había nada que clicar, que es el defecto que este slice corrige.
+		// El `href` se arma con `name`, así que se exige `name`, no `title`: una organización con título
+		// pero sin `name` conserva la miga como texto y no inventa `/organization/undefined` (la revisión
+		// `R3-ORG-NAME-GUARD`).
 		items.push({
 			label: dataset.organization.title,
-			href: `/organization/${dataset.organization.name}`,
+			href: dataset.organization.name
+				? `/organization/${dataset.organization.name}`
+				: undefined,
 			role: "Organización",
 		});
 	}

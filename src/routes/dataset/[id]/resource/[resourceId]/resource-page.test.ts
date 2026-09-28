@@ -578,6 +578,29 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
 	});
 
+	it("una organización con título pero sin `name` muestra la miga como texto y nunca como `/organization/undefined`", async () => {
+		// Regresión que señaló la revisión `R3-ORG-NAME-GUARD`: el guard miraba `title` mientras el `href`
+		// se armaba con `name`, así que una organización con título y sin `name` producía
+		// `/organization/undefined`. Se exige `name`, que es lo que el enlace necesita; la miga sigue.
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ organization: makeOrganization({ name: undefined }) }),
+		);
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		expect(nav).not.toBeNull();
+		// La miga sigue mostrándose como texto (la información de dónde estás no se pierde)…
+		expect(within(nav).getByText("Facultad de Ciencias")).toBeTruthy();
+		// …pero ya no es un enlace, porque no hay destino que ofrecer.
+		expect(within(nav).queryByRole("link", { name: "Facultad de Ciencias" })).toBeNull();
+		const hrefs = Array.from(nav.querySelectorAll("a[href]")).map(
+			(anchor) => anchor.getAttribute("href") ?? "",
+		);
+		expect(hrefs.some((href) => href.includes("undefined"))).toBe(false);
+	});
+
 	it("el breadcrumb es el chip de contexto: muestra el RECURSO actual y el recorrido va adentro", async () => {
 		// Integración de la decisión del autor (2026-09-24): el mismo componente en las dos páginas, y en
 		// móvil el chip con el nivel actual —no una flecha de volver— con el árbol en el desplegable.
