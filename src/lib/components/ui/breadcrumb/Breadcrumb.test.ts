@@ -1,3 +1,4 @@
+import { FileText } from "@lucide/svelte";
 import { fireEvent, render, screen, within } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 import Breadcrumb, { type BreadcrumbItem } from "./Breadcrumb.svelte";
@@ -87,6 +88,26 @@ describe("Breadcrumb — el chip de móvil", () => {
 		expect(chip?.className).toContain("lg:hidden");
 		expect(within(chip as HTMLElement).getByRole("button")).toHaveTextContent(items[3].label);
 		expect(container.textContent).not.toContain("←");
+	});
+
+	it("el disparador de móvil es la fila de texto del A7: sin chip y con los íconos a `size-4`", () => {
+		// Decisión del autor (hoja `/dev/nav`, A7): el título completo es la zona de toque —por eso el
+		// disparador es la fila entera— y el aspecto deja de ser un botón con borde y fondo: texto con
+		// relleno vertical y el `hover` como única retroalimentación. jsdom no maqueta, así que la clase es
+		// lo que fija la forma y este test impide que vuelva el chip.
+		const { container } = render(Breadcrumb, { props: { items, icon: FileText } });
+		const chip = container.querySelector("nav > div") as HTMLElement;
+		const trigger = within(chip).getByRole("button");
+
+		expect(trigger.className).toContain("py-1");
+		expect(trigger.className).not.toContain("border");
+		expect(trigger.className).not.toContain("bg-background");
+		expect(trigger.className).toContain("hover:text-foreground");
+		// Sigue pudiendo encogerse: sin `min-w-0`/`max-w-full` el título no trunca y la fila desborda.
+		expect(trigger.className).toContain("min-w-0");
+		expect(trigger.className).toContain("max-w-full");
+		// Los dos íconos —el del tipo y el chevron— al tamaño del A7, no al `size-3.5` del chip.
+		expect(trigger.querySelectorAll(".size-4")).toHaveLength(2);
 	});
 
 	it("el chip no duplica el recorrido en el árbol de accesibilidad mientras está cerrado", () => {

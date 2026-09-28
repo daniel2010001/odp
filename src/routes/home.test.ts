@@ -78,7 +78,7 @@ describe("Página de inicio — las tarjetas de organización", () => {
 
 		for (const org of ORGS) {
 			const card = scoped.getByRole("link", { name: new RegExp(org.title, "i") });
-			expect(card).toHaveAttribute("href", `/organization/${org.name}`);
+			expect(card).toHaveAttribute("href", `/organization/${encodeURIComponent(org.name)}`);
 		}
 
 		// Y la propiedad de refuerzo: ninguna tarjeta quedó apuntando a la búsqueda filtrada por `org`,
@@ -87,5 +87,26 @@ describe("Página de inicio — las tarjetas de organización", () => {
 			(anchor) => anchor.getAttribute("href") ?? "",
 		);
 		expect(hrefs.some((href) => href.includes("search?org="))).toBe(false);
+	});
+
+	it("codifica el nombre de la organización en el enlace, aunque hoy los nombres sean slugs", async () => {
+		// `R3-001` (revisión nativa): el nombre es un `string` sin garantía de forma. Codificarlo es un
+		// no-op para los slugs reales de CKAN, pero deja la regla en una sola forma y evita un enlace
+		// roto si un nombre llegara con espacios o signos. Sin codificar, este test cae.
+		mocks.listOrgs.mockResolvedValue([
+			makeOrganization({
+				id: "org-3",
+				name: "observatorio de movilidad",
+				title: "Observatorio de Movilidad",
+			}),
+		]);
+
+		const { container } = render(HomePage);
+		await screen.findByRole("link", { name: /Observatorio de Movilidad/i });
+
+		const section = container.querySelector("#organizaciones") as HTMLElement;
+		const card = within(section).getByRole("link", { name: /Observatorio de Movilidad/i });
+
+		expect(card).toHaveAttribute("href", "/organization/observatorio%20de%20movilidad");
 	});
 });

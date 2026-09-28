@@ -578,6 +578,23 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
 	});
 
+	it("codifica el `name` de la organización en el `href` de la miga, conservando el guard de `name`", async () => {
+		// La regla de armado es una sola: `encodeURIComponent` sobre `name`. Se mide con un `name` fuera
+		// del alfabeto de slugs, donde la forma cruda y la codificada divergen; el guard sigue siendo
+		// `name ? … : undefined` y no cambia.
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ organization: makeOrganization({ name: "facultad de ciencias/ñ" }) }),
+		);
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		expect(nav).not.toBeNull();
+		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
+		expect(crumb).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
+	});
+
 	it("una organización con título pero sin `name` muestra la miga como texto y nunca como `/organization/undefined`", async () => {
 		// Regresión que señaló la revisión `R3-ORG-NAME-GUARD`: el guard miraba `title` mientras el `href`
 		// se armaba con `name`, así que una organización con título y sin `name` producía

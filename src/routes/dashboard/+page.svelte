@@ -652,7 +652,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							{#each organizations as organization (organization.id)}
 								<li>
 									<a
-										href={`/organization/${organization.name}`}
+										href={`/organization/${encodeURIComponent(organization.name)}`}
 										class="group flex items-start gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 									>
 										<OrganizationLogo

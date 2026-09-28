@@ -28,7 +28,7 @@ export interface BreadcrumbGroup {
 		related,
 	}: {
 		items: BreadcrumbItem[];
-		/** Ícono del nivel **actual** (un dataset, un recurso…). Sólo lo usa el chip de móvil. */
+		/** Ícono del nivel **actual** (un dataset, un recurso…). Sólo lo usa el disparador de móvil. */
 		icon?: Component;
 		/**
 		 * Segundo grupo del desplegable: los **hermanos** del nivel actual («Recursos de este dataset»). El
@@ -133,20 +133,23 @@ export interface BreadcrumbGroup {
 		{/each}
 	</ol>
 
-	<!-- Móvil: un chip con el nivel ACTUAL y el árbol adentro. El ícono dice **de qué tipo de cosa** se
-	     trata, no a dónde va; volver es el botón del navegador, y por eso no hay flecha. El chip no cambia
-	     de tamaño cuando el recorrido crece: el nombre se recorta. Si hay hermanos, van en un segundo grupo:
-	     el desplegable contesta «¿dónde estoy?» y «¿qué más hay?» en el mismo lugar. -->
+	<!-- Móvil: el nivel ACTUAL y el árbol adentro, y el TÍTULO entero es la zona de toque. Decisión del
+	     autor (hoja `/dev/nav`, A7): el aspecto deja de ser un chip —sin borde, sin fondo y sin relleno de
+	     botón— y queda el texto con los íconos a `size-4` y el `hover` como única retroalimentación. El
+	     ícono dice **de qué tipo de cosa** se trata, no a dónde va; volver es el botón del navegador, y por
+	     eso no hay flecha. El disparador no cambia de tamaño cuando el recorrido crece: el nombre se
+	     recorta. Si hay hermanos, van en un segundo grupo: el desplegable contesta «¿dónde estoy?» y «¿qué
+	     más hay?» en el mismo lugar. -->
 	<div class="lg:hidden">
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger
-				class="inline-flex min-w-0 max-w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
+				class="inline-flex min-w-0 max-w-full items-center gap-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				{#if Icon}
-					<Icon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+					<Icon class="size-4 shrink-0" aria-hidden="true" />
 				{/if}
 				<span class="truncate font-medium text-foreground">{current?.label}</span>
-				<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+				<ChevronDown class="size-4 shrink-0" aria-hidden="true" />
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content
 				class="z-50 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-popover p-1 shadow-md"

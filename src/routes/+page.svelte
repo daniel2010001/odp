@@ -227,7 +227,7 @@ function handleHeroSearch(query: string) {
 					<OrganizationCard
 						org={org}
 						count={org.package_count ?? 0}
-						href={`/organization/${org.name}`}
+						href={`/organization/${encodeURIComponent(org.name)}`}
 					/>
 				{/each}
 			{:else}

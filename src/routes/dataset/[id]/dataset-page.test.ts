@@ -358,6 +358,26 @@ describe("Página de dataset — el enlace de la organización", () => {
 		expect(card).toHaveAttribute("href", "/organization/facultad-de-ciencias");
 	});
 
+	it("codifica el `name` de la organización en el `href`: una sola forma de armar la URL", async () => {
+		// Regla única: la URL de la organización se codifica con `encodeURIComponent` en todas las
+		// superficies. Con un `name` fuera del alfabeto de slugs (`[a-z0-9_-]`) la forma cruda y la
+		// codificada divergen, así que este caso fija la regla que un slug no puede distinguir.
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ organization: makeOrganization({ name: "facultad de ciencias/ñ" }) }),
+		);
+
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		expect(nav).not.toBeNull();
+		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
+		expect(crumb).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
+
+		const card = screen.getByRole("link", { name: /Ver datasets de Facultad de Ciencias/i });
+		expect(card).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
+	});
+
 	it("ninguna superficie del dataset apunta a la búsqueda filtrada por organización", async () => {
 		const container = await renderWithOrganization();
 
