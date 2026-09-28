@@ -1832,6 +1832,16 @@ después del cierre que describe el encabezado de esta sección; medición compl
   Sin dueño hasta ahora, y por eso se registra acá. Origen: store nativo, linaje
   `review-7e3ab346bc8b3f85`; transcripción completa en `odd/tasks/ckan-2.12-upgrade.md`.
 
+- [ ] **[v1] Los roles en el front no se distinguen: ¿qué diferencia hay entre un usuario, un admin de
+  organización y un superadmin?** — Observación del autor (2026-09-28), al revisar el badge del dashboard:
+  «en CKAN la tenemos clara con eso de agregar cosas como el CSS y demás, pero en este nuevo front no termina
+  de quedar muy claras las diferencias». **Punto medido que la origina:** al corregir el badge se encontró que
+  la **misma palabra** designaba dos permisos incomparables — el `sysadmin` del sistema y `capacity: "admin"`
+  de una organización—, y el portal no tiene hoy **ninguna superficie** que explique qué puede hacer cada rol ni
+  qué cambia en la interfaz según el rol. CKAN los distingue (capability por organización, `sysadmin` global) y
+  la API los expone; lo que falta es **decidir cómo se muestran y se nombran en el portal**. Es a futuro, en
+  palabras del autor. _Origen: revisión del badge `Administrador del sistema`, 2026-09-28._
+
 - [ ] **[v1] Un editor de organización pierde la capacidad de cambiar `state` cuando entre el guard de
   publicación** — **medido (2026-09-14, P4a):** hoy un editor de org **sí** puede `package_patch
   {state:"draft"}` (200, guardado), y puede volver a `active`. Es una consecuencia **deliberada** del
@@ -2142,6 +2152,37 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibo de la revisión nativa de la unidad que cerró el guard y llevó las cards del home a la organización (2026-09-28)** — cerró **`approved`** y la authority quedó quemada. `review-b336caf8983ffd9b`: tier **medium**, lente `review-reliability`, **4 archivos / 121 líneas**, presupuesto 61, **0 bloqueantes**.
+  - **Un aviso informativo:** `R3-001` · reliability · WARNING · `src/routes/+page.svelte:230`. **Sin texto en el envelope**, así que van las **dos lecturas posibles** y cuál me parece más probable. La línea es `href={`/organization/${org.name}`}` de la card de organización del home, o sea **la línea que este cambio agregó**.
+    1. **La más probable, y es una regresión mía:** el cambio **quitó el `encodeURIComponent`** que estaba antes (`/search?org=${encodeURIComponent(org.name)}` → `/organization/${org.name}`). Mi justificación fue que el `name` de CKAN es un slug (`[a-z0-9_-]`) y codificar es un no-op — cierto hoy, pero no está garantizado por el tipo (`string`), y un revisor de confiabilidad mira el diff. **Arreglo recomendado: devolver el `encodeURIComponent`** (no cuesta nada y cubre el caso que mi argumento da por sentado).
+    2. **La otra:** `org.name` ausente → `/organization/undefined`, el mismo defecto que el aviso `R3-ORG-NAME-GUARD` encontró en la página del recurso. En el home la fuente es `organization_list`, que CKAN siempre devuelve con `name`, así que es defensivo.
+    Queda **anotado, no corregido**: el recibo está quemado y ningún aviso reabre el candidato. Las dos lecturas se cierran con una línea cada una.
+  - **Alcance:** `7d98ac1..5d68fc5` con `committedOnly: true` — la unidad del guard (`f9ea83d`) más el commit de formato (`5d68fc5`, las dos hunks que dejó el gancho de pre-commit).
+  - **Cierra un aviso anterior, medido:** el `R3-ORG-NAME-GUARD` de `review-33850b074b195bfa` **fue corregido en `f9ea83d`** y el RED se midió contra la aserción nueva: `expected <a …> to be null` sobre un ancla con `href="/organization/undefined"`. Es el primer aviso de esta serie que se cierra **con evidencia de que el defecto existía**.
+  - **Migración del home:** las cards de organización pasaron de `/search?org=…` a `/organization/<name>`, por decisión del autor, y **ya no queda ningún `search?org=` en código de producción** — sólo las dos aserciones negativas que lo impiden. Test nuevo `src/routes/home.test.ts` (el home no tenía ninguno), con su RED medido: falló con `/search?org=facultad-de-ciencias`.
+  - **Gates:** `pnpm test` **663/663** (48 archivos) · `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **no verificable** (exit 254) · el DOM renderizado del home **no está cubierto** (la página es client-rendered), así que la cobertura son las aserciones del test nuevo.
+  _Origen: el guard que la revisión encontró + las cards del home, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad de los enlaces de organización y el badge (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-33850b074b195bfa`: tier **medium**, lente
+  `review-reliability`, **6 archivos / 137 líneas**, presupuesto 69, **0 bloqueantes**.
+  - **Un aviso informativo que encontró un hueco REAL en la especificación del padre:** `R3-ORG-NAME-GUARD`,
+    WARNING, `resource/[resourceId]/+page.svelte:183`. El guard era `dataset?.organization?.title` y el `href`
+    que la unidad agregó usa `.name` → `/organization/undefined`. **Cerrado en la unidad siguiente
+    (`f9ea83d`)** con RED medido. Lección registrada: al delegar un enlace derivado hay que nombrar **la
+    variable que el guard necesita**, no sólo el destino.
+  - **Lo que hizo la unidad:** los tres enlaces de organización (la miga del dataset, su `orgHref` y la miga del
+    recurso, que **no tenía `href` ninguno**) pasaron a `/organization/<name>`; y el badge del dashboard pasó de
+    `Administrador` a **`Administrador del sistema`**, dejando `Administrador` en las cards de organización,
+    que es su rol real. La ambigüedad era real: la misma palabra designaba el sysadmin del sistema y el admin
+    de una organización.
+  - **Gates:** `pnpm test` **661/661** (47 archivos, de 656 a 661) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes · la ruta `/organization/direccion-investigacion` responde **200**.
+  - **Nota de proceso:** el primer `START` devolvió `consent-binding-stale` sin crear linaje y se resolvió con
+    un `START` nuevo, como estaba medido; y un `capture-binding-rejected` **fue una errata del padre** al
+    transcribir el binding (un `/schema` menos), no un problema del proveedor.
+  _Origen: los dos TODO del autor sobre enlaces de organización y el badge del dashboard, 2026-09-28._
 
 - [ ] **Recibo de la revisión nativa de la unidad del salto secuencial y el desborde del desplegable (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-fc7e00d27e1f61cf`: tier **medium**, lente
