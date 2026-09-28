@@ -2205,6 +2205,30 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de la unidad que cerró el guard del dataset y unificó la primera miga (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-3f510d12bc05d495`: tier **medium**, lente
+  `review-reliability`, **2 archivos / 54 líneas**, presupuesto 27, **CERO hallazgos** — la segunda vez en esta
+  serie que una compuerta cierra sin avisos.
+  - **Lo que hizo la unidad**, a partir de la observación del autor de que «el breadcrumb del dataset y el del
+    recurso difiere un poco»: **(1)** la página del dataset recibió el **mismo guard** que el recurso —el `href`
+    se arma con `.name`, así que se exige `.name`, no `.title`—, cerrando el defecto de la clase
+    `R3-ORG-NAME-GUARD` que había quedado **sin corregir en la página hermana**; los dos guards quedaron
+    **byte a byte idénticos**. **(2)** la primera miga se unificó a **`Datasets`** con `role: "Catálogo"`
+    —el par que ya usaban la página del recurso y la hoja del autor—, y **ninguna página usa ya `label:
+    "Catálogo"`**.
+  - **Tres diferencias que NO se tocaron, registradas** para que nadie las «arregle»: el ícono difiere a
+    propósito (`Database` en el dataset, `FileText` en el recurso) porque describe **el nivel actual**;
+    `related` —el grupo de hermanos— sólo lo pasa el recurso, porque los hermanos sólo existen ahí; y la
+    última miga del dataset **no lleva `href`**, que es correcto porque enlazar la página actual es redundante.
+  - **Gates:** `pnpm test` **669/669** (48 archivos, de 667 a 669: +2 tests, el guard y la etiqueta) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los dos archivos · Biome **no
+    verificable** (exit 254).
+  - **Valor de método:** el defecto del guard **sobrevivió en la página hermana** después de que un revisor lo
+    señalara y se cerrara «su» archivo. **Cerrar un hallazgo en el archivo que el revisor apuntó no es cerrar el
+    hallazgo**: hay que buscar la clase en las páginas equivalentes. Es la misma lección que dejó el aviso
+    anterior, ahora del lado del que arregla.
+  _Origen: TODO del autor sobre los dos breadcrumbs, 2026-09-28._
+
 - [ ] **Recibo de la revisión nativa de la unidad que promovió A7 y unificó la URL de organización (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-94fc418923877f2d`: tier **medium**, lente
   `review-reliability`, **10 archivos / 119 líneas**, presupuesto 60, **0 bloqueantes**.
