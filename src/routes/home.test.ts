@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type ApiClientConfig } from "$lib/types/api";
+import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanOrganization } from "$lib/types/ckan";
 import HomePage from "./+page.svelte";
 

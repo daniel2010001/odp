@@ -183,9 +183,7 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 		// `R3-ORG-NAME-GUARD`).
 		items.push({
 			label: dataset.organization.title,
-			href: dataset.organization.name
-				? `/organization/${dataset.organization.name}`
-				: undefined,
+			href: dataset.organization.name ? `/organization/${dataset.organization.name}` : undefined,
 			role: "Organización",
 		});
 	}
