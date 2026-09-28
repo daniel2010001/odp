@@ -567,6 +567,291 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 	});
 });
 
+// ─── El salto secuencial en la banda de la acción (D5) ─────
+// Decisión del autor (2026-09-25): el salto deja de tener fila propia —ni banda bajo el hero ni barra
+// fija al pie— y queda en la banda de la acción del recurso, a la altura del botón de descarga, la
+// acción primaria del hero. La fila del título quedó descartada (rechazo del autor: el salto no va
+// junto al título). La forma es la de dos controles rotulados —«‹ Anterior» y «Siguiente ›», cada uno
+// con su propio borde— con el contador de posición en el medio: el destino completo vive en `title` y
+// `aria-label`, y el contador queda visible a toda anchura. En los extremos la dirección que no existe
+// se dibuja inerte —un `span` con `aria-hidden`, sin `tabindex`, con el mismo rótulo— y no como un
+// enlace muerto o un hueco: una mitad ausente haría que el salto parezca roto y que el contador salte
+// de lugar.
+const D5_THREE: CkanResource[] = [
+	makeResource({ id: "res-0", name: "Flujos vehiculares 2019", position: 0, format: "CSV" }),
+	makeResource({
+		id: "res-1",
+		name: "Matrícula 2026",
+		position: 1,
+		format: "PDF",
+		url_type: "upload",
+	}),
+	makeResource({ id: "res-2", name: "Informe metodológico", position: 2, format: "PDF" }),
+];
+
+describe("Página de recurso — el salto secuencial en la banda de la acción (D5)", () => {
+	/**
+	 * Monta la ficha con el recurso del medio del dataset y devuelve las dos superficies del hero que
+	 * este bloque mide: la banda de la acción (botón de descarga + salto) y la fila del título.
+	 */
+	async function renderHero(): Promise<{ band: HTMLElement; titleRow: HTMLElement }> {
+		mocks.showDataset.mockResolvedValue({ ...makeDataset(), resources: D5_THREE });
+
+		render(ResourcePage);
+
+		const action = await screen.findByRole("link", { name: /Abrir enlace|Descargar recurso/i });
+		const heading = screen.getByRole("heading", { level: 1, name: /Matrícula 2026/i });
+
+		const band = action.parentElement as HTMLElement | null;
+		const titleRow = heading.parentElement as HTMLElement | null;
+		expect(band).not.toBeNull();
+		expect(titleRow).not.toBeNull();
+		return { band: band as HTMLElement, titleRow: titleRow as HTMLElement };
+	}
+
+	it("los dos controles rotulados viven en la banda de la acción, con el contador en el medio", async () => {
+		const { band } = await renderHero();
+		const action = within(band).getByRole("link", { name: /Abrir enlace|Descargar recurso/i });
+
+		// Una sola banda: la acción del recurso —primaria— a la izquierda y el salto a la derecha. La
+		// banda envuelve en anchos cortos para no desbordar en móvil.
+		expect(action).toBeTruthy();
+		expect(band.className).toContain("flex-wrap");
+
+		// La banda es la fila de la acción, no un contenedor que envuelve todo el hero: el título queda
+		// afuera y cada pieza del salto cuelga directamente de ella, sin envoltorio propio.
+		expect(within(band).queryByRole("heading", { level: 1 })).toBeNull();
+
+		const previous = within(band).getByRole("link", {
+			name: "Recurso anterior: Flujos vehiculares 2019",
+		});
+		const counter = within(band).getByText("Recurso 2 de 3");
+		const next = within(band).getByRole("link", {
+			name: "Recurso siguiente: Informe metodológico",
+		});
+		expect(previous).toHaveTextContent("Anterior");
+		expect(next).toHaveTextContent("Siguiente");
+		expect(previous.parentElement).toBe(band);
+		expect(counter.parentElement).toBe(band);
+		expect(next.parentElement).toBe(band);
+
+		// Son dos controles separados —cada uno con su borde y su radio—, no un grupo: el contador queda
+		// en el medio y ningún control contiene al otro. La familia es la de los botones del hero, no la
+		// de los chips: mismo radio, misma altura, mismo fondo, mismo hover y mismo tamaño de texto que
+		// el botón de copiar enlace. Es un contrato de clases porque jsdom no aplica Tailwind.
+		const BUTTON_FAMILY =
+			"h-9 rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
+		for (const token of BUTTON_FAMILY.split(" ")) {
+			expect(previous.className).toContain(token);
+			expect(next.className).toContain(token);
+		}
+		// No conservan la escala del chip que las hacía verse de otra familia.
+		expect(previous.className).not.toContain("rounded-md");
+		expect(next.className).not.toContain("rounded-md");
+		expect(previous.contains(next)).toBe(false);
+		const order = Array.from(band.children);
+		expect(order.indexOf(previous)).toBeLessThan(order.indexOf(counter));
+		expect(order.indexOf(counter)).toBeLessThan(order.indexOf(next));
+
+		// `ml-auto` en el primer control alinea el salto a la derecha; sin él quedaría pegado al botón.
+		expect(previous.className).toContain("ml-auto");
+	});
+
+	it("la fila del título ya no aloja el salto: quedó sólo el copiar enlace y el `h1`", async () => {
+		const { titleRow } = await renderHero();
+
+		expect(
+			within(titleRow).getByRole("button", { name: "Copiar enlace del recurso" }),
+		).toBeTruthy();
+		expect(
+			within(titleRow).getByRole("heading", { level: 1, name: /Matrícula 2026/i }),
+		).toBeTruthy();
+		// La decisión del autor: el salto se fue de esta fila. Si vuelve, este test lo dice.
+		expect(within(titleRow).queryByText(/Recurso \d+ de \d+/)).toBeNull();
+		expect(
+			within(titleRow).queryByRole("link", { name: /Recurso (anterior|siguiente)/ }),
+		).toBeNull();
+		// `min-w-0` se queda como red de seguridad para un nombre largo.
+		expect((titleRow.querySelector("h1") as HTMLElement).className).toContain("min-w-0");
+	});
+
+	it("cada control lleva su rótulo visible y el destino completo en title y aria-label", async () => {
+		const { band } = await renderHero();
+
+		const previous = within(band).getByRole("link", {
+			name: "Recurso anterior: Flujos vehiculares 2019",
+		});
+		expect(previous).toHaveAttribute("href", "/dataset/matricula-2026/resource/res-0");
+		expect(previous).toHaveAttribute("title", "Flujos vehiculares 2019");
+		expect(previous).toHaveTextContent("Anterior");
+
+		const next = within(band).getByRole("link", {
+			name: "Recurso siguiente: Informe metodológico",
+		});
+		expect(next).toHaveAttribute("href", "/dataset/matricula-2026/resource/res-2");
+		expect(next).toHaveAttribute("title", "Informe metodológico");
+		expect(next).toHaveTextContent("Siguiente");
+	});
+
+	it("el contador de posición es visible a toda anchura", async () => {
+		await renderHero();
+
+		const counter = screen.getByText("Recurso 2 de 3");
+		// El `hidden ... sm:inline` de antes dejaba la ficha sin contador por debajo de `sm`. La clase es
+		// lo que lo mide: jsdom no aplica Tailwind.
+		expect(counter.className).not.toContain("hidden");
+		// El contador dejó de ser el único texto monoespaciado del hero y no jitterea al cambiar los
+		// dígitos. Contrato de clases: jsdom no aplica Tailwind.
+		expect(counter.className).not.toContain("font-mono");
+		expect(counter.className).toContain("tabular-nums");
+	});
+
+	it("el salto no reintroduce el chip de tipo del encabezado", async () => {
+		const { band } = await renderHero();
+
+		// El chip vive en la fila de insignias del hero; el salto es el contador con sus dos controles
+		// rotulados, sin chip de formato.
+		expect(within(band).queryByText(/^(PDF|CSV|Enlace)$/)).toBeNull();
+	});
+
+	it("la barra del breadcrumb queda con una sola fila: sólo el recorrido", async () => {
+		// El salto no vuelve al breadcrumb: la barra no contiene ni contador ni controles.
+		mocks.showDataset.mockResolvedValue({ ...makeDataset(), resources: D5_THREE });
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		const bar = nav.closest(".border-b") as HTMLElement;
+
+		expect(within(bar).queryByText(/Recurso \d+ de \d+/)).toBeNull();
+		expect(within(bar).queryByRole("link", { name: /Recurso anterior/ })).toBeNull();
+		expect(within(bar).queryByRole("link", { name: /Recurso siguiente/ })).toBeNull();
+	});
+
+	it("en los extremos la dirección ausente es un control inerte, no un enlace muerto", async () => {
+		// Primer recurso: no hay «Anterior». El control queda inerte —un `span` con `aria-hidden`, fuera
+		// del orden de tabulación— con el mismo rótulo que el real, y la geometría se conserva, así que
+		// el contador no salta de lugar.
+		mocks.showDataset.mockResolvedValue({
+			...makeDataset(),
+			resources: [
+				makeResource({ id: "res-1", name: "Matrícula 2026", position: 0, format: "PDF" }),
+				makeResource({ id: "res-2", name: "Informe metodológico", position: 1, format: "PDF" }),
+			],
+		});
+
+		const { unmount } = render(ResourcePage);
+		const counter = await screen.findByText("Recurso 1 de 2");
+		expect(screen.queryByRole("link", { name: /Recurso anterior/ })).toBeNull();
+		expect(screen.getByRole("link", { name: /Recurso siguiente/ })).toBeTruthy();
+
+		const inert = counter.previousElementSibling as HTMLElement | null;
+		expect(inert?.tagName).toBe("SPAN");
+		expect(inert?.getAttribute("aria-hidden")).toBe("true");
+		expect(inert?.textContent).toContain("Anterior");
+		expect(inert?.querySelector("svg")).not.toBeNull();
+		expect(inert?.hasAttribute("tabindex")).toBe(false);
+		// El inerte conserva la misma caja que su contraparte real: si perdiera la altura o el radio, las
+		// dos mitades dejarían de alinearse. Contrato de clases: jsdom no aplica Tailwind.
+		expect(inert?.className).toContain("h-9");
+		expect(inert?.className).toContain("rounded-lg");
+		// Inerte de verdad: no es un ancla, así que el lector de pantalla no lo anuncia y el teclado no
+		// lo alcanza.
+		expect(inert?.closest("a")).toBeNull();
+		unmount();
+
+		// Último recurso: no hay «Siguiente».
+		mocks.showDataset.mockResolvedValue({
+			...makeDataset(),
+			resources: [
+				makeResource({ id: "res-0", name: "Flujos vehiculares 2019", position: 0, format: "CSV" }),
+				makeResource({ id: "res-1", name: "Matrícula 2026", position: 1, format: "PDF" }),
+			],
+		});
+		render(ResourcePage);
+		const lastCounter = await screen.findByText("Recurso 2 de 2");
+		expect(screen.queryByRole("link", { name: /Recurso siguiente/ })).toBeNull();
+		expect(screen.getByRole("link", { name: /Recurso anterior/ })).toBeTruthy();
+
+		const lastInert = lastCounter.nextElementSibling as HTMLElement | null;
+		expect(lastInert?.tagName).toBe("SPAN");
+		expect(lastInert?.getAttribute("aria-hidden")).toBe("true");
+		expect(lastInert?.textContent).toContain("Siguiente");
+		expect(lastInert?.hasAttribute("tabindex")).toBe(false);
+		expect(lastInert?.closest("a")).toBeNull();
+		expect(lastInert?.className).toContain("h-9");
+		expect(lastInert?.className).toContain("rounded-lg");
+	});
+
+	it("sin URL de descarga el salto sigue a la derecha y no deja una banda vacía", async () => {
+		// Sin `url` no hay acción de descarga, así que el salto es el único contenido de la banda. La
+		// alineación no puede depender del botón: `ml-auto` en el primer control la sostiene sola.
+		mocks.showResource.mockResolvedValue(makeResource({ url: undefined }));
+		mocks.showDataset.mockResolvedValue({ ...makeDataset(), resources: D5_THREE });
+
+		render(ResourcePage);
+
+		const counter = await screen.findByText("Recurso 2 de 3");
+		expect(screen.queryByRole("link", { name: /Descargar recurso/i })).toBeNull();
+		expect(screen.queryByRole("link", { name: /Abrir enlace/i })).toBeNull();
+
+		const band = counter.parentElement as HTMLElement;
+		expect(band.className).toContain("flex-wrap");
+		expect(band.childElementCount).toBe(3);
+		expect((counter.previousElementSibling as HTMLElement).className).toContain("ml-auto");
+
+		// Los tres rótulos del salto, en orden, sin el botón de descarga: no queda una fila en blanco
+		// con su margen ni el salto pegado a la izquierda.
+		expect((band.textContent ?? "").replace(/\s+/g, " ").trim()).toBe(
+			"Anterior Recurso 2 de 3 Siguiente",
+		);
+	});
+
+	it("con un solo recurso en el dataset no se renderiza ningún salto", async () => {
+		mocks.showDataset.mockResolvedValue({
+			...makeDataset(),
+			resources: [makeResource({ id: "res-1", name: "Matrícula 2026", position: 0 })],
+		});
+
+		render(ResourcePage);
+
+		await screen.findByRole("link", { name: /Abrir enlace/i });
+		expect(screen.queryByText(/Recurso \d+ de \d+/)).toBeNull();
+		expect(screen.queryByRole("link", { name: /Recurso anterior/ })).toBeNull();
+		expect(screen.queryByRole("link", { name: /Recurso siguiente/ })).toBeNull();
+		// Ni siquiera los rótulos: sin vecinos no hay control, ni real ni inerte.
+		expect(screen.queryByText("Anterior")).toBeNull();
+		expect(screen.queryByText("Siguiente")).toBeNull();
+	});
+
+	it("sin acción y sin salto no queda una banda vacía en el encabezado", async () => {
+		// Un dataset de un solo recurso y sin URL: no hay botón de descarga ni salto. La banda se gatea
+		// por sus hijos, así que el encabezado no deja un contenedor vacío con su margen.
+		mocks.showResource.mockResolvedValue(makeResource({ url: undefined }));
+		mocks.showDataset.mockResolvedValue({
+			...makeDataset(),
+			resources: [makeResource({ id: "res-1", name: "Matrícula 2026", position: 0 })],
+		});
+
+		render(ResourcePage);
+
+		const heading = await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const header = heading.closest("section") as HTMLElement;
+
+		expect(within(header).queryByText(/Recurso \d+ de \d+/)).toBeNull();
+		expect(
+			within(header).queryByRole("link", { name: /Abrir enlace|Descargar recurso/ }),
+		).toBeNull();
+
+		// Ningún contenedor que envuelve y queda sin hijos: la banda vacía que este test previene.
+		const emptyBands = Array.from(header.querySelectorAll("div")).filter(
+			(el) => el.className.includes("flex-wrap") && el.childElementCount === 0,
+		);
+		expect(emptyBands).toHaveLength(0);
+	});
+});
+
 // ─── La ficha de un enlace dice la verdad (block C, C3) ─────────────
 // La decisión del autor (2026-09-22) tiene una consecuencia medible: un enlace no aloja contenido
 // en el portal, así que la ficha no puede declarar un «Tamaño» que nadie midió —CKAN no pesa una

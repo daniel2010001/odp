@@ -196,6 +196,12 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 // viene con sus recursos y con la `position` de cada uno, así que esto **no pide nada nuevo a CKAN**.
 const neighbours = $derived(resourceNeighbours(dataset?.resources, resourceId));
 
+/**
+ * El salto secuencial sólo existe con más de un recurso: con uno solo no hay a dónde saltar, y la
+ * banda de la acción no debe quedar con el control solo por dibujarlo.
+ */
+const hasJump = $derived(neighbours.ordered.length > 1);
+
 /** Los hermanos, para el segundo grupo del desplegable del chip. El actual va **sin `href`**. */
 const relatedResources = $derived({
 	heading: "Recursos de este dataset",
@@ -384,50 +390,12 @@ async function handleCopyResourceLink() {
 </svelte:head>
 
 <div>
-	<!-- Breadcrumb bar -->
+	<!-- Breadcrumb: una sola fila, sólo el recorrido. La navegación entre recursos vive en el hero,
+	     dentro del grupo de la acción del recurso: debajo del breadcrumb le robaba el foco al título. -->
 	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
-			<div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+			<div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
 				<Breadcrumb items={breadcrumbItems} icon={FileText} related={relatedResources} />
-
-				<!-- Navegación secuencial: recorrer el dataset en orden es el uso más común, y el desplegable del
-				     chip cubre el salto directo. En los extremos el control **no se ofrece** en vez de quedar
-				     deshabilitado: no hay destino, así que no hay enlace muerto. -->
-				{#if neighbours.ordered.length > 1}
-					<div class="flex shrink-0 items-center gap-1">
-						<span class="mr-1 hidden font-mono text-[10px] text-muted-foreground sm:inline">
-							{resourcePositionLabel(neighbours.index, neighbours.ordered.length)}
-						</span>
-						{#if neighbours.previous}
-							<a
-								href={`/dataset/${datasetId}/resource/${neighbours.previous.id}`}
-								aria-label={`Recurso anterior: ${neighbours.previous.name ?? neighbours.previous.id}`}
-								title={neighbours.previous.name ?? neighbours.previous.id}
-								class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-							>
-								<ChevronLeft class="size-4" aria-hidden="true" />
-							</a>
-						{:else}
-							<span class="p-1.5 text-muted-foreground/40" aria-hidden="true">
-								<ChevronLeft class="size-4" />
-							</span>
-						{/if}
-						{#if neighbours.next}
-							<a
-								href={`/dataset/${datasetId}/resource/${neighbours.next.id}`}
-								aria-label={`Recurso siguiente: ${neighbours.next.name ?? neighbours.next.id}`}
-								title={neighbours.next.name ?? neighbours.next.id}
-								class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-							>
-								<ChevronRight class="size-4" aria-hidden="true" />
-							</a>
-						{:else}
-							<span class="p-1.5 text-muted-foreground/40" aria-hidden="true">
-								<ChevronRight class="size-4" />
-							</span>
-						{/if}
-					</div>
-				{/if}
 			</div>
 		</div>
 	{/if}
@@ -493,7 +461,9 @@ async function handleCopyResourceLink() {
 		<!-- Resource header -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-				<!-- Title + copy link -->
+				<!-- Title + copy link: el salto secuencial dejó esta fila (decisión del autor) y vive en la
+				     banda de la acción de descarga. `min-w-0` deja que un nombre largo se encoja en vez de
+				     desbordar. -->
 				<div class="flex items-center gap-3">
 					<button
 						type="button"
@@ -508,7 +478,7 @@ async function handleCopyResourceLink() {
 							<Link2 class="size-4" />
 						{/if}
 					</button>
-					<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+					<h1 class="min-w-0 font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
 						{resource.name || "Recurso"}
 					</h1>
 				</div>
@@ -556,22 +526,82 @@ async function handleCopyResourceLink() {
 					</p>
 				{/if}
 
-				<!-- Download action -->
-				{#if downloadUrl}
-					<a
-						href={downloadUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="mt-5 inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
-					>
-						{#if isLink}
-							<ExternalLink class="size-4" />
-							Abrir enlace
-						{:else}
-							<Download class="size-4" />
-							Descargar recurso
+				<!-- Acción del recurso + salto secuencial: una sola banda a la altura del botón (decisión del
+				     autor). El botón es la acción primaria, a la izquierda; el salto queda a la derecha con
+				     `ml-auto`, que lo alinea aunque no haya botón, y en anchos cortos envuelve a su propia línea
+				     sin perder esa alineación. La banda se renderiza sólo si tiene algún hijo, así que sin
+				     acción y sin salto no queda una fila vacía. -->
+				{#if downloadUrl || hasJump}
+					<div class="mt-5 flex flex-wrap items-center gap-3">
+						{#if downloadUrl}
+							<a
+								href={downloadUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+							>
+								{#if isLink}
+									<ExternalLink class="size-4" />
+									Abrir enlace
+								{:else}
+									<Download class="size-4" />
+									Descargar recurso
+								{/if}
+							</a>
 						{/if}
-					</a>
+
+						<!-- Navegación entre recursos: dos controles rotulados —«‹ Anterior» y «Siguiente ›»— con el
+						     contador en el medio. Cada control trae su propio borde y su radio: son dos controles, no un
+						     grupo. El destino completo va en `title` y `aria-label`, y el rótulo del contador usa
+						     `resourcePositionLabel` (una sola fuente para el formato). En los extremos la dirección que
+						     no existe se dibuja inerte —un `span` con `aria-hidden` y sin `tabindex`, con el mismo
+						     rótulo—, no como un enlace muerto ni como un hueco: una mitad ausente haría ver el salto
+						     roto y movería el contador de lugar. `ml-auto` en el primer control mantiene el salto a la
+						     derecha de la banda. -->
+						{#if hasJump}
+							{#if neighbours.previous}
+								<a
+									href={`/dataset/${datasetId}/resource/${neighbours.previous.id}`}
+									aria-label={`Recurso anterior: ${neighbours.previous.name ?? neighbours.previous.id}`}
+									title={neighbours.previous.name ?? neighbours.previous.id}
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ml-auto"
+								>
+									<ChevronLeft class="size-4 shrink-0" aria-hidden="true" />
+									<span>Anterior</span>
+								</a>
+							{:else}
+								<span
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground/40 ml-auto"
+									aria-hidden="true"
+								>
+									<ChevronLeft class="size-4 shrink-0" />
+									<span>Anterior</span>
+								</span>
+							{/if}
+							<span class="whitespace-nowrap px-1 text-sm text-muted-foreground tabular-nums">
+								{resourcePositionLabel(neighbours.index, neighbours.ordered.length)}
+							</span>
+							{#if neighbours.next}
+								<a
+									href={`/dataset/${datasetId}/resource/${neighbours.next.id}`}
+									aria-label={`Recurso siguiente: ${neighbours.next.name ?? neighbours.next.id}`}
+									title={neighbours.next.name ?? neighbours.next.id}
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								>
+									<span>Siguiente</span>
+									<ChevronRight class="size-4 shrink-0" aria-hidden="true" />
+								</a>
+							{:else}
+								<span
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground/40"
+									aria-hidden="true"
+								>
+									<span>Siguiente</span>
+									<ChevronRight class="size-4 shrink-0" />
+								</span>
+							{/if}
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</section>

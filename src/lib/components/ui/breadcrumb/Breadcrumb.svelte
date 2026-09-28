@@ -54,18 +54,18 @@ export interface BreadcrumbGroup {
 			     en cualquier parte navega y el enlace conserva su semántica nativa. -->
 			<a href={item.href} class="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
 				{#if item.role}
-					<span class="w-24 shrink-0 text-[11px] text-muted-foreground">{item.role}</span>
+					<span class="w-14 shrink-0 truncate text-[11px] text-muted-foreground">{item.role}</span>
 				{/if}
-				<span class="truncate">{item.label}</span>
+				<span class="min-w-0 truncate">{item.label}</span>
 			</a>
 		{:else}
 			<!-- Sin destino: se muestra igual, porque es información (dónde estás), pero sin apariencia de
 			     enlace ni cursor de acción. -->
 			<span class="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
 				{#if item.role}
-					<span class="w-24 shrink-0 text-[11px] text-muted-foreground">{item.role}</span>
+					<span class="w-14 shrink-0 truncate text-[11px] text-muted-foreground">{item.role}</span>
 				{/if}
-				<span class="truncate">{item.label}</span>
+				<span class="min-w-0 truncate">{item.label}</span>
 			</span>
 		{/if}
 	</DropdownMenu.Item>
@@ -81,7 +81,38 @@ export interface BreadcrumbGroup {
 				{#if index > 0}
 					<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 				{/if}
-				{#if item.href && index < items.length - 1}
+				{#if index === items.length - 1 && related && related.items.length > 0}
+					<!-- El desplegable de hermanos vive en la miga ACTUAL del recorrido (decisión del autor,
+					     hoja `/dev/nav` D4): los hermanos son del nivel del recurso, y así de `lg` para arriba el
+					     salto está donde el recorrido ya mira, no sólo en el chip de móvil. La fila del menú es el
+					     mismo snippet `row` del chip: un solo marcado para los dos. `aria-current` se queda acá —el
+					     disparador sigue siendo la página actual—, y la fila del actual dentro del grupo lo repite
+					     por el snippet. -->
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger
+							class="inline-flex min-w-0 items-center gap-1 font-medium text-foreground transition-colors hover:text-primary"
+							aria-current="page"
+						>
+							<span class="truncate">{item.label}</span>
+							<ChevronDown class="size-3.5 shrink-0" aria-hidden="true" />
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content
+							class="z-50 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-popover p-1 shadow-md"
+							sideOffset={6}
+						>
+							<DropdownMenu.Group>
+								<DropdownMenu.GroupHeading
+									class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground"
+								>
+									{related.heading}
+								</DropdownMenu.GroupHeading>
+								{#each related.items as relatedItem, relatedIndex (relatedIndex)}
+									{@render row(relatedItem)}
+								{/each}
+							</DropdownMenu.Group>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				{:else if item.href && index < items.length - 1}
 					<a
 						href={item.href}
 						class="truncate text-muted-foreground transition-colors hover:text-foreground"
@@ -118,7 +149,7 @@ export interface BreadcrumbGroup {
 				<ChevronDown class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content
-				class="z-50 min-w-72 rounded-md border border-border bg-popover p-1 shadow-md"
+				class="z-50 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-popover p-1 shadow-md"
 				sideOffset={6}
 			>
 				{#if ancestors.length > 0}

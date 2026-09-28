@@ -113,7 +113,7 @@ describe("Breadcrumb — el chip de móvil", () => {
 		// El salto entre recursos vive en el mismo desplegable que el recorrido: contesta «¿dónde estoy?» y
 		// «¿qué más hay?» de una sola vez. El rótulo del rol entra en el nombre accesible del enlace, así
 		// que las consultas van con expresión regular.
-		render(Breadcrumb, {
+		const { container } = render(Breadcrumb, {
 			props: {
 				items,
 				related: {
@@ -125,12 +125,127 @@ describe("Breadcrumb — el chip de móvil", () => {
 				},
 			},
 		});
+		// Con hermanos, el RECORRIDO de escritorio también trae un disparador (D4): este test es del
+		// chip, así que se acota a él para no confundir los dos botones con el mismo nombre accesible.
+		const chip = container.querySelector("nav > div") as HTMLElement;
 
-		await fireEvent.click(screen.getByRole("button"));
+		await fireEvent.click(within(chip).getByRole("button"));
 
 		expect(await screen.findByText("Recursos de este dataset")).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /Flujos vehiculares/ })).toHaveAttribute("href", "/r/1");
+		expect(screen.getByRole("link", { name: /Flujos vehiculares/ })).toHaveAttribute(
+			"href",
+			"/r/1",
+		);
 		// El actual es información, no destino: no es enlace.
 		expect(screen.queryByRole("link", { name: /movilidad_urbana_2026/ })).toBeNull();
+	});
+});
+
+describe("Breadcrumb — el desplegable no desborda el viewport", () => {
+	/** El contenido del desplegable abierto: bits-ui lo monta en un portal y sólo cuando está abierto. */
+	function openContent(): HTMLElement {
+		const content = document.querySelector(".z-50");
+		if (!content) throw new Error("No se encontró el contenido del desplegable");
+		return content as HTMLElement;
+	}
+
+	it("el desplegable del chip no puede exceder el ancho del viewport", async () => {
+		// El autor reportó, a ancho de teléfono, que el menú «desborda la pantalla y no se leen los
+		// títulos». Un ancho fijo sin tope (`min-w-72`, ~288px) se sale de un viewport de 375px: el
+		// `max-w` relativo al viewport es lo que lo impide. jsdom no maqueta, así que la clase es la
+		// que fija la restricción.
+		const { container } = render(Breadcrumb, { props: { items } });
+		const chip = container.querySelector("nav > div") as HTMLElement;
+
+		await fireEvent.click(within(chip).getByRole("button"));
+		await screen.findByText("Recorrido");
+
+		const content = openContent();
+		expect(content.className).toContain("w-72");
+		expect(content.className).toContain("max-w-[calc(100vw-2rem)]");
+	});
+
+	it("el desplegable de la miga actual de escritorio (D4) tiene el mismo tope de ancho", async () => {
+		const related = {
+			heading: "Recursos de este dataset",
+			items: [
+				{ label: "Flujos vehiculares por punto de conteo", href: "/r/1", role: "CSV" },
+				{ label: items[3].label, role: "CSV" },
+			],
+		};
+		const { container } = render(Breadcrumb, { props: { items, related } });
+		const list = trail(container);
+
+		await fireEvent.click(within(list).getByRole("button", { name: items[3].label }));
+		await screen.findByText("Recursos de este dataset");
+
+		const content = openContent();
+		expect(content.className).toContain("max-w-[calc(100vw-2rem)]");
+	});
+
+	it("la columna de rol es angosta y trunca para devolverle el ancho a la etiqueta", async () => {
+		// La columna del rol decía el nivel de cada fila (decisión deliberada) pero a `w-24` se comía un
+		// tercio de un teléfono. Se conserva el rol, más angosto y truncable.
+		render(Breadcrumb, { props: { items } });
+
+		await fireEvent.click(screen.getByRole("button"));
+		const role = await screen.findByText("Organización");
+
+		expect(role.className).toContain("w-14");
+		expect(role.className).toContain("shrink-0");
+		expect(role.className).toContain("truncate");
+	});
+
+	it("la etiqueta truncable puede encogerse por debajo de su contenido (`min-w-0`)", async () => {
+		// Sin `min-w-0`, un item flexible conserva `min-width: auto`: su min-content es la etiqueta
+		// entera, el `truncate` nunca actúa y la fila crece más allá del menú. La consulta va acotada al
+		// desplegable: la misma etiqueta también está en el recorrido de escritorio.
+		render(Breadcrumb, { props: { items } });
+
+		await fireEvent.click(screen.getByRole("button"));
+		await screen.findByText("Recorrido");
+		const label = within(openContent()).getByText("Observatorio de Movilidad Urbana Cochabamba");
+
+		expect(label.className).toContain("min-w-0");
+		expect(label.className).toContain("truncate");
+	});
+});
+
+describe("Breadcrumb — el desplegable de hermanos en la miga actual (escritorio, D4)", () => {
+	const related = {
+		heading: "Recursos de este dataset",
+		items: [
+			{ label: "Flujos vehiculares por punto de conteo", href: "/r/1", role: "CSV" },
+			{ label: items[3].label, role: "CSV" },
+		],
+	};
+
+	it("la miga actual del recorrido de escritorio es el disparador del grupo de hermanos", async () => {
+		// Decisión del autor (hoja `/dev/nav`, D4): los hermanos SON del nivel del recurso, así que el
+		// desplegable vive en la miga ACTUAL del recorrido de escritorio, no sólo en el chip de móvil.
+		const { container } = render(Breadcrumb, { props: { items, related } });
+		const list = trail(container);
+
+		const trigger = within(list).getByRole("button", { name: items[3].label });
+		// La miga actual sigue anunciándose como la página: el disparador no la convierte en un destino.
+		expect(trigger).toHaveAttribute("aria-current", "page");
+
+		await fireEvent.click(trigger);
+
+		expect(await screen.findByText("Recursos de este dataset")).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /Flujos vehiculares/ })).toHaveAttribute(
+			"href",
+			"/r/1",
+		);
+		// El actual es información, no destino: en la fila del grupo va sin enlace.
+		expect(screen.queryByRole("link", { name: /movilidad_urbana_2026/ })).toBeNull();
+	});
+
+	it("sin hermanos, la miga actual sigue siendo texto y el recorrido no ofrece desplegable", () => {
+		const { container } = render(Breadcrumb, { props: { items } });
+		const list = trail(container);
+
+		expect(within(list).queryByRole("button")).toBeNull();
+		expect(within(list).getByText(items[3].label)).toHaveAttribute("aria-current", "page");
 	});
 });
