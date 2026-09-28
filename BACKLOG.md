@@ -1596,21 +1596,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
   el juicio de diseño.
 
-- [ ] **[v0] El CI de `odp` nunca pasó: falta el `.env` para los tipos** — medido el 2026-09-28
-  sobre el run `35241669027` y los 11 anteriores: **100% `failure`**, siempre en 17–34 s. Falla el
-  paso **`Typecheck`**: `Error: Module '"$env/static/public"' has no exported member
-  'PUBLIC_APP_URL'` (y lo mismo con `PUBLIC_CKAN_URL`). SvelteKit genera esos tipos desde las
-  variables presentes al momento del chequeo y las dos viven en `.env`, que está en `.gitignore`
-  ⇒ **cualquier clon nuevo falla el typecheck**, no es el código del commit. **Consecuencia no vista
-  hasta ahora:** como el typecheck va antes del test, el paso `Test` queda **`skipped`** en todas las
-  corridas, o sea **la suite nunca corrió en CI**. Arreglo: un paso `cp .env.example .env` previo al
-  `pnpm check` (o las dos variables en el `env:` del job). Ojo al arreglarlo: **los tests van a correr
-  por primera vez** y puede aparecer otro problema de entorno hoy tapado. Además `ci.yml` corre sólo
-  en `push: main` y PRs ⇒ los 58 commits de `feat/v0-portal-honesty` **nunca pasaron por CI**.
-  **Verificado por el padre desde `odp` (2026-09-28):** `gh run view 35241669027` da `Lint`
-  **success**, **`Typecheck` failure**, **`Test` skipped**, y el log trae los dos `has no exported
-  member` textuales; `src/lib/env.ts:6` importa `PUBLIC_CKAN_URL` de `$env/static/public`. Origen:
-  sesión de la línea CKAN, que lo encontró midiendo los runs.
+- [ ] **[v0]** `TODO:` **El breadcrumb del dataset y el del recurso difieren.** Observación del autor
+  (2026-09-28): «el breadcrumb del dataset y de los resources difiere un poco». **Medido: son dos cosas, y
+  sólo una es cosmética.**
+  1. **La primera miga dice distinto para el mismo destino**: `"Catálogo"` en la página del dataset y
+     `"Datasets"` en la del recurso, **las dos apuntando a `/search`**. Y el `role` es `"Catálogo"` en las
+     dos, así que en el recurso la fila muestra el rol «Catálogo» con la etiqueta «Datasets»: **hay que
+     elegir una palabra y usarla en las dos.** Es decisión de copy del autor.
+  2. **La página del dataset conserva el defecto `R3-ORG-NAME-GUARD` sin corregir**: su `href` de organización
+     se arma con `.name` dentro de un guard que pregunta por `.title` (`dataset/[id]/+page.svelte:222`). Es la
+     **misma clase** que el aviso de `review-33850b074b195bfa`, que se cerró **sólo en la página del recurso**
+     ⇒ falta la línea del guard acá. Es un defecto, no una decisión.
+  **Lo que NO es una diferencia a corregir, medido:** el ícono difiere a propósito (`Database` en el dataset,
+  `FileText` en el recurso) porque describe **el nivel actual**, que es distinto en cada página; y `related`
+  —el grupo de hermanos— sólo lo pasa el recurso, porque los hermanos sólo existen ahí.
 
 - [ ] **[v0]** `TODO:` **En escritorio no hay forma de ver ni saltar a los demás recursos del dataset.**
   Observación del autor (2026-09-24): en móvil lo ve, en escritorio no. **Causa medida:** el grupo «Recursos
@@ -2191,6 +2190,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | README raíz genérico "sv" | **Corregido** — README.md ya documenta stack real, setup, estructura y mock data. |
 | `getCkanClient()` muerto | **Eliminado** — `src/lib/ckan.ts` borrado (sin callers). |
 | CI/CD inexistente | **Agregado** — `.github/workflows/ci.yml` (lint + typecheck + vitest). |
+| El CI nunca pasó (faltaba el entorno declarado) | **Corregido** (2026-09-28) — `7585c0d` en `main` agrega el paso que copia `.env.example` antes del `typecheck`; el run `36489318035` quedó **verde**, con la suite corriendo **por primera vez** en CI (302 tests, 30 archivos). Lo encontró la línea de CKAN midiendo los runs. El ítem abierto se elimina: resuelto. |
 | `ThemePlayground` leftover | **Conservado** — tool dev-only gated por `import.meta.env.DEV`; decisión de mantenerlo. |
 | 9 apuntes de comparación de cards | **Obsoleto** — memoria engram #232 perdida y `/dev/cards` eliminado; absorbido por DatasetCardV2 (PR #39). |
 | Política de fallback a mock en producción | **Corregido** — mock solo con `import.meta.env.DEV`; en prod error explícito en las 6 páginas. Además: stats del home (orgs/formats) ahora reales y "Recursos" ya no se inventa en prod. |
