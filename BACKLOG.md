@@ -15,83 +15,70 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Estado al cierre (2026-09-24) — handoff de la próxima sesión
+## Estado al cierre (2026-09-27) — handoff de la línea CKAN 2.12
 
-> **Qué se cerró.** Tres unidades commiteadas en `odp-docker` — `9857186` (el leak del
-> Flask-DebugToolbar), `44ac587` (`$host` → `$http_host` en el proxy), `a128b4f` (la clave muerta
-> `CKAN_VERSION`) — **y el slice del upgrade a CKAN 2.12: verificado en vivo, aprobado por la revisión
-> nativa y SIN COMMITEAR.**
+> **Qué se cerró.** El slice del upgrade está **entregado**: 6 commits, cada uno con su compuerta
+> nativa (autoridad quemada) y **pusheados**. `master == origin/master == d861c95`, árbol limpio y
+> **CI verde** (run `36369796656`, `53 passed` en `ckan/ckan-dev:2.12`).
 >
-> **El expediente del upgrade es `odd/tasks/ckan-2.12-upgrade.md`** (337 líneas: la base medida, los
-> slices S0–S6, la re-medición de S5, los dos hallazgos de S4 y el resultado de la revisión). Leerlo
+> | commit | qué |
+> |---|---|
+> | `9cbdf25` | el upgrade a 2.12 (los 8 archivos, 28 líneas de diff) |
+> | `f37aac3` | el healthcheck roto (`wget` → sonda Python) |
+> | `affb4b4` | el parche del `ApiTokenView` + los permisos de imagen |
+> | `5d47358` | `SOLR_IMAGE_VERSION` apuntando al tag que corre el stack |
+> | `91fcbc6` | el test del guard, con la traducción del driver que traen las imágenes 2.12 |
+> | `d861c95` | el CI corriendo contra el `redis` que usan los stacks |
+>
+> **El expediente del upgrade es `odd/tasks/ckan-2.12-upgrade.md`** — la base medida, los slices
+> S0–S6, la re-medición de S5, los hallazgos de S4 y de S6, el resultado de la revisión, la tabla de
+> los 6 hallazgos del linaje huérfano y el registro de entrega con cada commit y su linaje. Leerlo
 > antes de tocar cualquier cosa del upgrade.
 >
-> **Lo que está corriendo:** CKAN **2.12.0** sobre Python 3.14.7, Solr `2.12-solr9`, catálogo
-> re-sembrado (16 datasets / 5 orgs), portal funcionando, DebugToolbar apagado.
+> **Lo que está corriendo:** CKAN **2.12.0** sobre Python 3.14.7, Solr **`2.12-solr9`** ya declarado
+> en `.env`/`.env.example` (no por override de shell), catálogo re-sembrado (**16 datasets**), portal
+> funcionando, DebugToolbar apagado y `ckan-dev` **`healthy`** de verdad.
 
 ### Lo que falta, en orden
 
-1. **Commitear los 8 archivos aprobados del upgrade** (`feat/ckan-2.12-upgrade`, 28 líneas de diff)
-   **antes de tocar el parche de tokens.** La aprobación nativa está atada al hash del contenido, y el
-   árbol de trabajo ya tiene *además* el parche y los dos Dockerfiles sin revisar: si se dispara la
-   revisión ahora, el candidato incluye los 28 líneas ya aprobadas y se paga dos veces el mismo
-   trabajo. Orden correcto: commit de lo aprobado → el parche queda como candidato propio → su revisión.
-2. **`SOLR_IMAGE_VERSION=2.12-solr9` en `ckan-docker/.env` y `.env.example`** — 2 líneas que aplica el
-   autor (el harness bloquea esas rutas) — **y matar el comentario obsoleto de `.env:31`**, que
-   todavía dice `CKAN served directly on http://localhost:5000` arriba de la IP. **Es lo más urgente
-   de la lista:** el stack que corre usa 2.12-solr9 por una variable de shell en la invocación, así
-   que **el repo no describe lo que corre**, y levantar desde `.env` reintroduce el tag viejo contra
-   un volumen de Solr ya poblado por 2.12.
-3. **El healthcheck roto — CRITICAL para producción.** Las imágenes 2.12 **no tienen `wget`** y todos
-   los compose lo usan como healthcheck: CKAN queda `unhealthy` mientras sirve bien. En producción
-   `nginx` depende de `condition: service_healthy` ⇒ **nginx nunca arrancaría**. Se arregla con una
-   sonda que exista en la imagen (p. ej. `python -c "import urllib.request; ..."`), en
-   `ckan-docker/docker-compose.dev.yml` **y** `ckan-docker/docker-compose.yml`. Es cambio nuevo ⇒
-   candidato nuevo y su propio ciclo de revisión.
-4. ~~**El `PermissionError` de `test-core.ini`**: en 2.12 ese archivo ya no es escribible por el
-   usuario del contenedor, así que el último paso de `start_ckan_development.sh` falla (no fatal, el
-   server arranca). Toca el flujo `test-umss`.~~ **Resuelto en el slice del parche de tokens**
-   (`odd/tasks/tokens-page-patch.md`): misma causa que el muro de permisos del loop de parches, y se
-   arregla en el mismo cambio. Verificado: el `PermissionError` ya no aparece en el arranque.
-5. **La decisión de dominios y del contenido mixto** — el problema original sigue abierto: el portal
+1. **La decisión de dominios y del contenido mixto** — el problema original sigue abierto: el portal
    se sirve por `https://odp.hs.lan` y CKAN firma sus URLs absolutas con `http://192.168.1.201:5000`,
    así que el visor de PDF sigue bloqueado por el navegador. Opciones (A: un solo origen con una
    regla nginx para la ruta de descarga; B: `data.` + `api.` con allowlist) más el acoplamiento a
    documentar. **El upgrade no cambió nada de esto** (medido: la forma de la `url` es idéntica).
-6. **Rotar las contraseñas de la base y del sysadmin** que el DebugToolbar publicó. **No es
-   emergencia:** el leak está cerrado, así que no hay exposición activa — es higiene. Con el volumen
-   limpio ya se regeneraron solos los secretos del ini.
-7. **El lineage huérfano** `review-7e3ab346bc8b3f85`, en `correction_required`, sin veredicto y sin
-   recuperación posible. Limpiarlo es `ABANDON`: destructivo, con inputs exactos del autor.
-8. **Las filas 4, 7 y 9 de S5 quedaron sin medir**: la semántica de `package_update` (toca el
+2. **El borrador del issue upstream del `ApiTokenView`** — escrito en
+   `odd/tasks/tokens-page-patch.md` y **sin publicar**: es una acción externa y necesita el OK del
+   autor. El parche local ya está aplicado (`affb4b4`), así que esto sólo cierra el círculo con
+   upstream.
+3. **Las filas 4, 7 y 9 de S5 quedaron sin medir**: la semántica de `package_update` (toca el
    wizard), la forma de `datastore_search`, y si los validadores de `ckanext-umss` ven sólo los
    recursos cambiados (necesita la suite de la extensión).
-9. **Los tres avisos de la revisión aprobada**, todos informativos y sin reabrir el review: `R2-001`
-   (readability, `docker-compose.yml:48`), `R3-001` (reliability, `docker-compose.dev.yml:32`),
-   `R3-002` (reliability, `docker-compose.yml:48`). El envelope de cierre no trajo su texto.
+4. **Rotar las contraseñas de la base y del sysadmin** que el DebugToolbar publicó. **No es
+   emergencia:** el leak está cerrado, así que no hay exposición activa — es higiene. Con el volumen
+   limpio ya se regeneraron solos los secretos del ini.
+5. **`R2-002` — el tag de CKAN como literal en ocho lugares** (hallazgo `pre-existing` del linaje
+   huérfano; va como ítem propio en la lista canónica, porque un `pre-existing` sin dueño se pierde).
+6. **Los avisos informativos acumulados**, ninguno bloqueante y ninguno reabre un review cerrado:
+   `R2-001`/`R3-001`/`R3-002` (el upgrade, en `docker-compose.yml:48` y `docker-compose.dev.yml:32`),
+   `R3-001`/`R3-002`/`R3-003` (el parche de tokens) y `R2-001` (el test del guard,
+   `test_target_guard.py:290-291`). El envelope de cierre nunca trae su texto: quedaron transcritos,
+   con id/lente/ubicación/severidad, en el expediente y en el store.
+7. **El linaje huérfano `review-7e3ab346bc8b3f85` NO se limpia.** Está en `correction_required` sin
+   veredicto y sin recuperación, pero **`ABANDON` descarta los hallazgos admitidos** y este linaje
+   guarda la única copia de seis (`R1-001`, `R1-002`, `R4-001` CRITICAL, `R2-001`, `R2-002`,
+   `R3-VOLUME-PYTHON`). Se deja como **deuda declarada**, con la tabla en el expediente: limpiar el
+   store borraría la evidencia, no una transacción muerta.
+8. **`feat/ckan-2.12-upgrade` quedó 2 commits atrás de `master`** — los dos últimos arreglos de CI se
+   commitearon en `master`, que es la convención del repo. Decidir si se hace fast-forward de la rama
+   o se borra: ya está contenida entera en `master`.
 
-10. **La página nativa de tokens — RESUELTA, pero con dos cosas pendientes.** Era un bug de
-    **upstream**: el `ApiTokenView.get` de 2.12 dejó de pedir `include_plugin_extras` en el contexto
-    que le pasa a `api_token_list`, y la extensión `expire_api_token` —empaquetada **dentro del propio
-    release**— lo desreferencia ⇒ 500 en cuanto el usuario tiene un token (con cero tokens la página
-    renderiza, y por eso un `down -v` *parece* arreglarla hasta el primer login).
-    *(Dos de mis diagnósticos previos quedaron corregidos: `api_token_dictize` **sí** soporta
-    `plugin_extras` —lo que cambió es quién lo pide—, y los Dockerfiles **sí** aplican los parches;
-    lo que faltaba era permiso de escritura.)*
-    Artefactos: `ckan-docker/ckan/patches/ckan/001_api_tokens_include_plugin_extras.patch` +
-    `Dockerfile.dev.umss` y `Dockerfile.umss` (el loop de parches corre como **root**, y el dev hace
-    `chmod g+w` sobre `ckan/test-core.ini`). Verificado con `down -v` + rebuild: la página da **200**
-    con la caducidad real, y el `PermissionError` del ítem 4 desapareció. Expediente:
-    `odd/tasks/tokens-page-patch.md`.
-    **Pendiente:** (a) la **revisión nativa** de ese candidato (toca 2 Dockerfiles ⇒ candidato nuevo);
-    (b) el **borrador del issue upstream** está escrito en el expediente y **no publicado** -- es una
-    acción externa y necesita el OK del autor.
-
-> **Sin commitear al cerrar:** en `odp-docker`, los 8 archivos aprobados del upgrade **más** el parche
-> de tokens y los dos Dockerfiles (candidato **nuevo, sin revisar**). En `odp`, este archivo y los dos
-> expedientes (`odd/tasks/ckan-2.12-upgrade.md`, `odd/tasks/tokens-page-patch.md`).
-> **Aviso de escritor concurrente:** hay otra sesión trabajando en este repo; si commitea, que deje el
-> hunk ajeno intacto — así se hizo una vez esta semana y es lo correcto.
+> **Nada sin commitear de mi lado.** El `.patch` del parche de tokens está versionado, así que este
+> worktree **no tiene no-versionados** y no bloquea ninguna compuerta. En `odp`, este archivo y los
+> dos expedientes (`odd/tasks/ckan-2.12-upgrade.md`, `odd/tasks/tokens-page-patch.md`) están
+> commiteados, y `3f9de1e` es el único commit que agregué en `odp`.
+> **Aviso de escritor concurrente:** hay otra sesión trabajando en este repo. La regla que funcionó:
+> **repartir por archivo**, `git add <paths>` explícitos y **nunca** `git add -A` ni
+> `git checkout -- <archivo>`, para no barrer hunks ajenos.
 
 ## Estado al cierre (2026-09-24) — handoff del **bloque E** (sesión paralela)
 
@@ -148,13 +135,30 @@
 > opciones de arreglo están en su ítem del backlog. **Medir primero si produce un salto visible.**
 >
 > **Recetas medidas del arnés (las que costaron tiempo hoy):**
-> - **Un archivo sin versionar frena cualquier `START` acotado**: pide la selección de no-versionados, y
->   `untrackedScope: "exclude"` en el `inspect` **no sobrevive** al `START` limpio. Lo durable es
->   `.gitignore`/`.git/info/exclude`, o no tener no-versionados.
+> - **Un archivo sin versionar frena cualquier `START` acotado**, y **la salida barata no es commitear nada**:
+>   se agrega el path a `.git/info/exclude` (local, nunca se commitea), se corre el `START` que congela el
+>   candidato y **se revierte el exclude al instante**: el `git add -f` sólo hace falta si la regla se deja
+>   puesta. Medido por la sesión paralela en `odp-docker` y verificado acá. **La alternativa —commitear el
+>   artefacto ajeno con procedencia— se usó una vez y era innecesaria.** Ojo: son cosas distintas de
+>   `untrackedScope: "exclude"` en el `inspect`, que devuelve la proyección *workspace* y descarta el
+>   `baseRef`, y que **no sobrevive** al `START` limpio.
 > - **`consent-binding-stale`** aparece una o dos veces seguidas: se resuelve con un `START` nuevo (clave
 >   nueva). El mensaje de «10 minutos» es falso.
 > - **`capture-binding-rejected`** en el reenvío posterior al forecast: se resuelve con `STATUS` y relanzar
->   el mismo binding — salvo que haya un linaje abierto sobre el mismo workspace, y ahí queda trabado.
+>   el mismo binding. **Corregido el 2026-09-25: un linaje abierto en el mismo workspace NO es la causa**
+>   —se abandonó el huérfano y un linaje ajeno siguió respondiendo `applicability: unrelated`—; lo que traba
+>   a un linaje es que **su propio candidato haya dejado de existir**.
+> - **El `baseRef` de la fachada es el COMMIT, no el hash de ÁRBOL** que renderiza la ruta del proveedor
+>   (`--base-ref=b4cb5155…` es el tree de `448190a`; el `input` correcto lleva `448190a48cb0…`). Copiarla
+>   literal da `native-start-base-ref-unresolvable`. **`inspect` acepta `input` con `baseRef` +
+>   `committedOnly` y NO acepta `mode`** (el `START` sí lo necesita).
+> - **Un plan de corrección vence si el árbol se mueve antes de enviarlo**: el candidato corregido deja de
+>   existir, el linaje pasa a `applicability: unrelated` y **no es limpiable por la fachada** (no rinde su
+>   `revision`, así que ni `ABANDON` lo alcanza). **Enviar el plan inmediatamente, antes de cualquier otro
+>   commit.**
+> - **`ABANDON` es destructivo sobre la EVIDENCIA, no sólo sobre la transacción**: descarta los hallazgos
+>   admitidos. Antes de usarlo para «limpiar», contar los que va a borrar y confirmar que un recibo posterior
+>   los cerró. El store inerte de un linaje sin ruta **es** el registro de por qué se abrió y qué encontró.
 > - **Dos escritores en un worktree:** se aísla por hunks (`git diff > p; head -4 p > m; tail -n +N p >> m;
 >   git apply --cached m`) o con `git add -p`. **Nunca** `git add -A` ni `git checkout -- <archivo>`.
 > - El **gancho de pre-commit** (`biome --staged --write`) puede dejar un diff de **sólo formato** después de
@@ -1523,6 +1527,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   un desplegable · **A4** extremos + «…» con el árbol (el «collapsed» de shadcn). **Falta la decisión del
   autor.** El desplegable se hace con el primitivo de **bits-ui** (`DropdownMenu`, ya instalado: el proyecto
   tiene muy pocos componentes vendorizados).
+  **Revisión del autor (2026-09-25):** prefiere **el aspecto de A4** —migas de texto y un botón chico de `…`,
+  **no** un chip-promedio como A5— pero **sin los dos extremos**: le alcanza con la **página actual** visible.
+  Se agregó **A6** a la hoja con exactamente eso. **Decisión final pendiente.**
+  **Segunda revisión (2026-09-25, el mismo día):** **A5 tampoco le cierra.** Le sirve su practicidad en
+  móvil —**el título completo como zona de toque es más fácil de acertar**— pero no su estilo. De **A6** le
+  gusta el estilo y le molesta que **pierda el ícono** y que el botón `…` **se vea chico comparado con los
+  anteriores**. Se agregó **A7**: el estilo de A6 —texto, sin chip— **con** ícono y con el título como
+  disparador ancho. **Sigue sin decidirse entre A5, A6 y A7.**
 
 - [ ] **[v0]** `TODO:` **Los botones de anterior/siguiente se ven chicos y pasan desapercibidos.** Observación del
   autor (2026-09-24) sobre el slice E8: funcionan, pero no se ven. **Medido:** son dos enlaces con `p-1.5`
@@ -1531,12 +1543,40 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   los extremos) y el problema es **de presencia**: no se lee como navegación. **Es de diseño y espera
   decisión del autor.**
 
+- [ ] **[v0]** `TODO:` **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
+  Observación del autor (2026-09-25): «cuando son muchos aparece un `+X`, esto es ambiguo». **Causa medida**:
+  `src/lib/components/search/DatasetCard.svelte:93-103` muestra `dataset.tags.slice(0, 3)` y después
+  `+{dataset.tags.length - 3}` —un `+2` pelado, **sin rótulo y sin forma de saber qué etiquetas son**—.
+  **Dos restricciones que el arreglo tiene que respetar:** (1) la card **entera** es un `<a>` (línea 59), así
+  que un desplegable o un botón adentro sería **contenido interactivo anidado**: la divulgación tiene que ser
+  por **hover/foco**, no por clic; (2) **el mismo defecto, con la misma forma, está dos bloques más abajo en
+  los chips de formato** (líneas 118-120, `+{formatSummary.more} más`), así que conviene un solo arreglo para
+  los dos. Opciones: el `title` nativo —lo que el repositorio ya usa en `FacetFilter.svelte:113` y en los
+  botones de la página del recurso—, **vendorizar el `Tooltip` de bits-ui** (el `AGENTS.md` lo lista como el
+  primitivo a usar, y **todavía no está en el repositorio**), o no truncar. **Decisión del autor pendiente.**
+  **Verificado (2026-09-25): no hay ningún componente de tooltip en el repositorio.** El mensaje que aparece al
+  pasar el mouse por una organización truncada de los filtros del buscador es el **`title` nativo del
+  navegador** (`FacetFilter.svelte:113`: `<span class="min-w-0 flex-1 truncate" title={item.display_name}>`; el
+  archivo importa sólo `ChevronDown` y `Search`). Así que «usa el mismo componente que los filtros» **no es una
+  opción**: o se usa el `title`, o se vendoriza el `Tooltip` de bits-ui de cero.
+
 - [ ] **[v0]** `TODO:` **En escritorio no hay forma de ver ni saltar a los demás recursos del dataset.**
   Observación del autor (2026-09-24): en móvil lo ve, en escritorio no. **Causa medida:** el grupo «Recursos
   de este dataset» vive en el desplegable del **chip**, que es `lg:hidden`; el recorrido de `lg+` es un `<ol>`
   sin hermanos. El sidebar (variante B4 de la hoja) quedó descartado por el autor, así que la solución tiene
   que vivir en otro lado: un desplegable en la miga del dataset del recorrido, un selector en el encabezado
   (B2, descartado antes por espacio) o la lista lateral sólo de `lg` para arriba. **Es de diseño.**
+  **Revisión del autor (2026-09-25), y reabre una descartada:** **B4 le gusta** («muestra todos los recursos
+  de una vez, como hace CKAN»), **B3 es su favorito** y no sabe cuál elegir; y objetó que **el breadcrumb y el
+  salto compartan la línea**, porque el breadcrumb se come al salto. Se agregaron a la hoja **D4** —el
+  desplegable en la miga del **recurso** en vez de la del dataset, el vs que pidió—, **D5** —el salto en su
+  **propia fila** y con rótulo `Anterior`/`Siguiente` en vez del nombre recortado, que responde a la vez a su
+  objeción del texto— y **D6** —la idea del nombre completo al pasar el mouse—. **Decisión final pendiente.**
+  **Resuelto en la segunda ronda (2026-09-25):** el desplegable de hermanos va en la **miga del recurso
+  (D4)** —«esto sí creo que está bien»—, y el **salto** entre recursos queda como **D5** (separado del
+  breadcrumb y con rótulo), porque ahí «se ve más clara» la diferencia entre el recorrido y el salto. **El paso
+  siguiente lo fijó él:** verlo en la **página real del recurso con todos los componentes**, porque bajo el
+  breadcrumb puede «solaparse» con el salto — la hoja ya no alcanza para juzgar eso.
 
 - [ ] **[v0]** `TODO:` **El navegador desactiva el anclaje de desplazamiento por culpa del encabezado que se achica.**
   Observación del autor (2026-09-24), **mensaje textual de la consola**: «El anclaje de desplazamiento se
@@ -1766,13 +1806,31 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
   **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
   upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
-  `2.12-solr9` y **reindexar**.
+  `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
+  que el stack realmente corre, ya no por override de shell—. **Y `reindexar` resultó innecesario, y
+  eso está medido:** el configset del core vive en el **volumen**, no en la imagen; el motor de Solr
+  es el mismo en los dos tags (`solr-spec 9.9.0` / `lucene 9.12.2`), y lo único que cambia es el
+  `managed-schema` que trae la imagen. Por eso el índice siguió legible con el tag viejo **y** con el
+  nuevo: `numFound: 17` y `package_search: 16` sin cambios antes y después. Lo que se re-sembró fue el
+  **catálogo**, y eso fue del volumen limpio del upgrade (2026-09-24), **no** del cambio de tag.
+  **No dar por hecho un reindex acá: verificar el índice.** _(Precisión hecha el **2026-09-28**, un día
+después del cierre que describe el encabezado de esta sección; medición completa en
+`odd/tasks/ckan-2.12-upgrade.md`.)_
 
   Y **los `FROM` quedan flotando en el minor (`2.11`)**: es una decisión, no un descuido. Pinear el
   patch (`2.11.6`) da reproducibilidad byte a byte, pero obliga a bumpear a mano para recibir los
   parches de seguridad y despega el archivo del upstream congelado. Si algún día importa la
   reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
   natural para decidirlo.
+
+- [ ] **[v0] Higiene de versión: el tag de CKAN como literal en ocho lugares** — hallazgo `R2-002`
+  del linaje huérfano de la revisión del upgrade: `pre-existing`, SUGGESTION, **no** introducido por
+  el upgrade. El tag vive como literal en los 4 `FROM` de los Dockerfiles, en las 3 imágenes de
+  servicio de `.github/workflows/checks.yml` y en una celda de tabla del README, sin fuente única: un
+  bump exige ocho ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
+  stacks — pasó de verdad con `redis:3`, que el 2.12 destapó (`HELLO`/RESP3) y que `d861c95` arregló.
+  Sin dueño hasta ahora, y por eso se registra acá. Origen: store nativo, linaje
+  `review-7e3ab346bc8b3f85`; transcripción completa en `odd/tasks/ckan-2.12-upgrade.md`.
 
 - [ ] **[v1] Un editor de organización pierde la capacidad de cambiar `state` cuando entre el guard de
   publicación** — **medido (2026-09-14, P4a):** hoy un editor de org **sí** puede `package_patch
@@ -2085,6 +2143,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de la unidad del salto secuencial y el desborde del desplegable (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-fc7e00d27e1f61cf`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 595 líneas**, presupuesto 200, un revisor por `pi_host_relay`, **0
+  bloqueantes**.
+  - **Un aviso informativo:** `R3-SINGLE-RELATED` · reliability · WARNING · `Breadcrumb.svelte:84`. **El
+    envelope de cierre no trae su texto** —igual que los seis avisos anteriores—, así que lo que sigue es
+    **mi lectura de la línea**: es el guard que exige `related && related.items.length > 0` para ofrecer el
+    desplegable de hermanos en la miga actual. El aviso apunta, con toda probabilidad, a que **un grupo con
+    un solo hermano —el recurso actual— no aporta nada y el disparador se ofrece igual**. Es defensivo y hoy
+    inocuo (la página sólo pasa `related` cuando el dataset tiene más de un recurso), pero la condición vive
+    **en dos lugares**: el componente y quien lo llama. Queda **anotado, no corregido**: el recibo está
+    quemado y ningún aviso reabre el candidato.
+  - **Alcance:** `3f9de1e..0be5805` con `committedOnly: true` — sólo la unidad: `Breadcrumb.svelte` y su
+    test, la página del recurso y su test. **La hoja de diseño no entra**: el autor la dejó sin revisar **por
+    decisión propia** (dos veces registrada), no por olvido, y este recibo no la cubre ni la sustituye.
+  - **Gates:** `pnpm test` **656/656** (47 archivos; la unidad llevó la suite de 640 a 656) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **no verificable** (exit 254, es el
+    entorno) · **la verificación visual es del autor**, porque jsdom no calcula layout.
+  - **Disposición del salto, declarada:** el autor lo **aparcó** —«creo que ahora está mejor, pero no termina
+    de convencerme… ese lugar es raro»—, así que la ubicación queda **abierta, no aprobada**. El recibo cubre
+    el código y los tests, no el diseño.
+  _Origen: unidad del salto secuencial en el hero + el arreglo del desborde del desplegable, 2026-09-28._
+
 - [ ] **Recibo de la revisión nativa del slice E8 (bloque E, el salto entre recursos) (2026-09-25)** — cerró
   **`approved`** y la authority quedó quemada. `review-865b14e1f735a37a`: tier **medium**, lente
   `review-reliability`, **9 archivos, 931 líneas**, presupuesto 200. Un revisor por `pi_host_relay`, 0 bloqueantes.
@@ -2170,20 +2251,32 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
     `dev/` también.
   _Origen: hoja `/dev/nav` y los dos ítems del bloque E, 2026-09-24._
 
-- [ ] **BLOQUEADO — la corrección de E5 no se pudo declarar (2026-09-24, `review-5ab16f231f1adb49`)** — el linaje
-  quedó en **`correction_required`** con el hallazgo `R3-001` (CRITICAL, `causal_disposition: introduced`)
-  **ya corregido y commiteado** (`e5d2411`), pero el plan de corrección **no se pudo enviar**: el slot
-  `capture-correction-plan` rechazó **tres** envíos con `capture-binding-rejected` («binding desconocido,
-  expirado o de otra ruta de sesión»), cada uno con el binding **recién emitido por un `STATUS`** y con el
-  `request-hash` que el propio proveedor publica (`sha256:037ced9970dd6fd8…`, sin cambios entre intentos).
-  - **Datos para retomarlo**: declarar **25 líneas de diff** (21 inserciones + 4 borrados: el diff exacto del
-    commit `e5d2411`), dentro del tope propio del proveedor (1..47). Candidato corregido `sha256:73ad4d8d…`,
-    autoridad original `sha256:507f9cad…`. Los tres rechazos fueron **sin mutación** (`mutation_performed:
-    false`): nada quedó consumido. **Retomar en un proceso nuevo**, que reconstruye la ruta de sesión.
-  - **Qué NO hacer**: invocar los comandos nativos del historial por shell (sería reconstruir rutas e
-    invocaciones del proveedor), ni abrir otro linaje para el mismo candidato.
-  - **Lo que sí está**: el arreglo es correcto y el árbol lo tiene. Gates sobre el árbol corregido:
-    `pnpm test` **626/626** · `svelte-check` **0 errores** · Biome **exit 0**.
+- [ ] **DEUDA DECLARADA — el arreglo de E5 vive en `HEAD` sin recibo propio y su linaje ya no es ruteable (cerrado el 2026-09-25)** — el linaje
+  `review-5ab16f231f1adb49` quedó en **`correction_required`** con el hallazgo `R3-001` (CRITICAL,
+  `causal_disposition: introduced`) **ya corregido y commiteado** (`e5d2411`), pero el plan de corrección
+  **no se pudo enviar** el 2026-09-24: el slot `capture-correction-plan` rechazó **tres** envíos con
+  `capture-binding-rejected` («binding desconocido, expirado o de otra ruta de sesión»), cada uno con el binding
+  **recién emitido por un `STATUS`** y con el `request-hash` que el propio proveedor publica
+  (`sha256:037ced9970dd6fd8…`, sin cambios entre intentos). Los tres rechazos fueron **sin mutación**.
+  - **Desenlace medido (2026-09-25): la ruta ya no existe.** `STATUS` sobre ese linaje devuelve
+    **`applicability: unrelated`** —el proveedor no ofrece ninguna transición para él, sólo un `start` sobre el
+    candidato **actual** del árbol de trabajo—. **Motivo**: su candidato corregido congelado
+    (`sha256:73ad4d8d…`) dejó de corresponder a un objetivo vivo, porque el árbol se movió (E6, E7 y E8 más los
+    commits de documentación). Un linaje en `correction_required` **vence si el árbol se mueve antes de enviar
+    el plan**. Se probó además que **un linaje abierto en el mismo workspace no era el bloqueo**: se abandonó el
+    huérfano de la sesión anterior y la ruta siguió ausente. **El reintento en proceso nuevo tampoco alcanzó.**
+  - **Las 25 líneas quedan sin recibo, y ésa es la deuda.** Medido: el rango mínimo que las contendría es
+    `11cd15c..HEAD` = **13 archivos / 1 570 inserciones** —la rama acumulada, que la doctrina prohíbe como
+    candidato—, porque la fachada sólo acota `baseRef..HEAD` y `e5d2411` no está en la punta. **No existe una
+    compuerta barata que las cubra.** Los rangos con recibo las excluyen: E6 revisó `37c29a5` (2 archivos,
+    24/6), E7 revisó `5a18af0` (5 archivos) y el rango de E8 (`448190a..HEAD`) es **más nuevo** que el arreglo.
+  - **Qué NO hacer**: abrir un linaje nuevo para el mismo candidato, ni reconstruir por shell las invocaciones
+    nativas del historial. Y **no abandonar este linaje para «limpiar»**: `ABANDON` descarta los hallazgos
+    admitidos, o sea que borraría el registro del `R3-001` —el store inerte **es** la evidencia—, y encima el
+    proveedor no rinde su `revision` cuando el linaje es `unrelated`, así que tampoco es limpiable.
+  - **Lo que sí está**: el arreglo es correcto y el árbol lo tiene. Gates al cerrar: `pnpm test` **640/640**
+    (47 archivos) · `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **exit 0** con el
+    baseline (4 warnings + 7 infos).
   - **El hallazgo, que era real**: el `<nav>` del breadcrumb es **flex item** del contenedor flex externo, y sin
     `min-w-0` su `min-width: auto` no lo deja encogerse por debajo del ancho de la etiqueta completa: los
     `truncate` de los hijos **no podían actuar** y el nav **desbordaba en horizontal** en vez de recortar —lo
@@ -2193,8 +2286,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   - **Lección de método (la importante)**: el playground de E5 puso el `<nav>` dentro de un `div` de **bloque**,
     así que la restricción de `min-width` **nunca se activaba ahí** y los cuatro marcos se veían bien. El
     playground reprodujo **el componente pero no el contenedor en el que vive**, que es exactamente la clase de
-    error que la hoja existía para atrapar.
-  _Origen: slice E5 del bloque E, 2026-09-24._
+    error que la hoja existía para atrapar. **Y la segunda lección, que costó esta deuda: el plan de corrección
+    se envía inmediatamente, no después de tres slices.**
+  _Origen: slice E5 del bloque E, 2026-09-24; cerrado como deuda el 2026-09-25._
 
 - [ ] **Recibo de la revisión nativa del slice E6 (bloque E, la nota del enlace) (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada. `review-97eb68d9224321c5`: tier **medium**, lente

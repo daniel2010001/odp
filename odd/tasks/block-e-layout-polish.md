@@ -194,6 +194,50 @@ on promotion, as the block C/D playgrounds were (rule 8). No slice's diff contai
 height is content-driven and was never measured, so no derivation was invented for it. If the results bar's
 height ever changes, that pair drifts with it — and nothing links them.
 
+## Design round 2 — the author's review of the sheet (2026-09-25)
+
+The author read `/dev/nav` and answered section by section. What was built in response, and what is still open.
+
+**New defect reported, unrelated to the sheet:** the dataset card truncates its tags to three and then prints a
+bare `+2`, so the reader cannot know **which** tags are missing (`BACKLOG.md`, `[v0]`). Measured root cause:
+`DatasetCard.svelte:93-103`, and the **same** shape exists two blocks below for the format chips
+(`:118-120`). The card's whole surface is an `<a>`, so any disclosure inside it must be a hover/focus
+mechanism, not a click target. Recorded, not designed.
+
+| Section | The author's reading | Built in response |
+|---|---|---|
+| **A** | Likes A5's *idea*, dislikes that it is a full dropdown-button chip; prefers **A4's aspect**, but A4 shows both extremes and the current page is enough. | **A6**: A4's aspect (text crumbs + a small `…` button) with the current page as the only visible crumb. A6 incorporated the E7 advisory: an ancestor with no destination is not offered as a menu row. |
+| **B** | Likes all four, cannot choose. B3 is his favourite (pagination style, «users will understand it»); B4 is liked and **was previously discarded**; B2 reads as minimal; B1 is good for the siblings. | Nothing new — the question is which to keep, and the answer changes B4's status. |
+| **C** | Does not convince: the chip's dropdown looks like a very big dropdown because of the full title; the resource dropdown feels «hidden», worse on mobile. | Nothing new; C is a combination view and depends on A's outcome. |
+| **D** | The jump inside the breadcrumb loses focus: the breadcrumb dominates and the jump goes unnoticed. d1's long names wrap ugly; d2's truncation loses the name (wants a hover reveal); d3's button text is the problem — a full name grows, a truncated one is not understood. Asks whether the sibling dropdown belongs on the **resource** crumb instead of the dataset's, and for a **vs**. | **D4** the vs (trigger on the current crumb), **D5** the jump on its own row with `Anterior`/`Siguiente` labels plus `title`/`aria-label`, **D6** a CSS-only prototype of the hover reveal, declared as a prototype. |
+
+**Two facts the sheet had wrong, both corrected:** all its frames were 375px wide, so the desktop TODOs it
+claimed to instrument could not be judged (a `1100px` section D now exists); and its header still claimed it was
+untracked material, while it has been a versioned review sheet since `fac7cd3`. Also: B3's frame used
+`<button>` for something that navigates, and `items` now carries the `role` labels the real page passes, so the
+chip's dropdown stops understating «today».
+
+**Explicitly not decided by the agent:** which A, which B, and whether D4 or D2 wins. The sheet is the
+instrument; the calls are the author's.
+
+**A finding about the instrument itself, and the process fix:** a versioned, uncommitted review sheet makes the
+RDD reminder fire on **every save** — each edit moves the target identity and re-opens the disposition. The
+agent iterated the sheet in front of the author, which is what produced that friction. **Next time: build the
+sheet complete in one pass, then present it.** The clean path here is decide → freeze → commit → gate once.
+
+**Second round, same day, and the promotion decision.** A5 does not convince him either: its mobile
+practicality —the full title as the tap target— is good, but not its chip style; of A6 he likes the style and
+misses both the icon and a trigger that does not look visibly smaller than the others. **A7** now combines the
+two: A6's plain styling with A5's icon and a full-title trigger. For **D** he decided: the sibling dropdown
+goes on the **resource crumb (D4)**, and the jump stays **D5** (its own row, labelled). And he set the next step
+himself: **it has to be seen on the real resource page, with every component in place**, because a jump sitting
+directly under the breadcrumb may overlap with it in function — the sheet can no longer answer that.
+
+**Corrected with evidence:** the full-name-on-hover that he remembered as a component is the browser's
+**native `title`** attribute (`FacetFilter.svelte:113`: `<span class="min-w-0 flex-1 truncate"
+	title={item.display_name}>`, and the file imports only `ChevronDown` and `Search`). So "reuse the one the
+filters use" is not an option: it is `title`, or vendoring bits-ui's `Tooltip` from scratch.
+
 ## Close of the session (2026-09-24)
 
 | Slice | Status | Receipt | Notes |
