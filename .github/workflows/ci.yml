@@ -11,6 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `pnpm check` runs `svelte-kit sync`, which generates the types for `$env/static/public`
+      # from the variables that exist when it runs -- and `src/lib/env.ts` imports two of them.
+      # Without this file they do not exist in a fresh clone, so the typecheck failed on every
+      # push regardless of what the commit changed. The environment is taken from the file the
+      # project already declares, so a variable added to the code and forgotten in the example
+      # fails here instead of silently disappearing.
+      - name: Provide the declared environment
+        run: cp .env.example .env
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.12.1
