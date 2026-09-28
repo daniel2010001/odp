@@ -277,10 +277,33 @@ verdict exists, so nothing is committed** and the lineage stays in `correction_r
 - **Lineage `review-7e3ab346bc8b3f85` (the pre-correction candidate) stays orphaned** in
   `correction_required`: its targeted validation was rejected by both capture routes and no
   recovery operation was available, so it produced no verdict and never will. Nothing depends on
-  it, but it remains an open authority record — `ABANDON` is what would clean it, it is
-  destructive, and it needs the author's exact inputs and an explicit decision.
-- **Still uncommitted.** The review gates *delivery*, not the files: `feat/ckan-2.12-upgrade`
-  holds the 8 files (28 diff lines) with no commit yet. Committing is the author's call.
+  it, and the record is **left in place on purpose**: `ABANDON` discards the admitted findings
+  (`discarded_work.findings_present`), and this lineage holds the only copy of six of them —
+  cleaning the store would erase the evidence, not a dead transaction. The record is declared as
+  debt instead, and the six findings are transcribed below because they exist nowhere else.
+
+  | id | lens | severity | causal disposition | location |
+  |---|---|---|---|---|
+  | `R1-001` | risk | WARNING | introduced | `ckan-docker/docker-compose.yml:47` |
+  | `R1-002` | risk | WARNING | introduced | `ckan-docker/docker-compose.dev.yml:31` |
+  | `R4-001` | resilience | **CRITICAL** | introduced | `ckan-docker/docker-compose.yml:47` |
+  | `R2-001` | readability | WARNING | introduced | `ckan-docker/docker-compose.yml:47` |
+  | `R2-002` | readability | SUGGESTION | **pre-existing** | `ckan-docker/ckan/Dockerfile:1` |
+  | `R3-VOLUME-PYTHON` | reliability | WARNING | introduced | `ckan-docker/docker-compose.yml:47` |
+
+  Five of the six are the same concern — a volume target hard-coded to `python3.14` while nothing
+  in the candidate established that the 2.12 image uses that interpreter — and it was resolved *in
+  fact* by the correction lineage 2 approved. **`R2-002` is the one still open**, and it is a
+  `pre-existing` follow-up: the CKAN release tag is a literal in eight places with no single source
+  of truth. It is carried as its own item in `BACKLOG.md` rather than here.
+  *(A closure envelope exposes only id, lens, location and severity for a finding, never its text;
+  the disposition column above comes from the store record, not from the envelope.)*
+- **Delivered.** The review gates *delivery*, not the files, so the commit was the author's call:
+  the 8 files went in as `9cbdf25 feat(ckan): upgrade the stack to CKAN 2.12`, whose diff is the
+  same **28 lines** — 15 insertions, 13 deletions — the provider froze for the approved candidate,
+  and with the two files that later carried the tokens patch staged **hunk by hunk** so the commit
+  reproducible the approved tree and nothing unreviewed. The slice reached `master` and the remote;
+  see the delivery record at the end of this document.
 
 ## S4 + S5 executed (2026-09-24) — **the upgrade boots on 2.12**
 
@@ -330,11 +353,18 @@ depth), #9 (validators receiving only changed resources — needs the extension'
 
 ### Still open
 
-- The healthcheck fix (finding 1) — **a new change, so a new candidate and its own review cycle.**
-- `SOLR_IMAGE_VERSION=2.12-solr9` in `.env`/`.env.example` + the stale comment at `.env:31`.
+- ~~The healthcheck fix (finding 1)~~ — **closed** by `f37aac3`: both CKAN probes now use
+  `python3 -c "import urllib.request; ..."` with an explicit 5s timeout, on the argument that
+  Python cannot be missing while CKAN runs whereas `wget` is the proof that incidental tools
+  disappear between image tags. Verified live: the container reports `healthy` after ~2 intervals.
+- ~~`SOLR_IMAGE_VERSION=2.12-solr9` in `.env`/`.env.example` + the stale comment at `.env:31`~~ —
+  **closed** by `5d47358`, applied by the author. Verified after recreating Solr with no shell
+  override: the container runs `ckan/ckan-solr:2.12-solr9` and the core's `managed-schema`
+  (`598a71da…`) matches the image's, where the two tags differ (`f0f5225a…` in 2.10-solr9).
 - Rotating the secrets that the DebugToolbar published; the fresh volume already regenerated the
-  ini-derived ones, so what remains is the passwords in `.env`.
-- The 8 files (28 diff lines) are **approved but still uncommitted**.
+  ini-derived ones, so what remains is the passwords in `.env`. **Still open.**
+- ~~The 8 files (28 diff lines) are **approved but still uncommitted**~~ — **delivered** in
+  `9cbdf25` and pushed.
 
 ### Reported by the author after the upgrade: the native tokens page is broken (upstream bug)
 
@@ -370,12 +400,64 @@ Impact: **only the native UI page.** Minting a token with `expires_in`/`unit` st
 re-seed did it, and the portal's login mints tokens on every sign-in), and the API can still list and
 revoke. What is lost is listing and revoking tokens **from the UI**.
 
-Options: **(a)** restore `plugin_extras` in `api_token_dictize` through the repository's own patch
-mechanism — `ckan-docker/ckan/patches/` exists for exactly this and today holds only a 4-byte
-placeholder, but note the **dev** Dockerfile copies the directory without applying it; **(b)** report
-it upstream and wait for 2.12.1; **(c)** make the extension's template defensive so the page renders
-with an empty column; **(d)** hold the upgrade and return to 2.11.6.
+Options considered: **(a)** restore `include_plugin_extras` in the caller through the repository's
+own patch mechanism; **(b)** report it upstream and wait for 2.12.1; **(c)** make the bundled
+template defensive so the page renders with an empty column; **(d)** hold the upgrade and return to
+2.11.6.
 
-Recommendation: **(a)** plus **(c)**. Note that (b) is weaker than it looked — with the flag missing
-from the context the data never reaches the template either, so a defensive template would only
-render an always-empty column.
+**Resolved with (a)**, in `affb4b4`: `ckan-docker/ckan/patches/ckan/001_api_tokens_include_plugin_extras.patch`
+restores the flag with a comment explaining why, and it was generated from the pristine file
+(`docker cp`, edit, `diff -u --label a/... --label b/...`) instead of being written by hand. `(b)`
+stays weaker than it looked — with the flag missing from the context the data never reaches the
+template either, so a defensive template would only render an always-empty column.
+
+Applying it needed two permission changes in the same commit, both from one cause — the 2.12 images
+ship the CKAN source tree owned by `ckan-sys` with group read-only, while the image has to write to
+it: the patch loop runs as root and returns to `USER ckan` (as the `ckan` user, `patch` cannot even
+create its temporary file in `ckan/views/`, which is `drwxr-xr-x`), and the dev image does
+`chmod g+w ${SRC_DIR}/ckan/test-core.ini`.
+
+**Two claims written earlier in this section are corrected here**: `api_token_dictize` *does*
+support `plugin_extras` — what changed is who asks for it — and **both** Dockerfiles do apply the
+patches, the dev one included. What was missing was write permission, not the loop. *(Both wrong
+claims came from grep output read as if it were complete.)* One build failed along the way because
+the `chmod` pointed at `${SRC_DIR}/ckan/ckan/test-core.ini`, a path that does not exist.
+
+Verified end to end with `down -v` + `up -d --build`: the flag is present in the image's tree, there
+is no `PermissionError` at startup, the debug toolbar stays off, and the page returns 200 with a real
+expiry.
+
+## Delivered (2026-09-27) — the whole slice on `master`, CI green
+
+Six commits, every one through the native gate with the authority burned, all pushed:
+
+| commit | what | gate |
+|---|---|---|
+| `9cbdf25` | `feat(ckan): upgrade the stack to CKAN 2.12` — the 8 files, 28 diff lines | `review-60ff70a8b0ca199c`, approved 2026-09-24 |
+| `f37aac3` | `fix(dev): probe CKAN with Python, not wget, in the health checks` | `review-0698d001c56cd5b1` — medium, 1 lens, **zero findings** |
+| `affb4b4` | `fix(ckan): apply the ApiTokenView patch on the 2.12 images` | `review-7745a4917e876308` — medium, 1 lens, 3 advisories |
+| `5d47358` | `chore(config): point SOLR_IMAGE_VERSION at the Solr tag the stack runs` | `review-27800a64fece9457` — medium, 1 lens, **zero findings** |
+| `91fcbc6` | `fix(umss): follow the driver's translation the 2.12 images ship` | `review-6d25b4f5d76dff1d` — high, 4 lenses, 1 advisory |
+| `d861c95` | `ci: run the suite against the redis the stacks use` | same lineage: the provider freezes `base..HEAD`, so the last two shared one gate |
+
+The three commits that predate the upgrade — `9857186` (the DebugToolbar leak), `44ac587` (the
+proxy `Host`) and `a128b4f` (the dead `CKAN_VERSION` key) — were gated separately as the range
+`856c060..a128b4f` on 2026-09-25, after the review store showed they had never been through a gate:
+lineage `review-ff12fabe480c18a1`, high, 4 lenses, 11 advisories, none blocking.
+
+**CI run `36369796656`: both jobs green, `53 passed`** in `ckan/ckan-dev:2.12`. That run is also what
+found the last two defects, neither reachable from a static review:
+
+- `test_the_database_name_comes_from_the_driver_translation` asserted the driver translation the
+  2.11 images had. Under SQLAlchemy 2.0.51, which the 2.12 images ship, the two spellings swap:
+  `...?database=ckandb` becomes ambiguous (`{'ckan_test','ckandb'}`) and `...?dbname=ckandb`
+  overrides the path (`{'ckandb'}`). The guard's *outcome* did not change — an empty name is refused
+  and `ckandb` is not test-scoped, so both spellings are refused — and
+  `test_a_query_parameter_cannot_redirect_the_database` pins that refusal independently of the
+  driver's internals. It passed even in the failing run, which is how the guard was cleared.
+- The job pinned `redis:3` while both stacks render `redis:6`. CKAN 2.12's client (redis-py 8.0.1)
+  sends `HELLO` for the RESP3 handshake and redis 3 answers `unknown command 'HELLO'`, so the suite
+  ran without a cache and said so only in a log line.
+
+`master` == `origin/master` == `d861c95`, working tree clean, and `feat/ckan-2.12-upgrade` left two
+commits behind because the last two fixes were committed straight onto `master`.
