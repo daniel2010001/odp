@@ -1534,7 +1534,11 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   móvil —**el título completo como zona de toque es más fácil de acertar**— pero no su estilo. De **A6** le
   gusta el estilo y le molesta que **pierda el ícono** y que el botón `…` **se vea chico comparado con los
   anteriores**. Se agregó **A7**: el estilo de A6 —texto, sin chip— **con** ícono y con el título como
-  disparador ancho. **Sigue sin decidirse entre A5, A6 y A7.**
+  disparador ancho.
+  **DECIDIDO Y PROMOVIDO (2026-09-28): A7.** El disparador de móvil del breadcrumb real ya no es un chip —sin
+  borde, sin fondo, íconos `size-4`, el título entero como zona de toque—. Unidad `68a99b7`, recibo
+  `review-94fc418923877f2d` **aprobado** con dos avisos informativos (ver «Deuda de revisión»). Es el primer
+  diseño de esta serie que sale de la hoja y llega al componente real.
 
 - [ ] **[v0]** `TODO:` **Los botones de anterior/siguiente se ven chicos y pasan desapercibidos.** Observación del
   autor (2026-09-24) sobre el slice E8: funcionan, pero no se ven. **Medido:** son dos enlaces con `p-1.5`
@@ -1559,6 +1563,27 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   navegador** (`FacetFilter.svelte:113`: `<span class="min-w-0 flex-1 truncate" title={item.display_name}>`; el
   archivo importa sólo `ChevronDown` y `Search`). Así que «usa el mismo componente que los filtros» **no es una
   opción**: o se usa el `title`, o se vendoriza el `Tooltip` de bits-ui de cero.
+
+- [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
+  «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
+  y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
+  **El alcance no está definido: el autor no dijo qué le falta**, y la primera tarea es que la mire y lo
+  diga —no adivinarlo—. Contexto: PRD RF-06 a RF-08 y `openspec/specs/organizations/spec.md`.
+
+- [ ] **[v0]** `TODO:` **El buscador sin resultados: el vacío y, sobre todo, el menú de filtros.** Observación
+  del autor (2026-09-28): «cuando no hay result se ve todo feo, en especial el menú de filtros». **Sin medir
+  todavía:** el estado vacío vive en `src/routes/search/+page.svelte` y los filtros en
+  `src/lib/components/search/FacetFilter.svelte`, que hoy muestra «Sin coincidencias para «X»» cuando el filtro
+  no encuentra nada y esconde el resto de la lista. Primer paso: reproducirlo en el navegador con una consulta
+  sin resultados y anotar **qué se ve mal y a qué ancho**, antes de proponer nada.
+
+- [ ] **[v0]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
+  autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
+  antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
+  (`‹ Anterior` · contador · `Siguiente ›`) que **envuelven a una segunda línea** en anchos cortos, y su
+  ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
+  eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
+  el juicio de diseño.
 
 - [ ] **[v0]** `TODO:` **En escritorio no hay forma de ver ni saltar a los demás recursos del dataset.**
   Observación del autor (2026-09-24): en móvil lo ve, en escritorio no. **Causa medida:** el grupo «Recursos
@@ -2152,6 +2177,31 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibo de la revisión nativa de la unidad que promovió A7 y unificó la URL de organización (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-94fc418923877f2d`: tier **medium**, lente
+  `review-reliability`, **10 archivos / 119 líneas**, presupuesto 60, **0 bloqueantes**.
+  - **Dos avisos, ambos `SUGGESTION`, y los dos apuntan a lo mismo:** `R3-001` en
+    `OrganizationCard.svelte:15` y `R3-002` en `dashboard/+page.svelte:655`. Leí las dos líneas: la primera es
+    el comentario más el default del componente —«el enlace se arma codificado en su única fuente»— y la
+    segunda es el **`href` explícito del dashboard, que ahora es idéntico al default del componente**. O sea:
+    el proveedor marcó la **redundancia que el propio commit declaró** —la regla quedó escrita en seis sitios—.
+    **Arreglo recomendado, dos líneas borradas:** que las dos cards que pasan exactamente el valor que ya es el
+    default (el home y el dashboard) **dejen de pasarlo**, y que el default del componente sea la única fuente
+    para las cards. Los otros sitios —las dos migas y el `orgHref`— **arman su propia URL** y no son redundancia.
+    **No se corrigió:** el recibo está quemado y los avisos no lo reabren.
+  - **Lo que hizo la unidad:** **A7 promovido** al breadcrumb real (el disparador de móvil pierde el chip:
+    sin borde, sin fondo, íconos `size-4`, el título entero como zona de toque y el `hover` como única
+    retroalimentación); y **la URL de organización con una sola forma** — `encodeURIComponent` en los seis
+    sitios donde se arma.
+  - **Dos hechos de tipo, medidos:** `CkanOrganization.name` es `string` **no opcional**
+    (`src/lib/types/ckan.ts:40`), así que el encoding es defensa en profundidad y no un bug vivo; y el default
+    del componente **ya apuntaba** a la página de la organización, o sea que el home **pisaba un default
+    correcto** con una búsqueda filtrada — ésa era la causa real, no la falta de un enlace.
+  - **Gates:** `pnpm test` **667/667** (48 archivos, de 663 a 667) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes, ninguna en los diez archivos · Biome **no verificable** (exit 254) · el
+    resultado visual de A7 es juicio del autor: el marco de la hoja es la especificación que se implementó.
+  _Origen: promoción de A7 + el aviso del encoding, 2026-09-28._
 
 - [ ] **Recibo de la revisión nativa de la unidad que cerró el guard y llevó las cards del home a la organización (2026-09-28)** — cerró **`approved`** y la authority quedó quemada. `review-b336caf8983ffd9b`: tier **medium**, lente `review-reliability`, **4 archivos / 121 líneas**, presupuesto 61, **0 bloqueantes**.
   - **Un aviso informativo:** `R3-001` · reliability · WARNING · `src/routes/+page.svelte:230`. **Sin texto en el envelope**, así que van las **dos lecturas posibles** y cuál me parece más probable. La línea es `href={`/organization/${org.name}`}` de la card de organización del home, o sea **la línea que este cambio agregó**.
