@@ -46,6 +46,17 @@
    así que el visor de PDF sigue bloqueado por el navegador. Opciones (A: un solo origen con una
    regla nginx para la ruta de descarga; B: `data.` + `api.` con allowlist) más el acoplamiento a
    documentar. **El upgrade no cambió nada de esto** (medido: la forma de la `url` es idéntica).
+   **Medido el 2026-09-28:** el portal responde en `https://odp.hs.lan` (200) y el proxy ya enruta
+   `/api/` a CKAN por HTTPS; lo que falla es que `ckan.site_url = http://192.168.1.201:5000`.
+   Y el dato que **decide la arquitectura**: `ResourcePreview.svelte` muestra el PDF en un `<iframe>`
+   **a propósito**, con un comentario propio que dice que lo hace así porque la API de CKAN no manda
+   CORS ⇒ **el portal ya está diseñado para leer el PDF desde otro origen**, y unificar orígenes
+   obligaría a escribir el proxy de descargas que precisamente se evitó. **La decisión del
+   2026-09-24 se mantiene**: dos nombres — el portal en `data.umss.edu.bo` y CKAN en
+   `api.data.umss.edu.bo`, con `ckan.site_url=https://api.data.umss.edu.bo`. El equivalente en dev es
+   `odp.hs.lan` + `api.odp.hs.lan`. **Y el nombre nuevo hay que agregarlo en DNS**: medido, `hs.lan`
+   **no tiene comodín** — `odp.hs.lan` resuelve, `api.odp.hs.lan` todavía no; el DNS es AdGuard Home
+   (`adguard.hs.lan`, corriendo). _(Medición de la sesión de la línea CKAN, 2026-09-28.)_
 2. **El borrador del issue upstream del `ApiTokenView`** — escrito en
    `odd/tasks/tokens-page-patch.md` y **sin publicar**: es una acción externa y necesita el OK del
    autor. El parche local ya está aplicado (`affb4b4`), así que esto sólo cierra el círculo con
@@ -1584,6 +1595,22 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
   eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
   el juicio de diseño.
+
+- [ ] **[v0] El CI de `odp` nunca pasó: falta el `.env` para los tipos** — medido el 2026-09-28
+  sobre el run `35241669027` y los 11 anteriores: **100% `failure`**, siempre en 17–34 s. Falla el
+  paso **`Typecheck`**: `Error: Module '"$env/static/public"' has no exported member
+  'PUBLIC_APP_URL'` (y lo mismo con `PUBLIC_CKAN_URL`). SvelteKit genera esos tipos desde las
+  variables presentes al momento del chequeo y las dos viven en `.env`, que está en `.gitignore`
+  ⇒ **cualquier clon nuevo falla el typecheck**, no es el código del commit. **Consecuencia no vista
+  hasta ahora:** como el typecheck va antes del test, el paso `Test` queda **`skipped`** en todas las
+  corridas, o sea **la suite nunca corrió en CI**. Arreglo: un paso `cp .env.example .env` previo al
+  `pnpm check` (o las dos variables en el `env:` del job). Ojo al arreglarlo: **los tests van a correr
+  por primera vez** y puede aparecer otro problema de entorno hoy tapado. Además `ci.yml` corre sólo
+  en `push: main` y PRs ⇒ los 58 commits de `feat/v0-portal-honesty` **nunca pasaron por CI**.
+  **Verificado por el padre desde `odp` (2026-09-28):** `gh run view 35241669027` da `Lint`
+  **success**, **`Typecheck` failure**, **`Test` skipped**, y el log trae los dos `has no exported
+  member` textuales; `src/lib/env.ts:6` importa `PUBLIC_CKAN_URL` de `$env/static/public`. Origen:
+  sesión de la línea CKAN, que lo encontró midiendo los runs.
 
 - [ ] **[v0]** `TODO:` **En escritorio no hay forma de ver ni saltar a los demás recursos del dataset.**
   Observación del autor (2026-09-24): en móvil lo ve, en escritorio no. **Causa medida:** el grupo «Recursos
