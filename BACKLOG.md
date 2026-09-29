@@ -1587,14 +1587,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   archivo importa sólo `ChevronDown` y `Search`). Así que «usa el mismo componente que los filtros» **no es una
   opción**: o se usa el `title`, o se vendoriza el `Tooltip` de bits-ui de cero.
 
-- [ ] **[v0]** `TODO:` **Los dos títulos de la sección de metadatos, en las dos páginas.** Pedido del autor
-  (2026-09-28): **el primer título, sólo «Metadatos»**, y el segundo, **«Información sobre el dataset»** /
-  **«Información sobre el recurso»**. **Estado medido antes de cerrar:** las dos páginas usan hoy el eyebrow
-  **«Metadatos · Información técnica»**, y los segundos títulos son **«Información técnica del dataset»** (dataset)
-  y **«Sobre este recurso»** (recurso), cada uno con su línea descriptiva debajo. Son **cuatro líneas de copy** (el
-  eyebrow en las dos páginas y los dos segundos títulos), **sin decisión pendiente**: se ejecuta en un paso cuando
-  el autor retome. _Origen: cierre de la sesión, 2026-09-28._
-
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
   y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
@@ -2224,6 +2216,34 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Compuerta BLOQUEADA de la unidad de los títulos de metadatos (2026-09-29)** — la unidad **está hecha,
+  commiteada y verificada**, pero **la compuerta nativa no pudo arrancar**: no hay linaje y no se quemó nada.
+  - **La unidad:** `58c88af` — eyebrow **«Metadatos»** (ahora la cadena que dice ser) y segundos títulos
+    **«Información sobre el dataset»** / **«Información sobre el recurso»**, en las dos páginas. Tres archivos,
+    19 inserciones / 14 borrados.
+  - **La aserción de conteo, con RED medido.** `dataset-page.test.ts` afirmaba `queryByText("Metadatos") === null`
+    y eso **sólo pasaba porque** el eyebrow era la cadena larga y no satisfacía el match exacto: con el eyebrow
+    corto la aserción se da vuelta. Reescrita como **conteo** («Metadatos» aparece exactamente una vez) y **RED
+    medido** mutando el sidebar de vuelta a «Metadatos»: *expected 1, received 2*. Es la lección de `R3-001` de
+    la unidad de las dos palabras, aplicada en el momento en vez de diferida.
+  - **Gates:** `pnpm test` **686/686** (mismo baseline) · `svelte-check` **0 errores / 4 advertencias**
+    preexistentes · Biome por binario directo **exit 0**. **Verificación viva:** Chromium headless contra el
+    portal corriendo (DOM post-hidratación, no el HTML del SSR, que es sólo el *shell*): una sola «Metadatos» y
+    el segundo título nuevo en cada página, **cero** apariciones de las cadenas viejas.
+  - **El bloqueo, exacto:** `inspect` ofrece **la rama entera** (`base_tree` = árbol de `b28757c`, el punto de
+    bifurcación); el `baseRef` explícito a `b89e675` **no se adoptó** porque los dos primeros `START` murieron
+    *antes* del acceso a autoridad (uno pidió `lineageId`, el otro `mode`). Los reintentos devolvieron
+    `outcome: consent-binding-stale` con diagnóstico `consent-binding-expired` —**un binding nuevo por intento y
+    expirado en el acto**—, `native_invocation_attempted: false`, `lineage_created: false`: el sobre de dos
+    opciones **nunca llegó al modelo**. Se paró ahí, sin cuarto intento. Hipótesis sin confirmar: (a) el host
+    interactivo no es elegible en este contexto y el binding queda vencido al crearse, (b) hay un registro de
+    consentimiento previo del mismo linaje/objetivo que el proveedor lee como vencido. **Decisión del autor
+    pendiente.**
+  - **Dos observaciones de copy que el cambio dejó a la vista, sin tocar** (el copy es del autor): el eyebrow
+    «METADATOS» del recurso y su línea descriptiva terminan repitiendo la palabra («…y otros metadatos»); y el
+    sidebar «DETALLES» del dataset solapa con la descripción de la tarjeta («Detalles técnicos del dataset…»).
+  _Origen: el TODO del cierre del 2026-09-28, ejecutado el 2026-09-29._
 
 - [ ] **Recibo de la revisión nativa de la unidad que deja alcanzables los filtros aplicados (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-b9b043d8e234d365`: tier **medium**, lente
