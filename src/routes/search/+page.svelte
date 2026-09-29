@@ -248,6 +248,29 @@ const hasActiveFilters = $derived(
 const activeFilterCount = $derived(
 	selectedOrgs.length + selectedFormats.length + selectedTags.length + selectedLicenses.length,
 );
+
+// Un solo valor para «hay facetas que mostrar»: con cero resultados CKAN devuelve facetas
+// vacías, y sin facetas el panel de filtros queda como un marco con su título y nada dentro.
+// Las cuatro guardas por faceta siguen siendo por faceta; esto decide el panel completo.
+const hasFacets = $derived(
+	(facets.organization?.items?.length ?? 0) > 0 ||
+		(facets.res_format?.items?.length ?? 0) > 0 ||
+		(facets.tags?.items?.length ?? 0) > 0 ||
+		(facets.license_id?.items?.length ?? 0) > 0,
+);
+
+// Los filtros sólo se mencionan cuando el usuario los tiene aplicados: sin ellos la invitación
+// a «limpiar los filtros» no tendría a qué referirse (y el panel ni siquiera está visible).
+const emptyStateMessage = $derived.by(() => {
+	if (!query) {
+		return hasActiveFilters
+			? 'No hay datasets disponibles con los filtros aplicados. Limpie los filtros para ver todo el catálogo.'
+			: 'No hay datasets disponibles en este momento.';
+	}
+	return hasActiveFilters
+		? `No encontramos datasets para "${query}". Pruebe con otros términos o limpie los filtros.`
+		: `No encontramos datasets para "${query}". Pruebe con otros términos.`;
+});
 </script>
 
 <svelte:head>
@@ -387,8 +410,10 @@ const activeFilterCount = $derived(
 
 <!-- Body -->
 <div class="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-	<div class="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
-		<!-- Sidebar: Facets -->
+	<div class={hasFacets ? 'lg:grid lg:grid-cols-[280px_1fr] lg:gap-8' : ''}>
+		<!-- Sidebar: Facets. Sin facetas no se renderiza: sin la plantilla de dos columnas el área
+		     de resultados ocupa todo el ancho y no queda un hueco de 280px. -->
+		{#if hasFacets}
 		<aside class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-40 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto">
 			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
 			     (md+) el panel queda siempre desplegado. -->
@@ -488,6 +513,7 @@ const activeFilterCount = $derived(
 				</div>
 			</div>
 		</aside>
+		{/if}
 
 		<!-- Results -->
 		<div class="min-w-0">
@@ -521,9 +547,7 @@ const activeFilterCount = $derived(
 				<div class="rounded-xl border border-border bg-card p-12 text-center">
 					<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
 					<p class="mt-2 text-sm text-muted-foreground">
-						{query
-							? `No encontramos datasets para "${query}". Pruebe con otros términos o limpie los filtros.`
-							: 'No hay datasets disponibles en este momento.'}
+						{emptyStateMessage}
 					</p>
 					{#if query || hasActiveFilters}
 						<button
