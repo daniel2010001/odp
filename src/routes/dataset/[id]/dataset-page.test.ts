@@ -493,3 +493,66 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 		expect(linkChip.querySelectorAll("svg").length).toBe(0);
 	});
 });
+
+// ─── La tarjeta de información técnica del dataset ────────────────────
+// El molde es la tarjeta del recurso: eyebrow «Metadatos · Información técnica», una descripción
+// bajo el título, la tabla sólo con los campos semánticos y una franja monoespaciada con los
+// identificadores. Los identificadores dejan de mezclarse con «Visibilidad» y «Estado».
+describe("Página de dataset — la tarjeta de información técnica", () => {
+	async function renderTechnicalCard(): Promise<HTMLElement> {
+		mocks.showDataset.mockResolvedValue(makeDataset());
+
+		render(DatasetPage);
+
+		const heading = await screen.findByRole("heading", {
+			name: "Información técnica del dataset",
+		});
+		return heading.parentElement as HTMLElement;
+	}
+
+	it("unifica el eyebrow con el de la tarjeta del recurso", async () => {
+		const card = await renderTechnicalCard();
+
+		expect(within(card).getByText("Metadatos · Información técnica")).toBeTruthy();
+		// «Sobre este dataset» sigue siendo el título de la tarjeta de descripción, no de ésta.
+		expect(screen.getByRole("heading", { name: "Sobre este dataset" })).toBeTruthy();
+		expect(within(card).queryByText("Sobre este dataset")).toBeNull();
+	});
+
+	it("agrega la línea descriptiva bajo el título", async () => {
+		const card = await renderTechnicalCard();
+
+		expect(
+			within(card).getByText(
+				"Detalles técnicos del dataset: visibilidad, estado y sus identificadores.",
+			),
+		).toBeTruthy();
+	});
+
+	it("deja en la tabla sólo los campos semánticos y saca los identificadores", async () => {
+		const card = await renderTechnicalCard();
+		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
+		expect(table).not.toBeNull();
+
+		expect(within(table as HTMLElement).getByText("Visibilidad")).toBeTruthy();
+		expect(within(table as HTMLElement).getByText("Estado")).toBeTruthy();
+		expect(within(table as HTMLElement).queryByText("Slug")).toBeNull();
+		expect(within(table as HTMLElement).queryByText("ID")).toBeNull();
+	});
+
+	it("muestra Slug e ID en la franja monoespaciada bajo la tabla", async () => {
+		const card = await renderTechnicalCard();
+		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
+		const strip = table?.nextElementSibling as HTMLElement | null;
+
+		// La franja es hermana de la tabla, no una fila dentro de ella: antes del cambio los
+		// identificadores vivían en `code.font-mono` dentro de la tabla y este caso pasaba en falso.
+		expect(strip).not.toBeNull();
+		expect((strip as HTMLElement).textContent).toContain("Slug");
+		expect((strip as HTMLElement).textContent).toContain("ID");
+		const codes = Array.from((strip as HTMLElement).querySelectorAll("code.font-mono")).map(
+			(code) => code.textContent,
+		);
+		expect(codes).toEqual(["matricula-2026", "pkg-1"]);
+	});
+});

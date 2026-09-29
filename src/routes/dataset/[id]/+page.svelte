@@ -256,11 +256,11 @@ const orgHref = $derived(
 );
 
 // ─── Technical metadata table ───────────────────────────────────
+// La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
+// monoespaciada bajo la tabla, igual que en la tarjeta del recurso.
 const generalMetaRows = $derived.by(() => {
 	if (!dataset) return [];
-	const rows: { label: string; value: string; mono?: boolean }[] = [
-		{ label: "Slug", value: dataset.name, mono: true },
-		{ label: "ID", value: dataset.id, mono: true },
+	const rows: { label: string; value: string }[] = [
 		{ label: "Visibilidad", value: visibilityLabel },
 	];
 	if (stateLabel) rows.push({ label: "Estado", value: stateLabel });
@@ -518,10 +518,15 @@ async function handleCopyLink() {
 
 					<!-- Technical info -->
 					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+							Metadatos · Información técnica
+						</p>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 							Información técnica del dataset
 						</h2>
+						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+							Detalles técnicos del dataset: visibilidad, estado y sus identificadores.
+						</p>
 						<div class="mt-4 overflow-hidden rounded-lg border border-border">
 							<div
 								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
@@ -535,14 +540,19 @@ async function handleCopyLink() {
 										class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
 									>
 										<span class="text-muted-foreground">{row.label}</span>
-										{#if row.mono}
-											<code class="break-all font-mono text-foreground">{row.value}</code>
-										{:else}
-											<span class="break-all font-medium text-foreground">{row.value}</span>
-										{/if}
+										<span class="break-all font-medium text-foreground">{row.value}</span>
 									</div>
 								{/each}
 							</div>
+						</div>
+
+						<!-- Identificadores: misma franja monoespaciada que la tarjeta del recurso. -->
+						<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+							<p class="text-xs text-muted-foreground">
+								Slug: <code class="font-mono">{dataset.name}</code>
+								<span class="mx-2">·</span>
+								ID: <code class="font-mono">{dataset.id}</code>
+							</p>
 						</div>
 					</Card>
 				</div>
