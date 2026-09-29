@@ -2212,6 +2212,30 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de la unidad que deja alcanzables los filtros aplicados (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-b9b043d8e234d365`: tier **medium**, lente
+  `review-reliability`, **2 archivos / 210 líneas**, presupuesto 105, **0 bloqueantes, 2 avisos informativos**.
+  - **Los dos avisos caen en la misma función**, la que agregué para el manejo del foco: `R3-001`
+    (**WARNING**, `search/+page.svelte:241-254`) y `R3-002` (SUGGESTION, `:249-251`). **Mi lectura:** son el
+    `await tick()` más la consulta manual al DOM (`panelEl.querySelector("[data-applied-filter]")` y, si no
+    queda chip, `document.querySelector('input[type="search"]')`) para que el foco no caiga al `<body>` cuando
+    el chip enfocado desaparece con su filtro. El mecanismo **cumple el requisito** y es **frágil por
+    construcción** —una consulta al documento entero y un atributo usado como selector—; el proveedor lo marca
+    y tiene razón. **Refinamiento recomendado:** mover el foco al contenedor del panel y dejar que el navegador
+    resuelva el orden, en vez de buscar el chip siguiente a mano. **Anotado, no corregido** (el recibo está
+    quemado).
+  - **Lo que hizo la unidad:** el panel de filtros **vuelve** cuando el usuario tiene filtros aplicados aunque
+    no haya facetas —un solo valor, `showFilterPanel`, gobierna **el panel y las columnas**, así que no queda
+    una franja vacía— y muestra **sus** filtros, agrupados con los mismos títulos que las facetas, cada uno como
+    un chip-botón que **reusa el mismo `toggleFilter`** de su faceta (sin duplicar la lógica de selección) y con
+    nombre accesible propio («Quitar filtro Organización: X»). Era el **último WARNING abierto que pedía
+    diseño**: el caso que el autor nombró —cero resultados para una organización **y** JSON, y querer sacar uno
+    solo—. **Diferido a propósito y declarado:** en móvil los filtros aplicados quedan **detrás del desplegable
+    «Filtros»** (un toque); abrirlo solo cuando no hay resultados es una línea más, si el autor lo quiere.
+  - **Gates:** `pnpm test` **686/686** (49 archivos, de 683 a 686: +3 tests) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes, ninguna en los dos archivos.
+  _Origen: el único WARNING abierto que necesitaba diseño, 2026-09-28._
+
 - [ ] **Recibo de la revisión nativa de la unidad de las dos palabras y el chip del MIME (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-a5bb1994e01f2df6`: tier **medium**, lente
   `review-reliability`, **4 archivos / 45 líneas**, presupuesto 23, **0 bloqueantes, 1 aviso informativo**.
@@ -2220,7 +2244,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
     encabezado, y el proveedor tiene razón en marcarlo: **una aserción negativa pasa por vacía** — si el chip
     no estuviera por cualquier otro motivo, el test también pasaría, así que **no distingue «se quitó» de
     «nunca estuvo»**. La forma de cerrarlo es la que este repo usa: **medir su RED** (volver a poner el chip,
-    ver el test fallar, restaurar byte a byte) y registrarlo. **Pendiente y anotado; no lo hice en esta unidad.**
+    ver el test fallar, restaurar byte a byte) y registrarlo. **El autor lo autorizó el 2026-09-28 y acordamos
+    diferirlo a otra sesión.**
   - **Lo que hizo la unidad:** el dataset tenía **dos** cards con la palabra «Metadatos» —la tabla técnica y el
     resumen del sidebar— y ahora cada una tiene su nombre: la tabla dice **«Metadatos · Información técnica»**
     (igual en las dos páginas) y el sidebar dice **«Detalles»**. No se inventó vocabulario: **las dos palabras
@@ -2238,6 +2263,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   anterior. Aparece como «dataset 17» en el catálogo de desarrollo. **Es dato, no código**: se limpia con
   `resource_delete`/purga del dataset de sonda, y conviene mirar si quedaron otros residuos del mismo tipo
   (la memoria del proyecto registra una limpieza de sondas anterior, así que esta se escapó).
+  **El autor lo autorizó el 2026-09-28 y acordamos hacerlo en otra sesión.**
   _Origen: la verificación del chip del MIME, 2026-09-28._
 
 - [ ] **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
