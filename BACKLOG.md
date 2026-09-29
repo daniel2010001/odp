@@ -2212,6 +2212,35 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de las dos unidades de la ronda del buscador y la card técnica (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-6afeb0a8ba45dbf0`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 282 líneas**, presupuesto 141, **0 bloqueantes, 3 avisos informativos**.
+  Las dos unidades van en **una compuerta** (el autor aprobó las dos juntas; los commits van separados para que
+  el historial se lea): `5d1c436` (el buscador sin resultados) y `064e44d` (la card técnica del dataset).
+  - **`R3-FACET-PANEL-BOUNDARY`** · **WARNING** · `search/+page.svelte:416` — es el `{#if hasFacets}` que decide
+    el panel. **Mi lectura de la línea:** cuando el usuario **tiene filtros aplicados** y la búsqueda no
+    devuelve nada, el panel **desaparece**, así que su única forma de **destildar** un filtro es el botón
+    «Limpiar búsqueda y filtros». El arreglo honesto es mostrar al menos **los filtros aplicados** cuando no
+    hay facetas, para poder quitarlos de a uno. **Es una decisión de UX, no la tomo solo.**
+  - **`R3-EMPTY-MSG-BRANCHES`** · SUGGESTION · `search-page.test.ts:75` — es el helper `emptyMessage()`, que
+    matchea `/^No encontramos datasets/`. **Mi lectura:** cubre sólo las **variantes con consulta**, así que
+    las **dos variantes sin consulta** («No hay datasets disponibles…») quedan sin aserción — **el mismo hueco
+    que el escritor había declarado por su cuenta** y que la revisión confirmó. Arreglo: dos aserciones.
+  - **`R3-ID-STRIP-WRAP`** · SUGGESTION · `dataset-page.test.ts:556` — es la aserción de la franja de
+    identificadores. **Mi lectura:** la franja es **una sola línea con separadores `·`** y un `slug` o un UUID
+    de 36 caracteres **se parte mal en anchos chicos** (no tiene `break-all` ni envoltura por ítem). Arreglo:
+    envolver por ítem en vez de partir el valor.
+  - **Lo que hicieron las unidades:** el **buscador sin resultados** dejó de mostrar un marco vacío —un solo
+    valor `hasFacets` gobierna **el panel y la plantilla de columnas**— y su frase dejó de invitar a «limpiar
+    los filtros» cuando los filtros no están a la vista: ahora la menciona **sólo si el usuario los tiene
+    aplicados**. Y la **card técnica del dataset** tomó la composición de la del recurso: eyebrow unificado,
+    descripción agregada, y **`Slug`/`ID` fuera de la tabla, en una franja monoespaciada debajo**.
+  - **Gates:** `pnpm test` **678/678** (49 archivos, de 669/48: +9 tests y el primer test del buscador) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los cuatro archivos · el **RED se
+    midió** en las dos unidades, y el escritor **volvió a medirlo** cuando su primera aserción de la franja
+    pasaba en falso (los identificadores seguían siendo `<code>` dentro de la tabla).
+  _Origen: los dos arreglos que el autor aprobó juntos («hazlo, ambos»), 2026-09-28._
+
 - [ ] **Recibo de la revisión nativa de la unidad que cerró el guard del dataset y unificó la primera miga (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-3f510d12bc05d495`: tier **medium**, lente
   `review-reliability`, **2 archivos / 54 líneas**, presupuesto 27, **CERO hallazgos** — la segunda vez en esta
