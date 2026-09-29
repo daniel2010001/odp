@@ -264,8 +264,8 @@ const hasFacets = $derived(
 const emptyStateMessage = $derived.by(() => {
 	if (!query) {
 		return hasActiveFilters
-			? 'No hay datasets disponibles con los filtros aplicados. Limpie los filtros para ver todo el catálogo.'
-			: 'No hay datasets disponibles en este momento.';
+			? "No hay datasets disponibles con los filtros aplicados. Limpie los filtros para ver todo el catálogo."
+			: "No hay datasets disponibles en este momento.";
 	}
 	return hasActiveFilters
 		? `No encontramos datasets para "${query}". Pruebe con otros términos o limpie los filtros.`
