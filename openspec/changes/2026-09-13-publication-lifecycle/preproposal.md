@@ -44,7 +44,7 @@ stack. **`explore.md` is superseded by section 2 wherever the two disagree.**
 6. **2.11.6 vs 2.12.0a0 gap that matters:** `extras` was rewritten (2.12 adds a JSONB `extras`
    column; 2.11.6 uses the separate `package_extra` table). Any portal-owned `extras` schema
    should be written against 2.11.6 and revisited before an upgrade.
-7. `ckanext-umss` is an **empty `IConfigurer` scaffold** — no permissions, no actions, no hooks.
+7. `ckanext-umss` **was** an **empty `IConfigurer` scaffold** — no permissions, no actions, no hooks. **[Corrected 2026-09-29 — see `explore.md` §2.3.]**
 8. `organization_purge` and `group_purge` **do** exist as API actions (`package_purge` does not).
 
 ### 2.3 A real, separate defect found while probing
@@ -147,7 +147,7 @@ change's to burn, and the portal's own token (`Portal Datos UMSS`) must never be
 
 | # | Decision | Answer |
 |---|---|---|
-| D1 | Must the review be unbypassable? | **Yes. CKAN-side enforcement.** The change must include `IAuthFunctions` code so an org editor cannot publish around the review through the API. A portal-only convention was explicitly rejected. Implies writing Python inside `ckanext-umss` (today an empty `IConfigurer` scaffold). The third-party-extension option (B) stays **dropped explicitly** for the reason in §4: it could not be assessed in this environment. |
+| D1 | Must the review be unbypassable? | **Yes. CKAN-side enforcement.** The change must include `IAuthFunctions` code so an org editor cannot publish around the review through the API. A portal-only convention was explicitly rejected. Implies writing Python inside `ckanext-umss` (today an empty `IConfigurer` scaffold). **[Corrected 2026-09-29 — see `explore.md` §2.3.]** The scaffold is no longer empty: the guard exists and must be read before the replanning. The third-party-extension option (B) stays **dropped explicitly** for the reason in §4: it could not be assessed in this environment. |
 | D2 | A finer visibility level than CKAN offers? | **No.** Two levels only: public, and readable by the owning organization (`private: true`, whose meaning was measured). No custom permission labels. |
 | D3 | The dashboard defect in §2.3 | **Separate.** It is a live bug independent of this change and gets its own fix, to keep this candidate small. |
 | D4 | First-slice scope | **Minimal publishable.** A dataset must be able to go from private to published, with D1's enforcement. The full draft → review → approved → published state machine is an explicit non-goal for this slice. |

@@ -52,7 +52,7 @@ transition is enforced inside CKAN, not in SvelteKit.
 - **A publish transition with CKAN-side enforcement.** Denying the `private` (and `state`) transition to the
   dataset's own org editor is the core deliverable, implemented as Python inside `ckanext-umss` — today an
   empty `IConfigurer` scaffold with no `IAuthFunctions`, no `IActions`, no `IPackageController` and no
-  permission hook. An authorized approver must still be able to publish.
+  permission hook. An authorized approver must still be able to publish. **[Corrected 2026-09-29 — see `explore.md` §2.3.]**
 - **A portal affordance to publish**, offered only to a user the platform treats as an approver, with an
   explicit error state when CKAN denies the transition (`403`) instead of a silent no-op or a fabricated
   success.
@@ -133,7 +133,7 @@ All measured against the running CKAN 2.11.6 unless noted.
 | `state: "draft"` is hidden from `package_search` for anonymous and org members by default; visible to org members only with `include_private=true` **and** `include_drafts=true` | If design uses `draft`, every reader path needs both flags — and the catalogue currently passes neither. |
 | `extras_*` is indexed through an **English Snowball stemmer**: `approved`, `approval` and `approving` are one token | **If** design stores a status value in `extras`, it must not be an English stemmable word. This is why the exact carrier and value are left to design. |
 | The portal has no database; 2.11.6 keeps extras in the separate `package_extra` table (2.12 rewrites extras to JSONB) | Any portal-owned extras schema is written against 2.11.6 and needs revisiting before an upgrade. |
-| `ckanext-umss` is an empty `IConfigurer` scaffold | The enforcement is net-new code in a repository that is not this one, with its own release path into the image and its own (currently trivial) test suite. |
+| `ckanext-umss` **was** an empty `IConfigurer` scaffold **[Corrected 2026-09-29 — see `explore.md` §2.3.]** | The enforcement is net-new code in a repository that is not this one, with its own release path into the image and its own (currently trivial) test suite. **The "net-new" part no longer holds: the guard is already there.** |
 
 ## Affected Requirements
 

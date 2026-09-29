@@ -49,7 +49,9 @@
 >   no puede depender de qué recursos mandó el cliente. Queda test de regresión permanente.
 >   **Consecuencia fuera de S5:** la premisa escrita del cambio SDD
 >   `2026-09-13-publication-lifecycle` (que `ckanext-umss` era un andamiaje `IConfigurer` vacío) queda
->   corregida por medición; se anota también en el expediente de ese cambio.
+>   corregida por medición, y **ya está en el expediente de ese cambio**: la copia canónica es
+>   `explore.md` §2.3, con punteros en `preproposal.md` y `proposal.md`. Una sola copia, una sola
+>   procedencia.
 > - **Pie de cañón lateral, medido y no arreglado:** `package_update` con `resources: []`
 >   **explícito** borra todos los recursos y *después* lanza `NotFound`, así que ese error no
 >   significa "no cambió nada". No es el camino del wizard; queda como ítem abierto abajo.
@@ -842,9 +844,16 @@
 > llega **el payload de la request**, no el paquete aplanado, así que la omisión de recursos no cambiados que
 > introduce 2.12 (#5713) **no** afecta a esa regla. Evidencia cruda: `odp-docker/odd/tasks/s5-remaining-rows.md`;
 > regresión permanente en `ckanext-umss/.../tests/test_auth.py` (suite 54 verde).
-> **Pendiente, y es decisión del autor:** dónde aterriza esta corrección —en los artefactos del cambio, con el texto
-> completo que la línea CKAN dejó listo, o en la replanificación—. **No la escribí en `openspec/changes/…`** porque
-> afirmar sobre esa premisa es del autor.
+> **Decidido y aplicado (2026-09-29, orden del autor: «hazlo»): la corrección aterrizó en los artefactos del
+> cambio.** El bloque completo está en `explore.md` §2.3, y los **ocho** sitios que afirmaban la premisa llevan
+> marca o puntero —`explore.md:177` (marca `[STALE]` en la celda), `:225`, `:306`, `:461`; `preproposal.md:47` y
+> `:150` (la fila de D1); `proposal.md:54` y `:136`—. **El texto original no se borró en ningún sitio:** queda
+> visible y marcado, que es como este proyecto conserva el histórico.
+> **Verificado de forma independiente en `odp-docker`**, no sólo heredado de la línea CKAN: `plugin.py` implementa
+> `IAuthFunctions` y `auth.py` tiene las dos funciones encadenadas (`package_update:122`, `package_create:155`) más
+> `_is_approver` con la capacidad `admin`. **Consecuencia para la replanificación:** el encuadre «código nuevo
+> dentro de un andamiaje vacío» de D1 ya no vale, ni la estimación que se apoyaba en él — **el guard existe y hay
+> que leerlo, no escribirlo**.
 >
 > **Plan, en orden:**
 >

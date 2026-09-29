@@ -174,8 +174,32 @@ Therefore, for an organization dataset:
 | `package.state` | Not viable: 3 values, no semantics, silently dropped on create for non-sysadmins, free-form strings not validated | §2.1 |
 | `package.private` | Binary only; no `internal` tier exists in CKAN. The declared portal type `DatasetVisibility = "private" \| "internal" \| "public"` has no CKAN counterpart; `internal` would have to be encoded elsewhere | `[READ — repo]` `src/lib/types/dataset.ts:35` |
 | a `lifecycle_status`-style extra | **Does not exist anywhere.** No such key in `src/`; but a precedent for portal-owned extras **does** exist: `summary` (RF-40) | `[READ — repo]` `dataset-summary.ts:14`, `dataset-payload.ts:64-67` |
-| `ckanext-umss` | **An empty scaffold.** `[READ — odp-docker]` `ckanext/umss/plugin.py` implements only `IConfigurer` (adds template dir, public dir, one asset bundle). There is no `IAuthFunctions`, no `IActions`, no `IPackageController`, no `IPermissionLabels`, no permission or package-create hook of any kind. Its test suite asserts only that the plugin loads. | `[READ — odp-docker]` `ckanext-umss/ckanext/umss/plugin.py`, `tests/test_plugin.py` |
+| `ckanext-umss` | **An empty scaffold.** **`[STALE — corrected 2026-09-29, see the note under this table]`** `[READ — odp-docker]` `ckanext/umss/plugin.py` implements only `IConfigurer` (adds template dir, public dir, one asset bundle). There is no `IAuthFunctions`, no `IActions`, no `IPackageController`, no `IPermissionLabels`, no permission or package-create hook of any kind. Its test suite asserts only that the plugin loads. | `[READ — odp-docker]` `ckanext-umss/ckanext/umss/plugin.py`, `tests/test_plugin.py` |
 | an own DB table | The portal has **no database** — see §2.5 | |
+
+**Correction measured on 2026-09-29 (CKAN line, `odp-docker`) — `ckanext-umss` is no longer an empty
+`IConfigurer` scaffold, and the premise of D1 does not describe the module today.** This exploration
+predates the PR 1 guard, so the row above was true when it was written and is stale now, not wrong:
+
+- `ckanext/umss/plugin.py` implements **`IAuthFunctions`** and registers two functions **chained** onto
+  core (`toolkit.chained_auth_function`) over `package_create` and `package_update`
+  (`ckanext/umss/auth.py:155` and `:122`).
+- `ckanext/umss/auth.py` implements the publication barrier: only the organization's `admin`, or a
+  `sysadmin`, may publish or change `state`; everything else is rejected before validators run and
+  before anything is persisted. Neither chained function sets `auth_sysadmins_check`.
+- **Measured with a spy on the auth registry** (`ckan.authz._AuthFunctions._functions`, because
+  `chained_auth_function` registers a `functools.partial`, so replacing the module-level name
+  intercepts nothing): the chained function receives **the request payload**, not the flattened
+  package. That is why the dropped-unchanged-resources behaviour introduced by 2.12 (#5713) does not
+  affect this rule.
+- Permanent regression in `ckan-docker/src/ckanext-umss/ckanext/umss/tests/test_auth.py` (54 tests
+  green). Raw output: `odp-docker/odd/tasks/s5-remaining-rows.md`.
+
+Re-verified independently from this repository the same day: `plugin.py` implements `IAuthFunctions`,
+and `auth.py` carries the two `@toolkit.chained_auth_function` definitions plus `_is_approver`.
+**Consequence for this change packet:** D1's framing — net-new Python inside an empty scaffold — no
+longer holds, nor does the effort estimate built on it. The enforcement code exists and has to be read
+before the replanning, not written again.
 
 For completeness, the extension points that Option C would use do exist in this CKAN line:
 `IAuthFunctions`, `IActions`, `IValidators`, `IDatasetForm`, and `IPackageController` including
@@ -222,7 +246,7 @@ choosing A/B now would freeze a schema for a state model that does not exist yet
 API alone.** There is no portal involvement, no approval, and no CKAN-side hook that could notice: the
 stack's plugin list contains no extension that overrides package auth
 (`image_view text_view datatables_view datastore datapusher envvars expire_api_token umss`), and `umss`
-is an empty `IConfigurer` scaffold.
+is an empty `IConfigurer` scaffold. **[Corrected 2026-09-29 — see `explore.md` §2.3.]**
 
 Consequences that constrain any design:
 
@@ -304,7 +328,8 @@ Trade-offs only; each row names what it buys, what it costs, and what it **canno
   expose a lifecycle-specific endpoint the portal calls.
 - **Costs:** Python + CKAN plugin work in a *different repository* (`odp-docker`), with its own release
   path into the image, its own test setup (currently an empty scaffold with one trivial test), and a
-  second language/toolchain in a project that is otherwise SvelteKit + Biome + Vitest.
+  second language/toolchain in a project that is otherwise SvelteKit + Biome + Vitest. **[Corrected
+  2026-09-29 — see the note under the §2.3 table.]**
 - **This is the user's stated preference** `[RECORDED]` (`BACKLOG.md`: "Preferencia expresada por el
   usuario: extensión propia, con algo más liviano si conviene").
 - **Open sub-question:** C and A are not mutually exclusive. Nothing decided today prevents a thin C
@@ -458,7 +483,7 @@ curl -s -X POST http://localhost:8082/api/3/action/api_token_list \
 | `package_patch` is `package_update` | `ckan/logic/action/patch.py:16-58` |
 | package columns / defaults | `ckan/model/package.py:75-76` |
 | extension hooks available for option C | `ckan/plugins/interfaces.py:451`, `:461`, `:527`, `:537`, `:1905` |
-| `ckanext-umss` is an empty scaffold | `odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/plugin.py` |
+| `ckanext-umss` **was** an empty scaffold in this exploration **[Corrected 2026-09-29 — see `explore.md` §2.3.]** | `odp-docker/ckan-docker/src/ckanext-umss/ckanext/umss/plugin.py` |
 | base image is the floating `2.11` tag | `odp-docker/ckan-docker/Dockerfile.dev.umss` |
 | proxy topology (portal has no server in the write path) | `odp-docker/frontend-proxy/dev-nginx.conf` |
 | wizard hardcodes `private: true` | `src/routes/dashboard/datasets/new/+page.svelte:147` |
