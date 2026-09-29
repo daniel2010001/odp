@@ -2212,6 +2212,34 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de la unidad de las dos palabras y el chip del MIME (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-a5bb1994e01f2df6`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 45 líneas**, presupuesto 23, **0 bloqueantes, 1 aviso informativo**.
+  - **El aviso es sobre la aserción que yo mismo escribí:** `R3-001` · **WARNING** ·
+    `resource-page.test.ts:397-408`. **Mi lectura:** es el `it` que prueba que el chip del MIME **no** está en el
+    encabezado, y el proveedor tiene razón en marcarlo: **una aserción negativa pasa por vacía** — si el chip
+    no estuviera por cualquier otro motivo, el test también pasaría, así que **no distingue «se quitó» de
+    «nunca estuvo»**. La forma de cerrarlo es la que este repo usa: **medir su RED** (volver a poner el chip,
+    ver el test fallar, restaurar byte a byte) y registrarlo. **Pendiente y anotado; no lo hice en esta unidad.**
+  - **Lo que hizo la unidad:** el dataset tenía **dos** cards con la palabra «Metadatos» —la tabla técnica y el
+    resumen del sidebar— y ahora cada una tiene su nombre: la tabla dice **«Metadatos · Información técnica»**
+    (igual en las dos páginas) y el sidebar dice **«Detalles»**. No se inventó vocabulario: **las dos palabras
+    se intercambiaron** de tarjeta, y cada una describe lo que su tarjeta contiene. Y el **chip del tipo MIME
+    salió del hero**: era intencional (tiene su comentario), y repetía el formato («PDF» en el chip de tipo,
+    «application/pdf» al lado) mientras el dato ya vive en la tabla. Verificado después: el MIME aparece **sólo**
+    en la tabla y **cero** veces dentro del `<section>` del encabezado.
+  - **Gates:** `pnpm test` **683/683** (49 archivos, de 681 a 683: +2 aserciones de regresión) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los cuatro archivos.
+  _Origen: las observaciones del autor sobre las dos palabras y el chip del MIME, 2026-09-28._
+
+- [ ] **[v0]** `TODO:` **Higiene de datos de dev: el catálogo tiene un residuo de sonda** — medido el 2026-09-28:
+  **el único recurso del catálogo con `mimetype`** es `Probe origen PDF` (`probe-origen.pdf`,
+  `application/pdf`, `url_type: upload`), que **no es dato sembrado** sino el resto de una sonda de una sesión
+  anterior. Aparece como «dataset 17» en el catálogo de desarrollo. **Es dato, no código**: se limpia con
+  `resource_delete`/purga del dataset de sonda, y conviene mirar si quedaron otros residuos del mismo tipo
+  (la memoria del proyecto registra una limpieza de sondas anterior, así que esta se escapó).
+  _Origen: la verificación del chip del MIME, 2026-09-28._
+
 - [ ] **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-02d3e702f16cc417`: tier **medium**, lente
   `review-reliability`, **3 archivos / 71 líneas**, presupuesto 36, **0 bloqueantes, 2 avisos informativos**.
