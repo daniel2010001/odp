@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { afterNavigate } from "$app/navigation";
 import { page } from "$app/stores";
@@ -74,6 +74,12 @@ function renderSearch() {
 /** La oración del estado vacío, no la acción «Limpiar búsqueda y filtros» que la acompaña. */
 function emptyMessage(): string {
 	return screen.getByText(/^No encontramos datasets/).textContent ?? "";
+}
+
+/** El `fq` de la última búsqueda disparada; `undefined` cuando no quedan filtros. */
+function lastSearchFq(): string | undefined {
+	const args = mocks.search.mock.calls.at(-1)?.[0] as { fq?: string } | undefined;
+	return args?.fq;
 }
 
 beforeEach(() => {
@@ -178,5 +184,55 @@ describe("Página de búsqueda — el texto del estado vacío", () => {
 				"No hay datasets disponibles con los filtros aplicados. Limpie los filtros para ver todo el catálogo.",
 			),
 		).toBeTruthy();
+	});
+});
+
+describe("Página de búsqueda — el panel cuando hay filtros aplicados y no hay facetas", () => {
+	it("con un filtro activo y cero resultados vuelve a mostrar el panel y lista el filtro", async () => {
+		setUrl("?org=rectorado");
+
+		const { container } = renderSearch();
+
+		expect(await screen.findByText("Sin resultados")).toBeTruthy();
+		// El panel no depende sólo de `hasFacets`: con filtros aplicados debe volver.
+		expect(container.querySelector("aside")).not.toBeNull();
+		expect(screen.getByRole("heading", { name: "Filtros" })).toBeTruthy();
+		// Se agrupa con los mismos nombres que usan las facetas.
+		expect(screen.getByText("Organización")).toBeTruthy();
+		// Chip con nombre accesible que dice qué quita, no un «×» mudo.
+		expect(
+			screen.getByRole("button", { name: "Quitar filtro Organización: rectorado" }),
+		).toBeTruthy();
+	});
+
+	it("quitar el chip re-ejecuta la búsqueda con el filtro ya quitado", async () => {
+		setUrl("?org=rectorado");
+
+		renderSearch();
+		await screen.findByText("Sin resultados");
+
+		await fireEvent.click(
+			screen.getByRole("button", { name: "Quitar filtro Organización: rectorado" }),
+		);
+
+		await waitFor(() => {
+			expect(lastSearchFq()).toBeUndefined();
+		});
+		// Al desaparecer el chip, el foco no cae a <body>: vuelve al buscador (el panel se fue
+		// porque ya no quedaban filtros ni facetas).
+		expect(document.activeElement).toBe(screen.getByRole("searchbox"));
+	});
+
+	it("mantiene la plantilla de dos columnas cuando el panel se sostiene por los filtros aplicados", async () => {
+		setUrl("?org=rectorado");
+
+		renderSearch();
+
+		const resultsColumn = (await screen.findByText("Sin resultados")).closest(
+			"div.min-w-0",
+		) as HTMLElement | null;
+		expect(resultsColumn).not.toBeNull();
+		const wrapper = resultsColumn?.parentElement as HTMLElement;
+		expect(wrapper.className).toContain("lg:grid-cols-[280px_1fr]");
 	});
 });

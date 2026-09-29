@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ChevronDown, SlidersHorizontal, X } from "@lucide/svelte";
-import { untrack } from "svelte";
+import { tick, untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
@@ -38,6 +38,10 @@ let catalogTotalLoading = $state(true);
 
 // ─── UI: colapso de filtros en móvil ──────────────────────────────
 let mobileFiltersOpen = $state(false);
+
+// Referencia al panel de filtros. Sirve para devolver el foco a un chip restante
+// cuando el chip que tenía el foco desaparece del DOM al quitar su filtro.
+let panelEl = $state<HTMLElement>();
 
 // ─── Router ready guard ────────────────────────────────────────────
 // `replaceState` de $app/navigation solo puede llamarse después de que el
@@ -234,6 +238,24 @@ function clearAllFilters() {
 	currentPage = 1;
 }
 
+async function onRemoveAppliedFilter(
+	field: "org" | "format" | "tags" | "license",
+	value: string,
+) {
+	// Mismo handler que usa la faceta correspondiente: no se duplica la lógica de selección.
+	toggleFilter(field, value);
+	// El chip que tenía el foco se va con el filtro. Tras el re-render lo movemos al primer
+	// chip restante del panel; si el panel entero desapareció (no había facetas y era el último
+	// filtro), al buscador, que siempre está. Así el foco nunca cae a <body>.
+	await tick();
+	const nextChip = panelEl?.querySelector<HTMLButtonElement>("[data-applied-filter]");
+	if (nextChip) {
+		nextChip.focus();
+		return;
+	}
+	document.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+}
+
 function goToPage(p: number) {
 	currentPage = p;
 	window.scrollTo({ top: 0, behavior: "smooth" });
@@ -257,6 +279,23 @@ const hasFacets = $derived(
 		(facets.res_format?.items?.length ?? 0) > 0 ||
 		(facets.tags?.items?.length ?? 0) > 0 ||
 		(facets.license_id?.items?.length ?? 0) > 0,
+);
+
+// El panel de filtros se muestra si hay facetas O si el usuario tiene filtros aplicados. Con
+// cero resultados CKAN devuelve facetas vacías, pero los filtros aplicados siguen ahí: el panel
+// debe volver para poder quitarlos de a uno. Con facetas, todo se comporta como antes.
+const showFilterPanel = $derived(hasFacets || hasActiveFilters);
+
+// Filtros aplicados agrupados por faceta, con los mismos títulos que los `FacetFilter`. Es la
+// lista que el panel muestra cuando no hay facetas disponibles: son los filtros del usuario, no
+// opciones para elegir.
+const activeFilterGroups = $derived(
+	[
+		{ field: "org" as const, title: "Organización", values: selectedOrgs },
+		{ field: "format" as const, title: "Formato", values: selectedFormats },
+		{ field: "tags" as const, title: "Etiquetas", values: selectedTags },
+		{ field: "license" as const, title: "Licencia", values: selectedLicenses },
+	].filter((group) => group.values.length > 0),
 );
 
 // Los filtros sólo se mencionan cuando el usuario los tiene aplicados: sin ellos la invitación
@@ -410,11 +449,16 @@ const emptyStateMessage = $derived.by(() => {
 
 <!-- Body -->
 <div class="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-	<div class={hasFacets ? 'lg:grid lg:grid-cols-[280px_1fr] lg:gap-8' : ''}>
-		<!-- Sidebar: Facets. Sin facetas no se renderiza: sin la plantilla de dos columnas el área
-		     de resultados ocupa todo el ancho y no queda un hueco de 280px. -->
-		{#if hasFacets}
-		<aside class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-40 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto">
+	<div class={showFilterPanel ? 'lg:grid lg:grid-cols-[280px_1fr] lg:gap-8' : ''}>
+		<!-- Sidebar: Facets o filtros aplicados. Se renderiza si hay facetas o si el usuario tiene
+		     filtros aplicados (con cero resultados CKAN devuelve facetas vacías, pero sus filtros
+		     siguen activos). Sin panel no queda un hueco de 280px: el área de resultados ocupa todo
+		     el ancho. -->
+		{#if showFilterPanel}
+		<aside
+			bind:this={panelEl}
+			class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-40 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto"
+		>
 			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
 			     (md+) el panel queda siempre desplegado. -->
 			<button
@@ -475,40 +519,77 @@ const emptyStateMessage = $derived.by(() => {
 				</div>
 
 				<div class="space-y-5 pt-3">
-					{#if facets.organization?.items?.length}
-						<FacetFilter
-							title="Organización"
-							items={facets.organization.items}
-							selected={selectedOrgs}
-							onselect={(v) => toggleFilter('org', v)}
-						/>
-					{/if}
+					{#if hasFacets}
+						{#if facets.organization?.items?.length}
+							<FacetFilter
+								title="Organización"
+								items={facets.organization.items}
+								selected={selectedOrgs}
+								onselect={(v) => toggleFilter('org', v)}
+							/>
+						{/if}
 
-					{#if facets.res_format?.items?.length}
-						<FacetFilter
-							title="Formato"
-							items={facets.res_format.items}
-							selected={selectedFormats}
-							onselect={(v) => toggleFilter('format', v)}
-						/>
-					{/if}
+						{#if facets.res_format?.items?.length}
+							<FacetFilter
+								title="Formato"
+								items={facets.res_format.items}
+								selected={selectedFormats}
+								onselect={(v) => toggleFilter('format', v)}
+							/>
+						{/if}
 
-					{#if facets.tags?.items?.length}
-						<FacetFilter
-							title="Etiquetas"
-							items={facets.tags.items}
-							selected={selectedTags}
-							onselect={(v) => toggleFilter('tags', v)}
-						/>
-					{/if}
+						{#if facets.tags?.items?.length}
+							<FacetFilter
+								title="Etiquetas"
+								items={facets.tags.items}
+								selected={selectedTags}
+								onselect={(v) => toggleFilter('tags', v)}
+							/>
+						{/if}
 
-					{#if facets.license_id?.items?.length}
-						<FacetFilter
-							title="Licencia"
-							items={mapLicenseItems(facets.license_id.items)}
-							selected={selectedLicenses}
-							onselect={(v) => toggleFilter('license', v)}
-						/>
+						{#if facets.license_id?.items?.length}
+							<FacetFilter
+								title="Licencia"
+								items={mapLicenseItems(facets.license_id.items)}
+								selected={selectedLicenses}
+								onselect={(v) => toggleFilter('license', v)}
+							/>
+						{/if}
+					{:else}
+						<!-- Decisión: cuando no hay facetas disponibles el panel muestra los filtros QUE EL
+						     USUARIO APLICÓ, no opciones para elegir. Por eso el bloque va encabezado con
+						     «Filtros aplicados» y agrupado con los mismos títulos que las facetas
+						     (Organización, Formato, Etiquetas, Licencia). Cada filtro es un chip-botón cuyo
+						     nombre accesible dice qué quita, y usa el mismo `toggleFilter` que su faceta: no
+						     se duplica la lógica de selección. -->
+						<div class="space-y-3">
+							<p class="text-xs leading-relaxed text-muted-foreground">
+								Filtros aplicados. Quítelos para ampliar los resultados.
+							</p>
+							{#each activeFilterGroups as group (group.field)}
+								<div>
+									<p
+										class="text-[11px] font-bold uppercase tracking-[0.14em] text-primary"
+									>
+										{group.title}
+									</p>
+									<div class="mt-1.5 flex flex-wrap gap-2">
+										{#each group.values as value (value)}
+											<button
+												type="button"
+												data-applied-filter
+												onclick={() => onRemoveAppliedFilter(group.field, value)}
+												aria-label={`Quitar filtro ${group.title}: ${value}`}
+												class="inline-flex max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+											>
+												<span class="max-w-[12rem] truncate">{value}</span>
+												<X class="size-3 shrink-0" aria-hidden="true" />
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/each}
+						</div>
 					{/if}
 				</div>
 			</div>
