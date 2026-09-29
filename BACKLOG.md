@@ -2217,33 +2217,45 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
-- [ ] **Compuerta BLOQUEADA de la unidad de los títulos de metadatos (2026-09-29)** — la unidad **está hecha,
-  commiteada y verificada**, pero **la compuerta nativa no pudo arrancar**: no hay linaje y no se quemó nada.
-  - **La unidad:** `58c88af` — eyebrow **«Metadatos»** (ahora la cadena que dice ser) y segundos títulos
-    **«Información sobre el dataset»** / **«Información sobre el recurso»**, en las dos páginas. Tres archivos,
-    19 inserciones / 14 borrados.
-  - **La aserción de conteo, con RED medido.** `dataset-page.test.ts` afirmaba `queryByText("Metadatos") === null`
-    y eso **sólo pasaba porque** el eyebrow era la cadena larga y no satisfacía el match exacto: con el eyebrow
-    corto la aserción se da vuelta. Reescrita como **conteo** («Metadatos» aparece exactamente una vez) y **RED
-    medido** mutando el sidebar de vuelta a «Metadatos»: *expected 1, received 2*. Es la lección de `R3-001` de
-    la unidad de las dos palabras, aplicada en el momento en vez de diferida.
+- [ ] **Recibo de la revisión nativa de la unidad de los rótulos de metadatos (2026-09-29)** — cerró **`approved`** y
+  la authority quedó quemada (`gentle-ai.review-acknowledged/v1`). `review-d13fbf017e3991a1`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 79 líneas**, presupuesto 40, **0 bloqueantes, 1 aviso informativo**.
+  - **Lo que hizo la unidad** (`58c88af` + `beba1a7`): el eyebrow pasó a ser **«Metadatos»** —la cadena que dice
+    ser— y el segundo título dejó de repetirlo: **«Información sobre el dataset»** / **«Información sobre el
+    recurso»**. Después, las dos líneas descriptivas dejaron de chocar con su propio rótulo: el recurso decía
+    «…y otros metadatos» debajo del eyebrow «METADATOS», y el dataset abría con «Detalles», que es el nombre del
+    sidebar. Ahora nombran lo que la tarjeta contiene: **«Visibilidad, estado y sus identificadores.»** (dataset)
+    y **«Formato, tamaño, tipo MIME y sus identificadores.»** (recurso).
+  - **La aserción que pasaba por vacío, cerrada con RED medido.** `dataset-page.test.ts` afirmaba
+    `queryByText("Metadatos") === null`, y eso **sólo pasaba porque** el eyebrow era la cadena larga y no
+    satisfacía el match exacto: con el eyebrow corto la aserción se da vuelta. Reescrita como **conteo**
+    («Metadatos» aparece exactamente una vez) y **RED medido** mutando el sidebar de vuelta a «Metadatos»:
+    *expected 1, received 2*. Es la lección de `R3-001` de la unidad de las dos palabras, aplicada en el momento
+    en vez de diferida.
+  - **El aviso, y por qué no puedo leerlo desde su línea:** `R3-001` · **WARNING** ·
+    `resource/[resourceId]/+page.svelte:727` — la línea del `<h2>` que esta unidad reescribió —, disposición
+    **informational**. **El sobre de cierre no expone el cuerpo del mensaje** (sólo `id`/`lens`/`location`/
+    `severity`/`disposition`), y el registro del repo tampoco lo guarda: `.git/gentle-ai/review-transactions/
+    terminal-consumption/v1/89fb67b5….json` contiene únicamente `schema`/`repository`/`target`/`lineage`. **No lo
+    invento.** Queda como hueco del arnés: en las unidades anteriores el texto del aviso llegaba y acá no.
   - **Gates:** `pnpm test` **686/686** (mismo baseline) · `svelte-check` **0 errores / 4 advertencias**
     preexistentes · Biome por binario directo **exit 0**. **Verificación viva:** Chromium headless contra el
-    portal corriendo (DOM post-hidratación, no el HTML del SSR, que es sólo el *shell*): una sola «Metadatos» y
-    el segundo título nuevo en cada página, **cero** apariciones de las cadenas viejas.
-  - **El bloqueo, exacto:** `inspect` ofrece **la rama entera** (`base_tree` = árbol de `b28757c`, el punto de
-    bifurcación); el `baseRef` explícito a `b89e675` **no se adoptó** porque los dos primeros `START` murieron
-    *antes* del acceso a autoridad (uno pidió `lineageId`, el otro `mode`). Los reintentos devolvieron
+    portal corriendo (DOM post-hidratación, no el HTML del SSR, que es sólo el *shell*): cada rótulo y cada línea
+    aparecen una sola vez en su página y las cadenas viejas dan **cero**.
+  - **El episodio del consentimiento, que hay que leer antes de dar la compuerta por rota:** los primeros **tres**
+    `START` con la forma correcta (`mode: ordinary` + `baseRef` explícito + `lineageId`) devolvieron
     `outcome: consent-binding-stale` con diagnóstico `consent-binding-expired` —**un binding nuevo por intento y
-    expirado en el acto**—, `native_invocation_attempted: false`, `lineage_created: false`: el sobre de dos
-    opciones **nunca llegó al modelo**. Se paró ahí, sin cuarto intento. Hipótesis sin confirmar: (a) el host
-    interactivo no es elegible en este contexto y el binding queda vencido al crearse, (b) hay un registro de
-    consentimiento previo del mismo linaje/objetivo que el proveedor lee como vencido. **Decisión del autor
-    pendiente.**
-  - **Dos observaciones de copy que el cambio dejó a la vista, sin tocar** (el copy es del autor): el eyebrow
-    «METADATOS» del recurso y su línea descriptiva terminan repitiendo la palabra («…y otros metadatos»); y el
-    sidebar «DETALLES» del dataset solapa con la descripción de la tarjeta («Detalles técnicos del dataset…»).
-  _Origen: el TODO del cierre del 2026-09-28, ejecutado el 2026-09-29._
+    «expirado» en el acto**—, `native_invocation_attempted: false`, `lineage_created: false`. Un **cuarto intento
+    idéntico, después de un `inspect` fresco, creó el linaje sin pedir consentimiento** (tier medium, una lente).
+    Reproducido sobre dos targets distintos, así que no es un registro previo vencido. **Es intermitente y no se
+    explica con las entradas que veo; la receta es volver a `inspect` y reintentar, no declarar la compuerta
+    rota.** Dos formas de `input` que la descripción de la herramienta no dice y que se descubren por error:
+    hacen falta **`"mode":"ordinary"` y `lineageId`** a la vez.
+  - **Un detalle del rango:** el `inspect` ofrece **la rama entera** (`base_tree` = punto de bifurcación) y hay que
+    pasar el `baseRef` explícito a `b89e675` para acotarlo a la unidad. El `START` que funcionó **sí lo respetó**
+    (`base-ref` = árbol de `b89e675`, 4 archivos). Comparar `base_tree`/`candidate_tree` con
+    `git rev-parse <ref>^{tree}` es la forma de saber qué se está revisando.
+  _Origen: el TODO del cierre del 2026-09-28, ejecutado y cerrado el 2026-09-29._
 
 - [ ] **Recibo de la revisión nativa de la unidad que deja alcanzables los filtros aplicados (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-b9b043d8e234d365`: tier **medium**, lente
