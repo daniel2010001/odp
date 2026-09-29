@@ -546,13 +546,15 @@ async function handleCopyLink() {
 							</div>
 						</div>
 
-						<!-- Identificadores: misma franja monoespaciada que la tarjeta del recurso. -->
+						<!-- Identificadores: misma franja monoespaciada que la tarjeta del recurso. La fila
+						     envuelve entre elementos (cada identificador es un hijo propio) para que un valor
+						     largo no sea lo primero en romperse; `break-all` queda en el `code` como último recurso. -->
 						<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-							<p class="text-xs text-muted-foreground">
-								Slug: <code class="font-mono">{dataset.name}</code>
-								<span class="mx-2">·</span>
-								ID: <code class="font-mono">{dataset.id}</code>
-							</p>
+							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+								<span>Slug: <code class="break-all font-mono">{dataset.name}</code></span>
+								<span>·</span>
+								<span>ID: <code class="break-all font-mono">{dataset.id}</code></span>
+							</div>
 						</div>
 					</Card>
 				</div>

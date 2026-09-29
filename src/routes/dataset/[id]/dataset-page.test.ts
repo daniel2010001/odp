@@ -555,4 +555,36 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 		);
 		expect(codes).toEqual(["matricula-2026", "pkg-1"]);
 	});
+
+	it("la franja envuelve entre identificadores y no dentro de un valor", async () => {
+		const card = await renderTechnicalCard();
+		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
+		const strip = table?.nextElementSibling as HTMLElement | null;
+		expect(strip).not.toBeNull();
+
+		// jsdom no aplica Tailwind: lo de abajo es un contrato de clases, no una medición de layout.
+		// `flex` + `flex-wrap` es lo que permite partir entre elementos; con el contenido en un solo
+		// bloque en línea, la única ruptura posible vuelve a ser dentro del valor.
+		const row = (strip as HTMLElement).firstElementChild as HTMLElement | null;
+		expect(row).not.toBeNull();
+		expect((row as HTMLElement).className).toContain("flex");
+		expect((row as HTMLElement).className).toContain("flex-wrap");
+
+		// Cada identificador es su propio hijo: el navegador puede bajar de línea «ID: …» entero en
+		// vez de partir la oración. El `·` conserva la separación visual del molde.
+		const items = Array.from((row as HTMLElement).children);
+		const slugItem = items.find((el) => el.textContent?.startsWith("Slug:"));
+		const idItem = items.find((el) => el.textContent?.startsWith("ID:"));
+		expect(slugItem).not.toBeUndefined();
+		expect(idItem).not.toBeUndefined();
+		expect(slugItem).not.toBe(idItem);
+		expect(items.some((el) => el.textContent === "·")).toBe(true);
+
+		// `break-all` sobrevive sólo en los `code`, como último recurso para un valor que no cabe.
+		for (const item of [slugItem, idItem]) {
+			const code = item?.querySelector("code");
+			expect(code).not.toBeNull();
+			expect((code as HTMLElement).className).toContain("break-all");
+		}
+	});
 });

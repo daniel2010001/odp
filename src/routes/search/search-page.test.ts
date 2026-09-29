@@ -154,4 +154,29 @@ describe("Página de búsqueda — el texto del estado vacío", () => {
 		// La acción prometida sigue en pie.
 		expect(screen.getByRole("button", { name: "Limpiar búsqueda y filtros" })).toBeTruthy();
 	});
+
+	it("sin búsqueda ni filtros activos se limita a decir que no hay datasets", async () => {
+		// Sin `q`: es la rama que `emptyMessage()` (que exige «No encontramos datasets») no cubre.
+		setUrl("");
+
+		renderSearch();
+
+		await screen.findByText("Sin resultados");
+		expect(screen.getByText("No hay datasets disponibles en este momento.")).toBeTruthy();
+		// Sin filtros aplicados ni panel visible, invitar a limpiarlos sería una promesa vacía.
+		expect(screen.queryByText(/limpie los filtros/i)).toBeNull();
+	});
+
+	it("sin búsqueda pero con filtros activos invita a limpiarlos", async () => {
+		setUrl("?org=rectorado");
+
+		renderSearch();
+
+		await screen.findByText("Sin resultados");
+		expect(
+			screen.getByText(
+				"No hay datasets disponibles con los filtros aplicados. Limpie los filtros para ver todo el catálogo.",
+			),
+		).toBeTruthy();
+	});
 });
