@@ -2212,6 +2212,30 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-02d3e702f16cc417`: tier **medium**, lente
+  `review-reliability`, **3 archivos / 71 líneas**, presupuesto 36, **0 bloqueantes, 2 avisos informativos**.
+  - **Los dos avisos caen en el test de la franja, y los dos son la misma observación:** `R3-001`
+    (`dataset-page.test.ts:570-571`) y `R3-002` (`:561-562`). **Mi lectura:** son las aserciones de
+    `flex`/`flex-wrap`, la de los hijos separados y la de `break-all`, o sea **contratos de clase** — y el
+    proveedor tiene razón en marcarlos: **pasan aunque el layout esté mal**. Es una limitación **inherente**
+    —jsdom no aplica Tailwind— que yo mismo pedí y que el test **declara en su propio comentario**.
+  - **Y por eso intenté cerrarla donde se puede: el navegador.** Captura del dataset a **390px**: **no
+    alcanzó** —la página es muy larga y, escalada, la franja queda ilegible—, así que **no afirmo el
+    resultado visual**. Lo que sí está verificado por construcción es **la estructura** que hace la
+    diferencia: una fila `flex-wrap` con **cada identificador como hijo propio**, así que la ruptura
+    **preferida** es entre ítems y `break-all` queda en los `code` como último recurso. **La verificación
+    visual queda del autor** (el dataset en el teléfono).
+  - **Lo que hicieron los seguimientos:** **(1)** las **dos ramas sin consulta** del estado vacío del
+    buscador, que no tenían aserción ninguna, ahora la tienen — y comparan la **cadena exacta**, así que
+    discrimina por construcción; **(2)** la franja de identificadores dejó de partir el **valor** en anchos
+    chicos. Los dos avisos del recibo anterior (`R3-EMPTY-MSG-BRANCHES` y `R3-ID-STRIP-WRAP`), cerrados.
+  - **Gates:** `pnpm test` **681/681** (49 archivos, de 678 a 681: +3 tests) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes, ninguna en los tres archivos · y una comprobación de integridad que vale:
+    la página del buscador se usó para una **reversión controlada** y **volvió byte a byte** (`git status`
+    no la lista), así que la reversión se deshizo bien y nada de ella viajó al commit.
+  _Origen: los dos avisos informativos de `review-6afeb0a8ba45dbf0`, 2026-09-28._
+
 - [ ] **Recibo de la revisión nativa de las dos unidades de la ronda del buscador y la card técnica (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-6afeb0a8ba45dbf0`: tier **medium**, lente
   `review-reliability`, **4 archivos / 282 líneas**, presupuesto 141, **0 bloqueantes, 3 avisos informativos**.
