@@ -238,10 +238,7 @@ function clearAllFilters() {
 	currentPage = 1;
 }
 
-async function onRemoveAppliedFilter(
-	field: "org" | "format" | "tags" | "license",
-	value: string,
-) {
+async function onRemoveAppliedFilter(field: "org" | "format" | "tags" | "license", value: string) {
 	// Mismo handler que usa la faceta correspondiente: no se duplica la lógica de selección.
 	toggleFilter(field, value);
 	// El chip que tenía el foco se va con el filtro. Tras el re-render lo movemos al primer
