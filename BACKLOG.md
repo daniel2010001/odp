@@ -819,6 +819,20 @@
 >    línea del PRD**. Es lo más denso y lo más útil de todo lo escrito hoy.
 > 3. `openspec/changes/2026-09-13-publication-lifecycle/proposal.md`: el aviso de obsolescencia de D1–D7.
 >
+> **Corrección medida (línea CKAN, 2026-09-29): `ckanext-umss` NO es un andamiaje `IConfigurer` vacío** — y eso toca
+> la premisa de **D1**, que es «no permissions, no actions, no hooks» en `explore.md:177`, `preproposal.md:47` y
+> el árbol de decisión de `proposal.md:53`. Medido con un spy sobre el registro de auth
+> (`ckan.authz._AuthFunctions._functions`, porque `chained_auth_function` registra un `functools.partial` y
+> reemplazar el nombre en el módulo no intercepta nada): `ckanext/umss/plugin.py` registra **`IAuthFunctions`** con
+> dos funciones **encadenadas** sobre `package_create`/`package_update`, y `ckanext/umss/auth.py` implementa la
+> barrera de publicación (sólo el `admin` de la organización publica o cambia `state`). A la función encadenada le
+> llega **el payload de la request**, no el paquete aplanado, así que la omisión de recursos no cambiados que
+> introduce 2.12 (#5713) **no** afecta a esa regla. Evidencia cruda: `odp-docker/odd/tasks/s5-remaining-rows.md`;
+> regresión permanente en `ckanext-umss/.../tests/test_auth.py` (suite 54 verde).
+> **Pendiente, y es decisión del autor:** dónde aterriza esta corrección —en los artefactos del cambio, con el texto
+> completo que la línea CKAN dejó listo, o en la replanificación—. **No la escribí en `openspec/changes/…`** porque
+> afirmar sobre esa premisa es del autor.
+>
 > **Plan, en orden:**
 >
 > 1. **Replanificar el cambio** con el modelo del PRD: `proposal → spec → design → tasks`. Acá caen las
@@ -2317,7 +2331,13 @@ después del cierre que describe el encabezado de esta sección; medición compl
     **informational**. **El sobre de cierre no expone el cuerpo del mensaje** (sólo `id`/`lens`/`location`/
     `severity`/`disposition`), y el registro del repo tampoco lo guarda: `.git/gentle-ai/review-transactions/
     terminal-consumption/v1/89fb67b5….json` contiene únicamente `schema`/`repository`/`target`/`lineage`. **No lo
-    invento.** Queda como hueco del arnés: en las unidades anteriores el texto del aviso llegaba y acá no.
+    invento.** Y **corrijo lo que yo mismo escribí antes**: no puedo afirmar que «en las unidades anteriores
+    llegaba y acá no». La línea CKAN registra el mismo comportamiento y lo da por constante —«El envelope de cierre
+    nunca trae su texto: quedaron transcritos, con id/lente/ubicación/severidad, en el expediente y en el store»,
+    ítem 6 de su sección del 2026-09-29—. Lo que sí medí: mi linaje **no está en el store `v2`**, donde sí viven
+    cinco linajes más viejos, y el único rastro en el repo es el registro de consumo terminal, sin hallazgos.
+    **Pregunta abierta para la próxima compuerta:** si el texto se puede leer del store **antes** de reconocer
+    —cuando la autoridad todavía no se quemó—, conviene transcribirlo ahí. **No lo verifiqué y no lo afirmo.**
   - **Gates:** `pnpm test` **686/686** (mismo baseline) · `svelte-check` **0 errores / 4 advertencias**
     preexistentes · Biome por binario directo **exit 0**. **Verificación viva:** Chromium headless contra el
     portal corriendo (DOM post-hidratación, no el HTML del SSR, que es sólo el *shell*): cada rótulo y cada línea
@@ -2330,7 +2350,10 @@ después del cierre que describe el encabezado de esta sección; medición compl
     Reproducido sobre dos targets distintos, así que no es un registro previo vencido. **Es intermitente y no se
     explica con las entradas que veo; la receta es volver a `inspect` y reintentar, no declarar la compuerta
     rota.** Dos formas de `input` que la descripción de la herramienta no dice y que se descubren por error:
-    hacen falta **`"mode":"ordinary"` y `lineageId`** a la vez.
+    hacen falta **`"mode":"ordinary"` y `lineageId`** a la vez. **Un tercer detalle, medido por la línea CKAN el
+    mismo día:** con `{"mode":"ordinary"}` **a secas** el controlador **re-proyecta** el candidato a los cambios
+    **sin commitear**, así que habría revisado un target distinto **sin avisar**. La forma correcta completa es
+    `mode` + `baseRef` de 40 caracteres + `committedOnly` + el `lineageId` que emite `inspect`.
   - **Un detalle del rango:** el `inspect` ofrece **la rama entera** (`base_tree` = punto de bifurcación) y hay que
     pasar el `baseRef` explícito a `b89e675` para acotarlo a la unidad. El `START` que funcionó **sí lo respetó**
     (`base-ref` = árbol de `b89e675`, 4 archivos). Comparar `base_tree`/`candidate_tree` con
