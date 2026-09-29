@@ -143,7 +143,20 @@
    `R2-001`/`R3-001`/`R3-002` (el upgrade, en `docker-compose.yml:48` y `docker-compose.dev.yml:32`),
    `R3-001`/`R3-002`/`R3-003` (el parche de tokens) y `R2-001` (el test del guard,
    `test_target_guard.py:290-291`). El envelope de cierre nunca trae su texto: quedaron transcritos,
-   con id/lente/ubicación/severidad, en el expediente y en el store.
+   con id/lente/ubicación/severidad, en el expediente. **Precisión medida el 2026-09-29, que corrige
+   una afirmación de más:** el envelope nunca trae el texto, pero el store **sí** lo tiene mientras el
+   linaje está vivo — `v2/review-<lineage>/review-state.json`, schema
+   `gentle-ai.review-state-record/v2`, con la claim completa en
+   `state.admitted_role_results[i].value.result.findings[j].claim` más `proof_refs`, `severity` y
+   `causal_disposition` — y **lo que lo borra es el ACUSE, no la aprobación**: el registro de consumo
+   terminal sólo conserva schema/repositorio/target/linaje. El matiz lo midió el bloque E el mismo día
+   (5 `review-state.json` vivos contra 56 registros de consumo terminal, y **el único `approved` que
+   sobrevive es una compuerta cuyo acuse nunca se ejecutó**, y por eso conserva sus claims). Medido del
+   lado CKAN: el linaje huérfano `review-7e3ab346bc8b3f85` (no aprobado) sigue con 26 291 bytes y las
+   seis claims enteras, mientras que `review-32a8541c54b833da` (aprobado y **acusado**) **no tiene
+   directorio** en el store.
+   **Receta: leer el `review-state.json` entre el cierre y el acuse** — la línea CKAN perdió así las
+   cuatro claims de su linaje de hoy.
    **Agregados el 2026-09-29** (linaje `review-32a8541c54b833da`): `R2-001` readability
    `ckan-docker/ckan/tests/test-ckan-image-tag.sh:171-174`, `R2-002` readability `:213-215`,
    `R3-001` reliability `:104` (`grep -P` es extensión de GNU), `R3-002` reliability `:223`
