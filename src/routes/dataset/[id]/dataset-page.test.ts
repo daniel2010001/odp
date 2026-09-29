@@ -495,7 +495,7 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 });
 
 // ─── La tarjeta de información técnica del dataset ────────────────────
-// El molde es la tarjeta del recurso: eyebrow «Metadatos · Información técnica», una descripción
+// El molde es la tarjeta del recurso: eyebrow «Metadatos», una descripción
 // bajo el título, la tabla sólo con los campos semánticos y una franja monoespaciada con los
 // identificadores. Los identificadores dejan de mezclarse con «Visibilidad» y «Estado».
 describe("Página de dataset — la tarjeta de información técnica", () => {
@@ -505,7 +505,7 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 		render(DatasetPage);
 
 		const heading = await screen.findByRole("heading", {
-			name: "Información técnica del dataset",
+			name: "Información sobre el dataset",
 		});
 		return heading.parentElement as HTMLElement;
 	}
@@ -513,24 +513,29 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 	it("unifica el eyebrow con el de la tarjeta del recurso", async () => {
 		const card = await renderTechnicalCard();
 
-		expect(within(card).getByText("Metadatos · Información técnica")).toBeTruthy();
+		expect(within(card).getByText("Metadatos")).toBeTruthy();
 		// «Sobre este dataset» sigue siendo el título de la tarjeta de descripción, no de ésta.
 		expect(screen.getByRole("heading", { name: "Sobre este dataset" })).toBeTruthy();
 		expect(within(card).queryByText("Sobre este dataset")).toBeNull();
 	});
 
-	it("la tarjeta del sidebar se llama «Detalles» y no repite «Metadatos»", async () => {
-		// Decisión del autor (2026-09-28): la palabra «Metadatos» pertenece a la tarjeta de la tabla técnica
-		// —ésta y la del recurso—, y el sidebar es un resumen. La aserción busca la cadena **exacta**
-		// «Metadatos», así que el eyebrow largo de la tabla no la satisface: lo que prueba es que la
-		// repetición suelta desapareció.
+	it("dice «Metadatos» una sola vez, y el sidebar se llama «Detalles»", async () => {
+		// Decisión del autor (2026-09-28/29): el eyebrow de la tarjeta técnica es exactamente «Metadatos»
+		// —igual en las dos páginas— y el segundo título dice de qué es la información. El sidebar es un
+		// **resumen** y se llama «Detalles», así que la palabra no se repite. La aserción es de **conteo**
+		// y no de ausencia: mientras el eyebrow fue «Metadatos · Información técnica» el match exacto no lo
+		// alcanzaba y «no aparece» probaba menos de lo que decía; con el eyebrow corto, «no aparece» sería
+		// directamente falso.
 		mocks.showDataset.mockResolvedValue(makeDataset());
 
 		render(DatasetPage);
 
-		await screen.findByRole("heading", { name: "Información técnica del dataset" });
+		const heading = await screen.findByRole("heading", { name: "Información sobre el dataset" });
+		const card = heading.parentElement as HTMLElement;
+
+		expect(within(card).getAllByText("Metadatos")).toHaveLength(1);
+		expect(screen.getAllByText("Metadatos")).toHaveLength(1);
 		expect(screen.getByText("Detalles")).toBeTruthy();
-		expect(screen.queryByText("Metadatos")).toBeNull();
 	});
 
 	it("agrega la línea descriptiva bajo el título", async () => {

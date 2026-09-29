@@ -519,10 +519,10 @@ async function handleCopyLink() {
 					<!-- Technical info -->
 					<Card class="p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-							Metadatos · Información técnica
+							Metadatos
 						</p>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-							Información técnica del dataset
+							Información sobre el dataset
 						</h2>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 							Detalles técnicos del dataset: visibilidad, estado y sus identificadores.

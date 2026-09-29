@@ -722,9 +722,9 @@ async function handleCopyResourceLink() {
 		<!-- Metadata content -->
 			<Card class="p-6 sm:p-8">
 				<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-					Metadatos · Información técnica
+					Metadatos
 				</p>
-				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre este recurso</h2>
+				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Información sobre el recurso</h2>
 				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 					Detalles técnicos del archivo: formato, tamaño, tipo MIME y otros metadatos.
 				</p>
