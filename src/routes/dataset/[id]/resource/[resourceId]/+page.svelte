@@ -726,7 +726,7 @@ async function handleCopyResourceLink() {
 				</p>
 				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Información sobre el recurso</h2>
 				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-					Detalles técnicos del archivo: formato, tamaño, tipo MIME y otros metadatos.
+					Formato, tamaño, tipo MIME y sus identificadores.
 				</p>
 
 				{#if fieldList.length > 0}

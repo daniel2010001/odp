@@ -541,11 +541,7 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 	it("agrega la línea descriptiva bajo el título", async () => {
 		const card = await renderTechnicalCard();
 
-		expect(
-			within(card).getByText(
-				"Detalles técnicos del dataset: visibilidad, estado y sus identificadores.",
-			),
-		).toBeTruthy();
+		expect(within(card).getByText("Visibilidad, estado y sus identificadores.")).toBeTruthy();
 	});
 
 	it("deja en la tabla sólo los campos semánticos y saca los identificadores", async () => {

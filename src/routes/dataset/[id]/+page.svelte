@@ -525,7 +525,7 @@ async function handleCopyLink() {
 							Información sobre el dataset
 						</h2>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-							Detalles técnicos del dataset: visibilidad, estado y sus identificadores.
+							Visibilidad, estado y sus identificadores.
 						</p>
 						<div class="mt-4 overflow-hidden rounded-lg border border-border">
 							<div
