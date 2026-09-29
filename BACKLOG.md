@@ -2336,8 +2336,17 @@ después del cierre que describe el encabezado de esta sección; medición compl
     nunca trae su texto: quedaron transcritos, con id/lente/ubicación/severidad, en el expediente y en el store»,
     ítem 6 de su sección del 2026-09-29—. Lo que sí medí: mi linaje **no está en el store `v2`**, donde sí viven
     cinco linajes más viejos, y el único rastro en el repo es el registro de consumo terminal, sin hallazgos.
-    **Pregunta abierta para la próxima compuerta:** si el texto se puede leer del store **antes** de reconocer
-    —cuando la autoridad todavía no se quemó—, conviene transcribirlo ahí. **No lo verifiqué y no lo afirmo.**
+    **Pregunta abierta RESUELTA, y con matiz.** El texto **sí** se lee del store: vive en
+    `.git/gentle-ai/review-transactions/v2/review-<lineage>/review-state.json` (schema
+    `gentle-ai.review-state-record/v2`) en `state.admitted_role_results[i].value.result.findings[j].claim`, con su
+    `severity`, `evidence_class`, `causal_disposition` y `proof_refs`. **Y lo que lo borra es el ACUSE, no la
+    aprobación.** Verificado acá, no heredado: quedan **5** `review-state.json` vivos contra **56** registros de
+    consumo terminal, y **el único `approved` que sobrevive** (`review-9e769e5f903471c7`, tier medium) **no tiene
+    registro de acuse** —su único rastro es su propio directorio `v2`—, o sea que es una compuerta aprobada cuyo
+    acuse nunca se ejecutó: conserva sus claims. El linaje de esta unidad, en cambio, no tiene directorio y sólo
+    dejó el registro terminal. **Receta: leer el `review-state.json` entre el cierre y el acuse.** La línea CKAN
+    perdió las cuatro claims de su linaje de hoy por acusar primero; midió lo mismo sobre su huérfano
+    `review-7e3ab346bc8b3f85` (26 291 bytes, seis claims enteras), en el store de `odp-docker`.
   - **Gates:** `pnpm test` **686/686** (mismo baseline) · `svelte-check` **0 errores / 4 advertencias**
     preexistentes · Biome por binario directo **exit 0**. **Verificación viva:** Chromium headless contra el
     portal corriendo (DOM post-hidratación, no el HTML del SSR, que es sólo el *shell*): cada rótulo y cada línea
