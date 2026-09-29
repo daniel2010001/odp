@@ -503,7 +503,10 @@ async function handleCopyResourceLink() {
 
 
 				<!-- Badges row: el chip de tipo es exclusivo — un enlace muestra «Enlace» y no el formato,
-				     un archivo alojado muestra su formato y nunca «Enlace». -->
+				     un archivo alojado muestra su formato y nunca «Enlace». **Sin el chip del tipo MIME** (decisión del
+				     autor, 2026-09-28): era intencional, y en el único recurso del catálogo que lo tiene repetía el
+				     formato («PDF» en el chip, «application/pdf» acá) mientras el dato técnico ya vive en la tabla de
+				     metadatos de abajo. Un chip que no agrega información es ruido en el hero. -->
 				<div class="mt-4 flex flex-wrap items-center gap-2">
 					<ResourceKindChip kind={resourceKind(resource)} format={resource.format} />
 
@@ -518,14 +521,6 @@ async function handleCopyResourceLink() {
 						>
 							<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
 							{stateLabel}
-						</span>
-					{/if}
-
-					{#if resource.mimetype}
-						<span
-							class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground"
-						>
-							{resource.mimetype}
 						</span>
 					{/if}
 				</div>

@@ -394,6 +394,19 @@ describe("Página de recurso — el tipo de recurso en el encabezado", () => {
 		expect(within(header).queryByText("Enlace")).toBeNull();
 	});
 
+	it("no repite el tipo MIME en el encabezado: ese dato vive en la tabla de metadatos", async () => {
+		// Decisión del autor (2026-09-28): el chip del MIME era intencional y repetía el formato («PDF» en el
+		// chip de tipo, «application/pdf» acá). La tabla de metadatos está fuera del encabezado, así que
+		// buscarlo **dentro** del encabezado prueba que el chip no volvió.
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "PDF", mimetype: "application/pdf" }),
+		);
+
+		const header = await renderHeader();
+
+		expect(within(header).queryByText(/application\/pdf/i)).toBeNull();
+	});
+
 	it("un recurso sin `url_type` (referencia externa) muestra «Enlace» y no el formato", async () => {
 		mocks.showResource.mockResolvedValue(makeResource({ format: "CSV" }));
 

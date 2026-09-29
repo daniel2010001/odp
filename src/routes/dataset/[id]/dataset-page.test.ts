@@ -519,6 +519,20 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 		expect(within(card).queryByText("Sobre este dataset")).toBeNull();
 	});
 
+	it("la tarjeta del sidebar se llama «Detalles» y no repite «Metadatos»", async () => {
+		// Decisión del autor (2026-09-28): la palabra «Metadatos» pertenece a la tarjeta de la tabla técnica
+		// —ésta y la del recurso—, y el sidebar es un resumen. La aserción busca la cadena **exacta**
+		// «Metadatos», así que el eyebrow largo de la tabla no la satisface: lo que prueba es que la
+		// repetición suelta desapareció.
+		mocks.showDataset.mockResolvedValue(makeDataset());
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { name: "Información técnica del dataset" });
+		expect(screen.getByText("Detalles")).toBeTruthy();
+		expect(screen.queryByText("Metadatos")).toBeNull();
+	});
+
 	it("agrega la línea descriptiva bajo el título", async () => {
 		const card = await renderTechnicalCard();
 

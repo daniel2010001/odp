@@ -614,7 +614,10 @@ async function handleCopyLink() {
 					<!-- Metadata card -->
 					{#if metadataItems.length > 0}
 						<Card class="p-5">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Metadatos</p>
+							<!-- «Detalles», no «Metadatos» (decisión del autor, 2026-09-28): la palabra «Metadatos» es de la
+							     tarjeta de la tabla técnica —arriba en esta página y en la del recurso—, y acá lo que hay es un
+							     **resumen** (creado, modificado, licencia, autor, mantenedor). Repetir el título era el defecto. -->
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
 							<div class="mt-3 divide-y divide-border/60">
 								{#each metadataItems as item}
 									<div class="flex items-start justify-between gap-3 py-2.5">
