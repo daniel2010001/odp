@@ -195,6 +195,11 @@
 > - **Biome puede morir por memoria con `exit 254`** (`Linter process terminated abnormally`) **sin imprimir
 >   conteos**: `NODE_OPTIONS=--max-old-space-size=6144 pnpm exec biome check .` completa y da el baseline
 >   (4 warnings + 7 infos), y `pnpm exec biome check src` completa sin tocar el heap. **No es determinista.**
+> - **«¿Qué workflow corrió?» tiene respuesta exacta**, y es la forma de distinguir «falló mi código» de «falló el
+>   entorno» **sin adivinar**: `git fetch origin pull/<N>/merge` y leer el `.github/workflows/` **de ese commit**.
+>   Un PR corre el workflow del **commit de merge** (base + head), no el de la rama — medido en el PR #43: la rama
+>   tenía la `ci.yml` vieja sin el paso del entorno y el run **sí** lo tenía. _(Receta de la sesión de la línea
+>   CKAN, 2026-09-28.)_
 > - El worktree de aislamiento para la sesión paralela está creado: `/home/danielblc/projects/odp-token-hardening`
 >   (rama `feat/token-hardening`), y **no se movió**: la otra sesión siguió escribiendo acá.
 >
@@ -1581,6 +1586,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   navegador** (`FacetFilter.svelte:113`: `<span class="min-w-0 flex-1 truncate" title={item.display_name}>`; el
   archivo importa sólo `ChevronDown` y `Search`). Así que «usa el mismo componente que los filtros» **no es una
   opción**: o se usa el `title`, o se vendoriza el `Tooltip` de bits-ui de cero.
+
+- [ ] **[v0]** `TODO:` **Los dos títulos de la sección de metadatos, en las dos páginas.** Pedido del autor
+  (2026-09-28): **el primer título, sólo «Metadatos»**, y el segundo, **«Información sobre el dataset»** /
+  **«Información sobre el recurso»**. **Estado medido antes de cerrar:** las dos páginas usan hoy el eyebrow
+  **«Metadatos · Información técnica»**, y los segundos títulos son **«Información técnica del dataset»** (dataset)
+  y **«Sobre este recurso»** (recurso), cada uno con su línea descriptiva debajo. Son **cuatro líneas de copy** (el
+  eyebrow en las dos páginas y los dos segundos títulos), **sin decisión pendiente**: se ejecuta en un paso cuando
+  el autor retome. _Origen: cierre de la sesión, 2026-09-28._
 
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
