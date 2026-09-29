@@ -15,6 +15,58 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-09-29) — entrega de la línea CKAN en `odp-docker`
+
+> **Qué se cerró hoy.** Dos work units nuevas sobre `f4c4ca0`, gateadas **como rango**
+> `f4c4ca0..4910824` y aprobadas: linaje `review-32a8541c54b833da`, tier **high**, 4/4 lentes
+> (risk, resilience, readability, reliability), autoridad **quemada**
+> (`gentle-ai.review-acknowledged/v1`).
+>
+> | commit | qué |
+> |---|---|
+> | `f21dc6b` | `test(ckan)`: la guarda que hace fallar la deriva del tag de CKAN |
+> | `4910824` | `test(umss)`: fija qué recibe la regla encadenada en un update parcial |
+>
+> **Verificado:** `bash -n` limpio; el loop exacto del job `shell-tests` en 0 sobre los dos tests
+> de host; la suite de la extensión en **54 passed** (53 + el test nuevo); el árbol real reporta
+> `ok: 6 CKAN image reference(s), all 2.12`. Los dos commits están en `master` y **sin pushear**
+> (decisión del autor).
+>
+> ### Las tres filas que faltaban de S5, MEDIDAS
+>
+> Contra el stack vivo (CKAN **2.12.0** / Python 3.14.7). Salida cruda y método en
+> `odp-docker/odd/tasks/s5-remaining-rows.md`.
+>
+> - **#4 `package_update` sin `resources`:** los recursos **sobreviven** (2/2). La forma que manda
+>   el wizard es segura. **Receta:** no hay que mandar `resources` "por las dudas".
+> - **#7 `datastore_search`:** keys reales `fields`, `include_next_page`, `include_total`, `limit`,
+>   `offset`, `records`, `records_format`, `resource_id`, `total`; `next_page` **sólo aparece si se
+>   manda `limit`** y en la última página no está. **El matiz que importa:** el portal lee por clave
+>   (`src/lib/api/datastore.ts`), así que un cambio de orden no lo rompe — es la misma familia que el
+>   tope silencioso de 10 filas de `current_package_list_with_resources`.
+> - **#9 estaba mal enunciada: `ckanext-umss` encadena *auth*, no validadores.** Medido con un spy
+>   sobre el registro de auth: a la función encadenada le llega **el payload de la request**, así que
+>   no puede depender de qué recursos mandó el cliente. Queda test de regresión permanente.
+>   **Consecuencia fuera de S5:** la premisa escrita del cambio SDD
+>   `2026-09-13-publication-lifecycle` (que `ckanext-umss` era un andamiaje `IConfigurer` vacío) queda
+>   corregida por medición; se anota también en el expediente de ese cambio.
+> - **Pie de cañón lateral, medido y no arreglado:** `package_update` con `resources: []`
+>   **explícito** borra todos los recursos y *después* lanza `NotFound`, así que ese error no
+>   significa "no cambió nada". No es el camino del wizard; queda como ítem abierto abajo.
+>
+> **Cuatro avisos informativos** del linaje `review-32a8541c54b833da` (ninguno bloqueante, ninguno
+> abre corrección): `R2-001` readability `test-ckan-image-tag.sh:171-174`, `R2-002` readability
+> `:213-215`, `R3-001` reliability `:104`, `R3-002` reliability `:223`.
+>
+> **Además, cerrado hoy:** `origin/fix/umss-test-target-guard` **borrada** (medida antes: cero commits
+> fuera de `master`); las ramas locales ya estaban limpias desde el 2026-09-28.
+>
+> **Pendiente y del autor, no de la sesión:** commitear `ckan-docker/.env.example` (su edición a mano
+> del 2026-09-28 21:33, 6+/5−; el guardrail del harness bloquea esa ruta para leer y para escribir, así
+> que no puede pasar por la compuerta de la sesión) y decidir el **push** de los dos commits.
+>
+> _(Medición y entrega de la sesión de la línea CKAN, 2026-09-29.)_
+
 ## Estado al cierre (2026-09-27) — handoff de la línea CKAN 2.12
 
 > **Qué se cerró.** El slice del upgrade está **entregado**: 6 commits, cada uno con su compuerta
@@ -68,27 +120,43 @@
    `odd/tasks/tokens-page-patch.md` y **sin publicar**: es una acción externa y necesita el OK del
    autor. El parche local ya está aplicado (`affb4b4`), así que esto sólo cierra el círculo con
    upstream.
-3. **Las filas 4, 7 y 9 de S5 quedaron sin medir**: la semántica de `package_update` (toca el
-   wizard), la forma de `datastore_search`, y si los validadores de `ckanext-umss` ven sólo los
-   recursos cambiados (necesita la suite de la extensión).
+3. ~~**Las filas 4, 7 y 9 de S5 quedaron sin medir**~~ — **MEDIDAS el 2026-09-29**, con salida
+   cruda en `odp-docker/odd/tasks/s5-remaining-rows.md` y el resumen en la sección del 2026-09-29 de
+   arriba. Lo que hay que retener: #4 no borra recursos, #7 es aditivo y se lee por clave, y **#9
+   estaba mal enunciada** (encadena *auth*, no validadores, y recibe el payload de la request).
 4. **Rotar las contraseñas de la base y del sysadmin** que el DebugToolbar publicó. **No es
    emergencia:** el leak está cerrado, así que no hay exposición activa — es higiene. Con el volumen
    limpio ya se regeneraron solos los secretos del ini.
-5. **`R2-002` — el tag de CKAN como literal en ocho lugares** (hallazgo `pre-existing` del linaje
-   huérfano; va como ítem propio en la lista canónica, porque un `pre-existing` sin dueño se pierde).
+5. ~~**`R2-002` — el tag de CKAN como literal en ocho lugares**~~ — **la parte que es deriva del tag
+   de CKAN quedó CERRADA el 2026-09-29** con una guarda de host, no con una variable:
+   `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`) falla si los tags de CKAN difieren
+   entre los sitios que nombran la imagen, si un sitio deja de nombrarla, si la extracción queda
+   vacía o si el tag es un digest. Se descartó centralizar con `ARG`: los cuatro Dockerfiles
+   extienden **dos imágenes distintas**, así que cada uno necesitaría su propio argumento y su propio
+   default —la duplicación no desaparece—, y el `container:` del workflow lo resuelve el runner.
+   **Lo que la guarda NO cubre, a propósito:** las imágenes de servicio de `checks.yml` (sus tags los
+   gobiernan otros upstreams; el de Solr hasta lleva sufijo `-solr9`) y la celda del README, que
+   ilustra cómo se cambia. **Y hay un resto con dueño propio**: el acoplamiento de `redis:6` con el
+   cliente de CKAN 2.12 sigue en un comentario del workflow, **sin guarda** — es el caso que sí mordió
+   (`HELLO`/RESP3). El ítem canónico queda marcado `[~]` por eso.
 6. **Los avisos informativos acumulados**, ninguno bloqueante y ninguno reabre un review cerrado:
    `R2-001`/`R3-001`/`R3-002` (el upgrade, en `docker-compose.yml:48` y `docker-compose.dev.yml:32`),
    `R3-001`/`R3-002`/`R3-003` (el parche de tokens) y `R2-001` (el test del guard,
    `test_target_guard.py:290-291`). El envelope de cierre nunca trae su texto: quedaron transcritos,
    con id/lente/ubicación/severidad, en el expediente y en el store.
+   **Agregados el 2026-09-29** (linaje `review-32a8541c54b833da`): `R2-001` readability
+   `ckan-docker/ckan/tests/test-ckan-image-tag.sh:171-174`, `R2-002` readability `:213-215`,
+   `R3-001` reliability `:104` (`grep -P` es extensión de GNU), `R3-002` reliability `:223`
+   (`mktemp -d` + `trap`).
 7. **El linaje huérfano `review-7e3ab346bc8b3f85` NO se limpia.** Está en `correction_required` sin
    veredicto y sin recuperación, pero **`ABANDON` descarta los hallazgos admitidos** y este linaje
    guarda la única copia de seis (`R1-001`, `R1-002`, `R4-001` CRITICAL, `R2-001`, `R2-002`,
    `R3-VOLUME-PYTHON`). Se deja como **deuda declarada**, con la tabla en el expediente: limpiar el
    store borraría la evidencia, no una transacción muerta.
-8. **`feat/ckan-2.12-upgrade` quedó 2 commits atrás de `master`** — los dos últimos arreglos de CI se
-   commitearon en `master`, que es la convención del repo. Decidir si se hace fast-forward de la rama
-   o se borra: ya está contenida entera en `master`.
+8. ~~**`feat/ckan-2.12-upgrade` quedó 2 commits atrás de `master`**~~ — **la decisión se disolvió
+   sola: la rama ya no existe, ni local ni remota** (medido el 2026-09-29 con `git branch -r` y
+   `git branch -vv`; se fue con la limpieza de ramas mergeadas del 2026-09-28). Queda sólo su
+   reemplazo vivo como convención: en este repo se commitea en `master`.
 
 > **Nada sin commitear de mi lado.** El `.patch` del parche de tokens está versionado, así que este
 > worktree **no tiene no-versionados** y no bloquea ninguna compuerta. En `odp`, este archivo y los
@@ -1886,14 +1954,26 @@ después del cierre que describe el encabezado de esta sección; medición compl
   reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
   natural para decidirlo.
 
-- [ ] **[v0] Higiene de versión: el tag de CKAN como literal en ocho lugares** — hallazgo `R2-002`
+- [~] **[v0] Higiene de versión: el tag de CKAN sin fuente única** — hallazgo `R2-002`
   del linaje huérfano de la revisión del upgrade: `pre-existing`, SUGGESTION, **no** introducido por
-  el upgrade. El tag vive como literal en los 4 `FROM` de los Dockerfiles, en las 3 imágenes de
+  el upgrade. El tag vivía como literal en los 4 `FROM` de los Dockerfiles, en las imágenes de
   servicio de `.github/workflows/checks.yml` y en una celda de tabla del README, sin fuente única: un
-  bump exige ocho ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
+  bump exigía ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
   stacks — pasó de verdad con `redis:3`, que el 2.12 destapó (`HELLO`/RESP3) y que `d861c95` arregló.
-  Sin dueño hasta ahora, y por eso se registra acá. Origen: store nativo, linaje
-  `review-7e3ab346bc8b3f85`; transcripción completa en `odd/tasks/ckan-2.12-upgrade.md`.
+  Origen: store nativo, linaje `review-7e3ab346bc8b3f85`; transcripción completa en
+  `odd/tasks/ckan-2.12-upgrade.md`.
+  **Estado al 2026-09-29 — cerrado por partes, y la marca es `[~]` a propósito:**
+  (a) **la deriva del tag de CKAN queda máquina-verificada** por
+  `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`, rango gateado
+  `f4c4ca0..4910824`): compara los cinco sitios que nombran `ckan/ckan-base`/`ckan/ckan-dev` y
+  falla nombrando archivo y tag; un sitio que deja de nombrar CKAN, una extracción vacía o un digest
+  también fallan. Se descartó `ARG` como solución (los cuatro Dockerfiles extienden dos imágenes
+  distintas y el `container:` del workflow lo resuelve el runner).
+  (b) **NO cubre** las imágenes de servicio ni la celda del README, por decisión medida: sus tags los
+  gobiernan otros upstreams (el de Solr lleva sufijo `-solr9`).
+  (c) **Sigue abierto y con dueño propio el caso que sí mordió:** el `redis:6` del job frente al
+  cliente de CKAN 2.12 (`HELLO`/RESP3). Hoy vive en un comentario del workflow, **sin guarda**; es el
+  candidato natural para la próxima guarda de versión, y no lo cierra `f21dc6b`.
 
 - [ ] **[v1] Los roles en el front no se distinguen: ¿qué diferencia hay entre un usuario, un admin de
   organización y un superadmin?** — Observación del autor (2026-09-28), al revisar el badge del dashboard:
