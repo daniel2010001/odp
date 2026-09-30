@@ -5,6 +5,8 @@
 > deja solo en memoria de sesión. Al cerrar un ítem, **borralo del backlog** (git conserva el
 > historial); al arrancar un cambio SDD, movelo a `openspec/changes/`.
 >
+> Al verificar tier, **cruzar etiqueta contra sección en las dos direcciones**: un ítem dentro de una sección de tier
+> puede llevar otro tag, y **un ítem con tag de tier puede vivir fuera de las secciones de tier**.
 > Convención de estado: `[ ]` abierto · `[~]` a medias · `[x]` hecho (se elimina al commitear).
 >
 > **Convención de tier:** `[v0]` core presentable · `[v1]` producto usable en producción ·
@@ -1143,15 +1145,6 @@
 
 ### Pendientes anotados (2026-09-13)
 
-- [ ] **[v0] Bug: badges de formato duplicados en las cards del buscador** — si un dataset tiene dos
-  recursos del mismo tipo (p. ej. 2 CSV), la card muestra **dos chips «CSV»**. Causa exacta en
-  `src/lib/components/search/DatasetCard.svelte`: `resourceFormats` hace
-  `.map((r) => r.format?.toUpperCase()).filter(Boolean).slice(0, 4)` **sin deduplicar**.
-  **Ojo con el efecto colateral**: `moreFormats` se calcula como
-  `dataset.resources.length - resourceFormats.length`, así que al deduplicar hay que recontar **sobre
-  los formatos únicos**, no sobre los recursos (con 3 recursos `[CSV, CSV, PDF]` los chips deben ser
-  CSV y PDF, y `moreFormats` debe dar **0**, no 1). El tope de 4 también aplica a los únicos.
-  _Origen: reportado por el usuario, 2026-09-13._
 - [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
   **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
   datos. _Origen: pedido del usuario._
@@ -1448,24 +1441,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 >      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
 >      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
 >
-- [ ] **[v0] El encabezado del sitio es demasiado alto en 720p.** A 1080 el alto se ve bien; en una
-  pantalla de 720 el encabezado se come demasiado espacio vertical antes del contenido. Revisar su alto
-  (y el de la barra pegajosa, que se deriva de `HEADER_PX = 80` en el dashboard) contra **viewports
-  bajos**, no sólo anchos: las revisiones de responsive anteriores fueron a 375/768/1024/1440 de *ancho*,
-  y esto es una cuestión de *alto* — un eje que nunca se revisó.
-  _Origen: reportado por el usuario, 2026-09-17._
-
-- [ ] **[v0] Crear dataset: con varias organizaciones y ninguna seleccionada, el resumen muestra la
-  organización vacía.** La «Ficha de publicación» pinta `orgDisplayTitle`, que queda vacío mientras no
-  haya selección, así que el bloque de organización aparece en blanco en vez de decir que falta elegir.
-  _Origen: reportado por el usuario, 2026-09-17._
-
-- [ ] **[v0] Dashboard: la descripción de la sección de organizaciones parte en dos líneas por una sola
-  palabra.** La de «Mis datasets» entra en una línea; la de organizaciones deja una segunda línea con una
-  palabra suelta, y el usuario lo señala como feo. Dirección: `text-pretty` (o `text-balance`) en lugar de
-  reescribir el copy a mano — es exactamente el caso que esa utilidad resuelve, y no hay que inventar
-  nada. _Origen: reportado por el usuario, 2026-09-17._
-
 - [ ] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
   el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
   (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
@@ -1476,6 +1451,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   anunciarla. Se cierra de una de dos formas, no de las dos: se implementa la edición, o el copy
   deja de prometerla. _Origen: verificación independiente de la segunda unidad de trabajo,
   2026-09-17._
+  **Estado medido (2026-09-30): VIVO, libre para implementar o para dejar de prometer.** La frase sigue en
+  `new/+page.svelte:1736` y `datasetApi.update` (`lib/api/datasets.ts:64`) **no tiene ni un call site**. El cierre es por
+  una de dos vías, no las dos: implementar la edición, o que el copy deje de anunciarla.
 
 - [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
   la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
@@ -1487,6 +1465,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
   el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
   _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
+  **Estado medido (2026-09-30): VIVO.** La card del cuerpo (`dataset/[id]/+page.svelte:520`) ya es `p-6 sm:p-8` con tabla
+  Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
+  de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
+  nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
 
 - [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
   Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
@@ -1496,22 +1478,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   decisión explícita: servir la descarga a través del portal, o aceptar el acoplamiento de forma
   deliberada.
   _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
-
-- [ ] **[v0] Quitar los tabs simulados «Gráfico»/«Mapa» de la página del recurso** — hoy la página
-  muestra un selector Tabla/Gráfico/Mapa donde sólo Tabla es real (CSV). Según el modelo de vistas
-  (PRD §3, 2026-09-13), los gráficos pertenecen al Módulo de Análisis, no a la vista previa. La vista
-  previa debe ofrecer sólo el render que permite el `format` (tabla para CSV, embed para PDF, imagen,
-  texto). _Origen: decisión de arquitectura 2026-09-13._
-
-- [ ] **[v0] TODO: página de error 404 propia del portal.** Hoy una ruta inexistente devuelve **`404`
-  correctamente** pero renderiza la **página por defecto de SvelteKit**: el cuerpo dice «**404 Not Found**»
-  en **inglés**, sin botón de vuelta al catálogo. El encabezado y el pie del portal sí aparecen, porque el
-  `+layout.svelte` la envuelve, y eso hace que el contraste se note más. **No existe ningún `+error.svelte`
-  en `src/routes`** (verificado, tampoco en subrutas). Debe ser una página propia, en español formal y con
-  el sistema de diseño —tipografía, tokens, iconos Lucide—, con un camino de vuelta claro (catálogo y, si
-  corresponde, buscador). Alcanza a dos casos distintos: una **ruta que no existe** y un **error de carga
-  inesperado** (5xx), que hoy también cae en la página por defecto. _Origen: reporte del autor + medición
-  2026-09-20 (`GET /ruta-que-no-existe`)._
+  **Estado medido (2026-09-30): VIVO.** `resource/[resourceId]/+page.svelte:358` sigue con `downloadUrl =
+  safeExternalUrl(resource?.url)` y `:544` con `href={downloadUrl}`; no hay ruta que proxee (los únicos `+server.ts` son
+  los dos de `auth`). **Frena en la decisión del autor:** servirlo por el portal, o aceptar el acoplamiento de forma deliberada.
 
 - [ ] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
@@ -1526,61 +1495,12 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   construye por fuera de CKAN. **No hay que tocar la copia por esto**: el cambio de verbo del ítem de
   «publicar» es independiente y no debe esperar a los roles por dataset.
   _Origen: pregunta del autor, 2026-09-20._
+  **Estado medido (2026-09-30): sin acción pendiente hoy.** El texto vigente (`lib/copy/dashboard.ts`,
+  `EMPTY_STATE_NO_CREATE_PERMISSION_REQUIREMENT`) ya coincide con la conclusión del ítem; lo que falta es la redacción
+  futura de «rol o permiso explícito», atada al trabajo de permisos.
 
   **Cuándo se decide:** no ahora, sino **al empezar el trabajo de permisos** (el ítem de colaboradores
   nativos de CKAN en `v0`): ahí se mide si lo nativo alcanza antes de construir equipos por fuera de CKAN.
-
-- [ ] **TODO: la UI usa «publicar» para lo que en realidad es CREAR — y lo creado es privado, interno a la
-  organización.** Este ítem **absorbe** la observación del autor sobre el estado vacío de «Mis datos»: es la
-  **misma decisión de copia** repetida en varios lugares, no dos arreglos. El modelo mental del autor es el
-  correcto y conviene escribirlo: **si la UI dice «publicar», el usuario entiende que ya es visible en el
-  buscador y para cualquiera** — y hoy eso es falso.
-  El botón de envío dice «Publicar dataset» y «Publicando...»
-  (`src/routes/dashboard/datasets/new/+page.svelte:1715-1717`), y debajo «Podrá editarlo después de
-  publicarlo.» (línea 1726). Lo que ocurre en realidad es una **creación privada**: `formValues()` fija
-  `private: true` (línea 149) y `buildPackagePayload` escribe ese valor
-  (`src/lib/utils/dataset-payload.ts:56`), así que **nada se publica**. Es el mismo defecto de clase que
-  `v0-portal-honesty`: la UI afirma un estado que no ocurre. Alcance: la acción principal debe nombrar lo
-  que hace (crear, privado), **conservando** las referencias honestas al flujo futuro que hoy están bien
-  («la visibilidad del dataset la definirá el flujo de publicación», 922 y 1599). Antes de tocar, separar
-  en las otras apariciones (1008, 1365, 1630, 1642) lo que es una **promesa** de lo que es **descripción
-  del flujo futuro**. _Origen: reporte del autor, 2026-09-20._
-  **Superficies medidas (2026-09-20), todas con el mismo verbo equivocado:**
-  - `src/lib/copy/dashboard.ts` (extraído hoy, así que el arreglo tiene una sola fuente):
-    `EMPTY_STATE_HEADING` = «**Publique** su primer dataset», `EMPTY_STATE_PRIMARY_ACTION_LABEL` =
-    «**Publicar** dataset», y las dos oraciones de requisito: «**Publicar** un dataset requiere pertenecer a
-    una organización.» / «**Publicar** un dataset requiere rol de editor o administrador en una
-    organización.». Los cuatro usan el verbo equivocado: el requisito es para **crear**, y lo que se crea
-    **no** se publica.
-  - El botón del wizard: «Publicar dataset» / «Publicando...» (`datasets/new/+page.svelte:1715-1717`) y «Podrá
-    editarlo después de publicarlo.» (1726).
-  - El `.svelte` del wizard, líneas 1365 y 1630 («Puede publicar el dataset sin recursos»).
-  - **Conservar** las referencias honestas al flujo futuro (922, 1599): dicen que la visibilidad la definirá
-    el flujo de publicación, y eso es cierto.
-  - **Es una sola decisión de verbo** («crear» donde hoy dice «publicar») aplicada de una vez a todas las
-    superficies, con sus tests (`src/lib/copy/dashboard.test.ts` fija las cadenas literales y habrá que
-    actualizarlo).
-
-- [ ] **TODO: los recursos de tipo enlace no tienen distintivo de tipo, y se les ofrecen las vistas
-  simuladas.** Hoy el distintivo de la página de recurso sale de `resource.format` (`formatLabel`, línea
-  220) y el `resource_type` sólo aparece como fila de metadatos (línea 246); `ResourceCard.svelte:16`
-  deriva `formatBadge` igual. Falta un distintivo que diga **enlace/URL**, análogo a PDF o CSV, y debe
-  agregarse **en todos los lugares**, no sólo en esa página. Segundo punto del mismo ítem: **ocultar el
-  selector de vistas** (Tabla/Gráfico/Mapa) cuando el recurso es un enlace — un enlace no tiene filas ni
-  datos locales que previsualizar.
-  **Bloqueo de modelo, medido (2026-09-20):** `src/lib/types/ckan.ts:76` define
-  `resource_type?: "file" | "api" | string` — **no existe** un valor `url`/`link` — y en el catálogo real
-  los recursos sembrados tienen `resource_type: None` **y** `url_type: None`. Es decir: hoy no hay señal
-  fiable para decidir «es un enlace». Hay que decidir **con qué** se detecta (`url_type === "upload"` para
-  archivos subidos **no está medido**: no existe ningún archivo subido en el catálogo) y, antes, **qué
-  nombre y qué semántica** tiene el tipo (¿`link`? ¿`url`?) y **dónde se escribe** (lo natural: que el
-  wizard lo fije al crear). _Origen: reporte del autor, 2026-09-20._
-
-- [ ] **TODO: decidir si un recurso de tipo enlace tiene página propia de recurso.** Pendiente de decisión
-  del autor: una página sólo para una URL es raro, aunque su metadata tampoco es mucha. Si la respuesta es
-  **no**, hay que decidir dónde vive esa metadata (tarjeta en la página del dataset, fila expandible) y qué
-  pasa con los enlaces entrantes y con los recursos ya existentes. _Origen: reporte del autor,
-  2026-09-20._
 
 - [ ] **TODO — DECIDIDO Y CERRADO EN PÁGINA (2026-09-20): política de existencia, opción 3. Queda abierta la mitad de la API.**
   **Decisión del autor:** `404` **ambiguo para el anónimo** (mismo estado que un recurso inexistente y
@@ -1640,39 +1560,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   la verdad útil («su cuenta no está autorizada» le dice que debe pedir permiso, no que escribió mal la
   dirección). _Origen: documento aportado por el autor + medición del 2026-09-20; decisión del autor,
   2026-09-20._
+  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizó **la mitad de página** (`lib/api/failure.ts`:
+  `classifyFailure`, `describeFailure` y `failureActions`, usados por las dos páginas, con el 403 y el 404 anónimos colapsados
+  a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
+  `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
 
 - [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
-
-- [ ] **[v0]** `TODO:` **El breadcrumb en móvil: qué estrategia.** Observación del autor (2026-09-22): «en
-  móviles se ve mal, ocupa mucho espacio». **Estado (2026-09-24):** el slice **E5** implementó **truncar** las
-  migas (una línea, con el texto y los enlaces intactos, y tests que lo anclan). **El autor lo revisó y no le
-  conforma del todo:** propone mirar el patrón de un **desplegable con el árbol completo** en móvil, «algo como
-  `< Test Dataset` o `< Test Resource`». **Opciones concretas y clicables en la hoja `/dev/nav`, sección A:**
-  **A1** truncado (lo de hoy) · **A2** sólo el padre con rótulo de rol · **A3** el padre con el árbol adentro en
-  un desplegable · **A4** extremos + «…» con el árbol (el «collapsed» de shadcn). **Falta la decisión del
-  autor.** El desplegable se hace con el primitivo de **bits-ui** (`DropdownMenu`, ya instalado: el proyecto
-  tiene muy pocos componentes vendorizados).
-  **Revisión del autor (2026-09-25):** prefiere **el aspecto de A4** —migas de texto y un botón chico de `…`,
-  **no** un chip-promedio como A5— pero **sin los dos extremos**: le alcanza con la **página actual** visible.
-  Se agregó **A6** a la hoja con exactamente eso. **Decisión final pendiente.**
-  **Segunda revisión (2026-09-25, el mismo día):** **A5 tampoco le cierra.** Le sirve su practicidad en
-  móvil —**el título completo como zona de toque es más fácil de acertar**— pero no su estilo. De **A6** le
-  gusta el estilo y le molesta que **pierda el ícono** y que el botón `…` **se vea chico comparado con los
-  anteriores**. Se agregó **A7**: el estilo de A6 —texto, sin chip— **con** ícono y con el título como
-  disparador ancho.
-  **DECIDIDO Y PROMOVIDO (2026-09-28): A7.** El disparador de móvil del breadcrumb real ya no es un chip —sin
-  borde, sin fondo, íconos `size-4`, el título entero como zona de toque—. Unidad `68a99b7`, recibo
-  `review-94fc418923877f2d` **aprobado** con dos avisos informativos (ver «Deuda de revisión»). Es el primer
-  diseño de esta serie que sale de la hoja y llega al componente real.
-
-- [ ] **[v0]** `TODO:` **Los botones de anterior/siguiente se ven chicos y pasan desapercibidos.** Observación del
-  autor (2026-09-24) sobre el slice E8: funcionan, pero no se ven. **Medido:** son dos enlaces con `p-1.5`
-  y un ícono `size-4`, y el contador «Recurso 4 de 5» va en `text-[10px]` y **oculto por debajo de `sm`**
-  (`hidden sm:inline`) — o sea que en móvil no hay ni contador. El control es correcto (no ofrece acción en
-  los extremos) y el problema es **de presencia**: no se lee como navegación. **Es de diseño y espera
-  decisión del autor.**
+  **Estado medido (2026-09-30): VIVO.** Ningún **archivo versionado** habilita la bandera: aparece en `PRD.md:245` y en los
+  artefactos del cambio SDD, y en **ninguno** puesta en `true`. La mitad literal del ítem (`.env.example`) **no es
+  verificable** bajo la política estricta de rutas de entorno. **Frena en medir el stack y en la decisión de habilitarla.**
 
 - [ ] **[v0]** `TODO:` **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
   Observación del autor (2026-09-25): «cuando son muchos aparece un `+X`, esto es ambiguo». **Causa medida**:
@@ -1690,12 +1588,18 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   navegador** (`FacetFilter.svelte:113`: `<span class="min-w-0 flex-1 truncate" title={item.display_name}>`; el
   archivo importa sólo `ChevronDown` y `Search`). Así que «usa el mismo componente que los filtros» **no es una
   opción**: o se usa el `title`, o se vendoriza el `Tooltip` de bits-ui de cero.
+  **Estado medido (2026-09-30): VIVO.** `DatasetCard.svelte:95` sigue con `dataset.tags.slice(0, 3)` y un `+N` pelado
+  (`:118` para los formatos), y **no existe ningún componente `Tooltip`** en `src/lib/components`. **Frena en la decisión
+  del autor:** `title` nativo, vendorizar el `Tooltip` de bits-ui, o no truncar.
 
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
   y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
   **El alcance no está definido: el autor no dijo qué le falta**, y la primera tarea es que la mire y lo
   diga —no adivinarlo—. Contexto: PRD RF-06 a RF-08 y `openspec/specs/organizations/spec.md`.
+  **Estado medido (2026-09-30): VIVO.** `src/routes/organization/[id]/+page.svelte` es encabezado + lista de `DatasetCard`
+  sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
+  **Frena en la decisión del autor: el alcance.**
 
 - [ ] **[v0]** `TODO:` **El buscador sin resultados: el vacío y, sobre todo, el menú de filtros.** Observación
   del autor (2026-09-28): «cuando no hay result se ve todo feo, en especial el menú de filtros». **Sin medir
@@ -1703,6 +1607,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `src/lib/components/search/FacetFilter.svelte`, que hoy muestra «Sin coincidencias para «X»» cuando el filtro
   no encuentra nada y esconde el resto de la lista. Primer paso: reproducirlo en el navegador con una consulta
   sin resultados y anotar **qué se ve mal y a qué ancho**, antes de proponer nada.
+  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizaron **el estado vacío y el panel**
+  (`search/+page.svelte`: `emptyStateMessage` en `:300` y `:628`, `showFilterPanel` en `:284`). **No aterrizó el menú de
+  filtros:** `FacetFilter.svelte:127` sigue mostrando «Sin coincidencias para «{query}»» y esconde el resto de la lista, que
+  es exactamente el síntoma que este ítem nombra.
 
 - [ ] **[v0]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
   autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
@@ -1711,39 +1619,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
   eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
   el juicio de diseño.
-
-- [ ] **[v0]** `TODO:` **El breadcrumb del dataset y el del recurso difieren.** Observación del autor
-  (2026-09-28): «el breadcrumb del dataset y de los resources difiere un poco». **Medido: son dos cosas, y
-  sólo una es cosmética.**
-  1. **La primera miga dice distinto para el mismo destino**: `"Catálogo"` en la página del dataset y
-     `"Datasets"` en la del recurso, **las dos apuntando a `/search`**. Y el `role` es `"Catálogo"` en las
-     dos, así que en el recurso la fila muestra el rol «Catálogo» con la etiqueta «Datasets»: **hay que
-     elegir una palabra y usarla en las dos.** Es decisión de copy del autor.
-  2. **La página del dataset conserva el defecto `R3-ORG-NAME-GUARD` sin corregir**: su `href` de organización
-     se arma con `.name` dentro de un guard que pregunta por `.title` (`dataset/[id]/+page.svelte:222`). Es la
-     **misma clase** que el aviso de `review-33850b074b195bfa`, que se cerró **sólo en la página del recurso**
-     ⇒ falta la línea del guard acá. Es un defecto, no una decisión.
-  **Lo que NO es una diferencia a corregir, medido:** el ícono difiere a propósito (`Database` en el dataset,
-  `FileText` en el recurso) porque describe **el nivel actual**, que es distinto en cada página; y `related`
-  —el grupo de hermanos— sólo lo pasa el recurso, porque los hermanos sólo existen ahí.
-
-- [ ] **[v0]** `TODO:` **En escritorio no hay forma de ver ni saltar a los demás recursos del dataset.**
-  Observación del autor (2026-09-24): en móvil lo ve, en escritorio no. **Causa medida:** el grupo «Recursos
-  de este dataset» vive en el desplegable del **chip**, que es `lg:hidden`; el recorrido de `lg+` es un `<ol>`
-  sin hermanos. El sidebar (variante B4 de la hoja) quedó descartado por el autor, así que la solución tiene
-  que vivir en otro lado: un desplegable en la miga del dataset del recorrido, un selector en el encabezado
-  (B2, descartado antes por espacio) o la lista lateral sólo de `lg` para arriba. **Es de diseño.**
-  **Revisión del autor (2026-09-25), y reabre una descartada:** **B4 le gusta** («muestra todos los recursos
-  de una vez, como hace CKAN»), **B3 es su favorito** y no sabe cuál elegir; y objetó que **el breadcrumb y el
-  salto compartan la línea**, porque el breadcrumb se come al salto. Se agregaron a la hoja **D4** —el
-  desplegable en la miga del **recurso** en vez de la del dataset, el vs que pidió—, **D5** —el salto en su
-  **propia fila** y con rótulo `Anterior`/`Siguiente` en vez del nombre recortado, que responde a la vez a su
-  objeción del texto— y **D6** —la idea del nombre completo al pasar el mouse—. **Decisión final pendiente.**
-  **Resuelto en la segunda ronda (2026-09-25):** el desplegable de hermanos va en la **miga del recurso
-  (D4)** —«esto sí creo que está bien»—, y el **salto** entre recursos queda como **D5** (separado del
-  breadcrumb y con rótulo), porque ahí «se ve más clara» la diferencia entre el recorrido y el salto. **El paso
-  siguiente lo fijó él:** verlo en la **página real del recurso con todos los componentes**, porque bajo el
-  breadcrumb puede «solaparse» con el salto — la hoja ya no alcanza para juzgar eso.
+  **Estado medido (2026-09-30): VIVO.** La banda envuelve bien (`resource/[resourceId]/+page.svelte:540`), pero el recibo
+  `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
+  **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
 
 - [ ] **[v0]** `TODO:` **El navegador desactiva el anclaje de desplazamiento por culpa del encabezado que se achica.**
   Observación del autor (2026-09-24), **mensaje textual de la consola**: «El anclaje de desplazamiento se
@@ -1758,6 +1636,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   recorte es visual, p. ej. con `transform`/`scale`), que es lo correcto si el salto se nota; (3) dejarlo y
   documentarlo, si el efecto es sólo el aviso en consola. **Medir primero si produce un salto visible.**
   Pertenece al **bloque E**.
+  **Estado medido (2026-09-30): VIVO.** `overflow-anchor` **no aparece** en `src/`, y el encabezado sigue cambiando el alto
+  **en el flujo** (`+layout.svelte:82`, `app.css:127,141`). **Frena primero en una medición** —¿produce un salto visible?— y
+  **después en la elección de opción.**
 
 - [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
@@ -1770,29 +1651,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   - los **laterales** de la ficha del dataset y del asistente: `lg:top-[calc(var(--header-h)+1rem)]` → **16px**;
   - y el lateral de **facetas del buscador** sigue con `lg:top-40` → **160px**, un valor que nunca se midió
     (estaba anotado como observación no actuada en el recibo de E2).
+  **Estado medido (2026-09-30): VIVO.** No existe ningún token `--sticky-air` y los aires siguen distintos: `pt-2` en el
+  dashboard (`:393`), `+1px` en search (`:354`), `+1rem` en las dos laterales y `top-40` en las facetas. **Frena en la
+  decisión del autor:** tarjeta flotante o barra al ras.
 
   Y son **dos tratamientos**: tarjeta flotante (panel) contra barra a ras (buscador). **Propuesta:** es el mismo
   problema que el alto del encabezado, así que se arregla igual — **un token** (`--sticky-air` en
   `src/app.css`) del que salen todos los offsets pegados, **más una decisión del autor**: ¿flotante o a ras para
   todas? Pertenece al **bloque E**.
-
-- [ ] **[v0]** `TODO:` **Pulir la vista del enlace: el bloque que reemplazó a las vistas de datos es
-  demasiado grande para lo poco que dice.** Observación del autor (2026-09-22): sigue pareciéndole «mucho
-  para tan poco», y sospecha del espacio que sustituye a las vistas de los archivos. **Medido y confirmado:**
-  el estado que puso C2 es `class="flex min-h-[220px] flex-col items-center justify-center gap-3 p-10
-  text-center"` con un círculo de `size-16` (64px) y un ícono de `size-8` (32px)
-  (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte`, alrededor de la línea 553) — o sea **220px
-  de alto mínimo, 40px de padding y un ícono de 64px para una sola oración**. Una nota compacta, sin ícono y
-  sin caja alta, diría lo mismo sin el hueco. **Contexto para quien lo tome:** un enlace **conserva** su
-  ficha (decisión del autor del mismo día), y C3 ya le quitó las filas que no aplicaban (`«Tamaño»` y
-  `«Nombre del archivo»`), así que lo que queda es título, descripción, el enlace y las fechas — y eso es
-  lo que tiene que justificar la página. Conviene revisarlo junto con el **pulido visual** de `v1+` (las páginas
-  de error y la paleta de formato): es la misma familia, densidad visual.
-
-- [ ] **[v0]** `TODO:` **El stack se refiere a sí mismo como `localhost`, así que deja de funcionar para cualquiera que no esté en la máquina del servidor.** Reportado por el autor (2026-09-23): pasa **en el portal nuevo y también en el UI de CKAN**. **Medido el mismo día, y son DOS clases distintas:**
-  - **Clase 1 — CKAN hornea su propio origen en cada URL absoluta, y esa URL la consumimos nosotros.** `ckan.site_url = http://localhost:5000` (verificado en `/srv/app/ckan.ini:79` y en la variable `CKAN_SITE_URL` del contenedor dev). Consecuencia medida en la sonda D0: `resource_show` de un archivo alojado devuelve `"url": "http://localhost:5000/dataset/<id>/resource/<rid>/download/<archivo>"` — CKAN **reescribe la `url` al origen de `site_url`**. Medición en vivo del síntoma: `curl http://192.168.1.201:5000/` **devuelve enlaces a `http://localhost:5000/`**, o sea a la máquina de quien mira. **Y esto es load-bearing para lo que se acaba de publicar:** el embed de PDF e imagen de RF-30 (bloque D) apunta a esa `url`, así que en LAN el iframe y el `<img>` no cargan nada — funcionan sólo en la máquina del servidor. Lo mismo alcanza al botón «Descargar recurso» y a cualquier enlace de la UI de CKAN.
-  - **Clase 2 — dos valores por defecto escritos en el código del portal.** `src/routes/auth/login/+server.ts:22` y `src/routes/auth/logout/+server.ts:23` hacen `env.CKAN_INTERNAL_URL || "http://localhost:5000"`: en dev funciona porque el compose la setea, pero en un despliegue que olvide la variable el puente de login apunta a localhost **en silencio**. Y `src/lib/env.ts:17` declara `APP_URL` con default `http://localhost:5173` — **y verificado: `env.APP_URL` no lo consume nadie hoy**, así que es un valor validado y sin uso.
-  - **Lo que NO es problema, para no confundir el alcance:** `CKAN_URL` está **vacío en dev** a propósito, así que las llamadas del portal a la API van **relativas** (`/api/…`) por el proxy de Vite y son same-origin — por eso el portal responde **HTTP 200** en `http://192.168.1.201:8082/`. Las coincidencias de `localhost` en `.test.ts` y en `AGENTS.md`/`README.md` son legítimas. En `odp-docker`, las de los `docker-compose*.yml` son **healthchecks** (correctos, corren dentro del contenedor).
 
   - **Un riesgo que había que medir antes de tocar `site_url`, y está resuelto: el callback del DataPusher NO depende de `site_url` en este stack.** `ckanext/datapusher/logic/action.py:67-71` usa `ckan.datapusher.callback_url_base` **y sólo cae a `ckan.site_url` si esa opción falta**. Acá **está seteada**: `CKAN__DATAPUSHER__CALLBACK_URL_BASE=http://ckan-dev:5000` (verificado en el entorno del contenedor), y el pusher **resuelve y alcanza** ese nombre (`getent hosts ckan-dev → 172.19.0.4`, `wget → rc=0`). Por eso la subida al DataStore de la sonda D0 funcionó con `site_url = localhost`: **el pusher nunca usó `site_url`**. Conclusión medida: cambiar `site_url` a la URL pública **no toca la carga al DataStore**. (Contraste: la IP de LAN del host **no** es alcanzable desde el contenedor del pusher — el `wget` a `192.168.1.201:5000` no completa —, así que `callback_url_base` debe seguir siendo la dirección interna del servicio.)
   - **Trampa futura a tener escrita:** el embed de RF-30 depende de que el origen de CKAN sea alcanzable **y del mismo esquema** que el portal. Si el portal se sirve por `https` y `site_url` queda en `http`, el navegador bloquea el `<iframe>` y el `<img>` por contenido mixto. Al fijar la URL pública hay que fijar **las dos** con el mismo esquema.
@@ -1809,6 +1675,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `ckan-docker/.env`.
   *(Pendiente: `.env` y `.env.example` son rutas de entorno que el harness no autoriza a editar
   desde acá — las aplica el autor a mano.)*
+  **Estado medido (2026-09-30): VIVO — es tarea de operación, no de código.** Las credenciales de `postgresql` siguen siendo
+  las mismas que estuvieron publicadas. **Frena en la acción del autor** (se aplica a mano sobre `.env`, ruta que el harness
+  no autoriza a editar).
 
   **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
   arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
@@ -1835,6 +1704,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   la copia de `.env` **no es verificable desde la sesión** (el guardrail bloquea esa ruta), así
   que la aplica el autor si sigue ahí. El ítem sigue **abierto** por esa mitad y por la decisión
   de pinear o no los `FROM` en el minor.
+  **Estado medido (2026-09-30): VIVO, abierto por partida doble.** `a128b4f` tocó **sólo `ckan-docker/.env.example`**; la copia
+  de `.env` **no es verificable** desde la sesión (ruta de entorno bloqueada), así que esa mitad va como nota y **no** como
+  cierre. Y sigue pendiente la decisión de pinear o no los cuatro `FROM`.
 
   **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
   upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
@@ -2448,6 +2320,12 @@ después del cierre que describe el encabezado de esta sección; medición compl
   (la memoria del proyecto registra una limpieza de sondas anterior, así que esta se escapó).
   **El autor lo autorizó el 2026-09-28 y acordamos hacerlo en otra sesión.**
   _Origen: la verificación del chip del MIME, 2026-09-28._
+  **Estado medido (2026-09-30): VIVO, pero ABIERTO Y DIFERIDO POR DECISIÓN DEL AUTOR — no es deuda ni abandono.**
+  Verificado en vivo: `package_show` de `probe-origen-pdf` devuelve `private: false`, un recurso(`application/pdf`,
+  `url_type: upload`) y `state: active`; el catálogo de dev está en 17. **El autor decidió el 2026-09-28 conservarlo**
+  —«no hace falta borrarlo por ahora, es el único PDF que tenemos y puede servirnos hasta que hagamos la inyección de
+  datos»—. **No se limpia por iniciativa propia: es el único PDF del catálogo y borrarlo le mueve el piso a la
+  verificación de la vista previa del portal.**
 
 - [ ] **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-02d3e702f16cc417`: tier **medium**, lente
@@ -3251,6 +3129,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
 - [ ] **[v0] `describeCreateError` sobre-dispara** — el regex `/already in use|url/i` del wizard
   etiqueta como conflicto de slug cualquier error cuyo mensaje contenga "url". Acotarlo al mensaje
   real de CKAN. _Origen: verificación de `dataset-publishing`._
+  **Estado medido (2026-09-30): VIVO, byte por byte.** `new/+page.svelte:499` sigue con `/already in use|url/i.test(message)`.
+  Libre para implementar: acotar el regex al mensaje real de CKAN.
 
 - [ ] **[v1] Verificación estática pendiente del wizard** — "sin scroll horizontal a 360 px" quedó
   verificado solo por inspección de código, sin test automatizado.
