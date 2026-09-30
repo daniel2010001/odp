@@ -1799,6 +1799,83 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   - **Arreglo, en orden de riesgo:** (1) `CKAN_SITE_URL` con la URL pública real —en este dev, la IP de LAN— es lo que desbloquea el síntoma entero, y es del repo `odp-docker`; (2) quitar el fallback `|| "http://localhost:5000"` o hacerlo **fallar ruidosamente** si la variable falta; (3) decidir si `APP_URL` se usa o se borra. **Recomendación de momento:** va antes que D3, porque sin esto los visores por tipo que acabamos de aprobar no se pueden verificar de verdad desde otra máquina.
   _Origen: reporte del autor, 2026-09-23; medición propia del mismo día (`ckan.site_url`, el `curl` a la IP de LAN y el inventario de `localhost` en `src/`)._
 
+- [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
+  Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
+  `http://192.168.1.201:5000/` sin autenticarse recibía la configuración entera de CKAN, con
+  `postgresql://ckandbuser:ckandbpassword@db/...` y `postgresql://datastore_ro:datastore@db/...`
+  en claro (medido: 9 apariciones en la home). El toolbar **ya está apagado** (ver abajo), pero las
+  credenciales siguen siendo las mismas que estuvieron publicadas: hay que rotarlas. Cuando se
+  rehaga el volumen para el upgrade a 2.12 es el momento natural, porque el cambio va en
+  `ckan-docker/.env`.
+  *(Pendiente: `.env` y `.env.example` son rutas de entorno que el harness no autoriza a editar
+  desde acá — las aplica el autor a mano.)*
+
+  **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
+  arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
+  Flask-DebugToolbar. Una variable de entorno **no** lo apaga: `CKAN___DEBUG` sí llega a la config
+  global (`debug` quedaba en `False`, verificado) pero el toolbar lee el **ini**, no esa config; y
+  las variantes son traicioneras por silencio — `CKAN__DEBUG` mapea a `ckan.debug` y `CKAN_DEBUG`
+  a `ckan_debug`, una clave que no lee nadie. La solución es un script en `/docker-entrypoint.d/`,
+  que corre DESPUÉS de esa línea y ANTES de levantar el servidor:
+  `ckan-docker/ckan/docker-entrypoint.d/02_disable_debug_toolbar.sh`, montado por el compose de dev
+  (y horneado por el `COPY` del Dockerfile para quien reconstruya). **No afecta al hot reload**,
+  medido: se tocó `ckanext-umss/plugin.py` y CKAN se recargó igual; tampoco al depurador de
+  Werkzeug, que depende de `--disable-debugger`, no de `debug`.
+
+  **Lo que sí se pierde:** el JS/CSS sin minificar de la UI nativa de CKAN y su modo debug de
+  plantillas. Irrelevante mientras la interfaz sea el portal.
+
+- [ ] **[v0] Higiene de configuración de versión** — `CKAN_VERSION=2.10.0` en
+  `ckan-docker/.env` y `.env.example` es **config muerta** y hay que quitarlo: cero referencias en
+  este repo y también cero en el upstream (cuyo compose usa `build:`, no `image:` con ese valor).
+  Es lo que hacía creer que el stack corría 2.10 cuando corre 2.11.6; la versión real la fija el
+  `FROM` de los cuatro Dockerfiles. *(Pendiente al 2026-09-24: la edición de `.env` y
+  `.env.example` requiere autorización explícita del autor, porque son rutas de entorno.)*
+  **Actualización medida (2026-09-29):** el commit `a128b4f` quitó la clave de `.env.example`;
+  la copia de `.env` **no es verificable desde la sesión** (el guardrail bloquea esa ruta), así
+  que la aplica el autor si sigue ahí. El ítem sigue **abierto** por esa mitad y por la decisión
+  de pinear o no los `FROM` en el minor.
+
+  **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
+  upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
+  `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
+  que el stack realmente corre, ya no por override de shell—. **Y `reindexar` resultó innecesario, y
+  eso está medido:** el configset del core vive en el **volumen**, no en la imagen; el motor de Solr
+  es el mismo en los dos tags (`solr-spec 9.9.0` / `lucene 9.12.2`), y lo único que cambia es el
+  `managed-schema` que trae la imagen. Por eso el índice siguió legible con el tag viejo **y** con el
+  nuevo: `numFound: 17` y `package_search: 16` sin cambios antes y después. Lo que se re-sembró fue el
+  **catálogo**, y eso fue del volumen limpio del upgrade (2026-09-24), **no** del cambio de tag.
+  **No dar por hecho un reindex acá: verificar el índice.** _(Precisión hecha el **2026-09-28**, un día
+después del cierre que describe el encabezado de esta sección; medición completa en
+`odd/tasks/ckan-2.12-upgrade.md`.)_
+
+  Y **los `FROM` quedan flotando en el minor (`2.11`)**: es una decisión, no un descuido. Pinear el
+  patch (`2.11.6`) da reproducibilidad byte a byte, pero obliga a bumpear a mano para recibir los
+  parches de seguridad y despega el archivo del upstream congelado. Si algún día importa la
+  reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
+  natural para decidirlo.
+
+- [~] **[v0] Higiene de versión: el tag de CKAN sin fuente única** — hallazgo `R2-002`
+  del linaje huérfano de la revisión del upgrade: `pre-existing`, SUGGESTION, **no** introducido por
+  el upgrade. El tag vivía como literal en los 4 `FROM` de los Dockerfiles, en las imágenes de
+  servicio de `.github/workflows/checks.yml` y en una celda de tabla del README, sin fuente única: un
+  bump exigía ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
+  stacks — pasó de verdad con `redis:3`, que el 2.12 destapó (`HELLO`/RESP3) y que `d861c95` arregló.
+  Origen: store nativo, linaje `review-7e3ab346bc8b3f85`; transcripción completa en
+  `odd/tasks/ckan-2.12-upgrade.md`.
+  **Estado al 2026-09-29 — cerrado por partes, y la marca es `[~]` a propósito:**
+  (a) **la deriva del tag de CKAN queda máquina-verificada** por
+  `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`, rango gateado
+  `f4c4ca0..4910824`): compara los cinco sitios que nombran `ckan/ckan-base`/`ckan/ckan-dev` y
+  falla nombrando archivo y tag; un sitio que deja de nombrar CKAN, una extracción vacía o un digest
+  también fallan. Se descartó `ARG` como solución (los cuatro Dockerfiles extienden dos imágenes
+  distintas y el `container:` del workflow lo resuelve el runner).
+  (b) **NO cubre** las imágenes de servicio ni la celda del README, por decisión medida: sus tags los
+  gobiernan otros upstreams (el de Solr lleva sufijo `-solr9`).
+  (c) **Sigue abierto y con dueño propio el caso que sí mordió:** el `redis:6` del job frente al
+  cliente de CKAN 2.12 (`HELLO`/RESP3). Hoy vive en un comentario del workflow, **sin guarda**; es el
+  candidato natural para la próxima guarda de versión, y no lo cierra `f21dc6b`.
+
 ## v1 — producto usable en producción
 
 - [ ] **[v1+] Filtros dentro de la tarjeta «Mis datasets».** El usuario pregunta si conviene agregarlos
@@ -1937,79 +2014,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
   _Origen: pregunta del autor, 2026-09-24; medición propia del mismo día (changelog oficial,
   tags de Docker Hub y estado del repo `ckan/ckan-docker`)._
-
-- [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
-  Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
-  `http://192.168.1.201:5000/` sin autenticarse recibía la configuración entera de CKAN, con
-  `postgresql://ckandbuser:ckandbpassword@db/...` y `postgresql://datastore_ro:datastore@db/...`
-  en claro (medido: 9 apariciones en la home). El toolbar **ya está apagado** (ver abajo), pero las
-  credenciales siguen siendo las mismas que estuvieron publicadas: hay que rotarlas. Cuando se
-  rehaga el volumen para el upgrade a 2.12 es el momento natural, porque el cambio va en
-  `ckan-docker/.env`.
-  *(Pendiente: `.env` y `.env.example` son rutas de entorno que el harness no autoriza a editar
-  desde acá — las aplica el autor a mano.)*
-
-  **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
-  arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
-  Flask-DebugToolbar. Una variable de entorno **no** lo apaga: `CKAN___DEBUG` sí llega a la config
-  global (`debug` quedaba en `False`, verificado) pero el toolbar lee el **ini**, no esa config; y
-  las variantes son traicioneras por silencio — `CKAN__DEBUG` mapea a `ckan.debug` y `CKAN_DEBUG`
-  a `ckan_debug`, una clave que no lee nadie. La solución es un script en `/docker-entrypoint.d/`,
-  que corre DESPUÉS de esa línea y ANTES de levantar el servidor:
-  `ckan-docker/ckan/docker-entrypoint.d/02_disable_debug_toolbar.sh`, montado por el compose de dev
-  (y horneado por el `COPY` del Dockerfile para quien reconstruya). **No afecta al hot reload**,
-  medido: se tocó `ckanext-umss/plugin.py` y CKAN se recargó igual; tampoco al depurador de
-  Werkzeug, que depende de `--disable-debugger`, no de `debug`.
-
-  **Lo que sí se pierde:** el JS/CSS sin minificar de la UI nativa de CKAN y su modo debug de
-  plantillas. Irrelevante mientras la interfaz sea el portal.
-
-- [ ] **[v0] Higiene de configuración de versión** — `CKAN_VERSION=2.10.0` en
-  `ckan-docker/.env` y `.env.example` es **config muerta** y hay que quitarlo: cero referencias en
-  este repo y también cero en el upstream (cuyo compose usa `build:`, no `image:` con ese valor).
-  Es lo que hacía creer que el stack corría 2.10 cuando corre 2.11.6; la versión real la fija el
-  `FROM` de los cuatro Dockerfiles. *(Pendiente al 2026-09-24: la edición de `.env` y
-  `.env.example` requiere autorización explícita del autor, porque son rutas de entorno.)*
-
-  **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
-  upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
-  `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
-  que el stack realmente corre, ya no por override de shell—. **Y `reindexar` resultó innecesario, y
-  eso está medido:** el configset del core vive en el **volumen**, no en la imagen; el motor de Solr
-  es el mismo en los dos tags (`solr-spec 9.9.0` / `lucene 9.12.2`), y lo único que cambia es el
-  `managed-schema` que trae la imagen. Por eso el índice siguió legible con el tag viejo **y** con el
-  nuevo: `numFound: 17` y `package_search: 16` sin cambios antes y después. Lo que se re-sembró fue el
-  **catálogo**, y eso fue del volumen limpio del upgrade (2026-09-24), **no** del cambio de tag.
-  **No dar por hecho un reindex acá: verificar el índice.** _(Precisión hecha el **2026-09-28**, un día
-después del cierre que describe el encabezado de esta sección; medición completa en
-`odd/tasks/ckan-2.12-upgrade.md`.)_
-
-  Y **los `FROM` quedan flotando en el minor (`2.11`)**: es una decisión, no un descuido. Pinear el
-  patch (`2.11.6`) da reproducibilidad byte a byte, pero obliga a bumpear a mano para recibir los
-  parches de seguridad y despega el archivo del upstream congelado. Si algún día importa la
-  reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
-  natural para decidirlo.
-
-- [~] **[v0] Higiene de versión: el tag de CKAN sin fuente única** — hallazgo `R2-002`
-  del linaje huérfano de la revisión del upgrade: `pre-existing`, SUGGESTION, **no** introducido por
-  el upgrade. El tag vivía como literal en los 4 `FROM` de los Dockerfiles, en las imágenes de
-  servicio de `.github/workflows/checks.yml` y en una celda de tabla del README, sin fuente única: un
-  bump exigía ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
-  stacks — pasó de verdad con `redis:3`, que el 2.12 destapó (`HELLO`/RESP3) y que `d861c95` arregló.
-  Origen: store nativo, linaje `review-7e3ab346bc8b3f85`; transcripción completa en
-  `odd/tasks/ckan-2.12-upgrade.md`.
-  **Estado al 2026-09-29 — cerrado por partes, y la marca es `[~]` a propósito:**
-  (a) **la deriva del tag de CKAN queda máquina-verificada** por
-  `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`, rango gateado
-  `f4c4ca0..4910824`): compara los cinco sitios que nombran `ckan/ckan-base`/`ckan/ckan-dev` y
-  falla nombrando archivo y tag; un sitio que deja de nombrar CKAN, una extracción vacía o un digest
-  también fallan. Se descartó `ARG` como solución (los cuatro Dockerfiles extienden dos imágenes
-  distintas y el `container:` del workflow lo resuelve el runner).
-  (b) **NO cubre** las imágenes de servicio ni la celda del README, por decisión medida: sus tags los
-  gobiernan otros upstreams (el de Solr lleva sufijo `-solr9`).
-  (c) **Sigue abierto y con dueño propio el caso que sí mordió:** el `redis:6` del job frente al
-  cliente de CKAN 2.12 (`HELLO`/RESP3). Hoy vive en un comentario del workflow, **sin guarda**; es el
-  candidato natural para la próxima guarda de versión, y no lo cierra `f21dc6b`.
 
 - [ ] **[v1] Los roles en el front no se distinguen: ¿qué diferencia hay entre un usuario, un admin de
   organización y un superadmin?** — Observación del autor (2026-09-28), al revisar el badge del dashboard:
