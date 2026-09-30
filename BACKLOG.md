@@ -1878,14 +1878,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## v1 — producto usable en producción
 
-- [ ] **[v1+] Filtros dentro de la tarjeta «Mis datasets».** El usuario pregunta si conviene agregarlos
-  como en el buscador (y observa que ni el dashboard ni la página `user/<nombre>` de CKAN los tienen).
-  **Recomendación: no por ahora.** El buscador ya tiene búsqueda facetada; la tarjeta es una lista
-  personal y corta, y meter filtros ahí duplica maquinaria —y superficie de revisión— para un caso que el
-  buscador cubre. Cuando el volumen lo justifique, la vía barata es un **enlace al buscador prefiltrado
-  por creador** (`fq=+creator_user_id:<id>`, el mismo filtro que ya usa la tarjeta), que reutiliza las
-  facetas existentes en lugar de reimplementarlas. _Origen: pregunta del usuario, 2026-09-17._
-
 - [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
   pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
   `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
@@ -2207,6 +2199,14 @@ después del cierre que describe el encabezado de esta sección; medición compl
     `` `/search${params.toString() ? `?${params.toString()}` : ""}` ``, un template anidado menos legible que
     **evalúa `params.toString()` dos veces**. A mano: `const qs = params.toString()` y usarlo una sola vez.
   _Origen: pedido del autor de comprobar los «fixeables» que muestra `pnpm lint`, 2026-09-23._
+
+- [ ] **[v1+] Filtros dentro de la tarjeta «Mis datasets».** El usuario pregunta si conviene agregarlos
+  como en el buscador (y observa que ni el dashboard ni la página `user/<nombre>` de CKAN los tienen).
+  **Recomendación: no por ahora.** El buscador ya tiene búsqueda facetada; la tarjeta es una lista
+  personal y corta, y meter filtros ahí duplica maquinaria —y superficie de revisión— para un caso que el
+  buscador cubre. Cuando el volumen lo justifique, la vía barata es un **enlace al buscador prefiltrado
+  por creador** (`fq=+creator_user_id:<id>`, el mismo filtro que ya usa la tarjeta), que reutiliza las
+  facetas existentes en lugar de reimplementarlas. _Origen: pregunta del usuario, 2026-09-17._
 
 ## v2+ — mejoras futuras no solicitadas
 
