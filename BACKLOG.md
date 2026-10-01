@@ -1601,17 +1601,21 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
   **Frena en la decisión del autor: el alcance.**
 
-- [ ] **[v0]** `TODO:` **El buscador sin resultados: el vacío y, sobre todo, el menú de filtros.** Observación
-  del autor (2026-09-28): «cuando no hay result se ve todo feo, en especial el menú de filtros». **Sin medir
-  todavía:** el estado vacío vive en `src/routes/search/+page.svelte` y los filtros en
-  `src/lib/components/search/FacetFilter.svelte`, que hoy muestra «Sin coincidencias para «X»» cuando el filtro
-  no encuentra nada y esconde el resto de la lista. Primer paso: reproducirlo en el navegador con una consulta
-  sin resultados y anotar **qué se ve mal y a qué ancho**, antes de proponer nada.
-  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizaron **el estado vacío y el panel**
-  (`search/+page.svelte`: `emptyStateMessage` en `:300` y `:628`, `showFilterPanel` en `:284`). **No aterrizó el menú de
-  filtros:** `FacetFilter.svelte:127` sigue mostrando «Sin coincidencias para «{query}»» y esconde el resto de la lista, que
-  es exactamente el síntoma que este ítem nombra.
-
+- [ ] **[v0]** `TODO:` **El buscador sin resultados: el área vacía se «achica» y se ve pobre.** Precisión del autor
+  (2026-10-01) sobre su observación del 2026-09-28: lo que le molesta **no** es el menú de filtros —esa mitad ya está
+  resuelta, ver abajo— sino que **sin cards que mostrar la sección pierde altura y queda un hueco feo**. **Su propuesta,
+  que NO estaba anotada hasta ahora: agregar contenido al vacío** —**datasets recomendados**, o bloques como **la lista de
+  organizaciones del home**—, con la comparación que él mismo trajo: **cómo lo resuelven Amazon, YouTube o Google** cuando
+  una búsqueda no devuelve nada. **Falta medir** la altura resultante del vacío a cada ancho y **decidir qué contenido
+  entra y de dónde sale**; es decisión del autor.
+  **La mitad del menú de filtros: CERRADA — verificado en vivo por el autor el 2026-10-01.** Con `q=test` y con
+  `PDF+q=test`: **sin filtros activos el menú desaparece; con filtros, sólo se muestran esos.** Y el comportamiento del
+  buscador interno de una faceta («Sin coincidencias para «X»» y la lista oculta) **se queda como está, por decisión
+  explícita del autor**: es un input de texto, se borra el texto y listo.
+  **Propuesta descartada, con su motivo, para que no se re-proponga:** se evaluaron tres salidas para ese caso —agregar
+  una acción «Limpiar», mostrar el resto de la lista debajo del aviso, o las dos— y **el autor prefirió el comportamiento
+  actual**. La hoja `/dev/facets` que las mostraba se borró junto con esta decisión.
+  _Origen: observación del autor, 2026-09-28; precisión, verificación y propuesta de contenido, 2026-10-01._
 - [ ] **[v0]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
   autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
   antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
