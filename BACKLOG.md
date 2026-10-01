@@ -1653,6 +1653,21 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
     ni con gestos táctiles/trackpad. **La afirmación de que el navegador «desactiva el anclaje» no se sostiene en esta
     medición**, así que las tres opciones que el ítem enumeraba (mover el centinela, sacar el alto del flujo, o `scroll-mt`)
     quedan **sin motivo medido** hasta que el autor nombre un salto concreto: **qué página, a qué ancho y con qué gesto.**
+  **Segunda medición (2026-10-01), el escenario que faltaba: oscilar SOBRE el umbral.** El primero sólo cruzaba una vez, así
+  que nunca llegaba a los «10 ajustes consecutivos» que el mensaje que el autor vio nombra. Repetido oscilando entre `y=0`
+  y `y=80` —12 ciclos, 24 cruces, con el umbral en `y≈49`—: `hh` alterna 80 ↔ 64 y la card vuelve **exactamente** a 2340 /
+  2260 en cada vuelta, con la rueda de 80 avanzando el scroll **64 px** (los 16 px del layout, absorbidos otra vez).
+  **Tampoco acá hay salto: la compensación es exacta en cada cruce.**
+  **La aritmética del mensaje, en cambio, apunta a otra cosa que los cruces:** decía **10 ajustes con ~1,13 px promedio** y
+  **11,27 px en total**. Eso **no** son cruces discretos de 16 px —son los **cuadros de la transición** de 200 ms: 16 px
+  repartidos en ~12 cuadros ≈ 1,3 px cada uno. O sea que el aviso lo produjo **la animación del alto**, no el salto entre
+  estados. **Y no lo pude reproducir en headless** (la consola quedó vacía en las dos corridas): el aviso de consola sigue
+  **sin confirmar**, medido sólo por lo que el autor vio el 2026-09-24.
+  **Y una corrección importante a las opciones del propio ítem:** la **(1)** —`overflow-anchor: none` para que el navegador
+  «no compense algo intencional»— **haría peor el problema**: la compensación es justamente lo que hoy evita el salto, así
+  que apagarla lo **introduce**. Queda descartada con su motivo. La **(2)** (achicar sin tocar el flujo, con `transform`) sigue
+  siendo la única que elimina la causa —sin cambio de layout no hay nada que compensar ni cuadros que ajustar—, y la **(3)**
+  es lo que la medición sostiene: **no hay efecto visible**, así que documentarlo alcanza. **Decisión del autor.**
 
 - [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
