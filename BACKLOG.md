@@ -1639,6 +1639,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): VIVO.** `overflow-anchor` **no aparece** en `src/`, y el encabezado sigue cambiando el alto
   **en el flujo** (`+layout.svelte:82`, `app.css:127,141`). **Frena primero en una medición** —¿produce un salto visible?— y
   **después en la elección de opción.**
+  **Medición hecha el 2026-10-01: la premisa NO se reproduce en Chromium.** Medido con **rueda real**
+  (`Input.dispatchMouseEvent`, no `scrollTo` —con `scrollTo` el navegador re-ancla distinto—) sobre `/search`, registrando en
+  cada paso el alto del `<nav>` del encabezado, el atributo `data-header-shrunk` y la posición de una card: 24 pasos bajando
+  y 30 subiendo, en Chromium headless, con el servidor de desarrollo arriba. **El anclaje del navegador compensa
+  exactamente el cambio de alto:**
+  - **Bajando:** al cruzar el umbral (`SHRINK_AFTER_PX = 48`, `+layout.svelte:44`) el documento se acorta **16 px**
+    (6355→6319 en el alto total) y una rueda de 120 px avanza el scroll **104 px** —los 16 px que se comió el layout—: la
+    card se movió **120 px** en pantalla, **exactamente el gesto**. Sin compensación habrían sido 136 px, o sea un salto de 16.
+  - **Subiendo:** simétrico. En el paso de transición (con el alto a mitad de camino, `hh=70`) el scroll avanzó **114** de
+    120 y el documento creció 6; y al llegar al tope la posición final es **idéntica** a la inicial (`y=0`, misma `top`).
+  - **Alcance, y es la parte importante:** medido en **Chromium (headless) y con rueda**. **No medido** en Firefox ni Safari,
+    ni con gestos táctiles/trackpad. **La afirmación de que el navegador «desactiva el anclaje» no se sostiene en esta
+    medición**, así que las tres opciones que el ítem enumeraba (mover el centinela, sacar el alto del flujo, o `scroll-mt`)
+    quedan **sin motivo medido** hasta que el autor nombre un salto concreto: **qué página, a qué ancho y con qué gesto.**
 
 - [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
