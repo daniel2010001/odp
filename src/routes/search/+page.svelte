@@ -196,28 +196,48 @@ function topByPackageCount(orgs: CkanOrganization[]): CkanOrganization[] {
 }
 
 async function loadEmptyAssist() {
-	const client = createCkanClient({ baseUrl: env.CKAN_URL });
-
-	// Cada bloque falla por su cuenta: que las organizaciones no carguen no debe tumbar «lo más
-	// reciente» (y al revés). Fuera de DEV no se fabrican datos: el bloque se queda sin pintar.
-	try {
-		const datasetApi = createDatasetApi(client);
-		const result = await datasetApi.search({
-			q: "*:*",
-			sort: "metadata_modified desc",
-			limit: 3,
-		});
-		recentDatasets = result.results;
-	} catch {
+	// `fallo` habilita el reintento: el latch de arriba existe para no repetir la carga en cada tecla,
+	// no para convertir un fallo transitorio en permanente (`R3-EMPTY-ASSIST-NO-RETRY` de
+	// `review-f6b3cb06831d7e11`). Se apaga sólo si algo falló; que un bloque venga vacío es legítimo.
+	let fallo = false;
+	const sinDatos = () => {
 		recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+		topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
+	};
+
+	// La creación del cliente también puede tirar: va adentro, o el `void` de arriba deja una promesa
+	// rechazada sin dueño (`R3-CLIENT-CREATION-UNCAUGHT`).
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+
+		// Cada bloque falla por su cuenta: que las organizaciones no carguen no debe tumbar «lo más
+		// reciente» (y al revés). Fuera de DEV no se fabrican datos: el bloque se queda sin pintar.
+		try {
+			const datasetApi = createDatasetApi(client);
+			const result = await datasetApi.search({
+				q: "*:*",
+				sort: "metadata_modified desc",
+				limit: 3,
+			});
+			recentDatasets = result.results;
+		} catch {
+			fallo = true;
+			recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+		}
+
+		try {
+			const organizationApi = createOrganizationApi(client);
+			topOrganizations = topByPackageCount(await organizationApi.list());
+		} catch {
+			fallo = true;
+			topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
+		}
+	} catch {
+		fallo = true;
+		sinDatos();
 	}
 
-	try {
-		const organizationApi = createOrganizationApi(client);
-		topOrganizations = topByPackageCount(await organizationApi.list());
-	} catch {
-		topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
-	}
+	if (fallo) emptyAssistLoaded = false;
 }
 
 // ─── Efecto: buscar cuando cambia el estado ───────────────────────

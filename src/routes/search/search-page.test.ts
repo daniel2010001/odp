@@ -438,6 +438,40 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		expect(await screen.findByRole("heading", { name: "Explorar por organización" })).toBeTruthy();
 	});
 
+	it("si una de las dos llamadas falla, la otra se muestra igual (los bloques son independientes)", async () => {
+		vi.stubEnv("DEV", true);
+		setUrl("?q=matricula");
+		mocks.search.mockImplementation((params: { limit?: number } | undefined) => {
+			// «lo más reciente» (limit 3) falla; la búsqueda principal y el conteo responden.
+			if (params?.limit === 3) return Promise.reject(new Error("sin red"));
+			if (params?.limit === 0) {
+				return Promise.resolve({ count: 0, results: [], search_facets: {} });
+			}
+			return Promise.resolve(emptyWithFacets());
+		});
+		// Las organizaciones, en cambio, responden bien: con un dato propio, no el mock.
+		mocks.listOrganizations.mockResolvedValue([
+			makeOrg({ id: "org-sola", name: "fcyt", title: "Facultad de Ciencias y Tecnología" }),
+		]);
+		mocks.getMockSearchResult.mockReturnValue({
+			count: 45,
+			results: [makeDataset({ id: "mock-1", title: "Dataset mock" })],
+			search_facets: {},
+		});
+
+		renderSearch();
+
+		await screen.findByText("Sin resultados");
+
+		// El bloque que falló cae al contenido de desarrollo y se pinta igual…
+		expect(
+			await screen.findByRole("heading", { name: "Mientras tanto, lo más reciente" }),
+		).toBeTruthy();
+		// …y el que respondió bien muestra SU dato: ninguno tumbó al otro.
+		expect(await screen.findByRole("heading", { name: "Explorar por organización" })).toBeTruthy();
+		expect(screen.getByText("Facultad de Ciencias y Tecnología")).toBeTruthy();
+	});
+
 	it("mientras el vacío siga en pantalla, un cambio de orden no vuelve a cargar los bloques", async () => {
 		setUrl("?q=matricula");
 		mocks.search.mockImplementation(respondBySignature);
