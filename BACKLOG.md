@@ -1748,6 +1748,22 @@ después del cierre que describe el encabezado de esta sección; medición compl
   cliente de CKAN 2.12 (`HELLO`/RESP3). Hoy vive en un comentario del workflow, **sin guarda**; es el
   candidato natural para la próxima guarda de versión, y no lo cierra `f21dc6b`.
 
+- [ ] **[v0]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
+  «para el caso de los pdf creo que ese espacio es pequeño, creo que lo mismo aplicará para otros view, como los gráficos y
+  demás». **Medido en el código hoy:** el `<iframe>` del PDF mide **`h-[520px]`** (`ResourcePreview.svelte:131`), la imagen
+  **`max-h-[520px]`** (`:138`), el texto **`h-[360px]`** (`:151`), y los esqueletos de carga `min-h-[420px]` (`:113`) y
+  `h-[420px]` (`resource/[resourceId]/+page.svelte:425`). **La tabla, en cambio, no tiene tope**: sólo `overflow-x-auto`
+  (`DataPreviewTable.svelte:28`), así que crece con las filas — es la única de las cuatro sin alto acotado, y conviene
+  decidir si eso se mantiene.
+  **Dos cosas antes de tocar nada:** (1) **medir cuánto alto libre queda en 1080p** —hay que descontar el encabezado
+  (`var(--header-h)`), la miga, el hero y la banda de acciones—, porque hoy ningún número está medido contra la ventana;
+  (2) **decidir el criterio**: alto fijo más grande, proporcional a la ventana (`vh`), o con un control para **expandir la
+  vista** —y en ese caso, si es por vista o general—. **Es decisión del autor, con la medición hecha primero**, y es de la
+  misma familia que el ítem del responsive del salto.
+  **Los gráficos y mapas todavía no existen**: son el Módulo de Análisis, diferido a `v1+`, y los tabs simulados se
+  quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
+  _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
+
 ## v1 — producto usable en producción
 
 - [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
