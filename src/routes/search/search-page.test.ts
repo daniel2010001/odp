@@ -269,34 +269,20 @@ describe("Página de búsqueda — el panel cuando hay filtros aplicados y no ha
 });
 
 describe("Página de búsqueda — el vacío con contenido", () => {
-	/** Respuesta principal con cero resultados y las facetas que alimentan los chips. */
-	function emptyWithFacets() {
-		return {
-			count: 0,
-			results: [],
-			search_facets: {
-				res_format: makeFacet({
-					title: "Formato",
-					items: [
-						{ name: "CSV", display_name: "CSV", count: 9 },
-						{ name: "PDF", display_name: "PDF", count: 4 },
-					],
-				}),
-				tags: makeFacet({
-					title: "Etiquetas",
-					items: [
-						{ name: "salud", display_name: "salud", count: 5 },
-						{ name: "educacion", display_name: "educacion", count: 2 },
-					],
-				}),
-			},
-		};
+	/**
+	 * La búsqueda principal con cero resultados. **`search_facets` va vacío a propósito, porque así
+	 * responde CKAN**: con cero coincidencias no hay facetas que contar. Una fixture que las inventara
+	 * acá bendeciría un bloque de chips que en el catálogo real no puede aparecer — que es exactamente
+	 * el defecto que esta forma evita.
+	 */
+	function emptySearch() {
+		return { count: 0, results: [], search_facets: {} };
 	}
 
 	/**
 	 * La búsqueda principal y la del total del catálogo comparten el mismo `search`; el bloque «lo más
-	 * reciente» se distingue por su firma (`limit: 3`). Sin esta separación, la carga lazy volvería a
-	 * caer en la respuesta vacía y el bloque nunca tendría datasets.
+	 * reciente» se distingue por su firma (`limit: 3`). **Esa llamada es también la fuente de los
+	 * chips**: recorre todo el catálogo, así que trae las facetas que la búsqueda vacía no tiene.
 	 */
 	function respondBySignature(params: { limit?: number } | undefined) {
 		if (params?.limit === 3) {
@@ -307,10 +293,25 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 					makeDataset({ id: "pkg-b", title: "Becas 2026" }),
 					makeDataset({ id: "pkg-c", title: "Presupuesto 2026" }),
 				],
-				search_facets: {},
+				search_facets: {
+					res_format: makeFacet({
+						title: "Formato",
+						items: [
+							{ name: "CSV", display_name: "CSV", count: 9 },
+							{ name: "PDF", display_name: "PDF", count: 4 },
+						],
+					}),
+					tags: makeFacet({
+						title: "Etiquetas",
+						items: [
+							{ name: "salud", display_name: "salud", count: 5 },
+							{ name: "educacion", display_name: "educacion", count: 2 },
+						],
+					}),
+				},
 			});
 		}
-		return Promise.resolve(emptyWithFacets());
+		return Promise.resolve(emptySearch());
 	}
 
 	it("con cero resultados apila los tres bloques debajo del vacío, en orden", async () => {
@@ -419,7 +420,7 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 			if (params?.limit === 0) {
 				return Promise.resolve({ count: 0, results: [], search_facets: {} });
 			}
-			return Promise.resolve(emptyWithFacets());
+			return Promise.resolve(emptySearch());
 		});
 		mocks.listOrganizations.mockRejectedValue(new Error("sin red"));
 		mocks.getMockSearchResult.mockReturnValue({
@@ -447,7 +448,7 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 			if (params?.limit === 0) {
 				return Promise.resolve({ count: 0, results: [], search_facets: {} });
 			}
-			return Promise.resolve(emptyWithFacets());
+			return Promise.resolve(emptySearch());
 		});
 		// Las organizaciones, en cambio, responden bien: con un dato propio, no el mock.
 		mocks.listOrganizations.mockResolvedValue([
@@ -519,7 +520,7 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		setUrl("?q=matricula");
 		mocks.search.mockImplementation((params: { limit?: number } | undefined) => {
 			if (params?.limit === 3) return Promise.reject(new Error("sin red"));
-			return Promise.resolve(emptyWithFacets());
+			return Promise.resolve(emptySearch());
 		});
 		mocks.listOrganizations.mockRejectedValue(new Error("sin red"));
 

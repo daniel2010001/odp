@@ -164,12 +164,18 @@ async function loadCatalogTotal() {
 // resultados) no se dispara ninguna llamada extra.
 let recentDatasets = $state<CkanPackage[]>([]);
 let topOrganizations = $state<CkanOrganization[]>([]);
+// Facetas del **catálogo entero**, para los chips: la búsqueda no sirve como fuente porque con cero
+// resultados vienen vacías.
+let catalogFacets = $state<Record<string, CkanFacet>>({});
 // Guarda de carga: no es `$state` a propósito (no se pinta). Hacerla reactiva re-dispararía el
 // mismo effect que protege. Vuelve a `false` cuando reaparecen resultados.
 let emptyAssistLoaded = false;
 
 // Los tres más frecuentes de cada faceta, como enlaces a una búsqueda filtrada por ese valor.
-// Si una faceta falta se muestra la otra; sin ninguna, no hay bloque.
+// **La fuente es el catálogo, no la búsqueda**: con cero resultados CKAN devuelve `search_facets`
+// vacío —es el propio comentario de más abajo—, así que leerlos de la búsqueda dejaba el bloque
+// invisible justo en el único caso en que existe. Salen de la llamada perezosa de «lo más reciente»,
+// que ya recorre todo el catálogo. Si una faceta falta se muestra la otra; sin ninguna, no hay bloque.
 const suggestionChips = $derived.by(() => {
 	const chips: { label: string; href: string }[] = [];
 	const seen = new Set<string>();
@@ -185,8 +191,8 @@ const suggestionChips = $derived.by(() => {
 		}
 	};
 
-	take(facets.res_format, "format");
-	take(facets.tags, "tags");
+	take(catalogFacets.res_format, "format");
+	take(catalogFacets.tags, "tags");
 	return chips;
 });
 
@@ -202,6 +208,7 @@ async function loadEmptyAssist() {
 	let fallo = false;
 	const sinDatos = () => {
 		recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+		catalogFacets = import.meta.env.DEV ? (getMockSearchResult().search_facets ?? {}) : {};
 		topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
 	};
 
@@ -218,8 +225,12 @@ async function loadEmptyAssist() {
 				q: "*:*",
 				sort: "metadata_modified desc",
 				limit: 3,
+				// Mismas facetas que pide la búsqueda, pero sobre todo el catálogo: alimentan los chips.
+				facet_field: ["res_format", "tags"],
+				facet_limit: 10,
 			});
 			recentDatasets = result.results;
+			catalogFacets = result.search_facets ?? {};
 		} catch {
 			fallo = true;
 			recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
@@ -728,7 +739,9 @@ const emptyStateMessage = $derived.by(() => {
 			<!-- Empty state: el aviso y, debajo, tres salidas para seguir navegando -->
 			{:else if total === 0 && !error}
 				<div class="space-y-8">
-					<div class="rounded-xl border border-border bg-card p-12 text-center">
+					<div
+						class="flex min-h-[24rem] flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center"
+					>
 						<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
 						<p class="mt-2 text-sm text-muted-foreground">
 							{emptyStateMessage}
