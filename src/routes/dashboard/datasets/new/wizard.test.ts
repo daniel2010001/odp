@@ -490,6 +490,59 @@ describe("Wizard de creación", () => {
 		expect(mocks.create).not.toHaveBeenCalled();
 	});
 
+	it("traduce el conflicto real de nombre que devuelve CKAN en el mensaje de slug en uso", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula 2026" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+		await fireEvent.input(screen.getByLabelText(/slug/i), {
+			target: { value: "matricula-estudiantil-2026" },
+		});
+
+		// Este es el único mensaje que significa «el nombre ya está tomado»: lo emite
+		// `package_name_validator` (ckan/logic/validators.py:408-427), el validador del nombre del dataset.
+		mocks.create.mockRejectedValueOnce(new CkanApiError("That URL is already in use.", 409));
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() =>
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				/slug «matricula-estudiantil-2026» ya está en uso/i,
+			),
+		);
+	});
+
+	it("no llama «slug en uso» a un error que sólo menciona una URL", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula 2026" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+		await fireEvent.input(screen.getByLabelText(/slug/i), {
+			target: { value: "matricula-estudiantil-2026" },
+		});
+
+		// No es un conflicto de nombre: es un error de validación de una URL. El patrón anterior
+		// (`/already in use|url/i`) lo marcaba como slug en uso y le decía al usuario que cambiara el
+		// slug, cuando el problema estaba en otro campo.
+		mocks.create.mockRejectedValueOnce(
+			new CkanApiError("Invalid URL: it must start with http:// or https://", 409),
+		);
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+		expect(screen.getByRole("alert")).not.toHaveTextContent(/ya está en uso/i);
+		expect(screen.getByRole("alert")).toHaveTextContent(/No se pudo crear el dataset/i);
+	});
+
 	it("lleva el foco al primer campo inválido en orden de formulario al intentar enviar", async () => {
 		auth.login("tok-123", baseUser);
 
