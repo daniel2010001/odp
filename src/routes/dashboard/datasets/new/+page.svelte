@@ -496,7 +496,11 @@ function mapZodErrors(
 
 function describeCreateError(err: unknown, name: string): string {
 	const message = err instanceof Error ? err.message : "Error desconocido";
-	if (/already in use|url/i.test(message)) {
+	// Sólo el mensaje que CKAN emite para un nombre ya tomado es un conflicto de slug: lo produce
+	// `package_name_validator` (`ckan/logic/validators.py:408-427`). Antes el patrón incluía `url` suelto y
+	// marcaba como conflicto cualquier error que nombrara una URL —el de un recurso, por ejemplo—, así que
+	// al usuario se le pedía cambiar el slug cuando el problema estaba en otro campo.
+	if (/that url is already in use/i.test(message)) {
 		return `El slug «${name}» ya está en uso. Elija otro slug e intente nuevamente.`;
 	}
 	return `No se pudo crear el dataset: ${message}`;
