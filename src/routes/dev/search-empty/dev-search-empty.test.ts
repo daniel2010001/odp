@@ -1,39 +1,50 @@
-// Tests del playground del vacío del buscador: lo que lo hace útil es que muestre el vacío de hoy y las
-// cuatro formas de llenarlo, y que **use los componentes reales** (`DatasetCard`, `OrganizationCard`) con
-// las fixtures del repo, para que lo que el autor apruebe sea lo que se publica. El bloque del vacío y
-// los chips son copias, y la hoja lo dice.
+// Tests del playground del vacío del buscador: lo que lo hace útil es que **se vea en acción** (un caso
+// simulado a la vez, o una combinación de bloques) y que use los componentes reales (`DatasetCard`,
+// `OrganizationCard`) con las fixtures del repo, para que lo que el autor apruebe sea lo que se publica.
 //
-// La ruta no existe en producción: la compuerta está en `+page.ts`, y se ejercita en las dos direcciones
-// (abajo) porque un test de una sola dirección pasa igual si `load` tirara siempre.
+// La ruta no existe en producción: la compuerta está en `+page.ts`, y se ejercita en las dos direcciones.
 
-import { render, screen } from "@testing-library/svelte";
+import { fireEvent, render, screen } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SearchEmptySheet from "./+page.svelte";
 
 describe("Playground del vacío del buscador", () => {
-	it("muestra el vacío de hoy y las cuatro formas de llenarlo", () => {
+	it("arranca en «Hoy»: sólo el aviso, y con el control a la vista", () => {
 		render(SearchEmptySheet);
 
-		expect(screen.getByText("Hoy")).toBeTruthy();
-		for (const label of [
-			"A · Mientras tanto, lo más reciente",
-			"B · Explorar por organización",
-			"C · A + B",
-			"D · Búsquedas sugeridas",
-		]) {
-			expect(screen.getByText(label)).toBeTruthy();
-		}
-		// El bloque del vacío se repite una vez por sección: hoy + las cuatro propuestas.
-		expect(screen.getAllByText("Sin resultados")).toHaveLength(5);
+		expect(screen.getByText(/Control del playground \(no es UI de producto\)/i)).toBeTruthy();
+		expect(screen.getAllByText("Sin resultados")).toHaveLength(1);
+		// Ningún bloque encendido al arrancar: es el estado de hoy.
+		expect(screen.queryByText("Mientras tanto, lo más reciente")).toBeNull();
+		expect(screen.queryByText("Explorar por organización")).toBeNull();
+		expect(screen.queryByText("Pruebe con")).toBeNull();
 	});
 
-	it("usa los componentes reales con las fixtures del repo", () => {
+	it("un preset enciende exactamente los bloques que le tocan", async () => {
 		render(SearchEmptySheet);
 
-		// Las cards de organización son el componente real: traen los nombres de las fixtures.
+		await fireEvent.click(screen.getByRole("button", { name: "C · A + B" }));
+
+		expect(screen.getByText("Mientras tanto, lo más reciente")).toBeTruthy();
+		expect(screen.getByText("Explorar por organización")).toBeTruthy();
+		expect(screen.queryByText("Pruebe con")).toBeNull();
+		// Las cards son los componentes reales: traen las fixtures del repo.
 		expect(screen.getAllByText(/Facultad|Dirección|Rectorado/i).length).toBeGreaterThan(0);
-		// Y los datasets también: sus cards traen el título de la fixture.
-		expect(screen.getAllByRole("link", { name: /./ }).length).toBeGreaterThan(0);
+	});
+
+	it("los interruptores combinan lo que entra, y el aviso del vacío queda siempre", async () => {
+		render(SearchEmptySheet);
+
+		await fireEvent.click(screen.getByRole("button", { name: "Bloque: Búsquedas sugeridas" }));
+
+		expect(screen.getByText("Pruebe con")).toBeTruthy();
+		expect(screen.getAllByText("Sin resultados")).toHaveLength(1);
+
+		await fireEvent.click(screen.getByRole("button", { name: "Bloque: Lo más reciente" }));
+
+		expect(screen.getByText("Pruebe con")).toBeTruthy();
+		expect(screen.getByText("Mientras tanto, lo más reciente")).toBeTruthy();
+		expect(screen.getByText(/combinación propia/i)).toBeTruthy();
 	});
 });
 
