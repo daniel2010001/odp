@@ -1601,21 +1601,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
   **Frena en la decisión del autor: el alcance.**
 
-- [ ] **[v0]** `TODO:` **El buscador sin resultados: el área vacía se «achica» y se ve pobre.** Precisión del autor
-  (2026-10-01) sobre su observación del 2026-09-28: lo que le molesta **no** es el menú de filtros —esa mitad ya está
-  resuelta, ver abajo— sino que **sin cards que mostrar la sección pierde altura y queda un hueco feo**. **Su propuesta,
-  que NO estaba anotada hasta ahora: agregar contenido al vacío** —**datasets recomendados**, o bloques como **la lista de
-  organizaciones del home**—, con la comparación que él mismo trajo: **cómo lo resuelven Amazon, YouTube o Google** cuando
-  una búsqueda no devuelve nada. **Falta medir** la altura resultante del vacío a cada ancho y **decidir qué contenido
-  entra y de dónde sale**; es decisión del autor.
-  **La mitad del menú de filtros: CERRADA — verificado en vivo por el autor el 2026-10-01.** Con `q=test` y con
-  `PDF+q=test`: **sin filtros activos el menú desaparece; con filtros, sólo se muestran esos.** Y el comportamiento del
-  buscador interno de una faceta («Sin coincidencias para «X»» y la lista oculta) **se queda como está, por decisión
-  explícita del autor**: es un input de texto, se borra el texto y listo.
-  **Propuesta descartada, con su motivo, para que no se re-proponga:** se evaluaron tres salidas para ese caso —agregar
-  una acción «Limpiar», mostrar el resto de la lista debajo del aviso, o las dos— y **el autor prefirió el comportamiento
-  actual**. La hoja `/dev/facets` que las mostraba se borró junto con esta decisión.
-  _Origen: observación del autor, 2026-09-28; precisión, verificación y propuesta de contenido, 2026-10-01._
 - [ ] **[v0]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
   autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
   antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
@@ -2224,6 +2209,25 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibo de la unidad que llenó el vacío del buscador (2026-10-01)** — cerró **`approved`** con la authority quemada.
+  `review-f6b3cb06831d7e11`: tier **medium**, lente `review-reliability`, **2 archivos / 441 líneas**, presupuesto 200,
+  **0 bloqueantes, 3 avisos informativos**. La unidad: el vacío ganó **tres salidas en el orden que pidió el autor**
+  —«Pruebe con» (chips de las facetas que el buscador ya trae), «Mientras tanto, lo más reciente» y «Explorar por
+  organización»—, con las dos llamadas **perezosas** (sólo con el vacío en pantalla) y sin fabricar datos fuera de DEV.
+  **Los tres avisos eran legítimos y dos eran defectos reales de lo que yo especifiqué**, corregidos en `cee3d77`:
+  - `R3-EMPTY-ASSIST-NO-RETRY`: el latch se activaba antes de la carga y sólo se soltaba al aparecer resultados, así que
+    en producción **un fallo transitorio suprimía el contenido para siempre**. Ahora un fallo lo libera (un bloque
+    legítimamente vacío no, que eso sería un bucle).
+  - `R3-CLIENT-CREATION-UNCAUGHT`: `createCkanClient` estaba **fuera** del `try` y la llamada va con `void`, así que un
+    throw ahí dejaba una promesa rechazada sin dueño.
+  - `R3-PARTIAL-FAILURE-UNTESTED`: la promesa «cada bloque falla por su cuenta» **no estaba probada**; hay un test que
+    hace fallar una y responder la otra.
+  **Desviación declarada:** el commit del arreglo (`cee3d77`) **no lleva recibo propio** —decisión mía por el tamaño y
+  porque respondía a avisos ya quemados—; el autor puede pedirlo.
+  La hoja `/dev/search-empty` que sirvió para elegir **se borró al promover** (regla 8).
+  _Origen: el ítem `[v0]` «el área vacía se achica», precisado por el autor el 2026-10-01._
+
 
 - [ ] **Recibo de la barrida de v0 — el censo verificado y sus reglas de conteo (2026-09-30)** — la barrida cerró **15
   ítems** (borrados, según la convención del proyecto), marcó **2 `PARTIAL`** con su corte exacto y anotó **14 vivos**
