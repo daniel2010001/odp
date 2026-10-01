@@ -1623,51 +1623,18 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
   **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
 
-- [ ] **[v0]** `TODO:` **El navegador desactiva el anclaje de desplazamiento por culpa del encabezado que se achica.**
-  Observación del autor (2026-09-24), **mensaje textual de la consola**: «El anclaje de desplazamiento se
-  desactivó en un contenedor de desplazamiento debido a demasiados ajustes consecutivos (10) con muy poca
-  distancia total (-1.12666664123535 px promedio, -11.2667 px total)». **Causa medida por lectura del
-  mecanismo:** el encabezado se achica cambiando su **alto en el flujo** (`h-[var(--header-h)]` de `5rem` a
-  `4rem`), así que al cruzar el umbral **todo el contenido de abajo sube 16px** y el anclaje de desplazamiento
-  intenta compensarlo en cada transición; tras diez ajustes seguidos con una distancia total diminuta, el
-  navegador **desactiva el anclaje** en ese contenedor. Es la consecuencia directa del slice E2b y no aparecía
-  antes. **Opciones:** (1) `overflow-anchor: none` en el contenedor de scroll, para que el navegador no
-  compense algo que ya es intencional; (2) achicar **sin tocar el flujo** (el encabezado conserva su alto y el
-  recorte es visual, p. ej. con `transform`/`scale`), que es lo correcto si el salto se nota; (3) dejarlo y
-  documentarlo, si el efecto es sólo el aviso en consola. **Medir primero si produce un salto visible.**
-  Pertenece al **bloque E**.
-  **Estado medido (2026-09-30): VIVO.** `overflow-anchor` **no aparece** en `src/`, y el encabezado sigue cambiando el alto
-  **en el flujo** (`+layout.svelte:82`, `app.css:127,141`). **Frena primero en una medición** —¿produce un salto visible?— y
-  **después en la elección de opción.**
-  **Medición hecha el 2026-10-01: la premisa NO se reproduce en Chromium.** Medido con **rueda real**
-  (`Input.dispatchMouseEvent`, no `scrollTo` —con `scrollTo` el navegador re-ancla distinto—) sobre `/search`, registrando en
-  cada paso el alto del `<nav>` del encabezado, el atributo `data-header-shrunk` y la posición de una card: 24 pasos bajando
-  y 30 subiendo, en Chromium headless, con el servidor de desarrollo arriba. **El anclaje del navegador compensa
-  exactamente el cambio de alto:**
-  - **Bajando:** al cruzar el umbral (`SHRINK_AFTER_PX = 48`, `+layout.svelte:44`) el documento se acorta **16 px**
-    (6355→6319 en el alto total) y una rueda de 120 px avanza el scroll **104 px** —los 16 px que se comió el layout—: la
-    card se movió **120 px** en pantalla, **exactamente el gesto**. Sin compensación habrían sido 136 px, o sea un salto de 16.
-  - **Subiendo:** simétrico. En el paso de transición (con el alto a mitad de camino, `hh=70`) el scroll avanzó **114** de
-    120 y el documento creció 6; y al llegar al tope la posición final es **idéntica** a la inicial (`y=0`, misma `top`).
-  - **Alcance, y es la parte importante:** medido en **Chromium (headless) y con rueda**. **No medido** en Firefox ni Safari,
-    ni con gestos táctiles/trackpad. **La afirmación de que el navegador «desactiva el anclaje» no se sostiene en esta
-    medición**, así que las tres opciones que el ítem enumeraba (mover el centinela, sacar el alto del flujo, o `scroll-mt`)
-    quedan **sin motivo medido** hasta que el autor nombre un salto concreto: **qué página, a qué ancho y con qué gesto.**
-  **Segunda medición (2026-10-01), el escenario que faltaba: oscilar SOBRE el umbral.** El primero sólo cruzaba una vez, así
-  que nunca llegaba a los «10 ajustes consecutivos» que el mensaje que el autor vio nombra. Repetido oscilando entre `y=0`
-  y `y=80` —12 ciclos, 24 cruces, con el umbral en `y≈49`—: `hh` alterna 80 ↔ 64 y la card vuelve **exactamente** a 2340 /
-  2260 en cada vuelta, con la rueda de 80 avanzando el scroll **64 px** (los 16 px del layout, absorbidos otra vez).
-  **Tampoco acá hay salto: la compensación es exacta en cada cruce.**
-  **La aritmética del mensaje, en cambio, apunta a otra cosa que los cruces:** decía **10 ajustes con ~1,13 px promedio** y
-  **11,27 px en total**. Eso **no** son cruces discretos de 16 px —son los **cuadros de la transición** de 200 ms: 16 px
-  repartidos en ~12 cuadros ≈ 1,3 px cada uno. O sea que el aviso lo produjo **la animación del alto**, no el salto entre
-  estados. **Y no lo pude reproducir en headless** (la consola quedó vacía en las dos corridas): el aviso de consola sigue
-  **sin confirmar**, medido sólo por lo que el autor vio el 2026-09-24.
-  **Y una corrección importante a las opciones del propio ítem:** la **(1)** —`overflow-anchor: none` para que el navegador
-  «no compense algo intencional»— **haría peor el problema**: la compensación es justamente lo que hoy evita el salto, así
-  que apagarla lo **introduce**. Queda descartada con su motivo. La **(2)** (achicar sin tocar el flujo, con `transform`) sigue
-  siendo la única que elimina la causa —sin cambio de layout no hay nada que compensar ni cuadros que ajustar—, y la **(3)**
-  es lo que la medición sostiene: **no hay efecto visible**, así que documentarlo alcanza. **Decisión del autor.**
+- [ ] **[v0]** `TODO:` **Aviso benigno de Chromium: «el anclaje de desplazamiento se desactivó… demasiados ajustes
+  consecutivos». DECIDIDO (2026-10-01): no se actúa.** Lo produce el encabezado que se achica **cambiando su alto en el
+  flujo** (80→64 px) y **animado** (200 ms), en `+layout.svelte`: cada cruce mueve el contenido 16 px y la animación lo
+  hace **cuadro por cuadro** (~12 ajustes de ~1,3 px), así que tras diez ajustes con distancia diminuta el navegador **se
+  rinde y lo desactiva** en ese contenedor —los números del mensaje del autor, −1,13 px promedio y −11,27 px total, son
+  exactamente eso, no saltos de 16 px—. **Aparece en TODAS las páginas** porque el encabezado vive en el layout global: no
+  son varios problemas, es uno. **Medido el 2026-10-01 y no produce salto visible** (cruzando una vez y oscilando 12 ciclos
+  sobre el umbral, la compensación es exacta en cada cruce; la consola no lo repitió en headless). **Si alguna vez molesta,
+  la opción es achicar sin tocar el flujo** (`transform`), que elimina la causa; **`overflow-anchor: none` sería PEOR**,
+  porque esa compensación es lo que hoy evita el salto. El detalle de la medición está en los commits `e891ed5` y `389f2d0`.
+  _Origen: el mensaje de consola que el autor vio el 2026-09-24, en el buscador y en la ficha del PDF de sonda; cierre por
+  decisión del autor el 2026-10-01 (no es importante)._
 
 - [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
