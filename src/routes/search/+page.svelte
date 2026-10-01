@@ -5,13 +5,15 @@ import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import { createOrganizationApi } from "$lib/api/organizations";
+import OrganizationCard from "$lib/components/organizations/OrganizationCard.svelte";
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
 import FacetFilter from "$lib/components/search/FacetFilter.svelte";
 import Pagination from "$lib/components/search/Pagination.svelte";
 import SearchBar from "$lib/components/search/SearchBar.svelte";
 import { env } from "$lib/env";
-import { getMockSearchResult } from "$lib/mock/data";
-import type { CkanFacet, CkanPackage } from "$lib/types/ckan";
+import { getMockSearchResult, MOCK_ORGS } from "$lib/mock/data";
+import type { CkanFacet, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { buildFilterQuery } from "$lib/utils/ckan";
 import { mapLicenseItems } from "$lib/utils/licenses";
 
@@ -156,6 +158,68 @@ async function loadCatalogTotal() {
 	}
 }
 
+// ─── Contenido del estado vacío (lazy) ───────────────────────────
+// Cuando la búsqueda no devuelve nada, el aviso solo deja un hueco: debajo se ofrecen tres salidas
+// para seguir navegando. Se cargan **sólo** si el vacío llegó a mostrarse: en el camino normal (con
+// resultados) no se dispara ninguna llamada extra.
+let recentDatasets = $state<CkanPackage[]>([]);
+let topOrganizations = $state<CkanOrganization[]>([]);
+// Guarda de carga: no es `$state` a propósito (no se pinta). Hacerla reactiva re-dispararía el
+// mismo effect que protege. Vuelve a `false` cuando reaparecen resultados.
+let emptyAssistLoaded = false;
+
+// Los tres más frecuentes de cada faceta, como enlaces a una búsqueda filtrada por ese valor.
+// Si una faceta falta se muestra la otra; sin ninguna, no hay bloque.
+const suggestionChips = $derived.by(() => {
+	const chips: { label: string; href: string }[] = [];
+	const seen = new Set<string>();
+
+	const take = (facet: CkanFacet | undefined, param: "format" | "tags") => {
+		const items = [...(facet?.items ?? [])].sort((a, b) => b.count - a.count).slice(0, 3);
+		for (const item of items) {
+			if (!item.name) continue;
+			const href = `/search?${param}=${encodeURIComponent(item.name)}`;
+			if (seen.has(href)) continue;
+			seen.add(href);
+			chips.push({ label: item.display_name || item.name, href });
+		}
+	};
+
+	take(facets.res_format, "format");
+	take(facets.tags, "tags");
+	return chips;
+});
+
+/** Las tres organizaciones con más datasets, de mayor a menor. */
+function topByPackageCount(orgs: CkanOrganization[]): CkanOrganization[] {
+	return [...orgs].sort((a, b) => (b.package_count ?? 0) - (a.package_count ?? 0)).slice(0, 3);
+}
+
+async function loadEmptyAssist() {
+	const client = createCkanClient({ baseUrl: env.CKAN_URL });
+
+	// Cada bloque falla por su cuenta: que las organizaciones no carguen no debe tumbar «lo más
+	// reciente» (y al revés). Fuera de DEV no se fabrican datos: el bloque se queda sin pintar.
+	try {
+		const datasetApi = createDatasetApi(client);
+		const result = await datasetApi.search({
+			q: "*:*",
+			sort: "metadata_modified desc",
+			limit: 3,
+		});
+		recentDatasets = result.results;
+	} catch {
+		recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+	}
+
+	try {
+		const organizationApi = createOrganizationApi(client);
+		topOrganizations = topByPackageCount(await organizationApi.list());
+	} catch {
+		topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
+	}
+}
+
 // ─── Efecto: buscar cuando cambia el estado ───────────────────────
 $effect(() => {
 	// Leer todos los reactivos para que el effect dependa de ellos
@@ -196,6 +260,27 @@ $effect(() => {
 	void routerReady;
 
 	if (routerReady) syncUrl();
+});
+
+// ─── Efecto: contenido del vacío, sólo mientras el vacío se muestra ──
+// Depende de `results`/`total`/`loading`/`error` para no ejecutarse en el camino normal. La guarda
+// impide repetir la carga en cada tecla o cambio de página mientras el vacío siga en pantalla.
+$effect(() => {
+	void results;
+	void total;
+	void error;
+	void loading;
+	void routerReady;
+
+	if (results.length !== 0 || total !== 0) {
+		emptyAssistLoaded = false;
+		return;
+	}
+
+	if (!routerReady || loading || error) return;
+	if (emptyAssistLoaded) return;
+	emptyAssistLoaded = true;
+	void loadEmptyAssist();
 });
 
 // ─── Handlers ─────────────────────────────────────────────────────
@@ -620,23 +705,74 @@ const emptyStateMessage = $derived.by(() => {
 					{/each}
 				</div>
 
-			<!-- Empty state -->
+			<!-- Empty state: el aviso y, debajo, tres salidas para seguir navegando -->
 			{:else if total === 0 && !error}
-				<div class="rounded-xl border border-border bg-card p-12 text-center">
-					<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
-					<p class="mt-2 text-sm text-muted-foreground">
-						{emptyStateMessage}
-					</p>
-					{#if query || hasActiveFilters}
-						<button
-							onclick={() => {
-								query = '';
-								clearAllFilters();
-							}}
-							class="mt-4 text-sm font-medium text-primary hover:underline"
-						>
-							Limpiar búsqueda y filtros
-						</button>
+				<div class="space-y-8">
+					<div class="rounded-xl border border-border bg-card p-12 text-center">
+						<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
+						<p class="mt-2 text-sm text-muted-foreground">
+							{emptyStateMessage}
+						</p>
+						{#if query || hasActiveFilters}
+							<button
+								onclick={() => {
+									query = '';
+									clearAllFilters();
+								}}
+								class="mt-4 text-sm font-medium text-primary hover:underline"
+							>
+								Limpiar búsqueda y filtros
+							</button>
+						{/if}
+					</div>
+
+					<!-- 1. «Pruebe con»: los formatos y etiquetas más frecuentes, ya filtrados -->
+					{#if suggestionChips.length}
+						<div class="space-y-3">
+							<h3 class="font-heading text-lg font-semibold text-primary">
+								Pruebe con
+							</h3>
+							<div class="flex flex-wrap gap-2">
+								{#each suggestionChips as chip (chip.href)}
+									<a
+										href={chip.href}
+										class="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm text-foreground transition-colors duration-200 hover:bg-accent"
+									>
+										{chip.label}
+									</a>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- 2. «Mientras tanto, lo más reciente»: sin filtros, a propósito -->
+					{#if recentDatasets.length}
+						<div class="space-y-4">
+							<h3 class="font-heading text-lg font-semibold text-primary">
+								Mientras tanto, lo más reciente
+							</h3>
+							{#each recentDatasets as dataset (dataset.id)}
+								<DatasetCard {dataset} />
+							{/each}
+						</div>
+					{/if}
+
+					<!-- 3. «Explorar por organización»: las tres con más datasets -->
+					{#if topOrganizations.length}
+						<div class="space-y-4">
+							<h3 class="font-heading text-lg font-semibold text-primary">
+								Explorar por organización
+							</h3>
+							<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+								{#each topOrganizations as org (org.id)}
+									<OrganizationCard
+										org={org}
+										count={org.package_count ?? 0}
+										href={`/organization/${encodeURIComponent(org.name)}`}
+									/>
+								{/each}
+							</div>
+						</div>
 					{/if}
 				</div>
 
