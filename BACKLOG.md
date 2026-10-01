@@ -2209,6 +2209,27 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la barrida de v0 — el censo verificado y sus reglas de conteo (2026-09-30)** — la barrida cerró **15
+  ítems** (borrados, según la convención del proyecto), marcó **2 `PARTIAL`** con su corte exacto y anotó **14 vivos**
+  con el bloqueo medido; el `[~]` del `R2-002` quedó intacto. **El método del cruce de tier quedó en la convención de
+  `L8`; acá va el censo con su fecha y sus commits**, porque **un censo sin reglas de conteo es una cifra de autor**:
+  dos implementaciones independientes no coincidieron hasta declararlas.
+  - **Regla 1 — alcance:** sólo ítems cuyo encabezado `##` más cercano por encima es una sección de tier.
+  - **Regla 2 — estados:** sólo `[ ]` y `[~]`; **los `[x]` no cuentan.** Fue el único desacuerdo real: un `[x]` dentro
+    de `## v1` hacía 42 donde la otra regla daba 41, sin que ninguno midiera mal.
+  - **Regla 3 — secciones externas:** para contar «ítems con tag de tier fuera de las secciones de tier» hay que decir
+    si los planes cerrados entran: **con `Plan*` son 25, sin `Plan*` son 17.**
+  - **El censo de las secciones de tier** (reglas 1 y 2): `9df384a` → **48 coinciden / 4 contradictorios / 7 sin tag
+    = 59**; `a716e04` → **52 / 0 / 7 = 59**; `f2fa5c9` (esta rama) → **41 / 0 / 4 = 45**. Los dos movimientos de ítems
+    mal ubicados son los que llevaron las contradicciones a cero.
+  - **Los ítems fuera de sección** (reglas 1 y 3): en `9df384a` y `a716e04`, **25 abiertos (17 excluyendo `Plan*`) con
+    4 `[v0]`** — uno en un plan cerrado (`L1146`, el bug de los badges duplicados, que **esta barrida cerró**) y **tres**
+    en deuda de revisión; en `f2fa5c9`, **24 (17) con 3 `[v0]`**, los tres en deuda de revisión.
+  - **Medido por las dos sesiones, en desacuerdo y después reconciliadas.** Yo publiqué «25 casos, tres `[v0]`» y
+    **estaba mal**: eran **cuatro** en `9df384a`. Lo corrigió la otra sesión y lo confirmó mi propia medición.
+  _Origen: la barrida de v0 del 2026-09-30; decisión del autor: el método a `L8`, el censo a este registro._
+
+
 - [ ] **Recibo de la revisión nativa de la unidad de los rótulos de metadatos (2026-09-29)** — cerró **`approved`** y
   la authority quedó quemada (`gentle-ai.review-acknowledged/v1`). `review-d13fbf017e3991a1`: tier **medium**, lente
   `review-reliability`, **4 archivos / 79 líneas**, presupuesto 40, **0 bloqueantes, 1 aviso informativo**.
