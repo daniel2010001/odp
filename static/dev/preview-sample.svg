@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-labelledby="preview-sample-title">
+	<title id="preview-sample-title">Muestra: distribucion de viajes por municipio</title>
+	<rect width="640" height="360" fill="#eef1f8" />
+	<text x="32" y="56" font-family="sans-serif" font-size="22" font-weight="bold" fill="#1f2a44">Distribucion de viajes por municipio</text>
+	<text x="32" y="82" font-family="sans-serif" font-size="14" fill="#5b6478">Muestra local de static/dev, no un archivo del catalogo</text>
+	<g fill="#4f6ef7">
+		<rect x="60" y="150" width="130" height="150" />
+		<rect x="230" y="215" width="130" height="85" />
+		<rect x="400" y="235" width="130" height="65" />
+	</g>
+	<g font-family="sans-serif" font-size="13" fill="#1f2a44">
+		<text x="60" y="322">Cochabamba</text>
+		<text x="230" y="322">Quillacollo</text>
+		<text x="400" y="322">Sacaba</text>
+	</g>
+</svg>

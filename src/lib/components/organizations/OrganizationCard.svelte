@@ -5,10 +5,13 @@ import type { CkanOrganization } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import OrganizationLogo from "./OrganizationLogo.svelte";
 
+// El enlace a la organización se arma codificado en su única fuente: este valor por defecto. Para los
+// slugs de CKAN `encodeURIComponent` es un no-op, pero deja la regla en una sola forma y evita un enlace
+// roto si un nombre llegara con espacios o signos (`R3-001`).
 let {
 	org,
 	count,
-	href = `/organization/${org.name}`,
+	href = `/organization/${encodeURIComponent(org.name)}`,
 	badge,
 	class: className = "",
 }: {

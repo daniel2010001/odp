@@ -103,6 +103,44 @@
 	--footer-foreground: oklch(0.93 0.008 250);
 }
 
+/*
+ * ─── Layout ───────────────────────────────────────────────────────────
+ *
+ * Alto del encabezado del sitio: **única fuente**. Lo consumen el encabezado del layout y todos los
+ * offsets que deben quedar pegados justo debajo de él: la barra de acciones del panel, la barra de
+ * resultados del buscador y los paneles laterales de la ficha del dataset y del asistente.
+ *
+ * Antes cada uno era un literal suelto (`h-20`, `top-20`, `top-[81px]`, `lg:top-24`) y el observer del
+ * panel guardaba además una constante `HEADER_PX = 80` en JS: cambiar el alto del encabezado dejaba la
+ * barra pegajosa desincronizada y **nada lo detectaba** (entrada `[v1]` del backlog).
+ *
+ * **Va en su propio `:root` y no dentro de una paleta.** El primer intento lo declaró al final del
+ * bloque `.dark`: el modo claro —que es el default, sin esa clase— se quedaba sin el token, `height:
+ * var(--header-h)` caía a `auto` (el encabezado medía la mitad) y cada `top:` caía a `auto` (los cuatro
+ * pegados se rompían). Un token que no depende del tema no pertenece a ninguna paleta.
+ *
+ * Decisión del autor (2026-09-24): el alto **no se recorta** por altura de viewport: eso se midió en la
+ * hoja `/dev/header` (marcos de 600/650/760/1080 px) y no lo justificó. Lo que se arregla es la fuente
+ * única, sin mover un píxel.
+ */
+:root {
+	--header-h: 5rem;
+}
+
+/*
+ * El encabezado se achica mientras el contenido manda: cuando la página deja el tope, la variable baja
+ * 16px (80px → 64px) y **todos** los pegados la siguen, porque todos la leen. El estado lo pone el
+ * layout en el documento (`data-header-shrunk`), no en el encabezado: la variable tiene que llegar
+ * también a los pegados que son hermanos suyos. La transición la apaga `prefers-reduced-motion` (el
+ * bloque de abajo la neutraliza con `!important`).
+ *
+ * El número es decisión del autor (2026-09-24): primero fueron 8px y, al verlo en movimiento, los subió
+ * a 16px. Cambiarlo es este valor y nada más, porque ningún offset lo lleva escrito.
+ */
+html[data-header-shrunk] {
+	--header-h: 4rem;
+}
+
 /* ─── Base styles ─────────────────────────────────────────────────── */
 html {
 	scroll-behavior: smooth;

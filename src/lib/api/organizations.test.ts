@@ -92,3 +92,37 @@ describe("createOrganizationApi.listForUser", () => {
 		expect(orgs[0].extras).toBeUndefined();
 	});
 });
+
+describe("createOrganizationApi.canCreateDataset", () => {
+	// La compuerta del panel no puede reusar la lista amplia de membresías: una con
+	// `capacity: "member"` pertenece a una organización pero no puede crear datasets. Esta consulta
+	// tiene que ser la misma que hace el asistente.
+	it("devuelve true cuando hay al menos una organización donde puede crear", async () => {
+		const { client, post } = makeClient({
+			organization_list_for_user: [makeOrg({ capacity: "editor" })],
+		});
+
+		const puede = await createOrganizationApi(client).canCreateDataset();
+
+		expect(puede).toBe(true);
+		// El payload entero, no sólo el permiso: si la consulta se ensancha con parámetros de la
+		// lista de display, deja de preguntar lo mismo que el asistente y la compuerta vuelve a
+		// ofrecer una acción que el backend no puede cumplir.
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("organization_list_for_user");
+		expect(params).toEqual({ permission: "create_dataset" });
+	});
+
+	it("devuelve false cuando CKAN responde [] para ese permiso", async () => {
+		const { client, post } = makeClient({ organization_list_for_user: [] });
+
+		const puede = await createOrganizationApi(client).canCreateDataset();
+
+		expect(puede).toBe(false);
+		// Una sola llamada: la pregunta de permiso no necesita el enriquecimiento de display.
+		expect(post.mock.calls).toHaveLength(1);
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("organization_list_for_user");
+		expect(params).toEqual({ permission: "create_dataset" });
+	});
+});

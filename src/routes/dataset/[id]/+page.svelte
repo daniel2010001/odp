@@ -4,9 +4,9 @@ import {
 	Building2,
 	Calendar,
 	Check,
-	ChevronRight,
 	Clock,
 	Copy,
+	Database,
 	Link2,
 	Shield,
 	User,
@@ -15,13 +15,22 @@ import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import {
+	type AccessContext,
+	classifyFailure,
+	describeFailure,
+	type FailurePresentation,
+	failureActions,
+	isDefinitive,
+} from "$lib/api/failure";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
+import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
+import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
-import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
@@ -29,12 +38,28 @@ import { formatDate } from "$lib/utils/ckan";
 import { renderMarkdown } from "$lib/utils/markdown";
 
 // ─── State ───────────────────────────────────────────────────────
+
+/** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
+type DatasetFailure = {
+	presentation: FailurePresentation;
+	access: AccessContext;
+};
+
 let dataset = $state<CkanPackage | null>(null);
 let loading = $state(true);
-let error = $state<string | null>(null);
+let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
 let copied = $state(false);
 let copiedLink = $state(false);
+
+// Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
+// una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
+// sobre el catálogo que no haya medido. Modelarla como `failure` sería inventar un diagnóstico.
+let invalidParams = $state(false);
+
+// El camino único de expulsión ya limpió la sesión y navegó: no se renderiza nada más ni se
+// vuelve a navegar.
+let expelled = $state(false);
 
 // ─── ID from URL ────────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
@@ -42,44 +67,66 @@ const datasetId = $derived($page.params.id);
 // ─── Data fetching ───────────────────────────────────────────────
 async function loadDataset() {
 	if (!datasetId) {
-		error = "ID de dataset no especificado";
+		// URL incompleta: estado propio, no un fallo del catálogo (ver el comentario de `invalidParams`).
+		invalidParams = true;
+		failure = null;
+		dataset = null;
 		loading = false;
 		return;
 	}
 
+	invalidParams = false;
+	expelled = false;
 	loading = true;
-	error = null;
+	failure = null;
+	dataset = null;
+
+	const token = get(auth).token;
+	// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
+	// responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
+	// flujo de publicación defina su visibilidad.
+	const client = createCkanClient({
+		baseUrl: env.CKAN_URL,
+		apiKey: () => get(auth).token,
+	});
+	const datasetApi = createDatasetApi(client);
 
 	try {
-		// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
-		// responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
-		// flujo de publicación defina su visibilidad.
-		const client = createCkanClient({
-			baseUrl: env.CKAN_URL,
-			apiKey: () => get(auth).token,
-		});
-		const datasetApi = createDatasetApi(client);
 		dataset = await datasetApi.show(datasetId);
 	} catch (err) {
-		// Un 403/404 es una respuesta **definitiva** del catálogo (privado o inexistente), no una
-		// caída: se explica el motivo y no se enmascara con datos mock.
-		if (err instanceof CkanApiError && (err.status === 403 || err.status === 404)) {
-			error =
-				err.status === 403
-					? "Este dataset es privado. Inicie sesión con una cuenta autorizada para verlo."
-					: "No se encontró el dataset solicitado.";
-			dataset = null;
-		} else if (import.meta.env.DEV) {
+		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
+		let access: AccessContext = "anonymous";
+		if (classifyFailure(err) === "unauthorized" && token) {
+			let resolution: UnauthorizedResolution = "inconclusive";
+			try {
+				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+			} catch {
+				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
+				resolution = "inconclusive";
+			}
+			if (resolution === "expelled") {
+				// El camino único ya limpió la sesión y navegó: acá termina la carga.
+				expelled = true;
+				loading = false;
+				return;
+			}
+			access = resolution === "alive" ? "session-alive" : "unknown";
+		}
+
+		const presentation = describeFailure(err, "dataset", access);
+
+		if (!presentation.definitive && import.meta.env.DEV) {
+			// Sólo una no-respuesta se enmascara con datos mock. Un 403/404 es la respuesta final del
+			// catálogo y enmascararlo es el defecto que este slice corrige.
 			const mock = getMockDatasetById(datasetId);
 			if (mock) {
 				dataset = mock;
 			} else {
-				error = err instanceof Error ? err.message : "Error al cargar el dataset";
-				dataset = null;
+				failure = { presentation, access };
 			}
 		} else {
-			error = "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
-			dataset = null;
+			failure = { presentation, access };
 		}
 	} finally {
 		loading = false;
@@ -90,6 +137,32 @@ async function loadDataset() {
 $effect(() => {
 	void datasetId;
 	loadDataset();
+});
+
+// ─── Derived: estado de error ────────────────────────────────
+// Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla. Hoy
+// sólo puede ofrecer reintento: un enlace de inicio de sesión en este estado delataría que el
+// recurso existe, así que el camino al login vive en el encabezado de la aplicación.
+const actions = $derived(
+	failure ? failureActions(failure.presentation, failure.access) : { retry: false },
+);
+
+const errorTitle = $derived(
+	invalidParams ? "Parámetros de navegación inválidos" : (failure?.presentation.title ?? ""),
+);
+
+const errorMessage = $derived(
+	invalidParams
+		? "La dirección no contiene un dataset válido."
+		: (failure?.presentation.message ?? ""),
+);
+
+const pageTitle = $derived.by(() => {
+	if (dataset) return `${dataset.title || dataset.name} — UMSS`;
+	if (loading) return "Cargando... — UMSS";
+	if (failure) return `${failure.presentation.title} — UMSS`;
+	if (invalidParams) return "Parámetros de navegación inválidos — UMSS";
+	return "Dataset — UMSS";
 });
 
 // ─── Derived ─────────────────────────────────────────────────────
@@ -139,16 +212,23 @@ const metadataItems = $derived.by(() => {
 });
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
-const breadcrumbItems = $derived.by(() => {
-	const items: { label: string; href?: string }[] = [{ label: "Catálogo", href: "/search" }];
+const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
+	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search", role: "Catálogo" }];
 	if (dataset?.organization?.title) {
+		// Con `href`: la organización tiene página propia (la ruta resuelve name o id). El `href` se
+		// arma con `name`, así que se exige `name`, no `title`: una organización con título pero sin
+		// `name` conserva la miga como texto y no inventa `/organization/undefined` (la revisión
+		// `R3-ORG-NAME-GUARD`).
 		items.push({
 			label: dataset.organization.title,
-			href: `/search?org=${dataset.organization.name}`,
+			href: dataset.organization.name
+				? `/organization/${encodeURIComponent(dataset.organization.name)}`
+				: undefined,
+			role: "Organización",
 		});
 	}
 	if (dataset?.title || dataset?.name) {
-		items.push({ label: dataset.title || dataset.name });
+		items.push({ label: dataset.title || dataset.name, role: "Dataset" });
 	}
 	return items;
 });
@@ -170,15 +250,17 @@ const stateLabel = $derived.by(() => {
 });
 
 const orgHref = $derived(
-	dataset?.organization?.name ? `/search?org=${dataset.organization.name}` : null,
+	dataset?.organization?.name
+		? `/organization/${encodeURIComponent(dataset.organization.name)}`
+		: null,
 );
 
 // ─── Technical metadata table ───────────────────────────────────
+// La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
+// monoespaciada bajo la tabla, igual que en la tarjeta del recurso.
 const generalMetaRows = $derived.by(() => {
 	if (!dataset) return [];
-	const rows: { label: string; value: string; mono?: boolean }[] = [
-		{ label: "Slug", value: dataset.name, mono: true },
-		{ label: "ID", value: dataset.id, mono: true },
+	const rows: { label: string; value: string }[] = [
 		{ label: "Visibilidad", value: visibilityLabel },
 	];
 	if (stateLabel) rows.push({ label: "Estado", value: stateLabel });
@@ -225,38 +307,19 @@ async function handleCopyLink() {
 </script>
 
 <svelte:head>
-	<title>
-		{dataset ? `${dataset.title || dataset.name} — UMSS` : "Cargando... — UMSS"}
-	</title>
+	<title>{pageTitle}</title>
 </svelte:head>
 
 <div>
 	<!-- Breadcrumb bar -->
-	{#if !loading}
+	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
-				<nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-1.5 text-sm">
-					<a
-						href="/search"
-						class="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
-					>
-						<ArrowLeft class="size-4" />
-						Catálogo
-					</a>
-					{#each breadcrumbItems.slice(1) as item}
-						<ChevronRight class="size-3.5 text-muted-foreground" aria-hidden="true" />
-						{#if item.href}
-							<a
-								href={item.href}
-								class="text-muted-foreground transition-colors hover:text-foreground"
-							>
-								{item.label}
-							</a>
-						{:else}
-							<span class="font-medium text-foreground">{item.label}</span>
-						{/if}
-					{/each}
-				</nav>
+				<!-- Unificado con el componente: el mismo breadcrumb en las dos páginas, y en móvil el chip de
+				     contexto con el árbol adentro. La decisión del autor (2026-09-24) cubría los dos casos —«en un
+				     dataset sería `[] My Dataset`, en un recurso `[] My Resource`»— así que la asimetría de tener
+				     dos breadcrumbs distintos se cierra acá. -->
+				<Breadcrumb items={breadcrumbItems} icon={Database} />
 			</div>
 		</div>
 	{/if}
@@ -284,12 +347,15 @@ async function handleCopyLink() {
 			</div>
 		</div>
 
-	<!-- Error state -->
-	{:else if error && !dataset}
+	<!-- Expulsión: el guard ya limpió la sesión y navegó, no queda nada que renderizar -->
+	{:else if expelled}
+
+	<!-- Error / 404 state -->
+	{:else if invalidParams || failure}
 		<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
 			<div class="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-				<p class="text-lg font-medium text-destructive">Error al cargar el dataset</p>
-				<p class="mt-2 text-sm text-muted-foreground">{error}</p>
+				<p class="text-lg font-medium text-destructive">{errorTitle}</p>
+				<p class="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
 				<div class="mt-6 flex items-center justify-center gap-3">
 					<a
 						href="/search"
@@ -298,12 +364,14 @@ async function handleCopyLink() {
 						<ArrowLeft class="size-4" />
 						Volver al catálogo
 					</a>
-					<button
-						onclick={() => loadDataset()}
-						class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-					>
-						Reintentar
-					</button>
+					{#if actions.retry}
+						<button
+							onclick={() => loadDataset()}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+						>
+							Reintentar
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -450,10 +518,15 @@ async function handleCopyLink() {
 
 					<!-- Technical info -->
 					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+							Metadatos
+						</p>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-							Información técnica del dataset
+							Información sobre el dataset
 						</h2>
+						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+							Visibilidad, estado y sus identificadores.
+						</p>
 						<div class="mt-4 overflow-hidden rounded-lg border border-border">
 							<div
 								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
@@ -467,20 +540,29 @@ async function handleCopyLink() {
 										class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
 									>
 										<span class="text-muted-foreground">{row.label}</span>
-										{#if row.mono}
-											<code class="break-all font-mono text-foreground">{row.value}</code>
-										{:else}
-											<span class="break-all font-medium text-foreground">{row.value}</span>
-										{/if}
+										<span class="break-all font-medium text-foreground">{row.value}</span>
 									</div>
 								{/each}
+							</div>
+						</div>
+
+						<!-- Identificadores: misma franja monoespaciada que la tarjeta del recurso. La fila
+						     envuelve entre elementos (cada identificador es un hijo propio) para que un valor
+						     largo no sea lo primero en romperse; `break-all` queda en el `code` como último recurso. -->
+						<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+								<span>Slug: <code class="break-all font-mono">{dataset.name}</code></span>
+								<span>·</span>
+								<span>ID: <code class="break-all font-mono">{dataset.id}</code></span>
 							</div>
 						</div>
 					</Card>
 				</div>
 
 				<!-- Sidebar -->
-				<aside class="min-w-0 space-y-6 lg:sticky lg:top-24">
+				<aside
+					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)]"
+				>
 					<!-- Cite card -->
 					<Card class="p-5">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
@@ -532,7 +614,10 @@ async function handleCopyLink() {
 					<!-- Metadata card -->
 					{#if metadataItems.length > 0}
 						<Card class="p-5">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Metadatos</p>
+							<!-- «Detalles», no «Metadatos» (decisión del autor, 2026-09-28): la palabra «Metadatos» es de la
+							     tarjeta de la tabla técnica —arriba en esta página y en la del recurso—, y acá lo que hay es un
+							     **resumen** (creado, modificado, licencia, autor, mantenedor). Repetir el título era el defecto. -->
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
 							<div class="mt-3 divide-y divide-border/60">
 								{#each metadataItems as item}
 									<div class="flex items-start justify-between gap-3 py-2.5">

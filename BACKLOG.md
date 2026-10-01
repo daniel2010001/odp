@@ -5,6 +5,8 @@
 > deja solo en memoria de sesión. Al cerrar un ítem, **borralo del backlog** (git conserva el
 > historial); al arrancar un cambio SDD, movelo a `openspec/changes/`.
 >
+> Al verificar tier, **cruzar etiqueta contra sección en las dos direcciones**: un ítem dentro de una sección de tier
+> puede llevar otro tag, y **un ítem con tag de tier puede vivir fuera de las secciones de tier**.
 > Convención de estado: `[ ]` abierto · `[~]` a medias · `[x]` hecho (se elimina al commitear).
 >
 > **Convención de tier:** `[v0]` core presentable · `[v1]` producto usable en producción ·
@@ -15,7 +17,811 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## Próxima sesión (2026-09-17) — replanificar el ciclo de vida de publicación
+## Estado al cierre (2026-09-29) — entrega de la línea CKAN en `odp-docker`
+
+> **Qué se cerró hoy.** Dos work units nuevas sobre `f4c4ca0`, gateadas **como rango**
+> `f4c4ca0..4910824` y aprobadas: linaje `review-32a8541c54b833da`, tier **high**, 4/4 lentes
+> (risk, resilience, readability, reliability), autoridad **quemada**
+> (`gentle-ai.review-acknowledged/v1`).
+>
+> | commit | qué |
+> |---|---|
+> | `f21dc6b` | `test(ckan)`: la guarda que hace fallar la deriva del tag de CKAN |
+> | `4910824` | `test(umss)`: fija qué recibe la regla encadenada en un update parcial |
+>
+> **Verificado:** `bash -n` limpio; el loop exacto del job `shell-tests` en 0 sobre los dos tests
+> de host; la suite de la extensión en **54 passed** (53 + el test nuevo); el árbol real reporta
+> `ok: 6 CKAN image reference(s), all 2.12`. Los dos commits están en `master` y **sin pushear**
+> (decisión del autor).
+>
+> ### Las tres filas que faltaban de S5, MEDIDAS
+>
+> Contra el stack vivo (CKAN **2.12.0** / Python 3.14.7). Salida cruda y método en
+> `odp-docker/odd/tasks/s5-remaining-rows.md`.
+>
+> - **#4 `package_update` sin `resources`:** los recursos **sobreviven** (2/2). La forma que manda
+>   el wizard es segura. **Receta:** no hay que mandar `resources` "por las dudas".
+> - **#7 `datastore_search`:** keys reales `fields`, `include_next_page`, `include_total`, `limit`,
+>   `offset`, `records`, `records_format`, `resource_id`, `total`; `next_page` **sólo aparece si se
+>   manda `limit`** y en la última página no está. **El matiz que importa:** el portal lee por clave
+>   (`src/lib/api/datastore.ts`), así que un cambio de orden no lo rompe — es la misma familia que el
+>   tope silencioso de 10 filas de `current_package_list_with_resources`.
+> - **#9 estaba mal enunciada: `ckanext-umss` encadena *auth*, no validadores.** Medido con un spy
+>   sobre el registro de auth: a la función encadenada le llega **el payload de la request**, así que
+>   no puede depender de qué recursos mandó el cliente. Queda test de regresión permanente.
+>   **Consecuencia fuera de S5:** la premisa escrita del cambio SDD
+>   `2026-09-13-publication-lifecycle` (que `ckanext-umss` era un andamiaje `IConfigurer` vacío) queda
+>   corregida por medición, y **ya está en el expediente de ese cambio**: la copia canónica es
+>   `explore.md` §2.3, con punteros en `preproposal.md` y `proposal.md`. Una sola copia, una sola
+>   procedencia.
+> - **Pie de cañón lateral, medido y no arreglado:** `package_update` con `resources: []`
+>   **explícito** borra todos los recursos y *después* lanza `NotFound`, así que ese error no
+>   significa "no cambió nada". No es el camino del wizard; queda como ítem abierto abajo.
+>
+> **Cuatro avisos informativos** del linaje `review-32a8541c54b833da` (ninguno bloqueante, ninguno
+> abre corrección): `R2-001` readability `test-ckan-image-tag.sh:171-174`, `R2-002` readability
+> `:213-215`, `R3-001` reliability `:104`, `R3-002` reliability `:223`.
+>
+> **Además, cerrado hoy:** `origin/fix/umss-test-target-guard` **borrada** (medida antes: cero commits
+> fuera de `master`); las ramas locales ya estaban limpias desde el 2026-09-28.
+>
+> **Pendiente y del autor, no de la sesión:** commitear `ckan-docker/.env.example` (su edición a mano
+> del 2026-09-28 21:33, 6+/5−; el guardrail del harness bloquea esa ruta para leer y para escribir, así
+> que no puede pasar por la compuerta de la sesión) y decidir el **push** de los dos commits.
+>
+> _(Medición y entrega de la sesión de la línea CKAN, 2026-09-29.)_
+
+## Estado al cierre (2026-09-27) — handoff de la línea CKAN 2.12
+
+> **Qué se cerró.** El slice del upgrade está **entregado**: 6 commits, cada uno con su compuerta
+> nativa (autoridad quemada) y **pusheados**. `master == origin/master == d861c95`, árbol limpio y
+> **CI verde** (run `36369796656`, `53 passed` en `ckan/ckan-dev:2.12`).
+>
+> | commit | qué |
+> |---|---|
+> | `9cbdf25` | el upgrade a 2.12 (los 8 archivos, 28 líneas de diff) |
+> | `f37aac3` | el healthcheck roto (`wget` → sonda Python) |
+> | `affb4b4` | el parche del `ApiTokenView` + los permisos de imagen |
+> | `5d47358` | `SOLR_IMAGE_VERSION` apuntando al tag que corre el stack |
+> | `91fcbc6` | el test del guard, con la traducción del driver que traen las imágenes 2.12 |
+> | `d861c95` | el CI corriendo contra el `redis` que usan los stacks |
+>
+> **El expediente del upgrade es `odd/tasks/ckan-2.12-upgrade.md`** — la base medida, los slices
+> S0–S6, la re-medición de S5, los hallazgos de S4 y de S6, el resultado de la revisión, la tabla de
+> los 6 hallazgos del linaje huérfano y el registro de entrega con cada commit y su linaje. Leerlo
+> antes de tocar cualquier cosa del upgrade.
+>
+> **Lo que está corriendo:** CKAN **2.12.0** sobre Python 3.14.7, Solr **`2.12-solr9`** ya declarado
+> en `.env`/`.env.example` (no por override de shell), catálogo re-sembrado (**16 datasets**), portal
+> funcionando, DebugToolbar apagado y `ckan-dev` **`healthy`** de verdad.
+
+### Lo que falta, en orden
+
+1. ~~**La decisión de dominios y del contenido mixto**~~ — **RESUELTO EN DEV (2026-09-28) y verificado
+   de punta a punta.**
+   **El problema**: el portal se servía por `https://odp.hs.lan` y CKAN firmaba sus URLs absolutas con
+   `http://192.168.1.201:5000` ⇒ el navegador bloqueaba el PDF por contenido mixto.
+   **El dato que decidió la arquitectura**: `ResourcePreview.svelte` muestra el PDF en un `<iframe>`
+   **a propósito** —con un comentario propio que dice que lo hace así porque la API de CKAN no manda
+   CORS— ⇒ **el portal ya estaba diseñado para leer el recurso desde otro origen**, y unificar orígenes
+   habría obligado a escribir el proxy de descargas que precisamente se evitó.
+   **El arreglo** (commit `f4c4ca0` en `odp-docker`, `master`, gateado): Caddy sirve
+   **`https://api.odp.hs.lan` directo al contenedor de CKAN** —sin nginx intermedio, porque CKAN ignora
+   el `Host` y arma sus URLs desde `ckan.site_url`— y `CKAN_SITE_URL` apunta ahí. **El portal no
+   necesitó ningún cambio de código**: el `<iframe>` sin CORS ya cubría el caso.
+   **Verificado**: un PDF subido por API devuelve
+   `https://api.odp.hs.lan/dataset/…/resource/…/download/…` (`url_type: upload`) y esa URL sirve el
+   archivo (`200 · %PDF-1.4`); el autor lo abrió en el portal y se ve.
+   **Producción** (decisión del 2026-09-24, sin cambios): portal en `data.umss.edu.bo`, CKAN en
+   `api.data.umss.edu.bo`, `ckan.site_url=https://api.data.umss.edu.bo`. El **invariante** que viaja:
+   `ckan.site_url` debe ser exactamente la URL pública de CKAN, **con el mismo esquema que el portal**.
+   El andamiaje de `hs.lan` (labels de Caddy + `hs-net`) es de dev y vive **sólo** en
+   `docker-compose.dev.unified.yml`, comentado como tal. El nombre `api.odp.hs.lan` ya está en el DNS
+   de AdGuard (lo agregó el autor; verificado: resuelve a `192.168.1.201`).
+   _(Medición y arreglo de la sesión de la línea CKAN, 2026-09-28.)_
+
+2. **El borrador del issue upstream del `ApiTokenView`** — escrito en
+   `odd/tasks/tokens-page-patch.md` y **sin publicar**: es una acción externa y necesita el OK del
+   autor. El parche local ya está aplicado (`affb4b4`), así que esto sólo cierra el círculo con
+   upstream.
+3. ~~**Las filas 4, 7 y 9 de S5 quedaron sin medir**~~ — **MEDIDAS el 2026-09-29**, con salida
+   cruda en `odp-docker/odd/tasks/s5-remaining-rows.md` y el resumen en la sección del 2026-09-29 de
+   arriba. Lo que hay que retener: #4 no borra recursos, #7 es aditivo y se lee por clave, y **#9
+   estaba mal enunciada** (encadena *auth*, no validadores, y recibe el payload de la request).
+4. **Rotar las contraseñas de la base y del sysadmin** que el DebugToolbar publicó. **No es
+   emergencia:** el leak está cerrado, así que no hay exposición activa — es higiene. Con el volumen
+   limpio ya se regeneraron solos los secretos del ini.
+5. ~~**`R2-002` — el tag de CKAN como literal en ocho lugares**~~ — **la parte que es deriva del tag
+   de CKAN quedó CERRADA el 2026-09-29** con una guarda de host, no con una variable:
+   `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`) falla si los tags de CKAN difieren
+   entre los sitios que nombran la imagen, si un sitio deja de nombrarla, si la extracción queda
+   vacía o si el tag es un digest. Se descartó centralizar con `ARG`: los cuatro Dockerfiles
+   extienden **dos imágenes distintas**, así que cada uno necesitaría su propio argumento y su propio
+   default —la duplicación no desaparece—, y el `container:` del workflow lo resuelve el runner.
+   **Lo que la guarda NO cubre, a propósito:** las imágenes de servicio de `checks.yml` (sus tags los
+   gobiernan otros upstreams; el de Solr hasta lleva sufijo `-solr9`) y la celda del README, que
+   ilustra cómo se cambia. **Y hay un resto con dueño propio**: el acoplamiento de `redis:6` con el
+   cliente de CKAN 2.12 sigue en un comentario del workflow, **sin guarda** — es el caso que sí mordió
+   (`HELLO`/RESP3). El ítem canónico queda marcado `[~]` por eso.
+6. **Los avisos informativos acumulados**, ninguno bloqueante y ninguno reabre un review cerrado:
+   `R2-001`/`R3-001`/`R3-002` (el upgrade, en `docker-compose.yml:48` y `docker-compose.dev.yml:32`),
+   `R3-001`/`R3-002`/`R3-003` (el parche de tokens) y `R2-001` (el test del guard,
+   `test_target_guard.py:290-291`). El envelope de cierre nunca trae su texto: quedaron transcritos,
+   con id/lente/ubicación/severidad, en el expediente. **Precisión medida el 2026-09-29, que corrige
+   una afirmación de más:** el envelope nunca trae el texto, pero el store **sí** lo tiene mientras el
+   linaje está vivo — `v2/review-<lineage>/review-state.json`, schema
+   `gentle-ai.review-state-record/v2`, con la claim completa en
+   `state.admitted_role_results[i].value.result.findings[j].claim` más `proof_refs`, `severity` y
+   `causal_disposition` — y **lo que lo borra es el ACUSE, no la aprobación**: el registro de consumo
+   terminal sólo conserva schema/repositorio/target/linaje. El matiz lo midió el bloque E el mismo día
+   (5 `review-state.json` vivos contra 56 registros de consumo terminal, y **el único `approved` que
+   sobrevive es una compuerta cuyo acuse nunca se ejecutó**, y por eso conserva sus claims). Medido del
+   lado CKAN: el linaje huérfano `review-7e3ab346bc8b3f85` (no aprobado) sigue con 26 291 bytes y las
+   seis claims enteras, mientras que `review-32a8541c54b833da` (aprobado y **acusado**) **no tiene
+   directorio** en el store.
+   **Receta: leer el `review-state.json` entre el cierre y el acuse** — la línea CKAN perdió así las
+   cuatro claims de su linaje de hoy.
+   **Agregados el 2026-09-29** (linaje `review-32a8541c54b833da`): `R2-001` readability
+   `ckan-docker/ckan/tests/test-ckan-image-tag.sh:171-174`, `R2-002` readability `:213-215`,
+   `R3-001` reliability `:104` (`grep -P` es extensión de GNU), `R3-002` reliability `:223`
+   (`mktemp -d` + `trap`).
+7. **El linaje huérfano `review-7e3ab346bc8b3f85` NO se limpia.** Está en `correction_required` sin
+   veredicto y sin recuperación, pero **`ABANDON` descarta los hallazgos admitidos** y este linaje
+   guarda la única copia de seis (`R1-001`, `R1-002`, `R4-001` CRITICAL, `R2-001`, `R2-002`,
+   `R3-VOLUME-PYTHON`). Se deja como **deuda declarada**, con la tabla en el expediente: limpiar el
+   store borraría la evidencia, no una transacción muerta.
+8. ~~**`feat/ckan-2.12-upgrade` quedó 2 commits atrás de `master`**~~ — **la decisión se disolvió
+   sola: la rama ya no existe, ni local ni remota** (medido el 2026-09-29 con `git branch -r` y
+   `git branch -vv`; se fue con la limpieza de ramas mergeadas del 2026-09-28). Queda sólo su
+   reemplazo vivo como convención: en este repo se commitea en `master`.
+
+> **Nada sin commitear de mi lado.** El `.patch` del parche de tokens está versionado, así que este
+> worktree **no tiene no-versionados** y no bloquea ninguna compuerta. En `odp`, este archivo y los
+> dos expedientes (`odd/tasks/ckan-2.12-upgrade.md`, `odd/tasks/tokens-page-patch.md`) están
+> commiteados, y `3f9de1e` es el único commit que agregué en `odp`.
+> **Aviso de escritor concurrente:** hay otra sesión trabajando en este repo. La regla que funcionó:
+> **repartir por archivo**, `git add <paths>` explícitos y **nunca** `git add -A` ni
+> `git checkout -- <archivo>`, para no barrer hunks ajenos.
+
+## Estado al cierre (2026-09-24) — handoff del **bloque E** (sesión paralela)
+
+> **Dos sesiones trabajaron en este repo el mismo día.** La sección de arriba es el handoff de la otra línea
+> de trabajo (el upgrade a CKAN 2.12, `odp-docker`, el proxy y la higiene de configuración). **Ésta es la del
+> bloque E** (pulido de layout y navegación del portal) y la de los obstáculos del arnés de revisión.
+>
+> **Lo cerrado hoy, cada cosa con su recibo quemado** (13 recibos, 7 con corrida de modelo): **E1** (los chips
+> de formato) · **E2** (el alto del encabezado en una sola fuente) · **la regresión del modo claro** que
+> introdujo E2 y su corrección · **E2b** (el encabezado se achica al scrollear, más el `ResizeObserver` que
+> lo vuelve necesario) · el ajuste a **16px** · **E3** (la organización faltante en la ficha del asistente y
+> `text-pretty`) · **E6** (la nota del enlace: de 220px a nota compacta) · **E7** (el breadcrumb como **chip
+> de contexto** en móvil, y **un** breadcrumb en las dos páginas) · y la hoja **`/dev/nav`**, versionada.
+> El detalle de cada uno está en «Deuda de revisión (RDD)», y el plan en
+> `odd/tasks/block-e-layout-polish.md`.
+>
+> **Estado del árbol:** rama `feat/v0-portal-honesty`, **48 commits sin pushear**, `pnpm test` **640/640** (47
+> archivos), `svelte-check` **0 errores / 4 advertencias** (las preexistentes), Biome **exit 0** con **4 warnings
+> + 7 infos** (el baseline exacto).
+>
+> **E8 —saltar de un recurso a otro— CERRADO (2026-09-25): el código está en `524af04` y la compuerta corrió y
+> aprobó.** Recibo `review-865b14e1f735a37a`: tier **medium**, lente `review-reliability`, **9 archivos / 931
+> líneas**, presupuesto 200, **0 bloqueantes y 1 aviso informativo**, authority quemada. El aviso, la lectura de
+> sus líneas y el alcance del candidato están en «Deuda de revisión (RDD)».
+>
+> **El obstáculo que la frenó ayer quedó resuelto:** era `odd/tasks/tokens-page-patch.md` **sin versionar** —con
+> un no versionado elegible en el árbol, **ningún `START` acotado avanza**—. Se resolvió commiteando ese archivo
+> y los otros dos docs de la sesión paralela (`b83cd38`, autoría ajena declarada en el mensaje): el inventario
+> de no versionados quedó **vacío** y el `START` pasó a la primera. **Consecuencia asumida:** los docs de ese
+> commit entran al candidato de E8 (9 archivos en vez de 7).
+>
+> **Un linaje accidental más, y esta vez cerrado.** Resolver la selección de no versionados creó
+> `review-7fc73fed89978ad8` sobre el **árbol de trabajo** —4 archivos, 529 líneas de la otra línea, no el
+> candidato de E8—. **Abandonado con la autorización del autor** (registro `gentle-ai.review-reclaim-record/v1`,
+> en cuarentena, `captured_lens_results: []`, sin mutación previa). **Sigue abierto el de la sesión anterior,
+> `review-c73d757362ca2fa1`**, candidato al mismo cierre: mientras haya un linaje abierto sobre este workspace,
+> los reenvíos de captura se traban.
+>
+> **Dos cosas bloqueadas o esperando decisión, ninguna es código a medias:**
+> 1. **La corrección de E5**: `review-5ab16f231f1adb49` quedó en `correction_required` con el arreglo **ya
+>    commiteado** (`e5d2411`) y el plan rechazado tres veces. Declarar **25 líneas de diff**; el detalle
+>    completo está en «Deuda de revisión (RDD)».
+> 2. **E4** — normalizar la card de metadatos del dataset: falta **la decisión del autor** (la página tiene
+>    dos cards y la principal ya cumple). Pide antes/después.
+>
+> **Dos TODO nuevos del autor (2026-09-24), los dos de diseño y los dos con su medida:** los **botones de
+> anterior/siguiente** se ven chicos y pasan desapercibidos (`p-1.5`, ícono `size-4`, contador en `text-[10px]`
+> y oculto debajo de `sm`); y **en escritorio no se ven ni se pueden saltar los demás recursos**, porque el
+> grupo «Recursos de este dataset» vive en el chip, que es `lg:hidden`.
+>
+> **Y un defecto medido que introdujo E2b:** el navegador **desactiva el anclaje de desplazamiento** del
+> contenedor porque el encabezado cambia su **alto en el flujo** (16px) al achicarse y el anclaje intenta
+> compensarlo en cada transición: tras 10 ajustes seguidos lo apaga. El mensaje textual, la causa y las tres
+> opciones de arreglo están en su ítem del backlog. **Medir primero si produce un salto visible.**
+>
+> **Recetas medidas del arnés (las que costaron tiempo hoy):**
+> - **Un archivo sin versionar frena cualquier `START` acotado**, y **la salida barata no es commitear nada**:
+>   se agrega el path a `.git/info/exclude` (local, nunca se commitea), se corre el `START` que congela el
+>   candidato y **se revierte el exclude al instante**: el `git add -f` sólo hace falta si la regla se deja
+>   puesta. Medido por la sesión paralela en `odp-docker` y verificado acá. **La alternativa —commitear el
+>   artefacto ajeno con procedencia— se usó una vez y era innecesaria.** Ojo: son cosas distintas de
+>   `untrackedScope: "exclude"` en el `inspect`, que devuelve la proyección *workspace* y descarta el
+>   `baseRef`, y que **no sobrevive** al `START` limpio.
+> - **`consent-binding-stale`** aparece una o dos veces seguidas: se resuelve con un `START` nuevo (clave
+>   nueva). El mensaje de «10 minutos» es falso.
+> - **`capture-binding-rejected`** en el reenvío posterior al forecast: se resuelve con `STATUS` y relanzar
+>   el mismo binding. **Corregido el 2026-09-25: un linaje abierto en el mismo workspace NO es la causa**
+>   —se abandonó el huérfano y un linaje ajeno siguió respondiendo `applicability: unrelated`—; lo que traba
+>   a un linaje es que **su propio candidato haya dejado de existir**.
+> - **El `baseRef` de la fachada es el COMMIT, no el hash de ÁRBOL** que renderiza la ruta del proveedor
+>   (`--base-ref=b4cb5155…` es el tree de `448190a`; el `input` correcto lleva `448190a48cb0…`). Copiarla
+>   literal da `native-start-base-ref-unresolvable`. **`inspect` acepta `input` con `baseRef` +
+>   `committedOnly` y NO acepta `mode`** (el `START` sí lo necesita).
+> - **Un plan de corrección vence si el árbol se mueve antes de enviarlo**: el candidato corregido deja de
+>   existir, el linaje pasa a `applicability: unrelated` y **no es limpiable por la fachada** (no rinde su
+>   `revision`, así que ni `ABANDON` lo alcanza). **Enviar el plan inmediatamente, antes de cualquier otro
+>   commit.**
+> - **`ABANDON` es destructivo sobre la EVIDENCIA, no sólo sobre la transacción**: descarta los hallazgos
+>   admitidos. Antes de usarlo para «limpiar», contar los que va a borrar y confirmar que un recibo posterior
+>   los cerró. El store inerte de un linaje sin ruta **es** el registro de por qué se abrió y qué encontró.
+> - **Dos escritores en un worktree:** se aísla por hunks (`git diff > p; head -4 p > m; tail -n +N p >> m;
+>   git apply --cached m`) o con `git add -p`. **Nunca** `git add -A` ni `git checkout -- <archivo>`.
+> - El **gancho de pre-commit** (`biome --staged --write`) puede dejar un diff de **sólo formato** después de
+>   commitear.
+> - **Resolver la selección de no versionados no es una selección: es un `START`.** `select-intended-untracked`
+>   —y el `inspect` con `untrackedScope`— **crean un linaje** sobre la proyección de **árbol de trabajo**, con
+>   el contenido sin commitear de quien sea. Costó **dos linajes accidentales en dos sesiones**. Con un no
+>   versionado elegible, la decisión correcta **antes** de tocar el arnés es versionarlo o ignorarlo.
+> - **`ABANDON` exige `reason` como enum**, no texto libre: `operator_disposition` o `retired_schema`. Con texto
+>   libre el nativo falla (`review abandon requires reason …`) y deja `mutation_outcome: unknown`, que se
+>   resuelve con un `STATUS` del objetivo: si el `revision` no cambió, **no hubo mutación**. Con el enum, el
+>   cierre es `gentle-ai.review-reclaim-record/v1` (`committed`) y la transacción queda **en cuarentena**.
+> - **`acknowledge-approved` por la fachada no acepta `input`**: devuelve `controller-only-input` y pide
+>   reenviar «el linaje exacto sin input de controlador». Con sólo `lineageId` quema la autoridad
+>   (`gentle-ai.review-acknowledged/v1`).
+> - **Biome puede morir por memoria con `exit 254`** (`Linter process terminated abnormally`) **sin imprimir
+>   conteos**: `NODE_OPTIONS=--max-old-space-size=6144 pnpm exec biome check .` completa y da el baseline
+>   (4 warnings + 7 infos), y `pnpm exec biome check src` completa sin tocar el heap. **No es determinista.**
+> - **«¿Qué workflow corrió?» tiene respuesta exacta**, y es la forma de distinguir «falló mi código» de «falló el
+>   entorno» **sin adivinar**: `git fetch origin pull/<N>/merge` y leer el `.github/workflows/` **de ese commit**.
+>   Un PR corre el workflow del **commit de merge** (base + head), no el de la rama — medido en el PR #43: la rama
+>   tenía la `ci.yml` vieja sin el paso del entorno y el run **sí** lo tenía. _(Receta de la sesión de la línea
+>   CKAN, 2026-09-28.)_
+> - El worktree de aislamiento para la sesión paralela está creado: `/home/danielblc/projects/odp-token-hardening`
+>   (rama `feat/token-hardening`), y **no se movió**: la otra sesión siguió escribiendo acá.
+>
+> **De la sesión paralela (corregido el 2026-09-25):** `BACKLOG.md`, `odd/tasks/ckan-2.12-upgrade.md` y
+> `odd/tasks/tokens-page-patch.md` **se commitearon** (`b83cd38`) por decisión del autor y con la **autoría
+> ajena declarada en el mensaje**. Fue la única salida que dejaba el inventario de no versionados **vacío** sin
+> una regla de ignore que después estorbara. El contenido quedó **exactamente** como la otra sesión lo dejó.
+
+## Estado al cierre (2026-09-23) — handoff de la próxima sesión
+
+> **Qué está cerrado.** De la sesión del 22: los bloques **A**, **B** y **C**. De esta sesión: el **bloque D
+> completo** (D0 la sonda, D1 la vista previa por tipo, D2 los cuatro hallazgos, D3 el gate de Data API y la
+> spec) **más el `localhost`** — reportado por el autor, medido, y arreglado en **los dos repositorios**
+> (`odp` y `odp-docker`), con verificación en vivo.
+>
+> **Los recibos de esta sesión**, todos con `baseRef` explícito —cada uno revisó **sólo su slice**, nunca la
+> rama acumulada, que sigue excluida por decisión del autor—:
+> `review-4fb694e5160560c1` (D1, medium, 12 archivos / 1 182 líneas, **2 avisos**) ·
+> `review-891f798293c18235` (D2, medium, 4/129, **2 avisos**) ·
+> `review-03b5057b001e6f9b` (D3, medium, 3/150, **2 avisos**) ·
+> `review-344a93dbb8243ef2` (**high, 4 lentes** —subió por ser camino de autenticación—, 10/139, **4 avisos**).
+> Ninguno tuvo bloqueantes. **Un patrón que conviene leer antes de tocar nada: los 4 avisos de L1 convergen
+> en una sola línea** —`logout/+server.ts:29`— desde tres lentes distintas, y son la única decisión de
+> contrato que quedó abierta (fila 1 de la tabla de abajo). El detalle está en «Deuda de revisión (RDD)»,
+> entrada por entrada.
+> **Más cinco cierres de compuerta** sobre commits de sólo-documentación (`review-3d4f52fb03dd4885`,
+> `review-ec24349d37735565`, `review-073903f10c4facf0`, `review-2cc2052d6a63184a`, `review-922f6871ff173ef9`):
+> el provider los clasifica `non_executable_only`, los aprueba **sin lentes y sin correr un solo modelo**, y
+> por decisión registrada **no se anotan** (la entrada correspondiente en «Deuda de revisión» dice dónde
+> termina el registro, para no encadenar recibos-de-recibos).
+>
+> **Código, al cierre:** 17 commits en `feat/v0-portal-honesty`, **sin pushear** (decisión del autor). Gates
+> verdes: `pnpm test` **601/601** · `pnpm check` **0 errores** · Biome directo en su baseline (4 warnings + 7
+> infos, ninguno nuevo). El `push` y la rotación de secretos siguen siendo del autor.
+>
+> **Aviso de nomenclatura: «slices» y «bloques» comparten el alfabeto A/B/C y son dos series distintas.**
+> Cuando este archivo dice «bloque A» habla del verbo, no del slice. Y el bloque D tiene su propio expediente
+> en `odd/tasks/block-d-data-preview.md`; el `localhost`, en `odd/tasks/localhost-urls.md`.
+
+### Cómo arrancar la próxima sesión (receta, en orden)
+
+> **Paso 0 — la compuerta de RDD.** Al abrir, el worktree va a traer un candidato sin revisar: el commit de
+> documentación del cierre (sólo `.md`). Corré el ciclo **acotado a ese delta**: `gentle_review` con
+> `{"operation":"inspect"}`, y después `start` con `{"mode":"ordinary","baseRef":"<sha completo del commit
+> anterior>","committedOnly":true}`. Devuelve `approved` en el acto, **sin consentimiento, sin lentes y con
+> cero corridas de modelo**. Seguí con un `status` y el `acknowledge-approved` que devuelve. **No lo anotes**
+> otra vez. El `baseRef` **exige el sha completo de 40 caracteres**: uno abreviado da
+> `native-start-base-ref-unresolvable` y no crea lineage (se reintenta con clave de idempotencia nueva).
+>
+> **Paso 1 — leer, en este orden:** `odd/tasks/localhost-urls.md` (lo que quedó abierto del `localhost`),
+> `odd/tasks/block-d-data-preview.md` (el bloque D completo) y `odd/tasks/block-e-layout-polish.md` (**el bloque
+> en curso**: sus 7 ítems re-verificados contra el árbol actual, el corte en seis slices y las tres decisiones
+> que piden el ojo del autor). Los tres tienen las mediciones, las decisiones y
+> las desviaciones declaradas. **No hace falta releer las narrativas históricas de A, B y C** que están más
+> abajo en este archivo: cada bloque tiene su expediente y el «Historial de cierre» lo resume.
+>
+> **Paso 2 — la receta de revisión nativa de un slice de código** (la que funcionó cuatro veces): `inspect` →
+> `start` con `baseRef` **explícito** y `committedOnly: true` → `status` → captura de grupo o de slot → **el
+> primer capture devuelve un `forecast` y no corre nada: relayalo y reenviá el mismo binding con
+> `reviewerRunAcknowledged: true`** → `status` → `acknowledge-approved`. **Trampa medida: el `base-ref` que
+> ofrece `inspect` es la base de la RAMA (66 rutas acumuladas), no la del slice — nunca lo sigas tal cual.**
+>
+> **Paso 3 — los gates, con los binarios que sí son evidencia:** `pnpm test` · `pnpm check` ·
+> `./node_modules/.bin/biome check <archivos tocados>`. **`pnpm lint` es intermitente** (medido: 6 de 7
+> corridas pasan) y sus 11 diagnósticos son los 11 «Unsafe fix», así que ni `lint:fix` ni el pre-commit los
+> aplican — y `--unsafe` **borraría los `!important` del bloque `prefers-reduced-motion`**. Ver el ítem
+> `[v1+]` de los diagnósticos de Biome.
+>
+> **Paso 4 — si se toca el stack de dev: `docker restart` NO alcanza.** El entorno del contenedor se fija al
+> **crearlo**, así que un cambio de `env_file` pide **recrear**:
+> `docker compose -p odp-dev -f docker-compose.dev.unified.yml up -d <servicio>`. Trampa adicional: tras
+> recrear, el `ckan.ini` de dentro del contenedor puede seguir mostrando el valor viejo — **el env gana**, y
+> eso es lo que hay que verificar midiendo el síntoma, no leyendo el archivo.
+>
+> **Paso 5 — entregar.** Un slice = commits por unidad de trabajo + su propia revisión + su apunte en este
+> archivo. El `push`, el PR y el merge siguen siendo decisiones del autor.
+
+### Lo que falta, en orden de conveniencia
+
+| # | Qué | Quién decide | Coste | Depende de |
+|---|---|---|---|---|
+| **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev. **La recomendación que vivía acá —«login ruidoso, logout a best-effort»— quedó retirada el 2026-09-24: su premisa (impacto en el usuario) es falsa y está medida** —el cliente descarta el status, y el login ya denuncia la misma variable con la misma fuerza—. Lo único que sigue en pie es si el encabezado de la ruta merece precisar que la revocación *en sí* es best-effort. **Puede cerrarse sin una línea de código**; las mediciones están en «Deuda de revisión (RDD)» | el autor | chico, y probablemente cero código | nada |
+| **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no — **E1 y E2 cerrados el 2026-09-24** (`review-35a2937ca35fd6fc`, `review-aae5dd97579ec543`) | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
+| **3** | **Ingesta (`[v1+] Datos de muestra para las vistas`):** falta la fuente. **El autor tiene un ejemplo de cómo hacer la carga de datos y todavía no lo pasó**; con eso se decide. El camino «upload + datapusher» **ya está medido y funciona** | el autor (aporta el ejemplo) | medio | el ejemplo |
+| **4** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) | se decide al empezar | grande | nada, pero conviene medir primero |
+| **5** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
+| **6** | **Los `v1+` que el autor pidió:** pulido visual de las páginas de error · la paleta de formato como **tokens** · unificar los colores de los chips en las tres superficies · chips clicables al buscador · reordenar los recursos del asistente · los 11 diagnósticos de Biome | el autor, cuando quiera detalles | chico cada uno | nada |
+| **7** | **Acciones que son sólo del autor:** el `push` de los commits de la rama (17 al cierre del 2026-09-23) · la **rotación de los tres secretos** del `.env` de Engram · el arreglo de `pnpm lint` y el gancho de pre-commit (`shell-emulator=true` en `.npmrc` o Node LTS en `mise`) | el autor | — | — |
+
+> **Dos ítems salieron de la lista de `v1+` el 2026-09-24:** el **breadcrumb móvil** y la **vista del enlace**.
+> Los dos son `[v0]` y los dos estaban listados **también** en el bloque E — duplicados. Quedan sólo en el bloque E.
+
+
+### El plan en bloques — **registro histórico de A, B y C** (cerrado; la narrativa está en los expedientes)
+
+> **Los bloques A, B, C y D están CERRADOS.** Lo que sigue es el registro de cómo cerraron A, B y C — el
+> contenido operativo ya está arriba, en el handoff, y cada bloque tiene su expediente en `odd/tasks/`.
+> Se conserva acá porque tiene las mediciones, las decisiones del autor y las lecciones que no conviene
+> re-descubrir; **no hace falta releerlo para arrancar**.
+>
+> | Bloque | Qué resolvió | Estado |
+> |---|---|---|
+> | **A** | **El verbo: «publicar» → «crear».** 4 cadenas de `src/lib/copy/dashboard.ts`, el botón del wizard y sus dos notas, más los tests. El portal decía «Publicar dataset» y lo creaba **privado**: el usuario entendía que ya era visible para todos. | **CERRADO** (2026-09-22) · `review-169119db13ffab2c` |
+> | **B** | **Página 404 propia** (`+error.svelte`; cubre ruta inexistente y 5xx). Antes salía la página por defecto de SvelteKit: «404 Not Found» en inglés y sin vuelta al catálogo. | **CERRADO** (2026-09-22) · `review-13d22ebddf82eef0` |
+> | **C** | **Recurso según su tipo:** distintivo de **enlace** en todas las pantallas, y ocultar las vistas de datos cuando el recurso es un enlace. | **CERRADO** (2026-09-22) · `review-c282f17baf9309ea`, `review-5f36113f971853de`, `review-11cc383a48faf9e7`, `review-74d83299cafabe6f` |
+> | **D** | **Vista previa de datos y sección «Data API».** | **CERRADO** (2026-09-23) · `review-4fb694e5160560c1`, `review-891f798293c18235`, `review-03b5057b001e6f9b` |
+> | **E** | **Pulido de layout y cards de `v0`** — **el siguiente**; tres de sus ítems piden decisión del autor (plan en `odd/tasks/block-e-layout-polish.md`). | **en curso** (2026-09-24: **E1** `review-35a2937ca35fd6fc` · **E2** `review-aae5dd97579ec543`) |
+> | **F** | **Permisos:** colaboradores nativos de CKAN, medir antes de construir. | pendiente |
+> | **G** | **El oráculo de la API.** | diferido |
+>
+> **Cada bloque cierra con sus commits y su propia revisión nativa**, con `baseRef` explícito. Los
+> `v1`/`v1+`/`v2+` y la deuda de revisión viven en sus secciones propias de este archivo.
+>
+> **BLOQUE A — CERRADO (2026-09-22): código, gates, push y revisión nativa APROBADA.** Cuatro commits
+> por unidad de trabajo: `9d7be01` (copia) · `e3136a9` (panel) · `4265137` (asistente) · `8081260` (hoja
+> `/dev/copy`). Diff **88/88 líneas**, `openspec/` y `about` intactos, gates verdes (`pnpm test` **472/472**,
+> `pnpm check` **0 errores**, `pnpm build` OK; `pnpm lint` cae por el problema de entorno conocido, no por el
+> código). **El alcance real fue mayor que el enumerado: 9 archivos, no 3** — el asistente se contradecía
+> consigo mismo (`h1` y `<title>` decían «Publicar dataset» mientras el cuerpo decía «para publicar
+> datasets»), y **`grep` del verbo antes de dimensionar** es la lección. Motivo nuevo que lo vuelve
+> obligatorio: **«Publicar dataset» ya está reservado** para el control real del aprobador
+> (`2026-09-13-publication-lifecycle/specs/publication-lifecycle/spec.md:246`), así que el botón del asistente
+> **ocupaba la etiqueta de la acción que viene**. Expediente y evidencia completos:
+> `odd/tasks/block-a-verb-create.md`.
+> **Decisión que tomó el autor en el camino:** además de la copia visible, se renombraron los identificadores
+> que codificaban el mismo error (`EmptyStateFlags.canPublish` → `canCreate`, `puedePublicar` →
+> **`puedeOfrecerCreacion`**, que NO es `puedeCrear`: ese ya existía y significa sólo el permiso de CKAN).
+>
+> **Recibo quemado: `review-169119db13ffab2c` — APROBADA** (tier `medium`, lente `review-reliability`, **11
+> archivos / 350 líneas**, presupuesto de corrección 175, **1 revisor, 0 bloqueantes**). Rango revisado **por
+> `baseRef` explícito**: `1f60930..HEAD`, o sea **sólo el bloque A** — no la rama acumulada, que sigue excluida
+> por decisión del autor. **Pusheado y en sincronía** con `origin/feat/v0-portal-honesty` (`356d42a`).
+> **Aviso informativo del recibo (R3-001, no bloqueante, no reabre la revisión):**
+> `TODO:` en `wizard.test.ts:238` el test se llama «no muestra el campo de visibilidad y **crea siempre como
+> privado**», pero su cuerpo **sólo** verifica que no hay campo de visibilidad; el `private: true` **sí** está
+> verificado, pero **en otro test** (`:203`). El desajuste es **preexistente** (el título viejo prometía lo
+> mismo), y el renombre del verbo lo dejó a la vista. Arreglo: o se parte el título, o se trae la aserción a
+> este test.
+>
+> **BLOQUE B — CERRADO (2026-09-22): página de error propia, aprobada por el autor y revisada.** Tres
+> unidades de trabajo + el expediente: `716af7e` (componente de presentación) · `ce15382` (hoja
+> `/dev/error`) · `07803f5` (promoción) · `34bba4f` (expediente). **El portal ya no muestra la página por
+> defecto de SvelteKit** («404 Not Found» en inglés, sin vuelta al catálogo).
+>
+> **MEDICIÓN EN VIVO (la que zanja el asunto, no los tests):** `http://localhost:8082/no-existe` →
+> **HTTP 404** y renderiza el **estado de cliente** («No se pudo abrir esta página»: 1) y **no** el del
+> servidor (0). Con el defecto que apareció en el camino, ese marcador habría estado invertido. Gates:
+> `pnpm test` **520/520** · `pnpm check` **0 errores** · Biome directo **129 archivos / exit 0** ·
+> `pnpm build` OK.
+>
+> **EL HALLAZGO DEL BLOQUE, y fue un error de MI especificación:** el envoltorio leía
+> `$page.error.status`. En SvelteKit el estado **no** está ahí: `Page.status: number` es «HTTP status code
+> of the current page», `Page.error` es `App.Error | null`, y el `App.Error` por defecto trae **sólo
+> `message`** (este repo no lo amplía: `src/app.d.ts` tiene `interface Error {}` comentada). En producción
+> ese `status` era `undefined`, así que **todo error —404 incluido— habría renderizado el estado del
+> servidor**. Lo detectó el subagente escritor al negarse a aplicar contenido que no pasaba `pnpm check`.
+> **Y lo que más importa: mis propios tests lo tapaban**, porque el doble de `$app/stores` declaraba un
+> `error` **más ancho** que el del framework y fabricaba el campo inexistente. *Un doble que no copia la
+> forma real no verifica: bendice.* El stub ahora declara `{ message: string }`, igual que `App.Error`, y
+> hay un test que ancla la clasificación **con el mensaje ausente**.
+>
+> **Recibo quemado: `review-13d22ebddf82eef0` — APROBADA** (tier `medium`, lente `review-reliability`,
+> 9 archivos / 957 líneas, presupuesto de corrección 200, 1 revisor, 0 bloqueantes). Rango por `baseRef`
+> explícito: sólo el bloque. **Dos sugerencias informativas, anotadas y NO corregidas** (corregirlas
+> pediría su propia revisión, y la de este recibo ya está quemada):
+> - `TODO:` `src/routes/+error.svelte:27` — el reintento usa `$page.url.pathname`, que **pierde la query
+>   y el fragmento**: un 5xx en `/search?q=salud` reintenta `/search` y el usuario pierde su búsqueda.
+>   Arreglo: `pathname` + `search` (+ `hash` si corresponde).
+> - `TODO:` `src/lib/components/error/error-page.test.ts:237-240` — el test del ícono toma el **primer**
+>   `<svg>` del contenedor, pero el estado 5xx renderiza **dos** (el del estado y el de `Reintentar`), así
+>   que la aserción es frágil y el `aria-hidden` del segundo no queda cubierto. Arreglo: acotar la
+>   consulta al ícono del estado.
+>
+> **DESVIACIÓN MEDIDA, para que no sorprenda: el bloque tiene 957 líneas de diff y el presupuesto de
+> revisión acordado es 400.** El código de producción son ~315 y el resto es test (531) y la hoja (121).
+> La revisión lo tomó igual como **una** revisión de tier `medium`. **Lección para los bloques que vienen
+> (C, D, E, F): separar el componente, la hoja y la promoción en revisiones propias** si el diff vuelve a
+> pasar de 400.
+>
+> **Decisión del autor:** la hoja `/dev/error` **se queda como herramienta permanente**, con el mismo
+> criterio documentado que `/dev/copy` — un 5xx no se provoca a mano.
+>
+> **BLOQUE C — CERRADO: recurso según su tipo. C1 CERRADO (2026-09-22).** El portal presentaba todo
+> recurso como archivo: insignia de formato, vistas de datos y botón de descarga. **Medido: los 35
+> recursos del catálogo sembrado son URLs externas** (`https://data.umss.edu.bo/...`) con `url_type`
+> ausente, `mimetype` ausente y sin `hash` — enlaces disfrazados de archivos, con un `format` CSV/PDF/
+> GeoJSON y un `size` inventado.
+>
+> **La regla de detección es la de CKAN, con evidencia de su propio código** (no una convención
+> nuestra): `ckan/lib/uploader.py:301` escribe `url_type = 'upload'` para un archivo subido y lo vacía
+> en `:324`; y `ckan/lib/dictization/model_dictize.py:132` reescribe la `url` al enlace de descarga
+> **sólo** con `url_type == 'upload'`. Así que la prueba es positiva —`url_type === "upload"`— y todo lo
+> demás (`""`, ausente) es una referencia externa. **No se escribe ningún marcador en CKAN y no se
+> re-siembra**: el asistente distingue archivo de enlace en su formulario pero **nunca lo persiste**
+> (`createLinkEntry` manda sólo `package_id`, `name`, `url`, `description`), así que no hay marcador
+> propio que leer.
+>
+> **Decisiones del autor (2026-09-22):** (1) detección por `url_type`; (2) la regla en **un módulo puro
+> compartido** (`src/lib/resources/kind.ts`), como `failure.ts` y `copy/dashboard.ts`; (3) **el chip de
+> tipo es exclusivo en los dos lugares** —un enlace muestra «Enlace» y **no** conserva su formato—, con
+> el costo aceptado de que el formato declarado deja de verse ahí (sigue en el cuadro de metadatos);
+> (4) **diferida y anotada: si un enlace merece ficha propia.**
+>
+> **C1 CERRADO**: `ed0b171` (expediente) · `fa96d5c` (la regla + el tipo + las fixtures honestas) ·
+> `15b016d` (el chip en la lista y en la ficha). **Recibo quemado: `review-c282f17baf9309ea` — APROBADA,
+> CERO hallazgos** (tier `medium`, lente `review-reliability`, **9 archivos / 342 líneas**, presupuesto
+> de corrección 171, 1 revisor). Rango por `baseRef=f4fe203` explícito. **342 líneas: por debajo del
+> presupuesto de 400**, que es la razón por la que este bloque se cortó en C1/C2 después de que el bloque
+> B diera 957.
+> Detalle que C1 arregló de paso: la etiqueta de relleno de la card decía **`FILE` en inglés** cuando no
+> había formato — pasa a `Archivo`, la misma familia de defecto que el bloque A.
+> Consecuencia honesta en DEV: **ninguna fixture declaraba `url_type`**, así que sin tocarlas todos los
+> recursos de mock habrían pasado a leerse como enlaces; ahora las fixtures de archivo lo declaran.
+>
+> **C1 — SEGUNDA VUELTA (2026-09-22), a partir de la revisión visual del autor:** `6191b1d` (el chip
+> compartido) · `ee6086b` (la hoja `/dev/kind`) · `d650a64` (los dos `TODO:`). **Recibo quemado:
+> `review-5f36113f971853de` — APROBADA, CERO hallazgos** (tier `medium`, lente `review-reliability`,
+> **9 archivos / 493 líneas**, presupuesto de corrección 200). **Nota de presupuesto: de esas 493 líneas,
+> 309 son la hoja `/dev/kind`** —herramienta de desarrollo, sin efecto en producción—; el cambio de
+> producción son ~150. La revisión lo tomó igual como un `medium`.
+> **Lo que el autor vio y pidió:** (1) el ícono `Link` hacía más grande el chip de enlace — **se fue el
+> ícono**; (2) el ancho variaba con la etiqueta (`CSV` vs `GEOJSON`) y **corría todo lo que sigue en la
+> fila** — ahora es **uniforme** (`w-20`), y el chip vive en **un solo componente**
+> (`src/lib/components/resource/ResourceKindChip.svelte`) que usan las dos superficies, para que no se
+> bifurque.
+> **Y una pérdida que causó este paso, con su decisión:** la especificación del padre reemplazó el mapa
+> de color por formato de la card por un chip **neutro**. El autor decidió **dejarlo neutro por ahora** y
+> definir la paleta en la pasada de detalles, como **tokens** (ver el `TODO:` de `v1+`). **No restaurar el
+> mapa crudo**: repone las dos violaciones documentadas (`AGENTS.md` regla 3 y el anti-patrón del
+> design-system §11).
+> **Hoja permanente nueva: `/dev/kind`** — la matriz de etiquetas con el componente **real** (en fila y en
+> columna) más una sección de comparación que declara que **no** es el componente real.
+> **C2 CERRADO (2026-09-22):** `83412f5`. **Recibo quemado: `review-74d83299cafabe6f` — APROBADA, CERO
+> hallazgos** (tier `medium`, **2 archivos / 87 líneas**, presupuesto de corrección 44). Rango
+> `baseRef=ee11794` explícito.
+> Para una **referencia externa** la tarjeta «Vista previa» ya no ofrece Tabla/Gráfico/Mapa ni la
+> simulación: la misma regla del chip (`resourceKind`) decide, derivada una vez por render. En su lugar hay
+> un **estado que explica la ausencia** («Este recurso es un enlace externo…»), porque la pantalla en blanco
+> sin sugerencias es un anti-patrón del propio sistema de diseño. Para un **archivo alojado** no cambia
+> nada: quitar las vistas simuladas es del **bloque D**, y mezclarlo acá habría dejado sin significado el
+> recibo del próximo.
+> **Verificación en las dos direcciones** por test: un enlace no renderiza ningún botón de vista previa y sí
+> la explicación; un archivo conserva sus pestañas. **Y un límite honesto: la medición en vivo NO fue
+> posible** — la página de recurso se renderiza en el cliente (su HTML inicial es `<title>Cargando…`), así
+> que `curl` no ve ninguna de las dos ramas. Es un instrumento que no llega, no un negativo; la revisión
+> visual de esa superficie es del autor.
+> **Un test que el bloque D va a romper a propósito:** la dirección del archivo afirma **exactamente tres**
+> botones de pestaña (`toHaveLength(3)`). Cuando D quite las vistas simuladas, esa aserción tendrá que
+> cambiar — y esa es la intención: un cambio de comportamiento debe obligar a cambiar a mano el test que lo
+> fija.
+> **C3 CERRADO (2026-09-22): la ficha de un enlace dice la verdad.** `02caa9d` (+ los documentos).
+> **Recibo quemado: `review-1e0335f5b0d1ee80` — APROBADA, 1 aviso informativo** (tier `medium`, **2 archivos
+> / 72 líneas**, presupuesto de corrección 36), sobre el rango del código.
+> **Qué cambió, y por qué era una afirmación falsa:** la ficha declaraba un **«Tamaño»** para los enlaces
+> externos, y en los 35 recursos sembrados ese número **lo inventó el seed** — CKAN no puede pesar una URL
+> externa sin descargarla. También declaraba un **«Nombre del archivo»** deducido del último segmento de la
+> URL: una adivinanza, no un metadato. Las dos filas se van para un enlace; un **archivo alojado las
+> conserva**, porque ahí CKAN reescribió la URL al camino de descarga y midió el tamaño al subirlo. La acción
+> principal deja de prometer una descarga: para un enlace dice **«Abrir enlace»** (ícono `ExternalLink`), y
+> para un archivo sigue «Descargar recurso».
+> **El aviso del recibo (`R3-ISLINK-UNDEFINED`, línea 514) es un FALSO POSITIVO verificado, y la causa
+> importa:** señaló el `{#if isLink}` de la acción como símbolo indefinido, pero **`isLink` se declara en la
+> línea 332, que está FUERA del rango revisado** — la declaración la agregó C2, con su propio recibo quemado.
+> O sea: **una revisión acotada al diff no puede ver una declaración que vive fuera del rango**, y esta clase
+> de falso positivo es el precio conocido de revisar por slice, que es lo que protege el foco. **No hay nada
+> que arreglar**: los 540 tests cubren las dos direcciones y ambas ramas renderizan lo correcto.
+> **Fuera de alcance, anotado y no olvidado:** el botón «Descargar recurso» sobre un enlace y las filas
+> del cuadro de metadatos que dicen «Nombre del archivo» (inventado desde la URL) **esperan la decisión
+> diferida de la ficha**; y los chips de formato del buscador son **de dataset** (agregan varios
+> recursos), no del tipo de un recurso.
+> **DECIDIDO (autor, 2026-09-22): un enlace CONSERVA su ficha**, adelgazada a lo que un enlace realmente
+> tiene. La duda era si valía una página «sólo por dos datos» (título y descripción, lo único que captura
+> el mini-formulario de recursos); **el inventario medido muestra que no son dos**: `resource_show` de un
+> enlace trae `name`, `description`, `url`, `created`, `metadata_modified`, `state`, `position` y
+> `package_id` (el dataset, o sea la **procedencia**), y `format` **sólo si está declarado** — el asistente
+> **no** manda `format` al crear un enlace. **Vacíos en un enlace** (son propiedades de un archivo
+> alojado): `mimetype`, `hash`, `url_type`, `datastore_active`, `last_modified`. **Pesa además un argumento
+> de comportamiento:** sin ficha, la misma fila de la lista se comportaría distinto según el tipo —una
+> lleva adentro del portal y la otra saca al sitio externo sin avisar— y en un dataset mixto eso es peor
+> que una página corta. **Lo implementa C3.**
+>
+> **COPIA — REVISIÓN DEL AUTOR (2026-09-22): el «asistente» que no era un nombre, y el requisito que ahora explica.**
+> `187b5ba` (la copia) · `c823e37` (la cita del `TODO:`). **Recibo quemado: `review-11cc383a48faf9e7` —
+> APROBADA, CERO hallazgos** (tier `medium`, **5 archivos / 37 líneas**, presupuesto de corrección 19).
+> Rango por `baseRef=41b8670` explícito.
+> **Las dos decisiones:** (1) «El asistente lo guía paso a paso» se **elimina** — la palabra nombraba algo
+> que el portal nunca rotula así (el `h1` de esa pantalla dice «Crear dataset») y colisionaba con la idea
+> de tutorial que sigue sin decidirse; el camino lo sigue ofreciendo el botón «Crear dataset» de abajo.
+> (2) Los requisitos pasan a ser **causales**: «**Para crear el primero**, necesita pertenecer a una
+> organización.» — así la primera oración describe lo que el lector ve y la segunda por qué no puede
+> cambiarlo, en vez de apilar tres afirmaciones sin relación declarada.
+> **Corrección de un error del agente, con su lección:** el agente afirmó que «asistente» aparecía en
+> **una sola cadena visible**, y era falso — había truncado su propio `grep` con `head -12` y la salida
+> llegó justo al límite. Quedaba una segunda aparición, en la descripción del CTA del panel
+> (`dashboard/+page.svelte:216`), cerrada en el mismo slice. **Regla durable: nunca truncar una búsqueda y
+> después afirmar completitud sobre ella**; el detector es comparar `grep … | wc -l` contra
+> `grep … | head -N | wc -l` — si coinciden con N, el `head` está cortando.
+> **Trampa evitada en los tests:** seis aserciones de `dashboard.test.ts` afirman la **ausencia** del
+> requisito, así que un matcher viejo las habría dejado **verdes por vacío**. Se migraron todas, y cada
+> una conserva un testigo **positivo** en la rama donde la oración debe aparecer (`:460` el de
+> «pertenecer», `:411` el de «rol»).
+>
+> **ACCIÓN 3: Engram Cloud — falta una línea tuya y queda sincronizado.** Diagnóstico y mitad del cliente hechos
+> el 2026-09-21:
+> - **La sync nunca se rompió: el proyecto se RENOMBRÓ.** El servidor tiene
+>   `project=open-data-plataform candidates=389 already_materialized=389` —el portal de este repo, **completo**,
+>   bajo su **nombre viejo**—. Las sesiones ahora escriben en **`odp`** (resuelto del remoto git) y la allowlist
+>   del servidor quedó con el nombre viejo → `403 project_forbidden`, no un fallo de red ni de auth.
+> - **Hecho del lado cliente:** `engram cloud enroll odp` y `engram cloud enroll odp-docker`, más el token en
+>   `~/.engram/cloud.json` → `Auth status: ready` y `Project enrollment: enrolled` en los dos. El chequeo
+>   bloqueante del doctor pasó de `blocked: 1` a **`0`**.
+> - **HECHO Y VERIFICADO (2026-09-21): el autor agregó `odp,odp-docker` a la allowlist y recreó el servicio, y los
+>   dos proyectos SE SINCRONIZARON.** Prueba triple: la base de la nube lista **`odp | 383`** y
+>   **`odp-docker | 19`** mutaciones; el log del servidor materializa los dos (`candidates=381` y `17`, todos
+>   `already_materialized`); y el doctor bajó `pending_mutations_evaluated` de **398 a 1**. Se editó la línea 9 de
+>   `/home/danielblc/docker/engram-cloud/.env` (backup en `.env.bak-20260921-195048`) y se recreó con
+>   `docker compose up -d --force-recreate cloud`. **El paso era del autor**: el agente no puede editar ese archivo
+>   (política de seguridad: contiene secretos).
+> - **Los otros tres targets legados del doctor son el MISMO desajuste de nombres** (`proyectos` vs `projects` en
+>   la allowlist; `danielblc` y `omarchy-on-cachyos` ausentes) → **decisión del autor: no entran**.
+> - **Nota para no perder tiempo:** el `repair materialize-mutations` del cliente **no corre desde el host**
+>   (quiere la base de la nube en `127.0.0.1:5433`, que no está expuesta). **No es un bloqueo**: el **servidor**
+>   materializa solo para los proyectos que permite. **No exponer esa base para contentar a un CLI.**
+> **ACCIÓN 4: rotar los tres secretos que esta sesión imprimió.** Un `docker inspect` volcó el entorno del
+> contenedor de la nube e imprimió **`ENGRAM_CLOUD_TOKEN`**, **`ENGRAM_JWT_SECRET`** y la **contraseña de
+> Postgres** en el log de la conversación. Como la memoria **ya está sincronizada en la nube**, rotarlos es una
+> operación **limpia y sin riesgo de perder nada**: cambiar los tres en
+> `/home/danielblc/docker/engram-cloud/.env`, recrear el servicio, y actualizar el token del cliente en
+> `~/.engram/cloud.json` (esa última parte el agente puede hacerla; el `.env` está bloqueado por política de
+> seguridad). **Lección, para no repetirla:** para leer variables de entorno, filtrar **por nombre de variable**,
+> no volcar el entorno completo.
+>
+> **La sesión del 2026-09-21 cerró acá.** Nada quedó sin comitear en ninguno de los dos repos, la memoria de la
+> sesión quedó en Engram (local **y** nube) y este bloque es el punto de arranque de la próxima.
+
+> **Detalle histórico de los tres slices** — plan, mediciones, decisiones del autor y evidencia de las
+> revisones, en `odd/tasks/v0-portal-honesty.md` y en las entradas que siguen.
+
+> **Dónde quedó todo (2026-09-19).** El **slice A está cerrado y commiteado** en la rama
+> `feat/v0-portal-honesty`, con tres commits **ya pusheados** (la rama está en sincronía con
+> `origin/feat/v0-portal-honesty`): `33158ee` (el listado respeta los
+> permisos), `c959285` (documentación del slice) y `7d27547` (paginación). «Mis datasets» ya trae los
+> datasets que el usuario creó —incluidos los privados—, pagina de a 20 con rango compacto, y el badge
+> muestra el total en vez del largo de la página.
+>
+> **Verificación viva hecha:** el usuario miró el portal real con 42 datasets (se sembraron 25
+> temporales, creados por su propio usuario, para que el pie de paginación apareciera con 3 páginas) y
+> confirmó que se ve bien. La siembra se purgó y se verificó: el catálogo volvió a **17 datasets, 1
+> privado**, con 0 datasets y 0 organizaciones de la siembra. **No consta que haya clickeado las
+> flechas**: si no lo hizo, A7 queda parcialmente verificado y hay que decirlo así.
+>
+> **Leer primero:** `odd/tasks/v0-portal-honesty.md` — tiene el plan de los tres slices, la
+> transcripción de las sondas y el registro de decisiones del usuario.
+>
+> **Lo que falta de la feature, en este orden:**
+> 1. **Slice B (D2 + D3) — CERRADO (2026-09-20).** La sonda de sesión, el CTA honesto y el aviso del login están
+>    commiteados y **pusheados** (`5d51452` … `f7b5562`). El detalle, la medición y la verificación viva están en
+>    `odd/tasks/v0-portal-honesty.md`. Lo que queda de la feature es sólo el slice C.
+> 2. **Slice C (D4) — CERRADO Y REVISADO (2026-09-20).** El mapeo honesto de estado a mensaje, en cuatro
+>    commits sobre `feat/v0-portal-honesty`: `5219055` (el helper de clasificación y la sonda que un `403`
+>    necesita), `e99b81e` (la página de recurso deja de reportar un `403` como «Recurso no encontrado»),
+>    `d3e2692` (la página de dataset renderiza desde la presentación compartida) y `05abdde` (la ronda de
+>    correcciones que salió de las dos verificaciones independientes). Revisión nativa
+>    `review-cd2510c28384457d`: **aprobada**, autoridad quemada, tres avisos no bloqueantes (ver la deuda
+>    de revisión al final de este archivo). La spec que este slice enmienda —y donde vive su contrato— es
+>    `openspec/specs/resource-detail-view/spec.md`; **no** es el requisito
+>    `Distinguishable Authorization Errors` del ciclo de vida, que gobierna las respuestas HTTP del plugin
+>    de CKAN y no cómo el portal las muestra.
+>
+> **Lo que queda de la feature, y no es código:**
+> - **Revisión visual del autor — HECHA (2026-09-20), sin objeciones.** El autor abrió las URLs del
+>   checklist en `http://localhost:8082` y aprobó lo que vio: los estados de la política de existencia
+>   (anónimo indistinguible del inexistente, sesión viva sin permiso, sesión muerta con el aviso) y el
+>   aviso del login. **Lo único que sigue sin ver** es la **cuarta variante** de copia del estado vacío del
+>   dashboard (la de «requiere rol de editor o administrador»), que necesita una sesión sin permiso de
+>   creación y por eso no se puede provocar a mano; la **hoja de copia** (`/dev/copy`) existe justamente
+>   para cubrirla.
+> - **Decidir el push y el PR.** La rama quedó **8 commits adelante** de
+>   `origin/feat/v0-portal-honesty` (`ac17010` es HEAD); GitHub ofrece el PR y no se abrió. Push, PR y
+>   merge siguen siendo decisión del autor.
+>
+> - **INCIDENTE DEL ENTORNO DEV: la suite de pytest de la extensión corre contra la BASE DE DEV y borra el
+>   catálogo.** Causa raíz medida (sesión de `odp-docker`), y **no es el ini**: `test.ini` pide `ckan_test`,
+>   pero el contenedor exporta `CKAN_SQLALCHEMY_URL=…/ckandb`, `CKAN_SOLR_URL=…/solr/ckan` y
+>   `CKAN_SITE_ID=default`, y `update_config()` (`ckan/config/environment.py:100-113`) aplica
+>   `CONFIG_FROM_ENV_VARS` **después** de leer el ini, así que **el entorno pisa el ini**. A/B medido: tras
+>   `load_config("test.ini")` el dict dice `ckan_test`/`solr/ckan_test`/`test.ckan.net`; tras `make_app()` el
+>   proceso ve `ckandb`/`solr/ckan`/`default`. Y `clean_db` **trunca**. Consecuencia: la suite **borra el
+>   catálogo de dev** y deja documentos de Solr de datasets que ya no tienen fila — con `site_id=default`, así
+>   que `package_search` **sí los ve**.
+>   **Esto explica de una vez** los «orphaned index documents» que el `apply-progress.md` registró dos veces
+>   (ventana `2026-09-14T23:40:46–23:41:18`, ~30 s = **una corrida de la suite**, no nuestras sondas) y el
+>   catálogo que aparece y desaparece entre sesiones. **Nuestra explicación original era la correcta; las tres
+>   reescrituras posteriores de esta entrada fueron atribuciones plausibles sin verificar:** primero «la suite
+>   escribe en el core compartido», después «purges por SQL», después «documentos inertes con
+>   `site_id=test.ckan.net`» — falso, porque en este contenedor la suite escribe `default`.
+>   **ESTADO MEDIDO desde `odp`:** la base de dev quedó con **1** dataset (`dataset-gxfq-3729-arej`), **2**
+>   organizaciones y **1** usuario (`odean`), todo residuo de factory creado el `2026-09-21T16:33:55`. Y
+>   **0 filas en `state=deleted` significa que la suite TRUNCÓ, no borró** — por eso el catálogo no dejó rastro.
+>   **CORRECCIÓN (2026-09-21): «no hay ningún sysadmin» era FALSO, y el error fue de medición.** `user_list`
+>   llamado **sin sesión no devuelve la tabla: devuelve el llamante**, y de esa respuesta inferí «1 usuario,
+>   ningún sysadmin». El CLI dice la verdad: **2 usuarios, y `default` es `sysadmin=true`** — pero `default` es
+>   **residuo de tests** (`created` dentro de la corrida; `test_auth.py:62` usa
+>   `ctx = {"user": "default", "ignore_auth": True}`) y su contraseña es **inalcanzable** (`fake.password` de la
+>   fábrica `User`). **Formulación correcta, y la diferencia es operativa: «falta la CREDENCIAL, no el
+>   sysadmin»** — decir «no hay sysadmin» mandaría a alguien a **crear el primero**, cuando lo que hace falta es
+>   **reponer la credencial de un rol que ya existe como fila de test**. **Trampa de medición, de la misma
+>   familia que las otras: `user_list` es *caller-scoped*.** **Y la QUINTA, que se comió la otra sesión:
+>   comprobar un token contra una acción que NO discrimina** — `user_show` sin `id` da **404 para todos** y
+>   `api_token_list` sin `user_id` da **409 para todos**, así que «token válido» y «basura» responden igual.
+>   Familia: **una medición que devuelve el mismo resultado para la hipótesis y para el control no mide nada.**
+>   **Y su corolario, que me comí yo una hora después:** cuando la hipótesis y el control coinciden,
+>   **sospechá del instrumento de medición —la extracción— antes que de la hipótesis.** Mi doble 403 era
+>   *correcto por la razón equivocada*: la extracción del token devolvía **vacío**, así que lo que probé como
+>   «token» era, literalmente, la ausencia de token. **El control negativo también hay que verificarlo.**
+>   **Y una SÉPTIMA, medida hoy en carne propia: `pgrep -f <patrón>` matchea su PROPIO comando** cuando la línea
+>   de comando del shell contiene el patrón. Casi reporto «hay un `pytest` corriendo y puede truncar la base de
+>   dev» —**falso**: `pgrep` se encontraba a sí mismo. El instrumento medía el instrumento. **Verificación:**
+>   filtrar el propio `pgrep`/`grep` de la salida, o mirar `/proc/*/cmdline`.
+>   **RECUPERACIÓN, HECHA Y VERIFICADA (2026-09-21).** No hizo falta ninguna credencial nueva: `prerun.py:161`
+>   recrea el admin **desde el propio entorno del stack** (`CKAN_SYSADMIN_NAME`/`CKAN_SYSADMIN_PASSWORD`/
+>   `CKAN_SYSADMIN_EMAIL`, ya definidas en el contenedor), así que alcanza con ejecutar lo que el `prerun` haría:
+>   `docker exec odp-dev-ckan-dev-1 sh -lc 'ckan -c /srv/app/ckan.ini user add "$CKAN_SYSADMIN_NAME"
+>   password="$CKAN_SYSADMIN_PASSWORD" email="$CKAN_SYSADMIN_EMAIL" && ckan -c /srv/app/ckan.ini sysadmin add
+>   "$CKAN_SYSADMIN_NAME"'`. **La contraseña nunca se imprimió** (se lee del entorno del contenedor). Después,
+>   `scripts/seed-ckan.mjs` con ese mismo valor vía `docker exec … printenv`: **16 datasets creados, 0 existían**,
+>   y el token del seed **revocado de verdad** (`ckan_admin` quedó con **0 tokens**, verificado listando —
+>   `success` no es evidencia). **Estado tras la recuperación:** `package_search` (Solr) = **17** y
+>   `package_list` (base) = **17** —**las dos capas coinciden**, que es la condición para creer cualquier
+>   medición viva—, con **16 del seed** y **1 residuo de fábrica** (`dataset-gxfq-3729-arej`) más 2 orgs de
+>   fábrica y 2 usuarios (`default`, `odean`).
+>   **AUSENCIA MEDIDA, no causalidad medida:** `ckan_admin` **no existía** (medido a las 16:46), y el contenedor
+>   arrancó el `2026-09-20T00:45:51Z` (≈1,7 días, **no** 40 como se dijo). **Sin dump no se puede saber *cuándo*
+>   desapareció ni *quién* la borró**: lo que sí está medido es que **el único mecanismo del stack que borra
+>   usuarios es la truncación de `user` que hace `clean_db`**, y que nada lo recreó porque **no hubo reinicio
+>   después**.
+>   **REGLAS OPERATIVAS (adoptadas):**
+>   1. **Nunca correr la suite sin neutralizar las cinco variables del entorno**
+>      (`docker exec -e CKAN_SQLALCHEMY_URL=…/ckan_test -e CKAN_DATASTORE_WRITE_URL=…/datastore_test
+>      -e CKAN_DATASTORE_READ_URL=… -e CKAN_SOLR_URL=…/solr/ckan_test -e CKAN_SITE_ID=test.ckan.net …`).
+>      Receta **verificada**: 22 passed y la base de dev **intacta**.
+>   2. **Después de correr los tests de la extensión** —que es lo que produce los huérfanos, **medido**—:
+>      `ckan -c /srv/app/ckan.ini search-index rebuild --clear`. **El sujeto importa y antes estuvo mal escrito:**
+>      la pasada de sondas del 2026-09-14 **dejó el índice consistente** —§5 del `preproposal.md`:
+>      «anonymous `*:*` back to the 16 seeded datasets, **0 probe datasets**, 0 probe organizations»—, mientras
+>      que **cada corrida de la suite** deja 12–20 documentos con nombres de factory. Atribuir los huérfanos a
+>      nuestras sondas fue un error que **nuestro propio `preproposal.md` refuta** (§2.4 fecha la pasada a las
+>      `21:54:46`; los 20 documentos son de las `23:40:46–23:41:18`, una hora y cuarenta y seis minutos después).
+>      Que un `dataset_purge` por CLI/SQL **también** pueda dejar el documento es **lectura de código**
+>      (`delete.py` no referencia el índice), **no medición** — no lo trates como medido.
+>   3. Antes de cualquier verificación viva: comparar `package_search` (Solr) contra `package_list` (base) y
+>      **re-sembrar si la base quedó con residuo de tests**.
+>   **Datos extra que sirven:** `clear_index()` borra filtrando por el `ckan.site_id` configurado, así que un
+>   rebuild **no puede** alcanzar documentos de otro `site_id`; y `ckan.search.automatic_indexing` **no existe**
+>   en CKAN 2.11.6 (verificado con grep). **Defectos latentes del `.env` de `odp-docker`:**
+>   `TEST_CKAN_SQLALCHEMY_URL` usa el rol `ckan`, que **no existe** (el env var lo enmascaraba), y
+>   `TEST_CKAN_SOLR_URL` apunta al core compartido; además los `TEST_CKAN_*` son **decorativos** porque los
+>   `CKAN_*` del entorno ganan. **Pero «decorativos» sólo vale DENTRO del contenedor de la app**: fuera de él
+>   —un venv pelado, otro host, un CI que no exporte `CKAN_SOLR_URL`— el ini es **la única protección**, así que
+>   **la línea `solr_url` de `test.ini` se conserva**: el runner cubre la **invocación**, no la **portabilidad**.
+>   Son dos defensas distintas y no una redundante. El arreglo durable es un runner que exporte los `CKAN_*` desde los `TEST_CKAN_*`.
+>   **ACTUALIZACIÓN (2026-09-21): el runner ya existe y está verificado.** `ckan-docker/bin/test-umss` (nuevo,
+>   ejecutable) **deriva** las URLs de test de los valores propios de la app **dentro** del contenedor
+>   (`${CKAN_SQLALCHEMY_URL%ckandb}ckan_test`) —así no pueden desincronizarse del `.env`— y **se niega a correr
+>   si alguna no contiene `_test`**; también crea el core `ckan_test` si falta. Verificado:
+>   `./ckan-docker/bin/test-umss -q` → **22 passed**, `ckandb` idéntica (mismos timestamps), core compartido
+>   23 → 23, core `ckan_test` 22 → 44. **Este comando reemplaza a la receta manual de la regla 1.**
+>   **Y una advertencia que sale de su propia revisión nativa: la versión que citábamos tenía un AGUJERO en el
+>   guard.** `review-df2b5906cb9cc5ea` (tier high, 4 lentes) encontró **dos CRITICAL `introduced`**: el guard
+>   verificaba `*_test*` contra el **string entero**, así que una URL con query string lo pasaba y `pytest`
+>   quedaba apuntando a `ckandb`. Se cerró en **`a52b789`** (ahora chequea el **nombre de la base**, no el string)
+>   y **`537bd5d`** (comillas dentro del payload remoto, que mataban la invocación al arrancar; la corrección
+>   anterior de ese mismo arreglo fue **rechazada por el validador dirigido** y dejó el linaje **escalado**).
+>   **La regla 1 cita esos dos commits: un `bin/test-umss` anterior a ellos protege menos de lo que parece.**
+>   La segunda revisión (`review-a170de21520dccd5`, mismo tier y lentes, 16 archivos / 536 líneas) cerró
+>   **aprobada** con 11 hallazgos informativos.
+>   **Dos trampas operativas que dejó, y valen para nuestras propias recetas:** (a) **`bash -n` NO valida el
+>   payload embebido** — pasa aunque el payload esté roto, porque el fallo ocurre en **expansión**, no en el
+>   parseo; hay que ejecutar el camino real. Aplica directo a nuestras recetas con `docker exec … bash -lc '…'`,
+>   que embeben payload igual. (b) **El relay concurrente de un grupo de lentes puede truncar un resultado** (se
+>   cortó en el byte 3015): correr las lentes **de a una** si pasa — single-slot no falló nunca, con payloads de
+>   2 954 a 5 738 bytes.
+>   **RESUELTO EN EFECTO (2026-09-21), y con una corrección de ruta nuestra:** el archivo es
+>   **`odp-docker/ckan-docker/.env`** (hay **dos** `.env`: el de la raíz para el compose, y este) — antes lo
+>   citamos sin el tramo `ckan-docker/`. Verificado por mí: el contenedor ve los `TEST_CKAN_*` **correctos**
+>   (`@db/ckan_test`, `solr/ckan_test`, `@db/datastore_test`), `test-core.ini` se regeneró correcto tras el
+>   reinicio, y **`.env.example` quedó arreglado y comiteado** en `3adab85`. Las tres líneas que pedíamos eran:
+>   `TEST_CKAN_SQLALCHEMY_URL=postgresql://ckandbuser:ckandbpassword@db/ckan_test` (usaba el rol `ckan`, **que no
+>   existe**), `TEST_CKAN_DATASTORE_WRITE_URL=postgresql://ckandbuser:ckandbpassword@db/datastore_test` y
+>   `TEST_CKAN_SOLR_URL=http://solr:8983/solr/ckan_test` (apuntaba al core compartido). **No queda nada abierto
+>   acá.**
+>   **Defecto lateral reportado (en `odp-docker`, sin tocar):** `ckan-docker/docker-compose.dev.yml` **no declara
+>   `name:`**, así que resuelve a otro proyecto Compose — los otros `bin/*` (`ckan`, `reload`, `compose`, `shell`,
+>   `restart`) **están rotos** contra este stack.
+>   **Y lo importante para nosotros: hasta que no se re-siembre, NINGUNA medición viva es válida.** `ckandb`
+>   sigue con el residuo de la corrida de las 16:33 y `package_search` devuelve 1, que **también** es residuo.
+>
+> **Advertencias de entorno, aprendidas a golpes (2026-09-19):**
+> - **La revisión nativa no arranca sin `~/.pi/gentle-ai/models.json`.** El routing de modelos de los
+>   revisores **no tiene fallback** y se niega tipado si falta la entrada del rol. Quedó configurado
+>   con los seis roles (`review-risk`, `review-resilience`, `review-readability`, `review-reliability`,
+>   `review-refuter`, `review-validator`) en `deepseek-flash` con `thinking: high`.
+> - **Mientras una revisión esté viva, no se toca el repo:** el binding lleva clavada la
+>   `expected-revision` y cualquier edición invalida el slot reofrecido.
+> - **`pnpm lint`: la evidencia real sale del binario directo, no del lanzador de pnpm.** El binario es
+>   `node_modules/.pnpm/@biomejs+cli-linux-x64@2.5.0/node_modules/@biomejs/cli-linux-x64/biome`. Diagnóstico
+>   corregido y arreglo pendiente, **más abajo** (entrada del 2026-09-22).
+> - **La revisión nativa no se puede correr desde un subagente:** el tool no está en su inventario. El
+>   hijo debe **escalar el handoff al padre**, que es quien tiene la facade.
+> - **Biome escanea todo el repo** (no ignora `openspec/`): un archivo con extensión `.ts` fuera de
+>   `src/` se lintea y rompe el gate. Por eso el expediente del borrador está como `.ts.txt`.
+> - **Los tests de ruta NO se llaman `+page.test.ts`.** SvelteKit reserva los archivos con prefijo `+` bajo
+>   `src/routes` y `svelte-kit sync` se cae con `Files prefixed with + are reserved`. Se nombran por la ruta:
+>   `dashboard.test.ts`, `wizard.test.ts`, `login.test.ts`.
+> - **`pnpm lint` falla en el camino de `spawn` de pnpm, NO por el código ni por la carga de la máquina
+>   (medido 2026-09-22).** `pnpm lint` → exit 254 («Linter process terminated abnormally») **y `pnpm exec biome
+>   --version`, que no lee ningún archivo, falla igual** → la causa no puede estar en el repo. El binario
+>   directo arranca sin problema y sobre el árbol actual reporta **122 archivos, 0 errores, 4 warnings, 7
+>   infos**. En esta sesión fue **determinista (2/2)**, así que «intermitente según la carga» era una causa no
+>   medida: lo que discrimina es **`npm_config_shell_emulator=true pnpm lint` → exit 0** (deducción, no
+>   medición: apunta al spawn de pnpm — Node 26.9.0 + pnpm 10.12.1 — y no a Biome).
+>   **Consecuencia operativa: el gancho `.husky/pre-commit` cancela el commit**, porque corre `pnpm exec biome
+>   check --staged --write`. La evidencia equivalente se obtiene corriendo **ese mismo comando con el binario
+>   directo** (0 fixes aplicados sobre los archivos staged), y recién entonces `git commit --no-verify`.
+>   **Arreglo pendiente para el autor** (commit de infraestructura propio, avisado): o `shell-emulator=true` en
+>   `.npmrc`, o fijar Node LTS en `mise` (el CI corre Node 22 y no se ve afectado).
+> - **CORRECCIÓN (2026-09-23): «determinista» no se sostiene.** Medido en esta máquina y sobre este mismo
+>   árbol: **`pnpm lint` corrió 7 veces y 6 dieron exit 0** (`Checked 135 files · 4 warnings · 7 infos`); sólo
+>   la **primera** de la sesión imprimió `[warn] Linter process terminated abnormally`. Es una
+>   **intermitencia**, no un fallo determinista — el «2/2» de arriba era una muestra demasiado chica.
+>   El arreglo del `.npmrc`/Node LTS **sigue valiendo** (elimina la causa del spawn), pero **ya no hay que
+>   asumir que el gate está roto**: probá `pnpm lint` antes de darlo por caído y usá el binario directo sólo
+>   si vuelve a caer. `pnpm exec biome --version` sigue siendo la sonda que separa repo de entorno.
+> - **El prefijo `?expired=1` es el contrato entre la expulsión y el login**: si se renombra el parámetro hay que
+>   cambiarlo en `src/lib/session.ts` y en los tests que lo fijan por URL.
+
+## Replanificación pendiente — cambio `2026-09-13-publication-lifecycle`
 
 > **Dónde quedó todo (2026-09-16).** El **modelo de producto fue revertido** y el PRD ya está firme para
 > esta feature. Los artefactos del cambio SDD quedaron **obsoletos** (el `proposal.md` lleva el aviso al
@@ -29,6 +835,27 @@
 > 2. `BACKLOG.md` → «En curso» → el bloque del cambio: tiene **las decisiones, sus motivos y las citas de
 >    línea del PRD**. Es lo más denso y lo más útil de todo lo escrito hoy.
 > 3. `openspec/changes/2026-09-13-publication-lifecycle/proposal.md`: el aviso de obsolescencia de D1–D7.
+>
+> **Corrección medida (línea CKAN, 2026-09-29): `ckanext-umss` NO es un andamiaje `IConfigurer` vacío** — y eso toca
+> la premisa de **D1**, que es «no permissions, no actions, no hooks» en `explore.md:177`, `preproposal.md:47` y
+> el árbol de decisión de `proposal.md:53`. Medido con un spy sobre el registro de auth
+> (`ckan.authz._AuthFunctions._functions`, porque `chained_auth_function` registra un `functools.partial` y
+> reemplazar el nombre en el módulo no intercepta nada): `ckanext/umss/plugin.py` registra **`IAuthFunctions`** con
+> dos funciones **encadenadas** sobre `package_create`/`package_update`, y `ckanext/umss/auth.py` implementa la
+> barrera de publicación (sólo el `admin` de la organización publica o cambia `state`). A la función encadenada le
+> llega **el payload de la request**, no el paquete aplanado, así que la omisión de recursos no cambiados que
+> introduce 2.12 (#5713) **no** afecta a esa regla. Evidencia cruda: `odp-docker/odd/tasks/s5-remaining-rows.md`;
+> regresión permanente en `ckanext-umss/.../tests/test_auth.py` (suite 54 verde).
+> **Decidido y aplicado (2026-09-29, orden del autor: «hazlo»): la corrección aterrizó en los artefactos del
+> cambio.** El bloque completo está en `explore.md` §2.3, y los **ocho** sitios que afirmaban la premisa llevan
+> marca o puntero —`explore.md:177` (marca `[STALE]` en la celda), `:225`, `:306`, `:461`; `preproposal.md:47` y
+> `:150` (la fila de D1); `proposal.md:54` y `:136`—. **El texto original no se borró en ningún sitio:** queda
+> visible y marcado, que es como este proyecto conserva el histórico.
+> **Verificado de forma independiente en `odp-docker`**, no sólo heredado de la línea CKAN: `plugin.py` implementa
+> `IAuthFunctions` y `auth.py` tiene las dos funciones encadenadas (`package_update:122`, `package_create:155`) más
+> `_is_approver` con la capacidad `admin`. **Consecuencia para la replanificación:** el encuadre «código nuevo
+> dentro de un andamiaje vacío» de D1 ya no vale, ni la estimación que se apoyaba en él — **el guard existe y hay
+> que leerlo, no escribirlo**.
 >
 > **Plan, en orden:**
 >
@@ -52,9 +879,101 @@
 > **Dos advertencias de repositorio:**
 > - La tabla, las acciones y el guard viven en **`odp-docker`**, que es **otro clon Git**. Ver «Deuda de
 >   revisión (RDD)» para el trámite de la revisión y **cuándo** hacerla (después del rediseño, no antes).
-> - **No reiniciar `odp-dev-ckan-dev-1`** sin reconstruir la imagen: el script horneado deja el token del
->   datapusher vacío y el contenedor entra en crash loop. **Ya está arreglado y reconstruido** — el aviso
->   queda solo para el caso de tocar ese archivo.
+> - **Los `.override` de `ckan-docker/ckan/setup/` son archivos MUERTOS — y acá había un defecto INVENTADO.**
+>   Medido (2026-09-21): **ningún Dockerfile los copia** (`override` aparece **0** veces en `Dockerfile.umss`,
+>   `Dockerfile.dev.umss`, `ckan/Dockerfile` y `ckan/Dockerfile.dev`); lo único que los menciona es
+>   `ckan-docker/README.md:217`, que **instruye** a agregar la línea `COPY …/start_ckan.sh.override …` y esa línea
+>   **nunca se agregó**. Por eso el script **efectivo** del contenedor es el de la imagen base —**idéntico byte a
+>   byte a `ckan/ckan-dev:2.11`**— y **no tiene ningún mint**: `grep -c "user token add"` da **0** en
+>   `start_ckan.sh` y en `start_ckan_development.sh`, y ambos escriben el **placeholder `xxx`**. **Consecuencia:
+>   la versión anterior de esta entrada describía un «mint roto en el arranque» que NO EXISTE** — una afirmación
+>   que llegó escrita como medida y que la sesión de `odp-docker` retractó con evidencia. El único mint real es
+>   `docker-entrypoint.d/01_setup_datapusher.sh`, y **funciona** (verificado desde acá: el token autentica →
+>   **200**, basura → **403**, sin token → **403**). **El registro correcto del bug real del datapusher ya estaba
+>   en el repo:** `apply-progress.md:438-453` y `tasks.md:74-75` —era `01_setup_datapusher.sh` blanqueando el
+>   token— y ya está arreglado.
+>   **FAMILIA DE TRAMPA Y SU CONTRA-MEDIDA** (aporte de esa sesión, y **es lo que zanjó el caso**): afirmar **qué
+>   archivo se ejecuta** es una afirmación sobre el **build**, no sobre el árbol de fuentes — y la variante cruel
+>   es que los archivos citados **existan, se lean bien y no se ejecuten**. Se derrota con **un solo movimiento:
+>   `diff` del artefacto contra la fuente** —`/srv/app/start_ckan_development.sh` del contenedor contra el de
+>   `ckan/ckan-dev:2.11` → **idénticos**, más `grep -c "user token add"` → **0**—. Sin ese diff, los `.override`
+>   seguían pareciendo código vivo y la afirmación seguía siendo plausible. **Cuando el reclamo es «este archivo
+>   hace X», la medición es el diff contra lo que corre, no la lectura del repo.**
+> - **El escenario de la línea `COPY` quedó CERRADO, con una nota histórica que vale:** los tres `.override`
+>   muertos **se borraron** en `9cb4fff` (`chore(ckan): drop the setup/*.override scripts that nothing copied`,
+>   4 archivos, **+1 −369**), junto con el bullet del README que documentaba el patrón. Así que ya no hay nada
+>   que se pueda activar por accidente. Lo que ese override traía —un **loop de auto-instalación de extensiones**
+>   (`pip install -r requirements.txt`, `setup.py develop`, reescribir el `use = config:` de cada `test.ini`) que
+>   el script efectivo no tiene— **explica por qué existe `bin/install_src`**: ese loop nunca corrió.
+> - **Riesgo residual CORRECTO, y el modo de falla NO es el crash loop** (análisis de la sesión de `odp-docker`,
+>   **corroborado por el propio código**: el comentario de `docker-entrypoint.d/01_setup_datapusher.sh:12` dice
+>   que un token **vacío** hace que el plugin se niegue a configurarse): el único escritor del token es ese
+>   entrypoint, con el guard `if [ -z "$CKAN__DATAPUSHER__API_TOKEN" ]`, y la imagen base deja
+>   `ckan.datapusher.api_token=xxx` (guardado por el chequeo de plugins). Entonces, si alguien setea
+>   `CKAN__DATAPUSHER__API_TOKEN` con un valor **no vacío pero inválido** —un token viejo, un placeholder—, el
+>   mint se saltea, el ini queda en `xxx` —que es **truthy**, así que el plugin **configura sin protestar**— y el
+>   datapusher recibe **403 en la callback y no manda nada al DataStore, EN SILENCIO**. **No es «vuelve el crash
+>   loop»: es un fallo silencioso**, y eso es **más difícil de detectar** que el crash loop que arregló `aa916e7`.
+>   Con un valor vivo todo funciona, que es la intención del env var. **Estado actual: SANO** — el token es real
+>   (197 chars) y autentica (200 · basura 403 · sin token 403, medido desde acá).
+>   **Quedan DOS puntos abiertos en ese repo, los dos del autor:** (a) qué hacer con el guard
+>   —documentarlo, dejar de depender de la variable, o aceptar el riesgo—; y (b) el **`ROOT` relativo de los siete
+>   `bin/*`**, ofrecido por esa sesión y **sin detalle medido de mi lado**. Del resto del hilo **no queda nada**: el
+>   «mint roto» era falso, los tres `.override` muertos ya se borraron y los siete `bin/*` ya apuntan al compose
+>   correcto.
+>   **Estado del repo `odp-docker`, verificado desde acá:** **6 commits sin pushear** —`3adab85` (runner de tests
+>   + `.env.example`), `346764c` (ignorar el runtime local de Pi), `3e4399e` (los siete `bin/*` al compose
+>   unificado), `9cb4fff` (borrar los tres `.override`), y los dos que **cierran el agujero del guard**: `a52b789`
+>   y `537bd5d`— con **árbol limpio**. El hilo entre sesiones quedó **cerrado de los dos lados** el 2026-09-21.
+> - **Y un arreglo real, ya hecho del otro lado (commit `3e4399e`):** los siete `bin/*` apuntaban a
+>   `docker-compose.dev.yml`, que sin `name:` resuelve al proyecto `ckan-docker` (sin contenedores); ahora usan
+>   el unificado. Verificado desde acá: **`bin/compose ps` lista los siete `odp-dev-*`**.
+> - **RESUELTO (2026-09-21, 17:07): el reinicio se hizo** —autorizado por el autor, y **motivado por el token
+>   huérfano**, no por `test-core.ini`— **y el datapusher quedó arreglado — verificado por mí.** Con el
+>   token leído de `ckan.ini` (**197** chars): `api_token_list` → **200**; con token basura → **403**; sin token →
+>   **403**. Discrimina. Y `test-core.ini` se regeneró correcto (`ckandbuser@db/ckan_test`, `solr/ckan_test`). El
+>   catálogo **sobrevivió** (17/17) porque `prerun` corre `init_db` idempotente y no re-siembra. Lo de abajo es el
+>   registro de **por qué** hacía falta.
+> - **CORRECCIÓN de lo que escribí antes: el restart SÍ tiene hoy un motivo real, y NO es cosmético — el token
+>   del datapusher está MUERTO.** `ckan.datapusher.api_token` de `ckan.ini` es **huérfano**: `clean_db`
+>   **truncó la tabla `api_token`** a las 16:33 y nadie re-minteó, así que **ningún** token autentica (medido:
+>   `api_token_list?user_id=<el id de `default`, `366a437a-…` — **no** el de `ckan_admin`, que es `224fbb8f-…`>` con
+>   el token configurado → **403**, idéntico a un token basura y a sin
+>   token; la tabla tiene **0 filas**). **Consecuencia: la callback del DataPusher no se autentica → los recursos
+>   NUEVOS no llegan al DataStore**, así que la vista previa de CSV falla **también para archivos subidos**, no
+>   sólo para los sembrados (que son enlaces). **El restart es el arreglo de diseño y es seguro para el
+>   catálogo** (`prerun` corre `init_db`, idempotente, y **no re-siembra**): `CKAN__DATAPUSHER__API_TOKEN` está
+>   **ausente** del entorno, así que `docker-entrypoint.d/01_setup_datapusher.sh` re-mintea con la forma correcta
+>   (`expires_in=365 unit=86400`). **Recomendación: reiniciar cuando la app esté ociosa, y antes de cualquier
+>   trabajo que toque subida de recursos o la vista previa del DataStore.**
+> - **Aparte de eso, lo que el restart aporta es secundario.** `prerun.py.override:160-195` recrea el admin
+>   (idempotente: si el usuario existe, sale) y reescribe `test-core.ini` desde los `TEST_CKAN_*` corregidos;
+>   lo segundo es **decorativo dentro del contenedor**, porque el entorno gana. Y **el restart no re-siembra**:
+>   eso lo hace `scripts/seed-ckan.mjs`. El admin se restauró **sin** restart, ejecutando lo que el `prerun`
+>   haría. **Mientras no se reinicie, `test-core.ini` conserva los valores viejos** (`postgres://ckan:ckan@db/ckan_test`
+>   y `solr_url = …/solr/ckan`): un `pytest` corrido **a mano** ahí sigue siendo **la ruta destructiva**. El
+>   runner es la salida. **OJO — esto corrige una conclusión optimista de la otra sesión:** el reinicio regeneró
+>   `test-core.ini`, pero **el contenedor SIGUE exportando `CKAN_SQLALCHEMY_URL=ckandb`, `CKAN_SOLR_URL=ckan` y
+>   `CKAN_SITE_ID=default`** (verificado después del reinicio), así que **dentro del contenedor el entorno sigue
+>   pisando el ini: un `pytest` corrido a mano ahí SIGUE truncando la base de dev.** La regeneración cierra el
+>   caso **fuera** del contenedor; **el runner sigue siendo obligatorio dentro** — no es redundante. **La frase
+>   que hay que recordar: «el archivo quedó bien» NO es «la ruta quedó cerrada».** Y el error fue **simétrico**:
+>   yo escribí «el ini es decorativo» (sin acotar) y la otra sesión escribió «la ruta quedó cerrada por el ini»
+>   (tras el reinicio); los dos mezclamos **el archivo** con **el runtime que ejecuta pytest**.
+>   **El MECANISMO, que hace la regla derivable en vez de memorizable — el `.env` tiene dos mitades que se
+>   comportan distinto:** `TEST_CKAN_*` alimenta el `test-core.ini` que se **regenera en cada arranque** → cambia
+>   **el archivo**, y el archivo pierde contra el entorno. En cambio `CKAN_SQLALCHEMY_URL` / `CKAN_SOLR_URL` /
+>   `CKAN_SITE_ID` son lo que el contenedor **exporta** y lo que `update_config()` aplica **después** del ini →
+>   **esa mitad es la que decide** para cualquier proceso que corra adentro. Por eso el `.env` vivo importa
+>   **exactamente lo mismo que el `test-core.ini`: sólo fuera del contenedor.**
+>   **Y la inferencia falsa que hay que matar de entrada, porque es la que va a cometer cualquiera:** «ya arreglé
+>   las `TEST_CKAN_*`, entonces puedo correr `pytest` a mano» → **trunca `ckandb` igual**. Arreglar el `.env` de
+>   tests **no cierra** la ruta destructiva; lo único que la cierra **adentro** es `bin/test-umss`.
+>   **Verificación independiente de la recuperación (2026-09-21):** `package_list` (base) = **17**,
+>   Solr `fq=site_id:default` = **17**, y **el diff de los dos conjuntos de nombres está vacío** — son
+>   idénticos; `package_search` anónimo = 17. Es la primera vez en todo el incidente que la regla (c) pasa
+>   exacta. El core compartido tiene **39** documentos: 17 de `default` (legibles, todos con fila) + **22 de
+>   `test.ckan.net`** (inertes, sin fila, que ningún rebuild limpia — se dejan como están, por acuerdo).
 >
 > **Trabajo independiente, cuando se decida:** los bugs `v0` de la revisión de UI (ver esa sección), la
 > pregunta del facet de licencia (`v1`), y las dos features pesadas que el usuario **aparcó
@@ -226,15 +1145,6 @@
 
 ### Pendientes anotados (2026-09-13)
 
-- [ ] **[v0] Bug: badges de formato duplicados en las cards del buscador** — si un dataset tiene dos
-  recursos del mismo tipo (p. ej. 2 CSV), la card muestra **dos chips «CSV»**. Causa exacta en
-  `src/lib/components/search/DatasetCard.svelte`: `resourceFormats` hace
-  `.map((r) => r.format?.toUpperCase()).filter(Boolean).slice(0, 4)` **sin deduplicar**.
-  **Ojo con el efecto colateral**: `moreFormats` se calcula como
-  `dataset.resources.length - resourceFormats.length`, así que al deduplicar hay que recontar **sobre
-  los formatos únicos**, no sobre los recursos (con 3 recursos `[CSV, CSV, PDF]` los chips deben ser
-  CSV y PDF, y `moreFormats` debe dar **0**, no 1). El tope de 4 también aplica a los únicos.
-  _Origen: reportado por el usuario, 2026-09-13._
 - [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
   **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
   datos. _Origen: pedido del usuario._
@@ -437,6 +1347,27 @@ privado y no hay ninguna forma de publicarlo.
   el `private: true` hardcodeado del wizard. En cambio, un `package_update` **completo que omite
   `private`** deja el valor intacto (200, sigue `true`): la omisión es un intento de publicación **sólo
   al crear**.
+  - **CERRADO, y re-medido el 2026-09-20 (este stack).** Con un `editor` real de
+    `direccion-investigacion` y su propio token: `package_create {private: false}` → **403
+    `Authorization Error`: «Access denied: Only an organization administrator can publish a dataset»**, y
+    `package_patch {private: false}` sobre un dataset privado → **403 con el mismo mensaje**. Control:
+    `package_create {private: true}` → 200 con `private=true` y anónimo → 403. El guard de
+    `ckanext-umss` **cierra el bypass de este ítem** en los dos puntos de entrada que la sonda tocó.
+    **No re-medido hoy, y hay que decirlo así:** la variante de **omitir** la clave (el caso peor de
+    arriba) y la de `state` (P4a). Ambas están cubiertas por la verificación **25/25** registrada en
+    `apply-progress.md`, no por esta sonda. _Origen: sonda del autor, 2026-09-20._
+  - **Huecos cerrados, y una trampa anotada (2026-09-20, medido por la sesión de `odp-docker` con
+    `check_access`, que es la entrada real de auth):** `package_create` con `private: false`, con `'banana'`
+    **y con la clave omitida** → **403** con el mismo mensaje del plugin. `package_update` y `package_patch`
+    con `false` o `'banana'` → 403; **omitida en update → permitido** (deja el valor intacto), que es la
+    asimetría create/update ya documentada. El guard vive en `ckanext-umss` **vendorizado dentro de
+    `odp-docker`** (commit `86f130b`), no como submódulo; `package_patch` lo hereda porque el core lo define
+    como `authz.is_authorized('package_update', …)`, que resuelve la función CHAINED. `state` sigue sin
+    re-medirse.
+  - **Trampa para cualquier sonda futura:** `roles_that_cascade_to_sub_groups = ['admin']`, así que un
+    «editor» que además sea admin de la organización **padre** hereda el permiso y **parece** un bypass — el
+    primer fixture de esa sesión cayó en eso. Una sonda que obtiene **403** es robusta a la cascada (la
+    cascada sólo **agrega** permisos); una que obtiene 200, no.
 - **`state` sigue siendo mutable por un editor (medido 2026-09-14, P4a):** `package_patch
   {state:"draft"}` como editor → **200 con `state=draft` guardado**. Causa: `ROLE_PERMISSIONS` le da
   `update_dataset` al editor, `package_change_state` autoriza delegando en `package_update`, y
@@ -452,7 +1383,23 @@ falta el fallback), no hay hook de veto previo en `IPackageController`, y las do
 colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
-`ckanext/umss/tests/test_plugin.py:57` llama `plugin_loaded("umss")` sin declararlo como fixture.
+`ckanext/umss/tests/test_plugin.py:57`: baseline **`1 failed`** por
+**`NameError: name 'plugin_loaded' is not defined`**. Redacción **restaurada del `preproposal.md` §2.4**, que ya
+la tenía correcta; la versión anterior de esta línea («sin declararlo como fixture») era una **derivada
+corrompida** de un registro que estaba bien, y mandaba a buscar una fixture que nunca faltó.
+**CORRECCIÓN (2026-09-20): el baseline rojo ERA real** (la redacción de arriba ya quedó restaurada). Medido
+por la sesión de `odp-docker`:
+- **No era una fixture faltante.** En la revisión padre (`279e453`) la fixture **ya estaba declarada**, línea
+  55: `@pytest.mark.usefixtures("with_plugins")`.
+- El fallo real era un **`NameError`**: `plugin_loaded` se usaba **sin importar** — en ese commit las únicas
+  importaciones eran `import pytest` y `import ckanext.umss.plugin as plugin`.
+- Lo arregló **`86f130b`** —el **mismo commit que introdujo el guard**— con +6 líneas:
+  `from ckan.plugins import plugin_loaded`, más el comentario que aclara que **no** es una fixture de
+  pytest-ckan en CKAN 2.11.6.
+
+**Que nadie busque una fixture faltante: nunca lo fue.** Ese es el motivo por el que esta entrada se reescribe
+en vez de marcarse como no reproducible — el diagnóstico viejo manda a buscar en el lugar equivocado. Hoy la
+suite pasa (22 passed, medido allá) y el archivo declara las cuatro piezas y el `assert`.
 Medido el 2026-09-14: `1 failed`, `NameError: name 'plugin_loaded' is not defined`. `pytest 8.3.4` y
 `pytest-ckan 2.11.6` **sí están instalados en la imagen de dev**, así que la suite corre en el lugar y
 no hace falta el contenedor descartable que el diseño contemplaba como fallback. Y el `plugin.py`
@@ -494,47 +1441,323 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 >      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
 >      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
 >
-- [ ] **[v0] «Mis datasets» está roto para todo usuario que no sea sysadmin** — **medido
-  (2026-09-13)**: `current_package_list_with_resources` arma la respuesta con
-  `"include_private": authz.is_sysadmin(user)` (`get.py:143`), así que un usuario normal recibe
-  **cero** datasets privados, **ni los propios**. El seed de dev lo enmascara porque su usuario es
-  sysadmin, y por eso nadie lo había visto. Decidido (D3 del cambio
-  `2026-09-13-publication-lifecycle`) **arreglarlo aparte, como corrección propia**. Verificar de paso
-  si el mismo problema afecta a «Mis organizaciones». _Origen: sondas de ese cambio._
+- [ ] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
+  el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
+  (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
+  dataset**: en `src/routes` sólo existen el wizard de creación y las vistas de lectura, y
+  `datasetApi.update` (`src/lib/api/datasets.ts:64`) está definido y **sin cablear** a ninguna
+  página. Es una promesa **preexistente** —no la introdujo el trabajo de paginación— y pertenece a
+  la misma familia que ese tramo de honestidad: si la capacidad queda diferida, el copy no debe
+  anunciarla. Se cierra de una de dos formas, no de las dos: se implementa la edición, o el copy
+  deja de prometerla. _Origen: verificación independiente de la segunda unidad de trabajo,
+  2026-09-17._
+  **Estado medido (2026-09-30): VIVO, libre para implementar o para dejar de prometer.** La frase sigue en
+  `new/+page.svelte:1736` y `datasetApi.update` (`lib/api/datasets.ts:64`) **no tiene ni un call site**. El cierre es por
+  una de dos vías, no las dos: implementar la edición, o que el copy deje de anunciarla.
 
 - [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
-  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte`: rótulo
+  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
   `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
-  similar a la del **dataset**, conservando el detalle que agrega valor a la card. Revisar ambos
-  antes de normalizar. _Origen: revisión de UI del dashboard (2026-09-12)._
+  similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
+  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** «Detalles», la del cuerpo
+  (`dataset/[id]/+page.svelte:527-554`), **ya cumple** lo que este ítem pide —`p-6 sm:p-8`, tabla Campo/Valor y
+  el rótulo idéntico al de recurso—; la que no cumple es la del sidebar, «Metadatos» (`:608-624`: `p-5`, filas
+  con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
+  el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
+  _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
+  **Estado medido (2026-09-30): VIVO.** La card del cuerpo (`dataset/[id]/+page.svelte:520`) ya es `p-6 sm:p-8` con tabla
+  Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
+  de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
+  nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
 
-- [ ] **[v0] Endurecer la vista previa CSV (hallazgos de revisión)** — 4 hallazgos informativos
-  no bloqueantes de la revisión de la vista previa (lineage `review-ca9abb1187a39513`, lente
-  reliability). Sólo el primero es sustantivo:
-  1. `R3-stale-search-race` (WARNING): `ResourcePreview.svelte` puede resolver un
-     `datastore_search` viejo después de uno nuevo si el recurso cambia rápido (carrera de
-     estados → filas de un recurso distinto).
-  2. `R3-cellvalue-object-stringify`: `DataPreviewTable` hace `String(obj)` → `"[object Object]"`.
-  3. `R3-limit-prop-unenforced`: prop `limit` aceptada pero sin uso.
-  4. `R3-loading-state-untested`: estado de carga sin test.
+- [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
+  Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
+  `http://localhost:5000/dataset/<name>/resource/<file>/download/<file>` — el `ckan.site_url` de CKAN —,
+  no al origen del portal. Con la arquitectura vigente (CKAN **headless**, sólo su API REST; ver el
+  encabezado de este archivo), exponer el origen del backend y depender de su configuración merece una
+  decisión explícita: servir la descarga a través del portal, o aceptar el acoplamiento de forma
+  deliberada.
+  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
+  **Estado medido (2026-09-30): VIVO.** `resource/[resourceId]/+page.svelte:358` sigue con `downloadUrl =
+  safeExternalUrl(resource?.url)` y `:544` con `href={downloadUrl}`; no hay ruta que proxee (los únicos `+server.ts` son
+  los dos de `auth`). **Frena en la decisión del autor:** servirlo por el portal, o aceptar el acoplamiento de forma deliberada.
 
-- [ ] **[v0] Quitar los tabs simulados «Gráfico»/«Mapa» de la página del recurso** — hoy la página
-  muestra un selector Tabla/Gráfico/Mapa donde sólo Tabla es real (CSV). Según el modelo de vistas
-  (PRD §3, 2026-09-13), los gráficos pertenecen al Módulo de Análisis, no a la vista previa. La vista
-  previa debe ofrecer sólo el render que permite el `format` (tabla para CSV, embed para PDF, imagen,
-  texto). _Origen: decisión de arquitectura 2026-09-13._
+- [ ] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
+  de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
+  por roles con capacidad de pasar a permisos, y **es exactamente esto**: `RF-01` define roles **a nivel de
+  organización** (`superadmin`, `org_admin`, `editor`, `viewer`) **y además roles por dataset** (`viewer`,
+  `editor`, `steward`); `RF-18`/`RF-19` agregan **colaboradores con permisos explícitos** por dataset y
+  **equipos**. Hoy el único mecanismo que existe es el rol de organización —lo que CKAN puede aplicar, la
+  capacidad `member`/`editor`/`admin`—, así que la oración es **correcta para el presente** y tendrá que decir
+  «rol **o** permiso explícito» cuando aterricen los roles por dataset. Esos roles y colaboradores están en
+  `v1+`, y **el PRD anota que varios requisitos de esa familia no son alcanzables con la API de CKAN**
+  (`PRD.md:255`: RF-14 a RF-17, RF-19, RF-23, RF-33 a RF-36), así que la decisión de fondo es cuánto se
+  construye por fuera de CKAN. **No hay que tocar la copia por esto**: el cambio de verbo del ítem de
+  «publicar» es independiente y no debe esperar a los roles por dataset.
+  _Origen: pregunta del autor, 2026-09-20._
+  **Estado medido (2026-09-30): sin acción pendiente hoy.** El texto vigente (`lib/copy/dashboard.ts`,
+  `EMPTY_STATE_NO_CREATE_PERMISSION_REQUIREMENT`) ya coincide con la conclusión del ítem; lo que falta es la redacción
+  futura de «rol o permiso explícito», atada al trabajo de permisos.
 
-- [ ] **[v0] Sección "Data API" para recursos CSV** — la sección "Acceso por API" de la página
-  de recurso hoy está gateada a `resource_type === "api"` (oculta para archivos). Lo correcto,
-  como data.gov.au y otros portales CKAN: mostrar una "Data API" con `datastore_search` para
-  recursos tabulares (CSV) en el DataStore, en lugar de un `resource_show`. Diferido durante la
-  revisión de la UI de recurso (2026-09-11). _Origen: observación del usuario + verificación.
+  **Cuándo se decide:** no ahora, sino **al empezar el trabajo de permisos** (el ítem de colaboradores
+  nativos de CKAN en `v0`): ahí se mide si lo nativo alcanza antes de construir equipos por fuera de CKAN.
+
+- [ ] **TODO — DECIDIDO Y CERRADO EN PÁGINA (2026-09-20): política de existencia, opción 3. Queda abierta la mitad de la API.**
+  **Decisión del autor:** `404` **ambiguo para el anónimo** (mismo estado que un recurso inexistente y
+  **sin** botón de iniciar sesión: el botón es lo que revela) y **honesto para el identificado** («su
+  cuenta no está autorizada»). Implementado en `src/lib/api/failure.ts`, los dos call sites, y la spec
+  **partida en dos requisitos** (`Unidentified Viewer Must Not Learn Existence` +
+  `Authorization Failure Is Not a Missing Resource`, este último acotado al espectador identificado — con
+  lo cual su nombre volvió a ser cierto).
+  **Consecuencia aceptada, explícita:** un usuario **autenticado** cualquiera puede distinguir `403` de
+  `404` **en la página**. No es una fuga nueva —la API se la da a cualquiera, incluso anónimo— y cerrarla
+  es una línea en la rama `session-alive` si algún día se quiere.
+  **Nota de UX:** al quitar el botón, en móvil el camino de inicio de sesión queda **dentro del menú
+  hamburguesa** (el enlace del encabezado aparece de `md` para arriba). `layout-header.test.ts` prueba que
+  el enlace existe.
+  **Revisión nativa: `review-249e073ef3489596` — APROBADA y con la authority quemada** (2026-09-20), tier
+  medium, una lente, 11 archivos / 467 líneas, con 2 avisos informativos registrados en la deuda de
+  revisión al final de este archivo.
+  **Lo que SIGUE ABIERTO — la mitad que falta para la propiedad completa:** el **oráculo de la API**
+  (siguiente párrafo). Cerrarlo exige la capa server-side que hoy no existe.
+  **El documento aportado por el autor** describe la recomendación estándar de las plataformas de
+  archivos: para un visitante, un archivo privado «no existe» → `404`, y no «es privado» ni «no tiene
+  permiso», para no habilitar la enumeración. Adoptarlo del todo **enmienda la spec**, no es copia suelta.
+  **Medición que hay que mirar antes de decidir (2026-09-20):** el portal **no es la frontera de la
+  enumeración**, porque el mismo origen que sirve la página proxya la API cruda de CKAN:
+  `GET /api/3/action/package_show?id=test` **sin token** → **`403`** con un cuerpo que **nombra el
+  recurso**, mientras un id inventado (`id=no-existe-x`) → **`404` `Not Found Error`**. Es un oráculo de
+  existencia perfecto, anónimo y accesible desde el navegador. (`package_search` sí filtra: count 16 vs
+  17 reales, y `resource_show` de un recurso privado también da `403` nombrando el recurso.)
+  ⇒ **enmascarar la página y dejar la API como está no compra la propiedad deseada**; comprarla exige
+  una capa server-side — el «middleware» que hoy **no existe**: `src/routes/api/` no existe y las únicas
+  rutas server son `auth/login` y `auth/logout` — que normalice `403` → `404` para llamadores **sin
+  sesión** y deje `403` para los autenticados.
+  **El precedente más fuerte está en el propio CKAN, y son DOS capas con políticas opuestas (medido el
+  2026-09-20):**
+  - **Su interfaz web enmascara exactamente como pide el documento.** `GET /dataset/test` sin sesión →
+    **HTTP `404`**, y el cuerpo dice literalmente **«Dataset not found or you have no permission to view
+    it»**. El recurso privado, igual: `404` «Resource not found». El mecanismo, en su código:
+    `ckan/views/dataset.py:406-407` (y :396-397, :509, :608, :744, :780) atrapa **`(NotFound,
+    NotAuthorized)` en la MISMA rama** → `abort(404, _('Dataset not found'))`; `ckan/views/resource.py:68-69,
+    91, 164-165` hace lo mismo. Es decir: **CKAN no distingue «no existe» de «existe pero no puedes
+    verlo», ni siquiera para un usuario logueado sin permiso**, y su mensaje es el ambiguo del documento.
+  - **Su API REST hace lo contrario**: `package_show?id=test` sin token → **`403` que nombra el UUID del
+    paquete**; `id=no-existe` → **`404`**. Ahí la existencia se revela y los dos casos se distinguen.
+  - **Los listados no filtran en ninguna capa**: `/dataset` anónimo lista 16 y no incluye `test`; la
+    página de la organización dueña tampoco lo lista; `package_search` anónimo → 16.
+  - **Consecuencia para el portal:** el portal es headless y consume la **API**, así que **hereda el
+    `403`** y tiene que elegir cuál de las dos políticas de CKAN reproduce. Y un dato incómodo que
+    conviene tener escrito: **el comportamiento anterior del portal (403 → «Recurso no encontrado»)
+    reproducía fielmente la política de la UI de CKAN.** Lo genuinamente defectuoso de D4 era
+    (a) el mock de DEV tapando un fallo real con datos falsos y (b) perder la mitad «o no tiene
+    permiso» del mensaje, que es la que no confirma nada y no miente.
+  *El punto medio existe, y es el de CKAN:* **`404` ambiguo sin botón de iniciar sesión** (el botón es lo
+  que revela). Si se conserva el botón, no hay punto medio: invitar es revelar. Fuga menor ya existente:
+  la expulsión por sesión muerta revela existencia a quien llegue con un token vencido.
+  **Lo decidido se aparta a propósito de la política de CKAN en un punto y la copia en otro:** para el
+  anónimo reproduce lo que hace su UI (ambiguo, sin invitación); para el identificado se aparta y le dice
+  la verdad útil («su cuenta no está autorizada» le dice que debe pedir permiso, no que escribió mal la
+  dirección). _Origen: documento aportado por el autor + medición del 2026-09-20; decisión del autor,
+  2026-09-20._
+  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizó **la mitad de página** (`lib/api/failure.ts`:
+  `classifyFailure`, `describeFailure` y `failureActions`, usados por las dos páginas, con el 403 y el 404 anónimos colapsados
+  a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
+  `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
 
 - [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
+  **Estado medido (2026-09-30): VIVO.** Ningún **archivo versionado** habilita la bandera: aparece en `PRD.md:245` y en los
+  artefactos del cambio SDD, y en **ninguno** puesta en `true`. La mitad literal del ítem (`.env.example`) **no es
+  verificable** bajo la política estricta de rutas de entorno. **Frena en medir el stack y en la decisión de habilitarla.**
+
+- [ ] **[v0]** `TODO:` **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
+  Observación del autor (2026-09-25): «cuando son muchos aparece un `+X`, esto es ambiguo». **Causa medida**:
+  `src/lib/components/search/DatasetCard.svelte:93-103` muestra `dataset.tags.slice(0, 3)` y después
+  `+{dataset.tags.length - 3}` —un `+2` pelado, **sin rótulo y sin forma de saber qué etiquetas son**—.
+  **Dos restricciones que el arreglo tiene que respetar:** (1) la card **entera** es un `<a>` (línea 59), así
+  que un desplegable o un botón adentro sería **contenido interactivo anidado**: la divulgación tiene que ser
+  por **hover/foco**, no por clic; (2) **el mismo defecto, con la misma forma, está dos bloques más abajo en
+  los chips de formato** (líneas 118-120, `+{formatSummary.more} más`), así que conviene un solo arreglo para
+  los dos. Opciones: el `title` nativo —lo que el repositorio ya usa en `FacetFilter.svelte:113` y en los
+  botones de la página del recurso—, **vendorizar el `Tooltip` de bits-ui** (el `AGENTS.md` lo lista como el
+  primitivo a usar, y **todavía no está en el repositorio**), o no truncar. **Decisión del autor pendiente.**
+  **Verificado (2026-09-25): no hay ningún componente de tooltip en el repositorio.** El mensaje que aparece al
+  pasar el mouse por una organización truncada de los filtros del buscador es el **`title` nativo del
+  navegador** (`FacetFilter.svelte:113`: `<span class="min-w-0 flex-1 truncate" title={item.display_name}>`; el
+  archivo importa sólo `ChevronDown` y `Search`). Así que «usa el mismo componente que los filtros» **no es una
+  opción**: o se usa el `title`, o se vendoriza el `Tooltip` de bits-ui de cero.
+  **Estado medido (2026-09-30): VIVO.** `DatasetCard.svelte:95` sigue con `dataset.tags.slice(0, 3)` y un `+N` pelado
+  (`:118` para los formatos), y **no existe ningún componente `Tooltip`** en `src/lib/components`. **Frena en la decisión
+  del autor:** `title` nativo, vendorizar el `Tooltip` de bits-ui, o no truncar.
+
+- [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
+  «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
+  y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
+  **El alcance no está definido: el autor no dijo qué le falta**, y la primera tarea es que la mire y lo
+  diga —no adivinarlo—. Contexto: PRD RF-06 a RF-08 y `openspec/specs/organizations/spec.md`.
+  **Estado medido (2026-09-30): VIVO.** `src/routes/organization/[id]/+page.svelte` es encabezado + lista de `DatasetCard`
+  sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
+  **Frena en la decisión del autor: el alcance.**
+
+- [ ] **[v0]** `TODO:` **El buscador sin resultados: el vacío y, sobre todo, el menú de filtros.** Observación
+  del autor (2026-09-28): «cuando no hay result se ve todo feo, en especial el menú de filtros». **Sin medir
+  todavía:** el estado vacío vive en `src/routes/search/+page.svelte` y los filtros en
+  `src/lib/components/search/FacetFilter.svelte`, que hoy muestra «Sin coincidencias para «X»» cuando el filtro
+  no encuentra nada y esconde el resto de la lista. Primer paso: reproducirlo en el navegador con una consulta
+  sin resultados y anotar **qué se ve mal y a qué ancho**, antes de proponer nada.
+  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizaron **el estado vacío y el panel**
+  (`search/+page.svelte`: `emptyStateMessage` en `:300` y `:628`, `showFilterPanel` en `:284`). **No aterrizó el menú de
+  filtros:** `FacetFilter.svelte:127` sigue mostrando «Sin coincidencias para «{query}»» y esconde el resto de la lista, que
+  es exactamente el síntoma que este ítem nombra.
+
+- [ ] **[v0]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
+  autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
+  antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
+  (`‹ Anterior` · contador · `Siguiente ›`) que **envuelven a una segunda línea** en anchos cortos, y su
+  ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
+  eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
+  el juicio de diseño.
+  **Estado medido (2026-09-30): VIVO.** La banda envuelve bien (`resource/[resourceId]/+page.svelte:540`), pero el recibo
+  `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
+  **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
+
+- [ ] **[v0]** `TODO:` **El navegador desactiva el anclaje de desplazamiento por culpa del encabezado que se achica.**
+  Observación del autor (2026-09-24), **mensaje textual de la consola**: «El anclaje de desplazamiento se
+  desactivó en un contenedor de desplazamiento debido a demasiados ajustes consecutivos (10) con muy poca
+  distancia total (-1.12666664123535 px promedio, -11.2667 px total)». **Causa medida por lectura del
+  mecanismo:** el encabezado se achica cambiando su **alto en el flujo** (`h-[var(--header-h)]` de `5rem` a
+  `4rem`), así que al cruzar el umbral **todo el contenido de abajo sube 16px** y el anclaje de desplazamiento
+  intenta compensarlo en cada transición; tras diez ajustes seguidos con una distancia total diminuta, el
+  navegador **desactiva el anclaje** en ese contenedor. Es la consecuencia directa del slice E2b y no aparecía
+  antes. **Opciones:** (1) `overflow-anchor: none` en el contenedor de scroll, para que el navegador no
+  compense algo que ya es intencional; (2) achicar **sin tocar el flujo** (el encabezado conserva su alto y el
+  recorte es visual, p. ej. con `transform`/`scale`), que es lo correcto si el salto se nota; (3) dejarlo y
+  documentarlo, si el efecto es sólo el aviso en consola. **Medir primero si produce un salto visible.**
+  Pertenece al **bloque E**.
+  **Estado medido (2026-09-30): VIVO.** `overflow-anchor` **no aparece** en `src/`, y el encabezado sigue cambiando el alto
+  **en el flujo** (`+layout.svelte:82`, `app.css:127,141`). **Frena primero en una medición** —¿produce un salto visible?— y
+  **después en la elección de opción.**
+
+- [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
+  Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
+  float-menu del dashboard es más pequeño que el de los menús del search, o que los resúmenes del
+  form-create-dataset». **Medido — son TRES aires distintos más un número mágico:**
+  - la **barra de acciones del panel**: `fixed inset-x-0 top-[var(--header-h)] … pt-2` → **8px** de aire, y
+    **flota** como tarjeta (`rounded-xl border shadow-lg`, con `p-2` adentro);
+  - la **barra de resultados del buscador**: `sticky top-[calc(var(--header-h)+1px)]` → **1px** (el borde del
+    encabezado), y va **a ras**, ancho completo, con `border-b` y `py-4` adentro;
+  - los **laterales** de la ficha del dataset y del asistente: `lg:top-[calc(var(--header-h)+1rem)]` → **16px**;
+  - y el lateral de **facetas del buscador** sigue con `lg:top-40` → **160px**, un valor que nunca se midió
+    (estaba anotado como observación no actuada en el recibo de E2).
+  **Estado medido (2026-09-30): VIVO.** No existe ningún token `--sticky-air` y los aires siguen distintos: `pt-2` en el
+  dashboard (`:393`), `+1px` en search (`:354`), `+1rem` en las dos laterales y `top-40` en las facetas. **Frena en la
+  decisión del autor:** tarjeta flotante o barra al ras.
+
+  Y son **dos tratamientos**: tarjeta flotante (panel) contra barra a ras (buscador). **Propuesta:** es el mismo
+  problema que el alto del encabezado, así que se arregla igual — **un token** (`--sticky-air` en
+  `src/app.css`) del que salen todos los offsets pegados, **más una decisión del autor**: ¿flotante o a ras para
+  todas? Pertenece al **bloque E**.
+
+  - **Un riesgo que había que medir antes de tocar `site_url`, y está resuelto: el callback del DataPusher NO depende de `site_url` en este stack.** `ckanext/datapusher/logic/action.py:67-71` usa `ckan.datapusher.callback_url_base` **y sólo cae a `ckan.site_url` si esa opción falta**. Acá **está seteada**: `CKAN__DATAPUSHER__CALLBACK_URL_BASE=http://ckan-dev:5000` (verificado en el entorno del contenedor), y el pusher **resuelve y alcanza** ese nombre (`getent hosts ckan-dev → 172.19.0.4`, `wget → rc=0`). Por eso la subida al DataStore de la sonda D0 funcionó con `site_url = localhost`: **el pusher nunca usó `site_url`**. Conclusión medida: cambiar `site_url` a la URL pública **no toca la carga al DataStore**. (Contraste: la IP de LAN del host **no** es alcanzable desde el contenedor del pusher — el `wget` a `192.168.1.201:5000` no completa —, así que `callback_url_base` debe seguir siendo la dirección interna del servicio.)
+  - **Trampa futura a tener escrita:** el embed de RF-30 depende de que el origen de CKAN sea alcanzable **y del mismo esquema** que el portal. Si el portal se sirve por `https` y `site_url` queda en `http`, el navegador bloquea el `<iframe>` y el `<img>` por contenido mixto. Al fijar la URL pública hay que fijar **las dos** con el mismo esquema.
+  - **Arreglo, en orden de riesgo:** (1) `CKAN_SITE_URL` con la URL pública real —en este dev, la IP de LAN— es lo que desbloquea el síntoma entero, y es del repo `odp-docker`; (2) quitar el fallback `|| "http://localhost:5000"` o hacerlo **fallar ruidosamente** si la variable falta; (3) decidir si `APP_URL` se usa o se borra. **Recomendación de momento:** va antes que D3, porque sin esto los visores por tipo que acabamos de aprobar no se pueden verificar de verdad desde otra máquina.
+  _Origen: reporte del autor, 2026-09-23; medición propia del mismo día (`ckan.site_url`, el `curl` a la IP de LAN y el inventario de `localhost` en `src/`)._
+
+- [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
+  Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
+  `http://192.168.1.201:5000/` sin autenticarse recibía la configuración entera de CKAN, con
+  `postgresql://ckandbuser:ckandbpassword@db/...` y `postgresql://datastore_ro:datastore@db/...`
+  en claro (medido: 9 apariciones en la home). El toolbar **ya está apagado** (ver abajo), pero las
+  credenciales siguen siendo las mismas que estuvieron publicadas: hay que rotarlas. Cuando se
+  rehaga el volumen para el upgrade a 2.12 es el momento natural, porque el cambio va en
+  `ckan-docker/.env`.
+  *(Pendiente: `.env` y `.env.example` son rutas de entorno que el harness no autoriza a editar
+  desde acá — las aplica el autor a mano.)*
+  **Estado medido (2026-09-30): VIVO — es tarea de operación, no de código.** Las credenciales de `postgresql` siguen siendo
+  las mismas que estuvieron publicadas. **Frena en la acción del autor** (se aplica a mano sobre `.env`, ruta que el harness
+  no autoriza a editar).
+
+  **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
+  arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
+  Flask-DebugToolbar. Una variable de entorno **no** lo apaga: `CKAN___DEBUG` sí llega a la config
+  global (`debug` quedaba en `False`, verificado) pero el toolbar lee el **ini**, no esa config; y
+  las variantes son traicioneras por silencio — `CKAN__DEBUG` mapea a `ckan.debug` y `CKAN_DEBUG`
+  a `ckan_debug`, una clave que no lee nadie. La solución es un script en `/docker-entrypoint.d/`,
+  que corre DESPUÉS de esa línea y ANTES de levantar el servidor:
+  `ckan-docker/ckan/docker-entrypoint.d/02_disable_debug_toolbar.sh`, montado por el compose de dev
+  (y horneado por el `COPY` del Dockerfile para quien reconstruya). **No afecta al hot reload**,
+  medido: se tocó `ckanext-umss/plugin.py` y CKAN se recargó igual; tampoco al depurador de
+  Werkzeug, que depende de `--disable-debugger`, no de `debug`.
+
+  **Lo que sí se pierde:** el JS/CSS sin minificar de la UI nativa de CKAN y su modo debug de
+  plantillas. Irrelevante mientras la interfaz sea el portal.
+
+- [ ] **[v0] Higiene de configuración de versión** — `CKAN_VERSION=2.10.0` en
+  `ckan-docker/.env` y `.env.example` es **config muerta** y hay que quitarlo: cero referencias en
+  este repo y también cero en el upstream (cuyo compose usa `build:`, no `image:` con ese valor).
+  Es lo que hacía creer que el stack corría 2.10 cuando corre 2.11.6; la versión real la fija el
+  `FROM` de los cuatro Dockerfiles. *(Pendiente al 2026-09-24: la edición de `.env` y
+  `.env.example` requiere autorización explícita del autor, porque son rutas de entorno.)*
+  **Actualización medida (2026-09-29):** el commit `a128b4f` quitó la clave de `.env.example`;
+  la copia de `.env` **no es verificable desde la sesión** (el guardrail bloquea esa ruta), así
+  que la aplica el autor si sigue ahí. El ítem sigue **abierto** por esa mitad y por la decisión
+  de pinear o no los `FROM` en el minor.
+  **Estado medido (2026-09-30): VIVO, abierto por partida doble.** `a128b4f` tocó **sólo `ckan-docker/.env.example`**; la copia
+  de `.env` **no es verificable** desde la sesión (ruta de entorno bloqueada), así que esa mitad va como nota y **no** como
+  cierre. Y sigue pendiente la decisión de pinear o no los cuatro `FROM`.
+
+  **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
+  upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
+  `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
+  que el stack realmente corre, ya no por override de shell—. **Y `reindexar` resultó innecesario, y
+  eso está medido:** el configset del core vive en el **volumen**, no en la imagen; el motor de Solr
+  es el mismo en los dos tags (`solr-spec 9.9.0` / `lucene 9.12.2`), y lo único que cambia es el
+  `managed-schema` que trae la imagen. Por eso el índice siguió legible con el tag viejo **y** con el
+  nuevo: `numFound: 17` y `package_search: 16` sin cambios antes y después. Lo que se re-sembró fue el
+  **catálogo**, y eso fue del volumen limpio del upgrade (2026-09-24), **no** del cambio de tag.
+  **No dar por hecho un reindex acá: verificar el índice.** _(Precisión hecha el **2026-09-28**, un día
+después del cierre que describe el encabezado de esta sección; medición completa en
+`odd/tasks/ckan-2.12-upgrade.md`.)_
+
+  Y **los `FROM` quedan flotando en el minor (`2.11`)**: es una decisión, no un descuido. Pinear el
+  patch (`2.11.6`) da reproducibilidad byte a byte, pero obliga a bumpear a mano para recibir los
+  parches de seguridad y despega el archivo del upstream congelado. Si algún día importa la
+  reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
+  natural para decidirlo.
+
+- [~] **[v0] Higiene de versión: el tag de CKAN sin fuente única** — hallazgo `R2-002`
+  del linaje huérfano de la revisión del upgrade: `pre-existing`, SUGGESTION, **no** introducido por
+  el upgrade. El tag vivía como literal en los 4 `FROM` de los Dockerfiles, en las imágenes de
+  servicio de `.github/workflows/checks.yml` y en una celda de tabla del README, sin fuente única: un
+  bump exigía ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
+  stacks — pasó de verdad con `redis:3`, que el 2.12 destapó (`HELLO`/RESP3) y que `d861c95` arregló.
+  Origen: store nativo, linaje `review-7e3ab346bc8b3f85`; transcripción completa en
+  `odd/tasks/ckan-2.12-upgrade.md`.
+  **Estado al 2026-09-29 — cerrado por partes, y la marca es `[~]` a propósito:**
+  (a) **la deriva del tag de CKAN queda máquina-verificada** por
+  `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`, rango gateado
+  `f4c4ca0..4910824`): compara los cinco sitios que nombran `ckan/ckan-base`/`ckan/ckan-dev` y
+  falla nombrando archivo y tag; un sitio que deja de nombrar CKAN, una extracción vacía o un digest
+  también fallan. Se descartó `ARG` como solución (los cuatro Dockerfiles extienden dos imágenes
+  distintas y el `container:` del workflow lo resuelve el runner).
+  (b) **NO cubre** las imágenes de servicio ni la celda del README, por decisión medida: sus tags los
+  gobiernan otros upstreams (el de Solr lleva sufijo `-solr9`).
+  (c) **Sigue abierto y con dueño propio el caso que sí mordió:** el `redis:6` del job frente al
+  cliente de CKAN 2.12 (`HELLO`/RESP3). Hoy vive en un comentario del workflow, **sin guarda**; es el
+  candidato natural para la próxima guarda de versión, y no lo cierra `f21dc6b`.
 
 ## v1 — producto usable en producción
+
+- [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
+  pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
+  `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
+  `snap-mandatory`) en el contenedor de scroll y `snap-start` en cada card. **La trampa es el encabezado
+  pegajoso**: hay que compensarlo con `scroll-mt-*`, porque el buscador ya tiene un `aside` con
+  `lg:sticky lg:top-40` y el encabezado del sitio mide `var(--header-h)` (5rem, `src/app.css`); sin ese margen
+  la card se fija por debajo de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
+  _Origen: pedido del usuario, 2026-09-17._
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
   del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque
@@ -557,11 +1780,37 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Preferencia expresada por el usuario: extensión propia, con algo más liviano si conviene.
   **Bloquea RF-14 a RF-17, RF-23 y RF-33.**
 
-- [ ] **[v1] Token en cookie httpOnly + nginx (endurecimiento)** — hoy el JWT vive en
-  `localStorage` (vulnerable a XSS). Patrón más seguro: guardar el API token en una cookie
-  httpOnly/secure/samesite y que el reverse proxy la convierta en header `Authorization`
-  (`proxy_set_header 'Authorization' $cookie_<nombre>`). Combinar con
-  `ckan.auth.disable_cookie_auth_in_api = true`.
+- [ ] **[v1] El token de CKAN no debe ser legible por JavaScript (endurecimiento)** — hoy el JWT
+  vive en `localStorage` y el navegador lo manda en `Authorization`. En `v0` es un trade-off
+  aceptado, no un bug. El costo real es XSS: el portal renderiza contenido que viene de CKAN
+  (descripciones markdown, `url`s, nombres de recursos) y el token dura 24 h y además puede
+  acuñar y revocar tokens de esa cuenta.
+
+  **Lo que este ítem decía antes quedó retirado el 2026-09-24: era incorrecto y no era
+  ejecutable.** Tres mediciones, todas contra el CKAN 2.11.6 que corre:
+  1. **`ckan.auth.disable_cookie_auth_in_api` no existe.** `grep` sobre todo el árbol de CKAN:
+     cero ocurrencias. La opción real es **`ckan.auth.enable_cookie_auth_in_api`**
+     (`config/config_declaration.yaml`, `default: True`; `ckan.ini:107` la fija en `true`). Tal
+     como estaba escrito, el ítem habría sido un **no-op silencioso**.
+  2. **Poner la real en `false` hoy rompería el login.** `mintToken`
+     (`src/lib/server/ckan-auth.ts`) autentica `POST /api/3/action/api_token_create` con
+     **cookie de sesión + `X-CSRFToken`**, no con un token, y `ckan/logic/auth/create.py` exige
+     identidad autenticada (`user.name == context['user']`). La doc de la propia opción advierte
+     que rompe módulos del frontend que llaman a la API.
+  3. **El truco de nginx no cubre CSRF.** El navegador manda la cookie sola, así que
+     `proxy_set_header 'Authorization' $cookie_<nombre>` autenticaría *cualquier* request que la
+     traiga, incluidas las que mutan.
+
+  **Diseño propuesto (BFF):** el servidor del portal guarda la credencial de CKAN y el navegador
+  sólo tiene una cookie de sesión httpOnly del portal; `hooks.server.ts` inyecta `Authorization`
+  server-side hacia `CKAN_INTERNAL_URL`. Con eso, `enable_cookie_auth_in_api = false` pasa a ser
+  una **consecuencia** del diseño, y segura.
+
+  **Restricción que hay que decidir ANTES de implementarlo:** sin credencial de CKAN en el
+  navegador, **las descargas de datasets privados fallan** — `/dataset/.../download/...` autoriza
+  con cookie o con token. Si hay que servir archivos privados desde el navegador, el portal tiene
+  que streamear los bytes (con soporte de `Range`, que el visor de PDF necesita) o emitir un token
+  de vida corta. Los datasets públicos no tienen ese problema.
 
   **Efecto obligado sobre las subidas:** al sacar el token del browser, el archivo ya no puede ir
   directo a `/api/`; pasa a un `+server.ts` propio y por lo tanto aparecen dos requisitos:
@@ -579,6 +1828,66 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
   rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
   2026-09-11._
+
+- [ ] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
+
+  Hoy el stack corre **2.11.6**, que es el **último patch de su línea** (2.11.6 se publicó el mismo
+  día que 2.12.0, y 2.10 también recibió el suyo: quedarse en 2.11.x es una posición soportada, no
+  un abandono). **CKAN 2.12.0 existe** (2026-08-26) y trae dos cosas que tocan este proyecto:
+  *«Files are now first-class entities and can be uploaded and managed separately from resources»*
+  y el tema `midnight_blue`.
+
+  **Lo que la actualización exige, medido:**
+  - El changelog oficial pide `ckan db upgrade` **más** el script SQL de
+    `ckan datastore set-permissions` **más** upgrade de requirements. **En dev eso es evitable:**
+    los datos son de prueba, así que un volumen nuevo (`down -v`) instala desde cero y de paso
+    valida el camino de instalación limpia.
+  - Las imágenes de 2.12 son **`2.12-py3.14`** (2.10 y 2.11 publican `py3.10`), y el compose de dev
+    monta `site_packages:/usr/local/lib/python3.10/site-packages` — ruta específica de py3.10.
+    El changelog dice «supports Python 3.10 and later», así que el requisito es el *mount*, no el
+    intérprete.
+  - **El empaquetado Docker no está listo:** `ckan/ckan-docker` **no tiene tags** y su `master`
+    sigue en `FROM ckan/ckan-base:2.11`, con `SOLR_IMAGE_VERSION=2.10-solr9`. Subir a 2.12 es
+    mantener el empaquetado, no cambiar una línea. (Existen `ckan/ckan-solr:2.12-solr9` y
+    `ckan/ckan-base:2.12.0-py3.14`.)
+  - **Re-medir las suposiciones del portal contra 2.12**, porque el proyecto tiene evidencia
+    medida contra 2.11.6 y esa evidencia no se hereda: el `404` de `user_show` con token muerto
+    (`src/lib/api/session.ts`), el `expires_in`/`unit` obligatorios de `api_token_create` por
+    `expire_api_token`, y sobre todo **la forma de la `url` de descarga que arma
+    `resource_dictize`** — justo lo que cambia si «files» pasa a ser una entidad de primera clase.
+  - Verificar además los plugins habilitados (`image_view text_view datatables_view datastore
+    datapusher envvars expire_api_token umss`), la imagen del DataPusher (`0.0.21`) y el job
+    `umss-tests` del CI, hoy pineado a `ckan/ckan-dev:2.11`.
+
+  **Recomendación:** hacerlo como **slice propio** (backup, rama, CI) y **en aislamiento** — no
+  mezclarlo con el arreglo de `ckan.site_url` ni con el endurecimiento de auth, o no se va a poder
+  atribuir ninguna causa a ninguno de los dos. A favor de hacerlo pronto: cuanto más se construya
+  sobre 2.11, más mediciones específicas de 2.11 hay que rehacer.
+
+  **El plan está escrito:** `odd/tasks/ckan-2.12-upgrade.md` (acá, versionado) — slices S0–S6, la base
+  medida, las siete suposiciones del portal a re-medir y las superficies de edición. **No ejecutado:**
+  espera revisión del autor. Vive en este repo y no en `odp-docker` porque ahí `odd/` está excluido
+  por `.git/info/exclude` y no viajaría con el repo.
+
+  **Y un dato que cambia la urgencia:** los ocho `GHSA` que anunció 2.12.0 **también figuran en el
+  changelog de 2.11.6**. La versión que corre ya está parchada, así que **la seguridad no es el
+  motivo para subir**. El motivo real es que 2.12 rehace el manejo de archivos —`Upload` y
+  `ResourceUpload` pasan a `FKUpload`/`FKResourceUpload`, aparecen storages configurables y acciones
+  nuevas de files— y ese es el dominio central del portal: si hay que adaptarse, mejor antes de
+  construir `v1` encima de la semántica de 2.11.
+
+  _Origen: pregunta del autor, 2026-09-24; medición propia del mismo día (changelog oficial,
+  tags de Docker Hub y estado del repo `ckan/ckan-docker`)._
+
+- [ ] **[v1] Los roles en el front no se distinguen: ¿qué diferencia hay entre un usuario, un admin de
+  organización y un superadmin?** — Observación del autor (2026-09-28), al revisar el badge del dashboard:
+  «en CKAN la tenemos clara con eso de agregar cosas como el CSS y demás, pero en este nuevo front no termina
+  de quedar muy claras las diferencias». **Punto medido que la origina:** al corregir el badge se encontró que
+  la **misma palabra** designaba dos permisos incomparables — el `sysadmin` del sistema y `capacity: "admin"`
+  de una organización—, y el portal no tiene hoy **ninguna superficie** que explique qué puede hacer cada rol ni
+  qué cambia en la interfaz según el rol. CKAN los distingue (capability por organización, `sysadmin` global) y
+  la API los expone; lo que falta es **decidir cómo se muestran y se nombran en el portal**. Es a futuro, en
+  palabras del autor. _Origen: revisión del badge `Administrador del sistema`, 2026-09-28._
 
 - [ ] **[v1] Un editor de organización pierde la capacidad de cambiar `state` cuando entre el guard de
   publicación** — **medido (2026-09-14, P4a):** hoy un editor de org **sí** puede `package_patch
@@ -603,6 +1912,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   sobre un CRUD incompleto mide un sistema que todavía no es el que va a recibir la carga. Alcance a
   definir cuando llegue el momento (concurrencia, tamaño de archivo, escritura contra DataStore).
   _Origen: revisión del 2026-09-14._
+
+- [ ] **[v1+] Colaboradores por dataset y equipos, con la procedencia del permiso.** El PRD ya cubre las
+  entidades (`dataset_collaborators` en RF-18, `teams`/`team_members` en RF-19, y su mapeo en §7), y CKAN
+  trae `package_collaborator` nativo desde 2.9 — **apagado** por la bandera del ítem `[v0]` de más
+  arriba. **Lo que el PRD NO tiene, y hay que agregarle cuando se diseñe:** registrar **cómo** se otorgó el
+  permiso — **por un equipo** (grupo interno de la organización que sirve para administrar usuarios,
+  análogo a las colecciones de datasets) **o directo** al usuario. El resto de lo pedido ya está en el
+  esquema de §7 (`granted_by`, `created_at`, `role_alias`); la procedencia «equipo vs directo» no.
+
+  **Consecuencia en el producto, que ya se ve hoy:** «mis datasets» deja de significar «los que creé» y
+  pasa a ser «los que puedo editar (editor) o de los que soy steward», que es justamente lo que promete el
+  copy actual de la tarjeta del dashboard. El slice A del trabajo `v0-portal-honesty` lista **sólo los
+  creados por el usuario** y ajusta el copy a eso; cuando esta entidad exista, el copy y la consulta
+  vuelven a cambiar. _Origen: respuesta del usuario del 2026-09-17 sobre el alcance de «Mis datasets»._
 
 - [ ] **[v1+] Notas de UI de las páginas de organizaciones.** Al usuario **le gustan** las cards de
   `/organizations`; son mejoras para después, no defectos. Anotar concretamente qué mejorar cuando se
@@ -666,7 +1989,137 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   colaboradores por dataset son nativos (ver `v0`); los equipos multi-organización son custom.
   _Referencias: PRD RF-19/RF-20, design-system §9 item 12._
 
+- [ ] **[v1+]** `TODO:` **Pulido visual de las páginas de error.** El autor las revisó y los *mensajes*
+  quedaron bien; lo que falta es la densidad visual: «se ven planas, sin color, sin gracia». Pedido:
+  mejorarlas «como hicimos con las otras pages», cuando haya tiempo de detalles. Alcanza a
+  `src/routes/+error.svelte` (el componente `ErrorPage`) y a la hoja `/dev/error`. No es un defecto de
+  contenido: no cambiar la copia ni los dos estados al hacerlo.
+
+- [ ] **[v1+]** `TODO:` **La paleta de formato, en la misma pasada de detalles.** Decisión del autor
+  (2026-09-22): el chip de tipo de recurso queda **neutro** por ahora y la paleta se define **una sola
+  vez** para todas las superficies (la lista del dataset, la ficha del recurso y, si corresponde, los
+  chips del buscador). **Lo que hay que resolver cuando toque:** el chip compartido reemplazó un mapa de
+  **10 formatos con color propio** (en `ResourceCard.svelte`, en HEAD antes de `fa96d5c`) cuyos valores
+  eran `oklch` **crudos dentro del componente** —dos violaciones documentadas: `AGENTS.md` regla 3
+  («Colores vía tokens, nunca hex crudos») y el anti-patrón del design-system §11 («Colores hardcodeados
+  en componentes»)— y que ponía ~10 matices saturados donde el sistema admite **2 por pantalla**. La
+  salida correcta por las reglas es **tokens en `src/app.css`** más la sección de roles en
+  `design-system/datos-umss/README.md`, explicando por qué la paleta de formato extiende ese límite.
+  **No restaurar el mapa crudo** sin esa decisión: repone las dos violaciones.
+
+- [ ] **[v1+]** `TODO:` **Unificar los colores de los chips en las tres superficies, y resolver el del «Enlace».**
+  Pedido del autor (2026-09-22). Hoy hay **dos paletas y un neutro**: el buscador (`DatasetCard.svelte`)
+  tiene su propio mapa `FORMAT_ACCENT` con ~8 matices en **clases Tailwind** (`text-blue-700`,
+  `text-emerald-700`, …) sobre un marco apagado; la lista del dataset y el encabezado de la ficha usan el
+  chip **neutro**; y el chip «Enlace» usa `bg-muted/50` mientras el de archivo usa `bg-muted`. **Esa
+  diferencia de intensidad era intencional** —distinguía el enlace del archivo cuando el archivo llevaba
+  color propio— **pero al pasar todo a neutro quedó sin razón**, y el autor la notó («veo que el color es
+  un poco distinto»). **El patrón del buscador es el mejor candidato para la paleta unificada**: marco
+  apagado y **sólo el texto** con el color del formato, que respeta mucho mejor el límite de «máximo 2
+  colores saturados por pantalla» que un chip relleno de color. Une con el `TODO:` de la paleta de arriba.
+
+- [ ] **[v1+]** `TODO:` **Chips y badges clicables: que manden al buscador filtrado por formato.**
+  Pedido del autor (2026-09-22): que los chips de formato —los de las cards del buscador **y** los de
+  dentro del dataset y de la ficha del recurso— sean un enlace al catálogo filtrado por ese formato. La
+  pieza ya existe: la búsqueda soporta el filtro por `res_format`, en la faceta y en la URL
+  (`/search?format=…`). **Dos decisiones abiertas al implementarlo:** (a) el chip **«Enlace»** no tiene
+  formato que filtrar —¿no es clicable, o filtra por otra cosa?—; (b) un chip clicable **dentro** del
+  dataset cambia el clic que hoy lleva a la ficha del recurso, así que hay que resolver esa superposición.
+
+- [ ] **[v1+]** `TODO:` **Reordenar los recursos del asistente (arrastrar para mover, estilo lista de reproducción).**
+  Pedido del autor (2026-09-22). **Factibilidad medida, para no volver a medirla:**
+  (1) **La lista ya está lista para moverse:** `recursos = $state<RecursoEntry[]>([])` se renderiza con
+  `{#each recursos as recurso (recurso.key)}` —está **claveada**—, así que reordenar es reordenar el array y
+  Svelte **mueve los nodos** en vez de recrearlos: los archivos elegidos y el progreso de subida siguen
+  pegados a su fila (con `File` y `AbortController` en juego, eso es lo que evita el bug).
+  (2) **El orden llega a CKAN sin mandar `position`:** `ckan/model/resource.py:180` usa
+  `ordering_list('position')` —renumera la colección como enteros ascendentes en cada modificación— y
+  `ckan/lib/dictization/model_dictize.py:96` **devuelve los recursos ordenados por `position`**. El asistente
+  crea recorriendo el array en orden (`for (const entry of recursos)`), así que **el orden del formulario es
+  el que CKAN guarda y devuelve**. Gratis en la creación: `resource_create` ni menciona el campo.
+  (3) **En móvil no habría arrastre igual:** el design-system §9 ya lo decidió («En móvil no hay arrastrar y
+  soltar»), así que el arrastre no puede ser *el* mecanismo.
+  **Escalera de costos:** (a) **botones ↑/↓ por fila** — chico, sin dependencias, funciona en táctil y con
+  teclado, va al lado del `quitarRecurso` que la fila ya tiene, y resuelve el 100% de la capacidad;
+  (b) **arrastre como extra para puntero** — decisión de dependencia (`svelte-dnd-action` es la habitual en
+  Svelte; **hoy no hay ninguna**) o DnD nativo a mano (que **no** funciona en táctil ni por teclado), y **no
+  reemplaza** a los botones: los complementa.
+  **Lo que se vuelve caro:** si algún día hay **edición** de recursos, el orden deja de ser gratis — hay que
+  persistir `position` con un `resource_update` por recurso. Hoy no hay edición: `resourceUpdate` existe en
+  `src/lib/api/resources.ts` y **no tiene llamadores**.
+
+- [ ] **[v1+]** `TODO:` **Los 11 diagnósticos de Biome: 4 son falsos positivos que NO hay que aplicar, 7 son cosméticos.**
+  Medido el 2026-09-23 con el binario directo sobre el árbol actual: `Checked 135 files · 4 warnings · 7 infos`,
+  **exit 0**. Lo que importa y no es obvio: **los 11 están marcados `FIXABLE`, pero los 11 son «Unsafe fix» y
+  ninguno es «Safe fix»**. Consecuencia, y es buena noticia: **`pnpm lint:fix` no aplica nada**
+  (`biome check --write` sólo aplica fixes seguros) y **el gancho de pre-commit tampoco los toca**. Sólo
+  `--unsafe` los aplica, y **ahí está la trampa**:
+  - **`src/app.css:139-142` (`lint/complexity/noImportantStyles`, 4 warnings) — NO TOCAR.** Son los `!important`
+    del bloque `@media (prefers-reduced-motion: reduce)`. **Probado en una copia fuera del repo:**
+    `biome check --write --unsafe` **los borra** (`animation-duration: 0.01ms !important` pasa a
+    `animation-duration: 0.01ms`), y sin `!important` cualquier animación declarada con más especificidad vuelve
+    a correr: es una **regresión de accesibilidad** y choca con la regla 7 de `AGENTS.md`. Arreglo correcto:
+    **suprimir la regla** en ese bloque (`/* biome-ignore lint/complexity/noImportantStyles: … */`) o apagarla
+    por override para `app.css`.
+  - **`src/routes/search/+page.svelte:86-89` (`lint/complexity/useLiteralKeys`, 4 infos) — real y trivial:**
+    `filterMap["organization"]` → `filterMap.organization` (y lo mismo con `res_format`, `tags`, `license_id`).
+    Verificado que **no** rompe `pnpm check`: `tsconfig.json` —y el `.svelte-kit/tsconfig.json` generado— **no**
+    activan `noPropertyAccessFromIndexSignature`, que es el flag que habría rechazado el acceso por punto.
+  - **3 infos `lint/style/useTemplate` — reales, cosméticos:** `scripts/seed-ckan.mjs:119` y
+    `src/lib/components/ThemePlayground.svelte:107`.
+  - **`src/routes/search/+page.svelte:67` (`useTemplate`) — real, pero el fix automático es peor:** queda
+    `` `/search${params.toString() ? `?${params.toString()}` : ""}` ``, un template anidado menos legible que
+    **evalúa `params.toString()` dos veces**. A mano: `const qs = params.toString()` y usarlo una sola vez.
+  _Origen: pedido del autor de comprobar los «fixeables» que muestra `pnpm lint`, 2026-09-23._
+
+- [ ] **[v1+] Filtros dentro de la tarjeta «Mis datasets».** El usuario pregunta si conviene agregarlos
+  como en el buscador (y observa que ni el dashboard ni la página `user/<nombre>` de CKAN los tienen).
+  **Recomendación: no por ahora.** El buscador ya tiene búsqueda facetada; la tarjeta es una lista
+  personal y corta, y meter filtros ahí duplica maquinaria —y superficie de revisión— para un caso que el
+  buscador cubre. Cuando el volumen lo justifique, la vía barata es un **enlace al buscador prefiltrado
+  por creador** (`fq=+creator_user_id:<id>`, el mismo filtro que ya usa la tarjeta), que reutiliza las
+  facetas existentes en lugar de reimplementarlas. _Origen: pregunta del usuario, 2026-09-17._
+
 ## v2+ — mejoras futuras no solicitadas
+
+- [ ] **TODO (pregunta del autor): ¿internacionalizar la UI (i18n)?** Notó que CKAN define el idioma y que en
+  `src/lib/api/failure.ts` hay mucho español embebido. **Hechos, leídos y medidos:**
+  (a) **el PRD NO pide multi-idioma**: la única mención de «idioma» es `RF-09` y es un **metadato del
+  dataset** (el idioma de los datos), no de la interfaz;
+  (b) **CKAN sí tiene i18n completo** (`ckan.locale`, `ckan.locales_offered`, traducciones en
+  `ckan/i18n/<lang>/LC_MESSAGES/ckan.po`, decenas de idiomas), pero eso traduce **su** UI y sus mensajes de
+  error, no la del portal;
+  (c) el español de `failure.ts` es **copia de UI, no lógica**: es justo lo que se puede mover a un catálogo
+  cuando toque, y el seam ya empezó (`src/lib/copy/` es la primera pieza).
+  **Recomendación honesta: no hacerlo ahora.** No hay requisito ni segundo idioma pedido, y con un solo idioma
+  multiplica el trabajo sin cambiar la experiencia. Lo que **sí** conviene —y ya está en marcha— es seguir
+  sacando la copia a módulos: **es el trabajo que i18n necesita igual**, así que hacerlo ahora no cuesta
+  extra. Cuando exista un segundo idioma real (pedido institucional, intercambio, alumnos extranjeros), el
+  camino en SvelteKit es Paraglide JS o `svelte-i18n` más rutas por locale; no conviene decidir el
+  anteproyecto antes de tener el requisito.
+  _Origen: pregunta del autor, 2026-09-20._
+
+  **Tier: `[v2+]`.** El disparador para revisitarlo es un **segundo idioma pedido de verdad** (pedido
+  institucional, intercambio, alumnos extranjeros); sin eso, el único trabajo que ya conviene —sacar la copia
+  a módulos— sigue en marcha como parte del trabajo normal, no de i18n.
+
+- [ ] **TODO (pregunta del autor): ¿conviene un tutorial/onboarding que explique las acciones?**
+  **Factible, sí, y técnicamente barato**: una librería de tours (Driver.js, Shepherd) o un `<dialog>` propio
+  con una secuencia de pasos; no toca la arquitectura. **La dificultad no es implementarlo, es mantenerlo
+  honesto:** un tour apunta a elementos que se mueven, se vuelve obsoleto en silencio y **ningún test lo
+  detecta** — es documentación que envejece, pero peor, porque se le muestra al usuario con autoridad. Y hay
+  una señal que conviene escuchar antes: **un tour suele ser el síntoma de que la interfaz necesita
+  explicación**. Acá el problema conocido del asistente no es falta de guía —hoy tiene ficha lateral,
+  metadatos siempre visibles y campos explicados— sino que **la copia miente** (el ítem del verbo «publicar»
+  de arriba): un tutorial que diga «publique su dataset» repetiría la misma mentira con más pasos.
+  **Recomendación: no hacerlo ahora.** Orden que sí recomiendo: primero la copia y los estados vacíos;
+  después, **sólo con evidencia** de que la gente se pierde (soporte, analítica o tu propia observación), un
+  tour **de una sola acción** —la de crear un dataset— antes que un tour general; y lo más barato, que no
+  necesita librería: una página «Cómo funciona» de dos pantallas.
+  _Origen: pregunta del autor, 2026-09-20._
+
+  **Tier: `[v2+]`.** El disparador es que la UI tenga **más acciones** (después de v1) **y** evidencia de que la
+  gente se pierde; el primer paso entonces es un tour de **una sola** acción, no un tour general.
 
 - [ ] **[v2+] Roles / perfiles de usuario** — profundizar la gestión de roles más allá de
   `isSuperAdmin`. Se haría vía delta specs sobre `openspec/specs/authentication/spec.md`
@@ -700,6 +2153,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   contenido durable en el DataStore para demoear las vistas. Decidir la fuente (CSVs chicos
   commiteados vs. generador determinista vs. upload real + datapusher) y hacerlo idempotente y
   determinista. _Origen: sesión 2026-09-11 (diferido); relacionado con "Endurecer la vista previa CSV"._
+  **Estado del camino «upload real + datapusher» (2026-09-23):** la sonda D0 lo midió y **funciona** —subir
+  un CSV lo dejó en el DataStore al instante, con `datastore_search` devolviendo las filas y la descarga
+  sirviendo `Content-Disposition: inline` (que es lo que hace posible el embed de PDF/imagen de RF-30)—,
+  así que esa opción dejó de ser una apuesta. **Falta una entrada del autor:** pidió aportar un **ejemplo de
+  cómo hacer la carga de datos**; hasta tenerlo, la decisión de la fuente queda abierta. Consumidor concreto
+  hoy: los visores por tipo del bloque D necesitan archivos **alojados** para verse con datos reales — los
+  35 recursos del catálogo son enlaces.
 
 ---
 
@@ -709,6 +2169,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Sección «Data API» para recursos con tabla (bloque D, slice D3)** | **Implementado y aprobado** (2026-09-23). La sección «Acceso por API» estaba gateada a `resource_type === "api"`, un campo **heredado que nada escribe** —el propio formulario de CKAN lo tiene comentado y es `None` en los 35 recursos del catálogo—, así que **no se renderizaba nunca**: era UI muerta. Ahora el gate es `datastore_active === true` (el mismo marcador que usa la vista previa) y el endpoint que muestra es **`datastore_search`**, el que devuelve filas, en vez de `resource_show`, que no. El ejemplo de curl y las dos piezas de copy acompañan. **Reconciliación de la spec en el mismo paso, con dos defectos:** «Preview Placeholder» exigía un área reservada prometiendo una vista previa que ya existe, y «API Metadata» describía un gate que no coincidía ni con el código ni con la realidad. Revisión nativa `review-03b5057b001e6f9b` **aprobada** (tier medium, lente reliability, 3 archivos / 150 líneas, presupuesto 75), 2 avisos informativos. Gates: `check` 0 errores · `test` **601/601**. |
+| **Endurecer la vista previa de datos (bloque D, slice D2)** | **Implementado y aprobado** (2026-09-23). Los 4 hallazgos de `review-ca9abb1187a39513`. El sustantivo —`R3-stale-search-race`— se arregló con la guarda de corrida superada (el `cleanup` del efecto marca su corrida y los dos handlers comprueban antes de escribir; sin `AbortController` porque el cliente no acepta `signal`), y **el test que lo cubre fue verificado en contra: se neutralizó la guarda y el test FALLÓ** (aparecía la fila vieja), con el archivo restaurado byte-idéntico por sha256. Los otros tres: una celda con objeto ya no pinta `[object Object]` (va a JSON, con funciones y símbolos cayendo al guion y los primitivos intactos), el prop `limit` —declarado, con default y **sin uso**— **se eliminó** (lo que limita las filas es el fetch, y un prop que no hace nada declara un contrato falso), y el estado de carga tiene test con promesa diferida. Revisión nativa `review-891f798293c18235` **aprobada** (tier medium, lente reliability, 4 archivos / 129 líneas, presupuesto 65), 2 avisos informativos. Gates: `check` 0 errores · `test` **593/593** · Biome limpio. |
+| **La vista previa del recurso, por tipo (bloque D, slice D1)** | **Implementado y aprobado** (2026-09-23). El panel dejó de decidir con un `format === "csv"` propio —regla nuestra, no de CKAN, y falso negativo: el DataPusher carga `csv, xls, xlsx, tsv, ods` por defecto y `datastore_search` sirve cualquier tabla que exista— y ahora usa la marca de CKAN **`datastore_active`** para la tabla y el **tipo del archivo** para el embed (PDF, imagen, TXT/JSON). Se eliminaron los tabs simulados `Tabla`/`Gráfico`/`Mapa`: `Gráfico` y `Mapa` no son clases de vista previa (el modelo de vistas del PRD los pone en el módulo de análisis, RF-24/25/26), así que el portal dejó de contradecir su propio modelo. El cliente del DataStore ahora manda el token de la sesión, y todo embed pasa por `safeExternalUrl`. Hoja de revisión permanente nueva: **`/dev/preview`**. Revisión nativa `review-4fb694e5160560c1` **aprobada** (tier medium, lente reliability, 12 archivos / 1 182 líneas, presupuesto 200), authority quemada, **2 avisos informativos** registrados en «Deuda de revisión». Gates: `check` 0 errores · `test` **588/588** · Biome en su baseline (4 warnings + 7 infos, ninguno nuevo). |
+| **La causa del fallo de la vista previa en el catálogo sembrado** | **Cerrado e identificado** (2026-09-23, sonda D0). **No era el DataPusher**: se subieron tres archivos reales (CSV, PDF, PNG) a un dataset descartable y el pusher cargó el CSV al DataStore al instante (`datastore_active: true` en el primer sondeo y `datastore_search` con las filas). Lo que fallaba eran los **enlaces sembrados**, que nunca tuvieron tabla. Corolario corregido: `hash` es `null` **también** en un archivo alojado, así que «no tiene `hash`» no discrimina enlace de archivo; el único discriminador es `url_type === "upload"`. Catálogo dev restaurado a 17 datasets / 7 orgs. |
 | **Wizard: validación completa (Zod v4)** | **Implementado** (2026-09-12). El schema ahora cubre `url` (opcional, http/https con la **misma** política de enlaces del fix de seguridad), `maintainer_email` (opcional, validado con el **mismo regex de CKAN**, con sus tres lookaheads) y `maintainer`, y `tag_string` valida el formato real de CKAN (largo 2..100 y charset) normalizando al mismo tiempo: recorta, descarta vacíos y quita duplicados. Trampa encontrada al medir: el `\\w` de JavaScript es ASCII y habría rechazado «gestión», «año» o «educación», etiquetas que CKAN sí acepta; se usa `\\p{L}\\p{N}_`. El payload se construye **desde el resultado validado**, no desde el estado crudo, así que lo que se ve es lo que CKAN guarda. Validación en vivo (al perder foco, y se limpia al corregir) y resumen de errores con foco al primer campo inválido. **Defecto real corregido en el camino**: la UI leía `fieldErrors.slug` mientras el schema emitía `name`, así que el error del slug **nunca se mostraba** y el botón parecía no responder (test en RED antes del fix). Verificado en Chromium con eventos reales de entrada (focus/blur/input por CDP) y capturando el payload real con `fetch` interceptado, sin mutar CKAN. |
 | **Pulido de UI del dashboard (`/dashboard`)** | **Implementado y aprobado** (2026-09-12). Iterado en el playground `/dev/dashboard` (regla 8 de `AGENTS.md`) durante 6 rondas de revisión del usuario, y promovido luego de la aprobación; el playground se borró. Resultado: encabezado sin CTA compitiendo, **grilla de acciones** (hoy sólo «Publicar dataset», preparada para crecer) + **barra de acciones pegajosa** que aparece al scrollear (aire de 8 px bajo el encabezado, `inert` mientras está oculta), listas con contenedor propio y metadatos por fila (recursos + actualización + privacidad; sigla + datasets + rol en organizaciones) y descripción por sección. Verificado en Chromium: posición de la barra, que los clics atraviesan la franja transparente y que el enlace oculto no se puede enfocar. Auditoría responsive a 375/390/768/1024/1280/1440/1920 px sin desborde horizontal. Incluye `MAX_SIGLA_LENGTH` exportado por `OrganizationLogo` y la sigla declarada respetada verbatim. |
 | **Saneamiento del `href` de recursos (borde de salida)** | **Implementado** (2026-09-12). Política única de enlaces externos en `src/lib/utils/external-url.ts` (`safeExternalUrl` / `unsafeUrlReason`, allowlist `http:`/`https:` fail-closed) aplicada en los dos bordes de salida de la página de recurso (`resource.url` y el extra `docs_url`) y reusada por el wizard en la entrada. Primer test de componente de la página de recurso (`resource-page.test.ts`; el RED reprodujo el `href="javascript:..."` real) gracias a un stub de `$app/stores` en `vitest.config.ts`. Gates: check 0 errores, 169 tests, lint 0 errores, build 0. |
@@ -730,6 +2194,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | README raíz genérico "sv" | **Corregido** — README.md ya documenta stack real, setup, estructura y mock data. |
 | `getCkanClient()` muerto | **Eliminado** — `src/lib/ckan.ts` borrado (sin callers). |
 | CI/CD inexistente | **Agregado** — `.github/workflows/ci.yml` (lint + typecheck + vitest). |
+| El CI nunca pasó (faltaba el entorno declarado) | **Corregido** (2026-09-28) — `7585c0d` en `main` agrega el paso que copia `.env.example` antes del `typecheck`; el run `36489318035` quedó **verde**, con la suite corriendo **por primera vez** en CI (302 tests, 30 archivos). Lo encontró la línea de CKAN midiendo los runs. El ítem abierto se elimina: resuelto. |
 | `ThemePlayground` leftover | **Conservado** — tool dev-only gated por `import.meta.env.DEV`; decisión de mantenerlo. |
 | 9 apuntes de comparación de cards | **Obsoleto** — memoria engram #232 perdida y `/dev/cards` eliminado; absorbido por DatasetCardV2 (PR #39). |
 | Política de fallback a mock en producción | **Corregido** — mock solo con `import.meta.env.DEV`; en prod error explícito en las 6 páginas. Además: stats del home (orgs/formats) ahora reales y "Recursos" ya no se inventa en prod. |
@@ -743,6 +2208,803 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibo de la barrida de v0 — el censo verificado y sus reglas de conteo (2026-09-30)** — la barrida cerró **15
+  ítems** (borrados, según la convención del proyecto), marcó **2 `PARTIAL`** con su corte exacto y anotó **14 vivos**
+  con el bloqueo medido; el `[~]` del `R2-002` quedó intacto. **El método del cruce de tier quedó en la convención de
+  `L8`; acá va el censo con su fecha y sus commits**, porque **un censo sin reglas de conteo es una cifra de autor**:
+  dos implementaciones independientes no coincidieron hasta declararlas.
+  - **Regla 1 — alcance:** sólo ítems cuyo encabezado `##` más cercano por encima es una sección de tier.
+  - **Regla 2 — estados:** sólo `[ ]` y `[~]`; **los `[x]` no cuentan.** Fue el único desacuerdo real: un `[x]` dentro
+    de `## v1` hacía 42 donde la otra regla daba 41, sin que ninguno midiera mal.
+  - **Regla 3 — secciones externas:** para contar «ítems con tag de tier fuera de las secciones de tier» hay que decir
+    si los planes cerrados entran: **con `Plan*` son 25, sin `Plan*` son 17.**
+  - **El censo de las secciones de tier** (reglas 1 y 2): `9df384a` → **48 coinciden / 4 contradictorios / 7 sin tag
+    = 59**; `a716e04` → **52 / 0 / 7 = 59**; `f2fa5c9` (esta rama) → **41 / 0 / 4 = 45**. Los dos movimientos de ítems
+    mal ubicados son los que llevaron las contradicciones a cero.
+  - **Los ítems fuera de sección** (reglas 1 y 3): en `9df384a` y `a716e04`, **25 abiertos (17 excluyendo `Plan*`) con
+    4 `[v0]`** — uno en un plan cerrado (`L1146`, el bug de los badges duplicados, que **esta barrida cerró**) y **tres**
+    en deuda de revisión; en `f2fa5c9`, **24 (17) con 3 `[v0]`**, los tres en deuda de revisión.
+  - **Medido por las dos sesiones, en desacuerdo y después reconciliadas.** Yo publiqué «25 casos, tres `[v0]`» y
+    **estaba mal**: eran **cuatro** en `9df384a`. Lo corrigió la otra sesión y lo confirmó mi propia medición.
+  _Origen: la barrida de v0 del 2026-09-30; decisión del autor: el método a `L8`, el censo a este registro._
+
+
+- [ ] **Recibo de la revisión nativa de la unidad de los rótulos de metadatos (2026-09-29)** — cerró **`approved`** y
+  la authority quedó quemada (`gentle-ai.review-acknowledged/v1`). `review-d13fbf017e3991a1`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 79 líneas**, presupuesto 40, **0 bloqueantes, 1 aviso informativo**.
+  - **Lo que hizo la unidad** (`58c88af` + `beba1a7`): el eyebrow pasó a ser **«Metadatos»** —la cadena que dice
+    ser— y el segundo título dejó de repetirlo: **«Información sobre el dataset»** / **«Información sobre el
+    recurso»**. Después, las dos líneas descriptivas dejaron de chocar con su propio rótulo: el recurso decía
+    «…y otros metadatos» debajo del eyebrow «METADATOS», y el dataset abría con «Detalles», que es el nombre del
+    sidebar. Ahora nombran lo que la tarjeta contiene: **«Visibilidad, estado y sus identificadores.»** (dataset)
+    y **«Formato, tamaño, tipo MIME y sus identificadores.»** (recurso).
+  - **La aserción que pasaba por vacío, cerrada con RED medido.** `dataset-page.test.ts` afirmaba
+    `queryByText("Metadatos") === null`, y eso **sólo pasaba porque** el eyebrow era la cadena larga y no
+    satisfacía el match exacto: con el eyebrow corto la aserción se da vuelta. Reescrita como **conteo**
+    («Metadatos» aparece exactamente una vez) y **RED medido** mutando el sidebar de vuelta a «Metadatos»:
+    *expected 1, received 2*. Es la lección de `R3-001` de la unidad de las dos palabras, aplicada en el momento
+    en vez de diferida.
+  - **El aviso, y por qué no puedo leerlo desde su línea:** `R3-001` · **WARNING** ·
+    `resource/[resourceId]/+page.svelte:727` — la línea del `<h2>` que esta unidad reescribió —, disposición
+    **informational**. **El sobre de cierre no expone el cuerpo del mensaje** (sólo `id`/`lens`/`location`/
+    `severity`/`disposition`), y el registro del repo tampoco lo guarda: `.git/gentle-ai/review-transactions/
+    terminal-consumption/v1/89fb67b5….json` contiene únicamente `schema`/`repository`/`target`/`lineage`. **No lo
+    invento.** Y **corrijo lo que yo mismo escribí antes**: no puedo afirmar que «en las unidades anteriores
+    llegaba y acá no». La línea CKAN registra el mismo comportamiento y lo da por constante —«El envelope de cierre
+    nunca trae su texto: quedaron transcritos, con id/lente/ubicación/severidad, en el expediente y en el store»,
+    ítem 6 de su sección del 2026-09-29—. Lo que sí medí: mi linaje **no está en el store `v2`**, donde sí viven
+    cinco linajes más viejos, y el único rastro en el repo es el registro de consumo terminal, sin hallazgos.
+    **Pregunta abierta RESUELTA, y con matiz.** El texto **sí** se lee del store: vive en
+    `.git/gentle-ai/review-transactions/v2/review-<lineage>/review-state.json` (schema
+    `gentle-ai.review-state-record/v2`) en `state.admitted_role_results[i].value.result.findings[j].claim`, con su
+    `severity`, `evidence_class`, `causal_disposition` y `proof_refs`. **Y lo que lo borra es el ACUSE, no la
+    aprobación.** Verificado acá, no heredado: quedan **5** `review-state.json` vivos contra **56** registros de
+    consumo terminal, y **el único `approved` que sobrevive** (`review-9e769e5f903471c7`, tier medium) **no tiene
+    registro de acuse** —su único rastro es su propio directorio `v2`—, o sea que es una compuerta aprobada cuyo
+    acuse nunca se ejecutó: conserva sus claims. El linaje de esta unidad, en cambio, no tiene directorio y sólo
+    dejó el registro terminal. **Receta: leer el `review-state.json` entre el cierre y el acuse.** La línea CKAN
+    perdió las cuatro claims de su linaje de hoy por acusar primero; midió lo mismo sobre su huérfano
+    `review-7e3ab346bc8b3f85` (26 291 bytes, seis claims enteras), en el store de `odp-docker`.
+  - **Gates:** `pnpm test` **686/686** (mismo baseline) · `svelte-check` **0 errores / 4 advertencias**
+    preexistentes · Biome por binario directo **exit 0**. **Verificación viva:** Chromium headless contra el
+    portal corriendo (DOM post-hidratación, no el HTML del SSR, que es sólo el *shell*): cada rótulo y cada línea
+    aparecen una sola vez en su página y las cadenas viejas dan **cero**.
+  - **El episodio del consentimiento, que hay que leer antes de dar la compuerta por rota:** los primeros **tres**
+    `START` con la forma correcta (`mode: ordinary` + `baseRef` explícito + `lineageId`) devolvieron
+    `outcome: consent-binding-stale` con diagnóstico `consent-binding-expired` —**un binding nuevo por intento y
+    «expirado» en el acto**—, `native_invocation_attempted: false`, `lineage_created: false`. Un **cuarto intento
+    idéntico, después de un `inspect` fresco, creó el linaje sin pedir consentimiento** (tier medium, una lente).
+    Reproducido sobre dos targets distintos, así que no es un registro previo vencido. **Es intermitente y no se
+    explica con las entradas que veo; la receta es volver a `inspect` y reintentar, no declarar la compuerta
+    rota.** Dos formas de `input` que la descripción de la herramienta no dice y que se descubren por error:
+    hacen falta **`"mode":"ordinary"` y `lineageId`** a la vez. **Un tercer detalle, medido por la línea CKAN el
+    mismo día:** con `{"mode":"ordinary"}` **a secas** el controlador **re-proyecta** el candidato a los cambios
+    **sin commitear**, así que habría revisado un target distinto **sin avisar**. La forma correcta completa es
+    `mode` + `baseRef` de 40 caracteres + `committedOnly` + el `lineageId` que emite `inspect`.
+  - **Un detalle del rango:** el `inspect` ofrece **la rama entera** (`base_tree` = punto de bifurcación) y hay que
+    pasar el `baseRef` explícito a `b89e675` para acotarlo a la unidad. El `START` que funcionó **sí lo respetó**
+    (`base-ref` = árbol de `b89e675`, 4 archivos). Comparar `base_tree`/`candidate_tree` con
+    `git rev-parse <ref>^{tree}` es la forma de saber qué se está revisando.
+  _Origen: el TODO del cierre del 2026-09-28, ejecutado y cerrado el 2026-09-29._
+
+- [ ] **Recibo de la revisión nativa de la unidad que deja alcanzables los filtros aplicados (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-b9b043d8e234d365`: tier **medium**, lente
+  `review-reliability`, **2 archivos / 210 líneas**, presupuesto 105, **0 bloqueantes, 2 avisos informativos**.
+  - **Los dos avisos caen en la misma función**, la que agregué para el manejo del foco: `R3-001`
+    (**WARNING**, `search/+page.svelte:241-254`) y `R3-002` (SUGGESTION, `:249-251`). **Mi lectura:** son el
+    `await tick()` más la consulta manual al DOM (`panelEl.querySelector("[data-applied-filter]")` y, si no
+    queda chip, `document.querySelector('input[type="search"]')`) para que el foco no caiga al `<body>` cuando
+    el chip enfocado desaparece con su filtro. El mecanismo **cumple el requisito** y es **frágil por
+    construcción** —una consulta al documento entero y un atributo usado como selector—; el proveedor lo marca
+    y tiene razón. **Refinamiento recomendado:** mover el foco al contenedor del panel y dejar que el navegador
+    resuelva el orden, en vez de buscar el chip siguiente a mano. **Anotado, no corregido** (el recibo está
+    quemado).
+  - **Lo que hizo la unidad:** el panel de filtros **vuelve** cuando el usuario tiene filtros aplicados aunque
+    no haya facetas —un solo valor, `showFilterPanel`, gobierna **el panel y las columnas**, así que no queda
+    una franja vacía— y muestra **sus** filtros, agrupados con los mismos títulos que las facetas, cada uno como
+    un chip-botón que **reusa el mismo `toggleFilter`** de su faceta (sin duplicar la lógica de selección) y con
+    nombre accesible propio («Quitar filtro Organización: X»). Era el **último WARNING abierto que pedía
+    diseño**: el caso que el autor nombró —cero resultados para una organización **y** JSON, y querer sacar uno
+    solo—. **Diferido a propósito y declarado:** en móvil los filtros aplicados quedan **detrás del desplegable
+    «Filtros»** (un toque); abrirlo solo cuando no hay resultados es una línea más, si el autor lo quiere.
+  - **Gates:** `pnpm test` **686/686** (49 archivos, de 683 a 686: +3 tests) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes, ninguna en los dos archivos.
+  _Origen: el único WARNING abierto que necesitaba diseño, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad de las dos palabras y el chip del MIME (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-a5bb1994e01f2df6`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 45 líneas**, presupuesto 23, **0 bloqueantes, 1 aviso informativo**.
+  - **El aviso es sobre la aserción que yo mismo escribí:** `R3-001` · **WARNING** ·
+    `resource-page.test.ts:397-408`. **Mi lectura:** es el `it` que prueba que el chip del MIME **no** está en el
+    encabezado, y el proveedor tiene razón en marcarlo: **una aserción negativa pasa por vacía** — si el chip
+    no estuviera por cualquier otro motivo, el test también pasaría, así que **no distingue «se quitó» de
+    «nunca estuvo»**. La forma de cerrarlo es la que este repo usa: **medir su RED** (volver a poner el chip,
+    ver el test fallar, restaurar byte a byte) y registrarlo. **El autor lo autorizó el 2026-09-28 y acordamos
+    diferirlo a otra sesión.**
+  - **Lo que hizo la unidad:** el dataset tenía **dos** cards con la palabra «Metadatos» —la tabla técnica y el
+    resumen del sidebar— y ahora cada una tiene su nombre: la tabla dice **«Metadatos · Información técnica»**
+    (igual en las dos páginas) y el sidebar dice **«Detalles»**. No se inventó vocabulario: **las dos palabras
+    se intercambiaron** de tarjeta, y cada una describe lo que su tarjeta contiene. Y el **chip del tipo MIME
+    salió del hero**: era intencional (tiene su comentario), y repetía el formato («PDF» en el chip de tipo,
+    «application/pdf» al lado) mientras el dato ya vive en la tabla. Verificado después: el MIME aparece **sólo**
+    en la tabla y **cero** veces dentro del `<section>` del encabezado.
+  - **Gates:** `pnpm test` **683/683** (49 archivos, de 681 a 683: +2 aserciones de regresión) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los cuatro archivos.
+  _Origen: las observaciones del autor sobre las dos palabras y el chip del MIME, 2026-09-28._
+
+- [ ] **[v0]** `TODO:` **Higiene de datos de dev: el catálogo tiene un residuo de sonda** — medido el 2026-09-28:
+  **el único recurso del catálogo con `mimetype`** es `Probe origen PDF` (`probe-origen.pdf`,
+  `application/pdf`, `url_type: upload`), que **no es dato sembrado** sino el resto de una sonda de una sesión
+  anterior. Aparece como «dataset 17» en el catálogo de desarrollo. **Es dato, no código**: se limpia con
+  `resource_delete`/purga del dataset de sonda, y conviene mirar si quedaron otros residuos del mismo tipo
+  (la memoria del proyecto registra una limpieza de sondas anterior, así que esta se escapó).
+  **El autor lo autorizó el 2026-09-28 y acordamos hacerlo en otra sesión.**
+  _Origen: la verificación del chip del MIME, 2026-09-28._
+  **Estado medido (2026-09-30): VIVO, pero ABIERTO Y DIFERIDO POR DECISIÓN DEL AUTOR — no es deuda ni abandono.**
+  Verificado en vivo: `package_show` de `probe-origen-pdf` devuelve `private: false`, un recurso(`application/pdf`,
+  `url_type: upload`) y `state: active`; el catálogo de dev está en 17. **El autor decidió el 2026-09-28 conservarlo**
+  —«no hace falta borrarlo por ahora, es el único PDF que tenemos y puede servirnos hasta que hagamos la inyección de
+  datos»—. **No se limpia por iniciativa propia: es el único PDF del catálogo y borrarlo le mueve el piso a la
+  verificación de la vista previa del portal.**
+
+- [ ] **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-02d3e702f16cc417`: tier **medium**, lente
+  `review-reliability`, **3 archivos / 71 líneas**, presupuesto 36, **0 bloqueantes, 2 avisos informativos**.
+  - **Los dos avisos caen en el test de la franja, y los dos son la misma observación:** `R3-001`
+    (`dataset-page.test.ts:570-571`) y `R3-002` (`:561-562`). **Mi lectura:** son las aserciones de
+    `flex`/`flex-wrap`, la de los hijos separados y la de `break-all`, o sea **contratos de clase** — y el
+    proveedor tiene razón en marcarlos: **pasan aunque el layout esté mal**. Es una limitación **inherente**
+    —jsdom no aplica Tailwind— que yo mismo pedí y que el test **declara en su propio comentario**.
+  - **Y por eso intenté cerrarla donde se puede: el navegador.** Captura del dataset a **390px**: **no
+    alcanzó** —la página es muy larga y, escalada, la franja queda ilegible—, así que **no afirmo el
+    resultado visual**. Lo que sí está verificado por construcción es **la estructura** que hace la
+    diferencia: una fila `flex-wrap` con **cada identificador como hijo propio**, así que la ruptura
+    **preferida** es entre ítems y `break-all` queda en los `code` como último recurso. **La verificación
+    visual queda del autor** (el dataset en el teléfono).
+  - **Lo que hicieron los seguimientos:** **(1)** las **dos ramas sin consulta** del estado vacío del
+    buscador, que no tenían aserción ninguna, ahora la tienen — y comparan la **cadena exacta**, así que
+    discrimina por construcción; **(2)** la franja de identificadores dejó de partir el **valor** en anchos
+    chicos. Los dos avisos del recibo anterior (`R3-EMPTY-MSG-BRANCHES` y `R3-ID-STRIP-WRAP`), cerrados.
+  - **Gates:** `pnpm test` **681/681** (49 archivos, de 678 a 681: +3 tests) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes, ninguna en los tres archivos · y una comprobación de integridad que vale:
+    la página del buscador se usó para una **reversión controlada** y **volvió byte a byte** (`git status`
+    no la lista), así que la reversión se deshizo bien y nada de ella viajó al commit.
+  _Origen: los dos avisos informativos de `review-6afeb0a8ba45dbf0`, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de las dos unidades de la ronda del buscador y la card técnica (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-6afeb0a8ba45dbf0`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 282 líneas**, presupuesto 141, **0 bloqueantes, 3 avisos informativos**.
+  Las dos unidades van en **una compuerta** (el autor aprobó las dos juntas; los commits van separados para que
+  el historial se lea): `5d1c436` (el buscador sin resultados) y `064e44d` (la card técnica del dataset).
+  - **`R3-FACET-PANEL-BOUNDARY`** · **WARNING** · `search/+page.svelte:416` — es el `{#if hasFacets}` que decide
+    el panel. **Mi lectura de la línea:** cuando el usuario **tiene filtros aplicados** y la búsqueda no
+    devuelve nada, el panel **desaparece**, así que su única forma de **destildar** un filtro es el botón
+    «Limpiar búsqueda y filtros». El arreglo honesto es mostrar al menos **los filtros aplicados** cuando no
+    hay facetas, para poder quitarlos de a uno. **Es una decisión de UX, no la tomo solo.**
+  - **`R3-EMPTY-MSG-BRANCHES`** · SUGGESTION · `search-page.test.ts:75` — es el helper `emptyMessage()`, que
+    matchea `/^No encontramos datasets/`. **Mi lectura:** cubre sólo las **variantes con consulta**, así que
+    las **dos variantes sin consulta** («No hay datasets disponibles…») quedan sin aserción — **el mismo hueco
+    que el escritor había declarado por su cuenta** y que la revisión confirmó. Arreglo: dos aserciones.
+  - **`R3-ID-STRIP-WRAP`** · SUGGESTION · `dataset-page.test.ts:556` — es la aserción de la franja de
+    identificadores. **Mi lectura:** la franja es **una sola línea con separadores `·`** y un `slug` o un UUID
+    de 36 caracteres **se parte mal en anchos chicos** (no tiene `break-all` ni envoltura por ítem). Arreglo:
+    envolver por ítem en vez de partir el valor.
+  - **Lo que hicieron las unidades:** el **buscador sin resultados** dejó de mostrar un marco vacío —un solo
+    valor `hasFacets` gobierna **el panel y la plantilla de columnas**— y su frase dejó de invitar a «limpiar
+    los filtros» cuando los filtros no están a la vista: ahora la menciona **sólo si el usuario los tiene
+    aplicados**. Y la **card técnica del dataset** tomó la composición de la del recurso: eyebrow unificado,
+    descripción agregada, y **`Slug`/`ID` fuera de la tabla, en una franja monoespaciada debajo**.
+  - **Gates:** `pnpm test` **678/678** (49 archivos, de 669/48: +9 tests y el primer test del buscador) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los cuatro archivos · el **RED se
+    midió** en las dos unidades, y el escritor **volvió a medirlo** cuando su primera aserción de la franja
+    pasaba en falso (los identificadores seguían siendo `<code>` dentro de la tabla).
+  _Origen: los dos arreglos que el autor aprobó juntos («hazlo, ambos»), 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad que cerró el guard del dataset y unificó la primera miga (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-3f510d12bc05d495`: tier **medium**, lente
+  `review-reliability`, **2 archivos / 54 líneas**, presupuesto 27, **CERO hallazgos** — la segunda vez en esta
+  serie que una compuerta cierra sin avisos.
+  - **Lo que hizo la unidad**, a partir de la observación del autor de que «el breadcrumb del dataset y el del
+    recurso difiere un poco»: **(1)** la página del dataset recibió el **mismo guard** que el recurso —el `href`
+    se arma con `.name`, así que se exige `.name`, no `.title`—, cerrando el defecto de la clase
+    `R3-ORG-NAME-GUARD` que había quedado **sin corregir en la página hermana**; los dos guards quedaron
+    **byte a byte idénticos**. **(2)** la primera miga se unificó a **`Datasets`** con `role: "Catálogo"`
+    —el par que ya usaban la página del recurso y la hoja del autor—, y **ninguna página usa ya `label:
+    "Catálogo"`**.
+  - **Tres diferencias que NO se tocaron, registradas** para que nadie las «arregle»: el ícono difiere a
+    propósito (`Database` en el dataset, `FileText` en el recurso) porque describe **el nivel actual**;
+    `related` —el grupo de hermanos— sólo lo pasa el recurso, porque los hermanos sólo existen ahí; y la
+    última miga del dataset **no lleva `href`**, que es correcto porque enlazar la página actual es redundante.
+  - **Gates:** `pnpm test` **669/669** (48 archivos, de 667 a 669: +2 tests, el guard y la etiqueta) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los dos archivos · Biome **no
+    verificable** (exit 254).
+  - **Valor de método:** el defecto del guard **sobrevivió en la página hermana** después de que un revisor lo
+    señalara y se cerrara «su» archivo. **Cerrar un hallazgo en el archivo que el revisor apuntó no es cerrar el
+    hallazgo**: hay que buscar la clase en las páginas equivalentes. Es la misma lección que dejó el aviso
+    anterior, ahora del lado del que arregla.
+  _Origen: TODO del autor sobre los dos breadcrumbs, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad que promovió A7 y unificó la URL de organización (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-94fc418923877f2d`: tier **medium**, lente
+  `review-reliability`, **10 archivos / 119 líneas**, presupuesto 60, **0 bloqueantes**.
+  - **Dos avisos, ambos `SUGGESTION`, y los dos apuntan a lo mismo:** `R3-001` en
+    `OrganizationCard.svelte:15` y `R3-002` en `dashboard/+page.svelte:655`. Leí las dos líneas: la primera es
+    el comentario más el default del componente —«el enlace se arma codificado en su única fuente»— y la
+    segunda es el **`href` explícito del dashboard, que ahora es idéntico al default del componente**. O sea:
+    el proveedor marcó la **redundancia que el propio commit declaró** —la regla quedó escrita en seis sitios—.
+    **Arreglo recomendado, dos líneas borradas:** que las dos cards que pasan exactamente el valor que ya es el
+    default (el home y el dashboard) **dejen de pasarlo**, y que el default del componente sea la única fuente
+    para las cards. Los otros sitios —las dos migas y el `orgHref`— **arman su propia URL** y no son redundancia.
+    **No se corrigió:** el recibo está quemado y los avisos no lo reabren.
+  - **Lo que hizo la unidad:** **A7 promovido** al breadcrumb real (el disparador de móvil pierde el chip:
+    sin borde, sin fondo, íconos `size-4`, el título entero como zona de toque y el `hover` como única
+    retroalimentación); y **la URL de organización con una sola forma** — `encodeURIComponent` en los seis
+    sitios donde se arma.
+  - **Dos hechos de tipo, medidos:** `CkanOrganization.name` es `string` **no opcional**
+    (`src/lib/types/ckan.ts:40`), así que el encoding es defensa en profundidad y no un bug vivo; y el default
+    del componente **ya apuntaba** a la página de la organización, o sea que el home **pisaba un default
+    correcto** con una búsqueda filtrada — ésa era la causa real, no la falta de un enlace.
+  - **Gates:** `pnpm test` **667/667** (48 archivos, de 663 a 667) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes, ninguna en los diez archivos · Biome **no verificable** (exit 254) · el
+    resultado visual de A7 es juicio del autor: el marco de la hoja es la especificación que se implementó.
+  _Origen: promoción de A7 + el aviso del encoding, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad que cerró el guard y llevó las cards del home a la organización (2026-09-28)** — cerró **`approved`** y la authority quedó quemada. `review-b336caf8983ffd9b`: tier **medium**, lente `review-reliability`, **4 archivos / 121 líneas**, presupuesto 61, **0 bloqueantes**.
+  - **Un aviso informativo:** `R3-001` · reliability · WARNING · `src/routes/+page.svelte:230`. **Sin texto en el envelope**, así que van las **dos lecturas posibles** y cuál me parece más probable. La línea es `href={`/organization/${org.name}`}` de la card de organización del home, o sea **la línea que este cambio agregó**.
+    1. **La más probable, y es una regresión mía:** el cambio **quitó el `encodeURIComponent`** que estaba antes (`/search?org=${encodeURIComponent(org.name)}` → `/organization/${org.name}`). Mi justificación fue que el `name` de CKAN es un slug (`[a-z0-9_-]`) y codificar es un no-op — cierto hoy, pero no está garantizado por el tipo (`string`), y un revisor de confiabilidad mira el diff. **Arreglo recomendado: devolver el `encodeURIComponent`** (no cuesta nada y cubre el caso que mi argumento da por sentado).
+    2. **La otra:** `org.name` ausente → `/organization/undefined`, el mismo defecto que el aviso `R3-ORG-NAME-GUARD` encontró en la página del recurso. En el home la fuente es `organization_list`, que CKAN siempre devuelve con `name`, así que es defensivo.
+    Queda **anotado, no corregido**: el recibo está quemado y ningún aviso reabre el candidato. Las dos lecturas se cierran con una línea cada una.
+  - **Alcance:** `7d98ac1..5d68fc5` con `committedOnly: true` — la unidad del guard (`f9ea83d`) más el commit de formato (`5d68fc5`, las dos hunks que dejó el gancho de pre-commit).
+  - **Cierra un aviso anterior, medido:** el `R3-ORG-NAME-GUARD` de `review-33850b074b195bfa` **fue corregido en `f9ea83d`** y el RED se midió contra la aserción nueva: `expected <a …> to be null` sobre un ancla con `href="/organization/undefined"`. Es el primer aviso de esta serie que se cierra **con evidencia de que el defecto existía**.
+  - **Migración del home:** las cards de organización pasaron de `/search?org=…` a `/organization/<name>`, por decisión del autor, y **ya no queda ningún `search?org=` en código de producción** — sólo las dos aserciones negativas que lo impiden. Test nuevo `src/routes/home.test.ts` (el home no tenía ninguno), con su RED medido: falló con `/search?org=facultad-de-ciencias`.
+  - **Gates:** `pnpm test` **663/663** (48 archivos) · `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **no verificable** (exit 254) · el DOM renderizado del home **no está cubierto** (la página es client-rendered), así que la cobertura son las aserciones del test nuevo.
+  _Origen: el guard que la revisión encontró + las cards del home, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad de los enlaces de organización y el badge (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-33850b074b195bfa`: tier **medium**, lente
+  `review-reliability`, **6 archivos / 137 líneas**, presupuesto 69, **0 bloqueantes**.
+  - **Un aviso informativo que encontró un hueco REAL en la especificación del padre:** `R3-ORG-NAME-GUARD`,
+    WARNING, `resource/[resourceId]/+page.svelte:183`. El guard era `dataset?.organization?.title` y el `href`
+    que la unidad agregó usa `.name` → `/organization/undefined`. **Cerrado en la unidad siguiente
+    (`f9ea83d`)** con RED medido. Lección registrada: al delegar un enlace derivado hay que nombrar **la
+    variable que el guard necesita**, no sólo el destino.
+  - **Lo que hizo la unidad:** los tres enlaces de organización (la miga del dataset, su `orgHref` y la miga del
+    recurso, que **no tenía `href` ninguno**) pasaron a `/organization/<name>`; y el badge del dashboard pasó de
+    `Administrador` a **`Administrador del sistema`**, dejando `Administrador` en las cards de organización,
+    que es su rol real. La ambigüedad era real: la misma palabra designaba el sysadmin del sistema y el admin
+    de una organización.
+  - **Gates:** `pnpm test` **661/661** (47 archivos, de 656 a 661) · `svelte-check` **0 errores / 4
+    advertencias** preexistentes · la ruta `/organization/direccion-investigacion` responde **200**.
+  - **Nota de proceso:** el primer `START` devolvió `consent-binding-stale` sin crear linaje y se resolvió con
+    un `START` nuevo, como estaba medido; y un `capture-binding-rejected` **fue una errata del padre** al
+    transcribir el binding (un `/schema` menos), no un problema del proveedor.
+  _Origen: los dos TODO del autor sobre enlaces de organización y el badge del dashboard, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa de la unidad del salto secuencial y el desborde del desplegable (2026-09-28)** — cerró
+  **`approved`** y la authority quedó quemada. `review-fc7e00d27e1f61cf`: tier **medium**, lente
+  `review-reliability`, **4 archivos / 595 líneas**, presupuesto 200, un revisor por `pi_host_relay`, **0
+  bloqueantes**.
+  - **Un aviso informativo:** `R3-SINGLE-RELATED` · reliability · WARNING · `Breadcrumb.svelte:84`. **El
+    envelope de cierre no trae su texto** —igual que los seis avisos anteriores—, así que lo que sigue es
+    **mi lectura de la línea**: es el guard que exige `related && related.items.length > 0` para ofrecer el
+    desplegable de hermanos en la miga actual. El aviso apunta, con toda probabilidad, a que **un grupo con
+    un solo hermano —el recurso actual— no aporta nada y el disparador se ofrece igual**. Es defensivo y hoy
+    inocuo (la página sólo pasa `related` cuando el dataset tiene más de un recurso), pero la condición vive
+    **en dos lugares**: el componente y quien lo llama. Queda **anotado, no corregido**: el recibo está
+    quemado y ningún aviso reabre el candidato.
+  - **Alcance:** `3f9de1e..0be5805` con `committedOnly: true` — sólo la unidad: `Breadcrumb.svelte` y su
+    test, la página del recurso y su test. **La hoja de diseño no entra**: el autor la dejó sin revisar **por
+    decisión propia** (dos veces registrada), no por olvido, y este recibo no la cubre ni la sustituye.
+  - **Gates:** `pnpm test` **656/656** (47 archivos; la unidad llevó la suite de 640 a 656) ·
+    `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **no verificable** (exit 254, es el
+    entorno) · **la verificación visual es del autor**, porque jsdom no calcula layout.
+  - **Disposición del salto, declarada:** el autor lo **aparcó** —«creo que ahora está mejor, pero no termina
+    de convencerme… ese lugar es raro»—, así que la ubicación queda **abierta, no aprobada**. El recibo cubre
+    el código y los tests, no el diseño.
+  _Origen: unidad del salto secuencial en el hero + el arreglo del desborde del desplegable, 2026-09-28._
+
+- [ ] **Recibo de la revisión nativa del slice E8 (bloque E, el salto entre recursos) (2026-09-25)** — cerró
+  **`approved`** y la authority quedó quemada. `review-865b14e1f735a37a`: tier **medium**, lente
+  `review-reliability`, **9 archivos, 931 líneas**, presupuesto 200. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Un aviso informativo:** `R3-001` · reliability · SUGGESTION · `src/lib/resources/order.ts:55-57`. **El
+    envelope de cierre no trajo su texto** —sólo id, lente, ubicación, severidad y disposición, como pasó con
+    los tres avisos del upgrade—. **Lectura de las líneas** (esto es mi lectura, no el texto del proveedor): es
+    la firma y el cuerpo de `resourcePositionLabel`: con `index >= 0` arma «Recurso N de total» y si no, sólo
+    «N recursos». La guarda cubre el «no está en la lista» (`index: -1`) pero **no el tope superior**:
+    un índice positivo fuera de rango renderizaría «Recurso 6 de 5» en vez de caer al total. Es defensivo y hoy
+    inalcanzable —el único llamador pasa `neighbours.index` y `neighbours.ordered.length` de la misma lista—,
+    así que queda **anotado, no corregido**: el recibo ya está quemado y ningún aviso reabre el candidato.
+  - **Alcance del candidato, declarado y no ideal.** El rango pedido fue
+    `448190a48cb0b70bf206ed911e4063cb5a161e12..HEAD` con `committedOnly: true` —el slice E8 solo: 7 archivos,
+    414 inserciones / 39 borrados— **más el commit `b83cd38`** de documentación de la otra línea, que entró por
+    estar en la punta. Son documentación pasiva: no aportan riesgo y **no agregaron lentes** (una sola, la del
+    cambio ejecutable). Separarlas exigía reescribir la rama; se prefirió el candidato algo más grande y
+    declarado.
+  - **Cómo se destrabó, que es la parte reutilizable.** El árbol tenía `odd/tasks/tokens-page-patch.md` **sin
+    versionar**, y con un no versionado elegible **ningún `START` acotado avanza**. Además, resolver la
+    selección **crea un linaje propio sobre el árbol de trabajo**. Se commiteó ese archivo y los otros dos docs
+    de la sesión paralela (`b83cd38`, autoría ajena declarada en el mensaje) y el inventario quedó vacío: el
+    `START` pasó a la primera.
+  - Gates: `pnpm test` **640/640** (47 archivos) · `svelte-check` **0 errores, 4 advertencias** (las
+    preexistentes: dos `label` sin control, un `value` capturado y el tipo `node`) · Biome **exit 0** con **4
+    warnings + 7 infos**, exactamente el baseline (medido con heap ampliado: la corrida sin `NODE_OPTIONS`
+    murió con `Linter process terminated abnormally` y exit 254, sin imprimir conteos).
+  _Origen: cierre de la compuerta de E8, 2026-09-25._
+
+- [ ] **Recibo de la revisión nativa del slice E7 (bloque E, el chip de contexto del breadcrumb) (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada. `review-c918f32f7c87a968`: tier **medium**, lente
+  `review-reliability`, **5 archivos, 286 líneas**, presupuesto 143. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Los cuatro avisos son informativos**, y el cierre lo dice: ninguno abre corrección ni reabre el candidato.
+    **Lectura de las líneas** (no el texto del hallazgo):
+    1. `R3-002` · WARNING · `Breadcrumb.svelte:37` — es el `<ol>` del recorrido de escritorio (`hidden lg:flex`):
+       el componente mantiene **dos DOMs** para la misma navegación (recorrido y chip), uno oculto por breakpoint.
+       Es deliberado —`display:none` deja sólo uno en el árbol de accesibilidad— a costa de duplicar marcado.
+    2. `R3-001` · WARNING · `Breadcrumb.svelte:92` — es `{#each ancestors as item (item.label)}`: **la clave usa la
+       etiqueta**, y una etiqueta no está garantizada única (un recurso y su dataset con el mismo nombre
+       colisionan). Es un olor real y chico; el arreglo sería una clave por índice o por `href`.
+    3. `R3-003` · WARNING · `Breadcrumb.svelte:96-108` — el item con `href` y el item sin él renderizan la misma
+       fila por dos ramas, y la rama sin enlace queda como **item de menú que no hace nada** (misma apariencia,
+       ninguna acción). Olor real: correspondería no ofrecer fila para un ancestro sin destino.
+    4. `R3-004` · SUGGESTION · `Breadcrumb.test.ts:89` — la aserción del chip usa un cast (`as HTMLElement`) y una
+       negación sobre un glifo (`not.toContain("←")`), que es frágil.
+
+    Los cuatro quedan **anotados, no corregidos**: el recibo ya está quemado y ninguno reabre el candidato.
+  - Evidencia del slice: el test encontró un **bug real antes de commitear** —`DropdownMenu.GroupHeading` exige
+    un `Group` que lo envuelva, y sin él el desplegable **reventaba al abrirse** (`Context "Menu.Group |
+    Menu.RadioGroup" not found`)—. El chip se veía bien y fallaba al hacer clic: es exactamente lo que un test de
+    componente que abre el menú atrapa y una captura de pantalla no. El componente pasó de **4 a 8 tests**
+    (abriendo el desplegable y verificando que el nivel actual no se liste dos veces) más una aserción de
+    integración en la página del recurso.
+  - Gates: `pnpm test` **631/631** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **Cambio de escritorio declarado:** al unificar los dos breadcrumbs, la página del dataset pasó de tener su
+    nav propio (flecha + «Catálogo») al recorrido del componente: en `lg+` arranca con «Catálogo» sin flecha, y
+    las dos páginas ganan los rótulos de nivel. Es consecuencia de la decisión del autor («en un dataset sería
+    `[] My Dataset`, en un resource `[] My Resource`»), no un efecto colateral buscado.
+  - **Pendiente junto a este slice:** la hoja `/dev/nav` tiene su última edición **sin commitear** (se versionó
+    para no romper la proyección del candidato), y la sesión paralela tiene `BACKLOG.md` y su expediente de
+    CKAN 2.12 también **sin commitear**. Nada de eso entró en este candidato: el rango se pidió versionado.
+  _Origen: cierre del slice E7 del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa de la hoja de navegación y los dos ítems del backlog (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada. `review-a6ba876369a3dd53`: tier **medium** —la hoja es
+  ejecutable, vive bajo `src/routes/dev/`—, lente `review-reliability`, **3 archivos, 372 líneas**, presupuesto
+  186. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Un aviso informativo, y aplica a la implementación real**: `R3-001` · reliability · SUGGESTION ·
+    `src/routes/dev/nav/+page.svelte:200-205`. **Lectura de las líneas**: es el `<a>` **dentro** del
+    `DropdownMenu.Item`, así que sólo el texto de la etiqueta es clickeable y el relleno del item es **espacio
+    muerto** —con `cursor-pointer` prometiendo lo que no hace—. En un desplegable el usuario hace clic en
+    cualquier parte de la fila. **Para la implementación: el item navega** (el enlace ocupa la fila entera, o el
+    item lleva el `onSelect`), no un ancla suelta adentro.
+  - La hoja queda **versionada** (`fac7cd3`) y es **permanente**: no es un duplicado de página sino una hoja de
+    revisión, como `/dev/kind`, `/dev/copy`, `/dev/error` y `/dev/preview`. Se versionó también por una razón
+    mecánica medida: una hoja **sin** versionar hace que el proveedor rechace un START acotado con
+    `candidate-target-projection-drift`, y el `untrackedScope: exclude` del `inspect` **no sobrevive** a un
+    `START` limpio.
+  - Los dos ítems que esta hoja instrumenta (el breadcrumb en móvil con sus cuatro opciones y el aire de los
+    pegados con sus tres medidas más el `top-40` sin medir) quedaron registrados en el backlog con las
+    mediciones, y **esperan decisión del autor**.
+  - Gates: `svelte-check` **0 errores** (las 4 advertencias son las preexistentes: dos `label` sin control, un
+    `value` capturado y el tipo `node`) · Biome **exit 0** · la hoja responde **200** y las otras cinco rutas
+    `dev/` también.
+  _Origen: hoja `/dev/nav` y los dos ítems del bloque E, 2026-09-24._
+
+- [ ] **DEUDA DECLARADA — el arreglo de E5 vive en `HEAD` sin recibo propio y su linaje ya no es ruteable (cerrado el 2026-09-25)** — el linaje
+  `review-5ab16f231f1adb49` quedó en **`correction_required`** con el hallazgo `R3-001` (CRITICAL,
+  `causal_disposition: introduced`) **ya corregido y commiteado** (`e5d2411`), pero el plan de corrección
+  **no se pudo enviar** el 2026-09-24: el slot `capture-correction-plan` rechazó **tres** envíos con
+  `capture-binding-rejected` («binding desconocido, expirado o de otra ruta de sesión»), cada uno con el binding
+  **recién emitido por un `STATUS`** y con el `request-hash` que el propio proveedor publica
+  (`sha256:037ced9970dd6fd8…`, sin cambios entre intentos). Los tres rechazos fueron **sin mutación**.
+  - **Desenlace medido (2026-09-25): la ruta ya no existe.** `STATUS` sobre ese linaje devuelve
+    **`applicability: unrelated`** —el proveedor no ofrece ninguna transición para él, sólo un `start` sobre el
+    candidato **actual** del árbol de trabajo—. **Motivo**: su candidato corregido congelado
+    (`sha256:73ad4d8d…`) dejó de corresponder a un objetivo vivo, porque el árbol se movió (E6, E7 y E8 más los
+    commits de documentación). Un linaje en `correction_required` **vence si el árbol se mueve antes de enviar
+    el plan**. Se probó además que **un linaje abierto en el mismo workspace no era el bloqueo**: se abandonó el
+    huérfano de la sesión anterior y la ruta siguió ausente. **El reintento en proceso nuevo tampoco alcanzó.**
+  - **Las 25 líneas quedan sin recibo, y ésa es la deuda.** Medido: el rango mínimo que las contendría es
+    `11cd15c..HEAD` = **13 archivos / 1 570 inserciones** —la rama acumulada, que la doctrina prohíbe como
+    candidato—, porque la fachada sólo acota `baseRef..HEAD` y `e5d2411` no está en la punta. **No existe una
+    compuerta barata que las cubra.** Los rangos con recibo las excluyen: E6 revisó `37c29a5` (2 archivos,
+    24/6), E7 revisó `5a18af0` (5 archivos) y el rango de E8 (`448190a..HEAD`) es **más nuevo** que el arreglo.
+  - **Qué NO hacer**: abrir un linaje nuevo para el mismo candidato, ni reconstruir por shell las invocaciones
+    nativas del historial. Y **no abandonar este linaje para «limpiar»**: `ABANDON` descarta los hallazgos
+    admitidos, o sea que borraría el registro del `R3-001` —el store inerte **es** la evidencia—, y encima el
+    proveedor no rinde su `revision` cuando el linaje es `unrelated`, así que tampoco es limpiable.
+  - **Lo que sí está**: el arreglo es correcto y el árbol lo tiene. Gates al cerrar: `pnpm test` **640/640**
+    (47 archivos) · `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **exit 0** con el
+    baseline (4 warnings + 7 infos).
+  - **El hallazgo, que era real**: el `<nav>` del breadcrumb es **flex item** del contenedor flex externo, y sin
+    `min-w-0` su `min-width: auto` no lo deja encogerse por debajo del ancho de la etiqueta completa: los
+    `truncate` de los hijos **no podían actuar** y el nav **desbordaba en horizontal** en vez de recortar —lo
+    contrario de lo que el slice prometía, y con scroll horizontal en móvil (regla 7 de `AGENTS.md`). El arreglo
+    es `min-w-0` en los dos `<nav>` (el del componente y el propio de la página del dataset) más una aserción
+    que lo ancla.
+  - **Lección de método (la importante)**: el playground de E5 puso el `<nav>` dentro de un `div` de **bloque**,
+    así que la restricción de `min-width` **nunca se activaba ahí** y los cuatro marcos se veían bien. El
+    playground reprodujo **el componente pero no el contenedor en el que vive**, que es exactamente la clase de
+    error que la hoja existía para atrapar. **Y la segunda lección, que costó esta deuda: el plan de corrección
+    se envía inmediatamente, no después de tres slices.**
+  _Origen: slice E5 del bloque E, 2026-09-24; cerrado como deuda el 2026-09-25._
+
+- [ ] **Recibo de la revisión nativa del slice E6 (bloque E, la nota del enlace) (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada. `review-97eb68d9224321c5`: tier **medium**, lente
+  `review-reliability`, **2 archivos, 30 líneas**, presupuesto 15. Un revisor por `pi_host_relay`, 0 bloqueantes.
+  - **Un aviso informativo**: `R3-001` · reliability · SUGGESTION · `resource-page.test.ts:433-435`.
+    **Lectura de las líneas** (no el texto del hallazgo): son las tres aserciones nuevas, y las tres son
+    **negativas sobre cadenas de clase** (`not.toContain("min-h-[220px]")`, `not.toContain("text-center")`,
+    `.size-16` ausente). La lectura probable: anclar por ausencia de clases es frágil — el test pasaría igual si
+    el bloque se reemplazara por otro elemento igual de alto que no llevara exactamente esas clases. Se anota y
+    **no se corrige**: el recibo ya está quemado.
+  - Evidencia: el test fue primero y la aserción de la caja **falló antes del arreglo** (1 de 28 en ese
+    archivo). El copy del aviso se conservó palabra por palabra porque otros tests lo anclan: lo que estaba mal
+    era la caja (220px de alto mínimo, 40px de padding y un círculo de 64px para una oración), no el texto.
+  - Gates: `pnpm test` **626/626** · `svelte-check` **0 errores** · Biome **exit 0**.
+  _Origen: cierre del slice E6 del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa del slice E3 (bloque E, dos superficies del dashboard) (2026-09-24)** — cerró
+  **`approved`** con la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  `review-29ba39931af7f59a`: tier **medium**, lente `review-reliability`, **5 archivos, 226 líneas**, presupuesto
+  113. Rango revisado **`032046f..HEAD`**, que incluye además el commit de la sesión paralela del autor
+  (`f34dab3`, el plan de CKAN 2.12): se declara por la misma razón que en el recibo anterior, para que nadie le
+  atribuya ese plan a esta línea de revisión.
+  - **Un aviso informativo**: `R3-001` · reliability · WARNING · `dashboard/datasets/new/+page.svelte:652`.
+    **Lectura de la línea** (no el texto del hallazgo): es `const orgIsMissing = $derived(orgDisplayTitle === "")`
+    — la condición infiere «falta elegir» de que el **título resuelto** esté vacío, en vez del **estado de la
+    selección**. La diferencia importa si alguna organización tiene el `title` en cadena vacía: ahí la ficha diría
+    «Falta elegir una organización» con una organización ya elegida. El arreglo propio es derivarlo del estado
+    (`!singleOrg && !ownerOrg`), no del título. **Anotado, no corregido**: el recibo ya está quemado y el aviso no
+    reabre el candidato.
+  - Evidencia del slice: **el test fue primero** y **1 de 28 fallaba** antes del arreglo — «varias organizaciones,
+    ninguna elegida» era el único de los cuatro estados sin cobertura, porque el mock tenía una sola y con una el
+    campo se auto-selecciona. Gates: `pnpm test` **621/621** · `svelte-check` **0 errores** · Biome **exit 0**. El
+    `text-pretty` se verificó como clase **generada** en el CSS compilado (`text-wrap: pretty`), con el límite
+    declarado: **jsdom no maqueta nada**, así que si esa oración puntual deja de huérfanar lo confirma el autor en
+    la página real.
+  _Origen: cierre del slice E3 del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa del ajuste de E2b a 16px (2026-09-24)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`). `review-639ebd76af60c244`: tier **medium**,
+  lente `review-reliability`, **3 archivos, 139 líneas**, presupuesto 70. Rango revisado **`1d3a225..HEAD`**, que
+  **incluye un commit de documentación que no es de esta sesión** —el `docs(backlog)` de la sesión paralela del
+  autor, `9fbde67`—: se declara acá para que nadie le atribuya ese texto a esta línea de revisión.
+  - **Un aviso informativo**: `R3-TEST-SHRINK-DELTA` · reliability · SUGGESTION · `src/routes/layout-header.test.ts:89`.
+    El id nombra el punto: la aserción nueva comprueba que el valor achicado es **menor** que el del tope, pero
+    **no fija el delta** (16px), así que un cambio de magnitud no la rompería. Eso es lo que la aserción quiso ser
+    —una invariante, no un pin del número—, así que queda anotado y **no se corrige**: el recibo ya está quemado.
+  - El cambio: el valor del estado achicado pasa de `4.5rem` a `4rem` en `--header-h`, y **ninguna otra línea de
+    código lo necesitó** — que es exactamente lo que compró E2: ningún offset lleva el número escrito. Gates:
+    `pnpm test` **620/620** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **Incidente de escritura concurrente, registrado:** mientras esta sesión corría los gates de ese ajuste,
+    **otra sesión del mismo repo** modificó `BACKLOG.md` **sin commitear** (112 líneas: la reescritura del ítem del
+    token con mediciones de hoy, la decisión de CKAN 2.12 y dos ítems de configuración). Verificado que **no** se
+    coló en los commits de esta sesión (0 ocurrencias de su texto en los míos), el autor autorizó commitearlo tal
+    cual, y se commiteó como unidad propia (`9fbde67`) declarando la procedencia en el mensaje. **Dos escritores en
+    el mismo worktree y sin aislamiento no es una hipótesis: pasó hoy.**
+  _Origen: ajuste del slice E2b del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa del slice E2b (bloque E, el encabezado se achica al scrollear) (2026-09-24)** —
+  cerró **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  - `review-6e034ec319f46e52`: tier **medium**, lente `review-reliability`, **7 archivos, 195 líneas**,
+    presupuesto de corrección 98, `risk_reasons: executable_change` (por `src/app.css`). Rango revisado
+    **`d2f53eb..HEAD`** con `baseRef` explícito. **Un revisor por `pi_host_relay`, 0 bloqueantes.**
+  - **Dos sugerencias informativas**, tal como las emitió el cierre:
+    1. `R3-001` · reliability · SUGGESTION · informativo · `src/routes/dashboard/+page.svelte:290-293`
+    2. `R3-002` · reliability · SUGGESTION · informativo · `src/routes/+layout.svelte:63-68`
+    El cierre lo dice explícitamente: ninguna abre corrección, ninguna reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Lectura de las líneas señaladas** (eso es lectura de las líneas, no el texto del hallazgo; el sobre trae
+    id, lente, severidad y ubicación, nunca la prosa): la del dashboard son las líneas donde se construye el
+    `ResizeObserver` y se hace `resizeObserver?.observe(header as Element)` — **el cast es mío y es innecesario**,
+    se evita estrechando con un `if (header)`; la del layout es el bloque de limpieza del efecto (el
+    `disconnect()` y el `removeAttribute`), donde lo único discutible es que la limpieza corre tanto al desmontar
+    como al re-ejecutar el efecto — y como la única dependencia reactiva es el centinela, que no cambia después
+    del montaje, se ejecuta una sola vez. Ninguna de las dos se corrige: son sugerencias, y tocar el código
+    habría invalidado un recibo ya quemado.
+  - Evidencia del slice: **3 tests nuevos** (el centinela existe; salir del tope pone el atributo en el documento
+    y volver lo quita, conducido por un `IntersectionObserver` falso; el estado vive en el documento y **no** en
+    el encabezado, porque los pegados son hermanos suyos), con **RED medido: 4 de 10 fallaban** antes de
+    implementar. Uno de ellos encontró un error real mío: la variable de estado estaba declarada y **nunca
+    enlazada** al elemento. Y la verificación que jsdom no puede dar: leído el CSS compilado por selector, el
+    token se declara en **dos** ámbitos (`:root` y `html[data-header-shrunk]`) y se generan
+    `height/top: var(--header-h)`, `top: calc(var(--header-h) + 1px)`, las dos propiedades de transición y los
+    200ms.
+  - Gates: `pnpm test` **619/619** · `svelte-check` **0 errores** · Biome **exit 0**.
+  - **El aviso `R3-1` de E2 queda cerrado acá**, que es donde se volvió obligatorio: el `rootMargin` de un
+    `IntersectionObserver` no se puede cambiar después de construirlo, así que con un alto dinámico el observer
+    se reconstruye cada vez que el alto cambia.
+  - **Tres obstáculos del arnés, los tres medidos y los tres reutilizables:** (1) **deriva de proyección**: con la
+    hoja `/dev/header` sin trackear en el árbol, el START fue rechazado con `candidate-target-projection-drift`
+    —el inventario de no-versionados cambia y la proyección del candidato no cuadra— aunque el `inspect` previo
+    hubiera pasado `untrackedScope: exclude`; se resolvió sacando la hoja del árbol, y se restauró después del
+    cierre; (2) **`consent-binding-stale` dos veces seguidas** y resuelto en el **tercer** START con clave nueva,
+    igual que lo ya registrado en este archivo; (3) **`capture-binding-rejected`** al reenviar el binding con
+    `reviewerRunAcknowledged`, con el `forecast` ya aceptado: el `STATUS` acotado **volvió a ofrecer el mismo
+    slot** (mismo `subject-hash` y misma revisión) y el relanzamiento cerró bien. Sin mutación en ninguno de los
+    tres fallos previos.
+  - **La hoja `/dev/header` se rehizo al revés que la primera versión**: ya no imita el encabezado —el demo en vivo
+    es el encabezado **real** de esa misma página, que se achica al scrollear— así que no hay marcado duplicado
+    que pueda derivar. El autor la había reportado como ilegible.
+  _Origen: cierre del slice E2b del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa del slice E2 (bloque E, alto del encabezado) (2026-09-24)** — cerró
+  **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  - `review-aae5dd97579ec543`: tier **medium**, lente `review-reliability`, **7 archivos, 124 líneas**,
+    presupuesto de corrección 62, `risk_reasons: executable_change` (por `src/app.css`). Rango revisado
+    **`9afdcea..HEAD`** con `baseRef` explícito. **Un revisor por `pi_host_relay`, 0 bloqueantes.**
+  - **Un aviso informativo**, tal como lo emitió el cierre:
+    1. `R3-1` · reliability · WARNING · informativo · `src/routes/dashboard/+page.svelte:256`
+    El cierre lo dice explícitamente: no abre corrección, no reabre la revisión y no se ofrece transición de
+    corrección para este candidato.
+  - **Lectura de la línea señalada (eso es lectura de las líneas, no el texto del hallazgo):** la 256 es
+    `const stickyTopPx = headerHeightPx() + STICKY_GAP_PX;` — el alto del encabezado se **lee una sola vez**, al
+    construir el observer. La lectura probable: se cambió una constante rígida por una **lectura cacheada**, así
+    que si el alto cambia *después* de montar (la media query de alto que este mismo bloque evaluó, una fuente
+    que carga tarde, un cambio de layout) el `rootMargin` y el umbral quedan viejos igual que antes, sólo que
+    sin constante a la vista. El arreglo propio sería un `ResizeObserver` sobre el encabezado que reconstruya el
+    observer; **no se hizo**: el recibo ya está quemado y un aviso informativo no reabre el candidato.
+  - Evidencia del slice: **5 aserciones anti-deriva** en `src/routes/layout-header.test.ts`, con **RED medido**
+    (5 de 7 fallan con la implementación revertida). Y la verificación que jsdom no puede dar: el CSS **compilado
+    por Vite** contiene `--header-h: 5rem`, `height: var(--header-h)`, `top: var(--header-h)`,
+    `top: calc(var(--header-h) + 1px)` y el `calc(var(--header-h) + 1rem)` dentro del `@media (width >= 64rem)`.
+  - Gates: `pnpm test` **616/616** · `svelte-check` **0 errores** · Biome **exit 0** (sus 4 warnings y 5 infos
+    son los diagnósticos preexistentes del baseline).
+  - **Dos entradas `[v1]` tocadas por este slice**: la del desfase de la barra pegajosa quedó **cerrada en su
+    mitad de desincronización** (el resto —el test de comportamiento en navegador real— sigue abierto), y la del
+    scroll snapping quedó **actualizada** (`h-20` ya no es un literal: es `--header-h`).
+  - **Regresión introducida por este mismo slice, medida y corregida el 2026-09-24** (commit `775f129`,
+    `review-8caa93a99e7dc4a6` **aprobada y quemada**, 2 archivos / 48 líneas, presupuesto 24, **0 hallazgos**).
+    El token quedó declarado **dentro del bloque `.dark`** (línea 119), porque la inserción se ancló en el último
+    token de la paleta oscura, no en el de `:root`. El modo claro es el default (sin esa clase), así que ahí
+    `--header-h` **no existía**: `height: var(--header-h)` caía a `auto` —el encabezado medía la mitad— y cada
+    `top:` caía a `auto`, con los **cuatro** offsets rotos: la barra del buscador, la barra del panel, el lateral
+    del dataset y el del asistente. En oscuro funcionaba, por eso se leía como un bug de tema. **Las dos
+    verificaciones de este slice fallaron de la misma manera: comprobaron presencia, no alcance** — el test
+    contaba apariciones de la declaración, y el chequeo del CSS compilado grepeaba `--header-h: 5rem;` sin
+    preguntar qué selector la contenía. Las dos ahora sí preguntan: el test exige que el token viva en un bloque
+    `:root` y **nunca** dentro de `.dark` (**RED medido** contra el archivo roto: esa aserción falló), y el CSS
+    compilado se volvió a leer ubicando el bloque contenedor de cada aparición (1 en `:root`, 0 en `.dark`).
+    **El recibo de E2 sigue en pie como registro de lo que se aprobó: lo que se aprobó tenía este defecto, y el
+    revisor no lo señaló.**
+  _Origen: cierre del slice E2 del bloque E, 2026-09-24._
+
+- [ ] **Recibo de la revisión nativa del slice E1 (bloque E, chips de formato) (2026-09-24)** — cerró **`approved`**
+  y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
+  - `review-35a2937ca35fd6fc`: tier **medium**, lente `review-reliability`, **3 archivos, 130 líneas**,
+    presupuesto de corrección 65, `risk_reasons: executable_change` (por `search/DatasetCard.svelte`). Rango
+    revisado **`ce8fb17..HEAD`** con `baseRef` explícito. **Un revisor por `pi_host_relay`, 0 bloqueantes.**
+  - **Lo que el cierre NO trajo: ningún hallazgo** — y esta sección copia los avisos «tal como los emitió el
+    cierre», así que acá no hay nada que copiar. **No se escribe «cero hallazgos»: se escribe que el cierre no
+    reportó ninguno.** Medido, para que nadie lo lea como un olvido: el artefacto del revisor **no está en ningún
+    store legible** — los registros de `review-transactions/terminal-consumption/v1/` tienen **los mismos cuatro
+    campos** en todas las líneas (incluidas D3 y L1, que sí tenían avisos), `review-transactions/v2/` sólo
+    conserva cuatro líneas viejas (Sep 10-14) cuyo `state` **tampoco** tiene un campo `findings`, y
+    `candidate-views/` quedó vacío al cerrar. **Discriminado el mismo día, minutos después, por el cierre del
+    slice E2**: ese sobre de cierre —misma versión 3.7.0, mismo repo— **sí** traía el bloque `advisory_findings`
+    con un aviso. El campo existe y viaja cuando hay hallazgos, así que el cierre de E1 no los traía **porque el
+    revisor no emitió ninguno: este candidato cerró limpio**. (Lo que sigue sin poder recorrerse es el texto
+    completo del hallazgo, que tampoco llegó en E2: el sobre trae id, lente, severidad y ubicación.)
+  - Evidencia del slice: **10 tests** en `src/lib/resources/formats.test.ts`, **8 de los cuales fallan** contra el
+    comportamiento anterior (RED medido antes del arreglo: `chips: [' ', '   ', 'CSV']` y `more: 1` con un solo
+    formato único). Medición en vivo del defecto contra el catálogo de dev:
+    `observatorio-de-movilidad-urbana-cochabamba` tiene **5 recursos y 4 formatos únicos**, así que la card
+    mostraba un chip duplicado **y `+1 más`** — un formato oculto que no existe.
+  - Gates: `pnpm test` **611/611** · `svelte-check` **0 errores** (4 advertencias preexistentes, ninguna del
+    diff: dos `label` sin control asociado, un `value` capturado y el tipo `node`) · Biome directo **exit 0**
+    sobre los tres archivos tocados.
+  _Origen: cierre del slice E1 del bloque E, 2026-09-24._
+
+- [ ] **Advisory de la revisión nativa del slice D3 (bloque D) (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:f0fed33b17ce7fa674719cff96ed9861e57e6e169308f147f72883e110a6aa50` del candidato
+  `sha256:08dad6ad4eaa7489f134e80c33bd197d1321a2ec15782c4fc502c9437fcff92b`).
+  - `review-03b5057b001e6f9b`: tier **medium**, lente `review-reliability`, **3 archivos, 150 líneas**,
+    presupuesto de corrección 75. Rango revisado **`c3a882b..HEAD`** con `baseRef` explícito.
+  - Dos avisos no bloqueantes, tal como los emitió el cierre:
+    1. `R3-001` · reliability · WARNING · informativo · `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:299`
+    2. `R3-002` · reliability · SUGGESTION · informativo · `.../resource-page.test.ts:467`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Contexto de las ubicaciones:** la primera cae en la construcción del `curlCommand` —donde el ejemplo
+    de la sección ahora arma `datastore_search` con `resource_id`, y donde vive el `??` que decide entre el
+    ejemplo declarado en los `extras` y el generado—; la segunda, en el bloque de tests que la propia slice
+    agregó para la sección. Eso es **lectura de las líneas**, no el texto del hallazgo.
+  - **Observación propia, fuera del alcance de la slice:** el cuadro de metadatos sigue mostrando una fila
+    «Tipo de recurso» alimentada por `resource_type` (`+page.svelte:238`). No es un gate —es exhibición de un
+    campo declarado— y la fila sólo aparece si el valor existe, así que hoy no pinta nada. Se deja: si el
+    portal algún día crea recursos con ese campo, corresponde mostrarlo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice D3 del bloque D (2026-09-23)._
+
+- [ ] **Advisory de la revisión nativa del slice L1 de «localhost» (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:cdae297f4106d8926fcff832cad1fba6acaffebf313ec615a279533f9065c161` del candidato
+  `sha256:e1d614ade4da0d357909cf0847c3a267b002cf92d79e12947ed4e7aa4c00be2c`).
+  - `review-344a93dbb8243ef2`: tier **high** —el provider lo subió por ser camino de autenticación
+    (`hot_path` / `auth`)—, **4 lentes** (`review-risk`, `review-resilience`, `review-readability`,
+    `review-reliability`), **10 archivos, 139 líneas**, presupuesto de corrección 70. Rango revisado
+    **`23d4f3c..HEAD`** con `baseRef` explícito. **Cuatro revisores corridos, 0 bloqueantes.**
+  - Los cuatro avisos, tal como los emitió el cierre:
+    1. `R2-logout-comment` · readability · SUGGESTION · informativo · `src/routes/auth/logout/+server.ts:5-8`
+    2. `R3-LOGOUT-CONFIG-500` · reliability · WARNING · informativo · `src/routes/auth/logout/+server.ts:29`
+    3. `R3-ROUTE-COVERAGE-GAP` · reliability · SUGGESTION · informativo · `src/lib/server/ckan-internal-url.test.ts:8-12`
+    4. `R4-LOGOUT-CONTRACT` · resilience · WARNING · informativo · `src/routes/auth/logout/+server.ts:29`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Lo que estos cuatro avisos tienen de notable, y por qué no se archivan sin más:** **tres de los cuatro
+    apuntan al mismo lugar** —`logout/+server.ts:29`, la resolución de la URL interna dentro del handler de
+    logout— desde **tres lentes distintas** (reliability, resilience, y el comentario en readability). Dos
+    lentes independientes convergiendo en una línea no es ruido. Y coinciden con el riesgo que el escritor
+    delegado ya había declarado por su cuenta: al quitar el fallback, **`POST /auth/logout` pasa a responder
+    `500` cuando `CKAN_INTERNAL_URL` falta fuera de desarrollo**, mientras el encabezado de la ruta prometía
+    «best-effort». La consecuencia práctica es leve —`logout()` del cliente ignora el status y limpia
+    `localStorage` igual, así que el usuario sale del portal, pero el token de CKAN **no se revoca** y el
+    servidor registra un error—, pero **es un cambio de contrato que introdujimos sin decidirlo**.
+  - **Decisión pendiente del autor, con recomendación:** (a) dejar el fallo ruidoso en las dos rutas —simple y
+    coherente, pero rompe el contrato declarado de logout por una mala configuración que **el login ya delata
+    con la misma fuerza**—; o **(b) recomendada**: mantenerlo ruidoso en **login** (donde es accionable y es la
+    puerta de entrada) y volver a **best-effort en logout**, registrando el error en el servidor sin fallar la
+    respuesta, porque el usuario ya está cerrando sesión y la revocación es por diseño best-effort. La (b) pide
+    su propio slice y su propia revisión: la authority de este recibo ya está quemada.
+  - **Corrección medida (2026-09-24) — la premisa de (b) es falsa y la recomendación queda retirada.** Tres
+    mediciones sobre el árbol actual: (1) `revokeToken` **ya se traga todos los fallos**, de red y de HTTP, con
+    `try/catch` (`src/lib/server/ckan-auth.ts:347-358`) y eso está anclado por **dos tests**
+    (`ckan-auth.test.ts:411` y `:417`) — así que lo **único** que puede devolver `500` en logout es el resolvedor
+    de `logout/+server.ts:29` cuando falta la variable; (2) esa misma variable faltante rompe
+    `login/+server.ts:27` con el mismo resolvedor, o sea que un despliegue así **no loguea a nadie**: la señal
+    ruidosa y accionable ya está en la puerta de entrada; (3) el cliente **descarta el status**
+    (`src/lib/api/auth.ts:48-58` hace `await fetch(...)` sin mirar `response.ok`, y `UserMenu.svelte:45-46`
+    limpia la sesión igual), así que el `500` es **invisible para el usuario**. Conclusión: la (b) convertiría un
+    `500` invisible en un `200` invisible —en un despliegue donde el login ya está roto— a cambio de un slice, un
+    ciclo de revisión y un camino que se traga un error de configuración. Los tres lentes convergieron en esa
+    línea porque no podían ver (1) ni (2). **Lo único que sigue en pie de los cuatro avisos es precisión de
+    documentación**: el encabezado de la ruta no dice que la revocación *en sí* es best-effort porque
+    `revokeToken` se traga los fallos. **El autor difirió la decisión el 2026-09-24: el ítem sigue abierto y no
+    cambia ningún comportamiento por ahora.**
+  - Contexto de las ubicaciones: la 1 y la 4 caen en el encabezado y en la resolución dentro del handler de
+    logout; la 3, en el nuevo archivo de test (probablemente el límite de cobertura que el escritor ya declaró:
+    las rutas no se pueden testear con los alias actuales de Vitest). Eso es **lectura de las líneas**, no el
+    texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice L1 del trabajo «localhost», 2026-09-23._
+
+- [ ] **Advisory de la revisión nativa del slice D2 del bloque D (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:6ea50eb32373453dddcec23138b43f67337bdd5dd28df9cb9c73b2a07718c6cc` del candidato
+  `sha256:783426ed187ec0c3512d82c67e6b2415d0fdbd03839ce136cbe779eed2f4f97d`).
+  - `review-891f798293c18235`: tier **medium**, lente `review-reliability`, **4 archivos, 129 líneas**,
+    presupuesto de corrección 65. Rango revisado **`3517ae1..HEAD`** con `baseRef` explícito.
+  - Dos avisos no bloqueantes, tal como los emitió el cierre:
+    1. `R3-001` · reliability · WARNING · informativo · `src/lib/components/resource/DataPreviewTable.svelte:22`
+    2. `R3-002` · reliability · SUGGESTION · informativo · `src/lib/components/resource/ResourcePreview.svelte:92`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y no se ofrece
+    transición de corrección para este candidato.
+  - **Contexto de las ubicaciones:** la primera cae en `cellValue`, la función que decide cómo se pinta una
+    celda (donde acaba de entrar la rama de JSON para tipos compuestos); la segunda, dentro del `$effect` de
+    la vista previa, en la zona donde resuelve la consulta al DataStore. Eso es **lectura de las líneas**,
+    no el texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice D2 del bloque D (2026-09-23)._
+
+- [ ] **Advisory de la revisión nativa del slice D1 del bloque D (2026-09-23)** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:6ac8045df9096a350f2c78f763d63412398d877a9c0e6a735f89a9368015882b` del candidato
+  `sha256:ce6e259644ae284869e63c3c9264755c27df0d95ff5008d3dabfd0bc666c85e0`).
+  - `review-4fb694e5160560c1`: tier **medium**, lente `review-reliability`, **12 archivos, 1 182 líneas**,
+    presupuesto de corrección 200. Rango revisado **`cdd69dd..HEAD`** con `baseRef` explícito —sólo el código del
+    bloque D—, no la rama acumulada que la inspección deriva por defecto (misma decisión que en A, B y C).
+  - Dos avisos no bloqueantes, tal como los emitió el cierre:
+    1. `R3-001` · reliability · WARNING · informativo · `src/lib/resources/preview.ts:18-23`
+    2. `R3-002` · reliability · WARNING · informativo · `src/lib/resources/preview.ts:29`
+    El cierre lo dice explícitamente: ninguno abre corrección, ninguno reabre la revisión y **no se ofrece
+    transición de corrección** para este candidato. Son trabajo posterior por separado, nunca motivo para
+    re-revisar.
+  - **Contexto de las ubicaciones, para que la próxima sesión no arranque de cero:** la primera cae en
+    `TABULAR_MIMETYPES`, el conjunto de MIME que espeja `ckan.datapusher.formats` (y que además se compara contra
+    el `mimetype` del recurso); la segunda, en `TEXT_FORMATS`. Eso es **lectura de las líneas**, no el texto del
+    hallazgo.
+  - **Nota de presupuesto:** el rango tiene **1 182 líneas** contra el presupuesto de 400 acordado, y **529 de
+    ellas son la hoja `/dev/preview` y sus cuatro muestras** (superficie sólo-dev, sin efecto en producción). Es
+    la misma desviación que el bloque B (957 líneas, aceptado como un `medium`); lo que mantiene el foco es
+    revisar por bloque y no por rama acumulada.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el árbol
+    de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice D1 del bloque D (2026-09-23)._
+
+- [x] **El commit de documentación posterior al recibo de D1 — revisado aparte, sin hallazgos.** El cierre del
+  bloque D dejó un commit de sólo-documentación (`3e03798`, `BACKLOG.md` + `odd/tasks/block-d-data-preview.md`,
+  2 archivos / 109 líneas) que quedó como **candidato sin revisar** frente a la compuerta de RDD. Se revisó
+  acotado a ese delta con `baseRef` explícito (`ce8670a..HEAD`), no a la rama acumulada: `review-3d4f52fb03dd4885`
+  cerró **`approved`**, tier **`low`**, **sin lentes** y **sin correr ningún modelo** — el propio provider lo
+  clasificó `non_executable_only`, que es la categoría que existe para que documentación pura no consuma
+  revisores. `correction_budget` 55, **0 hallazgos**. Authority quemada.
+  **Advertencia para la próxima sesión: acá termina el registro, por diseño.** La nota que documenta esta
+  revisión es a su vez un cambio de sólo-documentación, así que volver a registrarla produciría una cadena
+  infinita de recibos-de-recibos. Si la compuerta vuelve a ofrecer `review.start` para un delta de puro `.md`,
+  **corré el ciclo igual** (cuesta dos llamadas y **cero** corridas de modelo: el provider lo aprueba solo) y
+  **no lo anote acá otra vez**.
+  _Origen: compuerta de RDD sobre el commit de cierre de D1, 2026-09-23._
+
+- [ ] **Advisory de la revisión nativa de la política de existencia (2026-09-20)** — cerró **`approved`** con
+  la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:cd80727f19f480cd99be4134de44c23c168b75267ae222f152d09b32c8a50478` del candidato
+  `sha256:2345b5e956b071ff93b35195f9eeac555d217b487726e4c80e8c619d90e44e5a`).
+  - `review-249e073ef3489596`: tier **medium**, lente `review-reliability`, **11 archivos, 467 líneas**,
+    presupuesto de corrección 200. Rango revisado **`5068d0a..HEAD`** con `baseRef` explícito —sólo el
+    cambio de política, commit `a60b9dc`—, no la rama acumulada que la inspección deriva por defecto.
+  - Dos avisos no bloqueantes, con **texto no recuperable** (el ledger se borra al cerrar la línea):
+    1. `R3-1` · reliability · WARNING · informativo ·
+       `src/routes/dataset/[id]/dataset-page.test.ts:147`
+    2. `R3-2` · reliability · SUGGESTION · informativo ·
+       `openspec/specs/resource-detail-view/spec.md:100`
+    Ninguno abre corrección ni reabre la revisión. **Contexto de las ubicaciones, para que la próxima sesión
+    no arranque de cero:** la primera cae en el bloque de estados de fallo de la página de dataset (donde
+    viven las aserciones de indistinguishibilidad del anónimo); la segunda, en el requisito nuevo
+    `Unidentified Viewer Must Not Learn Existence`. Eso es **lectura de las líneas**, no el texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: revisión de la política de existencia, 2026-09-20._
+
+- [ ] **Advisory de la revisión nativa del slice C de `v0-portal-honesty`** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
+  `sha256:81bdb2362fef8260a068d381078c24340aa19976f0fa13d3c4220c0a836a877f` del candidato
+  `sha256:4e0aa7f34d5bd2faec3b4389be314a2298ac866d2199c830f62c9b2b7776f974`).
+  - `review-cd2510c28384457d`: tier **medium**, lente `review-reliability`, **13 archivos, 1 663 líneas**,
+    presupuesto de corrección 200. **Rango revisado: `b68031b..HEAD` con `baseRef` explícito** — sólo el
+    slice C—, no la rama acumulada que la inspección deriva por defecto (misma decisión registrada para el
+    slice B).
+  - Los **tres avisos** no bloqueantes, tal como los emitió el cierre —id, lente, ubicación, severidad y
+    disposición—, y **su texto no es recuperable**: el ledger se borra al cerrar la línea, igual que en las
+    revisiones anteriores. Ninguno abre corrección ni reabre la revisión.
+    1. `R3-001` · reliability · WARNING · informativo ·
+       `src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:105`
+    2. `R3-002` · reliability · WARNING · informativo · `src/routes/dataset/[id]/+page.svelte:91`
+    3. `R3-003` · reliability · WARNING · informativo · `src/routes/dataset/[id]/dataset-page.test.ts:33-35`
+  - **Contexto de las ubicaciones, para que la próxima sesión no arranque de cero:** las dos primeras caen
+    en el cableado del token y de la construcción del cliente CKAN (donde el `token` se captura una vez para
+    decidir la sonda mientras el `apiKey` del cliente lee el store en vivo); la tercera, en los `vi.mock` de
+    módulo del archivo de test. Eso es lectura de las líneas, **no** el texto del hallazgo.
+  - Nota de trazabilidad: esta entrada se agregó **después** de la aprobación. El candidato aprobado es el
+    árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
+  _Origen: cierre del slice C de `v0-portal-honesty` (2026-09-20)._
+
+- [ ] **Advisory de la revisión nativa del slice B de `v0-portal-honesty`** — cerró **`approved`** con la
+  authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión `sha256:b589c2b2…` del
+  candidato `sha256:6198424b…`). **Además de los avisos, encontró un hallazgo CRÍTICO propio del slice,
+  ya corregido** (`f7214f6`): la sonda de sesión trataba **cualquier** 404 de `user_show` como sesión
+  muerta, así que una configuración base o un proxy roto habría expulsado a **todos** los usuarios
+  autenticados (bloqueo masivo, un modo de falla que la base no tenía). Ahora un 404 sólo cierra la
+  sesión si CKAN sigue contestando (lectura pública `status_show`), y si no, la respuesta es
+  `inconclusive`.
+  - `review-086ad59599b720f1`: tier **high**, **18 archivos, 1 341 líneas**, cuatro lentes (riesgo,
+    resiliencia, legibilidad, confiabilidad), presupuesto de corrección 200. Los **nueve avisos**
+    no bloqueantes, con su id, lente, ubicación y severidad, están tabulados en
+    `odd/tasks/v0-portal-honesty.md`. Cierra: **`R2-stale-session-comment`** (`src/lib/session.ts:5-8`,
+    SUGGESTION) es un comentario **ya obsoleto** —describe un mensaje que `069c011` borró— y está listo
+    para corregir; y **`R4-PERM-SILENT`** (`src/routes/dashboard/+page.svelte:174-177`, WARNING) nombra
+    una limitación aceptada: si la pregunta de permiso falla, la oferta queda cerrada sin superficie de
+    reintento (fail closed).
+    > Nota de trazabilidad: esta entrada de deuda se agregó **después** de la aprobación. El candidato
+    > aprobado es el árbol de la revisión `sha256:b589c2b2…`; lo posterior es este apunte de ids y
+    > ubicaciones, no una decisión.
+  _Origen: cierre del slice B de `v0-portal-honesty` (2026-09-20)._
+
+- [ ] **Advisory de las dos revisiones de unidades de trabajo de `v0-portal-honesty`** — ambas
+  cerraron **`approved`** con la authority quemada, y el único hallazgo de cada una es un advisory
+  informativo. Es trabajo posterior, **nunca motivo para re-correr la revisión sobre ese candidato**:
+  - `review-56075851faccfca4` (unidad de trabajo 1 — el listado que respeta los permisos, más la
+    documentación de esa unidad): tier **medium**, lente `review-reliability`, **9 archivos,
+    1 271 líneas**. `R3-001` (WARNING) en `src/routes/dashboard/+page.svelte:64` — **la línea es la del
+    candidato**, el archivo cambió después.
+  - `review-aec04a603141bc1e` (unidad de trabajo 2 — la promoción de la paginación): tier **medium**,
+    lente `review-reliability`, **3 archivos, 227 líneas**. `R3-001` (WARNING) en
+    `src/routes/dashboard/+page.svelte:385`, el bloque de comentario que declara el costo aceptado (el
+    estado de página no va en la URL) — **la línea es la del candidato**.
+  _Origen: cierre del slice A de `v0-portal-honesty` (2026-09-19)._
 
 - [ ] **El guard de `odp-docker` NO se puede revisar desde una sesión en `odp` — y todavía no hay que revisarlo.**
   El código que **hace cumplir** la regla de publicación vive en
@@ -868,14 +3130,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (2026-09-12)._ **(Hoy sólo existe una acción real: el problema reaparece cuando aterricen las
   demás.)_**
 
-- [ ] **[v1] La barra pegajosa no tiene test automatizado** — su comportamiento (aparición a 88 px,
+- [ ] **[v1] La barra pegajosa no tiene test de comportamiento** — su comportamiento (aparición a 88 px,
   `inert` mientras está oculta, clics que atraviesan la franja transparente) se verificó **a mano en
-  Chromium por CDP**, no en la suite: jsdom no implementa `inert` ni `IntersectionObserver`. Si el
-  layout del encabezado cambia de alto (`h-20`), `STICKY_TOP_PX` queda desincronizado y **nada lo
-  detecta**. Opciones: un test de navegador real (playwright/puppeteer, hoy no instalados) o mover el
-  offset a una variable CSS compartida con el layout para que no pueda derivar. _Origen: revisión RDD
+  Chromium por CDP**, no en la suite: jsdom no implementa `inert` ni `IntersectionObserver`. Opción: un
+  test de navegador real (playwright/puppeteer, hoy no instalados). **Su otra mitad quedó cerrada el
+  2026-09-24 (slice E2):** «si el layout del encabezado cambia de alto, `STICKY_TOP_PX` queda
+  desincronizado y nada lo detecta» **ya no aplica** — el alto vive en un token (`--header-h`,
+  `src/app.css`), todos los offsets lo consumen, el observer mide el elemento real y hay aserciones
+  anti-deriva en `src/routes/layout-header.test.ts` que fallan si alguien vuelve a un literal. Queda el
+  aviso `R3-1` de E2: esa medición es **una sola vez**, al montar. _Origen: revisión RDD
   `review-1c90076e8986652c`, hallazgo advisory `R3-001` (el texto no se pudo recuperar: el ledger se
-  borra al cerrar la línea), 2026-09-12._
+  borra al cerrar la línea), 2026-09-12; mitad del desfase cerrada el 2026-09-24._
 
 - [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
   datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
@@ -885,6 +3150,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 - [ ] **[v0] `describeCreateError` sobre-dispara** — el regex `/already in use|url/i` del wizard
   etiqueta como conflicto de slug cualquier error cuyo mensaje contenga "url". Acotarlo al mensaje
   real de CKAN. _Origen: verificación de `dataset-publishing`._
+  **Estado medido (2026-09-30): VIVO, byte por byte.** `new/+page.svelte:499` sigue con `/already in use|url/i.test(message)`.
+  Libre para implementar: acotar el regex al mensaje real de CKAN.
 
 - [ ] **[v1] Verificación estática pendiente del wizard** — "sin scroll horizontal a 360 px" quedó
   verificado solo por inspección de código, sin test automatizado.

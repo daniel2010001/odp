@@ -24,6 +24,7 @@ import { createDatasetApi } from "$lib/api/datasets";
 import { createLicenseApi } from "$lib/api/licenses";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createResourceApi } from "$lib/api/resources";
+import { createSessionApi } from "$lib/api/session";
 import { UploadError, uploadResourceFile } from "$lib/api/upload";
 import TagsInput from "$lib/components/form/TagsInput.svelte";
 import MarkdownEditor from "$lib/components/markdown/MarkdownEditor.svelte";
@@ -44,6 +45,7 @@ import {
 	MAX_RESOURCE_URL_LENGTH,
 	resourceCreateSchema,
 } from "$lib/schemas/resource";
+import { endInvalidSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 import type { CkanLicense, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
@@ -282,10 +284,38 @@ onMount(() => {
 		return;
 	}
 	authed = true;
+	void iniciarAsistente();
+});
+
+// La sonda corre **antes** de las cargas. Medido (2026-09-20): `organization_list_for_user` con
+// `create_dataset` responde `200 []` igual para una sesión muerta que para un editor vivo sin
+// organizaciones. Sin la sonda, el asistente leería ese `[]` como «no tiene organización» y
+// diagnosticaría un permiso inexistente a quien sólo perdió la sesión.
+async function iniciarAsistente() {
+	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
+	// sesión vacía que el guard de `/auth/login` no puede distinguir de una real.
+	const token = get(auth).token;
+	const check = await createSessionApi(makeClient()).check();
+
+	if (check.state === "dead") {
+		// Sesión caída: se limpia y se vuelve al login sin cargar nada; el `[]` de organizaciones nunca
+		// llega a leerse como un diagnóstico de permiso.
+		await endInvalidSession("/dashboard/datasets/new");
+		return;
+	}
+
+	if (check.state === "alive" && token) {
+		// El llamador que devolvió la sonda **es** la identidad: se refresca el store con él para que
+		// la sesión guardada no sobreviva obsoleta.
+		auth.login(token, check.user);
+	}
+
+	// `inconclusive` (5xx, timeout, red): un hipo de CKAN no expulsa a nadie autenticado. Se carga
+	// con la sesión guardada, sin limpiarla ni navegar.
 	void loadOrganizations();
 	void loadLicenses();
 	void loadTagSuggestions();
-});
+}
 
 async function loadOrganizations() {
 	orgLoading = true;
@@ -616,6 +646,10 @@ const singleOrg = $derived(organizations.length === 1 ? organizations[0] : null)
 const orgDisplayTitle = $derived(
 	singleOrg ? singleOrg.title : (organizations.find((org) => org.name === ownerOrg)?.title ?? ""),
 );
+// La ficha no puede quedar **en blanco**: mientras haya más de una organización y ninguna elegida, el
+// bloque tiene que decir que falta elegir. Antes pintaba `orgDisplayTitle`, que en ese estado es "", y
+// el usuario veía un hueco sin explicación.
+const orgIsMissing = $derived(orgDisplayTitle === "");
 
 const selectedLicense = $derived(licenses.find((license) => license.id === licenseId) ?? null);
 const safeLicenseUrl = $derived(selectedLicense ? safeExternalUrl(selectedLicense.url) : null);
@@ -644,7 +678,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 </script>
 
 <svelte:head>
-	<title>Publicar dataset — UMSS</title>
+	<title>Crear dataset — UMSS</title>
 </svelte:head>
 
 {#snippet contador(valor: string, max: number, id: string)}
@@ -668,7 +702,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 {#if authed}
 	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 		<header class="mb-8">
-			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Publicar dataset</h1>
+			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Crear dataset</h1>
 			<p class="mt-2 text-sm text-muted-foreground">
 				Complete los metadatos y adjunte los recursos. Los archivos se suben directamente a
 				CKAN, sin pasar por el servidor del portal.
@@ -707,7 +741,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 			<div class="rounded-xl border border-border bg-card p-8 text-center">
 				<Info class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
 				<p class="mt-2 text-sm font-medium text-foreground">
-					Necesita rol de editor en una organización para publicar datasets.
+					Necesita rol de editor en una organización para crear datasets.
 				</p>
 				<p class="mt-1 text-xs text-muted-foreground">
 					Solicite a un administrador que le asigne permisos de editor o administrador en una
@@ -914,7 +948,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									</p>
 								{/if}
 								<p class="text-xs text-muted-foreground">
-									Pertenece a más de una organización: elija dónde publicar. La visibilidad del
+									Pertenece a más de una organización: elija dónde crear. La visibilidad del
 									dataset la definirá el flujo de publicación.
 								</p>
 							{/if}
@@ -975,7 +1009,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									<p class="text-xs text-muted-foreground">Cargando licencias...</p>
 								{:else if licensesError}
 									<p class="text-xs text-destructive" role="alert">
-										No se pudo cargar la lista de licencias. La licencia es opcional: puede publicar
+										No se pudo cargar la lista de licencias. La licencia es opcional: puede crear
 										el dataset sin declarar una.
 									</p>
 								{/if}
@@ -1332,7 +1366,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 								<Info class="mx-auto size-5 text-muted-foreground" aria-hidden="true" />
 								<p class="mt-2 text-sm font-medium text-foreground">Todavía no agregó recursos</p>
 								<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-									Puede publicar el dataset sin recursos y agregarlos después.
+									Puede crear el dataset sin recursos y agregarlos después.
 								</p>
 							</div>
 						{:else}
@@ -1507,8 +1541,10 @@ const hayTitulo = $derived(title.trim().length > 0);
 					{/if}
 				</div>
 
-				<aside class="min-w-0 space-y-4 lg:sticky lg:top-24 lg:self-start">
-					<!-- Ficha de publicación -->
+				<aside
+					class="min-w-0 space-y-4 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:self-start"
+				>
+					<!-- Ficha de creación -->
 					<Card class="overflow-hidden">
 						<div
 							class="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5"
@@ -1546,7 +1582,11 @@ const hayTitulo = $derived(title.trim().length > 0);
 							<ul class="space-y-2 text-sm">
 								<li class="flex items-center gap-2">
 									<Building2 class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-									<span class="truncate">{orgDisplayTitle}</span>
+									{#if orgIsMissing}
+										<span class="truncate text-muted-foreground">Falta elegir una organización</span>
+									{:else}
+										<span class="truncate">{orgDisplayTitle}</span>
+									{/if}
 								</li>
 								<li class="flex items-center gap-2">
 									<Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -1597,7 +1637,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 									{/if}
 								{:else}
 									<p class="mt-1 text-[11px] text-muted-foreground">
-										Puede publicar sin recursos y agregarlos después.
+										Puede crear sin recursos y agregarlos después.
 									</p>
 								{/if}
 							</div>
@@ -1609,7 +1649,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 										Faltan datos recomendados
 									</p>
 									<p class="mt-0.5 text-[11px] text-muted-foreground">
-										Son opcionales: no bloquean la publicación.
+										Son opcionales: no bloquean la creación.
 									</p>
 									<ul class="mt-1.5 flex flex-wrap gap-1.5">
 										{#each recomendadosPendientes as campo (campo.label)}
@@ -1639,8 +1679,8 @@ const hayTitulo = $derived(title.trim().length > 0);
 						>
 							<p class="text-sm font-medium text-destructive">
 								{errorList.length === 1
-									? "Corrija 1 campo antes de publicar:"
-									: `Corrija ${errorList.length} campos antes de publicar:`}
+									? "Corrija 1 campo antes de crear:"
+									: `Corrija ${errorList.length} campos antes de crear:`}
 							</p>
 							<ul class="mt-2 space-y-1">
 								{#each errorList as error (error.id)}
@@ -1680,10 +1720,10 @@ const hayTitulo = $derived(title.trim().length > 0);
 						>
 							{#if submitting}
 								<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-								Publicando...
+								Creando...
 							{:else}
 								<Upload class="size-4" aria-hidden="true" />
-								Publicar dataset
+								Crear dataset
 							{/if}
 						</button>
 						<a
@@ -1693,7 +1733,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 							Cancelar
 						</a>
 						<p class="text-center text-xs text-muted-foreground">
-							Podrá editarlo después de publicarlo.
+							Podrá editarlo después de crearlo.
 						</p>
 					</div>
 				</aside>

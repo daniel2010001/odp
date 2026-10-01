@@ -44,7 +44,7 @@ stack. **`explore.md` is superseded by section 2 wherever the two disagree.**
 6. **2.11.6 vs 2.12.0a0 gap that matters:** `extras` was rewritten (2.12 adds a JSONB `extras`
    column; 2.11.6 uses the separate `package_extra` table). Any portal-owned `extras` schema
    should be written against 2.11.6 and revisited before an upgrade.
-7. `ckanext-umss` is an **empty `IConfigurer` scaffold** — no permissions, no actions, no hooks.
+7. `ckanext-umss` **was** an **empty `IConfigurer` scaffold** — no permissions, no actions, no hooks. **[Corrected 2026-09-29 — see `explore.md` §2.3.]**
 8. `organization_purge` and `group_purge` **do** exist as API actions (`package_purge` does not).
 
 ### 2.3 A real, separate defect found while probing
@@ -79,6 +79,14 @@ reasoning was not a hedge — it was a real hole, twice over.**
 | `allow_dataset_collaborators` / `reveal_private_datasets` | Both `false` in `/srv/app/ckan.ini` (:101, :106) |
 | Extension test baseline | `pytest 8.3.4` + `pytest-ckan 2.11.6` **are installed in the dev image**, so no throwaway container is needed. Baseline `1 failed`: `NameError: name 'plugin_loaded' is not defined` at `tests/test_plugin.py:57` |
 | **P10 — the approver cascade.** An `admin` of a **parent** organization publishing a dataset owned by a **child** organization | **`200`, stored `private=false`.** The cascade is real for the `admin` capacity: `authz.py:322-333` walks `get_parent_group_hierarchy` for the capacities listed in `ckan.auth.roles_that_cascade_to_sub_groups`, which the running ini sets to `admin` (:98) — the same capacity the approver check uses |
+
+> **WARNING (added 2026-09-21): «installed in the dev image, so no throwaway container is needed» invites the destructive path.** Being installed means the suite *can* run inside `ckan-dev`, and if it does it runs against **`ckandb`** and the **shared Solr core**: the container exports `CKAN_SQLALCHEMY_URL`, `CKAN_SOLR_URL` and `CKAN_SITE_ID=default`, and `update_config()` (`ckan/config/environment.py:100-113`) applies `CONFIG_FROM_ENV_VARS` **after** the ini, so **inside that container** the ini is decorative — **outside it** (a bare venv, another host, a CI that does not export `CKAN_SOLR_URL`) the ini is the only protection, which is why the `solr_url` line **stays**: the runner covers the invocation, the ini covers portability. `clean_db` then **truncates the dev catalogue**, and the run leaves 12–20 orphan documents in the shared core that anonymous `package_search` reads as real.
+> **Use `ckan-docker/bin/test-umss`**, which derives the test URLs from the app's own values inside the container and refuses to run when any of them lacks `_test`. Measured on 2026-09-21: three plain `pytest --ckan-ini=test.ini` runs truncated `ckandb` to one factory dataset, two factory organizations and one factory user, **the seeded catalogue was gone, and the dev admin account (`ckan_admin`) was gone too** — the catalogue's
+> disappearance is measured before/after, but the admin's is **measured as absent only**: there is no dump, so
+> *when* it disappeared and *by what* is inference, and the only mechanism in this stack that deletes users is
+> `clean_db`'s truncation of `user`. **Measured consequence:** the only sysadmin left was a test-factory user
+> whose password is random and unreachable (recovered the same day by recreating the admin from the stack's own
+> environment and re-seeding; see `odp/BACKLOG.md`). With the runner: 22 passed, `ckandb` untouched. Full record in `odp/BACKLOG.md` (environment warnings).
 
 Two API behaviours reconfirmed or newly measured while driving the probes:
 
@@ -139,7 +147,7 @@ change's to burn, and the portal's own token (`Portal Datos UMSS`) must never be
 
 | # | Decision | Answer |
 |---|---|---|
-| D1 | Must the review be unbypassable? | **Yes. CKAN-side enforcement.** The change must include `IAuthFunctions` code so an org editor cannot publish around the review through the API. A portal-only convention was explicitly rejected. Implies writing Python inside `ckanext-umss` (today an empty `IConfigurer` scaffold). The third-party-extension option (B) stays **dropped explicitly** for the reason in §4: it could not be assessed in this environment. |
+| D1 | Must the review be unbypassable? | **Yes. CKAN-side enforcement.** The change must include `IAuthFunctions` code so an org editor cannot publish around the review through the API. A portal-only convention was explicitly rejected. Implies writing Python inside `ckanext-umss` (today an empty `IConfigurer` scaffold). **[Corrected 2026-09-29 — see `explore.md` §2.3.]** The scaffold is no longer empty: the guard exists and must be read before the replanning. The third-party-extension option (B) stays **dropped explicitly** for the reason in §4: it could not be assessed in this environment. |
 | D2 | A finer visibility level than CKAN offers? | **No.** Two levels only: public, and readable by the owning organization (`private: true`, whose meaning was measured). No custom permission labels. |
 | D3 | The dashboard defect in §2.3 | **Separate.** It is a live bug independent of this change and gets its own fix, to keep this candidate small. |
 | D4 | First-slice scope | **Minimal publishable.** A dataset must be able to go from private to published, with D1's enforcement. The full draft → review → approved → published state machine is an explicit non-goal for this slice. |

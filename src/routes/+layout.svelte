@@ -32,12 +32,55 @@ function toggleMobileMenu() {
 function closeMobileMenu() {
 	mobileMenuOpen = false;
 }
+
+// ─── El encabezado se achica cuando la página deja el tope ────────────
+// El estado va en el **documento**, no en el `<header>`: `--header-h` la leen también los pegados que
+// son hermanos del encabezado —la barra del panel, la del buscador, los laterales del dataset y del
+// asistente—, y una variable puesta en el encabezado no baja a sus hermanos.
+//
+// El disparador es un centinela de 1px al tope, no un listener de scroll: el observer avisa cuando el
+// tope sale de vista y no hay trabajo por frame. `rootMargin` positivo corre el borde superior del
+// root hacia arriba, que es lo que da el umbral: no se achica al primer pixel, se achica después de
+// `SHRINK_AFTER_PX`.
+const SHRINK_AFTER_PX = 48;
+
+let headerSentinel: HTMLDivElement | undefined = $state();
+
+$effect(() => {
+	if (!headerSentinel) return;
+	if (typeof IntersectionObserver === "undefined") return;
+
+	const sentinel = headerSentinel;
+	const observer = new IntersectionObserver(
+		([entry]) => {
+			document.documentElement.toggleAttribute("data-header-shrunk", !entry.isIntersecting);
+		},
+		{ rootMargin: `${SHRINK_AFTER_PX}px 0px 0px 0px` },
+	);
+
+	observer.observe(sentinel);
+
+	return () => {
+		observer.disconnect();
+		// El atributo es del documento: si no se limpia, sobrevive a la navegación y el encabezado
+		// arranca achicado en la página siguiente.
+		document.documentElement.removeAttribute("data-header-shrunk");
+	};
+});
 </script>
 
 <div class="flex min-h-screen flex-col">
+	<!-- Centinela del tope: su salida de la vista es lo que achica el encabezado. Mide 1px y el margen
+	     negativo lo compensa, así que no ocupa lugar ni mueve el layout. -->
+	<div bind:this={headerSentinel} data-header-sentinel aria-hidden="true" class="-mb-px h-px"></div>
+
 	<!-- Header -->
-	<header class="sticky top-0 z-40 border-b border-border bg-card shadow-sm">
-		<nav class="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+	<!-- El alto sale del token `--header-h` (`src/app.css`, única fuente). `data-site-header` es el
+	     hook que mide el observer de la barra pegajosa del panel, para no depender de una constante. -->
+	<header class="sticky top-0 z-40 border-b border-border bg-card shadow-sm" data-site-header>
+		<nav
+			class="mx-auto flex h-[var(--header-h)] max-w-7xl items-center justify-between px-4 transition-[height] duration-200 ease-out sm:px-6 lg:px-8"
+		>
 			<!-- Logo / Branding -->
 			<a href="/" class="flex flex-col justify-center leading-tight" onclick={closeMobileMenu}>
 				<span class="font-heading text-2xl font-bold tracking-tight text-primary">

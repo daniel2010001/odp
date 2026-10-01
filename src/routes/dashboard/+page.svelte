@@ -2,6 +2,7 @@
 import {
 	ArrowRight,
 	Building2,
+	ChevronLeft,
 	ChevronRight,
 	Database,
 	Inbox,
@@ -17,22 +18,45 @@ import { goto } from "$app/navigation";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
+import { createSessionApi } from "$lib/api/session";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import {
+	EMPTY_STATE_HEADING,
+	EMPTY_STATE_PRIMARY_ACTION_LABEL,
+	emptyStateMessage,
+} from "$lib/copy/dashboard";
 import { env } from "$lib/env";
+import { endInvalidSession } from "$lib/session-guard";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
 
 // ─── Estado ──────────────────────────────────────────────────────────
+// Tamaño de página acordado para «Mis datasets»: 20, igual que el default de `package_search`.
+const PAGE_SIZE = 20;
+
 let authed = $state(false);
 let datasets = $state<CkanPackage[]>([]);
 let datasetsLoading = $state(true);
 let datasetsError = $state<string | null>(null);
+let pagina = $state(1);
+let totalDatasets = $state(0);
 let organizations = $state<CkanOrganization[]>([]);
 let orgsLoading = $state(true);
 let orgsError = $state<string | null>(null);
+// La sonda resolvió y **no** declaró la sesión muerta. El nombre es modesto a propósito: significa
+// «comprobada y no declarada muerta», no «viva» —una sonda inconclusa (5xx, timeout, red) también
+// abre el panel—. Sólo esta bandera habilita mostrar identidad (saludo y badge): mientras la sonda
+// está en vuelo la sesión guardada todavía puede ser una sesión muerta, y nada suyo debe renderizarse.
+let sessionNotDead = $state(false);
+// Respuesta a la **misma** pregunta que hace el asistente (`organization_list_for_user` con
+// `permission: "create_dataset"`). Arranca en `false` y sólo el éxito la cambia: fail closed.
+let puedeCrear = $state(false);
+// ¿Se pudo hacer la pregunta de permiso? Un fallo (o la pregunta todavía en vuelo) deja el asunto
+// abierto, así que la copia no puede afirmar que falte un rol.
+let permisoResuelto = $state(false);
 
 // ─── Cliente CKAN autenticado ────────────────────────────────────────
 function makeClient() {
@@ -46,23 +70,85 @@ onMount(() => {
 		return;
 	}
 	authed = true;
-	void loadDatasets();
-	void loadOrganizations();
+	void iniciarPanel();
 });
 
-async function loadDatasets() {
+// La sonda corre **antes** de cualquier decisión. Medido (2026-09-20): un token muerto y un usuario
+// vivo sin organizaciones reciben de CKAN el mismo `200 []`, así que sin la sonda el panel no puede
+// distinguir «no tengo organizaciones» de «mi sesión murió»: ofrece crear a una sesión caída (D3)
+// y el asistente diagnostica un permiso inexistente (D2).
+async function iniciarPanel() {
+	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
+	// sesión vacía en el almacenamiento, un estado que el guard de `/auth/login` no puede distinguir de
+	// una sesión real y que expulsaría al usuario en el siguiente montaje.
+	const token = get(auth).token;
+	const check = await createSessionApi(makeClient()).check();
+
+	if (check.state === "dead") {
+		// Limpiar **antes** de navegar: el guard de `/auth/login` reenvía al dashboard a quien todavía
+		// tiene un token guardado, así que navegar primero produciría un bucle de redirección.
+		await endInvalidSession("/dashboard");
+		return;
+	}
+
+	// La sonda resolvió sin declarar la sesión muerta: recién ahora se puede mostrar identidad. No
+	// significa «viva» (una sonda inconclusa también abre el panel), sí «comprobada y no muerta».
+	sessionNotDead = true;
+
+	if (check.state === "alive" && token) {
+		// El llamador que devolvió la sonda **es** la identidad: se refresca el store con él para que
+		// `$currentUser` siga siendo la única fuente y no sobreviva un usuario local obsoleto.
+		auth.login(token, check.user);
+	}
+
+	// `inconclusive` (5xx, timeout, red): un hipo de CKAN no expulsa a nadie autenticado. Se carga
+	// con la sesión guardada, sin limpiarla ni navegar.
+	void loadDatasets();
+	void loadOrganizations();
+	void loadCreatePermission();
+}
+
+async function loadDatasets(permitirCorreccion = true) {
 	datasetsLoading = true;
 	datasetsError = null;
 	try {
 		const client = makeClient();
 		const datasetApi = createDatasetApi(client);
-		datasets = await datasetApi.currentUser();
+		const userId = get(currentUser)?.id;
+		if (!userId) {
+			// Sesión local corrupta: hay token pero no identidad. Medido, para la UI es la misma
+			// condición que un token muerto (la sonda `dead` respondió 404), así que va por el mismo
+			// camino —una condición, un mensaje, una ruta— en vez de un segundo diagnóstico.
+			await endInvalidSession("/dashboard");
+			return;
+		}
+		const result = await datasetApi.currentUser(userId, {
+			limit: PAGE_SIZE,
+			offset: (pagina - 1) * PAGE_SIZE,
+		});
+		// Caso límite: si el `count` devuelto deja la página pedida más allá de la última (por
+		// ejemplo, borraron lo que quedaba en la última página), volvemos a la última válida y
+		// recargamos una sola vez. Mostrar la lista vacía con un rango «41–40 de 40» sería peor:
+		// el rango se ve legítimo y no habría forma de volver desde la UI.
+		const ultimaPagina = Math.max(1, Math.ceil(result.count / PAGE_SIZE));
+		if (pagina > ultimaPagina && permitirCorreccion) {
+			pagina = ultimaPagina;
+			await loadDatasets(false);
+			return;
+		}
+		datasets = result.results;
+		totalDatasets = result.count;
 	} catch (err) {
 		datasets = [];
 		datasetsError = err instanceof Error ? err.message : "No se pudo cargar sus datasets.";
 	} finally {
 		datasetsLoading = false;
 	}
+}
+
+function irAPagina(nueva: number) {
+	pagina = nueva;
+	void loadDatasets();
 }
 
 async function loadOrganizations() {
@@ -80,28 +166,88 @@ async function loadOrganizations() {
 	}
 }
 
-// ─── Acciones del panel ──────────────────────────────────────────────
-// Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice,
-// pero el panel no anuncia nada que el backend todavía no pueda cumplir (ver BACKLOG.md).
-const actions = [
-	{
-		title: "Publicar dataset",
-		description: "Cree un dataset y suba sus recursos con el asistente.",
-		href: "/dashboard/datasets/new",
-		icon: Database,
-	},
-];
+// Carga que sólo responde una pregunta: ¿puede crear datasets? Va aparte de `loadOrganizations`
+// porque la tarjeta «Mis organizaciones» lista **toda** membresía (con su rol), y esa lista incluye
+// capacidades que no pueden crear. Su fallo es fail closed —`puedeCrear` queda en `false`— y **no**
+// toca `organizations`: un problema de permiso no debe borrar una lista de membresías que sí cargó.
+async function loadCreatePermission() {
+	try {
+		const client = makeClient();
+		const orgApi = createOrganizationApi(client);
+		puedeCrear = await orgApi.canCreateDataset();
+		permisoResuelto = true;
+	} catch {
+		// Pregunta sin respuesta: no se ofrece crear y la copia no afirma nada sobre el rol.
+		puedeCrear = false;
+		permisoResuelto = false;
+	}
+}
+
+// ─── ¿Se puede ofrecer crear? ────────────────────────────────────────
+// Una sola condición para las tres superficies que ofrecen crear (la grilla, la barra pegajosa y
+// el CTA del estado vacío). NO alcanza con pertenecer a una organización: medido contra CKAN
+// (2026-09-20), un `capacity: "member"` figura en `organization_list_for_user {}` pero no en
+// `{permission:"create_dataset"}`, así que la oferta colgaba de una pregunta más amplia que la
+// acción que ofrece (D3). `puedeCrear` responde la pregunta exacta del asistente y su loader es fail
+// closed. Sin organización donde crear, el wizard fallaría (D3), así que el panel no anuncia nada que
+// el backend todavía no pueda cumplir (ver BACKLOG.md).
+const puedeOfrecerCreacion = $derived(!orgsLoading && puedeCrear);
+
+// «No tiene ninguna organización» es una **afirmación**, no un fallo: sólo se puede hacer con la carga
+// terminada, sin error y con la lista vacía. Un fallo deja la pregunta abierta —¿tiene o no?—, así que
+// el estado vacío conserva la copia neutra y el panel de error dice, honestamente, que no se pudo saber.
+const confirmedNoOrganizations = $derived(!orgsLoading && !orgsError && organizations.length === 0);
+
+// El usuario sí pertenece a organizaciones, pero en ninguna puede crear. Exige la pregunta de permiso
+// **respondida** (no alcanza con `puedeCrear === false`, porque eso también es el estado de carga o de
+// fallo): si no se pudo preguntar, la copia no puede afirmar que falte el rol. El `!puedeCrear` va
+// explícito: la condición ya no depende de evaluarse después de `puedeOfrecerCreacion` en la cadena de copia,
+// así se describe a sí misma.
+const confirmedNoCreatePermission = $derived(
+	!orgsLoading && !orgsError && organizations.length > 0 && permisoResuelto && !puedeCrear,
+);
+
+// Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice.
+const actions = $derived(
+	puedeOfrecerCreacion
+		? [
+				{
+					title: "Crear dataset",
+					description: "Cree un dataset y suba sus recursos.",
+					href: "/dashboard/datasets/new",
+					icon: Database,
+				},
+			]
+		: [],
+);
 
 // ─── Barra de acciones pegajosa ──────────────────────────────────────
 // El centinela vive justo después de la grilla: cuando queda detrás de la barra, la barra aparece;
 // al volver a subir, se esconde.
 //
-// Ojo con la condición (medido en Chromium): con `rootMargin` igual a `STICKY_TOP_PX` el callback
-// llega cuando el centinela cruza esa altura, y en ese momento `boundingClientRect.top` todavía es
+// Ojo con la condición (medido en Chromium): con `rootMargin` igual al alto pegado el callback llega
+// cuando el centinela cruza esa altura, y en ese momento `boundingClientRect.top` todavía es
 // **positivo** (+22 en la medición). Comparar contra 0 nunca se cumple y la barra no aparece.
-const HEADER_PX = 80; // altura del encabezado del sitio (`h-20` del layout)
 const STICKY_GAP_PX = 8; // aire aprobado entre el encabezado y la barra (`pt-2`)
-const STICKY_TOP_PX = HEADER_PX + STICKY_GAP_PX;
+
+/**
+ * Alto del encabezado del sitio, **medido del elemento real**.
+ *
+ * Antes era `HEADER_PX = 80`, una constante paralela al `h-20` del layout: cambiar el uno dejaba al
+ * otro viejo y nada lo detectaba (entrada `[v1]` del backlog). El alto sale del token `--header-h`
+ * (`src/app.css`) y lo aplica el layout; acá se lee el resultado.
+ *
+ * Desde E2b el valor **cambia en caliente**: el encabezado se achica cuando la página deja el tope,
+ * así que quien lo llame no puede cachear el resultado (ver el `ResizeObserver` del efecto).
+ *
+ * Devuelve 0 si el encabezado no está en el documento. En la app siempre está; en jsdom no hay
+ * layout y `getBoundingClientRect` da 0 para todo, pero ahí el efecto sale antes por la ausencia de
+ * `IntersectionObserver`.
+ */
+function headerHeightPx(): number {
+	const header = document.querySelector<HTMLElement>("[data-site-header]");
+	return header?.getBoundingClientRect().height ?? 0;
+}
 
 let actionsSentinel: HTMLDivElement | undefined = $state();
 let actionsStuck = $state(false);
@@ -110,16 +256,45 @@ $effect(() => {
 	if (!actionsSentinel) return;
 	if (typeof IntersectionObserver === "undefined") return;
 
-	const observer = new IntersectionObserver(
-		([entry]) => {
-			// `top < STICKY_TOP_PX` distingue «quedó arriba, detrás de la barra» de «todavía está más
-			// abajo del pliegue» (viewport chico o página corta), que no debe mostrar la barra.
-			actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < STICKY_TOP_PX;
-		},
-		{ rootMargin: `-${STICKY_TOP_PX}px 0px 0px 0px` },
-	);
-	observer.observe(actionsSentinel);
-	return () => observer.disconnect();
+	const sentinel = actionsSentinel;
+	let observer: IntersectionObserver | undefined;
+
+	/**
+	 * (Re)construye el observer con el alto **actual** del encabezado.
+	 *
+	 * `rootMargin` no se puede cambiar después de construir el observer, así que un alto dinámico
+	 * obliga a reconstruirlo. Antes esto era una lectura única: el aviso `R3-1` de
+	 * `review-aae5dd97579ec543` señaló que cambié una constante rígida por una lectura cacheada, y con
+	 * el encabezado achicándose esa lectura habría quedado mal justo al achicarse.
+	 */
+	const connect = () => {
+		const stickyTopPx = headerHeightPx() + STICKY_GAP_PX;
+		observer?.disconnect();
+		observer = new IntersectionObserver(
+			([entry]) => {
+				// `top < stickyTopPx` distingue «quedó arriba, detrás de la barra» de «todavía está más
+				// abajo del pliegue» (viewport chico o página corta), que no debe mostrar la barra.
+				actionsStuck = !entry.isIntersecting && entry.boundingClientRect.top < stickyTopPx;
+			},
+			{ rootMargin: `-${stickyTopPx}px 0px 0px 0px` },
+		);
+		observer.observe(sentinel);
+	};
+
+	connect();
+
+	// Durante la transición de 200ms del encabezado el `ResizeObserver` avisa varias veces y cada aviso
+	// reconstruye el observer: son unas pocas reconstrucciones baratas dentro de esa ventana, y a cambio
+	// el umbral sigue al alto en todo momento.
+	const header = document.querySelector<HTMLElement>("[data-site-header]");
+	const resizeObserver =
+		typeof ResizeObserver === "undefined" || !header ? undefined : new ResizeObserver(connect);
+	resizeObserver?.observe(header as Element);
+
+	return () => {
+		observer?.disconnect();
+		resizeObserver?.disconnect();
+	};
 });
 
 // ─── Etiquetas de las filas ──────────────────────────────────────────
@@ -145,25 +320,33 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 {#if authed}
 	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 		<!-- Encabezado -->
-		<div class="flex flex-wrap items-center gap-3">
-			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">
-				Hola, {$currentUser?.display_name || $currentUser?.name}
-			</h1>
-			{#if $isSuperAdmin}
-				<span
-					class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/30"
-				>
-					<ShieldCheck class="size-3.5" aria-hidden="true" />
-					Administrador
-				</span>
-			{/if}
-		</div>
+		<!-- Identidad sólo cuando la sonda resolvió sin declarar la sesión muerta: el saludo y el badge
+		     salen de la sesión guardada, que mientras la sonda está en vuelo todavía puede ser una sesión
+		     que CKAN ya no acepta. El panel sigue siendo responsivo: no se bloquea la página entera. -->
+		{#if sessionNotDead}
+			<div class="flex flex-wrap items-center gap-3">
+				<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">
+					Hola, {$currentUser?.display_name || $currentUser?.name}
+				</h1>
+				{#if $isSuperAdmin}
+					<span
+						class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/30"
+					>
+						<ShieldCheck class="size-3.5" aria-hidden="true" />
+						Administrador del sistema
+					</span>
+				{/if}
+			</div>
+		{/if}
 		<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-			Este es su panel personal. Desde aquí publica datasets y revisa las organizaciones a las que
+			Este es su panel personal. Desde aquí crea datasets y revisa las organizaciones a las que
 			pertenece.
 		</p>
 
-		<!-- Acciones -->
+		<!-- Acciones: la sección entera —encabezado, grilla, centinela y barra pegajosa— existe sólo
+		     cuando hay al menos una acción. La barra nunca puede quedar vacía y el centinela/observer
+		     no se registra si no hay acción. -->
+		{#if actions.length > 0}
 		<section aria-labelledby="actions-heading" class="mt-8">
 			<h2 id="actions-heading" class="text-xs font-medium uppercase tracking-wider text-destructive">
 				Acciones
@@ -201,12 +384,13 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 			<!-- Centinela: marca el momento en que la grilla deja de estar a la vista. -->
 			<div bind:this={actionsSentinel} class="h-px" aria-hidden="true"></div>
 
-			<!-- Barra de acciones pegajosa: se pega en `top-20` más el aire elegido (`pt-2`). Mientras
+			<!-- Barra de acciones pegajosa: se pega justo debajo del encabezado —su alto sale del token
+			     `--header-h`, el mismo que usa el layout— más el aire elegido (`pt-2`). Mientras
 			     está oculta, `inert` la saca del foco y de los clics. El `pointer-events-none` del
 			     contenedor evita que el aire transparente se trague los clics del contenido detrás. -->
 			<div
 				class={cn(
-					"pointer-events-none fixed inset-x-0 top-20 z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
+					"pointer-events-none fixed inset-x-0 top-[var(--header-h)] z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
 					actionsStuck ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
 				)}
 				inert={!actionsStuck}
@@ -232,6 +416,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 				</div>
 			</div>
 		</section>
+		{/if}
 
 		<div class="mt-10 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 			<!-- Mis datasets -->
@@ -248,11 +433,11 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 					<span
 						class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
 					>
-						{datasetsLoading ? "—" : datasets.length}
+						{datasetsLoading ? "—" : totalDatasets}
 					</span>
 				</div>
-				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-					Datasets que puede editar en las organizaciones a las que pertenece.
+				<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
+					Los datasets que usted creó.
 				</p>
 
 				<Card class="mt-4 p-2">
@@ -280,7 +465,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							</p>
 							<button
 								type="button"
-								onclick={loadDatasets}
+								onclick={() => loadDatasets()}
 								class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
 								<RotateCw class="size-4" aria-hidden="true" />
@@ -290,17 +475,30 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 					{:else if datasets.length === 0}
 						<div class="p-8 text-center">
 							<Inbox class="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
-							<p class="mt-2 text-sm font-medium text-foreground">Publique su primer dataset</p>
+							<p class="mt-2 text-sm font-medium text-foreground">{EMPTY_STATE_HEADING}</p>
+							<!-- Cuatro estados, no dos: mientras las organizaciones cargan todavía **no sabemos** si
+							     el usuario tiene una; si la carga falló tampoco; y si la pregunta de permiso quedó sin
+							     responder, tampoco. En esos casos el estado vacío no puede afirmar nada sobre el requisito
+							     y conserva la copia neutra. La frase de «pertenecer» sólo es cierta con la lista
+							     terminada, sin error y vacía (`confirmedNoOrganizations`); la de «rol de editor o
+							     administrador», con la lista no vacía y la pregunta de permiso respondida
+							     (`confirmedNoCreatePermission`). -->
 							<p class="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-								Aún no tiene datasets que pueda editar. El asistente lo guía paso a paso.
+								{emptyStateMessage({
+									canCreate: puedeOfrecerCreacion,
+									confirmedNoOrganizations,
+									confirmedNoCreatePermission,
+								})}
 							</p>
-							<a
-								href="/dashboard/datasets/new"
-								class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							>
-								<Plus class="size-4" aria-hidden="true" />
-								Publicar dataset
-							</a>
+							{#if puedeOfrecerCreacion}
+								<a
+									href="/dashboard/datasets/new"
+									class="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<Plus class="size-4" aria-hidden="true" />
+									{EMPTY_STATE_PRIMARY_ACTION_LABEL}
+								</a>
+							{/if}
 						</div>
 					{:else}
 						<ul class="space-y-1">
@@ -344,6 +542,45 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							{/each}
 						</ul>
 					{/if}
+
+					<!-- Los controles viven **fuera** de la cadena de estados a propósito: si estuvieran dentro
+					     del `{:else}` de la lista, desaparecerían en cada carga y los botones saltarían de lugar
+					     con cada cambio de página. Mientras carga se muestran igual, deshabilitados. -->
+					<!-- La excepción es el error: con el panel de error a la vista el pie se oculta, porque el rango
+					     («21–40 de 137») describe filas que no se están mostrando, y ése es exactamente el reporte
+					     engañoso que este trabajo vino a eliminar. Costo aceptado: si el fallo es persistente,
+					     «Reintentar» vuelve a pedir la misma página, así que recuperar la página 1 exige recargar
+					     (el número de página no viaja en la URL). -->
+					{#if totalDatasets > PAGE_SIZE && !datasetsError}
+						<div class="border-t border-border p-3">
+							<div class="flex items-center justify-between gap-3">
+								<button
+									type="button"
+									aria-label="Página anterior"
+									disabled={datasetsLoading || pagina <= 1}
+									onclick={() => irAPagina(pagina - 1)}
+									class="inline-flex size-9 items-center justify-center rounded-lg border border-input bg-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+								>
+									<ChevronLeft class="size-4" aria-hidden="true" />
+								</button>
+								<p class="text-xs text-muted-foreground" aria-live="polite">
+									{(pagina - 1) * PAGE_SIZE + 1}–{Math.min(
+										pagina * PAGE_SIZE,
+										totalDatasets,
+									)} de {totalDatasets}
+								</p>
+								<button
+									type="button"
+									aria-label="Página siguiente"
+									disabled={datasetsLoading || pagina * PAGE_SIZE >= totalDatasets}
+									onclick={() => irAPagina(pagina + 1)}
+									class="inline-flex size-9 items-center justify-center rounded-lg border border-input bg-background transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+								>
+									<ChevronRight class="size-4" aria-hidden="true" />
+								</button>
+							</div>
+						</div>
+					{/if}
 				</Card>
 			</section>
 
@@ -364,7 +601,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 						{orgsLoading ? "—" : organizations.length}
 					</span>
 				</div>
-				<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+				<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
 					Organizaciones de las que forma parte y el rol que tiene en cada una.
 				</p>
 
@@ -407,7 +644,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 								Aún no pertenece a ninguna organización
 							</p>
 							<p class="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-								Solicite a un administrador que lo agregue a una para publicar datasets.
+								Solicite a un administrador que lo agregue a una para crear datasets.
 							</p>
 						</div>
 					{:else}
@@ -415,7 +652,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 							{#each organizations as organization (organization.id)}
 								<li>
 									<a
-										href={`/organization/${organization.name}`}
+										href={`/organization/${encodeURIComponent(organization.name)}`}
 										class="group flex items-start gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 									>
 										<OrganizationLogo

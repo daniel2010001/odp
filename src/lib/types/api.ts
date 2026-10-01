@@ -21,6 +21,12 @@ export interface SearchParams extends PaginationParams {
 	facet_field?: string[];
 	facet_limit?: number;
 	facet_min_count?: number;
+	/**
+	 * Pedir también los datasets privados. CKAN lo honra sólo si quien llama es `sysadmin` **o**
+	 * dueño de la cuenta consultada (`user_show`, `include_private_and_draft_datasets`): es una
+	 * petición que CKAN puede rechazar, no un permiso que el portal se otorgue a sí mismo.
+	 */
+	include_private?: boolean;
 }
 
 export interface SearchResponse<T = unknown> {

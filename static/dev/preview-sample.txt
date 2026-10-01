@@ -1,0 +1,13 @@
+Vista previa de texto - muestra local del portal UMSS
+=====================================================
+
+Este archivo vive en `static/dev/` y no es un documento del catalogo: es el
+sustituto local de un TXT subido a CKAN.
+
+En produccion, CKAN sirve el archivo real desde su endpoint `/download/` con
+`Content-Disposition: inline`, asi que el navegador lo muestra dentro del
+`<iframe>` sin descargarlo. La API de CKAN no manda cabeceras CORS, por eso el
+portal usa un `<iframe>` y no un `fetch`: el `<iframe>` no necesita leer el
+contenido, solo mostrarlo.
+
+Linea final: si se ve, el tipo "text" funciona.

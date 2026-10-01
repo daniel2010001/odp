@@ -1,51 +1,77 @@
 <script lang="ts">
 import {
 	ArrowLeft,
-	ChartBar,
 	Check,
+	ChevronLeft,
+	ChevronRight,
 	Copy,
 	Download,
 	ExternalLink,
 	FileText,
 	Link2,
-	Map as MapIcon,
-	Table,
 } from "@lucide/svelte";
+import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createDatastoreApi } from "$lib/api/datastore";
+import {
+	type AccessContext,
+	classifyFailure,
+	describeFailure,
+	type FailurePresentation,
+	failureActions,
+	isDefinitive,
+} from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
+import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
+import { resourceKind } from "$lib/resources/kind";
+import { resourceNeighbours, resourcePositionLabel } from "$lib/resources/order";
+import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
+import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
 import { safeExternalUrl } from "$lib/utils/external-url";
 
-// Cliente del DataStore para la vista previa de CSV (RF-31).
-const datastoreApi = createDatastoreApi(createCkanClient({ baseUrl: env.CKAN_URL }));
+// Cliente del DataStore para la vista previa (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla). Lleva el
+// token de la sesión, el mismo idiom que el cliente de carga: sin él, el `datastore_search` de un
+// recurso de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
+const datastoreApi = createDatastoreApi(
+	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
+);
+
+/** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
+type ResourceFailure = {
+	presentation: FailurePresentation;
+	access: AccessContext;
+};
 
 // ─── State ───────────────────────────────────────────────────────
 let resource = $state<CkanResource | null>(null);
 let dataset = $state<CkanPackage | null>(null);
 let loading = $state(true);
-let error = $state<string | null>(null);
+let failure = $state<ResourceFailure | null>(null);
+
+// Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
+// una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
+// sobre el catálogo que no haya medido. Modelarla como `failure` sería inventar un diagnóstico.
+let invalidParams = $state(false);
+
+// El camino único de expulsión ya limpió la sesión y navegó: no se renderiza nada más ni se
+// vuelve a navegar.
+let expelled = $state(false);
+
 let endpointCopied = $state(false);
 let copiedLink = $state(false);
 
-// Vistas simuladas de la previsualización (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla CSV).
-const previewViews = [
-	{ id: "tabla", label: "Tabla", icon: Table },
-	{ id: "grafico", label: "Gráfico", icon: ChartBar },
-	{ id: "mapa", label: "Mapa", icon: MapIcon },
-];
-let previewView = $state("tabla");
 let hashCopied = $state(false);
 
 // ─── Params from URL ─────────────────────────────────────────────
@@ -55,50 +81,88 @@ const resourceId = $derived($page.params.resourceId);
 // ─── Data fetching ───────────────────────────────────────────────
 async function loadData() {
 	if (!datasetId || !resourceId) {
-		error = "Parámetros de navegación inválidos";
+		// URL incompleta: estado propio, no un fallo del catálogo (ver el comentario de `invalidParams`).
+		invalidParams = true;
+		failure = null;
+		resource = null;
+		dataset = null;
 		loading = false;
 		return;
 	}
 
+	invalidParams = false;
+	expelled = false;
 	loading = true;
-	error = null;
+	failure = null;
+	resource = null;
+	dataset = null;
 
-	try {
-		const client = createCkanClient({ baseUrl: env.CKAN_URL });
-		const resourceApi = createResourceApi(client);
-		const datasetApi = createDatasetApi(client);
+	const token = get(auth).token;
+	// El cliente lleva el token de la sesión. Sin él, `resource_show` de un recurso de un dataset
+	// privado responde 403 incluso para su propio dueño.
+	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	const resourceApi = createResourceApi(client);
+	const datasetApi = createDatasetApi(client);
 
-		const [resourceResult, datasetResult] = await Promise.allSettled([
-			resourceApi.show(resourceId),
-			datasetApi.show(datasetId),
-		]);
+	// `allSettled` a propósito: una falla del dataset no debe vaciar un recurso que sí cargó, ni al
+	// revés. El recurso manda; el dataset sólo alimenta el breadcrumb.
+	const [resourceResult, datasetResult] = await Promise.allSettled([
+		resourceApi.show(resourceId),
+		datasetApi.show(datasetId),
+	]);
 
-		if (resourceResult.status === "fulfilled") {
-			resource = resourceResult.value;
-		} else if (import.meta.env.DEV) {
-			// Fallback a mock data solo en dev
+	if (resourceResult.status === "fulfilled") {
+		resource = resourceResult.value;
+	} else {
+		const err = resourceResult.reason;
+		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
+		let access: AccessContext = "anonymous";
+		if (classifyFailure(err) === "unauthorized" && token) {
+			let resolution: UnauthorizedResolution = "inconclusive";
+			try {
+				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+			} catch {
+				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
+				resolution = "inconclusive";
+			}
+			if (resolution === "expelled") {
+				// El camino único ya limpió la sesión y navegó: acá termina la carga.
+				expelled = true;
+				loading = false;
+				return;
+			}
+			access = resolution === "alive" ? "session-alive" : "unknown";
+		}
+
+		const presentation = describeFailure(err, "resource", access);
+
+		if (!presentation.definitive && import.meta.env.DEV) {
+			// Sólo una no-respuesta se enmascara con datos mock. Un 403/404 es la respuesta final del
+			// catálogo y enmascararlo es el defecto que este slice corrige.
 			const mockResource = getMockResourceById(resourceId);
 			if (mockResource) {
 				resource = mockResource;
 			} else {
-				throw new Error("Recurso no encontrado");
+				failure = { presentation, access };
 			}
 		} else {
-			throw new Error("No se pudo cargar el recurso. Intente nuevamente más tarde.");
+			failure = { presentation, access };
 		}
-
-		if (datasetResult.status === "fulfilled") {
-			dataset = datasetResult.value;
-		} else if (import.meta.env.DEV) {
-			const mockDataset = getMockDatasetById(datasetId);
-			if (mockDataset) dataset = mockDataset;
-		}
-	} catch (err) {
-		error = err instanceof Error ? err.message : "Error al cargar el recurso";
-		resource = null;
-	} finally {
-		loading = false;
 	}
+
+	// El dataset alimenta el breadcrumb: una respuesta definitiva no se enmascara y el breadcrumb
+	// simplemente degrada; sólo una no-respuesta puede caer al mock en DEV.
+	if (datasetResult.status === "fulfilled") {
+		dataset = datasetResult.value;
+	} else {
+		dataset =
+			!isDefinitive(classifyFailure(datasetResult.reason)) && import.meta.env.DEV
+				? (getMockDatasetById(datasetId) ?? null)
+				: null;
+	}
+
+	loading = false;
 }
 
 // ─── Effect: load on mount ──────────────────────────────────────
@@ -110,24 +174,86 @@ $effect(() => {
 
 // ─── Derived: breadcrumbs ──────────────────────────────────────
 const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
-	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search" }];
+	const items: BreadcrumbItem[] = [{ label: "Datasets", href: "/search", role: "Catálogo" }];
 	if (dataset?.organization?.title) {
-		items.push({ label: dataset.organization.title });
+		// Con `href`: la organización tiene página propia (la ruta resuelve name o id). Sin él la miga se
+		// dibujaba como texto plano y no había nada que clicar, que es el defecto que este slice corrige.
+		// El `href` se arma con `name`, así que se exige `name`, no `title`: una organización con título
+		// pero sin `name` conserva la miga como texto y no inventa `/organization/undefined` (la revisión
+		// `R3-ORG-NAME-GUARD`).
+		items.push({
+			label: dataset.organization.title,
+			href: dataset.organization.name
+				? `/organization/${encodeURIComponent(dataset.organization.name)}`
+				: undefined,
+			role: "Organización",
+		});
 	}
 	if (dataset?.title || dataset?.name) {
 		items.push({
 			label: dataset.title || dataset.name,
 			href: `/dataset/${datasetId}`,
+			role: "Dataset",
 		});
 	}
 	if (resource?.name) {
-		items.push({ label: resource.name });
+		items.push({ label: resource.name, role: "Recurso" });
 	}
 	return items;
 });
 
+// ─── Derived: vecinos del recurso (navegar sin volver al dataset) ───
+// El orden y los extremos son decisiones y viven en una función pura (`$lib/resources/order`): el dataset ya
+// viene con sus recursos y con la `position` de cada uno, así que esto **no pide nada nuevo a CKAN**.
+const neighbours = $derived(resourceNeighbours(dataset?.resources, resourceId));
+
+/**
+ * El salto secuencial sólo existe con más de un recurso: con uno solo no hay a dónde saltar, y la
+ * banda de la acción no debe quedar con el control solo por dibujarlo.
+ */
+const hasJump = $derived(neighbours.ordered.length > 1);
+
+/** Los hermanos, para el segundo grupo del desplegable del chip. El actual va **sin `href`**. */
+const relatedResources = $derived({
+	heading: "Recursos de este dataset",
+	items: neighbours.ordered.map((item) => ({
+		label: item.name ?? item.id,
+		role: item.format,
+		href: item.id === resourceId ? undefined : `/dataset/${datasetId}/resource/${item.id}`,
+	})),
+});
+
+// ─── Derived: estado de error ────────────────────────────────
+// Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla. Hoy
+// sólo puede ofrecer reintento: un enlace de inicio de sesión en este estado delataría que el
+// recurso existe, así que el camino al login vive en el encabezado de la aplicación.
+const actions = $derived(
+	failure ? failureActions(failure.presentation, failure.access) : { retry: false },
+);
+
+const errorTitle = $derived(
+	invalidParams ? "Parámetros de navegación inválidos" : (failure?.presentation.title ?? ""),
+);
+
+const errorMessage = $derived(
+	invalidParams
+		? "La dirección no contiene un dataset y un recurso válidos."
+		: (failure?.presentation.message ?? ""),
+);
+
+const pageTitle = $derived.by(() => {
+	if (resource) return `${resource.name} — UMSS`;
+	if (loading) return "Cargando... — UMSS";
+	if (failure) return `${failure.presentation.title} — UMSS`;
+	if (invalidParams) return "Parámetros de navegación inválidos — UMSS";
+	return "Recurso — UMSS";
+});
+
 // ─── Derived: badges ────────────────────────────────────────────
-const formatLabel = $derived(resource?.format?.trim().toUpperCase() ?? null);
+// El tipo de recurso (`url_type`, la regla de CKAN) decide el chip del encabezado, y es exclusivo:
+// un recurso alojado muestra su formato; una referencia externa muestra «Enlace» y deja de mostrar
+// el formato declarado —un enlace es un enlace, no un archivo con formato—. El cómo vive en
+// `ResourceKindChip`, compartido con la lista del dataset.
 
 const stateLabel = $derived.by(() => {
 	switch (resource?.state) {
@@ -157,7 +283,21 @@ const fieldList = $derived.by(() => {
 		{ label: "Creado", value: formatDate(resource.created), raw: resource.created },
 		{ label: "Hash", value: resource.hash, raw: resource.hash },
 	];
-	return fields.filter((f) => f.raw !== undefined && f.raw !== null && f.raw !== "");
+	// Decisión del autor (2026-09-22): la ficha de un enlace dice la verdad. Un enlace es una
+	// referencia externa, así que estas dos filas no son del portal: el **tamaño** de una URL externa
+	// nadie lo midió —CKAN no puede pesarla sin descargarla y el valor sembrado es inventado— y el
+	// **nombre del archivo** sería un adivinazo parseado del último segmento de la URL, no un metadato.
+	// Un archivo alojado conserva ambas: CKAN reescribe su URL al camino de descarga y midió el tamaño
+	// al subirlo, así que ahí las dos filas son hechos medidos.
+	const LINK_FORBIDDEN_ROWS = new Set(["Nombre del archivo", "Tamaño"]);
+	const isExternalLink = resourceKind(resource) === "link";
+	return fields.filter(
+		(f) =>
+			f.raw !== undefined &&
+			f.raw !== null &&
+			f.raw !== "" &&
+			!(isExternalLink && LINK_FORBIDDEN_ROWS.has(f.label)),
+	);
 });
 
 // ─── Derived: API extras ───────────────────────────────────────
@@ -191,7 +331,7 @@ const apiBaseUrl = $derived(
 );
 
 const apiEndpoint = $derived(
-	resource ? `${apiBaseUrl}/api/3/action/resource_show?id=${resource.id}` : "",
+	resource ? `${apiBaseUrl}/api/3/action/datastore_search?resource_id=${resource.id}` : "",
 );
 
 const curlCommand = $derived.by(() => {
@@ -199,9 +339,9 @@ const curlCommand = $derived.by(() => {
 	const extraRequest = apiExtras.find((e) => e.key === "example_request")?.value;
 	if (extraRequest) return extraRequest;
 	return [
-		`curl -X POST ${apiBaseUrl}/api/3/action/resource_show \\`,
+		`curl -X POST ${apiBaseUrl}/api/3/action/datastore_search \\`,
 		`  -H "Content-Type: application/json" \\`,
-		`  -d '{"id": "${resource.id}"}'`,
+		`  -d '{"resource_id": "${resource.id}"}'`,
 	].join("\n");
 });
 
@@ -216,6 +356,11 @@ const docsUrl = $derived(safeExternalUrl(apiExtras.find((e) => e.key === "docs_u
 // `resource.url` también viene de CKAN y se renderiza como `href`: el saneo en el borde de
 // salida es lo que impide un `javascript:` almacenado (XSS almacenado).
 const downloadUrl = $derived(safeExternalUrl(resource?.url));
+
+// La misma regla del chip decide la vista previa: una referencia externa no aloja contenido en el
+// portal, así que no hay nada que previsualizar. Derivarlo acá y no repetir la comparación en la
+// plantilla mantiene una sola lectura de `resourceKind` por render.
+const isLink = $derived(resource ? resourceKind(resource) === "link" : false);
 
 // ─── Actions ────────────────────────────────────────────────────
 async function handleCopyEndpoint() {
@@ -252,17 +397,16 @@ async function handleCopyResourceLink() {
 </script>
 
 <svelte:head>
-	<title>
-		{resource ? `${resource.name} — UMSS` : loading ? "Cargando... — UMSS" : "Recurso no encontrado — UMSS"}
-	</title>
+	<title>{pageTitle}</title>
 </svelte:head>
 
 <div>
-	<!-- Breadcrumb bar -->
-	{#if !loading}
+	<!-- Breadcrumb: una sola fila, sólo el recorrido. La navegación entre recursos vive en el hero,
+	     dentro del grupo de la acción del recurso: debajo del breadcrumb le robaba el foco al título. -->
+	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
-			<div class="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-8">
-				<Breadcrumb items={breadcrumbItems} />
+			<div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+				<Breadcrumb items={breadcrumbItems} icon={FileText} related={relatedResources} />
 			</div>
 		</div>
 	{/if}
@@ -284,12 +428,15 @@ async function handleCopyResourceLink() {
 			</div>
 		</div>
 
+	<!-- Expulsión: el guard ya limpió la sesión y navegó, no queda nada que renderizar -->
+	{:else if expelled}
+
 	<!-- Error / 404 state -->
-	{:else if error && !resource}
+	{:else if invalidParams || failure}
 		<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
 			<div class="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-				<p class="text-lg font-medium text-destructive">Recurso no encontrado</p>
-				<p class="mt-2 text-sm text-muted-foreground">{error}</p>
+				<p class="text-lg font-medium text-destructive">{errorTitle}</p>
+				<p class="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
 				<div class="mt-6 flex items-center justify-center gap-3">
 					{#if datasetId}
 						<a
@@ -308,12 +455,14 @@ async function handleCopyResourceLink() {
 							Volver al catálogo
 						</a>
 					{/if}
-					<button
-						onclick={() => loadData()}
-						class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-					>
-						Reintentar
-					</button>
+					{#if actions.retry}
+						<button
+							onclick={() => loadData()}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+						>
+							Reintentar
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -323,7 +472,9 @@ async function handleCopyResourceLink() {
 		<!-- Resource header -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-				<!-- Title + copy link -->
+				<!-- Title + copy link: el salto secuencial dejó esta fila (decisión del autor) y vive en la
+				     banda de la acción de descarga. `min-w-0` deja que un nombre largo se encoja en vez de
+				     desbordar. -->
 				<div class="flex items-center gap-3">
 					<button
 						type="button"
@@ -338,7 +489,7 @@ async function handleCopyResourceLink() {
 							<Link2 class="size-4" />
 						{/if}
 					</button>
-					<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+					<h1 class="min-w-0 font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
 						{resource.name || "Recurso"}
 					</h1>
 				</div>
@@ -351,16 +502,13 @@ async function handleCopyResourceLink() {
 				{/if}
 
 
-				<!-- Badges row -->
+				<!-- Badges row: el chip de tipo es exclusivo — un enlace muestra «Enlace» y no el formato,
+				     un archivo alojado muestra su formato y nunca «Enlace». **Sin el chip del tipo MIME** (decisión del
+				     autor, 2026-09-28): era intencional, y en el único recurso del catálogo que lo tiene repetía el
+				     formato («PDF» en el chip, «application/pdf» acá) mientras el dato técnico ya vive en la tabla de
+				     metadatos de abajo. Un chip que no agrega información es ruido en el hero. -->
 				<div class="mt-4 flex flex-wrap items-center gap-2">
-					{#if formatLabel}
-						<span
-							class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
-						>
-							<FileText class="size-3.5" />
-							{formatLabel}
-						</span>
-					{/if}
+					<ResourceKindChip kind={resourceKind(resource)} format={resource.format} />
 
 					{#if stateLabel}
 						<span
@@ -375,14 +523,6 @@ async function handleCopyResourceLink() {
 							{stateLabel}
 						</span>
 					{/if}
-
-					{#if resource.mimetype}
-						<span
-							class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground"
-						>
-							{resource.mimetype}
-						</span>
-					{/if}
 				</div>
 
 				<!-- Description -->
@@ -392,17 +532,82 @@ async function handleCopyResourceLink() {
 					</p>
 				{/if}
 
-				<!-- Download action -->
-				{#if downloadUrl}
-					<a
-						href={downloadUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="mt-5 inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
-					>
-						<Download class="size-4" />
-						Descargar recurso
-					</a>
+				<!-- Acción del recurso + salto secuencial: una sola banda a la altura del botón (decisión del
+				     autor). El botón es la acción primaria, a la izquierda; el salto queda a la derecha con
+				     `ml-auto`, que lo alinea aunque no haya botón, y en anchos cortos envuelve a su propia línea
+				     sin perder esa alineación. La banda se renderiza sólo si tiene algún hijo, así que sin
+				     acción y sin salto no queda una fila vacía. -->
+				{#if downloadUrl || hasJump}
+					<div class="mt-5 flex flex-wrap items-center gap-3">
+						{#if downloadUrl}
+							<a
+								href={downloadUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+							>
+								{#if isLink}
+									<ExternalLink class="size-4" />
+									Abrir enlace
+								{:else}
+									<Download class="size-4" />
+									Descargar recurso
+								{/if}
+							</a>
+						{/if}
+
+						<!-- Navegación entre recursos: dos controles rotulados —«‹ Anterior» y «Siguiente ›»— con el
+						     contador en el medio. Cada control trae su propio borde y su radio: son dos controles, no un
+						     grupo. El destino completo va en `title` y `aria-label`, y el rótulo del contador usa
+						     `resourcePositionLabel` (una sola fuente para el formato). En los extremos la dirección que
+						     no existe se dibuja inerte —un `span` con `aria-hidden` y sin `tabindex`, con el mismo
+						     rótulo—, no como un enlace muerto ni como un hueco: una mitad ausente haría ver el salto
+						     roto y movería el contador de lugar. `ml-auto` en el primer control mantiene el salto a la
+						     derecha de la banda. -->
+						{#if hasJump}
+							{#if neighbours.previous}
+								<a
+									href={`/dataset/${datasetId}/resource/${neighbours.previous.id}`}
+									aria-label={`Recurso anterior: ${neighbours.previous.name ?? neighbours.previous.id}`}
+									title={neighbours.previous.name ?? neighbours.previous.id}
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ml-auto"
+								>
+									<ChevronLeft class="size-4 shrink-0" aria-hidden="true" />
+									<span>Anterior</span>
+								</a>
+							{:else}
+								<span
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground/40 ml-auto"
+									aria-hidden="true"
+								>
+									<ChevronLeft class="size-4 shrink-0" />
+									<span>Anterior</span>
+								</span>
+							{/if}
+							<span class="whitespace-nowrap px-1 text-sm text-muted-foreground tabular-nums">
+								{resourcePositionLabel(neighbours.index, neighbours.ordered.length)}
+							</span>
+							{#if neighbours.next}
+								<a
+									href={`/dataset/${datasetId}/resource/${neighbours.next.id}`}
+									aria-label={`Recurso siguiente: ${neighbours.next.name ?? neighbours.next.id}`}
+									title={neighbours.next.name ?? neighbours.next.id}
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								>
+									<span>Siguiente</span>
+									<ChevronRight class="size-4 shrink-0" aria-hidden="true" />
+								</a>
+							{:else}
+								<span
+									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground/40"
+									aria-hidden="true"
+								>
+									<span>Siguiente</span>
+									<ChevronRight class="size-4 shrink-0" />
+								</span>
+							{/if}
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</section>
@@ -412,55 +617,38 @@ async function handleCopyResourceLink() {
 			<Card class="overflow-hidden border-primary/20">
 				<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
-					<div class="flex items-center gap-1 rounded-md border border-border bg-background p-0.5">
-						{#each previewViews as view (view.id)}
-							{@const Icon = view.icon}
-							<button
-								type="button"
-								onclick={() => (previewView = view.id)}
-								class={cn(
-									"inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors",
-									previewView === view.id
-										? "bg-primary text-primary-foreground"
-										: "text-muted-foreground hover:text-foreground",
-								)}
-							>
-								<Icon class="size-3.5" />
-								{view.label}
-							</button>
-						{/each}
-					</div>
 				</div>
-				{#if previewView === "tabla"}
-					<ResourcePreview resource={resource} datastore={datastoreApi} />
-				{:else}
-					<div class="flex min-h-[420px] flex-col items-center justify-center gap-3 p-10 text-center">
-						<div class="flex size-16 items-center justify-center rounded-full bg-primary/10">
-							{#if previewView === "grafico"}
-								<ChartBar class="size-8 text-primary" />
-							{:else}
-								<MapIcon class="size-8 text-primary" />
-							{/if}
-						</div>
-						<p class="font-heading text-xl font-bold text-foreground">
-							{previewView === "grafico" ? "Gráfico" : "Mapa"}
+				{#if isLink}
+					<!-- Nota compacta. La CAJA era el problema, no el texto: 220px de alto mínimo, 40px de padding
+					     y un círculo de 64px para una sola oración. El copy se conserva palabra por palabra porque
+					     los tests lo anclan, y sin ícono: no agregaba información al lado de una oración. -->
+					<div class="space-y-1 p-5">
+						<p class="font-heading text-base font-bold text-foreground">
+							Este recurso es un enlace externo
 						</p>
-						<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
-							Vista simulada. En la versión real, cada vista renderiza su propio contenido según los datos
-							del recurso.
+						<p class="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+							Su contenido está en el sitio de origen, no en el portal, así que no hay nada que
+							previsualizar aquí.
 						</p>
 					</div>
+				{:else}
+					<ResourcePreview resource={resource} datastore={datastoreApi} />
 				{/if}
 			</Card>
 
 		<!-- API content -->
-		{#if resource.resource_type === "api"}
+		<!-- El gate es `datastore_active`, no `resource_type`: `resource_type` es un campo heredado que
+		     nada escribe (el formulario de CKAN lo tiene comentado; medido `None` en los 35 recursos del
+		     catálogo), así que la sección no se renderizaba nunca. `datastore_active` es el marcador de
+		     CKAN para «existe una tabla real» —el mismo que usa la vista previa— y sin tabla no hay filas
+		     que consultar. -->
+		{#if resource.datastore_active === true}
 			<div>
 				<div>
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">API · Endpoint</p>
 					<h2 class="mt-1 font-heading text-xl font-bold text-primary">Acceso por API</h2>
 					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-						Use estos endpoints para acceder programáticamente a los datos del recurso.
+						Consulte las filas de este recurso desde el endpoint del DataStore.
 					</p>
 				</div>
 	
@@ -516,7 +704,7 @@ async function handleCopyResourceLink() {
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 							Ejemplo de consulta · curl
 						</p>
-						<p class="mt-1 text-sm text-muted-foreground">Obtenga los metadatos del recurso.</p>
+						<p class="mt-1 text-sm text-muted-foreground">Obtenga las filas de la tabla del recurso.</p>
 						<div class="mt-3 overflow-x-auto rounded-lg bg-foreground p-4">
 							<pre class="font-mono text-xs leading-relaxed text-background"><code>{curlCommand}</code></pre>
 						</div>
@@ -534,11 +722,11 @@ async function handleCopyResourceLink() {
 		<!-- Metadata content -->
 			<Card class="p-6 sm:p-8">
 				<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-					Metadatos · Información técnica
+					Metadatos
 				</p>
-				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre este recurso</h2>
+				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Información sobre el recurso</h2>
 				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-					Detalles técnicos del archivo: formato, tamaño, tipo MIME y otros metadatos.
+					Formato, tamaño, tipo MIME y sus identificadores.
 				</p>
 
 				{#if fieldList.length > 0}

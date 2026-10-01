@@ -26,20 +26,33 @@ The detail page MUST display every field returned by `resource_show`: name, desc
 
 ### Requirement: API Metadata
 
-When a resource's `extras` indicate it is an API-type resource, the page MUST surface endpoint metadata, documentation URL, and request/response examples if present.
+When a resource has a DataStore table, the page MUST surface a section explaining how to read its rows. `datastore_active` MUST be the only gate for that section: it is CKAN's own marker for an existing table, and CKAN answers the same `404` for a resource that has no table and for a resource that does not exist, so neither `resource_type` nor the shape of the error can decide this. The endpoint MUST be the one that returns the rows — `{CKAN base URL}/api/3/action/datastore_search?resource_id=<resource id>` — and the request example MUST address that same action. When the resource's `extras` carry `docs_url`, `example_request` or `example_response`, the page MUST render them as part of the section; when they are absent, the section MUST render without them.
 
-#### Scenario: API resource with complete extras
+#### Scenario: Resource with a DataStore table
 
-- GIVEN a resource whose extras contain `api_base_url`, `docs_url`, and `example_request`
-- WHEN the user opens the detail page
-- THEN the API endpoint, documentation link, and example are displayed in a dedicated section
+- GIVEN a resource whose `datastore_active` is `true`
+- WHEN the user opens the resource detail page
+- THEN a section displays the `datastore_search` endpoint for that resource
+- AND the request example addresses the same action
 
-#### Scenario: API resource with partial extras
+#### Scenario: DataStore table with authored API extras
 
-- GIVEN a resource whose extras contain only `api_base_url`
-- WHEN the user opens the detail page
-- THEN only the endpoint metadata is shown
-- AND the missing documentation link and example are omitted
+- GIVEN a resource whose `datastore_active` is `true` and whose extras contain `docs_url` and `example_request`
+- WHEN the user opens the resource detail page
+- THEN the documentation link and the request example are displayed inside the section
+
+#### Scenario: DataStore table without API extras
+
+- GIVEN a resource whose `datastore_active` is `true` and which carries none of the API extras
+- WHEN the user opens the resource detail page
+- THEN the section displays the endpoint and the request example
+- AND no documentation link and no response example are displayed
+
+#### Scenario: No DataStore table
+
+- GIVEN a resource with no DataStore table
+- WHEN its extras contain `api_base_url`, `docs_url` and `example_request`
+- THEN the section is not rendered
 
 ### Requirement: Download Action
 
@@ -73,16 +86,36 @@ The page MUST display breadcrumbs: `Datasets > [Organization name] > [Dataset ti
 - WHEN the user opens the resource detail page
 - THEN the breadcrumb omits the organization level
 
-### Requirement: Preview Placeholder
+### Requirement: Resource Preview
 
-The page MUST reserve a visible placeholder area for a future data preview widget.
+The page MUST render a preview of the resource according to what the portal can actually show, and MUST NOT reserve a bounded area for a preview that does not exist yet. A resource whose `datastore_active` is `true` MUST render its rows in a table, fetched through `datastore_search`. A hosted resource whose format is PDF, an image type, TXT or JSON MUST embed the file from the resource's own download URL. A resource the portal cannot preview MUST render an explicit state that says so. A resource that is an external reference MUST NOT be previewed: the page MUST state that its content lives at the origin site.
 
-#### Scenario: Placeholder present
+#### Scenario: Resource with a DataStore table
 
-- GIVEN any resource detail page
-- WHEN the page renders
-- THEN a clearly bounded area is reserved for a preview widget
-- AND the placeholder indicates that preview is coming soon
+- GIVEN a resource whose `datastore_active` is `true`
+- WHEN the user opens the resource detail page
+- THEN the page renders the resource's rows in a table
+- AND the rows are fetched through `datastore_search`
+
+#### Scenario: Embeddable hosted file
+
+- GIVEN a hosted resource whose format is PDF, an image type, TXT or JSON
+- WHEN the user opens the resource detail page
+- THEN the page embeds the file from the resource's own download URL
+
+#### Scenario: No preview available
+
+- GIVEN a resource the portal cannot preview
+- WHEN the user opens the resource detail page
+- THEN the page renders an explicit state explaining that no preview is available
+- AND the page does not reserve a bounded area for a future preview
+
+#### Scenario: External reference
+
+- GIVEN a resource that is an external reference instead of a hosted file
+- WHEN the user opens the resource detail page
+- THEN the page states that the content lives at the origin site
+- AND the page does not attempt to preview the resource
 
 ### Requirement: Missing Resource
 
@@ -94,3 +127,74 @@ If the requested resource does not exist, the page MUST render a "Resource not f
 - WHEN the user navigates to that resource detail page
 - THEN a "Resource not found" message is displayed
 - AND a link back to the parent dataset is provided
+
+### Requirement: Unidentified Viewer Must Not Learn Existence
+
+For a viewer with no session, a `403` for a private resource and a `404` for a resource that does not exist MUST render the same state: the page MUST NOT disclose whether the resource exists, MUST NOT describe the resource as private, and MUST NOT invite the viewer to sign in from that state. The site's persistent sign-in affordance MUST remain available, because it carries no information about the requested resource.
+
+#### Scenario: Viewer with no session
+
+- GIVEN a viewer with no stored session
+- WHEN the catalog answers with a `403` for a private resource
+- THEN the page renders the same state it renders for a resource that does not exist
+- AND the state does not confirm that the resource exists
+- AND the state does not invite the viewer to sign in
+- AND the message does not state that the session expired
+
+#### Scenario: Viewer with no session cannot tell a private resource from a missing one
+
+- GIVEN a viewer with no stored session
+- WHEN the catalog answers with a `403` for a private resource, or with a `404` for a resource that does not exist
+- THEN the page renders the same state in both cases
+- AND the same actions are offered in both cases
+- AND the state neither confirms nor denies that the resource exists
+
+### Requirement: Authorization Failure Is Not a Missing Resource
+
+For a viewer whose session identifies them — a live session, or one that cannot be confirmed — an authorization failure (HTTP `403`) MUST NOT be rendered as the "not found" state, and the diagnosis MUST agree with what is known about that session instead of asserting a single cause. An unavailable catalog is not an absent or private resource, and a definitive answer is not masked in development.
+
+This requirement deliberately deviates from CKAN's own web interface, which does not distinguish the two cases even for an identified viewer: an identified viewer gains no security value from being misled and does gain a useful diagnosis.
+
+#### Scenario: Authorization failure is not a missing resource
+
+- GIVEN an identified viewer and a resource that exists but is not readable by them
+- WHEN the catalog answers with a `403` authorization failure
+- THEN the page renders an authorization state
+- AND the state does not state that the resource was not found
+
+#### Scenario: Viewer with a live session is not authorized
+
+- GIVEN a viewer whose stored session is still valid and whose account is not authorized to read the resource
+- WHEN the catalog answers with a `403`
+- THEN the message states that the resource exists but the account is not authorized to see it
+- AND the message does not ask the viewer to sign in
+
+#### Scenario: Stored session is no longer valid
+
+- GIVEN a viewer whose stored session is no longer valid
+- WHEN the catalog answers with a `403`
+- THEN the viewer is handled as holding an invalid session, as the authentication capability defines
+- AND the viewer is not shown an authorization message as if the account lacked permission
+
+#### Scenario: Session state could not be confirmed
+
+- GIVEN a viewer whose stored session cannot be confirmed as either valid or invalid
+- WHEN the catalog answers with a `403`
+- THEN the message states that access could not be confirmed
+- AND the message asserts neither that the session expired nor that the account lacks authorization
+- AND retrying is presented as reasonable
+
+#### Scenario: Unavailable catalog is not an absent or private resource
+
+- GIVEN the catalog cannot be reached, times out, or answers with a server error
+- WHEN the page loads
+- THEN the page reports a connection or catalog failure
+- AND the state does not state that the resource is missing or private
+- AND retrying is presented as reasonable
+
+#### Scenario: Development does not mask a definitive answer
+
+- GIVEN the application runs in development
+- WHEN the catalog answers with a definitive `403` or `404`
+- THEN the failure is reported to the viewer
+- AND sample data is not substituted for the catalog's answer
