@@ -41,6 +41,14 @@
    real y se borra el playground. Los mockups de OpenPencil son punto de partida, no fuente de
    verdad.
 
+9. **Antes de empezar un ítem ambiguo, preguntar qué se quería.** El `BACKLOG.md` y el `PRD.md` son
+   documentos: registran lo que alguien escribió en un momento, y pueden **no coincidir** con lo que el
+   autor quiere hoy (pasó el 2026-10-01 con el ítem del buscador sin resultados, donde el título describía
+   otra cosa que la queja real). Para ítems **ambiguos, incompletos o que no se entienden del todo** —**no
+   para todos**: preguntar por lo claro es redundante— el agente **pregunta qué se quería** y si eso
+   coincide con lo escrito, **antes** de empezar. Y cuando el autor da el `go` («vamos con ello», «hazlo»),
+   el agente **anota en el `BACKLOG` qué ítem está resolviendo**, para poder contrastarlo y revisarlo después.
+
 ## Stack
 
 SvelteKit 2 + Svelte 5 (runes) + TailwindCSS 4 + shadcn-svelte · TypeScript (strict) ·
