@@ -2210,6 +2210,26 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
+- [ ] **Recibo de la unidad de los chips y el alto del vacío (2026-10-01)** — cerró **`approved`** con la authority quemada.
+  `review-a4119e82b86ac72e`: tier **medium**, lente `review-reliability`, **2 archivos / 80 líneas**, presupuesto 40,
+  **0 bloqueantes, 2 avisos informativos**. La unidad, después de ver la promoción en vivo: **los chips de «Pruebe con»
+  salen del catálogo** (no de las facetas de la búsqueda, que con cero resultados vienen vacías —el bloque era invisible
+  justo en el único caso en que existe) y **la tarjeta del vacío duplica su alto** (`min-h-[24rem]`, pedido del autor:
+  medido 192 → **384 px** en 1280).
+  - **El defecto de los chips no lo cazaron los tests porque la fixture mentía:** devolvía facetas en una respuesta de
+    cero resultados, algo que CKAN no hace. Ahora la fixture responde como CKAN y el test tiene **RED medido** (volver los
+    chips a la búsqueda lo hace fallar). Es la familia que el proyecto ya tiene anotada: **un doble que no copia la forma
+    real no verifica, bendice.**
+  - **Los dos avisos eran legítimos y uno era un defecto real del arreglo**, corregidos en `ada8941`:
+    `R3-002` — el `catch` del bloque perezoso reponía los datasets pero **no las facetas**, así que si esa llamada fallaba
+    los chips quedaban vacíos aunque el respaldo DEV existiera—; `R3-001` — ningún test anclaba los nuevos
+    `facet_field`/`facet_limit`, así que la conducta nueva habría sobrevivido a que se los quitara.
+  - **Verificación viva** (contenedor, `8082/search?q=test`): la tarjeta mide **384**, los chips muestran valores reales
+    del catálogo (`PDF · XLSX · GeoJSON · presupuesto · laboratorios · investigación`) y los tres bloques mantienen su orden.
+  - **Gates:** `pnpm test` **698/698** · `svelte-check` 0 errores / 4 warnings preexistentes · Biome exit 0.
+  _Origen: la promoción del vacío del 2026-10-01 y el pedido del autor de duplicar el alto._
+
+
 - [ ] **Recibo de la unidad que llenó el vacío del buscador (2026-10-01)** — cerró **`approved`** con la authority quemada.
   `review-f6b3cb06831d7e11`: tier **medium**, lente `review-reliability`, **2 archivos / 441 líneas**, presupuesto 200,
   **0 bloqueantes, 3 avisos informativos**. La unidad: el vacío ganó **tres salidas en el orden que pidió el autor**
