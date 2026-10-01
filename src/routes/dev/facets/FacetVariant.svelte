@@ -47,14 +47,11 @@ const filteredItems = $derived(
 );
 const noMatches = $derived(Boolean(normalizedQuery) && filteredItems.length === 0);
 // «mostrar» y «ambos» no esconden la lista: con la búsqueda vacía muestran todas las opciones.
-const listItems = $derived(
-	noMatches && variant !== "limpiar"
-		? items.slice(0, DEFAULT_SHOW)
-		: filteredItems.slice(0, DEFAULT_SHOW),
-);
-const hasMore = $derived(
-	(noMatches && variant !== "limpiar" ? items : filteredItems).length > DEFAULT_SHOW,
-);
+// `showAll` se aplica DESPUÉS de elegir la base: si no, «Ver más» cambiaba su rótulo sin mostrar nada
+// más (hallazgo `R3-001` de `review-47e567f7470cf00e`).
+const baseItems = $derived(noMatches && variant !== "limpiar" ? items : filteredItems);
+const listItems = $derived(showAll ? baseItems : baseItems.slice(0, DEFAULT_SHOW));
+const hasMore = $derived(baseItems.length > DEFAULT_SHOW);
 const dimmed = $derived(noMatches && variant !== "limpiar");
 </script>
 
@@ -146,7 +143,7 @@ const dimmed = $derived(noMatches && variant !== "limpiar");
 					onclick={() => (showAll = !showAll)}
 					class="mt-1 flex w-full items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-primary underline-offset-2 transition-colors duration-200 hover:bg-primary/5 hover:underline"
 				>
-					{showAll ? 'Mostrar menos' : 'Ver más'}
+					{showAll ? 'Mostrar menos' : `Ver ${baseItems.length - DEFAULT_SHOW} más`}
 					<ChevronDown
 						class="size-3 transition-transform duration-200 {showAll ? 'rotate-180' : ''}"
 					/>
