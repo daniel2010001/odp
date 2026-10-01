@@ -343,6 +343,25 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		expect(recientes.compareDocumentPosition(orgs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
+	it("la llamada del catálogo pide las facetas que alimentan los chips", async () => {
+		// La propiedad que hace funcionar los chips: si estos parámetros se quitan o se renombran, la
+		// respuesta deja de traer facetas y el bloque desaparece (`R3-001` de `review-a4119e82b86ac72e`).
+		setUrl("?q=matricula");
+		mocks.search.mockImplementation(respondBySignature);
+
+		renderSearch();
+
+		await screen.findByText("Sin resultados");
+		await waitFor(() => {
+			expect(
+				mocks.search.mock.calls.some(([params]) => {
+					const p = params as { limit?: number; facet_field?: string[] } | undefined;
+					return p?.limit === 3 && (p.facet_field ?? []).includes("res_format");
+				}),
+			).toBe(true);
+		});
+	});
+
 	it("los chips de «Pruebe con» llevan a la búsqueda filtrada por formato y por etiqueta", async () => {
 		setUrl("?q=matricula");
 		mocks.search.mockImplementation(respondBySignature);

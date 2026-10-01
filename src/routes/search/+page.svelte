@@ -234,6 +234,10 @@ async function loadEmptyAssist() {
 		} catch {
 			fallo = true;
 			recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+			// Las facetas vienen de esta misma llamada, así que si falla también hay que reponerlas:
+			// dejarlas como estaban dejaba los chips vacíos o viejos aunque el respaldo de desarrollo
+			// existiera (`R3-002` de `review-a4119e82b86ac72e`).
+			catalogFacets = import.meta.env.DEV ? (getMockSearchResult().search_facets ?? {}) : {};
 		}
 
 		try {
