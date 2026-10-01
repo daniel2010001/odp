@@ -5,7 +5,7 @@
 // La ruta no existe en producción: la compuerta está en `+page.ts`.
 
 import { fireEvent, render, screen } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import FacetsSheet from "./+page.svelte";
 import FacetVariant from "./FacetVariant.svelte";
 
@@ -85,6 +85,10 @@ describe("Variantes del estado sin coincidencias", () => {
 
 // `R3-002` de `review-47e567f7470cf00e`: la compuerta de producción (`+page.ts`) no estaba ejercitada.
 describe("La compuerta de producción", () => {
+	// El `DEV` que se siembra abajo se restaura SIEMPRE: sin esto el `false` se filtra a los tests
+	// siguientes y el resultado pasa a depender del orden (`R3-001` de `review-6ad360242a23b4ba`).
+	afterEach(() => vi.unstubAllEnvs());
+
 	it("no existe fuera de desarrollo, y sí en desarrollo", async () => {
 		const { load } = await import("./+page");
 
