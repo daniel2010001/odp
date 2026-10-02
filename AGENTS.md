@@ -39,7 +39,9 @@
    descripción abstracta. Se implementa en un playground `/dev/<page>` que duplica la página real,
    el usuario lo revisa, y se itera ahí hasta que quede; recién entonces se promueve a la página
    real y se borra el playground. Los mockups de OpenPencil son punto de partida, no fuente de
-   verdad.
+   verdad. El playground lleva un **panel de control** —presets de caso y un interruptor por
+   variante— para ver las opciones **en acción** en vez de imaginarlas y, cuando el cambio tiene una
+   medición, un **instrumento** que la muestre en números.
 
 9. **Antes de empezar un ítem ambiguo, preguntar qué se quería.** El `BACKLOG.md` y el `PRD.md` son
    documentos: registran lo que alguien escribió en un momento, y pueden **no coincidir** con lo que el
