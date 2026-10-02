@@ -2238,8 +2238,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
-- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01) — SEIS compuertas aprobadas,
-  las seis con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
+- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01/02) — SIETE compuertas aprobadas,
+  las siete con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
   `<h2>` y `aria-labelledby`) y los tres bloques quedaron con `id` y un margen de desplazamiento que sale del token
   `--header-h` **más el alto medido** de la barra pegajosa; dentro de la tarjeta del aviso va la fila de saltos, con **un
   enlace por bloque renderizado** (nunca a un bloque ausente) y sin rótulo visible, con `aria-label` para lectores de pantalla.
@@ -2302,6 +2302,22 @@ después del cierre que describe el encabezado de esta sección; medición compl
       medir la barra, así que sólo prueba el orden «el destino ya existe → se mide la barra» y **una implementación sin la
       dependencia de `saltos.length` pasaría igual**. Es la familia del **verde falso**, no del flaky: **recomiendo arreglarlo
       primero**, y es de minutos.
+  - `review-88563f3095835790` — **`approved`**, tier medium, **1 archivo / 75 líneas** (`test/deep-link-real-order`, ya sobre
+    `main` mergeado). Cierra el aviso `R3-002` de `review-2fd5289fb166646d`: **el test del enlace profundo probaba menos de lo
+    que su nombre decía** — montaba el vacío completo antes de medir la barra, así que sólo cubría el orden «el destino ya
+    existe → se mide la barra», y una implementación **sin** la dependencia de `saltos.length` habría pasado. El test nuevo
+    **retiene las dos llamadas perezosas**, mide la barra sin destino, afirma el estado intermedio (sin destino, sin
+    `scrollIntoView`) y recién entonces libera los bloques y afirma el aterrizaje sobre la identidad del elemento.
+    **Falsificación medida por el padre, no declarada:** borrando la única línea `void saltos.length;` el test nuevo falla con
+    `AssertionError: expected [] to include <div id="organizaciones">` (sha del producto `840b17a4…`), y al restaurar vuelve al
+    sha `5dca748f…` de `main`; verde de nuevo **31/31**. Commits `5049040` + docs.
+    **Y queda decidido por el autor (2026-10-02), para cuando se toque el otro aviso:** ante el compromiso de `R3-001` —¿el
+    ancla se conserva siempre aunque su destino no esté renderizado?— elige **conservarla sólo mientras su destino exista**,
+    que es lo que el aviso pide. No se implementa ahora.
+    **Su propio aviso (WARNING), registrado y no perseguido** — familia flaky, no verde falso: el test nuevo captura `destino`
+    apenas la fila llega a tres enlaces, sin esperar a que exista el elemento `#organizaciones`; si el bloque se pintara un
+    tick después, compararía contra `null` y fallaría de más. Arreglo de una línea (afirmar que el destino no es nulo antes
+    de usarlo, o esperarlo).
   - **La lección, y es la que hay que llevarse:** este defecto vive en la **composición** (carga perezosa + margen medido +
     fragmento en la carga inicial), no en ninguna unidad, así que **ninguna revisión por unidad podía verlo** — y mi
     verificación viva tampoco: medí el **clic** con la página ya pintada, nunca la **carga** con `#`. Es decir: probé el
