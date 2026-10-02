@@ -115,7 +115,13 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 ### Módulo de Datasets
 - RF-09: Un dataset tiene: título, descripción **con formato** (markdown; ver RF-39), organización propietaria, estado de ciclo de vida (`draft`, `review`, `approved`, `published`), visibilidad (`private`, `internal`, `public`), metadatos estándar (título, descripción, publicador, fecha de emisión, fecha de modificación, idioma, licencia, palabras clave).
 - RF-10: Los metadatos se almacenan en formato JSONB para flexibilidad.
-- RF-11: Cada dataset puede tener múltiples **recursos** (archivos o enlaces). Cada recurso tiene: nombre, descripción, tipo (archivo/enlace), tamaño, hash SHA-256 (para archivos), URL (para enlaces), y metadatos de subida.
+- RF-11: Cada dataset puede tener múltiples **recursos** (archivos o enlaces). Cada recurso tiene: nombre, descripción, tipo (archivo/enlace), tamaño, **hash** del archivo, URL (para enlaces), y metadatos de subida.
+  *Corrección (2026-10-02, medido):* el campo `hash` existe (`ckan/model/resource.py:43`) pero es
+  **opcional y CKAN no lo calcula** — la acción lo documenta como «optional» y el *uploader* no tiene una
+  sola línea de hashing. Si el portal quiere el hash, lo **calcula él** y lo envía: SHA-256 con WebCrypto
+  **en el navegador**, que es quien sube los bytes (el servidor de SvelteKit no puede recibirlos, por
+  contrato). Los recursos creados antes de ese cambio **no tienen hash** y no se puede detectar su
+  reemplazo retroactivamente.
 - RF-12: Tamaño máximo por recurso: 50 MB (configurable).
 - RF-13: Un recurso solo puede contener un archivo o un enlace.
 - RF-39: La descripción del dataset se escribe en **markdown** y el portal la renderiza con un
@@ -249,7 +255,7 @@ procesamiento* aparte (v1+), no un "tipo de vista".
 | `publication_requests` | *sin equivalente* | Requiere extensión propia o capa paralela |
 | `audit_logs` | `activity` (insuficiente) | RF-33/RF-34 (retención de 5 años, logins) exigen una extensión de auditoría |
 | `access_status` (readonly/locked) | *sin equivalente* | Requiere extensión propia |
-| `deleted_at` (soft-delete) | *sin equivalente* | Requiere extensión propia |
+| `deleted_at` (soft-delete) | `state` | **Nativo — corregido (2026-10-02, medido).** `package_delete` es un **borrado lógico**: su docstring dice que el dataset «disappear from all web & API views, apart from the trash», y el borrado **permanente** (`dataset_purge`) es **sólo de sysadmin** (`auth/delete.py:23-25`) — que es exactamente lo que RF-35 pide. No hay un `deleted_at` como marca temporal: la marca es `state='deleted'` |
 
 **Consecuencia de alcance:** los requerimientos que dependen de entidades marcadas *sin
 equivalente* (RF-14 a RF-17, RF-19, RF-23, RF-33 a RF-36) **no son alcanzables con la API de
