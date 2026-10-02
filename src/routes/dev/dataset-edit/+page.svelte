@@ -102,7 +102,7 @@ let slug = $state(DATASET.name);
 let slugUnlocked = $state(false);
 let summary = $state(RESUMEN_INICIAL);
 let notes = $state(DATASET.notes ?? "");
-let ownerOrg = $state(DATASET.organization?.name ?? "");
+const ownerOrg = DATASET.organization?.name ?? "";
 let licenseId = $state(DATASET.license_id ?? "");
 let tags = $state<string[]>(DATASET.tags.map((tag) => tag.name));
 let url = $state("");
@@ -218,7 +218,6 @@ const payloadParcial = $derived.by((): Record<string, string> => {
 	const payload: Record<string, string> = {
 		title: title.trim(),
 		name: slug.trim(),
-		owner_org: ownerOrg,
 	};
 	if (summary.trim()) payload.summary_extra = summary.trim();
 	if (notes.trim()) payload.notes = notes.trim();
@@ -253,6 +252,11 @@ const extrasNoGestionados = DATASET.extras.filter((extra) => extra.key !== SUMMA
 
 const camposNoEnviados: { field: string; reason: string }[] = [
 	{
+		field: "owner_org",
+		reason:
+			"La organización no se edita en este módulo: mover el dataset a otra cambia quién puede verlo y administrarlo, y es una operación aparte.",
+	},
+	{
 		field: "private",
 		reason: "La visibilidad va por el flujo de publicación, no por esta edición.",
 	},
@@ -274,11 +278,9 @@ const camposNoEnviados: { field: string; reason: string }[] = [
 
 // ─── Control del playground (dev-chrome) ────────────────────────────
 type PermState = "puede-editar" | "no-puede-editar" | "permiso-fallo";
-type DeleteVariant = "confirmacion-estandar" | "nombra-slug";
 type FileState = "distinto" | "mismos-bytes" | "sin-hash";
 
 let permState = $state<PermState>("puede-editar");
-let deleteVariant = $state<DeleteVariant>("confirmacion-estandar");
 let fileState = $state<FileState>("distinto");
 
 const PERM_OPCIONES: { id: PermState; label: string; intent: string }[] = [
@@ -302,23 +304,6 @@ const PERM_OPCIONES: { id: PermState; label: string; intent: string }[] = [
 	},
 ];
 const permIntent = $derived(PERM_OPCIONES.find((opcion) => opcion.id === permState)?.intent ?? "");
-
-const DELETE_OPCIONES: { id: DeleteVariant; label: string; intent: string }[] = [
-	{
-		id: "confirmacion-estandar",
-		label: "Confirmación tal como se leería",
-		intent: "Las tres verdades sin nombrar el slug en la tercera.",
-	},
-	{
-		id: "nombra-slug",
-		label: "Variante que nombra el slug",
-		intent:
-			"La misma confirmación, pero la tercera verdad nombra el slug concreto que queda tomado.",
-	},
-];
-const deleteIntent = $derived(
-	DELETE_OPCIONES.find((opcion) => opcion.id === deleteVariant)?.intent ?? "",
-);
 
 const FILE_OPCIONES: { id: FileState; label: string; intent: string }[] = [
 	{
@@ -423,28 +408,6 @@ const RECURSO_HASH_NUEVO = "sha256-9f3c1e77b0a4";
 					{/each}
 				</div>
 				<p class="mt-2 text-xs leading-relaxed text-muted-foreground">{permIntent}</p>
-			</div>
-
-			<div>
-				<p class="text-xs font-medium text-foreground">Confirmación de borrado</p>
-				<div role="group" aria-label="Confirmación de borrado" class="mt-2 flex flex-wrap gap-2">
-					{#each DELETE_OPCIONES as opcion (opcion.id)}
-						<button
-							type="button"
-							aria-pressed={deleteVariant === opcion.id}
-							onclick={() => (deleteVariant = opcion.id)}
-							class={cn(
-								"inline-flex h-9 items-center rounded-lg border px-3 text-sm font-medium transition-colors",
-								deleteVariant === opcion.id
-									? "border-primary bg-primary text-primary-foreground"
-									: "border-input bg-background text-foreground hover:bg-accent",
-							)}
-						>
-							{opcion.label}
-						</button>
-					{/each}
-				</div>
-				<p class="mt-2 text-xs leading-relaxed text-muted-foreground">{deleteIntent}</p>
 			</div>
 
 			<div>
@@ -669,32 +632,21 @@ const RECURSO_HASH_NUEVO = "sha256-9f3c1e77b0a4";
 						<div
 							class="space-y-1.5 [&>label]:pl-[var(--label-offset)] [&>p]:pl-[var(--label-offset)]"
 						>
-							<label for="edit-owner-org" class="text-sm font-medium text-foreground">
-								Organización <span class="text-destructive" aria-hidden="true">*</span>
-							</label>
-							<select
-								id="edit-owner-org"
-								bind:value={ownerOrg}
-								onblur={() => markTouched("owner_org")}
-								aria-invalid={fieldErrors.owner_org ? "true" : undefined}
-								aria-describedby={fieldErrors.owner_org ? "edit-owner-org-error" : undefined}
-								class={inputClass}
+							<span class="block pl-[var(--label-offset)] text-sm font-medium text-foreground">
+								Organización
+							</span>
+							<div
+								class="flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2"
 							>
-								<option value="">Seleccione una organización</option>
-								<option value="fcyt">Facultad de Ciencias y Tecnología</option>
-								<option value="fcs">Facultad de Ciencias de la Salud</option>
-								<option value="fca">Facultad de Ciencias Agrícolas</option>
-								<option value="rectorado">Rectorado UMSS</option>
-								<option value="direccion-investigacion">Dirección de Investigación</option>
-							</select>
-							{#if fieldErrors.owner_org}
-								<p id="edit-owner-org-error" class="text-xs text-destructive">
-									{fieldErrors.owner_org}
-								</p>
-							{/if}
+								<Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+								<span id="edit-owner-org" class="truncate text-sm text-foreground">
+									{DATASET.organization?.title ?? ownerOrg}
+								</span>
+							</div>
 							<p class="text-xs text-muted-foreground">
-								La organización dueña del dataset. La visibilidad la definirá el flujo de
-								publicación.
+								La organización dueña del dataset. Mover el dataset a otra organización es una
+								operación aparte (cambia quién puede verlo y administrarlo) y no forma parte de este
+								módulo.
 							</p>
 						</div>
 
@@ -940,20 +892,25 @@ const RECURSO_HASH_NUEVO = "sha256-9f3c1e77b0a4";
 													<button
 														type="button"
 														aria-label={`Editar ${recurso.name}`}
+														title="Editar este recurso"
 														class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 													>
 														<Pencil class="size-4" aria-hidden="true" />
 													</button>
-													<button
-														type="button"
-														aria-label={`Reemplazar archivo de ${recurso.name}`}
-														class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													>
-														<Upload class="size-4" aria-hidden="true" />
-													</button>
+													{#if recurso.url_type === "upload"}
+														<button
+															type="button"
+															aria-label={`Reemplazar archivo de ${recurso.name}`}
+															title="Reemplazar el archivo de este recurso"
+															class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+														>
+															<Upload class="size-4" aria-hidden="true" />
+														</button>
+													{/if}
 													<button
 														type="button"
 														aria-label={`Quitar ${recurso.name}`}
+														title="Quitar este recurso del dataset"
 														class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 													>
 														<Trash2 class="size-4" aria-hidden="true" />
@@ -964,6 +921,10 @@ const RECURSO_HASH_NUEVO = "sha256-9f3c1e77b0a4";
 									{/each}
 								</ul>
 							</Card>
+							<p class="text-xs leading-relaxed text-muted-foreground">
+								«Reemplazar archivo» aparece sólo en los recursos de tipo Archivo: un enlace no
+								tiene un archivo que reemplazar.
+							</p>
 						{/if}
 					</section>
 				</div>
@@ -1214,8 +1175,7 @@ const RECURSO_HASH_NUEVO = "sha256-9f3c1e77b0a4";
 				</h2>
 				<p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
 					Tres verdades, siempre: el dataset sale del portal y del catálogo; el portal no ofrece
-					deshacer; y el slug queda tomado. La permanencia es una operación de sysadmin en CKAN, no
-					un botón del portal.
+					deshacer; y el slug queda tomado.
 				</p>
 			</div>
 
@@ -1257,27 +1217,21 @@ const RECURSO_HASH_NUEVO = "sha256-9f3c1e77b0a4";
 								<strong class="font-semibold text-foreground"
 									>El portal no ofrece deshacer.</strong
 								>
-								Recuperarlo es una operación de administración de CKAN, no un botón de esta pantalla.
-							</span>
-						</li>
-						<li class="flex items-start gap-2">
-							<span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground"></span>
-							<span>
-								{#if deleteVariant === "nombra-slug"}
-									<strong class="font-semibold text-foreground"
-										>El slug queda tomado.</strong
-									>
-									Después de eliminarlo, no podrá volver a crear un dataset con el slug
-									<code class="break-all font-mono text-xs">{DATASET.name}</code>: CKAN lo rechazará
-									porque el nombre sigue reservado.
-								{:else}
-									<strong class="font-semibold text-foreground">El slug queda tomado.</strong>
-									Aunque el dataset desaparezca, su nombre no se libera: no podrá crear uno nuevo con
-									el mismo slug.
-								{/if}
+								Confirmada la eliminación, no hay forma de revertirla desde el portal.
 							</span>
 						</li>
 					</ul>
+
+					<div class="rounded-lg border border-border bg-muted/40 px-4 py-3">
+						<p class="text-sm font-medium leading-relaxed text-foreground">
+							El identificador queda reservado:
+						</p>
+						<code class="mt-1 block break-all font-mono text-sm text-foreground">{DATASET.name}</code>
+						<p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+							Aunque el dataset deje de estar en el portal, su nombre no se libera: no podrá crear
+							otro dataset con este mismo identificador.
+						</p>
+					</div>
 
 					<div class="flex flex-wrap items-center gap-3 border-t border-border pt-4">
 						<Button variant="destructive">
