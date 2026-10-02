@@ -85,10 +85,11 @@ Fixed by the proposal, in both readings:
 4. Verify: `pnpm test`, `pnpm check`, `pnpm lint`, plus a live measurement of the landing offset.
 5. Native review gate on the promoted work unit; work-unit commit; delete the sheet.
 
-## Open for the author (the sheet answers these, nothing else is asked first)
+## Open for the author
 
-- Reading **A** or **B**.
-- Whether the jump row should carry a visible label («Saltar a:») or just the links.
+- Which of the three blocks enter the section: **parked on purpose** (the author's instruction was to settle the
+  design first and decide that later). Nothing else is open from this round: reading, treatment, destination
+  highlight and label were all decided on 2026-10-01 — see the Decisions table above.
 
 ## Evidence log
 
@@ -102,3 +103,20 @@ Fixed by the proposal, in both readings:
   `node_modules/.pnpm/@biomejs+biome@2.5.0/node_modules/@biomejs/cli-linux-x64/biome check --write` → 1 file
   fixed, re-check exit 0. The pre-commit hook is **not** broken: run as git runs it (`sh .husky/pre-commit`)
   it exits 0, so no `--no-verify` is needed.
+- 2026-10-01: sheet verified live in a browser **before** asking for a decision: hydration works with real pointer
+  input, one link per rendered block (3 / 1 / 0 across the presets, and no empty row when there are no
+  destinations), the sticky bar's real height measured at 68 px, and both jumps landing **14 px below** the chrome.
+- 2026-10-01: **the author decided off the sheet** — reading **A**, treatment **V3** (secondary button), **no**
+  `:target` destination highlight, **no** visible label. The chip shape (V2) was rejected as the pick because those
+  chips **navigate away** while the jumps **stay on the page**: same language, different behaviour. Which blocks enter
+  the section stays parked on purpose.
+- 2026-10-01: promoted to `src/routes/search/+page.svelte` with tests, **test-first** — six tests captured failing
+  before the implementation (`43940ae`). Live on the real page: bar **68 px**, computed `scroll-margin-top` **148 px**
+  with the shrunk header (**164 px** at the top of the page, so the margin follows the token), and both jumps landing
+  **13.6 px below** the sticky chrome. With results, the section, the row and the anchors are absent, and the console is
+  clean.
+- 2026-10-01: **three receipts, all approved, 0 blocking findings**: `review-4b0bfe7ead4517a1` (2 files / 233 lines,
+  2 advisories → `57eeb74`), `review-5c51328ff49347d3` (1 file / 80 lines, 1 advisory → `6cf996e`), and
+  `review-98fbf65d694a6a49` (1 file / 14 lines, 1 advisory **recorded and not chased**, with the reason in the
+  `BACKLOG`). Gates: `pnpm test` **704/704**, `svelte-check` 0 errors / 4 warnings, Biome exit 0.
+- 2026-10-01: the sheet was deleted after promotion (rule 8).
