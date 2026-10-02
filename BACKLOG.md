@@ -1749,6 +1749,22 @@ después del cierre que describe el encabezado de esta sección; medición compl
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **[v0]** `TODO:` **El vacío del buscador: las tres salidas, dentro de la misma sección que el aviso.** Pedido del
+  autor (2026-10-01, al ver la promoción): «podemos poner las opciones que pusimos en el mismo section que el "sin
+  resultados"? algo así como los "saltos" que tienen algunas páginas, creo que es algo con el `#id` en la url, sabes algo?
+  similar a lo que tenemos el hero del home o los botones de "limpiar filtros" de la section ahora mismo».
+  **Estado medido:** hoy las tres salidas viven **debajo** de la tarjeta del aviso, dentro del mismo bloque de código
+  (`{:else if total === 0 && !error}` en `search/+page.svelte`), pero **como tarjetas separadas**: la del aviso, y cada
+  bloque por su cuenta. Lo que pide es **un solo cuerpo visual** —el aviso y las salidas en la misma sección— y **evaluar
+  saltos por `#id`**: como el hero del home, y nótese que el botón «Limpiar búsqueda y filtros» de esa misma sección es un
+  `<button>` que limpia el estado, **no un enlace**.
+  **Es ambiguo y se pregunta ANTES de empezar (regla 9 de `AGENTS.md`)**: no está dicho si «misma sección» significa **una
+  sola tarjeta** con todo adentro, o **anclas** (`#pruebe-con`, `#recientes`, `#organizaciones`) para saltar entre partes
+  desde el aviso; y si es lo primero, **cuál de los tres bloques queda arriba** (hoy el orden es sugerencias → datasets →
+  organizaciones, decidido por el autor el mismo día). Primer paso: preguntar, y después una hoja `/dev` con las dos
+  lecturas para comparar.
+  _Origen: pedido del autor al cerrar la sesión del 2026-10-01._
+
 ## v1 — producto usable en producción
 
 - [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
