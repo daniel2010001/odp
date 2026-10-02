@@ -17,6 +17,33 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-10-01) — handoff del portal: v0 entregado y el vacío del buscador llenado
+
+> **`main` = `c61d4c6` = `origin/main`, 0 sin pushear, árbol limpio.** `698/698` tests · `svelte-check` 0 errores /
+> 4 warnings preexistentes · Biome exit 0 · **un solo worktree** · dos ramas locales (`main` y
+> `wip/pr2-directo-publicacion`), las dos pusheadas.
+>
+> **Entregado en esta sesión, en orden:** la unidad de metadatos (`58c88af`, `beba1a7`; recibo
+> `review-d13fbf017e3991a1` aprobado); la corrección de la premisa de D1 del SDD (`8a9666c`, con ocho punteros);
+> la barrida del `BACKLOG` de v0 (`f2fa5c9`) y el registro del censo con sus tres reglas (`e5a27be`) —**113 → 98
+> pendientes**—; **v0 ENTREGADO** (PR #43, merge `b1900c0`; rama borrada, worktree del token eliminado, `gc` de 561
+> objetos sueltos a 0); el arreglo del wizard (PR #44, merge `7a4d4f7`); y el **vacío del buscador llenado y
+> promovido** (`5886142`): tres bloques —«Pruebe con», «Mientras tanto, lo más reciente», «Explorar por
+> organización»— en el orden que pidió el autor, con llamadas perezosas, más los chips desde el catálogo y la
+> tarjeta del vacío al doble de alto (medido 192 → 384 px). Recibos `review-f6b3cb06831d7e11` y
+> `review-a4119e82b86ac72e`, los dos aprobados, con sus correcciones (`cee3d77`, `ada8941`).
+>
+> **Lo primero de la próxima sesión es preguntar** (regla 9 de `AGENTS.md`) por el pedido con el que se cerró:
+> **poner las tres salidas dentro de la misma sección que el aviso del vacío y evaluar saltos por `#id`** — está
+> anotado abajo, con su cita textual, y tiene **dos lecturas** que hay que desambiguar antes de tocar nada.
+>
+> **Dos lecciones para no repetir:** (1) **la verificación viva encontró lo que los tests no podían** —los chips
+> eran invisibles en el caso real porque **CKAN devuelve `search_facets` vacío con cero resultados** y la fixture
+> fabricaba facetas: *un doble que no copia la forma real no verifica, bendice*—; (2) **la compuerta nativa
+> encontró tres defectos reales que el agente había especificado** (el «Ver más» que no mostraba más, el latch que
+> volvía permanente un fallo transitorio, y el `catch` que no reponía las facetas). **El texto de los hallazgos vive
+> en `v2/review-<lineage>/review-state.json` y lo borra el acuse: leerlo ANTES de acusar.**
+
 ## Estado al cierre (2026-09-29) — entrega de la línea CKAN en `odp-docker`
 
 > **Qué se cerró hoy.** Dos work units nuevas sobre `f4c4ca0`, gateadas **como rango**
