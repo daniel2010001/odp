@@ -107,7 +107,10 @@ describe("Alto del encabezado: una sola fuente", () => {
 			["dashboard/+page.svelte", "la barra de acciones"],
 			["search/+page.svelte", "la barra de resultados"],
 			["dataset/[id]/+page.svelte", "el panel de la ficha del dataset"],
-			["dashboard/datasets/new/+page.svelte", "el panel del asistente"],
+			// El panel pegajoso del asistente vive ahora en el formulario extraído: el ancla lo sigue
+			// hasta su casa nueva, que es el punto de la prueba (si el token se consumiera en un literal,
+			// esto se pone rojo). La página del asistente ya no consume el token, así que sale de la lista.
+			["../lib/components/datasets/DatasetForm.svelte", "el panel del asistente"],
 		] as const;
 
 		for (const [file, description] of consumers) {
@@ -120,6 +123,7 @@ describe("Alto del encabezado: una sola fuente", () => {
 		expect(source("dashboard/+page.svelte")).not.toMatch(/const\s+HEADER_PX\b/);
 		expect(source("dataset/[id]/+page.svelte")).not.toMatch(/lg:top-24\b/);
 		expect(source("dashboard/datasets/new/+page.svelte")).not.toMatch(/lg:top-24\b/);
+		expect(source("../lib/components/datasets/DatasetForm.svelte")).not.toMatch(/lg:top-24\b/);
 	});
 });
 
