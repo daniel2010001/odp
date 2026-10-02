@@ -6,15 +6,50 @@ import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanFacet, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import SearchPage from "./+page.svelte";
 
-beforeAll(() => {
-	// jsdom no implementa `ResizeObserver`, que el `bind:clientHeight` de la barra pegajosa usa para
-	// montar (su alto entra en el margen de los saltos del vacío). El stub no mide: los tests no
-	// dependen de un alto real, sólo de que el binding no tumbe el render.
-	class ResizeObserverStub {
-		observe() {}
-		unobserve() {}
-		disconnect() {}
+/**
+ * jsdom no implementa `ResizeObserver`, que el `bind:clientHeight` de la barra pegajosa usa para
+ * medir (su alto entra en el margen de los saltos del vacío). El stub **no mide layout**: entrega
+ * el alto que el test controla, y eso es justo lo que vuelve significativa la aserción del margen
+ * medido (si no, cualquier constante la pasaría).
+ *
+ * Svelte 5.56.3 (`bind_element_size`) ignora el `entry` del observer y lee `element.clientHeight`
+ * dentro del listener; por eso hay que fijar esa propiedad en el elemento observado antes de
+ * disparar el callback, no inventar un `contentRect`.
+ */
+class ResizeObserverStub {
+	static targets: Element[] = [];
+	static callback: ResizeObserverCallback | null = null;
+
+	constructor(callback: ResizeObserverCallback) {
+		ResizeObserverStub.callback = callback;
 	}
+
+	observe(target: Element) {
+		ResizeObserverStub.targets.push(target);
+	}
+
+	unobserve(target: Element) {
+		ResizeObserverStub.targets = ResizeObserverStub.targets.filter((t) => t !== target);
+	}
+
+	disconnect() {}
+}
+
+/** Simula una medición: fija el alto en el elemento observado y dispara el callback del observer. */
+function medirAltoBarra(alto: number) {
+	for (const target of ResizeObserverStub.targets) {
+		Object.defineProperty(target, "clientHeight", {
+			configurable: true,
+			get: () => alto,
+		});
+	}
+	ResizeObserverStub.callback?.(
+		ResizeObserverStub.targets.map((target) => ({ target }) as ResizeObserverEntry),
+		{} as ResizeObserver,
+	);
+}
+
+beforeAll(() => {
 	globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 });
 
@@ -615,7 +650,15 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 			}),
 		]);
 		renderSearch();
-		await screen.findByRole("heading", { name: "Explorar por organización" });
+		// Los tres bloques salen de dos fuentes independientes: la búsqueda del catálogo (`limit: 3`)
+		// alimenta «Pruebe con» y «lo más reciente», y `listOrganizations` alimenta «Explorar por
+		// organización». Esperar a que aparezca un encabezado no garantiza los otros, así que se espera
+		// a la fila de saltos completa: sus tres enlaces sólo existen cuando los tres bloques están
+		// pintados y no se observa un estado a medio renderizar.
+		const fila = await screen.findByRole("navigation", { name: ROTULO_SALTOS });
+		await waitFor(() => {
+			expect(within(fila).getAllByRole("link")).toHaveLength(3);
+		});
 	}
 
 	it("el aviso del vacío es el nombre accesible de la sección y ahora es un encabezado de nivel 2", async () => {
@@ -701,7 +744,7 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 		expect(screen.queryByRole("navigation", { name: ROTULO_SALTOS })).toBeNull();
 	});
 
-	it("cada bloque alcanzable reserva el margen del chrome pegajoso, con el token y sin pixeles fijos", async () => {
+	it("cada bloque alcanzable reserva el margen del chrome pegajoso, con el token y el alto medido", async () => {
 		await montarVacíoConTodo();
 
 		for (const destino of DESTINOS) {
@@ -711,6 +754,23 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 			// se expresa con el token `--header-h` más el valor medido.
 			expect(style).toContain("calc(var(--header-h)");
 		}
+
+		// Dos medidas distintas tienen que producir dos márgenes distintos. Si el alto medido dejara
+		// de alimentar la interpolación (o se hardcodeara), ambos disparos darían el mismo `style` y
+		// esta aserción fallaría; por eso se usa más de un valor y no un único 0px de jsdom.
+		medirAltoBarra(68);
+		await waitFor(() => {
+			expect(document.getElementById("pruebe-con")?.getAttribute("style")).toContain(
+				"calc(var(--header-h) + 68px + 1rem)",
+			);
+		});
+
+		medirAltoBarra(100);
+		await waitFor(() => {
+			expect(document.getElementById("pruebe-con")?.getAttribute("style")).toContain(
+				"calc(var(--header-h) + 100px + 1rem)",
+			);
+		});
 	});
 
 	it("el salto es un enlace con borde, no el enlace de texto que comparte estilo con «Limpiar»", async () => {
