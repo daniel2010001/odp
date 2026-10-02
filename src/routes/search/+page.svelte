@@ -337,6 +337,26 @@ $effect(() => {
 	void loadEmptyAssist();
 });
 
+// ─── Efecto: re-aplicar el fragmento de un enlace copiado ─────────
+// El navegador resuelve el `#id` del enlace antes de que los bloques perezosos existan y antes de
+// que la barra pegajosa esté medida; si el destino todavía no estaba, el fragmento queda sin
+// aplicar. Se re-aplica **una vez**, cuando el destino existe y el margen es usable (`R3-001` de
+// `review-fda3530895a9b51f`). Depende de `saltos.length` y `altoBarra` para re-correr cuando llegan
+// los bloques o se mide la barra; una vez por fragmento, no pelea con el scroll del navegador
+// cuando el lector pulsa un salto en una página ya pintada.
+let fragmentoAplicado = "";
+$effect(() => {
+	void saltos.length;
+	void altoBarra;
+	if (!routerReady) return;
+	const fragmento = $page.url.hash.replace(/^#/, "");
+	if (!fragmento || fragmento === fragmentoAplicado || altoBarra <= 0) return;
+	const destino = document.getElementById(fragmento);
+	if (!destino) return;
+	fragmentoAplicado = fragmento;
+	destino.scrollIntoView();
+});
+
 // ─── Handlers ─────────────────────────────────────────────────────
 function onSearchSubmit(value: string) {
 	query = value;

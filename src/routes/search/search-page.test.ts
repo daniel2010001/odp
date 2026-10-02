@@ -43,6 +43,13 @@ class ResizeObserverStub {
 	}
 }
 
+/**
+ * jsdom tampoco implementa `Element.prototype.scrollIntoView` (el navegador lo usa para aterrizar
+ * en el `#id` de un enlace copiado). El doble **no mide**: sólo registra el elemento destino, que
+ * es lo que la aserción necesita.
+ */
+const scrollIntoView = vi.fn();
+
 /** Simula una medición: fija el alto en el elemento observado y dispara el callback del observer. */
 function medirAltoBarra(alto: number) {
 	for (const target of ResizeObserverStub.targets) {
@@ -59,6 +66,7 @@ function medirAltoBarra(alto: number) {
 
 beforeAll(() => {
 	globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+	Element.prototype.scrollIntoView = scrollIntoView;
 });
 
 // El stub de `$app/stores` (ver vitest.config.ts) expone `page` como store escribible, pero el
@@ -650,8 +658,8 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 	];
 
 	/** Monta el vacío con los tres bloques ya pintados. */
-	async function montarVacíoConTodo() {
-		setUrl("?q=matricula");
+	async function montarVacíoConTodo(fragmento = "") {
+		setUrl(`?q=matricula${fragmento}`);
 		mocks.search.mockImplementation(responderConTodo);
 		mocks.listOrganizations.mockResolvedValue([
 			makeOrg({
@@ -783,6 +791,30 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 				"calc(var(--header-h) + 100px + 1rem)",
 			);
 		});
+	});
+
+	it("re-aplica el fragmento de un enlace copiado cuando el destino y el margen ya existen", async () => {
+		// El navegador resuelve el `#organizaciones` del enlace copiado antes de que los bloques
+		// perezosos existan; la página tiene que re-aplicarlo (`R3-001` de `review-fda3530895a9b51f`).
+		await montarVacíoConTodo("#organizaciones");
+		const destino = document.getElementById("organizaciones");
+		// El margen sólo es usable con la barra pegajosa medida; hasta entonces el efecto se detiene.
+		medirAltoBarra(68);
+
+		await waitFor(() => {
+			expect(scrollIntoView.mock.contexts).toContain(destino);
+		});
+	});
+
+	it("sin fragmento en la URL no desplaza por su cuenta", async () => {
+		await montarVacíoConTodo();
+		medirAltoBarra(68);
+
+		// El efecto ya corrió (bloques y barra listos); que no haya desplazado es el contrato.
+		await waitFor(() => {
+			expect(document.getElementById("organizaciones")).not.toBeNull();
+		});
+		expect(scrollIntoView).not.toHaveBeenCalled();
 	});
 
 	it("el salto es un enlace con borde, no el enlace de texto que comparte estilo con «Limpiar»", async () => {
