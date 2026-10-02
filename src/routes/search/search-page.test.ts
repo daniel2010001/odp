@@ -1,10 +1,22 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { afterNavigate } from "$app/navigation";
 import { page } from "$app/stores";
 import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanFacet, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import SearchPage from "./+page.svelte";
+
+beforeAll(() => {
+	// jsdom no implementa `ResizeObserver`, que el `bind:clientHeight` de la barra pegajosa usa para
+	// montar (su alto entra en el margen de los saltos del vacío). El stub no mide: los tests no
+	// dependen de un alto real, sólo de que el binding no tumbe el render.
+	class ResizeObserverStub {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	}
+	globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+});
 
 // El stub de `$app/stores` (ver vitest.config.ts) expone `page` como store escribible, pero el
 // tipo real de SvelteKit es de sólo lectura: se fija con un cast explícito limitado al test.
@@ -553,5 +565,166 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		expect(screen.queryByRole("heading", { name: "Mientras tanto, lo más reciente" })).toBeNull();
 		expect(screen.queryByRole("heading", { name: "Explorar por organización" })).toBeNull();
 		expect(screen.getByText("Sin resultados")).toBeTruthy();
+	});
+});
+
+describe("Página de búsqueda — el vacío como una sección con saltos", () => {
+	/**
+	 * Los tres bloques encendidos: la búsqueda del catálogo (`limit: 3`) trae los datasets recientes
+	 * y las facetas que alimentan los chips; las organizaciones responden con un dato propio. Con los
+	 * tres bloques condicionales presentes, los tres saltos deben existir.
+	 */
+	function responderConTodo(params: { limit?: number } | undefined) {
+		if (params?.limit === 3) {
+			return Promise.resolve({
+				count: 3,
+				results: [
+					makeDataset({ id: "pkg-a", title: "Censo 2026" }),
+					makeDataset({ id: "pkg-b", title: "Becas 2026" }),
+					makeDataset({ id: "pkg-c", title: "Presupuesto 2026" }),
+				],
+				search_facets: {
+					res_format: makeFacet({
+						title: "Formato",
+						items: [{ name: "CSV", display_name: "CSV", count: 9 }],
+					}),
+				},
+			});
+		}
+		return Promise.resolve({ count: 0, results: [], search_facets: {} });
+	}
+
+	/** El nombre accesible de la fila de saltos, y los destinos con la etiqueta visible de su bloque. */
+	const ROTULO_SALTOS = "Otras formas de encontrar datos";
+	const DESTINOS = [
+		{ id: "pruebe-con", label: "Pruebe con" },
+		{ id: "recientes", label: "Mientras tanto, lo más reciente" },
+		{ id: "organizaciones", label: "Explorar por organización" },
+	];
+
+	/** Monta el vacío con los tres bloques ya pintados. */
+	async function montarVacíoConTodo() {
+		setUrl("?q=matricula");
+		mocks.search.mockImplementation(responderConTodo);
+		mocks.listOrganizations.mockResolvedValue([
+			makeOrg({
+				id: "org-a",
+				name: "fcyt",
+				title: "Facultad de Ciencias y Tecnología",
+				package_count: 50,
+			}),
+		]);
+		renderSearch();
+		await screen.findByRole("heading", { name: "Explorar por organización" });
+	}
+
+	it("el aviso del vacío es el nombre accesible de la sección y ahora es un encabezado de nivel 2", async () => {
+		setUrl("?q=matricula");
+
+		renderSearch();
+
+		// El `<p>` promovido: el copy y la apariencia no cambian, el nivel semántico sí.
+		const titulo = await screen.findByRole("heading", { level: 2, name: "Sin resultados" });
+		expect(titulo.id).toBe("sin-resultados-titulo");
+		const seccion = screen.getByRole("region", { name: "Sin resultados" });
+		expect(seccion.tagName).toBe("SECTION");
+		expect(seccion.id).toBe("sin-resultados");
+	});
+
+	it("con los tres bloques, la fila ofrece un enlace por bloque y ninguno apunta a un destino ausente", async () => {
+		await montarVacíoConTodo();
+
+		const fila = screen.getByRole("navigation", { name: ROTULO_SALTOS });
+		const enlaces = within(fila).getAllByRole("link");
+
+		expect(enlaces).toHaveLength(3);
+		expect(enlaces.map((enlace) => enlace.getAttribute("href"))).toEqual(
+			DESTINOS.map((destino) => `#${destino.id}`),
+		);
+		// La etiqueta visible es el mismo texto del `<h3>` del bloque destino.
+		expect(enlaces.map((enlace) => enlace.textContent?.trim())).toEqual(
+			DESTINOS.map((destino) => destino.label),
+		);
+		// La regla de oro: cada `href` resuelve a un elemento que existe. Un salto muerto es un
+		// affordance muerto, igual que el control deshabilitado de la paginación.
+		for (const destino of DESTINOS) {
+			expect(document.getElementById(destino.id)).not.toBeNull();
+		}
+	});
+
+	it("con un solo bloque visible ofrece un solo salto, y apunta al bloque que existe", async () => {
+		vi.stubEnv("DEV", false);
+		setUrl("?q=matricula");
+		mocks.search.mockImplementation((params: { limit?: number } | undefined) => {
+			// «lo más reciente» falla —y sus facetas con él, así que tampoco hay chips—: sólo las
+			// organizaciones responden y son el único destino posible.
+			if (params?.limit === 3) return Promise.reject(new Error("sin red"));
+			return Promise.resolve({ count: 0, results: [], search_facets: {} });
+		});
+		mocks.listOrganizations.mockResolvedValue([makeOrg({ id: "org-sola", name: "fcyt" })]);
+
+		renderSearch();
+
+		await screen.findByRole("heading", { name: "Explorar por organización" });
+
+		const fila = screen.getByRole("navigation", { name: ROTULO_SALTOS });
+		const enlaces = within(fila).getAllByRole("link");
+
+		expect(enlaces).toHaveLength(1);
+		expect(enlaces[0].getAttribute("href")).toBe("#organizaciones");
+		expect(document.getElementById("organizaciones")).not.toBeNull();
+		// Los bloques ausentes no reciben salto.
+		expect(within(fila).queryByRole("link", { name: "Pruebe con" })).toBeNull();
+		expect(
+			within(fila).queryByRole("link", { name: "Mientras tanto, lo más reciente" }),
+		).toBeNull();
+	});
+
+	it("sin ningún bloque no hay destinos, y la fila de saltos no se dibuja", async () => {
+		vi.stubEnv("DEV", false);
+		setUrl("?q=matricula");
+		mocks.search.mockImplementation((params: { limit?: number } | undefined) => {
+			if (params?.limit === 3) return Promise.reject(new Error("sin red"));
+			return Promise.resolve({ count: 0, results: [], search_facets: {} });
+		});
+		mocks.listOrganizations.mockRejectedValue(new Error("sin red"));
+
+		renderSearch();
+
+		await screen.findByText("Sin resultados");
+		await waitFor(() => {
+			expect(mocks.listOrganizations).toHaveBeenCalledTimes(1);
+		});
+
+		// La sección sigue existiendo con su aviso; lo que no existe es una fila de saltos vacía.
+		expect(screen.getByRole("region", { name: "Sin resultados" })).toBeTruthy();
+		expect(screen.queryByRole("navigation", { name: ROTULO_SALTOS })).toBeNull();
+	});
+
+	it("cada bloque alcanzable reserva el margen del chrome pegajoso, con el token y sin pixeles fijos", async () => {
+		await montarVacíoConTodo();
+
+		for (const destino of DESTINOS) {
+			const style = document.getElementById(destino.id)?.getAttribute("style") ?? "";
+			expect(style).toContain("scroll-margin-top");
+			// El alto de la barra se mide (`bind:clientHeight`), no se escribe a mano: el margen
+			// se expresa con el token `--header-h` más el valor medido.
+			expect(style).toContain("calc(var(--header-h)");
+		}
+	});
+
+	it("el salto es un enlace con borde, no el enlace de texto que comparte estilo con «Limpiar»", async () => {
+		// Codifica la decisión del autor del 2026-10-01 (lectura A, variante V3 «botón secundario»):
+		// el enlace de texto compartía color y ausencia de subrayado con «Limpiar búsqueda y filtros»,
+		// así que dos acciones distintas se leían igual. No lo «limpie» de vuelta al enlace de texto.
+		await montarVacíoConTodo();
+
+		const fila = screen.getByRole("navigation", { name: ROTULO_SALTOS });
+		const enlace = within(fila).getByRole("link", { name: "Pruebe con" });
+
+		expect(enlace.tagName).toBe("A");
+		expect(enlace.className).toContain("border");
+		expect(enlace.className).toContain("rounded-lg");
+		expect(enlace.className).not.toContain("hover:underline");
 	});
 });
