@@ -1776,6 +1776,21 @@ después del cierre que describe el encabezado de esta sección; medición compl
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **[v0]** `TODO:` **El encabezado dice «sesión iniciada» con una sesión muerta: la sonda corre sólo donde una pantalla la pide.**
+  Reportado por el autor (2026-10-02): puede seguir navegando la plataforma mientras el encabezado muestra su identidad, y el aviso de
+  sesión expirada aparece **recién cuando intenta algo del usuario** (el dashboard o un privado).
+  **Medido en el código:** la sonda existe y está bien diseñada —`src/lib/api/session.ts`: el 404 de `user_show {}` corroborado por
+  `status_show`, y `inconclusive` que **no** expulsa a nadie porque un hipo de CKAN no es una sesión muerta—, pero **sólo la llama el
+  dashboard** (`src/routes/dashboard/+page.svelte`, `iniciarPanel()`, que además no pinta identidad hasta que resuelve:
+  `sessionNotDead`). El encabezado (`src/lib/components/auth/UserMenu.svelte`) pinta `$auth.user` del almacén **sin comprobar nada**, así
+  que la identidad sobrevive a la muerte del token.
+  **Propuesta (decisión del autor):** una **sonda única a nivel de app** en el layout raíz —al montar si hay token guardado, y al
+  recuperar foco/visibilidad de la pestaña—; ante `dead`, limpiar la sesión y **reflejarlo en el encabezado sin expulsar de una página
+  pública** (navegar al login desde una página pública sería echar al usuario de lo que está leyendo); en páginas del usuario, mantener
+  el comportamiento actual (`endInvalidSession` + `expired=1`). `inconclusive` no toca nada.
+  **Costo:** una petición por carga/foco (`user_show {}`), y `status_show` sólo cuando el 404 necesita corroboración.
+  _Origen: reporte del autor el 2026-10-02. **No es pulido: es honestidad** —el encabezado miente hoy—._
+
 ## v1 — producto usable en producción
 
 - [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
