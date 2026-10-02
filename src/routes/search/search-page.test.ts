@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { afterNavigate } from "$app/navigation";
+import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanFacet, CkanOrganization, CkanPackage } from "$lib/types/ckan";
@@ -815,6 +815,36 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 			expect(document.getElementById("organizaciones")).not.toBeNull();
 		});
 		expect(scrollIntoView).not.toHaveBeenCalled();
+	});
+
+	it("al sincronizar la URL conserva el fragmento del enlace copiado", async () => {
+		// `syncUrl` rearma la URL desde el estado de los filtros; si no re-adjunta el hash, el
+		// enlace copiado pierde el ancla aunque el navegador haya aterrizado en ella.
+		setUrl("?q=matricula#organizaciones");
+
+		renderSearch();
+
+		await waitFor(() => {
+			expect(replaceState).toHaveBeenCalled();
+		});
+		// URL exacta: un `toContain` también lo satisfaría un hash viejo en `$page.url` que el
+		// router nunca recibió, que es justo el accidente que la URL conservada evita.
+		expect(vi.mocked(replaceState).mock.calls.at(-1)?.[0]).toBe(
+			"/search?q=matricula#organizaciones",
+		);
+	});
+
+	it("sin fragmento, la URL sincronizada no arrastra un #", async () => {
+		setUrl("?q=matricula");
+
+		renderSearch();
+
+		await waitFor(() => {
+			expect(replaceState).toHaveBeenCalled();
+		});
+		const url = vi.mocked(replaceState).mock.calls.at(-1)?.[0] as string;
+		expect(url).toBe("/search?q=matricula");
+		expect(url.endsWith("#")).toBe(false);
 	});
 
 	it("el salto es un enlace con borde, no el enlace de texto que comparte estilo con «Limpiar»", async () => {

@@ -74,7 +74,12 @@ function syncUrl() {
 	if (currentPage > 1) params.set("page", String(currentPage));
 	if (sortBy !== "metadata_modified desc") params.set("sort", sortBy);
 
-	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}`;
+	// Se preserva el fragmento del enlace copiado: sin él, `replaceState` lo borra de la
+	// barra de direcciones y `$page.url.hash` queda desincronizado (un valor viejo que ya
+	// no corresponde a la URL real). Se lee con `untrack`, igual que `$page.state`, para
+	// que `$page.url` no sea dependencia reactiva de los $effect que llaman syncUrl.
+	const hash = untrack(() => $page.url.hash);
+	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}${hash}`;
 	// Segundo argumento = page.state (shallow routing), NO la URL: un objeto
 	// URL no es serializable y replaceState lanza "could not be cloned".
 	// Se lee con `untrack` para que $page.state no sea dependencia reactiva
