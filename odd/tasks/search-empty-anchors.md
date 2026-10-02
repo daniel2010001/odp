@@ -142,3 +142,13 @@ Fixed by the proposal, in both readings:
   anchor, and with no fragment there is no scroll and no trailing `#`. Receipt `review-7135c0450f94bdce` (approved, 0
   blocking findings, 1 advisory **recorded and not chased**: the new test could assert a non-final URL, and its failure mode
   is a loud flake rather than a false green — one line of `waitFor` on the exact URL closes it).
+
+- 2026-10-02: closed the advisory `R3-002` of `review-2fd5289fb166646d` in its own unit
+  (`test/deep-link-real-order`, `5049040`, **test-only**: the product file's sha is identical to main's). The new test
+  covers the real order — the bar measured while the lazy blocks are still pending — and the parent falsified it instead of
+  assuming it: deleting the single `void saltos.length;` read makes it fail with
+  `expected [] to include <div id="organizaciones">`, and restoring the file returns it to main's byte-identical hash
+  `5dca748f…`. Receipt `review-88563f3095835790` (approved, 0 blocking, 1 advisory on the test itself, recorded as a flake
+  family rather than a false green).
+- 2026-10-02: **the author decided the `R3-001` edge**, for when that advisory is addressed: keep the anchor **only while its
+  target exists**. Recorded in the BACKLOG, not implemented yet.
