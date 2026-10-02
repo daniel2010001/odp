@@ -36,22 +36,50 @@ creation run before the slice closes).
 must be told, and the slice's commit body says which lines moved and how to check it
 (`git diff -w`, and the tests that must stay green without edits).
 
-## 2. The payload: patch, never replace
+## 2. The payload: partial, and nested values are never replaced
 
-Measured in CKAN's source: `package_patch` merges the top level and leaves everything else alone,
+Measured in CKAN's source: `package_patch` merges **the top level only** and leaves everything else alone,
 while `package_update` *"deletes all parameters not explicitly provided"*. A portal that saves an edit
 with the same full payload it uses for creation would destroy anything the portal does not know about
 (extras written by CKAN plugins, DCAT extras, and anything added from CKAN's own UI).
 
-Design consequences, all testable:
+**Correction found by the `/dev/dataset-edit` sheet, and it invalidates the first version of this
+section.** "Patch merges the top level" is not enough, because **`extras` and `resources` *are* top-level
+keys, and they are lists**: a patch that carries `extras` **replaces the whole list**. That matters here
+because the portal's own `summary` lives in `extras` (RF-40, `SUMMARY_EXTRA_KEY`), so editing the summary
+with a naive patch would drop every extra the portal does not manage (`frequency`, `language`, `spatial`,
+…). The first draft of this design promised those fields would survive; the promise was wrong.
 
-- `src/lib/utils/dataset-payload.ts` grows a **mode-aware** shape: `buildPackagePayload(input, "create")`
-  returns the full dict (as today); the `"edit"` path returns **only the fields the form owns** and
-  hands it to `datasetApi.patch` (a new wrapper on `package_patch`).
-- A test asserts the edit payload **does not contain** keys the form does not own, and that the create
-  payload is byte-for-byte what it is today (the two shapes are deliberately different).
-- **Resources never travel inside a package patch.** Their list would be replaced wholesale. Each
-  resource is written with `resource_patch` (metadata) or `resource_update` (file), one at a time.
+The corrected rule:
+
+- **Top-level scalars** (title, notes, url, maintainer, license, tags): `package_patch` is correct and
+  cheap. It leaves unlisted keys alone.
+- **Anything inside a list — `extras` today, `resources` always — goes through `package_revise`**, which
+  CKAN recommends for exactly this (*"To partially update resources or other metadata not at the top level
+  of a package use `package_revise`"*). It updates nested values with flattened keys
+  (`update__extras__<index>__value`, `update__resources__<id>__description`, `…__extend` to append), so the
+  fields it is not asked to touch are not touched **by construction** instead of by client-side merging.
+- **`package_revise` also gives compare-and-set:** its `match` argument aborts with a `ValidationError`
+  unless the current values match what the caller expected (*"all values provided must match the current
+  dataset values or a ValidationError will be raised"*). That is the honest answer to the two-tabs race
+  that made "read, merge, write" unsafe — and it is an **open decision for the owner** (below).
+- `src/lib/utils/dataset-payload.ts` grows a **mode-aware** shape: `"create"` keeps the full payload it
+  sends today, untouched; the edit path produces only the fields the form owns, routed to the action that
+  matches their shape: `patch` for scalars, `revise` for anything nested.
+- Tests: the create payload is byte-for-byte what it is today; the edit payload contains no key the form
+  does not own; and **an unmanaged extra survives an edit of the summary** (the scenario the sheet forced
+  into the spec).
+- **Resources never travel inside a package-level write.** Their list would be replaced wholesale. Each
+  resource is written individually (`resource_patch`, `resource_update`, or `package_revise` when several
+  must change together).
+
+### Open decision this correction creates
+
+When the dataset changed between loading the form and saving it, should the portal **abort and tell the
+user** (`match` semantics — nothing is lost, one retry) or **last write wins** (no extra work, and a
+concurrent edit can be silently overwritten)? `match` costs almost nothing here and turns a silent loss
+into a visible conflict; that is the recommendation, and it is the owner's call because it is a user-facing
+behaviour.
 
 ## 3. Who sees the affordance: fail closed, and the portal does not guess
 

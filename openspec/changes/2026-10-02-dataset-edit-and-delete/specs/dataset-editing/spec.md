@@ -61,7 +61,9 @@ dataset.
 
 An edit MUST send only the fields the form owns, using CKAN's partial update. The portal MUST NOT send a
 full dataset payload for an edit, because CKAN's non-partial update removes every field that is not
-present in it — including fields the portal does not know about.
+present in it — including fields the portal does not know about. Fields that live inside a **list**
+(`extras`, `resources`) MUST NOT be written by replacing that list: they MUST be written with an action
+that updates the nested value and leaves the rest of the list alone.
 
 #### Scenario: Fields the portal does not own survive an edit
 
@@ -69,6 +71,14 @@ present in it — including fields the portal does not know about.
 - WHEN the caller edits the title through the portal
 - THEN the edit is sent as a partial update containing only the form's fields
 - AND the unmanaged extra is still present afterwards
+
+#### Scenario: Editing a field that lives inside extras
+
+- GIVEN a dataset with an unmanaged extra (for example `frequency`) and a portal-managed `summary` extra
+- WHEN the caller edits the summary through the portal
+- THEN the write updates the `summary` entry without replacing the extras list
+- AND the unmanaged `frequency` extra is still present afterwards
+- AND no other extra changed
 
 #### Scenario: Creation keeps its full payload
 
