@@ -130,3 +130,15 @@ Fixed by the proposal, in both readings:
 - 2026-10-01: **why the unit gates and the live check missed it**: the defect lives in the composition (lazy load +
   measured margin + fragment on first load), not in any single unit — and the live verification measured the **click** on
   an already-painted page, never the **load** with a fragment. Probing the path that already works is not verification.
+- 2026-10-01: **the deep-link measurement found a second defect, and it made the first fix honest.** The landing was fixed,
+  but the fragment was being stripped from the address bar about 1.4 s after load: `syncUrl()` rebuilt the URL and called
+  `replaceState` without the hash. Worse, the fix landed only because SvelteKit's `replaceState` never updates `page.url`,
+  so `$page.url.hash` stayed stale at `#organizaciones` while the real location had lost it — the effect passed its gate on
+  a value that no longer matched the address bar. Fixed in `8edced4`: `syncUrl()` now preserves the fragment (reading
+  `$page.url.hash` with `untrack`, as `$page.state` already does), so the address bar and the app's URL model agree.
+  Test-first with a real RED, and the assertion is on the **exact URL** — a `toContain` would have been satisfied by the
+  stale hash, which is the accident being removed. Final live measurement: the fragment survives as a single value for
+  15.8 s (`#organizaciones`) and 14.9 s (`#pruebe-con`), the landing stays at **+13.625 px**, changing the sort keeps the
+  anchor, and with no fragment there is no scroll and no trailing `#`. Receipt `review-7135c0450f94bdce` (approved, 0
+  blocking findings, 1 advisory **recorded and not chased**: the new test could assert a non-final URL, and its failure mode
+  is a loud flake rather than a false green — one line of `waitFor` on the exact URL closes it).
