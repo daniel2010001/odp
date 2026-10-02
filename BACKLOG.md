@@ -2238,8 +2238,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
-- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01) — CINCO compuertas aprobadas,
-  las cinco con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
+- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01) — SEIS compuertas aprobadas,
+  las seis con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
   `<h2>` y `aria-labelledby`) y los tres bloques quedaron con `id` y un margen de desplazamiento que sale del token
   `--header-h` **más el alto medido** de la barra pegajosa; dentro de la tarjeta del aviso va la fila de saltos, con **un
   enlace por bloque renderizado** (nunca a un bloque ausente) y sin rótulo visible, con `aria-label` para lectores de pantalla.
@@ -2290,6 +2290,18 @@ después del cierre que describe el encabezado de esta sección; medición compl
     no un verde falso —y es esa la razón por la que no se persigue, a diferencia de los dos avisos de
     `review-4b0bfe7ead4517a1`, donde el test **no podía fallar** por el motivo que decía cubrir—; el arreglo es de una línea:
     esperar la URL exacta con `waitFor`.
+  - `review-2fd5289fb166646d` — **`approved`**, tier medium, **5 archivos / 631 líneas**: el rango completo de la rama, corrido
+    a pedido del autor para adjuntar al PR. **0 bloqueantes, 2 avisos WARNING, los dos registrados y con recomendación de
+    arreglarlos:**
+    - `R3-001` (`+page.svelte:81-82`, determinista) — `syncUrl` re-adjunta el hash **incondicionalmente**: un cambio de filtro
+      que sale del vacío deja en la URL un ancla **muerta** (`#organizaciones` mientras se ven resultados) y el efecto de
+      re-aplicación podría desplazar de más cuando el vacío vuelva. **Arreglo sugerido**: conservar el hash sólo cuando su
+      destino está renderizado, o descartar el ancla al salir del vacío. Es la contrapartida de la decisión de conservarlo;
+      el autor puede preferir la otra punta del compromiso.
+    - `R3-002` (`search-page.test.ts:799-802`, determinista) — el test del enlace profundo monta el vacío **completo** antes de
+      medir la barra, así que sólo prueba el orden «el destino ya existe → se mide la barra» y **una implementación sin la
+      dependencia de `saltos.length` pasaría igual**. Es la familia del **verde falso**, no del flaky: **recomiendo arreglarlo
+      primero**, y es de minutos.
   - **La lección, y es la que hay que llevarse:** este defecto vive en la **composición** (carga perezosa + margen medido +
     fragmento en la carga inicial), no en ninguna unidad, así que **ninguna revisión por unidad podía verlo** — y mi
     verificación viva tampoco: medí el **clic** con la página ya pintada, nunca la **carga** con `#`. Es decir: probé el
