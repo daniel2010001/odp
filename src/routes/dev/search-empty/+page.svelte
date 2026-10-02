@@ -2,8 +2,11 @@
 	Hoja de revisión temporal — `/dev/search-empty` (regla 8 de `AGENTS.md`).
 
 	Qué se decide acá: el vacío del buscador como **una sola sección con saltos `#id`**. El expediente
-	`odd/tasks/search-empty-anchors.md` fija el resto; la hoja sólo tiene que responder dónde vive la
-	fila de saltos y si lleva rótulo visible.
+	`odd/tasks/search-empty-anchors.md` fija el resto; la hoja tiene que responder dónde vive la fila de
+	saltos, si lleva rótulo visible y **cómo se trata cada salto**. Ese último punto viene de la revisión
+	del autor: dentro de la tarjeta del aviso, «Limpiar búsqueda y filtros» ya es un enlace de texto, así
+	que una fila de saltos con el mismo tratamiento no se lee como destino. Las cinco variantes (V0–V4)
+	se aplican a la fila entera para compararlas en contexto.
 
 	Tres estados, uno por vez (los `id` no se pueden duplicar en el documento):
 
@@ -125,6 +128,72 @@ const hayBloques = $derived(bloques.sugerencias || bloques.recientes || bloques.
 
 // La pregunta abierta del expediente: ¿la fila lleva un rótulo visible o sólo los enlaces?
 let conRotulo = $state(true);
+
+// ─── Tratamiento de los saltos ─────────────────────────────────────
+// El autor rechazó el enlace de texto (V0): en la misma tarjeta, «Limpiar búsqueda y filtros» ya es
+// `text-primary` + `hover:underline`, así que los saltos compiten con esa acción y no se leen como
+// destinos. Las variantes suben el peso visual de la fila entera; el anillo de foco es común.
+type Tratamiento = "v0" | "v1" | "v2" | "v3" | "v4";
+
+const FOCO_SALTO =
+	"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+const TRATAMIENTOS: { id: Tratamiento; label: string; clase: string; intencion: string }[] = [
+	{
+		id: "v0",
+		label: "V0 — el actual",
+		clase:
+			"inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline",
+		intencion:
+			"Punto de comparación: el enlace de texto que ya usa «Limpiar búsqueda y filtros» en la misma tarjeta, sin señal de destino.",
+	},
+	{
+		id: "v1",
+		label: "V1 — subrayado siempre",
+		clase:
+			"inline-flex items-center gap-1 text-sm font-medium text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary",
+		intencion:
+			"Sigue siendo texto, pero el subrayado permanente lo declara destino sin cambiar su peso visual.",
+	},
+	{
+		id: "v2",
+		label: "V2 — chip con borde",
+		clase:
+			"inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-accent",
+		intencion:
+			"Chip con borde, el lenguaje de «Pruebe con»: se despega del texto corrido sin leerse como una acción.",
+	},
+	{
+		id: "v3",
+		label: "V3 — botón secundario",
+		clase:
+			"inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent",
+		intencion:
+			"Botón secundario, el lenguaje de los botones del portal: el destino se lee como control, con más peso que el texto.",
+	},
+	{
+		id: "v4",
+		label: "V4 — píldora primaria",
+		clase:
+			"inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90",
+		intencion:
+			"Píldora primaria: lee los destinos como acciones principales y pasa a competir de frente con «Limpiar búsqueda y filtros».",
+	},
+];
+
+let tratamiento = $state<Tratamiento>("v0");
+const tratamientoActivo = $derived(
+	TRATAMIENTOS.find((t) => t.id === tratamiento) ?? TRATAMIENTOS[0],
+);
+
+// Un salto que aterriza en silencio deja al lector sin saber dónde llegó. `:target` marca el bloque
+// activo sólo si el navegador lo soporta (Tailwind 4 emite `&:target`); el interruptor lo muestra.
+let resaltarDestino = $state(false);
+const resalteDestino = $derived(
+	resaltarDestino
+		? "target:rounded-xl target:bg-accent/30 target:ring-1 target:ring-primary/30"
+		: null,
+);
 
 // Sólo los saltos de bloques que existen. El texto visible es el mismo `<h3>` del bloque destino.
 const saltos = $derived(
@@ -272,8 +341,9 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 		<p class="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
 			El aviso y las tres salidas dentro de <strong>una misma sección</strong>, con enlaces que saltan
 			a cada bloque. El encabezado del portal y la barra de resultados que se pega debajo son reales;
-			el vacío y la barra son copias del código de la página, con las mismas clases. Elija una lectura
-			y combine los bloques: el instrumento de la esquina informa dónde aterriza cada salto.
+			el vacío y la barra son copias del código de la página, con las mismas clases. Elija una lectura,
+			un tratamiento de salto y los bloques: el instrumento de la esquina informa dónde aterriza cada
+			salto.
 		</p>
 	</header>
 
@@ -312,6 +382,32 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 			{/each}
 		</div>
 
+		<div class="space-y-2">
+			<div
+				role="group"
+				aria-label="Tratamiento de los saltos"
+				class="flex flex-wrap items-center gap-2"
+			>
+				<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+					Saltos
+				</span>
+				{#each TRATAMIENTOS as opcion (opcion.id)}
+					<button
+						type="button"
+						aria-pressed={tratamiento === opcion.id}
+						onclick={() => (tratamiento = opcion.id)}
+						class={cn(botonControl, tratamiento === opcion.id ? botonActivo : botonInactivo)}
+					>
+						{opcion.label}
+					</button>
+				{/each}
+			</div>
+			<p class="text-xs leading-relaxed text-muted-foreground">
+				<span class="font-medium text-foreground">Intención:</span>
+				{tratamientoActivo.intencion}
+			</p>
+		</div>
+
 		<div class="flex flex-wrap items-center gap-3">
 			<button
 				type="button"
@@ -326,6 +422,20 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 			>
 				{conRotulo ? "✓" : "+"}
 				Rótulo «Saltar a:»
+			</button>
+			<button
+				type="button"
+				aria-pressed={resaltarDestino}
+				onclick={() => (resaltarDestino = !resaltarDestino)}
+				class={cn(
+					"inline-flex h-8 items-center gap-1.5 rounded-md border border-dashed px-3 text-xs font-medium transition-colors",
+					resaltarDestino
+						? "border-primary bg-primary/10 text-primary"
+						: "border-border bg-background text-muted-foreground hover:bg-accent",
+				)}
+			>
+				{resaltarDestino ? "✓" : "+"}
+				Resaltar el destino al llegar (<code class="font-mono">:target</code>)
 			</button>
 			<span class="text-xs text-muted-foreground">
 				{#if lectura === "hoy"}
@@ -359,10 +469,7 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 			</span>
 		{/if}
 		{#each saltos as salto (salto.id)}
-			<a
-				href={`#${salto.id}`}
-				class="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-			>
+			<a href={`#${salto.id}`} class={cn(tratamientoActivo.clase, FOCO_SALTO)}>
 				<ArrowDown class="size-4 shrink-0" aria-hidden="true" />
 				{salto.label}
 			</a>
@@ -397,7 +504,7 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 	<div
 		id={anclado ? "pruebe-con" : undefined}
 		style={anclado ? estiloDestino : undefined}
-		class="space-y-3"
+		class={cn("space-y-3", resalteDestino)}
 	>
 		<h3 class="font-heading text-lg font-semibold text-primary">Pruebe con</h3>
 		<div class="flex flex-wrap gap-2">
@@ -417,7 +524,7 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 	<div
 		id={anclado ? "recientes" : undefined}
 		style={anclado ? estiloDestino : undefined}
-		class="space-y-4"
+		class={cn("space-y-4", resalteDestino)}
 	>
 		<h3 class="font-heading text-lg font-semibold text-primary">
 			Mientras tanto, lo más reciente
@@ -432,7 +539,7 @@ const botonInactivo = "border-input bg-background text-foreground hover:bg-accen
 	<div
 		id={anclado ? "organizaciones" : undefined}
 		style={anclado ? estiloDestino : undefined}
-		class="space-y-4"
+		class={cn("space-y-4", resalteDestino)}
 	>
 		<h3 class="font-heading text-lg font-semibold text-primary">Explorar por organización</h3>
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

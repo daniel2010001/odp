@@ -15,6 +15,23 @@ applied: the author was asked before anything was touched.
 own header is the notice, with links that jump to each block. Not a single card with everything inside
 (that was the other reading), and not a bare visual grouping.
 
+## Decisions (author, 2026-10-01 — read off the sheet, not inferred)
+
+| Question | Decision |
+|---|---|
+| Reading | **A** — the jumps live inside the notice card, under the message and above «Limpiar búsqueda y filtros» |
+| Treatment of the jump links | **V3 — secondary button** (`h-9 rounded-lg border border-border bg-card px-3 text-sm font-semibold`, hover `bg-accent`) |
+| Destination highlight (`:target`) | **None** — the jump only scrolls; no background, no ring, no marked text |
+| Visible label on the row | **None** — destinations only, no «Saltar a:» |
+| Which blocks enter | **Parked** — the three exits stay as they are; the author will decide later |
+
+Why V3 and not the text link: measured in the browser, the old link shared **both** `color`
+(`oklch(0.52 0.085 257)`) and `text-decoration-line` (`none`) with the «Limpiar búsqueda y filtros»
+button — the same visual object for two different actions. V3 separates them on colour, background,
+border and height, and reads the destination as a control — which is what a jump to a section of the
+same page is. The chip (V2) was rejected as the pick because its shape is the «Pruebe con» chip shape,
+and those chips **navigate away** while the jumps **stay on the page**: same language, different behaviour.
+
 ## Measured basis (2026-10-01, read-only, current tree at `6f95775`)
 
 | Fact | Evidence |
@@ -76,3 +93,12 @@ Fixed by the proposal, in both readings:
 ## Evidence log
 
 - 2026-10-01: feature opened; measured basis re-verified against `6f95775`; branch created.
+- 2026-10-01: sheet built (`src/routes/dev/search-empty/{+page.ts,+page.svelte}`, 625 lines) by a delegated
+  writer. Parent re-verified the tree: only those two files are new, nothing else touched.
+- 2026-10-01: **the writer's lint gate crashed and the file was never formatted.** `pnpm exec biome`
+  terminates abnormally (exit 254) as a direct child of the session shell — with `env`, with `-u` of a
+  variable that does not exist, and with `env -i`, the same command exits 0, so the trigger is the
+  invocation shape, not the environment. Fixed with the native binary:
+  `node_modules/.pnpm/@biomejs+biome@2.5.0/node_modules/@biomejs/cli-linux-x64/biome check --write` → 1 file
+  fixed, re-check exit 0. The pre-commit hook is **not** broken: run as git runs it (`sh .husky/pre-commit`)
+  it exits 0, so no `--no-verify` is needed.
