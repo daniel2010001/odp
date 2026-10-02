@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ChevronDown, SlidersHorizontal, X } from "@lucide/svelte";
+import { ArrowDown, ChevronDown, SlidersHorizontal, X } from "@lucide/svelte";
 import { tick, untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
@@ -41,6 +41,10 @@ let catalogTotalLoading = $state(true);
 // ─── UI: colapso de filtros en móvil ──────────────────────────────
 let mobileFiltersOpen = $state(false);
 
+// Alto real de la barra pegajosa de resultados, medido con `bind:clientHeight`. Entra en el
+// `scroll-margin-top` de los destinos del vacío: hardcodearlo mentiría en cuanto cambie el ancho.
+let altoBarra = $state(0);
+
 // Referencia al panel de filtros. Sirve para devolver el foco a un chip restante
 // cuando el chip que tenía el foco desaparece del DOM al quitar su filtro.
 let panelEl = $state<HTMLElement>();
@@ -70,7 +74,12 @@ function syncUrl() {
 	if (currentPage > 1) params.set("page", String(currentPage));
 	if (sortBy !== "metadata_modified desc") params.set("sort", sortBy);
 
-	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}`;
+	// Se preserva el fragmento del enlace copiado: sin él, `replaceState` lo borra de la
+	// barra de direcciones y `$page.url.hash` queda desincronizado (un valor viejo que ya
+	// no corresponde a la URL real). Se lee con `untrack`, igual que `$page.state`, para
+	// que `$page.url` no sea dependencia reactiva de los $effect que llaman syncUrl.
+	const hash = untrack(() => $page.url.hash);
+	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}${hash}`;
 	// Segundo argumento = page.state (shallow routing), NO la URL: un objeto
 	// URL no es serializable y replaceState lanza "could not be cloned".
 	// Se lee con `untrack` para que $page.state no sea dependencia reactiva
@@ -196,6 +205,21 @@ const suggestionChips = $derived.by(() => {
 	return chips;
 });
 
+// Los saltos de la sección del vacío: sólo los bloques que existen reciben enlace, derivados de
+// los mismos `length` que gobiernan los `{#if}`. Un salto a un bloque ausente es un enlace muerto.
+// La etiqueta visible es el mismo texto del `<h3>` del bloque destino.
+const saltos = $derived(
+	[
+		{ id: "pruebe-con", label: "Pruebe con", on: suggestionChips.length > 0 },
+		{ id: "recientes", label: "Mientras tanto, lo más reciente", on: recentDatasets.length > 0 },
+		{ id: "organizaciones", label: "Explorar por organización", on: topOrganizations.length > 0 },
+	].filter((salto) => salto.on),
+);
+
+// Margen de scroll de los destinos: el token `--header-h` más el alto medido de la barra pegajosa
+// (más 1rem de aire). `scroll-mt-*` no existe en este repo y el alto no se hardcodea.
+const estiloDestino = $derived(`scroll-margin-top: calc(var(--header-h) + ${altoBarra}px + 1rem)`);
+
 /** Las tres organizaciones con más datasets, de mayor a menor. */
 function topByPackageCount(orgs: CkanOrganization[]): CkanOrganization[] {
 	return [...orgs].sort((a, b) => (b.package_count ?? 0) - (a.package_count ?? 0)).slice(0, 3);
@@ -316,6 +340,26 @@ $effect(() => {
 	if (emptyAssistLoaded) return;
 	emptyAssistLoaded = true;
 	void loadEmptyAssist();
+});
+
+// ─── Efecto: re-aplicar el fragmento de un enlace copiado ─────────
+// El navegador resuelve el `#id` del enlace antes de que los bloques perezosos existan y antes de
+// que la barra pegajosa esté medida; si el destino todavía no estaba, el fragmento queda sin
+// aplicar. Se re-aplica **una vez**, cuando el destino existe y el margen es usable (`R3-001` de
+// `review-fda3530895a9b51f`). Depende de `saltos.length` y `altoBarra` para re-correr cuando llegan
+// los bloques o se mide la barra; una vez por fragmento, no pelea con el scroll del navegador
+// cuando el lector pulsa un salto en una página ya pintada.
+let fragmentoAplicado = "";
+$effect(() => {
+	void saltos.length;
+	void altoBarra;
+	if (!routerReady) return;
+	const fragmento = $page.url.hash.replace(/^#/, "");
+	if (!fragmento || fragmento === fragmentoAplicado || altoBarra <= 0) return;
+	const destino = document.getElementById(fragmento);
+	if (!destino) return;
+	fragmentoAplicado = fragmento;
+	destino.scrollIntoView();
 });
 
 // ─── Handlers ─────────────────────────────────────────────────────
@@ -471,6 +515,7 @@ const emptyStateMessage = $derived.by(() => {
 <!-- ResultsBar: sticky debajo del encabezado global —su alto sale del token `--header-h`— más su
      borde inferior de 1px -->
 <section
+	bind:clientHeight={altoBarra}
 	class="sticky top-[calc(var(--header-h)+1px)] z-20 border-b border-border bg-background/95 backdrop-blur transition-[top] duration-200 ease-out"
 >
 	<div
@@ -740,16 +785,36 @@ const emptyStateMessage = $derived.by(() => {
 					{/each}
 				</div>
 
-			<!-- Empty state: el aviso y, debajo, tres salidas para seguir navegando -->
+			<!-- Empty state: el aviso es el encabezado de la sección y los tres bloques viven adentro.
+			     La fila de saltos `#id` va dentro del aviso, bajo el mensaje (lectura A, 2026-10-01). -->
 			{:else if total === 0 && !error}
-				<div class="space-y-8">
+				<section id="sin-resultados" aria-labelledby="sin-resultados-titulo" class="space-y-8">
 					<div
 						class="flex min-h-[24rem] flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center"
 					>
-						<p class="font-heading text-xl font-semibold text-primary">Sin resultados</p>
+						<h2 id="sin-resultados-titulo" class="font-heading text-xl font-semibold text-primary">
+							Sin resultados
+						</h2>
 						<p class="mt-2 text-sm text-muted-foreground">
 							{emptyStateMessage}
 						</p>
+						{#if saltos.length}
+							<!-- Anclas reales, no botones. El texto visible es el mismo `<h3>` del destino. -->
+							<nav
+								aria-label="Otras formas de encontrar datos"
+								class="mt-6 flex flex-wrap items-center justify-center gap-2"
+							>
+								{#each saltos as salto (salto.id)}
+									<a
+										href={`#${salto.id}`}
+										class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+									>
+										<ArrowDown class="size-4 shrink-0" aria-hidden="true" />
+										{salto.label}
+									</a>
+								{/each}
+							</nav>
+						{/if}
 						{#if query || hasActiveFilters}
 							<button
 								onclick={() => {
@@ -765,7 +830,7 @@ const emptyStateMessage = $derived.by(() => {
 
 					<!-- 1. «Pruebe con»: los formatos y etiquetas más frecuentes, ya filtrados -->
 					{#if suggestionChips.length}
-						<div class="space-y-3">
+						<div id="pruebe-con" style={estiloDestino} class="space-y-3">
 							<h3 class="font-heading text-lg font-semibold text-primary">
 								Pruebe con
 							</h3>
@@ -784,7 +849,7 @@ const emptyStateMessage = $derived.by(() => {
 
 					<!-- 2. «Mientras tanto, lo más reciente»: sin filtros, a propósito -->
 					{#if recentDatasets.length}
-						<div class="space-y-4">
+						<div id="recientes" style={estiloDestino} class="space-y-4">
 							<h3 class="font-heading text-lg font-semibold text-primary">
 								Mientras tanto, lo más reciente
 							</h3>
@@ -796,7 +861,7 @@ const emptyStateMessage = $derived.by(() => {
 
 					<!-- 3. «Explorar por organización»: las tres con más datasets -->
 					{#if topOrganizations.length}
-						<div class="space-y-4">
+						<div id="organizaciones" style={estiloDestino} class="space-y-4">
 							<h3 class="font-heading text-lg font-semibold text-primary">
 								Explorar por organización
 							</h3>
@@ -811,7 +876,7 @@ const emptyStateMessage = $derived.by(() => {
 							</div>
 						</div>
 					{/if}
-				</div>
+				</section>
 
 			<!-- Results list -->
 			{:else}

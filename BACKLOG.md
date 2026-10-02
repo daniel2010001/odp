@@ -1776,22 +1776,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
-- [ ] **[v0]** `TODO:` **El vacío del buscador: las tres salidas, dentro de la misma sección que el aviso.** Pedido del
-  autor (2026-10-01, al ver la promoción): «podemos poner las opciones que pusimos en el mismo section que el "sin
-  resultados"? algo así como los "saltos" que tienen algunas páginas, creo que es algo con el `#id` en la url, sabes algo?
-  similar a lo que tenemos el hero del home o los botones de "limpiar filtros" de la section ahora mismo».
-  **Estado medido:** hoy las tres salidas viven **debajo** de la tarjeta del aviso, dentro del mismo bloque de código
-  (`{:else if total === 0 && !error}` en `search/+page.svelte`), pero **como tarjetas separadas**: la del aviso, y cada
-  bloque por su cuenta. Lo que pide es **un solo cuerpo visual** —el aviso y las salidas en la misma sección— y **evaluar
-  saltos por `#id`**: como el hero del home, y nótese que el botón «Limpiar búsqueda y filtros» de esa misma sección es un
-  `<button>` que limpia el estado, **no un enlace**.
-  **Es ambiguo y se pregunta ANTES de empezar (regla 9 de `AGENTS.md`)**: no está dicho si «misma sección» significa **una
-  sola tarjeta** con todo adentro, o **anclas** (`#pruebe-con`, `#recientes`, `#organizaciones`) para saltar entre partes
-  desde el aviso; y si es lo primero, **cuál de los tres bloques queda arriba** (hoy el orden es sugerencias → datasets →
-  organizaciones, decidido por el autor el mismo día). Primer paso: preguntar, y después una hoja `/dev` con las dos
-  lecturas para comparar.
-  _Origen: pedido del autor al cerrar la sesión del 2026-10-01._
-
 ## v1 — producto usable en producción
 
 - [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
@@ -2213,6 +2197,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **El vacío del buscador: las tres salidas en una sola sección, con saltos `#id`** | **Implementado y promovido** (2026-10-01) — **entregado en el PR #45**. El pedido era **ambiguo** y se preguntó primero (regla 9): el autor eligió **lectura A** (los saltos dentro de la tarjeta del aviso) y **V3** (botón secundario), **sin** resalte del destino y **sin** rótulo visible. Medido en el navegador, el enlace anterior compartía `color` (`oklch(0.52 0.085 257)`) y `text-decoration-line` con «Limpiar búsqueda y filtros» —el mismo objeto visual para dos acciones distintas—, y V3 lo separa por color, fondo, borde y alto. La sección ganó nombre accesible (aviso como `<h2>`), los tres bloques `id` y un margen de desplazamiento que sale del token `--header-h` más el alto **medido** de la barra; la fila sólo ofrece saltos de bloques **presentes**. Tests primero (6 en RED), después verde. **Cinco compuertas aprobadas** (`review-4b0bfe7ead4517a1`, `review-5c51328ff49347d3`, `review-98fbf65d694a6a49`, `review-fda3530895a9b51f`, `review-7135c0450f94bdce`), y la del rango completo encontró **un CRITICAL que las acotadas no podían ver** (el enlace copiado no aterrizaba: la carga perezosa y el margen medido llegan después de que el navegador resuelve el fragmento), corregido y validado por el proveedor; la medición viva del enlace profundo destapó además que el fragmento **se borraba de la barra de direcciones**, también corregido. Sus avisos, en «Deuda de revisión (RDD)». La hoja `/dev/search-empty` se borró al promover. Gates: `test` **708/708** · `check` 0 errores / 4 warnings · Biome exit 0 · aterrizaje y URL medidos en vivo (+13,625 px, fragmento conservado). |
 | **Sección «Data API» para recursos con tabla (bloque D, slice D3)** | **Implementado y aprobado** (2026-09-23). La sección «Acceso por API» estaba gateada a `resource_type === "api"`, un campo **heredado que nada escribe** —el propio formulario de CKAN lo tiene comentado y es `None` en los 35 recursos del catálogo—, así que **no se renderizaba nunca**: era UI muerta. Ahora el gate es `datastore_active === true` (el mismo marcador que usa la vista previa) y el endpoint que muestra es **`datastore_search`**, el que devuelve filas, en vez de `resource_show`, que no. El ejemplo de curl y las dos piezas de copy acompañan. **Reconciliación de la spec en el mismo paso, con dos defectos:** «Preview Placeholder» exigía un área reservada prometiendo una vista previa que ya existe, y «API Metadata» describía un gate que no coincidía ni con el código ni con la realidad. Revisión nativa `review-03b5057b001e6f9b` **aprobada** (tier medium, lente reliability, 3 archivos / 150 líneas, presupuesto 75), 2 avisos informativos. Gates: `check` 0 errores · `test` **601/601**. |
 | **Endurecer la vista previa de datos (bloque D, slice D2)** | **Implementado y aprobado** (2026-09-23). Los 4 hallazgos de `review-ca9abb1187a39513`. El sustantivo —`R3-stale-search-race`— se arregló con la guarda de corrida superada (el `cleanup` del efecto marca su corrida y los dos handlers comprueban antes de escribir; sin `AbortController` porque el cliente no acepta `signal`), y **el test que lo cubre fue verificado en contra: se neutralizó la guarda y el test FALLÓ** (aparecía la fila vieja), con el archivo restaurado byte-idéntico por sha256. Los otros tres: una celda con objeto ya no pinta `[object Object]` (va a JSON, con funciones y símbolos cayendo al guion y los primitivos intactos), el prop `limit` —declarado, con default y **sin uso**— **se eliminó** (lo que limita las filas es el fetch, y un prop que no hace nada declara un contrato falso), y el estado de carga tiene test con promesa diferida. Revisión nativa `review-891f798293c18235` **aprobada** (tier medium, lente reliability, 4 archivos / 129 líneas, presupuesto 65), 2 avisos informativos. Gates: `check` 0 errores · `test` **593/593** · Biome limpio. |
 | **La vista previa del recurso, por tipo (bloque D, slice D1)** | **Implementado y aprobado** (2026-09-23). El panel dejó de decidir con un `format === "csv"` propio —regla nuestra, no de CKAN, y falso negativo: el DataPusher carga `csv, xls, xlsx, tsv, ods` por defecto y `datastore_search` sirve cualquier tabla que exista— y ahora usa la marca de CKAN **`datastore_active`** para la tabla y el **tipo del archivo** para el embed (PDF, imagen, TXT/JSON). Se eliminaron los tabs simulados `Tabla`/`Gráfico`/`Mapa`: `Gráfico` y `Mapa` no son clases de vista previa (el modelo de vistas del PRD los pone en el módulo de análisis, RF-24/25/26), así que el portal dejó de contradecir su propio modelo. El cliente del DataStore ahora manda el token de la sesión, y todo embed pasa por `safeExternalUrl`. Hoja de revisión permanente nueva: **`/dev/preview`**. Revisión nativa `review-4fb694e5160560c1` **aprobada** (tier medium, lente reliability, 12 archivos / 1 182 líneas, presupuesto 200), authority quemada, **2 avisos informativos** registrados en «Deuda de revisión». Gates: `check` 0 errores · `test` **588/588** · Biome en su baseline (4 warnings + 7 infos, ninguno nuevo). |
@@ -2252,6 +2237,88 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 
 ## Deuda de revisión (RDD)
+
+- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01) — SEIS compuertas aprobadas,
+  las seis con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
+  `<h2>` y `aria-labelledby`) y los tres bloques quedaron con `id` y un margen de desplazamiento que sale del token
+  `--header-h` **más el alto medido** de la barra pegajosa; dentro de la tarjeta del aviso va la fila de saltos, con **un
+  enlace por bloque renderizado** (nunca a un bloque ausente) y sin rótulo visible, con `aria-label` para lectores de pantalla.
+  - `review-4b0bfe7ead4517a1` — **`approved`**, tier medium, lente `review-reliability`, **2 archivos / 233 líneas**,
+    presupuesto 117, **0 bloqueantes, 2 avisos**, los dos sobre **mis tests** y los dos correctos: `R3-001` el helper de
+    montaje esperaba **un solo** encabezado cuando los tres bloques vienen de **dos fuentes independientes** (podía
+    observarse el vacío a medio renderizar); `R3-002` el test del margen sólo miraba `calc(var(--header-h)` y, como el stub
+    de `ResizeObserver` nunca medía, **habría pasado con el valor hardcodeado**. Corregidos en `57eeb74`.
+  - `review-5c51328ff49347d3` — **`approved`**, tier medium, 1 archivo / 80 líneas, **0 bloqueantes, 1 aviso**: el stub
+    acumulaba destinos entre tests y su `disconnect()` era un no-op. Corregido en `6cf996e`, y **corrigiendo el aviso**: el
+    arreglo limpia los destinos pero **no** el callback, porque Svelte usa un **singleton de módulo**
+    (`ResizeObserverSingleton`) que fija el callback una sola vez — limpiarlo rompería toda medición posterior.
+  - `review-98fbf65d694a6a49` — **`approved`**, tier medium, 1 archivo / 14 líneas, **0 bloqueantes, 1 aviso registrado y
+    NO perseguido** (decisión propia, declarada): `disconnect()` del stub vacía la lista **compartida** de destinos mientras
+    `unobserve()` quita uno solo, así que sin propiedad por observador el `disconnect()` de uno tira los elementos de otro
+    vivo. **El aviso acierta en el modelo y no en la consecuencia que afirma:** con cero destinos el binding no se actualiza y
+    la aserción `waitFor` del margen **falla ruidosamente**, no pasa en silencio. No se toca ahora porque el stub sirve a un
+    solo componente por test; se arregla con propiedad por observador el día que ese archivo renderice dos instancias.
+    **Es un ítem, no una deuda olvidada.**
+  - `review-fda3530895a9b51f` — **`approved` DESPUÉS DE UNA CORRECCIÓN**, y es el recibo que más cambió el resultado. Se corrió
+    a pedido del autor sobre **el rango completo de la rama** (5 archivos / 482 líneas, presupuesto 200), y encontró un
+    **CRITICAL que las tres compuertas acotadas no vieron**: los destinos existen recién cuando terminan las llamadas
+    perezosas y su `scroll-margin-top` sale de un alto que es **0 hasta que la barra se mide**; en una carga con fragmento
+    (un enlace copiado, `…/search?q=x#organizaciones`) el navegador resuelve el `#id` **antes** de que el bloque exista y
+    **nada re-aplicaba el fragmento**, así que el enlace profundo no aterrizaba — justamente la propiedad («copiable y
+    enlazable») que el propio expediente declara como razón de ser de las anclas reales y que este registro citaba como
+    prueba. Ruta completa: plan de corrección de **80 líneas de diff** declarado, corrección en `775e350` (56 líneas reales:
+    re-aplicar el fragmento **una vez por valor**, cuando el destino existe y el margen es usable, leyendo el hash de
+    `$page.url.hash` — el mismo origen que usa la página y el único que el arnés de tests cubre), con test en **RED** que
+    fallaba porque `scrollIntoView` no se llamaba nunca; y **validación dirigida del proveedor aprobada con 0 hallazgos**.
+  - `review-7135c0450f94bdce` — **`approved`**, tier medium, 2 archivos / 39 líneas, **0 bloqueantes, 1 aviso registrado y NO
+    perseguido**. Este recibo cierra el **segundo defecto que destapó la medición viva del enlace profundo**: con el aterrizaje
+    ya corregido, el **fragmento desaparecía de la barra de direcciones** a los ~1,4 s porque `syncUrl()` rearmaba la URL y
+    llamaba a `replaceState` **sin el hash**. Lo incómodo, y por eso quedó su propio commit (`8edced4`): **la corrección
+    aterrizaba sólo porque el valor estaba rancio** — el `replaceState` de SvelteKit no actualiza `page.url`, así que
+    `$page.url.hash` seguía diciendo `#organizaciones` mientras la URL real ya lo había perdido, y el efecto pasaba su guarda
+    con un dato que no correspondía a la barra de direcciones. **Un control que funciona por accidente de obsolescencia no es
+    un control.** Arreglo: `syncUrl()` conserva el fragmento (`$page.url.hash` leído con `untrack`, como ya se hacía con
+    `$page.state`), así la barra de direcciones y el modelo de URL de la app coinciden. Test en **RED** con el error exacto
+    (`expected '/search?q=matricula' to be '/search?q=matricula#organizaciones'`) y aserción sobre la **URL exacta**: un
+    `toContain` lo habría satisfecho un hash viejo, que es justo el accidente que se elimina.
+    **Medición viva final** (navegación nueva, sin clic previo): el `href` conserva el fragmento como **un único valor durante
+    15,8 s** (`#organizaciones`) y 14,9 s (`#pruebe-con`), el mismo `syncUrl` que antes lo tiraba ahora emite el hash, el
+    aterrizaje sigue en **+13,625 px** debajo del cromo, cambiar el orden mantiene el ancla, y sin fragmento no hay scroll ni
+    `#` al final. Cero errores de consola.
+    **Su aviso (SUGGESTION), registrado y no perseguido:** el test nuevo espera a que `replaceState` se haya llamado y recién
+    ahí lee `mock.calls.at(-1)`, así que podría afirmar una URL no final. Su modo de fallo es un **flaky que falla ruidoso**,
+    no un verde falso —y es esa la razón por la que no se persigue, a diferencia de los dos avisos de
+    `review-4b0bfe7ead4517a1`, donde el test **no podía fallar** por el motivo que decía cubrir—; el arreglo es de una línea:
+    esperar la URL exacta con `waitFor`.
+  - `review-2fd5289fb166646d` — **`approved`**, tier medium, **5 archivos / 631 líneas**: el rango completo de la rama, corrido
+    a pedido del autor para adjuntar al PR. **0 bloqueantes, 2 avisos WARNING, los dos registrados y con recomendación de
+    arreglarlos:**
+    - `R3-001` (`+page.svelte:81-82`, determinista) — `syncUrl` re-adjunta el hash **incondicionalmente**: un cambio de filtro
+      que sale del vacío deja en la URL un ancla **muerta** (`#organizaciones` mientras se ven resultados) y el efecto de
+      re-aplicación podría desplazar de más cuando el vacío vuelva. **Arreglo sugerido**: conservar el hash sólo cuando su
+      destino está renderizado, o descartar el ancla al salir del vacío. Es la contrapartida de la decisión de conservarlo;
+      el autor puede preferir la otra punta del compromiso.
+    - `R3-002` (`search-page.test.ts:799-802`, determinista) — el test del enlace profundo monta el vacío **completo** antes de
+      medir la barra, así que sólo prueba el orden «el destino ya existe → se mide la barra» y **una implementación sin la
+      dependencia de `saltos.length` pasaría igual**. Es la familia del **verde falso**, no del flaky: **recomiendo arreglarlo
+      primero**, y es de minutos.
+  - **La lección, y es la que hay que llevarse:** este defecto vive en la **composición** (carga perezosa + margen medido +
+    fragmento en la carga inicial), no en ninguna unidad, así que **ninguna revisión por unidad podía verlo** — y mi
+    verificación viva tampoco: medí el **clic** con la página ya pintada, nunca la **carga** con `#`. Es decir: probé el
+    camino que ya funcionaba. **Un rango no es la suma de sus unidades, y la verificación tiene que incluir el camino del
+    usuario, no sólo el camino del código nuevo.**
+  - **Hecho del arnés (medido hoy, vale para la próxima):** una corrida del revisor por relay del host puede volver
+    `reviewer-empty-output` (`pi-host-relay-transport-failure`, 6,4 s, sin mutación). Lo que corresponde es **`STATUS` fresco
+    y reenviar el binding re-ofrecido con un pronóstico y una autorización NUEVOS**: el acuse anterior lo consumió la corrida
+    fallida, así que reenviarlo sería reusar autoridad quemada. Con eso la lente corrió y aprobó.
+  - **Verificación viva en la página real** (no en la hoja): barra pegajosa **68 px**, `scroll-margin-top` computado **148 px**
+    con el encabezado encogido (**164 px** arriba de todo, o sea que sigue al token) y `#organizaciones` y `#pruebe-con`
+    aterrizando **13,6 px debajo** del cromo. Con resultados, la sección, la fila y las anclas **no existen**: 0 regresión.
+    Cero errores de consola.
+  - **Gates:** `pnpm test` **704/704** (49 archivos; baseline 698 → **+6**) · `svelte-check` 0 errores / 4 warnings
+    preexistentes · Biome exit 0 (5 infos preexistentes).
+  _Origen: el ítem `[v0]` de las tres salidas dentro de la misma sección, pedido por el autor el 2026-10-01 y desambiguado por
+  la regla 9 de `AGENTS.md` antes de escribir una línea._
 
 - [ ] **Recibo de la unidad de los chips y el alto del vacío (2026-10-01)** — cerró **`approved`** con la authority quemada.
   `review-a4119e82b86ac72e`: tier **medium**, lente `review-reliability`, **2 archivos / 80 líneas**, presupuesto 40,
