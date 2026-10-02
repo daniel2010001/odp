@@ -1148,11 +1148,6 @@
     justifica**: el markdown con vista previa ya cumple RF-39 y el dolor real se resuelve con el camino
     barato. _Decisión del usuario: dejarlo pendiente, no ahora._
 
-- [ ] **[v1] Definir si la edición reutiliza la UI de creación** — la mayoría de las plataformas
-  reutiliza la UI de creación para editar; la alternativa es una UI propia por operación. **Decidirlo
-  antes de congelar la UI de creación**, porque afecta su forma: si se reutiliza, el formulario debe
-  nacer como **componente con modo** (`create` | `edit`) en vez de una página con la lógica adentro.
-  Depende además de cómo quede la descripción (rich text) y de los pasos del flujo.
 - [ ] **[v1] VS: creación en un paso vs. dos pasos (con borrador)** — el usuario pidió comparar
   ambos métodos. Hoy el wizard hace **un solo submit**: `package_create` y después los recursos, con
   reintento de los que fallan. La UI de CKAN hace **dos pasos** (primero metadatos, después recursos),
@@ -1949,6 +1944,21 @@ después del cierre que describe el encabezado de esta sección; medición compl
   `ckanext-event-audit`. Depende del ciclo de vida resuelto.
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
+
+- [ ] **[v1+]** `TODO:` **La lista de recursos: íconos por tipo en vez de badges de formato, y los badges a otro sitio.** Observación del
+  autor (2026-10-02, al revisar la hoja `/dev/dataset-edit`): «me gusta más el ícono de los tipos que lo que tenemos en la page de
+  datasets, esos badges indicando el tipo; anota esto como un TODO para usar estos íconos y mover los badges a otro sitio».
+  **Medido:** los íconos por tipo que le gustaron están en la hoja —`FileText` para archivo y `Link` para enlace, elegidos por el
+  tipo del recurso—, y los badges de formato que quiere reubicar viven en `src/lib/components/dataset/ResourceCard.svelte` (la lista
+  de recursos de la página del dataset) y en `src/lib/components/search/DatasetCard.svelte:113` (`formatChips` + `getFormatAccent`,
+  acento sobre neutro). **Ojo con la regla:** el recurso que devuelve CKAN **no** trae un campo «tipo» explícito; el portal lo
+  infiere de `url_type === "upload"` (medido antes en el proyecto), así que el ícono se decide con esa regla, no con `format`.
+  **Decisión pendiente del autor:** dónde van los badges de formato una vez que el ícono diga el tipo —¿la card técnica, el detalle
+  del recurso, o se eliminan?—.
+  **Nota de higiene de UI, compartida:** las acciones de la fila usan `title` nativo + `aria-label` (la convención del repo, igual
+  que `FacetFilter.svelte` y los botones de la página del recurso). Un tooltip **estilizado** es otro trabajo, y es el mismo que
+  pide el ítem de los tags de la card: si algún día se vendoriza el `Tooltip` de bits-ui, se resuelven los dos juntos.
+  _Origen: revisión de la hoja de edición, 2026-10-02._
 
 - [ ] **[v1+] Prueba de carga, cuando el CRUD esté completo.** El usuario la quiere, y el orden que
   propuso es el correcto: **recién cuando existan create + read + update + delete**. Una prueba de carga

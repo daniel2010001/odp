@@ -57,6 +57,35 @@ dataset.
 - THEN no request is sent to CKAN
 - AND the offending field shows the same validation message the creation form shows
 
+#### Scenario: The owning organization is not editable
+
+- GIVEN a dataset that belongs to an organization
+- WHEN the caller opens the edit form
+- THEN the organization is shown as a fact, not as a control to change
+- AND the write contains no organization field
+- AND the form states that moving a dataset between organizations is a separate operation
+
+### Requirement: Concurrent Edits Are Not Silently Lost
+
+Saving an edit MUST assert the state the form was built from. If the dataset changed in the meantime,
+the write MUST abort and the portal MUST tell the reader that the dataset changed, so the edit can be
+re-applied against the current values. The portal MUST NOT silently overwrite a change it did not see,
+and it MUST NOT build a locking or presence system for this: detecting the conflict is enough.
+
+#### Scenario: Nobody else touched the dataset
+
+- GIVEN a dataset the caller may edit and no other change since the form loaded
+- WHEN the caller saves
+- THEN the edit is applied and the portal reports it as saved
+
+#### Scenario: The dataset changed while the form was open
+
+- GIVEN a dataset that was modified after the form was loaded
+- WHEN the caller saves
+- THEN no field is overwritten
+- AND the portal states that the dataset changed since the form was opened, and that the save must be
+  redone against the current values
+
 ### Requirement: Metadata Edits Are Partial
 
 An edit MUST send only the fields the form owns, using CKAN's partial update. The portal MUST NOT send a

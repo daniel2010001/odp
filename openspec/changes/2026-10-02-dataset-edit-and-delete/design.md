@@ -73,13 +73,32 @@ The corrected rule:
   resource is written individually (`resource_patch`, `resource_update`, or `package_revise` when several
   must change together).
 
-### Open decision this correction creates
+### Open decision this correction creates — **decided by the owner (2026-10-02)**
 
-When the dataset changed between loading the form and saving it, should the portal **abort and tell the
-user** (`match` semantics — nothing is lost, one retry) or **last write wins** (no extra work, and a
-concurrent edit can be silently overwritten)? `match` costs almost nothing here and turns a silent loss
-into a visible conflict; that is the recommendation, and it is the owner's call because it is a user-facing
-behaviour.
+When the dataset changed between loading the form and saving it, the portal **aborts and tells the
+reader** (`match` semantics) rather than letting the last write win. The owner's reasoning, recorded
+because it also rules out a bigger design: *«tenía una idea de bloquear cuando ya se está editando, pero
+esto creo que es más complicado; con un aviso creo que bastaría… eso de tener varios editores también
+entraría en juego y da más complicaciones de implementación, pero es sólo una idea, no lo fuerces»*. So:
+**compare-and-set with a visible conflict notice, and explicitly no locking and no multi-editor presence
+system.** The spec carries both scenarios.
+
+### The owning organization is fixed
+
+Owner's decision: *«el campo de owner_org se puede cambiar? creo que esto no debería poderse cambiar»*.
+The edit form shows the organization as a fact and never writes it. Moving a dataset between
+organizations changes who can see and administer it, and CKAN exposes it as its own operation — it is not
+part of this capability. The spec asserts the write contains no organization field.
+
+### Reversal note (the owner asked for this to be written down)
+
+If a future change replaces the shared form with a **dedicated edit page**, these are the contracts it
+must keep, because they are what makes the two modes interchangeable: the **mode-aware payload shapes**
+(`create` sends everything, `edit` sends only what the form owns, nested values never replace lists), the
+**validation messages** (the same schema and the same `licenseIdError`), the **field inventory** with its
+labels, help texts and counters, and the **resource list** semantics (one resource written at a time).
+The owner's words: *«si en un futuro queremos cambiar por una page de edit propia deberíamos tomar esto en
+cuenta»*.
 
 ## 3. Who sees the affordance: fail closed, and the portal does not guess
 
