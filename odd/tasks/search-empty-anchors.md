@@ -120,3 +120,13 @@ Fixed by the proposal, in both readings:
   `review-98fbf65d694a6a49` (1 file / 14 lines, 1 advisory **recorded and not chased**, with the reason in the
   `BACKLOG`). Gates: `pnpm test` **704/704**, `svelte-check` 0 errors / 4 warnings, Biome exit 0.
 - 2026-10-01: the sheet was deleted after promotion (rule 8).
+- 2026-10-01: **a fourth gate, on the whole branch range, found a CRITICAL the three unit gates could not.** The jump
+  targets only exist after the lazy empty-assist calls resolve and their margin is 0 until the bar is measured, so a
+  fresh load of a copied deep link (`…/search?q=x#organizaciones`) never landed: the browser resolved the fragment before
+  the block existed and nothing re-applied it. Fixed in `775e350` under the authority's correction route (80-line plan,
+  56 real): the fragment is re-applied once per value, only when the target exists and the margin is usable, reading
+  `$page.url.hash`. Test-first, with the positive test failing before the effect existed. The provider's targeted
+  validator approved the corrected candidate with **0 findings** (receipt `review-fda3530895a9b51f`).
+- 2026-10-01: **why the unit gates and the live check missed it**: the defect lives in the composition (lazy load +
+  measured margin + fragment on first load), not in any single unit — and the live verification measured the **click** on
+  an already-painted page, never the **load** with a fragment. Probing the path that already works is not verification.

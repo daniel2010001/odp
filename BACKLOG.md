@@ -2238,8 +2238,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
-- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus dos correcciones (2026-10-01) — TRES compuertas aprobadas,
-  las tres con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
+- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01) — CUATRO compuertas aprobadas,
+  las cuatro con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
   `<h2>` y `aria-labelledby`) y los tres bloques quedaron con `id` y un margen de desplazamiento que sale del token
   `--header-h` **más el alto medido** de la barra pegajosa; dentro de la tarjeta del aviso va la fila de saltos, con **un
   enlace por bloque renderizado** (nunca a un bloque ausente) y sin rótulo visible, con `aria-label` para lectores de pantalla.
@@ -2259,6 +2259,22 @@ después del cierre que describe el encabezado de esta sección; medición compl
     la aserción `waitFor` del margen **falla ruidosamente**, no pasa en silencio. No se toca ahora porque el stub sirve a un
     solo componente por test; se arregla con propiedad por observador el día que ese archivo renderice dos instancias.
     **Es un ítem, no una deuda olvidada.**
+  - `review-fda3530895a9b51f` — **`approved` DESPUÉS DE UNA CORRECCIÓN**, y es el recibo que más cambió el resultado. Se corrió
+    a pedido del autor sobre **el rango completo de la rama** (5 archivos / 482 líneas, presupuesto 200), y encontró un
+    **CRITICAL que las tres compuertas acotadas no vieron**: los destinos existen recién cuando terminan las llamadas
+    perezosas y su `scroll-margin-top` sale de un alto que es **0 hasta que la barra se mide**; en una carga con fragmento
+    (un enlace copiado, `…/search?q=x#organizaciones`) el navegador resuelve el `#id` **antes** de que el bloque exista y
+    **nada re-aplicaba el fragmento**, así que el enlace profundo no aterrizaba — justamente la propiedad («copiable y
+    enlazable») que el propio expediente declara como razón de ser de las anclas reales y que este registro citaba como
+    prueba. Ruta completa: plan de corrección de **80 líneas de diff** declarado, corrección en `775e350` (56 líneas reales:
+    re-aplicar el fragmento **una vez por valor**, cuando el destino existe y el margen es usable, leyendo el hash de
+    `$page.url.hash` — el mismo origen que usa la página y el único que el arnés de tests cubre), con test en **RED** que
+    fallaba porque `scrollIntoView` no se llamaba nunca; y **validación dirigida del proveedor aprobada con 0 hallazgos**.
+  - **La lección, y es la que hay que llevarse:** este defecto vive en la **composición** (carga perezosa + margen medido +
+    fragmento en la carga inicial), no en ninguna unidad, así que **ninguna revisión por unidad podía verlo** — y mi
+    verificación viva tampoco: medí el **clic** con la página ya pintada, nunca la **carga** con `#`. Es decir: probé el
+    camino que ya funcionaba. **Un rango no es la suma de sus unidades, y la verificación tiene que incluir el camino del
+    usuario, no sólo el camino del código nuevo.**
   - **Hecho del arnés (medido hoy, vale para la próxima):** una corrida del revisor por relay del host puede volver
     `reviewer-empty-output` (`pi-host-relay-transport-failure`, 6,4 s, sin mutación). Lo que corresponde es **`STATUS` fresco
     y reenviar el binding re-ofrecido con un pronóstico y una autorización NUEVOS**: el acuse anterior lo consumió la corrida
