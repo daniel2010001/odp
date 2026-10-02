@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { tick } from "svelte";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
@@ -794,12 +795,86 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 	});
 
 	it("re-aplica el fragmento de un enlace copiado cuando el destino y el margen ya existen", async () => {
+		// Orden A — «destino, después barra»: los tres bloques (y con ellos el `#organizaciones`) ya
+		// están pintados, y recién entonces se mide la barra. El test que le sigue cubre el orden
+		// inverso (barra, después destino) y **no lo reemplaza**: con el destino ya presente, un efecto
+		// al que le falte la dependencia `saltos.length` pasaría igual. No los consolide.
+		//
 		// El navegador resuelve el `#organizaciones` del enlace copiado antes de que los bloques
 		// perezosos existan; la página tiene que re-aplicarlo (`R3-001` de `review-fda3530895a9b51f`).
 		await montarVacíoConTodo("#organizaciones");
 		const destino = document.getElementById("organizaciones");
 		// El margen sólo es usable con la barra pegajosa medida; hasta entonces el efecto se detiene.
 		medirAltoBarra(68);
+
+		await waitFor(() => {
+			expect(scrollIntoView.mock.contexts).toContain(destino);
+		});
+	});
+
+	it("re-aplica el fragmento cuando la barra se mide antes de que lleguen los bloques perezosos", async () => {
+		// Orden B — «barra, después destino»: es el orden real de una carga fresca de un enlace
+		// copiado. La barra se mide con la página recién pintada, cuando los bloques perezosos
+		// **todavía no llegaron** y el `#organizaciones` no existe; el aterrizaje sólo puede ocurrir
+		// cuando esos bloques aparecen. Este es el único de los dos que ejerce la dependencia reactiva
+		// de `saltos.length`: al llegar los bloques, nada más cambia, así que un efecto al que le falte
+		// esa lectura no vuelve a correr y el fragmento queda sin aplicar. No consolide este test con el
+		// anterior.
+		let resolverBusqueda: ((valor: unknown) => void) | undefined;
+		let resolverOrgs: ((valor: unknown) => void) | undefined;
+		setUrl("?q=matricula#organizaciones");
+		mocks.search.mockImplementation((params: { limit?: number } | undefined) => {
+			// La búsqueda del catálogo (`limit: 3`) queda pendiente a propósito: los bloques perezosos
+			// no llegan hasta que el test lo decide.
+			if (params?.limit === 3) {
+				return new Promise<unknown>((resolve) => {
+					resolverBusqueda = resolve;
+				});
+			}
+			return Promise.resolve({ count: 0, results: [], search_facets: {} });
+		});
+		mocks.listOrganizations.mockImplementation(
+			() =>
+				new Promise<unknown>((resolve) => {
+					resolverOrgs = resolve;
+				}),
+		);
+
+		renderSearch();
+		// La barra se mide ya, con el vacío pintado pero sin destino.
+		medirAltoBarra(68);
+		await tick();
+		await waitFor(() => expect(resolverBusqueda).toBeDefined());
+		// El efecto ya corrió con la barra medida y sin destino: todavía no debe haber aterrizado.
+		expect(document.getElementById("organizaciones")).toBeNull();
+		expect(scrollIntoView).not.toHaveBeenCalled();
+
+		// Recién ahora llegan los bloques: el destino nace **después** de la medición.
+		resolverBusqueda?.({
+			count: 3,
+			results: [makeDataset({ id: "pkg-a", title: "Censo 2026" })],
+			search_facets: {
+				res_format: makeFacet({
+					title: "Formato",
+					items: [{ name: "CSV", display_name: "CSV", count: 9 }],
+				}),
+			},
+		});
+		await waitFor(() => expect(resolverOrgs).toBeDefined());
+		resolverOrgs?.([
+			makeOrg({
+				id: "org-a",
+				name: "fcyt",
+				title: "Facultad de Ciencias y Tecnología",
+				package_count: 50,
+			}),
+		]);
+
+		const fila = await screen.findByRole("navigation", { name: ROTULO_SALTOS });
+		await waitFor(() => {
+			expect(within(fila).getAllByRole("link")).toHaveLength(3);
+		});
+		const destino = document.getElementById("organizaciones");
 
 		await waitFor(() => {
 			expect(scrollIntoView.mock.contexts).toContain(destino);
