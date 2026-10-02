@@ -32,7 +32,15 @@ class ResizeObserverStub {
 		ResizeObserverStub.targets = ResizeObserverStub.targets.filter((t) => t !== target);
 	}
 
-	disconnect() {}
+	/**
+	 * Svelte usa un **singleton de módulo** (`resize_observer_border_box`): el callback se fija una
+	 * sola vez, en el primer `new ResizeObserver(...)`, y sigue siendo válido después de
+	 * `disconnect()`. Por eso acá se limpian los destinos y **no** el callback — limpiarlo rompería
+	 * las mediciones siguientes, porque el singleton no vuelve a construirse.
+	 */
+	disconnect() {
+		ResizeObserverStub.targets = [];
+	}
 }
 
 /** Simula una medición: fija el alto en el elemento observado y dispara el callback del observer. */
@@ -160,6 +168,10 @@ function lastSearchFq(): string | undefined {
 }
 
 beforeEach(() => {
+	// Aislamiento del stub de medición (`R3-001` de `review-5c51328ff49347d3`): los destinos
+	// observados por un render anterior no deben seguir midiéndose en el test siguiente. El callback
+	// no se toca: el singleton de Svelte lo fija una sola vez para todo el archivo.
+	ResizeObserverStub.targets = [];
 	vi.clearAllMocks();
 	mocks.createCkanClient.mockReturnValue({});
 	mocks.search.mockResolvedValue({ count: 0, results: [], search_facets: {} });
