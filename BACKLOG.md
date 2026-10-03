@@ -33,14 +33,22 @@
 Cosas **encontradas** por la sesión paralela mientras medía contraste y diagnósticos de Biome. No son pedidos
 nuevos: salieron de medir.
 
-- [ ] **[v1]** **En modo oscuro, el botón primario del portal no llega a AA: 3.72:1.** Medido en Chromium sobre
-  el componente real renderizado: `--primary-foreground` (`#f7f8fa`) sobre `--primary` en oscuro (`#5882bb`) da
-  **3.72** contra el umbral 4.5. **Es un par de tokens, no una página**: afecta a todos los botones primarios del
-  portal (el de «Iniciar Sesión» del encabezado, «Volver al catálogo», etc.), en cualquier ruta. **No lo introdujo
-  ninguna sesión reciente**: el código de hoy sin tocar ya mide 3.72. Arreglarlo es una decisión sobre tokens en
-  `src/app.css` —bajar la luminosidad del `--primary` oscuro o cambiar su `--primary-foreground`— y tiene efecto en
-  todo el portal, así que necesita al autor. La medición reproducible vive en la hoja `/dev/error`
-  (`?theme=oscuro`), que imprime ratio, umbral y veredicto por elemento.
+- [ ] **[v1]** **En modo oscuro, el botón primario del portal incumple la regla 7 de `AGENTS.md`: 3.72:1 contra
+  el 4.5:1 que la regla exige.** Verificado el texto en `AGENTS.md:35` («contraste de texto ≥ 4.5:1»). No es un
+  pulido de UI: es **una regla escrita del repositorio incumplida, y portal-wide**. Medido en Chromium sobre el
+  componente real renderizado: `--primary-foreground` (`#f7f8fa`) sobre `--primary` en oscuro (`#5882bb`) da
+  **3.72**. **Es un par de tokens, no una página**: afecta a todos los botones primarios del portal (el de
+  «Iniciar Sesión» del encabezado, «Volver al catálogo», etc.), en cualquier ruta.
+  **Una precisión que conviene tener a mano:** el encabezado del mismo bloque mide 3.71 y **sí pasa**, porque es
+  texto grande y su umbral es 3:1; el rótulo del botón es de 14 px y su umbral es 4.5. Si alguien mira los dos
+  números y le parecen el mismo caso, no lo son, y esa diferencia es la que hay que poder explicar.
+  **No lo introdujo ninguna sesión reciente**: el código de hoy sin tocar ya mide 3.72. Arreglarlo es una decisión
+  sobre tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su `--primary-foreground`, o
+  ambos— con efecto en todo el portal, así que es del autor y no de una sesión. Medición reproducible: la hoja
+  `/dev/error` con `?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
+  **Durabilidad, y es un defecto de dónde está anotado:** este ítem vive en la rama `feat/ui-polish-sweep`, que
+  **no está mergeada**. Una regla incumplida portal-wide no debería depender de que esa rama se integre: la copia
+  durable debería estar en `main`. Mientras tanto, esto es un registro de medición, no la fuente.
 - [ ] **[v1+]** **`pnpm lint` puede morir esporádicamente con `Linter process terminated abnormally` (exit 254).**
   No es falta de memoria y no es un proxy: es un cuelgue **transitorio** del worker de Biome. Medido el 2026-10-03:
   `pnpm exec biome check .` falló dos veces seguidas con ese mensaje y después dio **12/12 corridas con exit 0** por
