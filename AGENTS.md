@@ -87,7 +87,10 @@ El portal vive en los contenedores de `../odp-docker`. Se levantan con
   `odp-dev-frontend-dev-1` (su 5173 es interno y no está publicado al host), y un segundo servidor no lo ve
   el proxy: ocupa un puerto y queda vivo sin servirle a nadie.
 - **Pero hay un uso en el que sí sirve: medir un worktree que el proxy no monta** — estilos computados, una
-  página que sólo existe en tu rama, o cualquier cosa que exija el DOM real de **tu** árbol. Ahí un
+  página que sólo existe en tu rama, o cualquier cosa que exija el DOM real de **tu** árbol. Y no es sólo
+  para leer estilos: sirve para **medir comportamiento que jsdom no puede reproducir**. El *scroll
+  snapping* es el ejemplo medido — el navegador devuelve el desplazamiento **ya ajustado** por el snap
+  (`scrollTo(310)` termina en 404), así que se puede afirmar sobre un número y no sobre una clase. Ahí un
   `vite dev` de host, levantado desde el `node_modules` de **ese** worktree y en un puerto que no sea el
   5173 del contenedor, es la única forma de medirlo, y es legítimo. La regla es que sea **efímero** —se
   levanta para medir y **se apaga al terminar**—: un servidor de host olvidado es exactamente el proceso
