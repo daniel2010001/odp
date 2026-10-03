@@ -53,6 +53,18 @@ export class CkanApiError extends Error {
 		message: string,
 		public status?: number,
 		public ckanType?: string,
+		/**
+		 * Objeto `error` crudo de la respuesta de CKAN, tal cual llegó, sin copiar claves.
+		 *
+		 * Hace falta porque el status y el `__type` no alcanzan para distinguir errores:
+		 * medido el 2026-10-03 contra CKAN 2.12.0, el conflicto de compare-and-set de
+		 * `package_revise` y un error genérico de esquema comparten status 409 y
+		 * `__type: "Validation Error"`. Sólo el `error.match` los separa.
+		 *
+		 * Es opcional y va último: los errores armados a mano (timeout 408, transporte 0)
+		 * no tienen body, y ninguna llamada existente cambia de forma.
+		 */
+		public payload?: Record<string, unknown>,
 	) {
 		super(message);
 		this.name = "CkanApiError";

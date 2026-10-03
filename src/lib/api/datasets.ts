@@ -1,6 +1,7 @@
 // API: operaciones sobre datasets (packages en CKAN)
 
 import type { PaginationParams, SearchParams, SearchResponse } from "$lib/types/api";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanPagination } from "$lib/types/ckan";
 import type { CkanClient } from "./client";
 
@@ -142,3 +143,38 @@ export function createDatasetApi(client: CkanClient) {
 }
 
 export type DatasetApi = ReturnType<typeof createDatasetApi>;
+
+/**
+ * ¿El error es el **conflicto de compare-and-set** que levanta `package_revise`?
+ *
+ * **Medido, no supuesto**, el 2026-10-03 contra CKAN 2.12.0. El status 409 por sí solo
+ * **no alcanza**: el conflicto real y un error genérico de esquema responden los dos
+ * con 409 y `__type: "Validation Error"`. Lo único que los distingue es el `error.match`:
+ * sólo el conflicto nombra `metadata_modified`, porque es la precondición que el propio
+ * `revise` envió. Un 404 por id inexistente tampoco es conflicto. La otra única acción que
+ * puede levantarlo es `revise`, que es la que manda la precondición `match`.
+ *
+ * El cuerpo medido del conflicto **no traía `error.message`**, pero eso es una observación
+ * y no un discriminador: exigir su ausencia convertiría un conflicto con prosa en un fallo
+ * genérico, y el falso negativo es justo lo que el contrato prohíbe —el portal DEBE decirle
+ * al lector que el dataset cambió—. Por eso no se comprueba que el mensaje falte.
+ *
+ * Sin el payload crudo preservado en `CkanApiError` este predicado sería imposible.
+ *
+ * @returns `true` sólo si TODAS se cumplen: `CkanApiError`, `status === 409`,
+ * `ckanType === "Validation Error"` y `payload.match` es un array que incluye
+ * `"metadata_modified"`. Cualquier otra cosa —el 404, el error de esquema, un error de
+ * transporte, un `Error` común— es `false`.
+ */
+export function isEditConflict(error: unknown): boolean {
+	if (!(error instanceof CkanApiError)) return false;
+	if (error.status !== 409) return false;
+	if (error.ckanType !== "Validation Error") return false;
+
+	const payload = error.payload;
+	if (!payload) return false;
+	if (!Array.isArray(payload.match)) return false;
+	if (!payload.match.includes("metadata_modified")) return false;
+
+	return true;
+}

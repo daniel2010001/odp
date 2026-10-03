@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanClient } from "./client";
-import { createDatasetApi } from "./datasets";
+import { createDatasetApi, isEditConflict } from "./datasets";
 
 function makeClient() {
 	const post = vi.fn().mockResolvedValue({ count: 0, sort: "", results: [], search_facets: {} });
@@ -208,6 +209,84 @@ describe("createDatasetApi", () => {
 		expect(actions).toEqual(["package_revise"]);
 		expect(actions).not.toContain("package_update");
 		expect(actions).not.toContain("package_patch");
+	});
+
+	// --- Conflicto de compare-and-set: `isEditConflict` ---------------------------
+	//
+	// Los tres cuerpos de abajo son los medidos VERBATIM contra CKAN 2.12.0 el 2026-10-03.
+	// El conflicto y el error genérico de esquema comparten status 409 **y** `__type`
+	// "Validation Error": sólo el `error.match` los distingue. El conflicto medido no traía
+	// `error.message`, pero eso se observa y no se exige: requerirlo convertiría un conflicto
+	// con prosa en un fallo genérico. Por eso el payload crudo tiene que sobrevivir al throw.
+
+	const REVISE_409_MATCH = {
+		help: "https://api.odp.hs.lan/api/3/action/help_show?name=package_revise",
+		error: { match: ["metadata_modified"], __type: "Validation Error" },
+		success: false,
+	};
+
+	const REVISE_409_SCHEMA = {
+		error: { update: ["Expected list for extras"], __type: "Validation Error" },
+		success: false,
+	};
+
+	const REVISE_404 = {
+		help: "https://api.odp.hs.lan/api/3/action/help_show?name=package_revise",
+		error: { __type: "Not Found Error", message: "Not found" },
+		success: false,
+	};
+
+	describe("isEditConflict", () => {
+		it("reconoce el conflicto de compare-and-set medido", () => {
+			const error = new CkanApiError("HTTP 409", 409, "Validation Error", REVISE_409_MATCH.error);
+
+			expect(isEditConflict(error)).toBe(true);
+		});
+
+		it("no confunde el error de esquema, que comparte 409 y __type", () => {
+			const error = new CkanApiError("HTTP 409", 409, "Validation Error", REVISE_409_SCHEMA.error);
+
+			expect(isEditConflict(error)).toBe(false);
+		});
+
+		it("no confunde el 404 por id inexistente", () => {
+			const error = new CkanApiError("Not found", 404, "Not Found Error", REVISE_404.error);
+
+			expect(isEditConflict(error)).toBe(false);
+		});
+
+		it("exige metadata_modified, no cualquier match", () => {
+			const error = new CkanApiError("HTTP 409", 409, "Validation Error", {
+				match: ["name"],
+				__type: "Validation Error",
+			});
+
+			expect(isEditConflict(error)).toBe(false);
+		});
+
+		it("con prosa en el payload sigue siendo conflicto: la ausencia de message era una observación, no un requisito", () => {
+			const error = new CkanApiError("Conflict", 409, "Validation Error", {
+				match: ["metadata_modified"],
+				message: "Conflict",
+				__type: "Validation Error",
+			});
+
+			expect(isEditConflict(error)).toBe(true);
+		});
+
+		it("devuelve false sin payload preservado, aunque el 409 y el tipo coincidan", () => {
+			const error = new CkanApiError("HTTP 409", 409, "Validation Error");
+
+			expect(isEditConflict(error)).toBe(false);
+		});
+
+		it.each([
+			["un Error genérico", new Error("boom")],
+			["null", null],
+			["undefined", undefined],
+		])("devuelve false para %s", (_label, value) => {
+			expect(isEditConflict(value)).toBe(false);
+		});
 	});
 
 	it("currentUser devuelve el total, para poder paginar con honestidad", async () => {

@@ -41,6 +41,7 @@ export function createCkanClient(config: ApiClientConfig) {
 					json.error?.message ?? `HTTP ${response.status}`,
 					response.status,
 					json.error?.__type,
+					json.error,
 				);
 			}
 

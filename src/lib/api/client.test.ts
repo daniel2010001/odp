@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CkanApiError } from "$lib/types/api";
 import { createCkanClient } from "./client";
 
 type FetchInit = { headers?: Record<string, string>; method?: string; body?: string };
@@ -23,6 +24,42 @@ function requestHeaders(
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+});
+
+// Cuerpo medido VERBATIM contra CKAN 2.12.0 el 2026-10-03 (compare-and-set de
+// `package_revise`). Se reproduce tal cual para que el test no dependa de una paráfrasis.
+const REVISE_409_MATCH_BODY = {
+	help: "https://api.odp.hs.lan/api/3/action/help_show?name=package_revise",
+	error: { match: ["metadata_modified"], __type: "Validation Error" },
+	success: false,
+};
+
+function stubResponse(status: number, body: unknown) {
+	const fetchMock = vi.fn(async () => ({
+		ok: status >= 200 && status < 300,
+		status,
+		json: async () => body,
+	}));
+	vi.stubGlobal("fetch", fetchMock);
+	return fetchMock;
+}
+
+describe("createCkanClient — payload de error", () => {
+	it("preserva el json.error crudo del 409 de package_revise", async () => {
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+		stubResponse(409, REVISE_409_MATCH_BODY);
+
+		const error = await client.post("package_revise", {}).catch((err: unknown) => err);
+
+		expect(error).toBeInstanceOf(CkanApiError);
+		const apiError = error as CkanApiError;
+		expect(apiError.status).toBe(409);
+		expect(apiError.ckanType).toBe("Validation Error");
+		// El objeto entero, verbatim: no una copia de claves elegidas a mano.
+		expect(apiError.payload).toEqual(REVISE_409_MATCH_BODY.error);
+		expect(apiError.payload?.match).toEqual(["metadata_modified"]);
+		expect(apiError.payload).not.toHaveProperty("message");
+	});
 });
 
 describe("createCkanClient — apiKey lazy", () => {
