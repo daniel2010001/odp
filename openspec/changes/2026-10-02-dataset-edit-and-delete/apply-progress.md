@@ -147,7 +147,7 @@ designed one did nothing.
 | **WU-4** — the route's first two warnings | `3c620db` | `review-bae55e6ce9710e3c` | approved, burned — 1 WARNING |
 | **WU-5** — the loads sequenced | `78f507d` | `review-567820789e233375` | approved, burned — 2 WARNINGs |
 | **WU-6** — the write shape, corrected | `3574c1b` → `67c53a3` | `review-4e40a5f6909e67d5` | approved, burned — 1 WARNING |
-| **WU-7** — the route's load flags | in flight | — | — |
+| **WU-7** — the route's load flags | `75ddf04` | `review-dfab596fdb93734a` | approved, burned — 1 WARNING + 1 SUGGESTION |
 
 The artifacts were corrected against the measurements in `ec3d2e1` (docs only, no gate: a passive
 documentation change, which the entry rule exempts).
@@ -203,7 +203,14 @@ Eight, all non-blocking, none chased with the work already done:
 - **WU-4 R3-001**: the reactive reload made an overlap reachable, so a stale response could rebind the form to
   the previous dataset. **Fixed in WU-5.**
 - **WU-5 R3-001** (`+page.svelte:191`): the conditional `finally` could leave `licensesLoading` true for ever.
-  **In flight as WU-7.** *WU-5 R3-002*: the later load stages have no overlap test. **In flight as WU-7.**
+  **Fixed in WU-7.** *WU-5 R3-002*: the later load stages have no overlap test. **Covered in WU-7.**
+- **WU-7 R3-1** (`edit.test.ts:355`) and **R3-2** (`+page.svelte:119-122`): both say the same thing from two
+  sides — the reset of `licensesLoading`, `licenses`, `licensesError` and `tagSugerencias` is **not proved by
+  a test**. The worker had already declared the reason, and the review confirms it: every window-specific
+  guard runs while the page is loading and the form is unmounted, so **no DOM assertion can separate guarded
+  from unguarded**. That is not a weak test, it is **state with no testable surface from the page** — the
+  same design signal as the four consecutive findings above. *Task: extract the load into a testable unit (or
+  collapse the flags into one state object); adding more DOM assertions cannot close it.*
 - **WU-6 R3-001** (`dataset-payload.test.ts:479`): the new `package_revise` contract is asserted only against
   mocked clients; a regression in CKAN's semantics would still pass. **Answered by measurement, not by a
   test**: the shape it asserts is the shape the live probe verified, and this repo has no integration runner

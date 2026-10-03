@@ -38,9 +38,11 @@ pedidos nuevos.
   2.12.0.** Su diseño manda sondear la tabla `package_extra`, que en 2.12 **ya no existe** (`extras` pasó a
   una columna `jsonb`). Si ese cambio se retoma, sus premisas hay que re-medirlas antes de confiar en ellas.
 - [ ] **[v1]** **La carga de la ruta de edición es estado coordinado a mano** (ocho banderas más un contador de
-  generación) y tres revisiones consecutivas le encontraron un defecto cada una, dos de ellos introducidos por
-  el arreglo anterior. El cierre de la rebanada dejó dos avisos con su tarea; si vuelven a aparecer
-  inconsistencias ahí, la respuesta es **simplificar el estado**, no parchear la bandera.
+  generación) y cuatro revisiones consecutivas le encontraron un defecto cada una, dos de ellos introducidos
+  por el arreglo anterior. Además su estado **no es testeable desde la página**: los guards de solapamiento
+  corren con el formulario desmontado, así que ninguna aserción de DOM distingue guardado de no guardado (dos
+  avisos de `review-dfab596fdb93734a`). El arreglo es **extraer la carga a una unidad testeable** o colapsar
+  las banderas en un estado único — **no** agregar más aserciones.
 - [ ] **[v1]** **Falta el punto de entrada a la edición.** La ruta `/dashboard/datasets/[id]/edit` funciona y
   está gateada, pero nada en la interfaz lleva a ella: eso es 1b-B2 (la fila del dashboard y la página del
   dataset).
