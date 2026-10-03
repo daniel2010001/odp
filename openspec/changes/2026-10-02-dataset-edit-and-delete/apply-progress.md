@@ -149,8 +149,13 @@ designed one did nothing.
 | **WU-6** — the write shape, corrected | `3574c1b` → `67c53a3` | `review-4e40a5f6909e67d5` | approved, burned — 1 WARNING |
 | **WU-7** — the route's load flags | `75ddf04` | `review-dfab596fdb93734a` | approved, burned — 1 WARNING + 1 SUGGESTION |
 
-The artifacts were corrected against the measurements in `ec3d2e1` (docs only, no gate: a passive
-documentation change, which the entry rule exempts).
+The artifacts were corrected against the measurements in `ec3d2e1`, `7f64d2e` and `8918583`. I first left
+them **ungated**, invoking the entry rule's exemption for passive documentation; that was a shortcut, not this
+repo's practice -- its own closing recipe records that a documentation commit **does** get a gate, and that the
+gate approves it cheaply. The range was gated as `review-13403b98e062aa50` (approved, burned). Two things worth
+keeping from it: the documentation commits are **interleaved** with code commits, so no committed range isolates
+them -- the candidate necessarily included WU-7's already-gated code; and the gate returned **the same advisory
+WU-7's had, at the same location**, which is what re-reviewing approved content buys.
 
 ### The measurement that changed the design
 
