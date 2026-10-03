@@ -249,6 +249,40 @@ verifying; uncommitted, a committed-only projection cannot see it; and `repair` 
 under a **new** transaction, so the code is gated — what remains is an unconsumed record, and its disposition
 (abandon, or leave it) belongs to the maintainer.
 
+### Found by the author's live review, after the slice closed (2026-10-03)
+
+The browser review did what no gate could: it found a bug in the one place where the suite's doubles disagreed
+with CKAN. Pressing **Guardar cambios** navigated to `/dataset/undefined`.
+
+`package_revise` answers `{"success": true, "result": {"package": {…}}}` -- the package nested under
+`result.package` -- while `revise` declared a bare `CkanPackage`. Every caller read `undefined`, and the route
+built a URL from it. `357e2d6` unwraps the envelope and throws an exported `MalformedReviseResponseError` when
+it does not carry one, so the silent `undefined` becomes a named failure. Receipt `review-0647040d0ce10fbc`,
+approved and burned.
+
+**The write path was never broken.** The same save was verified by effect afterwards: the notes changed, the
+summary was updated **in place**, the unmanaged `frequency` extra survived, and the resource survived. That is
+the measured shape working end to end, from a real browser against the real stack -- the strongest evidence
+this change produced.
+
+**Why the doubles missed it, and what changed:** the route's test resolved a *bare package*, a shape CKAN never
+sends, so a wrapper reading the wrong field of the right response passed. The double now carries the measured
+envelope, and the route test runs the **real wrapper over a doubled HTTP boundary** instead of mocking the API
+module. Third instance in this change of *a double that does not copy the real shape blesses instead of
+verifying* -- and the first one fixed structurally rather than case by case.
+
+Its three advisories, all informational, recorded with their task:
+
+- **R3-1** (`datasets.ts:94`): the guard checks that `id` and `name` are strings, not that the envelope carries
+a whole package; a minimal `{id, name}` passes. The `/dataset/undefined` path is closed, because the route
+navigates by `name`; the general case is not. *Task: none, unless a caller starts reading other fields -- the
+alternative is re-implementing CKAN's contract inside the client.*
+- **R3-2** (`edit.test.ts:43`): the route test wires the real wrapper but never resolves a **malformed**
+envelope, so the route's visible handling of the new error is unproved. *Task: add that case.*
+- **R3-3** (`datasets.ts:166`): the error message says the result had no `package`, but the guard also throws
+when `package` exists with a non-string `id` or `name`. The message misreports the cause. *Task: one line, next
+time that file is touched.*
+
 ## Next
 
 **1b-B2** — the entry points: the dashboard row and the dataset page. Before that, two things the author's
