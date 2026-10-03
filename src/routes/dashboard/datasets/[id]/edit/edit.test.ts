@@ -327,4 +327,59 @@ describe("Ruta de edición de dataset", () => {
 		await waitFor(() => expect(mocks.revise).toHaveBeenCalled());
 		expect((mocks.revise.mock.calls[0][0] as { match: { id: string } }).match.id).toBe("pkg-2");
 	});
+
+	it("si el id cambia con las licencias en vuelo y el nuevo dataset no puede editar, no queda cargando", async () => {
+		auth.login("tok-123", user);
+		const licenciasViejas = Promise.withResolvers<CkanLicense[]>();
+		mocks.licenseList.mockReturnValue(licenciasViejas.promise);
+		let permisos = 0;
+		mocks.canUpdateDatasetIn.mockImplementation(() => {
+			permisos += 1;
+			return Promise.resolve(permisos === 1 ? "may" : "may_not");
+		});
+		mocks.show.mockImplementation((id: string) =>
+			id === "pkg-2"
+				? Promise.resolve(
+						makeDataset({ id: "pkg-2", name: "otro", title: "Otro dataset", owner_org: "org-2" }),
+					)
+				: Promise.resolve(makeDataset()),
+		);
+
+		renderPage();
+		await waitFor(() => expect(mocks.licenseList).toHaveBeenCalledTimes(1));
+		pageStore.set({ params: { id: "pkg-2" }, url: new URL("http://localhost/") });
+
+		expect(await screen.findByText(/no tiene permiso para modificar/i)).toBeInTheDocument();
+		licenciasViejas.resolve([license]);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(screen.queryByText(/Cargando el dataset/i)).not.toBeInTheDocument();
+	});
+
+	it("si el id cambia con la pregunta de permiso en vuelo, la respuesta vieja no habilita nada", async () => {
+		auth.login("tok-123", user);
+		const permisoViejo = Promise.withResolvers<string>();
+		let llamadas = 0;
+		mocks.canUpdateDatasetIn.mockImplementation(() => {
+			llamadas += 1;
+			return llamadas === 1 ? permisoViejo.promise : Promise.resolve("may_not");
+		});
+		mocks.show.mockImplementation((id: string) =>
+			id === "pkg-2"
+				? Promise.resolve(
+						makeDataset({ id: "pkg-2", name: "otro", title: "Otro dataset", owner_org: "org-2" }),
+					)
+				: Promise.resolve(makeDataset()),
+		);
+
+		renderPage();
+		await waitFor(() => expect(mocks.canUpdateDatasetIn).toHaveBeenCalledTimes(1));
+		pageStore.set({ params: { id: "pkg-2" }, url: new URL("http://localhost/") });
+		await screen.findByText(/no tiene permiso para modificar/i);
+
+		permisoViejo.resolve("may");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(screen.queryByLabelText(/título/i)).not.toBeInTheDocument();
+		expect(screen.getByText(/no tiene permiso para modificar/i)).toBeInTheDocument();
+		expect(mocks.licenseList).not.toHaveBeenCalled();
+	});
 });

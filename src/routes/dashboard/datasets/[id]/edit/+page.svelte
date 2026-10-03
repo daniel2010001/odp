@@ -113,6 +113,13 @@ async function cargar(generation: number = ++loadId) {
 	organizations = [];
 	conflict = false;
 	submitError = null;
+	// Cada generación es dueña de las banderas que enciende: la nueva parte en cero aunque no llegue a
+	// pedir licencias ni etiquetas, y así el `finally` de una generación obsoleta no deja una bandera
+	// encendida que ya nadie apagará. Sólo la generación actual puede volver a tocarlas.
+	licenses = [];
+	licensesLoading = false;
+	licensesError = null;
+	tagSugerencias = [];
 
 	const client = makeClient();
 
