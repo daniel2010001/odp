@@ -91,6 +91,10 @@ function setParams(params: Record<string, string>, path = DATASET_PATH) {
 	pageStore.set({ params, url: new URL(`http://localhost${path}`) });
 }
 
+// `unhandledRejection` es un listener de proceso: el hook lo retira siempre, incluso si una aserción
+// falla antes de retirarlo a mano.
+let capturaRechazos: ((razon: unknown) => void) | null = null;
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
@@ -110,6 +114,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	if (capturaRechazos) process.off("unhandledRejection", capturaRechazos);
+	capturaRechazos = null;
 	vi.unstubAllEnvs();
 	auth.reset();
 });
@@ -646,15 +652,21 @@ describe("Página de dataset — acceso a la edición", () => {
 	});
 
 	it("conserva el dataset y no ofrece editar cuando la pregunta de permiso rechaza", async () => {
-		// El pedido rechaza fuera del `try` del propio bulk: simula un fallo del cliente o un cambio futuro
-		// de contrato, y hoy sube desde `loadDataset` (que lo espera) sin manejo local.
+		// El rechazo sube hasta `loadDataset`, que lo espera: sin el `catch` de `loadEditPermission`
+		// quedaría sin manejar. La captura de abajo prueba que ese `catch` es load-bearing.
 		mocks.showDataset.mockResolvedValue(makeDataset({ owner_org: "org-1" }));
 		mocks.listUpdatableOrganizationIds.mockRejectedValue(new Error("boom"));
+		const sinManejar: unknown[] = [];
+		capturaRechazos = (razon: unknown) => sinManejar.push(razon);
+		process.on("unhandledRejection", capturaRechazos);
 
 		render(DatasetPage);
 
 		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
 		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+		// Macrotarea: Node emite `unhandledRejection` recién después de agotar las microtareas.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(sinManejar).toEqual([]);
 	});
 });

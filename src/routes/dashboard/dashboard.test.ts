@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { get } from "svelte/store";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth, isAuthenticated } from "$lib/stores/auth";
@@ -96,6 +96,15 @@ function makeOrganization(overrides: Partial<CkanOrganization> = {}): CkanOrgani
 		...overrides,
 	};
 }
+
+// `unhandledRejection` es un listener de proceso: si el test falla antes de retirarlo, seguiría
+// capturando rechazos en los tests siguientes. El hook lo retira siempre, incluso sin cuerpo que lo haga.
+let capturaRechazos: ((razon: unknown) => void) | null = null;
+
+afterEach(() => {
+	if (capturaRechazos) process.off("unhandledRejection", capturaRechazos);
+	capturaRechazos = null;
+});
 
 beforeEach(() => {
 	auth.reset();
@@ -699,8 +708,8 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 
 	it("no ofrece editar y no deja un rechazo sin manejar cuando la pregunta de permiso rechaza", async () => {
 		const sinManejar: unknown[] = [];
-		const capturar = (razon: unknown) => sinManejar.push(razon);
-		process.on("unhandledRejection", capturar);
+		capturaRechazos = (razon: unknown) => sinManejar.push(razon);
+		process.on("unhandledRejection", capturaRechazos);
 		const fila = makePackage({ owner_org: "org-1" });
 		mocks.currentUser.mockResolvedValue({ count: 1, results: [fila] });
 		mocks.listUpdatableOrganizationIds.mockRejectedValue(new Error("boom"));
@@ -711,6 +720,5 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(sinManejar).toHaveLength(0);
-		process.off("unhandledRejection", capturar);
 	});
 });
