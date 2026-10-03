@@ -20,10 +20,19 @@ Portal de datos abiertos de la Universidad Mayor de San Simón (UMSS). Frontend 
 ```sh
 pnpm install
 cp .env.example .env    # ajustar PUBLIC_CKAN_URL si es necesario
-pnpm dev                # http://localhost:5173
+pnpm dev                # http://localhost:5173 — sólo SIN Docker (ver abajo)
 ```
 
 En desarrollo, el proxy de Vite deriva `/api/*` a `http://localhost:5000` (CKAN). Sin CKAN corriendo, la app usa datos mock.
+
+> **Con Docker — el entorno de este proyecto — no corras `pnpm dev` en el host.** El portal se levanta con
+> los contenedores de `../odp-docker` y **se abre en `http://localhost:8082`** (contenedor
+> `frontend-proxy`; es la única URL publicada). El servidor de desarrollo ya corre **dentro** de
+> `odp-dev-frontend-dev-1`, y su 5173 es un puerto **interno** sin publicar al host: un `pnpm dev` en el
+> host no lo ve el proxy, no le sirve a nadie y deja un proceso vivo ocupando un puerto. Detalle de
+> montajes y de por qué un worktree distinto no se ve: `AGENTS.md`, *«El entorno se corre con Docker»*.
+
+---
 
 ## Scripts
 

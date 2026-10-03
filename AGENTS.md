@@ -70,9 +70,24 @@ componente equivalente) y se reemplazan las clases por las nuestras. Iconos: **`
 
 ```sh
 pnpm install     # instalar dependencias
-pnpm dev         # http://localhost:5173
 pnpm test        # vitest
 pnpm check       # typecheck
 pnpm build       # build de producción
 pnpm lint        # Biome
 ```
+
+### El entorno se corre con Docker, no con `pnpm dev` en el host
+
+El portal vive en los contenedores de `../odp-docker`. Se levantan con
+`docker compose -p odp-dev -f docker-compose.dev.unified.yml up -d`.
+
+- **El portal se abre en `http://localhost:8082`** — el contenedor `frontend-proxy` publica 8082. Ésa es
+  la única URL del portal, y es la que hay que darle al autor para revisar.
+- **No corras `pnpm dev` en el host.** El servidor de desarrollo ya corre **dentro** de
+  `odp-dev-frontend-dev-1` (su puerto 5173 es interno y no está publicado al host). Un segundo servidor en
+  el host no lo ve el proxy, no le sirve a nadie, ocupa un puerto y queda vivo.
+- El contenedor monta **sólo** `src/` y `static/` del repo sobre `/app`. Los cambios fuera de esas dos
+  carpetas (dependencias, configuración) no llegan sin recrear el contenedor, y **un worktree distinto no
+  está montado**: su UI no se puede ver hasta montarlo en otro contenedor.
+- Para verificar el estado: `docker ps --format '{{.Names}}\t{{.Status}}'` y, para el mapeo del portal,
+  `docker port odp-dev-frontend-proxy-1`.
