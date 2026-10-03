@@ -77,9 +77,11 @@ import {
 	RotateCw,
 	Trash2,
 	TriangleAlert,
+	Unlock,
 	Upload,
 	X,
 } from "@lucide/svelte";
+import { untrack } from "svelte";
 import TagsInput from "$lib/components/form/TagsInput.svelte";
 import MarkdownEditor from "$lib/components/markdown/MarkdownEditor.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -170,18 +172,33 @@ let {
 }: Props = $props();
 
 // ─── Metadatos del formulario ────────────────────────────────────────
-// El estado arranca vacío, igual que el asistente de creación. `mode` e `initial` se tipan desde ya
-// pero **no** alteran el render: el modo edición y el prellenado llegan en el slice 1b.
-let title = $state("");
-let slug = $state("");
-let slugEdited = $state(false);
-let summary = $state("");
-let notes = $state("");
-let licenseId = $state("");
-let tags = $state<string[]>([]);
-let url = $state("");
-let maintainer = $state("");
-let maintainerEmail = $state("");
+// El estado se prellena **una sola vez** desde `initial` (los valores que la página cargó): en
+// creación llega vacío y en edición trae el dataset. La lectura se hace con `untrack` a propósito:
+// el prellenado es el punto de partida, no una fuente que deba seguir cambiando el formulario bajo
+// los pies del usuario, así que un `initial` que llegue después no pisa lo que ya se escribió.
+const prefill = untrack(() => initial);
+let title = $state(prefill.title ?? "");
+let slug = $state(prefill.name ?? "");
+let summary = $state(prefill.summary ?? "");
+let notes = $state(prefill.notes ?? "");
+let licenseId = $state(prefill.license_id ?? "");
+let tags = $state<string[]>([...(prefill.tags ?? [])]);
+let url = $state(prefill.url ?? "");
+let maintainer = $state(prefill.maintainer ?? "");
+let maintainerEmail = $state(prefill.maintainer_email ?? "");
+
+// La organización es un **hecho** en edición: la del dataset cargado, que nunca se escribe. La
+// página puede pasarla por `initial.owner_org` o reflejarla en `ownerOrg`; acá se captura al montar.
+let orgFact = $state(prefill.owner_org ?? ownerOrg);
+
+// Slug: en creación sigue al título hasta que el usuario lo edita (`slugEdited`); en edición llega
+// fijado por el dataset y sólo se habilita con un desbloqueo explícito (`slugUnlocked`).
+let slugEdited = $state(Boolean(prefill.slug_edited));
+let slugUnlocked = $state(false);
+const slugEditable = $derived(mode === "edit" ? slugUnlocked : slugEdited);
+
+/** Verbo de la acción de envío, para el copy del resumen: «guardar» en edición, «crear» en creación. */
+const accionVerbo = $derived(mode === "edit" ? "guardar" : "crear");
 
 // ─── Recursos (archivos y enlaces) ────────────────────────────────────
 // Un único listado: un recurso es archivo **o** enlace (PRD RF-13), nunca ambos. El
@@ -217,7 +234,8 @@ function formValues() {
 		title: title.trim(),
 		summary: summary.trim() || undefined,
 		notes: notes || undefined,
-		owner_org: ownerOrg,
+		// En edición la organización llega con el dataset y es un hecho; en creación la elige el usuario.
+		owner_org: mode === "edit" ? orgFact : ownerOrg,
 		private: true,
 		license_id: licenseId || undefined,
 		tag_string: tags.join(", ") || undefined,
@@ -336,10 +354,11 @@ const failedResources = $derived<FailedResource[]>(
 );
 
 // ─── Sugerencia de slug ──────────────────────────────────────────────
-// Sigue al título mientras el usuario no lo haya editado a mano; una vez
-// editado, se preserva aunque el título cambie después.
+// En creación sigue al título mientras el usuario no lo haya editado a mano; una vez editado, se
+// preserva aunque el título cambie después. En edición **nunca** sigue al título: el slug identifica
+// al dataset en su dirección web y cambiarlo rompería todos los enlaces existentes.
 $effect(() => {
-	if (!slugEdited) {
+	if (mode === "create" && !slugEdited) {
 		slug = suggestSlug(title);
 	}
 });
@@ -480,8 +499,14 @@ function handleSubmit() {
 
 // ─── Derivados de la ficha (resumen lateral) ─────────────────────────
 const singleOrg = $derived(organizations.length === 1 ? organizations[0] : null);
+// Organización efectiva: la elegida en creación o el hecho cargado en edición. La ficha lateral y la
+// sección de organización la leen de acá para que edición no muestre "falta elegir".
+const effectiveOwnerOrg = $derived(mode === "edit" ? orgFact : ownerOrg);
 const orgDisplayTitle = $derived(
-	singleOrg ? singleOrg.title : (organizations.find((org) => org.name === ownerOrg)?.title ?? ""),
+	singleOrg
+		? singleOrg.title
+		: (organizations.find((org) => org.name === effectiveOwnerOrg)?.title ??
+			(effectiveOwnerOrg || "")),
 );
 // La ficha no puede quedar **en blanco**: mientras haya más de una organización y ninguna elegida, el
 // bloque tiene que decir que falta elegir. Antes pintaba `orgDisplayTitle`, que en ese estado es "", y
@@ -573,7 +598,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 				<span class="block pl-[var(--label-offset)] text-sm font-medium text-foreground">
 					Slug <span class="text-destructive" aria-hidden="true">*</span>
 				</span>
-				{#if slugEdited}
+				{#if slugEditable}
 					<div class="flex gap-2">
 						<input
 							id="slug"
@@ -583,11 +608,14 @@ const hayTitulo = $derived(title.trim().length > 0);
 							onblur={() => markTouched("name")}
 							aria-invalid={fieldErrors.name ? "true" : undefined}
 							aria-describedby={fieldErrors.name ? "slug-hint slug-error" : "slug-hint"}
-							class={inputClass}
+							class={cn(inputClass, mode === "edit" && "font-mono")}
 						/>
 						<button
 							type="button"
-							onclick={() => (slugEdited = false)}
+							onclick={() => {
+								if (mode === "edit") slugUnlocked = false;
+								else slugEdited = false;
+							}}
 							class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
 							<Lock class="size-4" aria-hidden="true" />
@@ -601,17 +629,35 @@ const hayTitulo = $derived(title.trim().length > 0);
 						<span class="truncate font-mono text-sm text-foreground">{slug}</span>
 						<button
 							type="button"
-							onclick={() => (slugEdited = true)}
+							onclick={() => {
+								if (mode === "edit") slugUnlocked = true;
+								else slugEdited = true;
+							}}
 							class="inline-flex shrink-0 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs font-semibold text-primary transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
-							<Pencil class="size-3.5" aria-hidden="true" />
-							Editar
+							{#if mode === "edit"}
+								<Unlock class="size-3.5" aria-hidden="true" />
+								Desbloquear
+							{:else}
+								<Pencil class="size-3.5" aria-hidden="true" />
+								Editar
+							{/if}
 						</button>
 					</div>
 				{/if}
 				<p id="slug-hint" class="text-xs text-muted-foreground">
-					Se genera automáticamente a partir del título. Desbloquéelo sólo si necesita
-					cambiarlo.
+					{#if mode === "edit"}
+						{#if slugUnlocked}
+							Cambiarlo rompe todos los enlaces existentes al dataset. Desbloquéelo sólo si
+							sabe que el enlace anterior debe dejar de funcionar.
+						{:else}
+							El slug identifica al dataset en su dirección web y se presenta fijo:
+							cambiarlo rompería todos los enlaces existentes.
+						{/if}
+					{:else}
+						Se genera automáticamente a partir del título. Desbloquéelo sólo si necesita
+						cambiarlo.
+					{/if}
 				</p>
 				{#if fieldErrors.name}
 					<p id="slug-error" class="text-xs text-destructive">{fieldErrors.name}</p>
@@ -676,7 +722,23 @@ const hayTitulo = $derived(title.trim().length > 0);
 			<h2 class="font-heading text-lg font-semibold text-primary">Organización</h2>
 
 			<div class="space-y-1.5 [&>label]:pl-[var(--label-offset)] [&>p]:pl-[var(--label-offset)]">
-				{#if organizations.length === 1}
+				{#if mode === "edit"}
+					<!-- En edición la organización es un hecho: se muestra la del dataset y nunca se escribe. -->
+					<span class="block pl-[var(--label-offset)] text-sm font-medium text-foreground">
+						Organización
+					</span>
+					<div
+						class="flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2"
+					>
+						<Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+						<span id="owner-org" class="truncate text-sm text-foreground">{orgDisplayTitle}</span>
+					</div>
+					<p class="text-xs text-muted-foreground">
+						La organización dueña del dataset. Mover el dataset a otra organización es una
+						operación aparte (cambia quién puede verlo y administrarlo) y no forma parte de este
+						módulo.
+					</p>
+				{:else if organizations.length === 1}
 					<span class="block pl-[var(--label-offset)] text-sm font-medium text-foreground">
 						Organización <span class="text-destructive" aria-hidden="true">*</span>
 					</span>
@@ -1421,8 +1483,8 @@ const hayTitulo = $derived(title.trim().length > 0);
 			>
 				<p class="text-sm font-medium text-destructive">
 					{errorList.length === 1
-						? "Corrija 1 campo antes de crear:"
-						: `Corrija ${errorList.length} campos antes de crear:`}
+						? `Corrija 1 campo antes de ${accionVerbo}:`
+						: `Corrija ${errorList.length} campos antes de ${accionVerbo}:`}
 				</p>
 				<ul class="mt-2 space-y-1">
 					{#each errorList as error (error.id)}
@@ -1462,14 +1524,17 @@ const hayTitulo = $derived(title.trim().length > 0);
 			>
 				{#if submitting}
 					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-					Creando...
+					{mode === "edit" ? "Guardando..." : "Creando..."}
+				{:else if mode === "edit"}
+					<Check class="size-4" aria-hidden="true" />
+					Guardar cambios
 				{:else}
 					<Upload class="size-4" aria-hidden="true" />
 					Crear dataset
 				{/if}
 			</button>
 			<a
-				href="/dashboard"
+				href={mode === "edit" && initial.name ? `/dataset/${initial.name}` : "/dashboard"}
 				onclick={(event) => {
 					event.preventDefault();
 					oncancel();
@@ -1479,7 +1544,9 @@ const hayTitulo = $derived(title.trim().length > 0);
 				Cancelar
 			</a>
 			<p class="text-center text-xs text-muted-foreground">
-				Podrá editarlo después de crearlo.
+				{mode === "edit"
+					? "Cancelar vuelve a la página del dataset sin guardar ningún cambio."
+					: "Podrá editarlo después de crearlo."}
 			</p>
 		</div>
 	</aside>
