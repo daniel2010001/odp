@@ -61,6 +61,15 @@ describe("ownerOrgIdOf", () => {
 		expect(ownerOrgIdOf(pkg)).toBe("org-2");
 	});
 
+	it("cae a `organization.id` cuando `owner_org` es la cadena vacía", () => {
+		const pkg = makePackage({ owner_org: "", organization: makeOrganization() });
+		expect(ownerOrgIdOf(pkg)).toBe("org-2");
+	});
+
+	it('devuelve "" cuando `organization.id` es la cadena vacía', () => {
+		expect(ownerOrgIdOf(makePackage({ organization: makeOrganization({ id: "" }) }))).toBe("");
+	});
+
 	it("ignora un `organization.id` que no sea cadena", () => {
 		const pkg = makePackage({
 			organization: { ...makeOrganization(), id: 7 } as unknown as CkanOrganization,

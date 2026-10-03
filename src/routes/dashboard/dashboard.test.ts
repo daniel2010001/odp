@@ -696,4 +696,21 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
 		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
 	});
+
+	it("no ofrece editar y no deja un rechazo sin manejar cuando la pregunta de permiso rechaza", async () => {
+		const sinManejar: unknown[] = [];
+		const capturar = (razon: unknown) => sinManejar.push(razon);
+		process.on("unhandledRejection", capturar);
+		const fila = makePackage({ owner_org: "org-1" });
+		mocks.currentUser.mockResolvedValue({ count: 1, results: [fila] });
+		mocks.listUpdatableOrganizationIds.mockRejectedValue(new Error("boom"));
+		auth.login("tok-123", baseUser);
+		render(Dashboard);
+		await screen.findByRole("link", { name: /matrícula estudiantil 2026/i });
+		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
+		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(sinManejar).toHaveLength(0);
+		process.off("unhandledRejection", capturar);
+	});
 });

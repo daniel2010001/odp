@@ -146,9 +146,14 @@ async function loadDataset() {
 
 // Bulk de permiso de edición. `unknown` se trata como «no podés»: fail closed.
 async function loadEditPermission() {
-	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
-	const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
-	orgsEditables = resultado.state === "known" ? resultado.ids : [];
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+		const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
+		orgsEditables = resultado.state === "known" ? resultado.ids : [];
+	} catch {
+		// El catch vive acá, no en el llamador: cubre también el cliente y aísla el dataset ya cargado.
+		orgsEditables = [];
+	}
 }
 
 // ─── Effect: load on mount ───────────────────────────────────────

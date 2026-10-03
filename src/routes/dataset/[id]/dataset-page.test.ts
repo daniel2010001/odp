@@ -644,4 +644,17 @@ describe("Página de dataset — acceso a la edición", () => {
 		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
 		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
 	});
+
+	it("conserva el dataset y no ofrece editar cuando la pregunta de permiso rechaza", async () => {
+		// El pedido rechaza fuera del `try` del propio bulk: simula un fallo del cliente o un cambio futuro
+		// de contrato, y hoy sube desde `loadDataset` (que lo espera) sin manejo local.
+		mocks.showDataset.mockResolvedValue(makeDataset({ owner_org: "org-1" }));
+		mocks.listUpdatableOrganizationIds.mockRejectedValue(new Error("boom"));
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
+		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+	});
 });

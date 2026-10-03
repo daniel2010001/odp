@@ -190,8 +190,13 @@ async function loadCreatePermission() {
 
 // Bulk, una sola llamada para todas las filas. `unknown` se trata como «no podés»: fail closed.
 async function loadEditPermission() {
-	const resultado = await createOrganizationApi(makeClient()).listUpdatableOrganizationIds();
-	orgsEditables = resultado.state === "known" ? resultado.ids : [];
+	try {
+		const resultado = await createOrganizationApi(makeClient()).listUpdatableOrganizationIds();
+		orgsEditables = resultado.state === "known" ? resultado.ids : [];
+	} catch {
+		// El catch vive acá, no en el llamador que `void`ea: cubre el cliente y evita el rechazo sin manejar.
+		orgsEditables = [];
+	}
 }
 
 // ─── ¿Se puede ofrecer crear? ────────────────────────────────────────
