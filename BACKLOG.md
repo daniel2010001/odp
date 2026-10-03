@@ -1755,6 +1755,18 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): VIVO.** `DatasetCard.svelte:95` sigue con `dataset.tags.slice(0, 3)` y un `+N` pelado
   (`:118` para los formatos), y **no existe ningún componente `Tooltip`** en `src/lib/components`. **Frena en la decisión
   del autor:** `title` nativo, vendorizar el `Tooltip` de bits-ui, o no truncar.
+  **Decisión del autor (2026-10-03): vendorizar el `Tooltip` de bits-ui.** Pero apareció un obstáculo que el ítem no
+  había medido, así que la decisión **quedó a medio camino y no se resolvió por la vía obvia** —leído de la API
+  instalada, no de memoria: `TooltipTrigger`, en bits-ui 2.19.2, está tipado como primitivo de **botón**
+  (`TooltipTriggerProps` interseca `BitsPrimitiveButtonAttributes`) y admite delegación con `child`. Contra una card que
+  **entera** es un `<a>`, eso deja sólo dos formas honestas:
+  **(a)** el `<a>` de la card es el disparador, y el contenido lista las etiquetas y los formatos que el recorte
+  esconde —cero contenido interactivo anidado, el foco del enlace cubre el teclado, y un solo mecanismo arregla los dos
+  defectos—; o **(b)** reestructurar la card para que el título sea el enlace y la divulgación sea un `<button>` real,
+  lo que **mueve la superficie de clic de toda la card** y necesita su propia ronda de revisión visual.
+  Queda descartado por el propio arnés poner el disparador sobre un `<span>` no enfocable: exigiría `tabindex`, que es
+  exactamente la violación (`a11y_no_noninteractive_tabindex`) que `/dev/nav` ya documentó al intentarlo.
+  **Falta elegir (a) o (b), y no antes.** El defecto sigue vivo y medido: nada de esto cambió el código.
 
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`

@@ -149,3 +149,29 @@ el veredicto **`no medible`**, nunca `ok`: un instrumento que no puede medir tie
 | WU-1 | `034ac61` | 5 | +23 / −9 | sí — `gentle-ai-verify`, con una afirmación del escritor **refutada** |
 | WU-2 (aparato de revisión) | `5cc46c4` | 9 | +1860 / −27 | sí — `gentle-ai-verify`, con la matemática `oklab` contrastada contra una implementación independiente (error máximo 4,1e-4 sobre 255) |
 | WU-2 (promoción) | `db63617` | 3 | +159 / −363 | sí — `gentle-ai-verify`: andamio eliminado, contrato intacto, y un hueco real de cobertura encontrado |
+
+## Cierre de la sesión (2026-10-03)
+
+**Cerrado y verificado:** WU-1 (Biome) y WU-2 + WU-2b (la página de error). Cuatro unidades de trabajo con commit
+propio, todas con verificación independiente, y las cuatro con al menos una corrección que salió de medir en vez de
+de leer: el `!important` que era una regresión de accesibilidad disfrazada de fix, el instrumento de contraste que
+mentía con los fondos translúcidos, un escritor que atribuyó un fallo a un proxy inexistente, y un hueco de cobertura
+dejado por el propio desmontaje del andamio.
+
+**Abierto, con análisis hecho y sin arqueología pendiente:**
+
+| Ítem | Estado | Lo que falta |
+|---|---|---|
+| WU-3 · *scroll snapping* del buscador | bloqueado por el entorno | Es CSS puro: en jsdom sólo se puede fijar que las clases se apliquen, y el contenedor del portal sirve el árbol de `main`, no este worktree. Para ver el comportamiento real hace falta montar el worktree en un contenedor de frontend propio —infra compartida con la otra sesión, que todavía no autorizó— o aceptar verificación estructural y que el autor lo revise al integrar. |
+| WU-4 · los tags cortados de la card | bloqueado por una decisión | El autor eligió el `Tooltip` de bits-ui, y el disparador es un primitivo de botón: contra una card-enlace hay que elegir entre **(a)** la card como disparador o **(b)** reestructurar la card. El análisis completo está en el ítem del `BACKLOG`. |
+
+**Estado del árbol al cerrar:** rama `feat/ui-polish-sweep` en `~/projects/odp-ui-polish`, **5 commits** sobre la base
+`9bf844a`, árbol limpio, 54 archivos / 840 tests en verde, `pnpm check` 0 errores, Biome 0/0, **nada pusheado**.
+
+> **`main` se movió dos commits durante la sesión** (`cf465f0`, `8ebae13`), así que la rama quedó **2 commits detrás**:
+> `cf465f0` documenta que el portal es 8082 y que no hay que correr `pnpm dev` en el host, y `8ebae13` toca la ruta
+> pública del dataset. Ninguno toca los archivos de esta sesión, así que el rebase no debería tener conflicto salvo en
+> `BACKLOG.md`, que es el punto de colisión declarado y se resuelve a mano. El rebase queda como primer paso al retomar.
+
+**Cero procesos dejados atrás:** el servidor de desarrollo que levanté en el host (puerto 5175) quedó apagado,
+verificado por `ss` y por `curl`. El portal sigue siendo 8082, servido por el contenedor del par.
