@@ -76,8 +76,16 @@ exit 254; hay que reintentar y no confundirlo con un fallo del código.
       (`?variant=&theme=&path=`) e **instrumento de contraste** que mide el nodo real con `getComputedStyle`.
 - [x] Tres propuestas más la línea base, implementadas como **prop temporal `variant` del componente real**
       (`ErrorPage.svelte`), no como maqueta: `actual` (idéntico a hoy), `tarjeta`, `sello`, `banda`.
-- [ ] **Decisión del autor** sobre cuál promover.
-- [ ] Promover la elegida y borrar las ramas perdedoras más la prop temporal.
+- [x] **Decisión del autor:** `tarjeta`. Y el pill coral **no viaja**: compuesto sobre la card da 4.40 contra
+      el umbral 4.5, así que el eyebrow queda coral pelado, que mide 5.00.
+- [x] **Promovida y andamio desmontado** en `db63617`: es el único diseño de `ErrorPage.svelte`; se fueron la prop
+      `variant`, las tres ramas perdedoras, el interruptor de variante de la hoja y el parámetro `?variant=`. La hoja
+      conserva presets, interruptor de tema, `path` e instrumento. **`error-page.test.ts` pasó sin haber sido editado**
+      (el contrato de presentación sobrevivió a la promoción, que era el objetivo de diseñar dentro de él).
+- [x] Los 4 tests que sólo existían por el andamio se borraron, **y con ellos quedó sin cubrir el veredicto `falla`**
+      del instrumento: la única aserción era un `toMatch(/ok|falla/)` que no podía fallar. Lo detectó la verificación
+      independiente y se cerró en el mismo commit con tres veredictos exactos, **comprobados falsificables** mutando la
+      fuente y viendo fallar la aserción.
 
 #### Números medidos en Chromium headless sobre `http://localhost:5175/dev/error`
 
@@ -140,4 +148,4 @@ el veredicto **`no medible`**, nunca `ok`: un instrumento que no puede medir tie
 |---|---|---|---|---|
 | WU-1 | `034ac61` | 5 | +23 / −9 | sí — `gentle-ai-verify`, con una afirmación del escritor **refutada** |
 | WU-2 (aparato de revisión) | `5cc46c4` | 9 | +1860 / −27 | sí — `gentle-ai-verify`, con la matemática `oklab` contrastada contra una implementación independiente (error máximo 4,1e-4 sobre 255) |
-| WU-2 (promoción) | — | pendiente de la decisión del autor | | |
+| WU-2 (promoción) | `db63617` | 3 | +159 / −363 | sí — `gentle-ai-verify`: andamio eliminado, contrato intacto, y un hueco real de cobertura encontrado |
