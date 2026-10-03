@@ -4,6 +4,7 @@
 // entre perfiles y congelar claves obligaría a migrar). La única excepción es el **resumen** del
 // portal (RF-40), que no mapea a ningún vocabulario externo: ver `dataset-summary.ts`.
 
+import type { CkanExtra } from "$lib/types/ckan";
 import { formatSize } from "./ckan";
 import { SUMMARY_EXTRA_KEY } from "./dataset-summary";
 
@@ -68,6 +69,80 @@ export function buildPackagePayload(input: DatasetFormInput): Record<string, unk
 	}
 
 	return payload;
+}
+
+/**
+ * Campos del formulario que una **edición** puede escribir.
+ *
+ * `owner_org` y `private` quedan fuera por diseño: la organización no se mueve desde acá (cambia
+ * quién puede ver y administrar el dataset) y la visibilidad va por el flujo de publicación. La
+ * exclusión es de tipo para que ningún refactor futuro los cuele en el `update`.
+ */
+export type DatasetEditInput = Omit<DatasetFormInput, "owner_org" | "private">;
+
+/** Dataset cargado con el que se abrió el formulario: de acá sale la precondición de concurrencia. */
+export interface LoadedDataset {
+	id: string;
+	metadata_modified: string;
+	extras?: readonly CkanExtra[];
+}
+
+/** Argumentos de `package_revise`: el `match` afirma el estado y el `update` escribe lo parcial. */
+export interface RevisePayload {
+	match: { id: string; metadata_modified: string };
+	update: Record<string, unknown>;
+}
+
+/**
+ * Traduce el formulario de edición a los argumentos de **`package_revise`**.
+ *
+ * - El `match` lleva el `metadata_modified` **que se cargó con el formulario**: es la precondición
+ *   de concurrencia. Si el dataset cambió mientras el formulario estaba abierto, CKAN rechaza la
+ *   escritura en vez de pisar el cambio ajeno. Nunca se relee: releerlo anularía la afirmación.
+ * - El `update` lleva **sólo los campos que el formulario gobierna**, como claves planas. No van
+ *   `owner_org`, `private`, `state`, `id`, `resources` ni los campos derivados de CKAN.
+ * - El resumen (RF-40) vive dentro de la **lista** `extras`, y una lista no se reemplaza: se escribe
+ *   con la clave aplanada contra el índice del extra cargado (`update__extras__<i>__value`) o, si
+ *   el extra todavía no existe, se agrega con `update__extras__extend`. Así, por construcción,
+ *   los extras que el portal no gobierna sobreviven a la edición.
+ * - Los opcionales vacíos se escriben igual, como cadena vacía: omitir una clave en
+ *   `package_revise` significa "dejá el valor actual", así que una clave ausente convertiría el
+ *   borrado en una mentira. `package_update` no se usa nunca porque borra todo campo ausente del
+ *   request.
+ */
+export function buildRevisePayload({
+	dataset,
+	input,
+}: {
+	dataset: LoadedDataset;
+	input: DatasetEditInput;
+}): RevisePayload {
+	const update: Record<string, unknown> = {
+		title: input.title.trim(),
+		name: input.name.trim(),
+	};
+
+	// A diferencia de la creación, acá el campo vacío viaja como cadena vacía: es la única forma
+	// de que CKAN borre el valor actual en vez de conservarlo.
+	for (const field of OPTIONAL_FIELDS) {
+		update[field] = input[field]?.trim() ?? "";
+	}
+
+	const resumen = input.summary?.trim() ?? "";
+	const index = dataset.extras?.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY) ?? -1;
+	if (index >= 0) {
+		// Con extra cargado, el valor (o la cadena vacía del borrado) va contra su índice.
+		update[`update__extras__${index}__value`] = resumen;
+	} else if (resumen !== "") {
+		// Sin extra cargado y con valor, se agrega. Si está vacío no hay nada que limpiar ni que
+		// agregar: no se crea un extra en blanco.
+		update.update__extras__extend = [{ key: SUMMARY_EXTRA_KEY, value: resumen }];
+	}
+
+	return {
+		match: { id: dataset.id, metadata_modified: dataset.metadata_modified },
+		update,
+	};
 }
 
 /**

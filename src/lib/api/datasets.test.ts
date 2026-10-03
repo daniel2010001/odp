@@ -172,6 +172,44 @@ describe("createDatasetApi", () => {
 		expect(params.sort).toBe("metadata_modified desc");
 	});
 
+	// --- Edición parcial: `package_revise` (slice 1b-A) ---------------------------
+	//
+	// La edición NO puede usar `package_update` (borra todo campo ausente) ni `package_patch`
+	// (su firma plana descarta `metadata_modified` y no puede expresar la precondición de
+	// concurrencia). El wrapper sólo reenvía el `match` y el `update` que armó el builder.
+
+	it("revise postea package_revise con el match y el update que recibe", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({
+			id: "ds-1",
+			name: "ds-1",
+			metadata_modified: "2026-10-02T08:00:00.000000",
+		});
+		const api = createDatasetApi(client);
+
+		const match = { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000" };
+		const update = { title: "Nuevo título", update__extras__1__value: "Resumen editado" };
+
+		const result = await api.revise({ match, update });
+
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("package_revise");
+		expect(params).toEqual({ match, update });
+		expect(result.metadata_modified).toBe("2026-10-02T08:00:00.000000");
+	});
+
+	it("revise no usa las acciones que borran o no pueden afirmar el estado", async () => {
+		const { client, post } = makeClient();
+		const api = createDatasetApi(client);
+
+		await api.revise({ match: { id: "ds-1" }, update: { title: "Nuevo título" } });
+
+		const actions = post.mock.calls.map(([action]) => action);
+		expect(actions).toEqual(["package_revise"]);
+		expect(actions).not.toContain("package_update");
+		expect(actions).not.toContain("package_patch");
+	});
+
 	it("currentUser devuelve el total, para poder paginar con honestidad", async () => {
 		const { client, post } = makeClient();
 		post.mockResolvedValueOnce({
