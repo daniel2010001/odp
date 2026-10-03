@@ -17,6 +17,37 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## En curso (sesión paralela, 2026-10-03) — barrido de pulido de UI
+
+> Sesión `01a102a7-0f94-76b7-86fb-55c8c3d88023`, en un **worktree propio** (`~/projects/odp-ui-polish`,
+> rama `feat/ui-polish-sweep`, base `9bf844a`) para no competir por el índice ni el `HEAD` con la sesión
+> que trabaja la ruta de edición de datasets. Reparto declarado: esta sesión **no toca**
+> `src/lib/components/datasets/**` ni `src/routes/dashboard/datasets/**`.
+>
+> **Ítems tomados, con el go del autor (2026-10-03):** los 11 diagnósticos de Biome · el pulido visual de las
+> páginas de error · el *scroll snapping* del buscador · los tags cortados de la card de dataset (éste con
+> decisión de producto pendiente). El plan y la evidencia viven en `odd/tasks/ui-polish-sweep.md`.
+
+## Anotado el 2026-10-03 — lo que encontró el barrido de pulido de UI (sesión paralela)
+
+Cosas **encontradas** por la sesión paralela mientras medía contraste y diagnósticos de Biome. No son pedidos
+nuevos: salieron de medir.
+
+- [ ] **[v1]** **En modo oscuro, el botón primario del portal no llega a AA: 3.72:1.** Medido en Chromium sobre
+  el componente real renderizado: `--primary-foreground` (`#f7f8fa`) sobre `--primary` en oscuro (`#5882bb`) da
+  **3.72** contra el umbral 4.5. **Es un par de tokens, no una página**: afecta a todos los botones primarios del
+  portal (el de «Iniciar Sesión» del encabezado, «Volver al catálogo», etc.), en cualquier ruta. **No lo introdujo
+  ninguna sesión reciente**: el código de hoy sin tocar ya mide 3.72. Arreglarlo es una decisión sobre tokens en
+  `src/app.css` —bajar la luminosidad del `--primary` oscuro o cambiar su `--primary-foreground`— y tiene efecto en
+  todo el portal, así que necesita al autor. La medición reproducible vive en la hoja `/dev/error`
+  (`?theme=oscuro`), que imprime ratio, umbral y veredicto por elemento.
+- [ ] **[v1+]** **`pnpm lint` puede morir esporádicamente con `Linter process terminated abnormally` (exit 254).**
+  No es falta de memoria y no es un proxy: es un cuelgue **transitorio** del worker de Biome. Medido el 2026-10-03:
+  `pnpm exec biome check .` falló dos veces seguidas con ese mensaje y después dio **12/12 corridas con exit 0** por
+  la misma vía, con el mismo binario; `which pnpm` es el binario real de mise, sin wrapper, sin alias y sin hooks.
+  Consecuencia práctica: **la compuerta sirve**, pero hay que reintentar ante el 254 en vez de leerlo como fallo del
+  código. El baseline limpio de hoy es **0 warnings / 0 infos** sobre 155 archivos.
+
 ## Anotado el 2026-10-03 — el bloque de edición de datasets cerró, y esto queda para después
 
 Lo que salió del cierre de la rebanada 1b-B1 (el detalle y la evidencia viven en
