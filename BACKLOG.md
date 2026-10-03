@@ -17,6 +17,64 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-10-02) — handoff: el módulo de edición y borrado de datasets, en curso (SDD)
+
+> **`main` = `306e80b` = `origin/main`, 0 sin pushear, árbol limpio.** `pnpm test` **739/739** (50 archivos) ·
+> `svelte-check` 0 errores / 4 warnings preexistentes · Biome exit 0 · un solo worktree · ramas: `main` y
+> `wip/pr2-directo-publicacion` (la aparcada a propósito).
+>
+> **Cambio SDD en curso:** `openspec/changes/2026-10-02-dataset-edit-and-delete/` — el primer módulo nuevo que
+> elegiste: **editar y borrar datasets** con la API nativa de CKAN (después organizaciones, después usuarios).
+> Sus artefactos son la fuente de verdad y están **todos escritos**: `explore.md`, `proposal.md`, `design.md`,
+> `specs/dataset-editing/spec.md`, `tasks.md` y `apply-progress.md`.
+>
+> **Cerrado y gateado — cinco rebanadas, siete recibos, todos aprobados y con autoridad quemada:**
+> - **1a (`d6c693c`)** — extraer el formulario del asistente a `DatasetForm.svelte` con prop de modo, **sin
+>   cambiar comportamiento**: los 30 tests del asistente pasan con el archivo **byte a byte idéntico**, y una
+>   **creación real** contra CKAN (dataset descartable + recurso, purgado, base 21 → 20) lo verificó en vivo.
+>   Recibo `review-ff8d537a39fa1a81`.
+> - **1b‑A (`2a7cc51`, `67f6998`)** — el payload parcial de edición y el wrapper `revise`: `match` con el
+>   `metadata_modified` cargado (compare‑and‑set) y `update` con **sólo** los campos del formulario; el
+>   `summary` por clave aplanada contra su índice (los extras ajenos sobreviven por construcción); y **borrar
+>   escribe `""`**, porque omitir una clave en `package_revise` significa «dejá el valor actual». Recibos
+>   `review-4542f91dce1819a4` y `review-5b851d86ae1bc07c`.
+> - **1b‑B0 (`c69a91d`, `f74a51a`)** — el modo edición del formulario (prefijado con `untrack`, slug fijo con
+>   «Desbloquear», organización como hecho, «Guardar cambios») y su **test de contrato** (10 tests), que cierra
+>   el aviso que la 1a había dejado. Recibos `review-9ce0dea883d3ddb9` y `review-ab686f565730b0f9` (**0
+>   hallazgos**).
+>
+> **Lo primero de la próxima sesión — 1b‑B1, la ruta de edición** (`/dashboard/datasets/[id]/edit`):
+> cargar el dataset y **construir el `LoadedDataset` con el chequeo explícito de extras** (tarea 1b.6: si el
+> paquete no devuelve `extras` como arreglo, negarse honestamente en vez de sustituir `[]`, que
+> reintroduciría el duplicado del resumen); pasar `owner_org` **y** el objeto de la organización (1b.7); la
+> **pregunta de permiso que falla cerrada** (`organization_list_for_user(permission="update_dataset")` contra
+> `owner_org`, tres estados: puede / no puede / la pregunta falló); guardar por `package_revise`; y el **aviso
+> de conflicto** cuando CKAN rechaza por el `match`. Después **1b‑B2** (la fila del dashboard y la página del
+> dataset como entradas) y **la rebanada 2** (recursos: metadatos y **reemplazo de archivo** con SHA‑256
+> calculado **en el navegador** y motivo obligatorio), que trae además la lista de recursos propia de la
+> edición que hoy falta (1b.8).
+>
+> **Decisiones ya tomadas — no volver a preguntarlas:** quien borra es **editor o admin de la organización**
+> (convención de CKAN, porque el PRD no lo fija); borrado **lógico** (`state='deleted'`), **sin deshacer en el
+> portal** y con **el slug que queda tomado**; **sin** cambios de visibilidad (son del flujo de solicitudes);
+> **sin** purga ni deshacer (feature aparte, más adelante); el formulario es **un componente con modo**;
+> concurrencia = **compare‑and‑set + aviso, sin bloqueo y con el multi‑editor excluido a propósito**. Y de la
+> otra feature: para el `R3-001` del vacío del buscador, **el ancla se conserva sólo mientras su destino
+> exista** (queda implementarlo, pero es de ese cambio, no de éste).
+>
+> **Tres cosas medidas que ahorran tiempo la próxima vez:** (1) `ckan.auth.allow_dataset_collaborators` está
+> **sin definir** en este stack, así que los colaboradores nativos están apagados y la limitación que
+> habíamos declarado **no aplica hoy**; (2) `ckan user token add` **ignora `--json`** y mezcla sus `INFO` por
+> stdout, y **`api_token_revoke` puede devolver `success: true` sin revocar nada** — el camino es el CLI
+> (`ckan user token revoke <jti>`) y la revocación se verifica **por efecto** (desaparece de la lista y sus
+> peticiones pasan a 404); (3) **la delegación SDD está retirada** en este arnés (`retired SDD delegation is
+> not supported`), así que el ciclo `sdd-*` se corre **a mano**, como el propio `openspec/config.yaml` ya
+> espera.
+>
+> **Y la regla de método que este cambio dejó escrita:** un modo de fallo que **corrompe en silencio** se
+> arregla; uno que sólo es **ruidoso** se registra con su tarea. Los siete recibos la aplicaron, y las dos
+> veces que un escritor encontró un hueco lo marcó en vez de taparlo.
+
 ## Estado al cierre (2026-10-01) — handoff del portal: v0 entregado y el vacío del buscador llenado
 
 > **`main` = `c61d4c6` = `origin/main`, 0 sin pushear, árbol limpio.** `698/698` tests · `svelte-check` 0 errores /
