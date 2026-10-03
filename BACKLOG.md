@@ -49,6 +49,14 @@ nuevos: salieron de medir.
   **Durabilidad, y es un defecto de dónde está anotado:** este ítem vive en la rama `feat/ui-polish-sweep`, que
   **no está mergeada**. Una regla incumplida portal-wide no debería depender de que esa rama se integre: la copia
   durable debería estar en `main`. Mientras tanto, esto es un registro de medición, no la fuente.
+  **Precisión verificada entre las dos sesiones (2026-10-03), y conviene tenerla a mano.** La sesión paralela
+  recomputó el par con su propio instrumento, calibrado contra blanco/negro, y obtuvo **3.733** en oscuro y
+  **5.284** en claro. Mi módulo puro (`src/lib/color/contrast.ts`) sobre los mismos tokens de `src/app.css` da
+  **exactamente lo mismo**: 3.733 y 5.284, con autotest blanco/negro en 21.000. Y la medición del navegador
+  —sobre `getComputedStyle` del nodo real— dio **3.72** y **5.30**. Las tres coinciden; la diferencia de 0,01 es
+  que el navegador serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión
+  completa. **Mismo veredicto por los tres caminos:** en claro pasa, en oscuro **falla**. Si alguien compara
+  3.72 contra 3.733 y le parece una discrepancia, es esto.
 - [ ] **[v1+]** **`pnpm lint` puede morir esporádicamente con `Linter process terminated abnormally` (exit 254).**
   No es falta de memoria y no es un proxy: es un cuelgue **transitorio** del worker de Biome. Medido el 2026-10-03:
   `pnpm exec biome check .` falló dos veces seguidas con ese mensaje y después dio **12/12 corridas con exit 0** por
