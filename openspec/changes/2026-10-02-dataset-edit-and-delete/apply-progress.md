@@ -283,9 +283,57 @@ envelope, so the route's visible handling of the new error is unproved. *Task: a
 when `package` exists with a non-string `id` or `name`. The message misreports the cause. *Task: one line, next
 time that file is touched.*
 
+### The stragglers after the close (2026-10-03, same day)
+
+Five more units landed after the slice closed, three of them because **using** the feature found what the
+suite could not. All gated and burned.
+
+| unit | commit | receipt |
+|---|---|---|
+| the envelope bug: `/dataset/undefined` on save | `357e2d6` | `review-0647040d0ce10fbc` — 3 advisories |
+| the tags field says what Retroceso does | `9bf844a` | `review-9b0385fbe91d9a3d` — approved, **0 findings** |
+| the entry points to the edit route (1b-B2) | `8ebae13` | `review-2eeee36b8358df5d` — 1 WARNING + 1 SUGGESTION |
+| the permission loaders cannot throw | `1e8b8fe` | `review-572e2901f6915923` — 2 WARNINGs, both test quality |
+| the rejection tests clean up after themselves | `11de1ee` | `review-da98ae6f80c35afb` — approved, **0 findings** |
+
+**A change of write semantics made an old gesture destructive.** The tags input has always removed the
+last chip on Backspace-with-an-empty-field, and that was harmless while the write was partial — omitting a
+key meant "leave the current value". Saving now installs the **exact** list, so a stray keypress followed
+by a save deletes tags on the server, with nothing telling the reader. The author lived it. The convention
+stays — it is what every chip input does — and the help text now says so, with a comment in the markup so
+nobody deletes the line as noise. **The rule worth keeping: when saving installs exact state, the
+affordance that empties it has to be visible.**
+
+**The entry points asked a question the pages could not afford to ask per row.**
+`listUpdatableOrganizationIds` asks once per page and answers `known: ids` or `unknown`, and `unknown` is
+treated as **no**. The field it compares against — `owner_org` — was not declared in `CkanPackage`, so
+three copies of the same cast had grown; it is declared now and one shared `ownerOrgIdOf` replaces them.
+That de-duplication nearly lost a runtime `typeof` guard the edit route had and the shared helper's first
+version did not — caught in the worker's own handoff rather than by a test, and restored with two tests
+that fail without it.
+
+### Operational lessons from the same day (they cost real time)
+
+- **The review lifecycle's calls must be made directly, never from inside `codemode`.** Twice a script's
+  timeout cancelled a pending call; one of those left a **cancelled `START`**, resolved by asking the
+  provider for the target-scoped status exactly once — and no lineage had been created.
+- **A consent envelope expires after ten minutes.** One expired unanswered and returned
+  `consent-binding-stale`; the continuation is a fresh `START` for the same candidate, never resending the
+  old binding.
+- **Always pass an explicit `baseRef` for a unit's gate.** Without it the derivation uses the branch base
+  and offers **every path of the session** — 27 files, twelve units already burned — instead of the unit's
+  diff.
+- **The accumulated session range is not a review candidate.** Every unit above was gated on its own,
+  which is why no gate ever had to hold more than a few hundred lines.
+
 ## Next
 
-**1b-B2** — the entry points: the dashboard row and the dataset page. Before that, two things the author's
+**Slice 2 (resources)**, built on the write shape this slice measured and never on the pattern its plan
+assumed — and on the same rule that closed this one: measure the effect, not the response. Before that,
+two decisions belong to the author: the live browser review of the entry points, and the disposition of
+the lineage left immutable in `correction_required`.
+
+**1b-B2** — the entry points (done): the dashboard row and the dataset page. Before that, two things the author's
 decision left pending: the live browser review of `/dashboard/datasets/[id]/edit` (the four refusal states and
 the conflict notice are copy proposed by the agent, and rule 8 says interface copy is the author's call), and
 the unstaged decision on the stuck lineage. Then **slice 2** (resources), whose writes must be built on the
