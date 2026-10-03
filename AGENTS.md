@@ -81,11 +81,17 @@ pnpm lint        # Biome
 El portal vive en los contenedores de `../odp-docker`. Se levantan con
 `docker compose -p odp-dev -f docker-compose.dev.unified.yml up -d`.
 
-- **El portal se abre en `http://localhost:8082`** — el contenedor `frontend-proxy` publica 8082. Ésa es
-  la única URL del portal, y es la que hay que darle al autor para revisar.
-- **No corras `pnpm dev` en el host.** El servidor de desarrollo ya corre **dentro** de
-  `odp-dev-frontend-dev-1` (su puerto 5173 es interno y no está publicado al host). Un segundo servidor en
-  el host no lo ve el proxy, no le sirve a nadie, ocupa un puerto y queda vivo.
+- **Para ver el portal: `http://localhost:8082`** — el contenedor `frontend-proxy` publica 8082. Ésa es la
+  única URL del portal, y es la que hay que darle al autor para revisar.
+- **Para ver el portal, no corras `pnpm dev` en el host.** El servidor de desarrollo ya corre **dentro** de
+  `odp-dev-frontend-dev-1` (su 5173 es interno y no está publicado al host), y un segundo servidor no lo ve
+  el proxy: ocupa un puerto y queda vivo sin servirle a nadie.
+- **Pero hay un uso en el que sí sirve: medir un worktree que el proxy no monta** — estilos computados, una
+  página que sólo existe en tu rama, o cualquier cosa que exija el DOM real de **tu** árbol. Ahí un
+  `vite dev` de host, levantado desde el `node_modules` de **ese** worktree y en un puerto que no sea el
+  5173 del contenedor, es la única forma de medirlo, y es legítimo. La regla es que sea **efímero** —se
+  levanta para medir y **se apaga al terminar**—: un servidor de host olvidado es exactamente el proceso
+  vivo que esta sección previene.
 - El contenedor monta **sólo** `src/` y `static/` del repo sobre `/app`. Los cambios fuera de esas dos
   carpetas (dependencias, configuración) no llegan sin recrear el contenedor, y **un worktree distinto no
   está montado**: su UI no se puede ver hasta montarlo en otro contenedor.
