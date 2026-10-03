@@ -72,21 +72,26 @@ function ownerOrgOf(paquete: CkanPackage): string {
 // atado al dataset viejo y el guardado lo revisaría a él, no al `id` de la URL.
 const datasetId = $derived($page.params.id);
 
+// Cada carga pertenece a una generación: si el id cambia con una carga en vuelo, la vieja queda
+// obsoleta y ninguna de sus respuestas puede pisar a la nueva. Una recarga sin generación abre una nueva.
+let loadId = 0;
 $effect(() => {
 	void datasetId;
+	const generation = ++loadId;
 	if (!get(isAuthenticated)) {
 		void goto("/auth/login");
 		return;
 	}
 	authed = true;
-	void iniciar();
+	void iniciar(generation);
 });
 
 // La sonda corre **antes** de cargar: `inconclusive` (5xx, timeout, red) no expulsa a nadie
 // autenticado; sólo una sesión muerta vuelve al login, por el camino único.
-async function iniciar() {
+async function iniciar(generation: number) {
 	const token = get(auth).token;
 	const check = await createSessionApi(makeClient()).check();
+	if (generation !== loadId) return;
 
 	if (check.state === "dead") {
 		await endInvalidSession(`/dashboard/datasets/${$page.params.id}/edit`);
@@ -94,11 +99,11 @@ async function iniciar() {
 	}
 	if (check.state === "alive" && token) auth.login(token, check.user);
 	access = check.state === "alive" ? "session-alive" : "unknown";
-	await cargar();
+	await cargar(generation);
 }
 
 /** Carga el dataset, pregunta el permiso y, sólo si todo es afirmativo, siembra el formulario. */
-async function cargar() {
+async function cargar(generation: number = ++loadId) {
 	loading = true;
 	failure = null;
 	refusal = null;
@@ -125,10 +130,12 @@ async function cargar() {
 		paquete = await createDatasetApi(client).show(datasetId);
 	} catch (err) {
 		// Un 403/404 o un fallo de transporte se cuentan con el vocabulario compartido, no con prosa nueva.
+		if (generation !== loadId) return;
 		failure = describeFailure(err, "dataset", access);
 		loading = false;
 		return;
 	}
+	if (generation !== loadId) return;
 
 	const verificacion = toLoadedDataset(paquete);
 	if (!verificacion.ok) {
@@ -158,33 +165,42 @@ async function cargar() {
 	};
 
 	// Pregunta de permiso, fail-closed: `unknown` no es un permiso y no habilita el formulario.
-	permission = await createOrganizationApi(client).canUpdateDatasetIn(ownerOrgId);
+	const permiso = await createOrganizationApi(client).canUpdateDatasetIn(ownerOrgId);
+	if (generation !== loadId) return;
+	permission = permiso;
 
 	if (permission === "may") {
-		await Promise.all([cargarLicencias(client), cargarEtiquetas(client)]);
+		await Promise.all([cargarLicencias(client, generation), cargarEtiquetas(client, generation)]);
+		if (generation !== loadId) return;
 	}
 	loading = false;
 }
 
-async function cargarLicencias(client: CkanClient) {
+async function cargarLicencias(client: CkanClient, generation: number) {
 	licensesLoading = true;
 	licensesError = null;
 	try {
-		licenses = await createLicenseApi(client).list();
+		const lista = await createLicenseApi(client).list();
+		if (generation !== loadId) return;
+		licenses = lista;
 	} catch (err) {
+		if (generation !== loadId) return;
 		licenses = [];
 		licensesError = err instanceof Error ? err.message : "No se pudo cargar la lista de licencias.";
 	} finally {
-		licensesLoading = false;
+		if (generation === loadId) licensesLoading = false;
 	}
 }
 
-async function cargarEtiquetas(client: CkanClient) {
+async function cargarEtiquetas(client: CkanClient, generation: number) {
 	try {
-		tagSugerencias = await createDatasetApi(client).tagSuggestions();
+		const sugerencias = await createDatasetApi(client).tagSuggestions();
+		if (generation !== loadId) return;
+		tagSugerencias = sugerencias;
 	} catch {
 		// La sugerencia es cosmética: un rechazo deja la lista vacía en vez de escapar de `cargar` y
 		// dejar la página cargando para siempre. No se inventa mensaje porque no hay nada que decir.
+		if (generation !== loadId) return;
 		tagSugerencias = [];
 	}
 }

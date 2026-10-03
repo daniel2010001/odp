@@ -299,4 +299,25 @@ describe("Ruta de edición de dataset", () => {
 		await waitFor(() => expect(screen.getByLabelText(/título/i)).toHaveValue("Otro dataset"));
 		expect(mocks.show).toHaveBeenLastCalledWith("pkg-2");
 	});
+
+	it("si el id cambia con una carga en vuelo, la respuesta vieja no pisa el formulario", async () => {
+		auth.login("tok-123", user);
+		const primero = Promise.withResolvers<LoadedPackage>();
+		mocks.show.mockImplementation((id: string) =>
+			id === "pkg-1"
+				? primero.promise
+				: Promise.resolve(makeDataset({ id: "pkg-2", name: "otro", title: "Otro dataset" })),
+		);
+		const { container } = renderPage();
+		// El id cambia sin esperar la primera carga; su respuesta se resuelve al final.
+		await waitFor(() => expect(mocks.show).toHaveBeenCalledWith("pkg-1"));
+		pageStore.set({ params: { id: "pkg-2" }, url: new URL("http://localhost/") });
+		await waitFor(() => expect(screen.getByLabelText(/título/i)).toHaveValue("Otro dataset"));
+		primero.resolve(makeDataset());
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(mocks.canUpdateDatasetIn).toHaveBeenCalledTimes(1);
+		await fireEvent.submit(getForm(container));
+		await waitFor(() => expect(mocks.revise).toHaveBeenCalled());
+		expect((mocks.revise.mock.calls[0][0] as { match: { id: string } }).match.id).toBe("pkg-2");
+	});
 });
