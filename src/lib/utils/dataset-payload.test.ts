@@ -234,8 +234,8 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 	};
 
 	// 2. El `update` lleva EXACTAMENTE los campos del formulario: ni uno de más (nada de
-	// `owner_org`, `private`, `state`, `id`, `resources`, `tags` ni campos derivados de CKAN),
-	// ni uno de menos. Se afirma el conjunto completo, no un subconjunto.
+	// `owner_org`, `private`, `state`, `id`, `resources` ni campos derivados de CKAN), ni uno de
+	// menos. Las tags y los extras entran por sus propias claves (`tags`, `extras`), no planas.
 	it("escribe exactamente los campos que el formulario gobierna", () => {
 		const { update } = buildRevisePayload({ dataset: datasetCargado, input: edicion });
 
@@ -245,21 +245,24 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 				"name",
 				"notes",
 				"license_id",
-				"tag_string",
 				"url",
 				"maintainer",
 				"maintainer_email",
-				"update__extras__1__value",
+				"extras",
+				"tags",
 			].sort(),
 		);
 	});
 
-	it("recorta los espacios de los valores y escribe las tags como `tag_string`", () => {
+	it("recorta los espacios y escribe las tags del formulario como `[{ name }]`", () => {
 		const { update } = buildRevisePayload({ dataset: datasetCargado, input: edicion });
 
 		expect(update.title).toBe("Matrícula Estudiantil 2026");
-		expect(update.tag_string).toBe("matricula, estudiantes");
-		expect(update.update__extras__1__value).toBe("Resumen editado");
+		expect(update.tags).toEqual([{ name: "matricula" }, { name: "estudiantes" }]);
+		expect(update.extras).toEqual([
+			{ key: "frequency", value: "anual" },
+			{ key: SUMMARY_EXTRA_KEY, value: "Resumen editado" },
+		]);
 	});
 
 	it("no manda ningún campo que el formulario no gobierne", () => {
@@ -271,7 +274,7 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 			"state",
 			"id",
 			"resources",
-			"tags",
+			"tag_string",
 			"license_title",
 			"metadata_created",
 			"metadata_modified",
@@ -281,59 +284,69 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 		}
 	});
 
-	// 3. Un extra que el portal no gobierna ni se nombra ni se toca: la lista de `extras` no viaja
-	// entera (eso la reemplazaría y lo borraría).
-	it("no toca los extras que el portal no gobierna ni manda la lista `extras`", () => {
-		const { update } = buildRevisePayload({ dataset: datasetCargado, input: edicion });
+	// 3. La lista cargada viaja ENTERA y en el orden cargado. Con el `filter`, CKAN la instala
+	// verbatim: los extras que el portal no gobierna sobreviven tal cual y en su posición.
+	it("reenvía los extras no gestionados verbatim, en su posición", () => {
+		const { update } = buildRevisePayload({
+			dataset: {
+				...datasetCargado,
+				extras: [
+					{ key: "frequency", value: "anual" },
+					{ key: SUMMARY_EXTRA_KEY, value: "Resumen viejo" },
+					{ key: "source", value: "portal" },
+				],
+			},
+			input: edicion,
+		});
 
-		expect(update).not.toHaveProperty("extras");
-		expect(JSON.stringify(update)).not.toContain("frequency");
-		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([
-			"update__extras__1__value",
+		expect(update.extras).toEqual([
+			{ key: "frequency", value: "anual" },
+			{ key: SUMMARY_EXTRA_KEY, value: "Resumen editado" },
+			{ key: "source", value: "portal" },
 		]);
 	});
 
-	// 4a. El resumen ya existe: se escribe contra su índice en los extras cargados.
-	it("escribe el resumen contra el índice del extra cargado", () => {
+	// 4a. El resumen ya existe: se reemplaza su `value` en el lugar, sin duplicar ni reordenar.
+	it("reemplaza el resumen en el lugar cuando el extra ya existe", () => {
 		const { update } = buildRevisePayload({ dataset: datasetCargado, input: edicion });
 
-		expect(update.update__extras__1__value).toBe("Resumen editado");
-		expect(update).not.toHaveProperty("update__extras__extend");
+		expect(update.extras).toEqual([
+			{ key: "frequency", value: "anual" },
+			{ key: SUMMARY_EXTRA_KEY, value: "Resumen editado" },
+		]);
 	});
 
-	// 4b. El resumen no existe todavía: se agrega con `extend`, sin reemplazar la lista.
-	it("agrega el resumen con `extend` cuando el dataset no tiene el extra", () => {
+	// 4b. El resumen no existe todavía: se agrega AL FINAL de la lista cargada, sin reordenarla.
+	it("agrega el resumen al final cuando el dataset no tenía el extra", () => {
 		const { update } = buildRevisePayload({
 			dataset: { ...datasetCargado, extras: [{ key: "frequency", value: "anual" }] },
 			input: edicion,
 		});
 
-		expect(update.update__extras__extend).toEqual([
+		expect(update.extras).toEqual([
+			{ key: "frequency", value: "anual" },
 			{ key: SUMMARY_EXTRA_KEY, value: "Resumen editado" },
 		]);
-		expect(update).not.toHaveProperty("update__extras__0__value");
 	});
 
-	it("agrega el resumen con `extend` cuando el dataset no trae ningún extra", () => {
+	it("agrega el resumen cuando el dataset no trae ningún extra", () => {
 		const { update } = buildRevisePayload({
 			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: edicion,
 		});
 
-		expect(update.update__extras__extend).toEqual([
-			{ key: SUMMARY_EXTRA_KEY, value: "Resumen editado" },
-		]);
+		expect(update.extras).toEqual([{ key: SUMMARY_EXTRA_KEY, value: "Resumen editado" }]);
 	});
 
-	// 4f. Si el dataset trae extras pero no el del resumen, y el formulario lo deja vacío, no se
-	// crea un extra vacío ni se toca ningún índice.
+	// 4f. Sin extra cargado y con el resumen limpio, no hay nada que borrar ni que crear: la lista
+	// cargada queda igual (sin un extra de resumen vacío).
 	it("no crea un extra de resumen vacío cuando el dataset no lo tenía cargado", () => {
 		const { update } = buildRevisePayload({
 			dataset: { ...datasetCargado, extras: [{ key: "frequency", value: "anual" }] },
 			input: { ...edicion, summary: "   " },
 		});
 
-		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([]);
+		expect(update.extras).toEqual([{ key: "frequency", value: "anual" }]);
 	});
 
 	// 2b. En edición los opcionales se escriben SIEMPRE, aunque queden vacíos. Omitir una clave en
@@ -351,10 +364,11 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 				"name",
 				"notes",
 				"license_id",
-				"tag_string",
 				"url",
 				"maintainer",
 				"maintainer_email",
+				"extras",
+				"tags",
 			].sort(),
 		);
 	});
@@ -369,7 +383,6 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 				name: "solo-el-titulo",
 				notes: "",
 				license_id: "",
-				tag_string: "",
 				url: "",
 				maintainer: "",
 				maintainer_email: "",
@@ -378,22 +391,20 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 
 		expect(update.notes).toBe("");
 		expect(update.license_id).toBe("");
-		expect(update.tag_string).toBe("");
 		expect(update.url).toBe("");
 		expect(update.maintainer).toBe("");
 		expect(update.maintainer_email).toBe("");
 	});
 
-	// 4c. Con un extra cargado, limpiar el resumen escribe cadena vacía contra su índice: el valor
-	// viejo se borra en vez de sobrevivir. Sin este caso el formulario diría que borró y no borró.
-	it("escribe el resumen cargado como cadena vacía cuando el formulario lo limpia", () => {
+	// 4c. Limpiar el resumen con `""` ELIMINA la entrada, igual que la creación omite el extra
+	// cuando no hay nada que decir: dejar la entrada con valor vacío sería dejar basura.
+	it("elimina la entrada del resumen cuando el formulario lo limpia", () => {
 		const { update } = buildRevisePayload({
 			dataset: datasetCargado,
 			input: { ...edicion, summary: "" },
 		});
 
-		expect(update.update__extras__1__value).toBe("");
-		expect(update).not.toHaveProperty("update__extras__extend");
+		expect(update.extras).toEqual([{ key: "frequency", value: "anual" }]);
 	});
 
 	it("trata un resumen en blanco como limpieza del resumen cargado", () => {
@@ -402,58 +413,70 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 			input: { ...edicion, summary: "   " },
 		});
 
-		expect(update.update__extras__1__value).toBe("");
+		expect(update.extras).toEqual([{ key: "frequency", value: "anual" }]);
 	});
 
-	// 4d. Sin extra cargado y sin resumen no hay nada que limpiar ni que agregar: no se crea un
-	// extra vacío.
-	it("no escribe ninguna clave de extras si no hay extra cargado y el resumen está vacío", () => {
+	// El formulario codifica un campo vacío como `undefined` (`formValues()`), así que un resumen
+	// ausente es "el lector lo vació", no "nadie habló": también elimina la entrada.
+	it("elimina la entrada del resumen cuando el formulario no lo trae", () => {
+		const { update } = buildRevisePayload({
+			dataset: datasetCargado,
+			input: { ...edicion, summary: undefined },
+		});
+
+		expect(update.extras).toEqual([{ key: "frequency", value: "anual" }]);
+	});
+
+	// 4d. Sin extra cargado y sin resumen no hay nada que borrar ni que agregar: la lista queda
+	// vacía.
+	it("no crea un extra de resumen si no había extra y el resumen está vacío", () => {
 		const { update } = buildRevisePayload({
 			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: { ...edicion, summary: "" },
 		});
 
-		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([]);
+		expect(update.extras).toEqual([]);
 	});
 
-	// 4e. Sin extra cargado y con resumen no vacío se agrega con `extend`, un solo elemento.
-	it("agrega el resumen con `extend` y un solo elemento cuando el dataset no trae extras", () => {
+	// 4e. Sin extra cargado y con resumen no vacío se agrega un solo elemento.
+	it("agrega el resumen con un solo elemento cuando el dataset no trae extras", () => {
 		const { update } = buildRevisePayload({
 			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: { ...edicion, summary: "Resumen nuevo" },
 		});
 
-		expect(update.update__extras__extend).toEqual([
-			{ key: SUMMARY_EXTRA_KEY, value: "Resumen nuevo" },
-		]);
-		// El conjunto de claves de `update` es el completo: el resumen no reemplaza a los opcionales.
-		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([
-			"update__extras__extend",
-		]);
+		expect(update.extras).toEqual([{ key: SUMMARY_EXTRA_KEY, value: "Resumen nuevo" }]);
 	});
 
-	// 4f. La rama destructiva que señaló la compuerta, en su forma representable. Con la lista de
-	// extras **cargada pero sin el resumen**, agregar con `extend` es correcto: no hay nada que
-	// actualizar. Y que la lista **falte** ya no es representable — `LoadedDataset.extras` es
-	// obligatorio —, así que un resumen existente no puede leerse como ausente y la escritura no
-	// puede duplicarlo (`R3-1` de `review-4542f91dce1819a4`).
-	it("con extras cargados sin resumen, agrega con `extend` uno solo", () => {
+	// 4f. Las tags salen del `tag_string` que el formulario sí manda. Ausente o vacío es lista
+	// vacía, y una lista vacía LIMPIA: `filter: ["-tags"]` + `update.tags = []` es la única forma
+	// medida de borrarlas (un `tag_string` vacío solo no borraba nada).
+	it("instala las tags del `tag_string` separadas por coma, recortadas y sin vacíos", () => {
 		const { update } = buildRevisePayload({
-			dataset: {
-				id: "ds-1",
-				metadata_modified: "2026-10-01T09:30:00.000000",
-				extras: [{ key: "frequency", value: "anual" }],
-			},
-			input: { ...edicion, summary: "Resumen nuevo" },
+			dataset: datasetCargado,
+			input: { ...edicion, tag_string: "  matricula , , estudiantes  " },
 		});
 
-		expect(update.update__extras__extend).toEqual([
-			{ key: SUMMARY_EXTRA_KEY, value: "Resumen nuevo" },
-		]);
-		// El extra ajeno no se nombra ni se toca: no viaja la lista `extras`.
-		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([
-			"update__extras__extend",
-		]);
+		expect(update.tags).toEqual([{ name: "matricula" }, { name: "estudiantes" }]);
+	});
+
+	it.each([
+		["vacío", ""],
+		["ausente", undefined],
+	])("limpia las tags cuando el `tag_string` está %s", (_caso, tag_string) => {
+		const { update, filter } = buildRevisePayload({
+			dataset: datasetCargado,
+			input: { ...edicion, tag_string },
+		});
+
+		expect(update.tags).toEqual([]);
+		expect(filter).toEqual(["-extras", "-tags"]);
+	});
+
+	it("siempre pide reemplazar extras y tags con `filter`", () => {
+		const { filter } = buildRevisePayload({ dataset: datasetCargado, input: edicion });
+
+		expect(filter).toEqual(["-extras", "-tags"]);
 	});
 
 	// 5. El `match` es la precondición de concurrencia: el `metadata_modified` que se cargó con el

@@ -84,11 +84,10 @@ export type DatasetEditInput = Omit<DatasetFormInput, "owner_org" | "private">;
  * Dataset cargado con el que se abrió el formulario: de acá sale la precondición de concurrencia y,
  * también, la **lista de extras cargada**.
  *
- * `extras` es **obligatorio** a propósito. El builder decide entre actualizar el extra del resumen
- * contra su índice o agregarlo con `extend`, y esa decisión sólo es honesta si conoce la lista
- * cargada: con la lista ausente, un resumen existente se leería como "no existe" y la escritura
- * **agregaría un duplicado** en vez de actualizarlo. Hacerlo requerido convierte esa corrupción
- * silenciosa en un error de compilación (`R3-1` de `review-4542f91dce1819a4`).
+ * `extras` es **obligatorio** a propósito. El builder **reenvía la lista cargada completa**, así que
+ * una lista ausente sustituida por `[]` **borraría todos los extras que el portal no gobierna**.
+ * Hacerlo requerido convierte esa pérdida silenciosa en un error de compilación (`R3-1` de
+ * `review-4542f91dce1819a4`).
  */
 export interface LoadedDataset {
 	id: string;
@@ -101,9 +100,11 @@ export interface LoadedDataset {
  * eso es lo que hace que el chequeo de runtime signifique algo. */
 export type LoadedDatasetSource = Pick<CkanPackage, "id" | "metadata_modified" | "extras">;
 
-/** Argumentos de `package_revise`: el `match` afirma el estado y el `update` escribe lo parcial. */
+/** Argumentos de `package_revise`: el `match` afirma el estado, el `filter` suelta las listas
+ * almacenadas y el `update` escribe lo parcial. */
 export interface RevisePayload {
 	match: { id: string; metadata_modified: string };
+	filter: string[];
 	update: Record<string, unknown>;
 }
 
@@ -126,10 +127,10 @@ export type LoadedDatasetFailure =
 export function toLoadedDataset(
 	pkg: LoadedDatasetSource,
 ): { ok: true; dataset: LoadedDataset } | { ok: false; reason: LoadedDatasetFailure } {
-	// Nunca se sustituye la lista ausente por `[]`: con la lista ausente el builder leería un
-	// resumen existente como inexistente y lo **agregaría con `extend`** en vez de actualizarlo,
-	// dejando un duplicado. Mismo motivo que hizo obligatorio `LoadedDataset.extras` (advisory
-	// `R3-001` de `review-5b851d86ae1bc07c`).
+	// Nunca se sustituye la lista ausente por `[]`: el builder **reenvía la lista cargada**, así que
+	// el `[]` sustituto viajaría en el `update` y **borraría todos los extras que el portal no
+	// gobierna**. Mismo motivo que hizo obligatorio `LoadedDataset.extras` (advisory `R3-001` de
+	// `review-5b851d86ae1bc07c`).
 	const extras = (pkg as { extras?: unknown }).extras;
 	if (!Array.isArray(extras)) {
 		return { ok: false, reason: "extras_unavailable" };
@@ -160,12 +161,16 @@ export function toLoadedDataset(
  * - El `match` lleva el `metadata_modified` **que se cargó con el formulario**: es la precondición
  *   de concurrencia. Si el dataset cambió mientras el formulario estaba abierto, CKAN rechaza la
  *   escritura en vez de pisar el cambio ajeno. Nunca se relee: releerlo anularía la afirmación.
- * - El `update` lleva **sólo los campos que el formulario gobierna**, como claves planas. No van
- *   `owner_org`, `private`, `state`, `id`, `resources` ni los campos derivados de CKAN.
- * - El resumen (RF-40) vive dentro de la **lista** `extras`, y una lista no se reemplaza: se escribe
- *   con la clave aplanada contra el índice del extra cargado (`update__extras__<i>__value`) o, si
- *   el extra todavía no existe, se agrega con `update__extras__extend`. Así, por construcción,
- *   los extras que el portal no gobierna sobreviven a la edición.
+ * - El `update` lleva **sólo los campos que el formulario gobierna**. No van `owner_org`, `private`,
+ *   `state`, `id`, `resources` ni los campos derivados de CKAN.
+ * - `filter: ["-extras", "-tags"]` suelta las listas almacenadas para que CKAN instale las del
+ *   `update` **verbatim**: sin él, `extras` se mezcla por índice (reordena y puede pisar un extra
+ *   ajeno) y `tag_string` es aditivo (`""` no borra nada). Medido contra CKAN 2.12.0 el 2026-10-03.
+ * - `update.extras` reenvía la **lista cargada completa y en su orden**, con el resumen (RF-40)
+ *   resuelto in situ, para no borrar los extras que el portal no gobierna.
+ * - `update.tags` sale del `tag_string` que el formulario sí manda: separado por coma, recortado y
+ *   sin vacíos. Ausente o `""` es lista vacía, y una lista vacía **limpia** (con el `filter`, la
+ *   única forma medida).
  * - Los opcionales vacíos se escriben igual, como cadena vacía: omitir una clave en
  *   `package_revise` significa "dejá el valor actual", así que una clave ausente convertiría el
  *   borrado en una mentira. `package_update` no se usa nunca porque borra todo campo ausente del
@@ -179,7 +184,7 @@ export function buildRevisePayload({
 	input: DatasetEditInput;
 }): RevisePayload {
 	// Lanza en vez de devolver un resultado: llegar acá es un error de programación —un caller esquivó el
-	// camino verificado— y la falla evitada (resumen duplicado, `match` sin `metadata_modified`) es corrupción silenciosa.
+	// camino verificado— y la falla evitada (extras borrados, `match` sin `metadata_modified`) es corrupción silenciosa.
 	const verificado = toLoadedDataset(dataset);
 	if (!verificado.ok) {
 		throw new Error(`buildRevisePayload: el dataset cargado no sirve (${verificado.reason})`);
@@ -193,25 +198,57 @@ export function buildRevisePayload({
 
 	// A diferencia de la creación, acá el campo vacío viaja como cadena vacía: es la única forma
 	// de que CKAN borre el valor actual en vez de conservarlo.
-	for (const field of OPTIONAL_FIELDS) {
+	for (const field of EDIT_SCALAR_FIELDS) {
 		update[field] = input[field]?.trim() ?? "";
 	}
 
-	const resumen = input.summary?.trim() ?? "";
-	const index = cargado.extras.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY);
-	if (index >= 0) {
-		// Con extra cargado, el valor (o la cadena vacía del borrado) va contra su índice.
-		update[`update__extras__${index}__value`] = resumen;
-	} else if (resumen !== "") {
-		// Sin extra cargado y con valor, se agrega. Si está vacío no hay nada que limpiar ni que
-		// agregar: no se crea un extra en blanco.
-		update.update__extras__extend = [{ key: SUMMARY_EXTRA_KEY, value: resumen }];
-	}
+	// La lista cargada viaja ENTERA y en su orden, con el resumen resuelto in situ: el `filter`
+	// hace que CKAN la instale verbatim.
+	update.extras = buildExtras(cargado.extras, input.summary);
+
+	// Las tags salen del `tag_string` que el formulario sí manda: separadas por coma, recortadas y
+	// sin vacíos. Ausente o `""` es lista vacía, y una lista vacía **limpia** (medido: un
+	// `tag_string` vacío solo no borra nada).
+	update.tags = (input.tag_string ?? "")
+		.split(",")
+		.map((name) => name.trim())
+		.filter((name) => name !== "")
+		.map((name) => ({ name }));
 
 	return {
 		match: { id: cargado.id, metadata_modified: cargado.metadata_modified },
+		filter: ["-extras", "-tags"],
 		update,
 	};
+}
+
+/** Campos que la edición escribe como claves planas. Excluye `tag_string`: las etiquetas van por
+ * `update.tags`, que sí reemplaza la lista en vez de agregar. */
+const EDIT_SCALAR_FIELDS = [
+	"notes",
+	"license_id",
+	"url",
+	"maintainer",
+	"maintainer_email",
+] as const;
+
+/**
+ * Resuelve la lista de extras que viaja en el `update`.
+ *
+ * El formulario codifica los vacíos como `undefined` (`formValues()`), así que un resumen ausente
+ * o en blanco es "el lector lo vació": la entrada se **elimina**, igual que la creación omite el
+ * extra cuando no hay nada que decir. Con resumen presente se reemplaza su `value` en el lugar o,
+ * si no existía, se agrega al final.
+ */
+function buildExtras(loaded: readonly CkanExtra[], summary: string | undefined): CkanExtra[] {
+	const resumen = summary?.trim() ?? "";
+	const copia = () => loaded.map((extra) => ({ ...extra }));
+	const index = loaded.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY);
+	if (resumen === "") return copia().filter((_, i) => i !== index);
+	if (index >= 0) {
+		return copia().map((extra, i) => (i === index ? { ...extra, value: resumen } : extra));
+	}
+	return [...copia(), { key: SUMMARY_EXTRA_KEY, value: resumen }];
 }
 
 /**

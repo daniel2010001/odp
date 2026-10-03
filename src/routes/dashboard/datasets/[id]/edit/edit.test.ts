@@ -225,11 +225,18 @@ describe("Ruta de edición de dataset", () => {
 		await waitFor(() => expect(mocks.revise).toHaveBeenCalled());
 		const payload = mocks.revise.mock.calls[0][0] as {
 			match: Record<string, unknown>;
+			filter: string[];
 			update: Record<string, unknown>;
 		};
 		expect(payload.match).toEqual({ id: "pkg-1", metadata_modified: METADATA_MODIFIED });
-		// El summary cargado se actualiza contra su índice, no se agrega.
-		expect(payload.update.update__extras__0__value).toBe("Resumen cargado");
+		// El `filter` descarta la lista guardada para que la nuestra se instale tal cual, y el
+		// resumen cargado se reescribe dentro de la lista completa: medido contra CKAN 2.12.0,
+		// las claves aplanadas anidadas eran un no-op silencioso.
+		expect(payload.filter).toEqual(["-extras", "-tags"]);
+		expect(payload.update.extras).toEqual([
+			{ key: "summary", value: "Resumen cargado" },
+			{ key: "frequency", value: "anual" },
+		]);
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dataset/matricula-2026"));
 	});
 

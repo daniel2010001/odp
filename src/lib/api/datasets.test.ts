@@ -179,7 +179,7 @@ describe("createDatasetApi", () => {
 	// (su firma plana descarta `metadata_modified` y no puede expresar la precondición de
 	// concurrencia). El wrapper sólo reenvía el `match` y el `update` que armó el builder.
 
-	it("revise postea package_revise con el match y el update que recibe", async () => {
+	it("revise postea package_revise con el match, el filter y el update que recibe", async () => {
 		const { client, post } = makeClient();
 		post.mockResolvedValueOnce({
 			id: "ds-1",
@@ -189,13 +189,20 @@ describe("createDatasetApi", () => {
 		const api = createDatasetApi(client);
 
 		const match = { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000" };
-		const update = { title: "Nuevo título", update__extras__1__value: "Resumen editado" };
+		const filter = ["-extras", "-tags"];
+		const update = {
+			title: "Nuevo título",
+			extras: [{ key: "summary", value: "Resumen editado" }],
+			tags: [],
+		};
 
-		const result = await api.revise({ match, update });
+		const result = await api.revise({ match, filter, update });
 
 		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
 		expect(action).toBe("package_revise");
-		expect(params).toEqual({ match, update });
+		// El cuerpo lleva las TRES piezas: `filter` es lo que hace que CKAN instale la lista de
+		// extras verbatim (sin él, `update.extras` se mezclaría por índice).
+		expect(params).toEqual({ match, filter, update });
 		expect(result.metadata_modified).toBe("2026-10-02T08:00:00.000000");
 	});
 
@@ -203,7 +210,11 @@ describe("createDatasetApi", () => {
 		const { client, post } = makeClient();
 		const api = createDatasetApi(client);
 
-		await api.revise({ match: { id: "ds-1" }, update: { title: "Nuevo título" } });
+		await api.revise({
+			match: { id: "ds-1" },
+			filter: ["-extras"],
+			update: { title: "Nuevo título" },
+		});
 
 		const actions = post.mock.calls.map(([action]) => action);
 		expect(actions).toEqual(["package_revise"]);

@@ -66,21 +66,24 @@ export function createDatasetApi(client: CkanClient) {
 		 *
 		 * El `match` es la precondición de concurrencia —el `metadata_modified` que el formulario cargó—:
 		 * si el dataset cambió desde entonces, CKAN responde `ValidationError` en vez de pisar el cambio
-		 * ajeno. El `update` lleva sólo los campos que el formulario gobierna, con las claves aplanadas
-		 * para los valores anidados (`update__extras__<índice>__value`); la lista `extras` nunca viaja
-		 * entera porque reemplazarla borraría los extras que el portal no administra.
+		 * ajeno. El `filter` suelta las listas almacenadas (`-extras`, `-tags`) para que CKAN instale las
+		 * del `update` verbatim: sin él, `extras` se mezcla por índice y `tag_string` es aditivo. El
+		 * `update` lleva sólo los campos que el formulario gobierna, con la lista `extras` cargada
+		 * completa y las `tags` exactas del formulario.
 		 *
 		 * No se usa `package_update` (borra todo campo ausente del request) ni `package_patch` (su firma
 		 * plana descarta `metadata_modified` y no puede expresar la precondición).
 		 */
 		async revise({
 			match,
+			filter,
 			update,
 		}: {
 			match: Record<string, unknown>;
+			filter: string[];
 			update: Record<string, unknown>;
 		}): Promise<CkanPackage> {
-			return client.post<CkanPackage>("package_revise", { match, update });
+			return client.post<CkanPackage>("package_revise", { match, filter, update });
 		},
 
 		/** Actualizar un dataset existente */
