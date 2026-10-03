@@ -132,8 +132,120 @@ nowhere. Same family as the clearing rule — the UI may not show something the 
   is still create-shaped — and that belongs to slice 2 with resource editing. Declared rather than
   improvised outside the slice, and the edit mode must not offer resource creation as if publishing anew.
 
+## Slice 1b-B1 — the edit route, and the measurement that changed the design
+
+Eight work units, eight receipts, all approved with their authority burned. The commit that matters most is
+none of the ones that added a feature: it is the one that corrected the write shape after a live CKAN said the
+designed one did nothing.
+
+| unit | commits | receipt | outcome |
+|---|---|---|---|
+| **WU-1** — the loaded-dataset guard (1b.6) | `e502fce` + `0bdcf36` | `review-6b517157db5f4274` → `review-3a7f68d873c12deb` | approved, burned — **1 CRITICAL found and corrected**, 2 advisories |
+| **WU-2a** — the conflict predicate and the raw error payload | `fbd2ff9` | `review-e8f0ee94a4727eee` | approved, burned — 1 advisory |
+| **WU-2** — the fail-closed permission question (1b.3) | `a5b3c6f` | `review-c3ce326617625939` | approved, burned — **0 findings** |
+| **WU-3** — the route (1b.1/1b.4/1b.5/1b.7/1b.8) | `7d0209d` | `review-36abfa3fd7da4de0` | approved, burned — 2 WARNINGs |
+| **WU-4** — the route's first two warnings | `3c620db` | `review-bae55e6ce9710e3c` | approved, burned — 1 WARNING |
+| **WU-5** — the loads sequenced | `78f507d` | `review-567820789e233375` | approved, burned — 2 WARNINGs |
+| **WU-6** — the write shape, corrected | `3574c1b` → `67c53a3` | `review-4e40a5f6909e67d5` | approved, burned — 1 WARNING |
+| **WU-7** — the route's load flags | in flight | — | — |
+
+The artifacts were corrected against the measurements in `ec3d2e1` (docs only, no gate: a passive
+documentation change, which the entry rule exempts).
+
+### The measurement that changed the design
+
+Three live probes against CKAN **2.12.0** settled what no mock could, and the third one invalidated the
+mechanism this change had been designed around.
+
+1. **The permission premise holds.** `organization_list_for_user(permission="update_dataset")` is valid and
+discriminating: an org editor gets the organization, a member does not, a nonsense permission returns `[]`.
+`get_roles_with_permission('update_dataset')` resolves to `['admin','editor']`. Two quirks are recorded in
+the code: a sysadmin's token makes CKAN ignore the `permission` argument entirely, and an unknown permission
+returns `[]` with HTTP 200 — so a typo would fail **closed and silently**, which is why a test pins the
+literal.
+2. **The conflict predicate is `error.match`, not the status.** A stale `match` answers 409 with
+`{"match":["metadata_modified"], "__type":"Validation Error"}` — and an ordinary schema error answers the
+**same 409 with the same `__type`**. They are distinguishable only by the key. A failed `match` is a true
+no-op (nothing stored, `metadata_modified` unmoved), so the reader's draft survives a conflict.
+3. **The write shape was a silent no-op.** `update__extras__<i>__value` **inside** `update` returns HTTP 200
+with `"success": true`, stores nothing, and is not even echoed: CKAN reads flattened `update__*` keys at the
+**request top level**. The portal said it saved and the summary never changed. The same key at the top level
+works — but a wrong index corrupts a *different* extra in silence, and CKAN reorders `extras` on writes, so a
+position is not an address. `update.extras = [list]` merges by index instead of replacing, and `tag_string`
+is additive, so `""` never cleared the tags.
+
+**The shape that works** is `filter: ["-extras","-tags"]` plus every loaded extra carried back verbatim with
+the portal's summary resolved in place, and `tags` exactly as the form holds them. Three consequences are now
+design rules: there is **no safe partial merge** (list order is not stable, so to leave an entry alone the
+write must carry it back); the loaded list is therefore **load-bearing** — substituting `[]` would **delete**
+every unmanaged extra, which is why `toLoadedDataset` refuses a package whose `extras` is not an array; and the
+`match` precondition is what makes the wholesale rewrite safe, because a change that landed between load and
+save is refused rather than lost.
+
+The rule for empties belongs to the caller: `DatasetForm` encodes "the reader left it empty" as `undefined`,
+so absent means clear for the summary and the tags. The safety argument is what the reader sees — the form
+shows exactly what the write will do.
+
+### The advisories, each with its task
+
+Eight, all non-blocking, none chased with the work already done:
+
+- **WU-1 R3-001** (`dataset-payload.ts:185`): the thrown guard's reason lives only inside the message, so a
+  caller must string-match it. The route uses the structured path, so no caller does. *Task: give the error a
+  typed `reason` if a caller ever catches it.*
+- **WU-1 R3-002** (`dataset-payload.ts:153`, **pre-existing**): the guard validates the container but not the
+  elements of `extras`; a `null` element dies with a raw `TypeError`. Measurement says CKAN always returns a
+  well-formed list, so it is not reachable through the API. *Task: validate the element, or record the limit.*
+- **WU-2a R3-001** (`datasets.ts:176`): the `Array.isArray(payload.match)` guard has no test. *Task: add the
+  case when that file is next touched.*
+- **WU-3 R3-001** (`+page.svelte`): the route loaded once from `onMount` and never reacted to the id. **Fixed
+  in WU-4.** *WU-3 R3-002*: a cosmetic tag call could leave the page loading for ever. **Fixed in WU-4.**
+- **WU-4 R3-001**: the reactive reload made an overlap reachable, so a stale response could rebind the form to
+  the previous dataset. **Fixed in WU-5.**
+- **WU-5 R3-001** (`+page.svelte:191`): the conditional `finally` could leave `licensesLoading` true for ever.
+  **In flight as WU-7.** *WU-5 R3-002*: the later load stages have no overlap test. **In flight as WU-7.**
+- **WU-6 R3-001** (`dataset-payload.test.ts:479`): the new `package_revise` contract is asserted only against
+  mocked clients; a regression in CKAN's semantics would still pass. **Answered by measurement, not by a
+  test**: the shape it asserts is the shape the live probe verified, and this repo has no integration runner
+  — its own `config.yaml` says dev-stack checks are manual scripts. *Task: none until an integration lane
+  exists; the probe is the evidence.*
+
+### What the gates were worth
+
+Every one of the eight gates found something, and the last four found something on the same file: the route's
+load is hand-coordinated state, and each fix left one new inconsistency behind. Two of those were regressions
+introduced by the fix that preceded them. That is a design signal, not an effort signal, and it is recorded
+here so the next slice does not inherit it silently.
+
+### Declared deviation (with its reason)
+
+WU-3 is **615 diff lines** against this change's 400-line review budget. The remedy the budget prescribes —
+split — cannot produce a working increment here: the page and its eight required tests are one cohesive unit,
+and even the smallest functional version (load, ask, refuse, save) exceeds 400. Declared rather than hidden,
+like slice 1a's deviation from `strict_tdd`.
+
+**And the forecast was wrong, in a way worth fixing for next time.** Slice 1b was forecast at 350–450 lines
+in total; it landed at roughly a thousand. The cause is not scope creep: it is that the forecast counted the
+behaviour and not the **fixed cost of tests, fixtures and states**, which every unit pays again.
+
+### One lineage left behind, deliberately
+
+`review-6b517157db5f4274` is **immutable in `correction_required`** against the pre-correction candidate. Its
+correction could not be admitted: committed, the candidate identity changes and the captured artifacts stop
+verifying; uncommitted, a committed-only projection cannot see it; and `repair` refuses explicitly
+(`repaired: false`, `compact_authority: immutable-untouched`). The corrected content was approved and burned
+under a **new** transaction, so the code is gated — what remains is an unconsumed record, and its disposition
+(abandon, or leave it) belongs to the maintainer.
+
 ## Next
 
-Slice 1b-B1: the edit route itself — load, build the `LoadedDataset` with the explicit extras check (1b.6),
-the fail-closed permission question, the save through `package_revise`, and the conflict notice — with
-1b.7's contract honoured. Then 1b-B2 (the entry points) and slice 2 (resources).
+**1b-B2** — the entry points: the dashboard row and the dataset page. Before that, two things the author's
+decision left pending: the live browser review of `/dashboard/datasets/[id]/edit` (the four refusal states and
+the conflict notice are copy proposed by the agent, and rule 8 says interface copy is the author's call), and
+the unstaged decision on the stuck lineage. Then **slice 2** (resources), whose writes must be built on the
+measured shape above and never on the pattern this slice's own plan assumed.
+
+Other open items, recorded so they are not lost: the unguarded `await response.json()` in `client.ts` (a
+409 with a non-JSON body loses its status and reads as a transport failure), the `CkanPackage` type missing
+`owner_org` (the route reads it through a cast), and `datasetApi.revise` still accepting a hand-built payload
+— caller discipline is the only thing keeping the route on the builder's path.

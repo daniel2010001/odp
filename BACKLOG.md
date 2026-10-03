@@ -17,6 +17,34 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Anotado el 2026-10-03 — el bloque de edición de datasets cerró, y esto queda para después
+
+Lo que salió del cierre de la rebanada 1b-B1 (el detalle y la evidencia viven en
+`openspec/changes/2026-10-02-dataset-edit-and-delete/`). Son cosas **encontradas** durante ese trabajo, no
+pedidos nuevos.
+
+- [ ] **[v1]** **`client.ts` traga el cuerpo del error cuando no es JSON.** `await response.json()` sin guarda:
+  un 409 con cuerpo no-JSON (HTML de un proxy o de un balanceador) lanza `SyntaxError`, se re-lanza como
+  `CkanApiError(…, 0)` y **pierde el status**. Un conflicto real se reporta así como fallo de transporte. No
+  hay pérdida de datos —la escritura no ocurre— pero clasifica mal en silencio, que es la dirección que este
+  proyecto no acepta.
+- [ ] **[v1]** **`CkanPackage` no declara `owner_org`.** La ruta de edición lo lee por un cast, con respaldo en
+  `organization.id`. El arreglo honesto es un campo en `src/lib/types/ckan.ts`.
+- [ ] **[v1+]** **`datasetApi.revise` acepta un payload armado a mano.** Nada obliga a un llamador a pasar por
+  `buildRevisePayload`, así que la disciplina del que llama es lo único que mantiene a la ruta de edición en
+  el camino verificado — la misma forma de agujero que una compuerta castigó un nivel más abajo. Endurecerlo
+  sería que `revise` reciba el paquete crudo (o directamente el resultado del builder).
+- [ ] **[v1]** **El cambio `2026-09-13-publication-lifecycle` está medido sobre CKAN 2.11.6 y el stack corre
+  2.12.0.** Su diseño manda sondear la tabla `package_extra`, que en 2.12 **ya no existe** (`extras` pasó a
+  una columna `jsonb`). Si ese cambio se retoma, sus premisas hay que re-medirlas antes de confiar en ellas.
+- [ ] **[v1]** **La carga de la ruta de edición es estado coordinado a mano** (ocho banderas más un contador de
+  generación) y tres revisiones consecutivas le encontraron un defecto cada una, dos de ellos introducidos por
+  el arreglo anterior. El cierre de la rebanada dejó dos avisos con su tarea; si vuelven a aparecer
+  inconsistencias ahí, la respuesta es **simplificar el estado**, no parchear la bandera.
+- [ ] **[v1]** **Falta el punto de entrada a la edición.** La ruta `/dashboard/datasets/[id]/edit` funciona y
+  está gateada, pero nada en la interfaz lleva a ella: eso es 1b-B2 (la fila del dashboard y la página del
+  dataset).
+
 ## Estado al cierre (2026-10-02) — handoff: el módulo de edición y borrado de datasets, en curso (SDD)
 
 > **`main` = `306e80b` = `origin/main`, 0 sin pushear, árbol limpio.** `pnpm test` **739/739** (50 archivos) ·
