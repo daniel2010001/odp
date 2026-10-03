@@ -106,6 +106,13 @@ describe("DatasetForm — modo creación", () => {
 		expect(screen.queryByRole("button", { name: /quitar etiqueta/i })).not.toBeInTheDocument();
 	});
 
+	it("conserva la sección de recursos: en creación el formulario sí los administra", () => {
+		renderCreate();
+
+		expect(screen.getByRole("heading", { name: /^recursos$/i })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /agregar recurso/i })).toBeInTheDocument();
+	});
+
 	it("sigue al título en el slug y lo desbloquea con «Editar»", async () => {
 		const { container } = renderCreate();
 
@@ -179,6 +186,17 @@ describe("DatasetForm — modo edición", () => {
 		expect(
 			screen.getByText(/mover el dataset a otra organización es una operación aparte/i),
 		).toBeInTheDocument();
+	});
+
+	it("no ofrece crear recursos: el guardado de una edición no los escribirá", () => {
+		// `package_revise` no lleva recursos, así que una alta acá sería una mentira sobre lo que el
+		// formulario hizo. La lista de recursos propia de la edición es de la slice 2.
+		const { container } = renderEdit();
+
+		expect(container.querySelector("ul[aria-label='Recursos agregados']")).toBeNull();
+		expect(screen.queryByRole("heading", { name: /^recursos$/i })).toBeNull();
+		expect(screen.queryByRole("button", { name: /agregar recurso/i })).toBeNull();
+		expect(screen.queryByLabelText(/nombre del recurso/i)).toBeNull();
 	});
 
 	it("en edición manda la organización dueña, aunque la lista traiga otra sola", () => {

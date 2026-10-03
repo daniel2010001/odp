@@ -142,6 +142,12 @@ interface Props {
 	submitError?: string | null;
 	uploadFinished?: boolean;
 	createdDataset?: CkanPackage | null;
+	/**
+	 * El formulario quedó **bloqueado**: no puede volver a guardar ni cancelar hasta que quien lo usa lo
+	 * recargue. Es el caso del conflicto de edición, donde el formulario ya no conoce el estado del
+	 * dataset y volver a guardar pisaría un cambio ajeno.
+	 */
+	locked?: boolean;
 
 	// Callbacks. El contenedor conserva la orquestación (crear el dataset, subir los recursos y
 	// navegar); el formulario valida, dibuja y avisa.
@@ -165,6 +171,7 @@ let {
 	submitError = $bindable<string | null>(null),
 	uploadFinished = false,
 	createdDataset = null,
+	locked = false,
 	onsubmit,
 	oncancel = () => {},
 	onretry = () => {},
@@ -484,7 +491,7 @@ function mapZodErrors(
 }
 
 function handleSubmit() {
-	if (submitting) return;
+	if (submitting || locked) return;
 
 	const data = validation.data;
 	if (!validation.success || !data) {
@@ -958,6 +965,9 @@ const hayTitulo = $derived(title.trim().length > 0);
 		</section>
 
 		<!-- Recursos: mini-form de alta/edición + lista compacta -->
+		<!-- En edición la sección NO se rinde: `package_revise` no escribe recursos, así que ofrecer una alta
+		     sería una mentira sobre lo que el guardado hizo. La lista propia de la edición llega en la slice 2. -->
+		{#if mode !== "edit"}
 		<section class="space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
@@ -1316,6 +1326,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 				</div>
 			{/if}
 		</section>
+		{/if}
 
 		<!-- Fallo parcial: recursos que no se pudieron adjuntar -->
 		{#if uploadFinished && failedResources.length > 0}
@@ -1523,7 +1534,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 		<div class="space-y-2">
 			<button
 				type="submit"
-				disabled={submitting}
+				disabled={submitting || locked}
 				aria-busy={submitting ? "true" : undefined}
 				class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 			>
@@ -1542,8 +1553,10 @@ const hayTitulo = $derived(title.trim().length > 0);
 				href={mode === "edit" && initial.name ? `/dataset/${initial.name}` : "/dashboard"}
 				onclick={(event) => {
 					event.preventDefault();
+					if (locked) return;
 					oncancel();
 				}}
+				aria-disabled={locked || undefined}
 				class="block rounded-lg border border-input bg-background px-4 py-2.5 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			>
 				Cancelar
