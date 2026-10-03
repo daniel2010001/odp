@@ -7,6 +7,7 @@ import {
 	Database,
 	Inbox,
 	Lock,
+	Pencil,
 	Plus,
 	RotateCw,
 	ShieldCheck,
@@ -31,7 +32,7 @@ import { endInvalidSession } from "$lib/session-guard";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
-import { formatDate } from "$lib/utils/ckan";
+import { formatDate, ownerOrgIdOf } from "$lib/utils/ckan";
 
 // ─── Estado ──────────────────────────────────────────────────────────
 // Tamaño de página acordado para «Mis datasets»: 20, igual que el default de `package_search`.
@@ -57,6 +58,9 @@ let puedeCrear = $state(false);
 // ¿Se pudo hacer la pregunta de permiso? Un fallo (o la pregunta todavía en vuelo) deja el asunto
 // abierto, así que la copia no puede afirmar que falte un rol.
 let permisoResuelto = $state(false);
+// Ids donde el usuario puede editar datasets, en **una** llamada bulk. Fail closed: arranca vacío y
+// sólo `known` lo llena; `unknown` (no se pudo preguntar) se trata como el conjunto vacío.
+let orgsEditables = $state<string[]>([]);
 
 // ─── Cliente CKAN autenticado ────────────────────────────────────────
 function makeClient() {
@@ -106,6 +110,7 @@ async function iniciarPanel() {
 	void loadDatasets();
 	void loadOrganizations();
 	void loadCreatePermission();
+	void loadEditPermission();
 }
 
 async function loadDatasets(permitirCorreccion = true) {
@@ -183,7 +188,17 @@ async function loadCreatePermission() {
 	}
 }
 
+// Bulk, una sola llamada para todas las filas. `unknown` se trata como «no podés»: fail closed.
+async function loadEditPermission() {
+	const resultado = await createOrganizationApi(makeClient()).listUpdatableOrganizationIds();
+	orgsEditables = resultado.state === "known" ? resultado.ids : [];
+}
+
 // ─── ¿Se puede ofrecer crear? ────────────────────────────────────────
+// El contraste es contra el `owner_org` de la fila, no contra la lista amplia de membresías.
+function puedeEditarDataset(paquete: CkanPackage): boolean {
+	return orgsEditables.includes(ownerOrgIdOf(paquete));
+}
 // Una sola condición para las tres superficies que ofrecen crear (la grilla, la barra pegajosa y
 // el CTA del estado vacío). NO alcanza con pertenecer a una organización: medido contra CKAN
 // (2026-09-20), un `capacity: "member"` figura en `organization_list_for_user {}` pero no en
@@ -503,10 +518,10 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 					{:else}
 						<ul class="space-y-1">
 							{#each datasets as dataset (dataset.id)}
-								<li>
+								<li class="flex items-center gap-2">
 									<a
 										href={`/dataset/${dataset.name}`}
-										class="group flex items-center gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+										class="group flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 									>
 										<span
 											class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary"
@@ -538,6 +553,17 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 											aria-hidden="true"
 										/>
 									</a>
+									<!-- Fail closed: sin respuesta afirmativa no hay enlace. `unknown` y el conjunto vacío se
+									     tratan igual; CKAN es la frontera de seguridad, no el botón oculto. -->
+									{#if puedeEditarDataset(dataset)}
+										<a
+											href={`/dashboard/datasets/${dataset.name}/edit`}
+											class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											<Pencil class="size-4" aria-hidden="true" />
+											Editar
+										</a>
+									{/if}
 								</li>
 							{/each}
 						</ul>

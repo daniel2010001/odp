@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 	currentUser: vi.fn(),
 	listForUser: vi.fn(),
 	canCreateDataset: vi.fn(),
+	listUpdatableOrganizationIds: vi.fn(),
 	sessionCheck: vi.fn(),
 }));
 
@@ -25,6 +26,7 @@ vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({
 		listForUser: mocks.listForUser,
 		canCreateDataset: mocks.canCreateDataset,
+		listUpdatableOrganizationIds: mocks.listUpdatableOrganizationIds,
 	}),
 }));
 // La sonda de sesión se controla por test: su veredicto decide qué se carga y qué se ofrece.
@@ -55,7 +57,7 @@ function makeResource(overrides: Partial<CkanResource> = {}): CkanResource {
 	};
 }
 
-function makePackage(overrides: Partial<CkanPackage> = {}): CkanPackage {
+function makePackage(overrides: Partial<CkanPackage> & { owner_org?: string } = {}): CkanPackage {
 	return {
 		id: "pkg-1",
 		name: "matricula-estudiantil-2026",
@@ -103,6 +105,8 @@ beforeEach(() => {
 	// La compuerta del panel pregunta lo mismo que el asistente; por defecto puede crear. Los tests
 	// que representan un `member` la pisan con `false`.
 	mocks.canCreateDataset.mockResolvedValue(true);
+	// El bulk de edición arranca en fail closed: `unknown` no habilita ninguna fila.
+	mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
 	// Por defecto la sesión vive y el llamador es el usuario autenticado; los tests que necesitan
 	// una sesión muerta o inconclusa pisan este veredicto.
 	mocks.sessionCheck.mockResolvedValue({ state: "alive", user: baseUser });
@@ -636,5 +640,60 @@ describe("Paginación de «Mis datasets»", () => {
 		// contraste importa: con `pagina * PAGE_SIZE > totalDatasets` en vez de `>=`, en la página 7 el
 		// botón quedaría habilitado y esta aserción falla.
 		expect(screen.getByRole("button", { name: "Página siguiente" })).toBeDisabled();
+	});
+});
+
+describe("Acceso a la edición desde «Mis datasets»", () => {
+	it("muestra «Editar» apuntando a la ruta de edición cuando el dataset es de una organización editable", async () => {
+		mocks.currentUser.mockResolvedValue({
+			count: 1,
+			results: [makePackage({ owner_org: "org-1" })],
+		});
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		const editar = await screen.findByRole("link", { name: /editar/i });
+		expect(editar).toHaveAttribute("href", "/dashboard/datasets/matricula-estudiantil-2026/edit");
+	});
+
+	it("no muestra «Editar» en la fila cuya organización no es editable", async () => {
+		mocks.currentUser.mockResolvedValue({
+			count: 2,
+			results: [
+				makePackage({ id: "pkg-1", name: "editable-1", title: "Editable", owner_org: "org-1" }),
+				makePackage({
+					id: "pkg-2",
+					name: "solo-lectura",
+					title: "Solo lectura",
+					owner_org: "org-2",
+				}),
+			],
+		});
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		// La fila editable prueba que el bulk resolvió; la otra exige la discriminación por `owner_org`.
+		const enlaces = await screen.findAllByRole("link", { name: /editar/i });
+		expect(enlaces).toHaveLength(1);
+		expect(enlaces[0]).toHaveAttribute("href", "/dashboard/datasets/editable-1/edit");
+	});
+
+	it("no muestra «Editar» cuando la pregunta no se pudo hacer (fail closed)", async () => {
+		mocks.currentUser.mockResolvedValue({
+			count: 1,
+			results: [makePackage({ owner_org: "org-1" })],
+		});
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
+		auth.login("tok-123", baseUser);
+
+		render(Dashboard);
+
+		await screen.findByRole("link", { name: /matrícula estudiantil 2026/i });
+		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
+		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
 	});
 });

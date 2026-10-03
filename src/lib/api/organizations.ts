@@ -90,6 +90,24 @@ export function createOrganizationApi(client: CkanClient) {
 		},
 
 		/**
+		 * Organizaciones donde el usuario puede editar datasets, en **una** llamada (bulk de
+		 * `canUpdateDatasetIn`, sin N+1). Fail closed, con tres estados: `known` trae el conjunto
+		 * explícito —puede ser vacío— y `unknown` es el tercero, que **sólo** nace de un error lanzado
+		 * (la respuesta de CKAN no distingue «no podés editar nada» de «esa pregunta no significaba
+		 * nada»). El llamador trata `unknown` como «no podés» y no ofrece ninguna acción.
+		 */
+		async listUpdatableOrganizationIds(): Promise<UpdatableOrganizations> {
+			try {
+				const result = await client.post<CkanOrganization[]>("organization_list_for_user", {
+					permission: "update_dataset",
+				});
+				return { state: "known", ids: result.map((organization) => organization.id) };
+			} catch {
+				return { state: "unknown" };
+			}
+		},
+
+		/**
 		 * Organizaciones donde el usuario actual tiene rol.
 		 *
 		 * Ojo: esta es la pregunta **amplia** (toda membresía, con su `capacity`). Para decidir si se
@@ -131,5 +149,8 @@ export function createOrganizationApi(client: CkanClient) {
 }
 
 export type UpdateDatasetPermission = "may" | "may_not" | "unknown";
+
+/** Respuesta bulk: conjunto explícito (`known`, puede ser vacío) o `unknown` (no se pudo preguntar). */
+export type UpdatableOrganizations = { state: "known"; ids: string[] } | { state: "unknown" };
 
 export type OrganizationApi = ReturnType<typeof createOrganizationApi>;

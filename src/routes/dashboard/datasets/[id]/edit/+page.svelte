@@ -16,6 +16,7 @@ import { endInvalidSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanLicense, CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import { ownerOrgIdOf } from "$lib/utils/ckan";
 import { buildRevisePayload, toLoadedDataset } from "$lib/utils/dataset-payload";
 import { SUMMARY_EXTRA_KEY } from "$lib/utils/dataset-summary";
 
@@ -53,17 +54,6 @@ let access: AccessContext = "unknown";
 
 function makeClient() {
 	return createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
-}
-
-/**
- * Lee el `owner_org` del paquete. No está declarado en `CkanPackage` —el tipo es incompleto—, pero
- * el paquete real lo trae y es el **id** de la organización (medido: `owner_org === organization.id`),
- * que es exactamente lo que `canUpdateDatasetIn` espera.
- */
-function ownerOrgOf(paquete: CkanPackage): string {
-	const crudo = (paquete as { owner_org?: unknown }).owner_org;
-	if (typeof crudo === "string" && crudo !== "") return crudo;
-	return paquete.organization?.id ?? "";
 }
 
 // El id de la ruta es la dependencia de la carga: si SvelteKit reutiliza este componente para una
@@ -152,7 +142,7 @@ async function cargar(generation: number = ++loadId) {
 	}
 
 	pkg = paquete;
-	ownerOrgId = ownerOrgOf(paquete);
+	ownerOrgId = ownerOrgIdOf(paquete);
 	// El formulario resuelve el título de la organización por `org.name`; el paquete la embebe.
 	organizations = paquete.organization ? [paquete.organization] : [];
 	initial = {

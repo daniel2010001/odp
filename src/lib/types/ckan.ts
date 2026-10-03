@@ -156,6 +156,8 @@ export interface CkanPackage {
 	private: boolean;
 	state: "active" | "deleted" | "draft";
 	organization?: CkanOrganization;
+	/** Id de la organización dueña (UUID). La API lo devuelve; opcional porque hay fixtures sin él. */
+	owner_org?: string;
 	resources: CkanResource[];
 	tags: CkanTag[];
 	groups: CkanGroup[];

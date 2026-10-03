@@ -8,6 +8,7 @@ import {
 	Copy,
 	Database,
 	Link2,
+	Pencil,
 	Shield,
 	User,
 } from "@lucide/svelte";
@@ -23,6 +24,7 @@ import {
 	failureActions,
 	isDefinitive,
 } from "$lib/api/failure";
+import { createOrganizationApi } from "$lib/api/organizations";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -34,7 +36,7 @@ import { auth } from "$lib/stores/auth";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
-import { formatDate } from "$lib/utils/ckan";
+import { formatDate, ownerOrgIdOf } from "$lib/utils/ckan";
 import { renderMarkdown } from "$lib/utils/markdown";
 
 // ─── State ───────────────────────────────────────────────────────
@@ -61,6 +63,9 @@ let invalidParams = $state(false);
 // vuelve a navegar.
 let expelled = $state(false);
 
+// Ids donde el usuario puede editar datasets (bulk). Fail closed: arranca vacío y sólo `known` lo llena.
+let orgsEditables = $state<string[]>([]);
+
 // ─── ID from URL ────────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
 
@@ -80,6 +85,7 @@ async function loadDataset() {
 	loading = true;
 	failure = null;
 	dataset = null;
+	orgsEditables = [];
 
 	const token = get(auth).token;
 	// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
@@ -131,6 +137,18 @@ async function loadDataset() {
 	} finally {
 		loading = false;
 	}
+
+	// Permiso en su propia llamada: un fallo de la pregunta no puede tumbar el dataset que sí cargó.
+	if (dataset) {
+		await loadEditPermission();
+	}
+}
+
+// Bulk de permiso de edición. `unknown` se trata como «no podés»: fail closed.
+async function loadEditPermission() {
+	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
+	orgsEditables = resultado.state === "known" ? resultado.ids : [];
 }
 
 // ─── Effect: load on mount ───────────────────────────────────────
@@ -254,6 +272,12 @@ const orgHref = $derived(
 		? `/organization/${encodeURIComponent(dataset.organization.name)}`
 		: null,
 );
+
+// El enlace cuelga del `owner_org` de este dataset, contrastado contra el conjunto bulk.
+const puedeEditarDataset = $derived.by(() => {
+	if (!dataset) return false;
+	return orgsEditables.includes(ownerOrgIdOf(dataset));
+});
 
 // ─── Technical metadata table ───────────────────────────────────
 // La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
@@ -382,7 +406,7 @@ async function handleCopyLink() {
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 				<!-- Title + copy link -->
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center gap-3">
 					<button
 						type="button"
 						onclick={handleCopyLink}
@@ -401,6 +425,17 @@ async function handleCopyLink() {
 					>
 						{dataset.title || dataset.name}
 					</h1>
+					<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
+					     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
+					{#if puedeEditarDataset}
+						<a
+							href={`/dashboard/datasets/${dataset.name}/edit`}
+							class="inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						>
+							<Pencil class="size-4" aria-hidden="true" />
+							Editar
+						</a>
+					{/if}
 				</div>
 
 				<!-- Subtitle: updated -->

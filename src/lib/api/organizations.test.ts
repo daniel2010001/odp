@@ -186,3 +186,44 @@ describe("createOrganizationApi.canCreateDataset", () => {
 		expect(params).toEqual({ permission: "create_dataset" });
 	});
 });
+
+describe("createOrganizationApi.listUpdatableOrganizationIds", () => {
+	// Bulk fail closed: conjunto explícito (que puede ser vacío) o `unknown`, que sólo nace de un error.
+	it("devuelve los ids donde el usuario puede editar datasets, en una sola llamada", async () => {
+		const { client, post } = makeClient({
+			organization_list_for_user: [
+				makeOrg({ id: "org-1", capacity: "editor" }),
+				makeOrg({ id: "org-2", capacity: "admin" }),
+			],
+		});
+
+		const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
+
+		expect(resultado).toEqual({ state: "known", ids: ["org-1", "org-2"] });
+		expect(post.mock.calls).toHaveLength(1);
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("organization_list_for_user");
+		expect(params).toEqual({ permission: "update_dataset" });
+	});
+
+	it("devuelve un conjunto vacío —no 'unknown'— cuando CKAN responde []", async () => {
+		const { client } = makeClient({ organization_list_for_user: [] });
+
+		const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
+
+		// `[]` es una respuesta válida: significa «no puede editar en ninguna», nunca «no se pudo preguntar».
+		expect(resultado).toEqual({ state: "known", ids: [] });
+	});
+
+	it("devuelve 'unknown' cuando la llamada falla (transporte o 403)", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: () => {
+				throw new Error("403");
+			},
+		});
+
+		const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
+
+		expect(resultado).toEqual({ state: "unknown" });
+	});
+});

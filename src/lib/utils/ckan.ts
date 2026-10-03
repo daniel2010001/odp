@@ -1,6 +1,6 @@
 // Utilidades para trabajar con la API de CKAN
 
-import type { CkanExtra } from "$lib/types/ckan";
+import type { CkanExtra, CkanPackage } from "$lib/types/ckan";
 
 /** Convertir objeto plano a extras CKAN */
 export function toExtras(obj: Record<string, string | undefined>): CkanExtra[] {
@@ -32,6 +32,24 @@ function escapeFqValue(value: string): string {
 		return `"${value.replace(/"/g, '\\"')}"`;
 	}
 	return value;
+}
+
+/**
+ * Id de la organización dueña de un paquete: `owner_org` (UUID) y, si el campo opcional falta, el id
+ * de la organización embebida. Devuelve `""` cuando no hay ninguno, que no coincide con ningún id.
+ *
+ * Los dos valores se comprueban en **runtime** aunque el tipo los declare: el paquete llega de la red
+ * y el tipo se borra. Un valor que no sea cadena no se propaga — la ruta de edición tenía ese chequeo
+ * antes de que este helper unificara los tres llamadores, y unificarlos no puede perderlo.
+ */
+export function ownerOrgIdOf(pkg: CkanPackage): string {
+	const crudo = (pkg as { owner_org?: unknown }).owner_org;
+	if (typeof crudo === "string" && crudo !== "") return crudo;
+
+	const orgId = (pkg as { organization?: { id?: unknown } }).organization?.id;
+	if (typeof orgId === "string" && orgId !== "") return orgId;
+
+	return "";
 }
 
 /** Parsear fecha ISO a formato legible */

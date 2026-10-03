@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 	createCkanClient: vi.fn<(config: ApiClientConfig) => object>(),
 	showDataset: vi.fn(),
 	getMockDatasetById: vi.fn(),
+	listUpdatableOrganizationIds: vi.fn(),
 	check: vi.fn(),
 }));
 
@@ -29,6 +30,11 @@ vi.mock("$lib/env", () => ({
 }));
 vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
 vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.showDataset }) }));
+vi.mock("$lib/api/organizations", () => ({
+	createOrganizationApi: () => ({
+		listUpdatableOrganizationIds: mocks.listUpdatableOrganizationIds,
+	}),
+}));
 vi.mock("$lib/mock/data", () => ({ getMockDatasetById: mocks.getMockDatasetById }));
 // La sonda de sesión se inyecta como mock: la decisión `resolveUnauthorized` que la usa sigue
 // siendo la real, así que la expulsión y su orden se miden de verdad.
@@ -52,7 +58,7 @@ function makeUser(): CkanUser {
 	};
 }
 
-function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
+function makeDataset(overrides: Partial<CkanPackage> & { owner_org?: string } = {}): CkanPackage {
 	return {
 		id: "pkg-1",
 		name: "matricula-2026",
@@ -94,6 +100,8 @@ beforeEach(() => {
 	mocks.getMockDatasetById.mockReturnValue(
 		makeDataset({ id: "mock-0", name: "mock-0", title: MOCK_TITLE }),
 	);
+	// Fail closed: sin respuesta explícita, la página no ofrece editar.
+	mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
 	// Sonda por defecto no concluyente: sólo los tests de sesión viva/muerta la cambian.
 	mocks.check.mockResolvedValue({
 		state: "inconclusive",
@@ -601,5 +609,39 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 			expect(code).not.toBeNull();
 			expect((code as HTMLElement).className).toContain("break-all");
 		}
+	});
+});
+
+describe("Página de dataset — acceso a la edición", () => {
+	it("muestra «Editar» hacia la ruta de edición cuando la organización es editable", async () => {
+		mocks.showDataset.mockResolvedValue(makeDataset({ owner_org: "org-1" }));
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+
+		render(DatasetPage);
+
+		const editar = await screen.findByRole("link", { name: /editar/i });
+		expect(editar).toHaveAttribute("href", "/dashboard/datasets/matricula-2026/edit");
+	});
+
+	it("no muestra «Editar» cuando la organización del dataset no es editable", async () => {
+		mocks.showDataset.mockResolvedValue(makeDataset({ owner_org: "org-2" }));
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
+		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+	});
+
+	it("no muestra «Editar» cuando la pregunta no se pudo hacer (fail closed)", async () => {
+		mocks.showDataset.mockResolvedValue(makeDataset({ owner_org: "org-1" }));
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
+		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
 	});
 });
