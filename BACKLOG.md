@@ -47,6 +47,26 @@ pedidos nuevos.
   está gateada, pero nada en la interfaz lleva a ella: eso es 1b-B2 (la fila del dashboard y la página del
   dataset).
 
+## Anotado el 2026-10-03 — hallazgos de la sesión paralela de pulido de UI, traídos a `main`
+
+La sesión paralela (`feat/ui-polish-sweep`, sobre `9bf844a`) lleva sus propios ítems en su rama, y **esa rama
+todavía no está mergeada**. Sus hallazgos no pueden vivir sólo ahí, así que acá va la copia durable con lo
+mínimo para actuar. Al mergear, las dos secciones quedan yuxtapuestas y una de las dos se borra; **el registro
+de medición completo es el suyo**.
+
+- [ ] **[v1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
+  texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
+  **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
+  arreglo son tokens, así que la decisión es del autor. Reproducir: `/dev/error?theme=oscuro`.
+  **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
+  texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
+  arbitrario: es el tamaño del texto.
+  *Medido por la sesión paralela con su instrumento de contraste (3.72) y recomputado acá sobre los tokens de
+  `app.css` con un instrumento propio calibrado (autotest blanco/negro = 21.000): **3.733:1**. El mismo par
+  en modo claro da **5.284:1** y pasa — el control de que el cálculo no está sesgado hacia abajo.*
+- [ ] **[v1+]** **`pnpm lint` sale con 254 de forma transitoria.** Medido por la sesión paralela; **no lo
+  reproduje acá**. Es ruido de herramienta, no del código: `biome check` sobre archivos concretos sale 0.
+
 ## Estado al cierre (2026-10-02) — handoff: el módulo de edición y borrado de datasets, en curso (SDD)
 
 > **`main` = `306e80b` = `origin/main`, 0 sin pushear, árbol limpio.** `pnpm test` **739/739** (50 archivos) ·
