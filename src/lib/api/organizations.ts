@@ -54,6 +54,42 @@ export function createOrganizationApi(client: CkanClient) {
 		},
 
 		/**
+		 * ¿Puede el usuario actual editar los datasets de esta organización?
+		 *
+		 * Tres estados cerrados y **fail-closed**: `unknown` significa *no* se puede. Quien consuma
+		 * esta respuesta debe tratar `unknown` como `may_not`.
+		 *
+		 * Es la misma pregunta que hace la acción exigida — `organization_list_for_user` con
+		 * `permission: "update_dataset"`, el mismo tipo de llamada que `canCreateDataset()` usa con
+		 * `create_dataset`. Medido contra CKAN 2.12.0 (2026-10-03): un `editor` de la organización la
+		 * recupera en la lista; un `member` no; un permiso inexistente devuelve `[]`. Verificado a
+		 * nivel de rol: `get_roles_with_permission('update_dataset')` → `['admin','editor']`.
+		 *
+		 * `[]` (o una lista que no contiene a `orgId`) es `may_not`, **nunca** `unknown`: una lista
+		 * vacía es una respuesta válida. El tercer estado sólo puede nacer de un error lanzado
+		 * (transporte, 403), porque la respuesta no trae ninguna forma de error, ningún `__type`, que
+		 * separe «no podés editar nada» de «esa pregunta no significaba nada».
+		 *
+		 * Quirk medido que no cambia el resultado: para un **sysadmin** CKAN ignora por completo el
+		 * argumento `permission` y devuelve todas las organizaciones (`ckan/logic/action/get.py:682`,
+		 * `if sysadmin: …`). El sysadmin igual obtiene `may`, pero lo produce ese atajo, no el filtro.
+		 *
+		 * En este stack `ckan.auth.allow_dataset_collaborators` es **false** (verificado en el ini, el
+		 * entorno y el proceso vivo), así que la limitación declarada sobre colaboradores nativos no
+		 * aplica aquí.
+		 */
+		async canUpdateDatasetIn(orgId: string): Promise<UpdateDatasetPermission> {
+			try {
+				const result = await client.post<CkanOrganization[]>("organization_list_for_user", {
+					permission: "update_dataset",
+				});
+				return result.some((organization) => organization.id === orgId) ? "may" : "may_not";
+			} catch {
+				return "unknown";
+			}
+		},
+
+		/**
 		 * Organizaciones donde el usuario actual tiene rol.
 		 *
 		 * Ojo: esta es la pregunta **amplia** (toda membresía, con su `capacity`). Para decidir si se
@@ -68,7 +104,7 @@ export function createOrganizationApi(client: CkanClient) {
 		 * monograma derivado del nombre. La sigla es cosmética y no debe tumbar el panel.
 		 */
 		async listForUser(
-			permission?: "create_dataset" | "admin" | "editor" | "member",
+			permission?: "create_dataset" | "update_dataset" | "admin" | "editor" | "member",
 		): Promise<CkanOrganization[]> {
 			const organizations = await client.post<CkanOrganization[]>("organization_list_for_user", {
 				permission,
@@ -93,5 +129,7 @@ export function createOrganizationApi(client: CkanClient) {
 		},
 	};
 }
+
+export type UpdateDatasetPermission = "may" | "may_not" | "unknown";
 
 export type OrganizationApi = ReturnType<typeof createOrganizationApi>;

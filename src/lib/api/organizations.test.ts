@@ -93,6 +93,66 @@ describe("createOrganizationApi.listForUser", () => {
 	});
 });
 
+describe("createOrganizationApi.canUpdateDatasetIn", () => {
+	// La misma disciplina que `canCreateDataset`, pero para editar. Tres estados cerrados, y el
+	// tercero (`unknown`) sólo puede nacer de un error lanzado: la respuesta no distingue «no podés
+	// editar nada» de «esa pregunta no significaba nada». El llamador lo trata como «no podés».
+	it("devuelve 'may' cuando la organización consultada vuelve en la lista filtrada", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: [makeOrg({ id: "org-1", capacity: "editor" })],
+		});
+
+		const permiso = await createOrganizationApi(client).canUpdateDatasetIn("org-1");
+
+		expect(permiso).toBe("may");
+	});
+
+	it("devuelve 'may_not' cuando la organización consultada no vuelve", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: [makeOrg({ id: "org-otra", capacity: "editor" })],
+		});
+
+		const permiso = await createOrganizationApi(client).canUpdateDatasetIn("org-1");
+
+		expect(permiso).toBe("may_not");
+	});
+
+	it("devuelve 'may_not' (nunca el tercer estado) cuando CKAN responde []", async () => {
+		const { client } = makeClient({ organization_list_for_user: [] });
+
+		const permiso = await createOrganizationApi(client).canUpdateDatasetIn("org-1");
+
+		expect(permiso).toBe("may_not");
+	});
+
+	it("devuelve 'unknown' cuando la llamada falla (transporte o 403)", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: () => {
+				throw new Error("403");
+			},
+		});
+
+		const permiso = await createOrganizationApi(client).canUpdateDatasetIn("org-1");
+
+		expect(permiso).toBe("unknown");
+	});
+
+	it("fija el permiso literal 'update_dataset' que se manda a la acción", async () => {
+		const { client, post } = makeClient({
+			organization_list_for_user: [makeOrg({ id: "org-1" })],
+		});
+
+		await createOrganizationApi(client).canUpdateDatasetIn("org-1");
+
+		// Único instrumento que atrapa un typo: para un no-sysadmin un permiso inexistente devuelve
+		// [] con HTTP 200, o sea falla cerrado y en silencio (nadie podría editar, sin error alguno).
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("organization_list_for_user");
+		expect(params.permission).toBe("update_dataset");
+		expect(params).toEqual({ permission: "update_dataset" });
+	});
+});
+
 describe("createOrganizationApi.canCreateDataset", () => {
 	// La compuerta del panel no puede reusar la lista amplia de membresías: una con
 	// `capacity: "member"` pertenece a una organización pero no puede crear datasets. Esta consulta
