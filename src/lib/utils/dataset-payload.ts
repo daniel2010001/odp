@@ -96,6 +96,11 @@ export interface LoadedDataset {
 	extras: readonly CkanExtra[];
 }
 
+/** Los tres campos que el builder lee del paquete cargado: se tipa sobre la **fuente cruda**, no
+ * sobre el `LoadedDataset` ya verificado, porque los datos llegan de la red y el tipo se borra —
+ * eso es lo que hace que el chequeo de runtime signifique algo. */
+export type LoadedDatasetSource = Pick<CkanPackage, "id" | "metadata_modified" | "extras">;
+
 /** Argumentos de `package_revise`: el `match` afirma el estado y el `update` escribe lo parcial. */
 export interface RevisePayload {
 	match: { id: string; metadata_modified: string };
@@ -119,7 +124,7 @@ export type LoadedDatasetFailure =
  * de `unknown` para que el compilador no vuelva vacuo el guard.
  */
 export function toLoadedDataset(
-	pkg: CkanPackage,
+	pkg: LoadedDatasetSource,
 ): { ok: true; dataset: LoadedDataset } | { ok: false; reason: LoadedDatasetFailure } {
 	// Nunca se sustituye la lista ausente por `[]`: con la lista ausente el builder leería un
 	// resumen existente como inexistente y lo **agregaría con `extend`** en vez de actualizarlo,
@@ -170,9 +175,17 @@ export function buildRevisePayload({
 	dataset,
 	input,
 }: {
-	dataset: LoadedDataset;
+	dataset: LoadedDatasetSource;
 	input: DatasetEditInput;
 }): RevisePayload {
+	// Lanza en vez de devolver un resultado: llegar acá es un error de programación —un caller esquivó el
+	// camino verificado— y la falla evitada (resumen duplicado, `match` sin `metadata_modified`) es corrupción silenciosa.
+	const verificado = toLoadedDataset(dataset);
+	if (!verificado.ok) {
+		throw new Error(`buildRevisePayload: el dataset cargado no sirve (${verificado.reason})`);
+	}
+	const cargado = verificado.dataset;
+
 	const update: Record<string, unknown> = {
 		title: input.title.trim(),
 		name: input.name.trim(),
@@ -185,7 +198,7 @@ export function buildRevisePayload({
 	}
 
 	const resumen = input.summary?.trim() ?? "";
-	const index = dataset.extras.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY);
+	const index = cargado.extras.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY);
 	if (index >= 0) {
 		// Con extra cargado, el valor (o la cadena vacía del borrado) va contra su índice.
 		update[`update__extras__${index}__value`] = resumen;
@@ -196,7 +209,7 @@ export function buildRevisePayload({
 	}
 
 	return {
-		match: { id: dataset.id, metadata_modified: dataset.metadata_modified },
+		match: { id: cargado.id, metadata_modified: cargado.metadata_modified },
 		update,
 	};
 }

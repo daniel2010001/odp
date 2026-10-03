@@ -466,6 +466,26 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 			metadata_modified: "2026-10-01T09:30:00.000000",
 		});
 	});
+
+	// La verificación es un paso **propio** del builder: ningún caller arma un `update` sin pasar
+	// por ella. El cast mantiene representable lo que la red puede entregar cuando el tipo se borró.
+	const fuenteCruda = (overrides: Record<string, unknown> = {}) =>
+		({
+			id: "3f2a1b0c-1111-2222-3333-444455556666",
+			metadata_modified: "2026-10-01T09:30:00.000000",
+			extras: [{ key: SUMMARY_EXTRA_KEY, value: "Resumen viejo" }],
+			...overrides,
+		}) as unknown as Parameters<typeof buildRevisePayload>[0]["dataset"];
+
+	it.each([
+		["metadata_modified", "revision_unavailable"],
+		["extras", "extras_unavailable"],
+		["id", "identity_unavailable"],
+	])("rechaza `%s` inválido con `%s`, sin armar el `update`", (campo, motivo) => {
+		expect(() =>
+			buildRevisePayload({ dataset: fuenteCruda({ [campo]: "" }), input: edicion }),
+		).toThrow(new RegExp(motivo));
+	});
 });
 
 describe("buildPackagePayload — resumen (RF-40)", () => {
