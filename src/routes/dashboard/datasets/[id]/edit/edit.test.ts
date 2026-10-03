@@ -9,6 +9,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
+import type { CkanClient } from "$lib/api/client";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanLicense, CkanOrganization, CkanPackage, CkanUser } from "$lib/types/ckan";
@@ -20,7 +21,7 @@ const pageStore = page as unknown as {
 
 const mocks = vi.hoisted(() => ({
 	show: vi.fn(),
-	revise: vi.fn(),
+	post: vi.fn(),
 	tagSuggestions: vi.fn(),
 	canUpdateDatasetIn: vi.fn(),
 	licenseList: vi.fn(),
@@ -34,9 +35,12 @@ vi.mock("$lib/api/datasets", async () => {
 	const actual = await vi.importActual<typeof import("$lib/api/datasets")>("$lib/api/datasets");
 	return {
 		...actual,
+		// El guardado corre el wrapper REAL contra un `post` doblado en el borde HTTP, que devuelve el
+		// sobre medido de `package_revise` (`result.package`). Doblar al wrapper con un paquete pelado
+		// bendecía el `undefined` en vez de verificarlo.
 		createDatasetApi: () => ({
 			show: mocks.show,
-			revise: mocks.revise,
+			revise: actual.createDatasetApi({ post: mocks.post } as unknown as CkanClient).revise,
 			tagSuggestions: mocks.tagSuggestions,
 		}),
 	};
@@ -144,7 +148,7 @@ beforeEach(() => {
 		url: new URL("http://localhost/dashboard/datasets/pkg-1/edit"),
 	});
 	mocks.show.mockResolvedValue(makeDataset());
-	mocks.revise.mockResolvedValue(makeDataset());
+	mocks.post.mockResolvedValue({ package: makeDataset() });
 	mocks.tagSuggestions.mockResolvedValue([]);
 	mocks.canUpdateDatasetIn.mockResolvedValue("may");
 	mocks.licenseList.mockResolvedValue([license]);
@@ -222,12 +226,12 @@ describe("Ruta de edición de dataset", () => {
 
 		await fireEvent.submit(getForm(container));
 
-		await waitFor(() => expect(mocks.revise).toHaveBeenCalled());
-		const payload = mocks.revise.mock.calls[0][0] as {
-			match: Record<string, unknown>;
-			filter: string[];
-			update: Record<string, unknown>;
-		};
+		await waitFor(() => expect(mocks.post).toHaveBeenCalled());
+		const [action, payload] = mocks.post.mock.calls[0] as [
+			string,
+			{ match: Record<string, unknown>; filter: string[]; update: Record<string, unknown> },
+		];
+		expect(action).toBe("package_revise");
 		expect(payload.match).toEqual({ id: "pkg-1", metadata_modified: METADATA_MODIFIED });
 		// El `filter` descarta la lista guardada para que la nuestra se instale tal cual, y el
 		// resumen cargado se reescribe dentro de la lista completa: medido contra CKAN 2.12.0,
@@ -242,7 +246,7 @@ describe("Ruta de edición de dataset", () => {
 
 	it("con un conflicto rinde el aviso y deja el envío deshabilitado", async () => {
 		auth.login("tok-123", user);
-		mocks.revise.mockRejectedValue(
+		mocks.post.mockRejectedValue(
 			new CkanApiError("HTTP 409", 409, "Validation Error", { match: ["metadata_modified"] }),
 		);
 
@@ -262,7 +266,7 @@ describe("Ruta de edición de dataset", () => {
 
 	it("con un fallo de guardado que no es conflicto dice el error en vez de callarse", async () => {
 		auth.login("tok-123", user);
-		mocks.revise.mockRejectedValue(new CkanApiError("Boom", 500));
+		mocks.post.mockRejectedValue(new CkanApiError("Boom", 500));
 
 		const { container } = renderPage();
 		await screen.findByLabelText(/título/i);
@@ -324,8 +328,9 @@ describe("Ruta de edición de dataset", () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(mocks.canUpdateDatasetIn).toHaveBeenCalledTimes(1);
 		await fireEvent.submit(getForm(container));
-		await waitFor(() => expect(mocks.revise).toHaveBeenCalled());
-		expect((mocks.revise.mock.calls[0][0] as { match: { id: string } }).match.id).toBe("pkg-2");
+		await waitFor(() => expect(mocks.post).toHaveBeenCalled());
+		const [, reviseParams] = mocks.post.mock.calls[0] as [string, { match: { id: string } }];
+		expect(reviseParams.match.id).toBe("pkg-2");
 	});
 
 	it("si el id cambia con las licencias en vuelo y el nuevo dataset no puede editar, no queda cargando", async () => {

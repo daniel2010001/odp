@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanClient } from "./client";
-import { createDatasetApi, isEditConflict } from "./datasets";
+import { createDatasetApi, isEditConflict, MalformedReviseResponseError } from "./datasets";
 
 function makeClient() {
 	const post = vi.fn().mockResolvedValue({ count: 0, sort: "", results: [], search_facets: {} });
@@ -181,10 +181,9 @@ describe("createDatasetApi", () => {
 
 	it("revise postea package_revise con el match, el filter y el update que recibe", async () => {
 		const { client, post } = makeClient();
+		// Medido en CKAN 2.12.0: el cliente entrega `result`, que es el sobre `{ package }`.
 		post.mockResolvedValueOnce({
-			id: "ds-1",
-			name: "ds-1",
-			metadata_modified: "2026-10-02T08:00:00.000000",
+			package: { id: "ds-1", name: "ds-1", metadata_modified: "2026-10-02T08:00:00.000000" },
 		});
 		const api = createDatasetApi(client);
 
@@ -203,11 +202,13 @@ describe("createDatasetApi", () => {
 		// El cuerpo lleva las TRES piezas: `filter` es lo que hace que CKAN instale la lista de
 		// extras verbatim (sin él, `update.extras` se mezclaría por índice).
 		expect(params).toEqual({ match, filter, update });
+		expect(result.name).toBe("ds-1");
 		expect(result.metadata_modified).toBe("2026-10-02T08:00:00.000000");
 	});
 
 	it("revise no usa las acciones que borran o no pueden afirmar el estado", async () => {
 		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ package: { id: "ds-1", name: "ds-1" } });
 		const api = createDatasetApi(client);
 
 		await api.revise({
@@ -220,6 +221,19 @@ describe("createDatasetApi", () => {
 		expect(actions).toEqual(["package_revise"]);
 		expect(actions).not.toContain("package_update");
 		expect(actions).not.toContain("package_patch");
+	});
+
+	it("revise falla con un error nombrado si el sobre no trae un paquete", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ help: "..." });
+		const api = createDatasetApi(client);
+
+		const error = await api
+			.revise({ match: { id: "ds-1" }, filter: ["-extras"], update: { title: "x" } })
+			.catch((err: unknown) => err);
+
+		expect(error).toBeInstanceOf(MalformedReviseResponseError);
+		expect((error as Error).name).toBe("MalformedReviseResponseError");
 	});
 
 	// --- Conflicto de compare-and-set: `isEditConflict` ---------------------------

@@ -83,7 +83,19 @@ export function createDatasetApi(client: CkanClient) {
 			filter: string[];
 			update: Record<string, unknown>;
 		}): Promise<CkanPackage> {
-			return client.post<CkanPackage>("package_revise", { match, filter, update });
+			// Medido en CKAN 2.12.0: `package_revise` anida el paquete bajo `result.package`.
+			const result = await client.post<{ package?: CkanPackage }>("package_revise", {
+				match,
+				filter,
+				update,
+			});
+
+			const pkg = result?.package;
+			if (!pkg || typeof pkg.id !== "string" || typeof pkg.name !== "string") {
+				throw new MalformedReviseResponseError();
+			}
+
+			return pkg;
 		},
 
 		/** Actualizar un dataset existente */
@@ -146,6 +158,15 @@ export function createDatasetApi(client: CkanClient) {
 }
 
 export type DatasetApi = ReturnType<typeof createDatasetApi>;
+
+/** `package_revise` anida el paquete en `result.package`; sin él `revise` falla, en vez de
+ * devolver `undefined` y dejar que un llamador navegue a `/dataset/undefined`. */
+export class MalformedReviseResponseError extends Error {
+	constructor() {
+		super("package_revise devolvió un `result` sin `package`: se esperaba { package: ... }");
+		this.name = "MalformedReviseResponseError";
+	}
+}
 
 /**
  * ¿El error es el **conflicto de compare-and-set** que levanta `package_revise`?
