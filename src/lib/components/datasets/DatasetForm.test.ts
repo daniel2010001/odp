@@ -149,6 +149,16 @@ describe("DatasetForm — modo edición", () => {
 		expect(screen.getByText("estudiantes")).toBeInTheDocument();
 	});
 
+	it("advierte que Retroceso quita la última etiqueta con el campo vacío", () => {
+		// El guardado instala la lista exacta de etiquetas: un Retroceso accidental con el campo
+		// vacío sería un borrado real en el servidor, así que la ayuda debe hacer visible el gesto.
+		const { container } = renderEdit();
+
+		expect(container.querySelector("#tags-help")).toHaveTextContent(
+			/con el campo vacío, retroceso quita la última etiqueta/i,
+		);
+	});
+
 	it("presenta el slug fijo y sólo lo hace editable tras desbloquearlo", async () => {
 		const { container } = renderEdit();
 

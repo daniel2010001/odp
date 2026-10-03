@@ -822,9 +822,10 @@ const hayTitulo = $derived(title.trim().length > 0);
 					{#if fieldErrors.tag_string}
 						<p id="tags-error" class="text-xs text-destructive">{fieldErrors.tag_string}</p>
 					{/if}
+					<!-- Visible a propósito: al guardar se instala la lista exacta de etiquetas —no hay merge parcial—, así que un Retroceso accidental con el campo vacío sería un borrado real. -->
 					<p id="tags-help" class="text-xs text-muted-foreground">
 						Escriba para buscar entre las etiquetas existentes. Si no existe, se crea al
-						agregarla.
+						agregarla. Con el campo vacío, Retroceso quita la última etiqueta.
 					</p>
 				</div>
 
