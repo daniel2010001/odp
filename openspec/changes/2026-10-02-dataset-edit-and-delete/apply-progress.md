@@ -94,7 +94,46 @@ project prefers — and carried into **1b.6** as the caller's job: build the `Lo
 check and refuse honestly when the package does not return the extras, instead of substituting `[]`. A
 runtime guard goes in if that check ever stops existing.
 
+## Slice 1b-B0 — the form's edit mode, and the component's own contract test
+
+**Commits:** `c69a91d` (the unit) + `f74a51a` (the fix its receipt asked for) · **Receipts:**
+`review-9ce0dea883d3ddb9` (2 files / 376 lines, approved, 1 advisory → fixed) and `review-ab686f565730b0f9`
+(2 files / 33 lines, approved, **0 findings**).
+
+### What landed
+
+With `mode="edit"` the form pre-fills once from the loaded dataset (deliberately with `untrack`, so the
+capture is a one-time read instead of a reactive dependency), shows the slug as a fixed value behind an
+explicit unlock — because changing it breaks every existing link — shows the owning organization as a
+**fact**, and submits «Guardar cambios». Create mode is behaviourally untouched: the wizard's test file
+stayed **byte-identical** with its 30 tests green, which is the evidence that matters for the creation path.
+
+This slice also **closes the advisory that slice 1a left behind**: the extracted component concentrated
+validation and callbacks with no test mounting it directly, and it now has its own contract test file
+(ten tests: pre-fill, the slug lock and unlock, the organization as a fact, the mode-dependent action copy,
+the validated hand-off, the invalid case, and that the form never calls the API — it imports no client and
+never fetches, which is what keeps the two modes from drifting apart).
+
+### The advisory, and what it produced
+
+`R3-001` of `review-9ce0dea883d3ddb9` (WARNING, `behavior-activated`): in edit mode `orgDisplayTitle` still
+preferred the caller's single organization without checking that it was the dataset's owner, so a one-item
+list holding a **different** organization would have shown an organization the save was not going to use.
+**Fixed, not recorded** (`f74a51a`): in edit mode the fact is resolved directly against the loaded
+`owner_org`, and the one-item heuristic stays in create mode, where there is no fact yet. A test pins it:
+with a one-item list that is not the owner, the box shows the owner and the other organization appears
+nowhere. Same family as the clearing rule — the UI may not show something the write will not do.
+
+### Two flags from the worker, carried into the tasks
+
+- **1b.7**: the route must pass `initial.owner_org` **and** the organization object, or the fact box falls
+  back to the slug and `owner_org` validation fails against a control that no longer exists.
+- **1b.8**: the approved sheet's **edit-specific resource list** is not implemented — the resource section
+  is still create-shaped — and that belongs to slice 2 with resource editing. Declared rather than
+  improvised outside the slice, and the edit mode must not offer resource creation as if publishing anew.
+
 ## Next
 
-Slice 1b-B: the edit route, the form in edit mode, the fail-closed permission question, the concurrency
-notice — and the caller-side check that 1b.6 records.
+Slice 1b-B1: the edit route itself — load, build the `LoadedDataset` with the explicit extras check (1b.6),
+the fail-closed permission question, the save through `package_revise`, and the conflict notice — with
+1b.7's contract honoured. Then 1b-B2 (the entry points) and slice 2 (resources).

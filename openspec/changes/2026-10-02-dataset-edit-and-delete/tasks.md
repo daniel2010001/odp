@@ -55,6 +55,15 @@ This is written down rather than silently skipped, and it applies **only** to 1a
       `review-5b851d86ae1bc07c`, recorded and not chased: the builder's failure is loud, which is the direction
       this project prefers, and a runtime guard belongs here if this check ever stops existing.)
 
+- [ ] **1b.7** The route must supply the form's `initial.owner_org` **and** include the dataset's organization
+      object in `organizations`, or the fact box falls back to the org slug and `owner_org` validation fails
+      against a control that no longer exists. *(Flagged by the worker of 1b-B0; it is the caller's contract.)*
+- [ ] **1b.8** In edit mode the resource section stays **out of the form's competence** for now: the approved
+      sheet shows an edit-specific resource list (current resources, with their hashes), and that belongs to
+      slice 2 together with resource editing and file replacement. Until then, edit mode must not offer
+      resource **creation** as if it were publishing a new dataset. *(Also to settle there: the sidebar and
+      resource empty-state copy still say «creación» in edit mode.)*
+
 **Forecast:** `code_lines` ≈ 200–250; `test_lines` ≈ 150–200 (`markup_heavy_page` for the route,
 `dense_component` for the payload rules and the permission decision); `review_material_lines` = 0.
 
