@@ -80,11 +80,20 @@ export function buildPackagePayload(input: DatasetFormInput): Record<string, unk
  */
 export type DatasetEditInput = Omit<DatasetFormInput, "owner_org" | "private">;
 
-/** Dataset cargado con el que se abrió el formulario: de acá sale la precondición de concurrencia. */
+/**
+ * Dataset cargado con el que se abrió el formulario: de acá sale la precondición de concurrencia y,
+ * también, la **lista de extras cargada**.
+ *
+ * `extras` es **obligatorio** a propósito. El builder decide entre actualizar el extra del resumen
+ * contra su índice o agregarlo con `extend`, y esa decisión sólo es honesta si conoce la lista
+ * cargada: con la lista ausente, un resumen existente se leería como "no existe" y la escritura
+ * **agregaría un duplicado** en vez de actualizarlo. Hacerlo requerido convierte esa corrupción
+ * silenciosa en un error de compilación (`R3-1` de `review-4542f91dce1819a4`).
+ */
 export interface LoadedDataset {
 	id: string;
 	metadata_modified: string;
-	extras?: readonly CkanExtra[];
+	extras: readonly CkanExtra[];
 }
 
 /** Argumentos de `package_revise`: el `match` afirma el estado y el `update` escribe lo parcial. */
@@ -129,7 +138,7 @@ export function buildRevisePayload({
 	}
 
 	const resumen = input.summary?.trim() ?? "";
-	const index = dataset.extras?.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY) ?? -1;
+	const index = dataset.extras.findIndex((extra) => extra.key === SUMMARY_EXTRA_KEY);
 	if (index >= 0) {
 		// Con extra cargado, el valor (o la cadena vacía del borrado) va contra su índice.
 		update[`update__extras__${index}__value`] = resumen;

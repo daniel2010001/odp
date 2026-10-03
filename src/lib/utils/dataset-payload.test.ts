@@ -314,7 +314,7 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 
 	it("agrega el resumen con `extend` cuando el dataset no trae ningún extra", () => {
 		const { update } = buildRevisePayload({
-			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000" },
+			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: edicion,
 		});
 
@@ -339,7 +339,7 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 	// una mentira. A diferencia de la creación, acá no hay omisión de vacíos.
 	it("escribe el conjunto completo de campos que el formulario gobierna, incluso vacíos", () => {
 		const { update } = buildRevisePayload({
-			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000" },
+			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: { title: "Sólo el título", name: "solo-el-titulo" },
 		});
 
@@ -407,7 +407,7 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 	// extra vacío.
 	it("no escribe ninguna clave de extras si no hay extra cargado y el resumen está vacío", () => {
 		const { update } = buildRevisePayload({
-			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000" },
+			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: { ...edicion, summary: "" },
 		});
 
@@ -417,7 +417,7 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 	// 4e. Sin extra cargado y con resumen no vacío se agrega con `extend`, un solo elemento.
 	it("agrega el resumen con `extend` y un solo elemento cuando el dataset no trae extras", () => {
 		const { update } = buildRevisePayload({
-			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000" },
+			dataset: { id: "ds-1", metadata_modified: "2026-10-01T09:30:00.000000", extras: [] },
 			input: { ...edicion, summary: "Resumen nuevo" },
 		});
 
@@ -425,6 +425,30 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 			{ key: SUMMARY_EXTRA_KEY, value: "Resumen nuevo" },
 		]);
 		// El conjunto de claves de `update` es el completo: el resumen no reemplaza a los opcionales.
+		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([
+			"update__extras__extend",
+		]);
+	});
+
+	// 4f. La rama destructiva que señaló la compuerta, en su forma representable. Con la lista de
+	// extras **cargada pero sin el resumen**, agregar con `extend` es correcto: no hay nada que
+	// actualizar. Y que la lista **falte** ya no es representable — `LoadedDataset.extras` es
+	// obligatorio —, así que un resumen existente no puede leerse como ausente y la escritura no
+	// puede duplicarlo (`R3-1` de `review-4542f91dce1819a4`).
+	it("con extras cargados sin resumen, agrega con `extend` uno solo", () => {
+		const { update } = buildRevisePayload({
+			dataset: {
+				id: "ds-1",
+				metadata_modified: "2026-10-01T09:30:00.000000",
+				extras: [{ key: "frequency", value: "anual" }],
+			},
+			input: { ...edicion, summary: "Resumen nuevo" },
+		});
+
+		expect(update.update__extras__extend).toEqual([
+			{ key: SUMMARY_EXTRA_KEY, value: "Resumen nuevo" },
+		]);
+		// El extra ajeno no se nombra ni se toca: no viaja la lista `extras`.
 		expect(Object.keys(update).filter((clave) => clave.includes("extras"))).toEqual([
 			"update__extras__extend",
 		]);
