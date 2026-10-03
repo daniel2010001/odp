@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { CkanPackage } from "$lib/types/ckan";
 import {
 	buildPackagePayload,
 	buildRevisePayload,
 	inferResourceFormat,
 	MAX_RESOURCE_BYTES,
 	suggestSlug,
+	toLoadedDataset,
 	validateResourceFile,
 } from "./dataset-payload";
 import { SUMMARY_EXTRA_KEY } from "./dataset-summary";
@@ -475,5 +477,102 @@ describe("buildPackagePayload — resumen (RF-40)", () => {
 	it("no escribe extras si no hay resumen", () => {
 		expect(buildPackagePayload({ ...base }).extras).toBeUndefined();
 		expect(buildPackagePayload({ ...base, summary: "   " }).extras).toBeUndefined();
+	});
+});
+
+describe("toLoadedDataset — chequeo runtime antes de armar la edición", () => {
+	// El chequeo tiene que ser de runtime: el tipo `CkanPackage` afirma `extras`, `id` y
+	// `metadata_modified`, pero el paquete llega de la red y el tipo no sobrevive al JSON. Por eso
+	// se construyen los casos inválidos con casts que el compilador no puede volver vacuos.
+	const pkg = (overrides: Record<string, unknown> = {}) =>
+		({
+			id: "3f2a1b0c-1111-2222-3333-444455556666",
+			metadata_modified: "2026-10-01T09:30:00.000000",
+			extras: [{ key: "frequency", value: "anual" }],
+			...overrides,
+		}) as unknown as CkanPackage;
+
+	const edicion = {
+		title: "Matrícula Estudiantil 2026",
+		name: "matricula-estudiantil-2026",
+		summary: "Resumen editado",
+	};
+
+	it("con un paquete válido devuelve exactamente el `LoadedDataset` que el builder necesita", () => {
+		const cargado = pkg();
+		const result = toLoadedDataset(cargado);
+
+		expect(result).toEqual({
+			ok: true,
+			dataset: {
+				id: "3f2a1b0c-1111-2222-3333-444455556666",
+				metadata_modified: "2026-10-01T09:30:00.000000",
+				extras: [{ key: "frequency", value: "anual" }],
+			},
+		});
+		// La lista cargada se pasa tal cual, sin copiarla ni reemplazarla.
+		if (result.ok) expect(result.dataset.extras).toBe(cargado.extras);
+	});
+
+	it("con `extras: []` es válido: la lista existe y está vacía", () => {
+		const result = toLoadedDataset(pkg({ extras: [] }));
+
+		expect(result).toEqual({
+			ok: true,
+			dataset: {
+				id: "3f2a1b0c-1111-2222-3333-444455556666",
+				metadata_modified: "2026-10-01T09:30:00.000000",
+				extras: [],
+			},
+		});
+	});
+
+	// El punto del chequeo (advisory `R3-001`): sustituir la lista ausente por [] haría que el
+	// builder leyera un resumen existente como inexistente y lo agregara con `extend`, dejando dos
+	// resúmenes. El rechazo no entrega `dataset`, así que ningún update —y ningún `extend`— puede
+	// salir de acá.
+	it.each([
+		["ausente", undefined],
+		["null", null],
+		["no-array", { key: SUMMARY_EXTRA_KEY, value: "Resumen viejo" }],
+	])("rechaza `extras` %s con `extras_unavailable`, sin sustituirlo por []", (_caso, extras) => {
+		const result = toLoadedDataset(pkg({ extras }));
+
+		expect(result).toEqual({ ok: false, reason: "extras_unavailable" });
+		expect(result).not.toHaveProperty("dataset");
+	});
+
+	it.each([
+		["ausente", undefined],
+		["vacío", ""],
+	])("rechaza `id` %s con `identity_unavailable`", (_caso, id) => {
+		expect(toLoadedDataset(pkg({ id }))).toEqual({
+			ok: false,
+			reason: "identity_unavailable",
+		});
+	});
+
+	// El `match` es la precondición de concurrencia del `package_revise`: sin `metadata_modified`
+	// dejaría de afirmar nada y el aviso de conflicto desaparecería en silencio.
+	it.each([
+		["ausente", undefined],
+		["vacío", ""],
+	])("rechaza `metadata_modified` %s con `revision_unavailable`", (_caso, metadata_modified) => {
+		expect(toLoadedDataset(pkg({ metadata_modified }))).toEqual({
+			ok: false,
+			reason: "revision_unavailable",
+		});
+	});
+
+	it("la lista de extras cargada sobrevive al rechazo por identidad o revisión", () => {
+		// Aunque el rechazo exista por `id`, el motivo es sólo un código: no se devuelve ni una
+		// parte del dataset que un caller apurado pudiera usar para escribir.
+		const sinId = toLoadedDataset(pkg({ id: "" }));
+		const sinRevision = toLoadedDataset(pkg({ metadata_modified: "" }));
+
+		expect(sinId.ok).toBe(false);
+		expect(sinRevision.ok).toBe(false);
+		expect(sinId).not.toHaveProperty("dataset");
+		expect(sinRevision).not.toHaveProperty("dataset");
 	});
 });

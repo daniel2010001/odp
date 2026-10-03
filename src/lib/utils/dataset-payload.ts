@@ -4,7 +4,7 @@
 // entre perfiles y congelar claves obligaría a migrar). La única excepción es el **resumen** del
 // portal (RF-40), que no mapea a ningún vocabulario externo: ver `dataset-summary.ts`.
 
-import type { CkanExtra } from "$lib/types/ckan";
+import type { CkanExtra, CkanPackage } from "$lib/types/ckan";
 import { formatSize } from "./ckan";
 import { SUMMARY_EXTRA_KEY } from "./dataset-summary";
 
@@ -100,6 +100,53 @@ export interface LoadedDataset {
 export interface RevisePayload {
 	match: { id: string; metadata_modified: string };
 	update: Record<string, unknown>;
+}
+
+/** Motivo por el que un paquete cargado no alcanza para armar una edición. */
+export type LoadedDatasetFailure =
+	| "extras_unavailable"
+	| "identity_unavailable"
+	| "revision_unavailable";
+
+/**
+ * Convierte un paquete de CKAN en el `LoadedDataset` que pide `buildRevisePayload`.
+ *
+ * Devuelve un resultado discriminado en vez de lanzar: la ruta decide el mensaje, y este módulo
+ * sólo devuelve un código de motivo.
+ *
+ * Los tres chequeos son de **runtime** a propósito: el tipo `CkanPackage` afirma `extras`, `id` y
+ * `metadata_modified`, pero el paquete llega de la red y el tipo se borra. Se lee `extras` a través
+ * de `unknown` para que el compilador no vuelva vacuo el guard.
+ */
+export function toLoadedDataset(
+	pkg: CkanPackage,
+): { ok: true; dataset: LoadedDataset } | { ok: false; reason: LoadedDatasetFailure } {
+	// Nunca se sustituye la lista ausente por `[]`: con la lista ausente el builder leería un
+	// resumen existente como inexistente y lo **agregaría con `extend`** en vez de actualizarlo,
+	// dejando un duplicado. Mismo motivo que hizo obligatorio `LoadedDataset.extras` (advisory
+	// `R3-001` de `review-5b851d86ae1bc07c`).
+	const extras = (pkg as { extras?: unknown }).extras;
+	if (!Array.isArray(extras)) {
+		return { ok: false, reason: "extras_unavailable" };
+	}
+
+	const { id } = pkg;
+	if (typeof id !== "string" || id === "") {
+		return { ok: false, reason: "identity_unavailable" };
+	}
+
+	// El `match` que arma el builder es la precondición de concurrencia del `package_revise`. Sin
+	// `metadata_modified` la precondición se degradaría a "siempre coincide" y el aviso de conflicto
+	// no aparecería: la misma familia de falla silenciosa que el chequeo de `extras`.
+	const { metadata_modified } = pkg;
+	if (typeof metadata_modified !== "string" || metadata_modified === "") {
+		return { ok: false, reason: "revision_unavailable" };
+	}
+
+	return {
+		ok: true,
+		dataset: { id, metadata_modified, extras: extras as readonly CkanExtra[] },
+	};
 }
 
 /**
