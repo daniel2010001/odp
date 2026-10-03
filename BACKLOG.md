@@ -61,9 +61,12 @@ de medición completo es el suyo**.
   **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
   texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
   arbitrario: es el tamaño del texto.
-  *Medido por la sesión paralela con su instrumento de contraste (3.72) y recomputado acá sobre los tokens de
-  `app.css` con un instrumento propio calibrado (autotest blanco/negro = 21.000): **3.733:1**. El mismo par
-  en modo claro da **5.284:1** y pasa — el control de que el cálculo no está sesgado hacia abajo.*
+  *Tres caminos independientes dan el mismo veredicto:* el instrumento de la sesión paralela medido en el
+  navegador sobre el nodo real (**3.72**), su cálculo puro sobre los tokens (**3.733**) y este recomputo
+  (**3.733**); en modo claro los tres dan **5.284** y **pasa**, que es el control de que el cálculo no está
+  sesgado hacia abajo. **La diferencia de 0,01 no es discrepancia: es resolución de canal** — el navegador
+  serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión completa.
+  Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
 - [ ] **[v1+]** **`pnpm lint` sale con 254 de forma transitoria.** Medido por la sesión paralela; **no lo
   reproduje acá**. Es ruido de herramienta, no del código: `biome check` sobre archivos concretos sale 0.
 
