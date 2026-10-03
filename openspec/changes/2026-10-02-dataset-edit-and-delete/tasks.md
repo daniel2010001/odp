@@ -10,13 +10,13 @@ declared in three separate lines and the repo's measured test:code ratios
 The riskiest step, and the one that must land alone: moving the form out of a 1747-line page while the
 creation path keeps behaving exactly as it does today.
 
-- [ ] **1a.1** Create `src/lib/components/datasets/DatasetForm.svelte` with the field markup, the
+- [x] **1a.1** Create `src/lib/components/datasets/DatasetForm.svelte` with the field markup, the
       validation wiring, the field-error map and the resource list moved from the wizard, taking
       `mode: "create" | "edit"`, `initial`, the organization and license data, and callbacks for submit
       and cancel.
-- [ ] **1a.2** The wizard renders it in `mode="create"` and keeps everything that is not the form:
+- [x] **1a.2** The wizard renders it in `mode="create"` and keeps everything that is not the form:
       session probe, organization loading, submit orchestration, upload with progress, navigation.
-- [ ] **1a.3** Evidence, in this order:
+- [x] **1a.3** Evidence, in this order:
   - the wizard's existing tests pass **untouched** (no assertion edited to fit the move);
   - `pnpm check` and Biome on baseline;
   - the commit body **lists which lines moved**, so a reviewer is not made to read moved lines as
@@ -33,32 +33,32 @@ This is written down rather than silently skipped, and it applies **only** to 1a
 
 ## Slice 1b — the edit route
 
-- [ ] **1b.1** `/dashboard/datasets/[id]/edit`: loads the dataset, seeds the form in `mode="edit"`, and
+- [x] **1b.1** `/dashboard/datasets/[id]/edit`: loads the dataset, seeds the form in `mode="edit"`, and
       saves.
-- [ ] **1b.2** The mode-aware payload: `buildPackagePayload(input, "create")` unchanged;
+- [x] **1b.2** The mode-aware payload: `buildPackagePayload(input, "create")` unchanged;
       the edit path sends only the fields the form owns — scalars through `package_patch`, anything
       inside a list (`extras`, `resources`) through `package_revise`. Tests first: the create payload is
       byte-identical to today, the edit payload carries no key the form does not own, and an unmanaged
       extra survives an edit of the summary.
-- [ ] **1b.3** The **fail-closed** permission question (`update_dataset` on the owning organization,
+- [x] **1b.3** The **fail-closed** permission question (`update_dataset` on the owning organization,
       three states: may, may not, could not be asked) and the entry points — the dashboard row and the
       dataset page. Verify `ckan.auth.allow_dataset_collaborators` in this stack and either handle the
       collaborator path or record the declared limitation.
-- [ ] **1b.4** Concurrency: the save asserts the state the form was built from and, when the dataset
+- [x] **1b.4** Concurrency: the save asserts the state the form was built from and, when the dataset
       changed, aborts with the visible conflict notice. No locking, no multi-editor presence.
-- [ ] **1b.5** The organization is a fact, never written.
+- [x] **1b.5** The organization is a fact, never written.
 
-- [ ] **1b.6** Build the `LoadedDataset` the payload builder takes **with an explicit check**: if the loaded
+- [x] **1b.6** Build the `LoadedDataset` the payload builder takes **with an explicit check**: if the loaded
       package does not return `extras` as an array, refuse with an honest message instead of substituting `[]`.
       An absent list would read an existing summary as missing and **append a duplicate**; that is why the type
       is required, and the caller is what makes the case impossible. (Advisory `R3-001` of
       `review-5b851d86ae1bc07c`, recorded and not chased: the builder's failure is loud, which is the direction
       this project prefers, and a runtime guard belongs here if this check ever stops existing.)
 
-- [ ] **1b.7** The route must supply the form's `initial.owner_org` **and** include the dataset's organization
+- [x] **1b.7** The route must supply the form's `initial.owner_org` **and** include the dataset's organization
       object in `organizations`, or the fact box falls back to the org slug and `owner_org` validation fails
       against a control that no longer exists. *(Flagged by the worker of 1b-B0; it is the caller's contract.)*
-- [ ] **1b.8** In edit mode the resource section stays **out of the form's competence** for now: the approved
+- [x] **1b.8** In edit mode the resource section stays **out of the form's competence** for now: the approved
       sheet shows an edit-specific resource list (current resources, with their hashes), and that belongs to
       slice 2 together with resource editing and file replacement. Until then, edit mode must not offer
       resource **creation** as if it were publishing a new dataset. *(Also to settle there: the sidebar and
@@ -102,6 +102,19 @@ Before applying a slice, compare its forecast against the 400-line review budget
 **split it** — the whole point of slicing is that each gate covers something a reviewer can hold in their
 head. No exception is requested with the work already done.
 
-## Slice 1a is next
+## Slice 1a and 1b closed — and one correction that outranks this plan
 
-Everything else waits until the extraction lands green and its gate closes.
+All of 1a and 1b landed, each work unit with its own commit and its own receipt (the evidence lives in
+`apply-progress.md`; the checkboxes above mark what is done, this section marks what the plan did not predict).
+
+- **The write shape had to change, and the plan's version of it was wrong.** Flattened
+  `update__extras__<i>__value` keys inside `update` are a **silent no-op**, and a list index is not a stable
+  address. The edit payload now sends `filter: ["-extras","-tags"]` and carries every loaded extra back.
+  Evidence and consequences: `design.md`, *«The write shape, corrected by measurement»*.
+- **The route's load is hand-coordinated state**, and three consecutive reviews of it found a defect each
+  time. Two warnings remain open: the conditional `finally` can leave `licensesLoading` stuck when a
+  superseded generation owned it, and the later load stages have no overlap test.
+
+**Next: 1b-B2 (the entry points), then slice 2.** Slice 2 must build its resource writes on the shape this
+slice measured, never on the pattern its own plan assumed — the flat-key form looked correct in every mock and
+did nothing on the server.

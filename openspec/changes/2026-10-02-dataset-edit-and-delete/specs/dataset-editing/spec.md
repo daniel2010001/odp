@@ -90,9 +90,14 @@ and it MUST NOT build a locking or presence system for this: detecting the confl
 
 An edit MUST send only the fields the form owns, using CKAN's partial update. The portal MUST NOT send a
 full dataset payload for an edit, because CKAN's non-partial update removes every field that is not
-present in it — including fields the portal does not know about. Fields that live inside a **list**
-(`extras`, `resources`) MUST NOT be written by replacing that list: they MUST be written with an action
-that updates the nested value and leaves the rest of the list alone.
+present in it — including fields the portal does not know about.
+
+Fields that live inside a **list** (`extras`, `tags`) MUST NOT be written by replacing that list with a list
+that omits entries the portal loaded, and MUST NOT be addressed by position: measured against CKAN 2.12.0, a
+list position is not stable across writes, and an index that points at the wrong entry corrupts it in silence.
+The write MUST therefore carry back **every entry the portal loaded** — the loaded `extras` list, with the
+portal's own summary resolved in place — and MUST ask CKAN to drop the stored lists first, so that what the
+portal sends is what gets stored.
 
 #### Scenario: Fields the portal does not own survive an edit
 
@@ -105,7 +110,7 @@ that updates the nested value and leaves the rest of the list alone.
 
 - GIVEN a dataset with an unmanaged extra (for example `frequency`) and a portal-managed `summary` extra
 - WHEN the caller edits the summary through the portal
-- THEN the write updates the `summary` entry without replacing the extras list
+- THEN the write carries the extras list back with the `summary` entry resolved in place
 - AND the unmanaged `frequency` extra is still present afterwards
 - AND no other extra changed
 

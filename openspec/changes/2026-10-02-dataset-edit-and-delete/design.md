@@ -58,22 +58,62 @@ instead of adding it:
   and it deliberately drops `metadata_modified`). `package_revise` takes `match` — *"all values provided
   must match the current dataset values or a ValidationError will be raised"* — so the precondition comes for
   free, and the earlier two-action routing (patch for scalars, revise for nested) collapses into one path.
-- **Nested values are written without replacing their list.** `revise`'s `update` accepts flattened keys
-  (`update__extras__<index>__value` for an existing extra, `update__extras__extend=[{…}]` to append one), so
-  the portal's `summary` is updated in place and every extra it does not manage stays **by construction**.
-  The client must locate its own extra's index from the dataset it loaded — which it has.
+- ~~**Nested values are written without replacing their list.**~~ **Superseded — this bullet was wrong, and
+  the measurement below says how.** The flattened keys it describes do not work where it says they do, and a
+  list position is not a stable address. See *«The write shape, corrected by measurement»* below.
 - **Top-level scalars** (title, notes, url, maintainer, license, tags) travel in the same `update` object as
   plain keys. No `package_update`, ever: it deletes every field not present in the request.
 - `package_patch` is therefore **not used for edits**; it remains the action for the `state` write of slice 3.
 - `src/lib/utils/dataset-payload.ts` grows an edit path that returns the `package_revise` arguments —
   `match` (`id` plus the `metadata_modified` the form loaded) and `update` (only the fields the form owns) —
   while the creation path keeps the full payload it sends today, untouched.
-- Tests: the create payload stays byte-for-byte what it is; the edit `update` carries no key the form does not
-  own (`owner_org`, `private`, `state`, `id`, `resources`, `tags`); the summary is written as a flattened key
-  against the loaded index (or as an `extend` when it does not exist yet); an unmanaged extra is absent from
-  the update; and the `match` carries the loaded `metadata_modified`.
+- Tests: the create payload stays byte-for-byte what it is; the edit payload carries no key the form does not
+  own (`owner_org`, `private`, `state`, `id`, `resources`); the write re-sends **every loaded extra**, with the
+  portal's summary resolved in place; the `filter` drops the stored lists so the sent ones are installed
+  verbatim; and the `match` carries the loaded `metadata_modified`.
 - **Resources never travel inside a package-level write** (their list would be replaced wholesale). Each
   resource is written individually (`resource_patch`, `resource_update`, or a `revise` that targets it by id).
+
+### The write shape, corrected by measurement (2026-10-03, CKAN 2.12.0)
+
+The bullet above about nested values was wrong. This is the measured replacement, sent against the live stack
+with every effect read back.
+
+- `update__extras__<i>__value` **inside** the `update` dict is a **silent no-op**: HTTP 200, `"success": true`,
+  nothing stored, and the key is not even echoed. CKAN reads flattened `update__*` keys at the **request top
+  level** (`update_merge_string_key`, `data['update__']`), while the nested `update` dict is merged with
+  literal keys (`update_merge_dict`). The portal's summary edit and summary clear did nothing and reported
+  success.
+- The same key at the top level works — but **a wrong index corrupts a different extra in silence**, and CKAN
+  **reorders** `extras` on writes (a summary created at index 1 came back at index 0). A position is not an
+  address.
+- `update.extras = [list]` does **not** replace the list: it **merges by index**. Proof: a one-element list
+  returned 409 `{"extras_validation":["Duplicate key \"summary\""]}`, because index 0 was overwritten and the
+  previous entry survived at index 1.
+- `update__extras__extend` works at the top level and is a silent no-op inside `update`.
+- `tag_string` is **additive**: `""` clears nothing, and a value beside it appends to the stored tags.
+
+**The shape that works**, verified end to end — exact lists read back, the resource survived, `owner_org` and
+`private` untouched:
+
+```json
+{"match": {"id": "<dataset UUID>", "metadata_modified": "<the loaded value>"},
+ "filter": ["-extras", "-tags"],
+ "update": {"…scalars…": "…",
+            "extras": ["…every loaded extra, with the portal's summary resolved in place…"],
+            "tags":   ["…exactly the tags the form holds…"]}}
+```
+
+`filter` drops the stored lists so `update` installs ours **verbatim**. Three consequences that are now design
+rules rather than options:
+
+- **There is no safe partial merge**, because list order is not stable: to leave an extra alone, the write must
+  **carry it back**. The loaded list is therefore load-bearing — which is why `toLoadedDataset` refuses a
+  package whose `extras` is not an array, and why the failure it prevents is now **deleting** every unmanaged
+  extra, not merely duplicating the summary.
+- **The `match` is what makes the wholesale rewrite safe**: CKAN refuses the write when `metadata_modified`
+  moved, so an extra added between load and save is never dropped by our copy.
+- `match.id` must be the dataset **UUID**; a slug returns 409 `{"match":["id"]}`.
 
 ### Clearing a field must clear it (found by the slice 1b-A worker, decided by the parent)
 
@@ -82,11 +122,20 @@ The creation builder omits empty optionals, and that is right for creation: ther
 "leave the current value alone", so a reader who erases the summary or the URL and saves would see an empty
 field while the old value survives — a form that ignores an erasure lies about what it did.
 
-So the rule for the edit path: **every field the form owns is written, empty values included** (`""` for the
-scalars, `update__extras__<index>__value: ""` for an existing summary extra). Two consequences worth stating:
-`tag_string: ""` clears the tags, and an **empty** summary with **no** existing extra writes nothing at all
-(there is nothing to clear and nothing to add, so `extend` is not used). The creation path keeps omitting
+So the rule for the edit path: **the write carries what the form holds, and empty means cleared** — `""` for
+the scalar optionals, the summary entry **removed** from the re-sent list when the form brings no summary, and
+`tags: []` (with `filter: ["-tags"]`) when the form's tag list is empty. The creation path keeps omitting
 empty optionals and its regression test keeps that promise.
+
+**Two corrections by measurement (2026-10-03).** First, the original rule said `tag_string: ""` clears the
+tags: it does not, because `tag_string` is additive — the only measured way to clear them is `filter: ["-tags"]`
+with `tags: []`. Second, the original rule said an empty summary with no existing extra writes nothing; under
+the re-sent list there is nothing to write, so the entry is simply absent, which is the same thing.
+
+**And the rule's authority is the caller, not this document.** `DatasetForm` encodes "the reader left it
+empty" as `undefined` (`summary.trim() || undefined`, `tags.join(", ") || undefined`), so for these two fields
+**absent means clear**. The safety argument is not a defensive rule but what the reader sees: the form shows
+exactly what the write will do.
 
 ### Open decision this correction creates — **decided by the owner (2026-10-02)**
 
