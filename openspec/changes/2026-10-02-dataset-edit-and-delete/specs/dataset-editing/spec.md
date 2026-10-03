@@ -116,6 +116,19 @@ that updates the nested value and leaves the rest of the list alone.
 - THEN the payload is the complete one the wizard has always sent
 - AND the two payload shapes are asserted to differ on purpose
 
+#### Scenario: Clearing a field clears it
+
+- GIVEN a dataset whose summary and URL have values, opened for editing
+- WHEN the caller empties those fields and saves
+- THEN the write carries them as empty values instead of omitting them
+- AND after saving, the summary and the URL are gone
+
+#### Scenario: Nothing to clear and nothing to add
+
+- GIVEN a dataset with no summary extra, opened for editing
+- WHEN the caller saves with the summary still empty
+- THEN the write adds no summary extra at all
+
 ### Requirement: Resources Are Written One at a Time
 
 Editing a resource's metadata MUST NOT send the dataset's resource list as a whole, because a package

@@ -50,28 +50,43 @@ because the portal's own `summary` lives in `extras` (RF-40, `SUMMARY_EXTRA_KEY`
 with a naive patch would drop every extra the portal does not manage (`frequency`, `language`, `spatial`,
 …). The first draft of this design promised those fields would survive; the promise was wrong.
 
-The corrected rule:
+The corrected rule, **refined again after the concurrency decision below** — and the refinement removes code
+instead of adding it:
 
-- **Top-level scalars** (title, notes, url, maintainer, license, tags): `package_patch` is correct and
-  cheap. It leaves unlisted keys alone.
-- **Anything inside a list — `extras` today, `resources` always — goes through `package_revise`**, which
-  CKAN recommends for exactly this (*"To partially update resources or other metadata not at the top level
-  of a package use `package_revise`"*). It updates nested values with flattened keys
-  (`update__extras__<index>__value`, `update__resources__<id>__description`, `…__extend` to append), so the
-  fields it is not asked to touch are not touched **by construction** instead of by client-side merging.
-- **`package_revise` also gives compare-and-set:** its `match` argument aborts with a `ValidationError`
-  unless the current values match what the caller expected (*"all values provided must match the current
-  dataset values or a ValidationError will be raised"*). That is the honest answer to the two-tabs race
-  that made "read, merge, write" unsafe — and it is an **open decision for the owner** (below).
-- `src/lib/utils/dataset-payload.ts` grows a **mode-aware** shape: `"create"` keeps the full payload it
-  sends today, untouched; the edit path produces only the fields the form owns, routed to the action that
-  matches their shape: `patch` for scalars, `revise` for anything nested.
-- Tests: the create payload is byte-for-byte what it is today; the edit payload contains no key the form
-  does not own; and **an unmanaged extra survives an edit of the summary** (the scenario the sheet forced
-  into the spec).
-- **Resources never travel inside a package-level write.** Their list would be replaced wholesale. Each
-  resource is written individually (`resource_patch`, `resource_update`, or `package_revise` when several
-  must change together).
+- **All edits go through `package_revise`.** The concurrency decision requires asserting the state the form
+  was built from, and `package_patch` **cannot express a precondition** (its signature is a flat data dict,
+  and it deliberately drops `metadata_modified`). `package_revise` takes `match` — *"all values provided
+  must match the current dataset values or a ValidationError will be raised"* — so the precondition comes for
+  free, and the earlier two-action routing (patch for scalars, revise for nested) collapses into one path.
+- **Nested values are written without replacing their list.** `revise`'s `update` accepts flattened keys
+  (`update__extras__<index>__value` for an existing extra, `update__extras__extend=[{…}]` to append one), so
+  the portal's `summary` is updated in place and every extra it does not manage stays **by construction**.
+  The client must locate its own extra's index from the dataset it loaded — which it has.
+- **Top-level scalars** (title, notes, url, maintainer, license, tags) travel in the same `update` object as
+  plain keys. No `package_update`, ever: it deletes every field not present in the request.
+- `package_patch` is therefore **not used for edits**; it remains the action for the `state` write of slice 3.
+- `src/lib/utils/dataset-payload.ts` grows an edit path that returns the `package_revise` arguments —
+  `match` (`id` plus the `metadata_modified` the form loaded) and `update` (only the fields the form owns) —
+  while the creation path keeps the full payload it sends today, untouched.
+- Tests: the create payload stays byte-for-byte what it is; the edit `update` carries no key the form does not
+  own (`owner_org`, `private`, `state`, `id`, `resources`, `tags`); the summary is written as a flattened key
+  against the loaded index (or as an `extend` when it does not exist yet); an unmanaged extra is absent from
+  the update; and the `match` carries the loaded `metadata_modified`.
+- **Resources never travel inside a package-level write** (their list would be replaced wholesale). Each
+  resource is written individually (`resource_patch`, `resource_update`, or a `revise` that targets it by id).
+
+### Clearing a field must clear it (found by the slice 1b-A worker, decided by the parent)
+
+The creation builder omits empty optionals, and that is right for creation: there is nothing to clear.
+**In editing it is wrong**, and the difference is not cosmetic: omitting a key in `package_revise` means
+"leave the current value alone", so a reader who erases the summary or the URL and saves would see an empty
+field while the old value survives — a form that ignores an erasure lies about what it did.
+
+So the rule for the edit path: **every field the form owns is written, empty values included** (`""` for the
+scalars, `update__extras__<index>__value: ""` for an existing summary extra). Two consequences worth stating:
+`tag_string: ""` clears the tags, and an **empty** summary with **no** existing extra writes nothing at all
+(there is nothing to clear and nothing to add, so `extend` is not used). The creation path keeps omitting
+empty optionals and its regression test keeps that promise.
 
 ### Open decision this correction creates — **decided by the owner (2026-10-02)**
 
