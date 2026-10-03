@@ -79,7 +79,9 @@ function syncUrl() {
 	// no corresponde a la URL real). Se lee con `untrack`, igual que `$page.state`, para
 	// que `$page.url` no sea dependencia reactiva de los $effect que llaman syncUrl.
 	const hash = untrack(() => $page.url.hash);
-	const newUrl = `/search${params.toString() ? "?" + params.toString() : ""}${hash}`;
+	const queryString = params.toString();
+	const suffix = queryString ? `?${queryString}` : "";
+	const newUrl = `/search${suffix}${hash}`;
 	// Segundo argumento = page.state (shallow routing), NO la URL: un objeto
 	// URL no es serializable y replaceState lanza "could not be cloned".
 	// Se lee con `untrack` para que $page.state no sea dependencia reactiva
@@ -98,10 +100,10 @@ async function doSearch() {
 
 	// Construir filter query
 	const filterMap: Record<string, string[]> = {};
-	if (selectedOrgs.length) filterMap["organization"] = selectedOrgs;
-	if (selectedFormats.length) filterMap["res_format"] = selectedFormats;
-	if (selectedTags.length) filterMap["tags"] = selectedTags;
-	if (selectedLicenses.length) filterMap["license_id"] = selectedLicenses;
+	if (selectedOrgs.length) filterMap.organization = selectedOrgs;
+	if (selectedFormats.length) filterMap.res_format = selectedFormats;
+	if (selectedTags.length) filterMap.tags = selectedTags;
+	if (selectedLicenses.length) filterMap.license_id = selectedLicenses;
 	const fq = buildFilterQuery(filterMap);
 
 	try {

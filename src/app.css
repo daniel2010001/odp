@@ -169,7 +169,12 @@ body {
 	}
 }
 
-/* Respect prefers-reduced-motion */
+/* Respeto por `prefers-reduced-motion`: los cuatro `!important` de abajo son
+   deliberados. Sin ellos, cualquier animación o transición declarada con mayor
+   especificidad (o en una capa posterior) volvería a moverse aunque la persona
+   haya pedido movimiento reducido, que es justo lo que se busca evitar. Por eso
+   la regla `lint/complexity/noImportantStyles` está apagada para este archivo
+   mediante un `overrides` en `biome.json`; no se aplica el fix automático. */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

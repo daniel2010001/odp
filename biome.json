@@ -40,5 +40,11 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/app.css"],
+			"linter": { "rules": { "complexity": { "noImportantStyles": "off" } } }
+		}
+	]
 }
