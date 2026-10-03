@@ -48,6 +48,13 @@ This is written down rather than silently skipped, and it applies **only** to 1a
       changed, aborts with the visible conflict notice. No locking, no multi-editor presence.
 - [ ] **1b.5** The organization is a fact, never written.
 
+- [ ] **1b.6** Build the `LoadedDataset` the payload builder takes **with an explicit check**: if the loaded
+      package does not return `extras` as an array, refuse with an honest message instead of substituting `[]`.
+      An absent list would read an existing summary as missing and **append a duplicate**; that is why the type
+      is required, and the caller is what makes the case impossible. (Advisory `R3-001` of
+      `review-5b851d86ae1bc07c`, recorded and not chased: the builder's failure is loud, which is the direction
+      this project prefers, and a runtime guard belongs here if this check ever stops existing.)
+
 **Forecast:** `code_lines` ≈ 200–250; `test_lines` ≈ 150–200 (`markup_heavy_page` for the route,
 `dense_component` for the payload rules and the permission decision); `review_material_lines` = 0.
 

@@ -59,7 +59,42 @@ Two CKAN behaviours that cost time and will cost it again if forgotten:
   alive and listed. The CLI (`ckan user token revoke <jti>`) is what actually revoked it, verified by
   effect: gone from the list, and its requests now answer 404.
 
+## Slice 1b-A — the partial edit payload and the revise wrapper
+
+**Commits:** `2a7cc51` (the unit) + `67f6998` (the hardening its receipt asked for) · **Receipts:**
+`review-4542f91dce1819a4` (4 files / 402 lines) and `review-5b851d86ae1bc07c` (2 files / 47 lines), both
+**approved**, 0 blocking findings each.
+
+### What landed
+
+`buildRevisePayload` produces CKAN's `package_revise` arguments for an edit: `match` carries the `id` and the
+`metadata_modified` the form was loaded with — the compare-and-set precondition behind the conflict notice —
+and `update` carries only the fields the form owns. The summary (RF-40) lives inside `extras`, which is a
+**list**, so it is written with a flattened key against the loaded index instead of the array (which would
+replace the list and drop every extra the portal does not own). `datasetApi.revise` wraps the action. The
+creation payload is untouched and pinned byte-for-byte by a regression test.
+
+**Clearing is explicit**: every owned optional is written, `""` included, because omitting a key in
+`package_revise` means "leave the current value" — a save that ignored an erasure would lie about what it
+did. The creation path keeps omitting empties and its test keeps that promise. Tests first: 12 failures
+captured before the implementation. Suite: **728/728**.
+
+### The two advisories, and what each produced
+
+- `R3-1` of `review-4542f91dce1819a4` (WARNING): `LoadedDataset.extras` was optional, so a caller could omit
+the loaded list, and a non-empty summary would then be **appended as a duplicate** instead of updated — a
+silent corruption guarded only by caller discipline, in a type whose caller was about to be written.
+**Fixed, not recorded** (`67f6998`): `extras` is now **required**, so the mistake is a compile error, and the
+four test fixtures that omitted the list now say `extras: []` explicitly. The rule used here: a failure mode
+that corrupts silently gets fixed; one that is merely loud gets recorded.
+- `R3-001` of `review-5b851d86ae1bc07c` (WARNING): the same change turned "omitted list" from a silent
+duplicate into a `TypeError`, and types are erased, so an untyped caller would crash instead of degrade.
+**Recorded, not chased** — between a silent corruption and a loud crash, the loud one is the direction this
+project prefers — and carried into **1b.6** as the caller's job: build the `LoadedDataset` with an explicit
+check and refuse honestly when the package does not return the extras, instead of substituting `[]`. A
+runtime guard goes in if that check ever stops existing.
+
 ## Next
 
-Slice 1b (the edit route, the mode-aware payload, the fail-closed permission question and the concurrency
-notice).
+Slice 1b-B: the edit route, the form in edit mode, the fail-closed permission question, the concurrency
+notice — and the caller-side check that 1b.6 records.
