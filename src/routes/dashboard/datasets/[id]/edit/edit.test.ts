@@ -266,4 +266,37 @@ describe("Ruta de edición de dataset", () => {
 		);
 		expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeEnabled();
 	});
+
+	it("si la sugerencia de etiquetas rechaza, la página no queda cargando", async () => {
+		auth.login("tok-123", user);
+		// La sugerencia es cosmética: un rechazo no puede dejar la pantalla en "Cargando el dataset...".
+		mocks.tagSuggestions.mockRejectedValue(new Error("servicio de etiquetas caído"));
+
+		renderPage();
+
+		await screen.findByLabelText(/título/i);
+		expect(screen.queryByText(/Cargando el dataset/i)).not.toBeInTheDocument();
+	});
+
+	it("si cambia el id de la ruta, carga el nuevo dataset y no conserva el anterior", async () => {
+		auth.login("tok-123", user);
+		mocks.show.mockImplementation((id: string) =>
+			Promise.resolve(
+				id === "pkg-2"
+					? makeDataset({ id: "pkg-2", name: "otro", title: "Otro dataset" })
+					: makeDataset(),
+			),
+		);
+
+		renderPage();
+		await waitFor(() => expect(screen.getByLabelText(/título/i)).toHaveValue("Matrícula 2026"));
+
+		pageStore.set({
+			params: { id: "pkg-2" },
+			url: new URL("http://localhost/dashboard/datasets/pkg-2/edit"),
+		});
+
+		await waitFor(() => expect(screen.getByLabelText(/título/i)).toHaveValue("Otro dataset"));
+		expect(mocks.show).toHaveBeenLastCalledWith("pkg-2");
+	});
 });

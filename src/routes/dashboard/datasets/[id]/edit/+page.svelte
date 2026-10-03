@@ -1,6 +1,5 @@
 <script lang="ts">
 import { Info, LoaderCircle, RotateCw, TriangleAlert } from "@lucide/svelte";
-import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
@@ -67,7 +66,14 @@ function ownerOrgOf(paquete: CkanPackage): string {
 	return paquete.organization?.id ?? "";
 }
 
-onMount(() => {
+// El id de la ruta es la dependencia de la carga: si SvelteKit reutiliza este componente para una
+// navegación entre dos URLs de edición, el efecto vuelve a correr y `cargar()` reemplaza todo lo que
+// pertenecía al dataset anterior (ver el reset al inicio de `cargar`). Sin esto el formulario seguiría
+// atado al dataset viejo y el guardado lo revisaría a él, no al `id` de la URL.
+const datasetId = $derived($page.params.id);
+
+$effect(() => {
+	void datasetId;
 	if (!get(isAuthenticated)) {
 		void goto("/auth/login");
 		return;
@@ -108,7 +114,6 @@ async function cargar() {
 	// El router no produce un `id` vacío en esta ruta, pero el tipo sí lo permite. Sin id no hay
 	// dataset que cargar, así que se cae al mismo camino honesto que un 404 en vez de dejar la
 	// página muda afirmando que todo va bien.
-	const datasetId = $page.params.id;
 	if (!datasetId) {
 		failure = describeFailure(new CkanApiError("Missing dataset id", 404), "dataset", access);
 		loading = false;
@@ -175,7 +180,13 @@ async function cargarLicencias(client: CkanClient) {
 }
 
 async function cargarEtiquetas(client: CkanClient) {
-	tagSugerencias = await createDatasetApi(client).tagSuggestions();
+	try {
+		tagSugerencias = await createDatasetApi(client).tagSuggestions();
+	} catch {
+		// La sugerencia es cosmética: un rechazo deja la lista vacía en vez de escapar de `cargar` y
+		// dejar la página cargando para siempre. No se inventa mensaje porque no hay nada que decir.
+		tagSugerencias = [];
+	}
 }
 
 // ─── Guardado ────────────────────────────────────────────────────────
