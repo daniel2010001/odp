@@ -11,7 +11,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
-import { contrastRatio } from "$lib/color/contrast";
+import { contrastRatio, parseCssColor } from "$lib/color/contrast";
 import { errorCopy, errorState } from "$lib/components/error/ErrorPage.svelte";
 import ErrorSheet from "./+page.svelte";
 import { formatMeasures, type SheetMeasures } from "./measures";
@@ -54,6 +54,16 @@ function renderedCardIds(): (string | null)[] {
 /** Afirma que las cinco tarjetas siguen ahí, en orden, sin importar el estado del panel. */
 function expectAllCards(): void {
 	expect(renderedCardIds()).toEqual(COVERED_STATUSES.map((status) => `error-variant-${status}`));
+}
+
+/** Ratio WCAG esperado de un par de colores CSS: sale del módulo puro, no de una constante mágica. */
+function ratioOf(color: string, background: string): number {
+	const foreground = parseCssColor(color);
+	const parsedBackground = parseCssColor(background);
+	if (!foreground || !parsedBackground) {
+		throw new Error(`par de colores no parseable: ${color} / ${background}`);
+	}
+	return contrastRatio(foreground, parsedBackground);
 }
 
 // El store de `page` persiste entre tests: cada uno arranca en una URL sin parámetros para que los
@@ -152,30 +162,6 @@ describe("hoja de error — panel de control de la ronda de revisión", () => {
 		expect(screen.getByTestId("control-panel")).toBeInTheDocument();
 	});
 
-	it("el interruptor de variante ofrece las cuatro propuestas", () => {
-		render(ErrorSheet);
-
-		const options = Array.from(
-			document.querySelectorAll<HTMLInputElement>('input[name="variant"]'),
-		);
-		expect(options.map((option) => option.value)).toEqual(["actual", "tarjeta", "sello", "banda"]);
-	});
-
-	it("cambiar la variante conserva las cinco tarjetas y sus data-testid", async () => {
-		render(ErrorSheet);
-
-		const tarjeta = screen.getByTestId("variant-option-tarjeta") as HTMLInputElement;
-		await fireEvent.click(tarjeta);
-		await waitFor(() => expect(tarjeta.checked).toBe(true));
-
-		const rendered = Array.from(document.querySelectorAll('[data-testid^="error-variant-"]')).map(
-			(node) => node.getAttribute("data-testid"),
-		);
-		expect(rendered).toEqual(COVERED_STATUSES.map((status) => `error-variant-${status}`));
-		// La prop llegó al componente: la tarjeta denuncia la variante elegida.
-		expect(screen.getByTestId("error-render-404").getAttribute("data-variant")).toBe("tarjeta");
-	});
-
 	it("el preset «500 sin ruta» quita «Reintentar» y el preset con ruta lo repone", async () => {
 		render(ErrorSheet);
 
@@ -203,7 +189,7 @@ describe("hoja de error — panel de control de la ronda de revisión", () => {
 		await waitFor(() => expect(sheet).not.toHaveClass("dark"));
 	});
 
-	it("cada propuesta conserva el contrato de presentación del componente", async () => {
+	it("el diseño único conserva el contrato de presentación del componente", async () => {
 		// Fuera de DEV el componente no debe filtrar la línea de diagnóstico monoespaciada; el resto
 		// del contrato tiene que seguir en pie igual.
 		vi.stubEnv("DEV", false);
@@ -216,69 +202,58 @@ describe("hoja de error — panel de control de la ronda de revisión", () => {
 				{ status: 500, path: "sin" },
 			] as const;
 
-			for (const value of ["actual", "tarjeta", "sello", "banda"] as const) {
-				await fireEvent.click(screen.getByTestId(`variant-option-${value}`));
-				await waitFor(() => {
-					expect(screen.getByTestId("error-render-404").getAttribute("data-variant")).toBe(value);
-					expect(screen.getByTestId("error-render-500").getAttribute("data-variant")).toBe(value);
-				});
-
-				for (const { status, path } of cases) {
-					if (status === 500) {
-						await fireEvent.click(
-							screen.getByTestId(path === "con" ? "preset-500-path" : "preset-500-no-path"),
-						);
-						await waitFor(() => {
-							const retry = within(panel(500)).queryByRole("link", { name: /reintentar/i });
-							expect(retry !== null).toBe(path === "con");
-						});
-					}
-
-					const root = screen.getByTestId(`error-render-${status}`)
-						.firstElementChild as HTMLElement;
-
-					// Restricción 1: la columna del contrato, sin ensanchar.
-					expect(root.className).toContain("max-w-xl");
-					expect(root.className).toContain("py-16");
-					expect(root.className).toContain("px-4");
-					expect(root.className).not.toContain("lg:max-w");
-
-					// Restricción 2: el eyebrow es el primer <p> y conserva sus clases.
-					const eyebrow = root.querySelector("p");
-					expect(eyebrow?.textContent).toContain(`ERROR ${status}`);
-					for (const required of ["text-xs", "uppercase", "tracking-wider", "text-destructive"]) {
-						expect(eyebrow?.className).toContain(required);
-					}
-
-					// Restricción 3: h1 y cuerpo hermanos inmediatos.
-					const heading = root.querySelector("h1");
-					expect(heading?.nextElementSibling?.tagName).toBe("P");
-
-					// Restricción 4: el primer <svg> es el ícono del estado, oculto a lectores, y cambia
-					// entre cliente y servidor.
-					const icon = root.querySelector("svg");
-					expect(icon?.getAttribute("aria-hidden")).toBe("true");
-					expect(icon?.getAttribute("class")).toMatch(
-						status >= 500 ? /triangle-alert/ : /file-question/,
+			for (const { status, path } of cases) {
+				if (status === 500) {
+					await fireEvent.click(
+						screen.getByTestId(path === "con" ? "preset-500-path" : "preset-500-no-path"),
 					);
-
-					// Restricción 5: una acción en el 500 sin ruta —no se inventa «Reintentar»—, dos en el
-					// resto. La ronda pedía «exactamente 2» en todas las combinaciones, pero el propio
-					// contrato —el reintento existe sólo con ruta— deja una sola en el 500 sin ruta: se
-					// afirma el número real.
-					const focusables = root.querySelectorAll(
-						"a, button, input, select, textarea, [tabindex]",
-					);
-					expect(focusables).toHaveLength(status === 500 && path === "sin" ? 1 : 2);
-
-					// Restricción 6: fuera de DEV no hay ningún `.font-mono` dentro del componente.
-					expect(root.querySelectorAll(".font-mono")).toHaveLength(0);
-
-					// Restricción 7: el contenedor de acciones apila en móvil.
-					const actions = root.querySelector("a")?.parentElement;
-					expect(actions?.className).toContain("flex-col");
-					expect(actions?.className).toContain("sm:flex-row");
+					await waitFor(() => {
+						const retry = within(panel(500)).queryByRole("link", { name: /reintentar/i });
+						expect(retry !== null).toBe(path === "con");
+					});
 				}
+
+				const root = screen.getByTestId(`error-render-${status}`).firstElementChild as HTMLElement;
+
+				// Restricción 1: la columna del contrato, sin ensanchar.
+				expect(root.className).toContain("max-w-xl");
+				expect(root.className).toContain("py-16");
+				expect(root.className).toContain("px-4");
+				expect(root.className).not.toContain("lg:max-w");
+
+				// Restricción 2: el eyebrow es el primer <p> y conserva sus clases.
+				const eyebrow = root.querySelector("p");
+				expect(eyebrow?.textContent).toContain(`ERROR ${status}`);
+				for (const required of ["text-xs", "uppercase", "tracking-wider", "text-destructive"]) {
+					expect(eyebrow?.className).toContain(required);
+				}
+
+				// Restricción 3: h1 y cuerpo hermanos inmediatos.
+				const heading = root.querySelector("h1");
+				expect(heading?.nextElementSibling?.tagName).toBe("P");
+
+				// Restricción 4: el primer <svg> es el ícono del estado, oculto a lectores, y cambia
+				// entre cliente y servidor.
+				const icon = root.querySelector("svg");
+				expect(icon?.getAttribute("aria-hidden")).toBe("true");
+				expect(icon?.getAttribute("class")).toMatch(
+					status >= 500 ? /triangle-alert/ : /file-question/,
+				);
+
+				// Restricción 5: una acción en el 500 sin ruta —no se inventa «Reintentar»—, dos en el
+				// resto. La ronda pedía «exactamente 2» en todas las combinaciones, pero el propio
+				// contrato —el reintento existe sólo con ruta— deja una sola en el 500 sin ruta: se
+				// afirma el número real.
+				const focusables = root.querySelectorAll("a, button, input, select, textarea, [tabindex]");
+				expect(focusables).toHaveLength(status === 500 && path === "sin" ? 1 : 2);
+
+				// Restricción 6: fuera de DEV no hay ningún `.font-mono` dentro del componente.
+				expect(root.querySelectorAll(".font-mono")).toHaveLength(0);
+
+				// Restricción 7: el contenedor de acciones apila en móvil.
+				const actions = root.querySelector("a")?.parentElement;
+				expect(actions?.className).toContain("flex-col");
+				expect(actions?.className).toContain("sm:flex-row");
 			}
 		} finally {
 			vi.unstubAllEnvs();
@@ -298,19 +273,62 @@ describe("hoja de error — instrumento de contraste", () => {
 		await waitFor(() => {
 			expect(screen.getByTestId("contrast-ratio-eyebrow")).toHaveTextContent(jsdomRatio);
 		});
-		expect(screen.getByTestId("contrast-verdict-eyebrow").textContent?.trim()).toMatch(/ok|falla/);
+		expect(screen.getByTestId("contrast-verdict-eyebrow").textContent?.trim()).toBe("ok");
 	});
 
-	it("recalcula al cambiar la variante y sigue midiendo", async () => {
+	it("fija las tres salidas del veredicto: falla, ok y no medible", async () => {
+		render(ErrorSheet);
+
+		// En jsdom no corre la hoja de estilos: se escriben inline el `color` y el `background-color`
+		// sobre el eyebrow —el nodo que el instrumento mide— para que `getComputedStyle` los
+		// devuelva. El ratio esperado sale de `contrastRatio` del módulo puro, no de un número escrito
+		// a mano, y el veredicto se afirma como texto exacto, no con un `match` permisivo.
+		const eyebrow = (): HTMLElement => {
+			const root = screen.getByTestId("error-render-404").firstElementChild as HTMLElement;
+			return root.querySelector("p") as HTMLElement;
+		};
+
+		// 1) Un par por debajo del umbral AA: el veredicto tiene que ser «falla», nunca un «ok»
+		// optimista. Es la salida que el andamio de variantes dejó sin cubrir.
+		const lowRatio = ratioOf("#000000", "#6b6b6b");
+		expect(lowRatio).toBeLessThan(4.5);
+		eyebrow().style.color = "#000000";
+		eyebrow().style.backgroundColor = "#6b6b6b";
+		await fireEvent.click(screen.getByTestId("theme-dark"));
+		await waitFor(() =>
+			expect(screen.getByTestId("contrast-ratio-eyebrow")).toHaveTextContent(lowRatio.toFixed(2)),
+		);
+		expect(screen.getByTestId("contrast-verdict-eyebrow").textContent?.trim()).toBe("falla");
+
+		// 2) Un par por encima del umbral: el mismo camino tiene que decir «ok», no «falla».
+		const highRatio = ratioOf("#000000", "#ffffff");
+		expect(highRatio).toBeGreaterThan(4.5);
+		eyebrow().style.color = "#000000";
+		eyebrow().style.backgroundColor = "#ffffff";
+		await fireEvent.click(screen.getByTestId("theme-light"));
+		await waitFor(() =>
+			expect(screen.getByTestId("contrast-verdict-eyebrow").textContent?.trim()).toBe("ok"),
+		);
+		expect(screen.getByTestId("contrast-ratio-eyebrow")).toHaveTextContent(highRatio.toFixed(2));
+
+		// 3) Un fondo que no se puede parsear: «no medible» gana sobre el ok/falla calculado.
+		eyebrow().style.backgroundColor = "lab(50 40 59.5)";
+		await fireEvent.click(screen.getByTestId("theme-dark"));
+		await waitFor(() =>
+			expect(screen.getByTestId("contrast-verdict-eyebrow").textContent?.trim()).toBe("no medible"),
+		);
+	});
+
+	it("recalcula al cambiar el tema y sigue midiendo", async () => {
 		render(ErrorSheet);
 
 		await waitFor(() =>
 			expect(screen.getAllByTestId(/^contrast-ratio-/).length).toBeGreaterThan(0),
 		);
 
-		await fireEvent.click(screen.getByTestId("variant-option-banda"));
+		await fireEvent.click(screen.getByTestId("theme-dark"));
 		await waitFor(() => {
-			expect(screen.getByTestId("error-render-404").getAttribute("data-variant")).toBe("banda");
+			expect(screen.getByTestId("error-sheet")).toHaveClass("dark");
 			expect(screen.getByTestId("contrast-ratio-eyebrow")).toHaveTextContent(jsdomRatio);
 		});
 	});
@@ -329,11 +347,12 @@ describe("hoja de error — instrumento de contraste", () => {
 		// en el árbol, no un literal. Se leen las mismas medidas del mismo nodo y se compara.
 		// Límite explícito: en jsdom la medida leída es 0, así que el esperado es "0.00 px".
 		const root = screen.getByTestId("error-render-404").firstElementChild as HTMLElement;
+		// El instrumento mide la columna del componente y la tarjeta que vive dentro.
+		const cardShell = root.firstElementChild instanceof HTMLElement ? root.firstElementChild : root;
 		const raw: SheetMeasures = {
-			// La variante por defecto es "actual": la raíz medida es el propio componente.
 			columnWidth: root.getBoundingClientRect().width,
-			cardScrollWidth: root.scrollWidth,
-			cardClientWidth: root.clientWidth,
+			cardScrollWidth: cardShell.scrollWidth,
+			cardClientWidth: cardShell.clientWidth,
 			pageScrollWidth: document.documentElement.scrollWidth,
 			pageClientWidth: document.documentElement.clientWidth,
 		};
@@ -347,44 +366,8 @@ describe("hoja de error — instrumento de contraste", () => {
 		);
 	});
 
-	it("mide el pill coral compuesto con el fondo del pill, no con el de la card", async () => {
-		render(ErrorSheet);
-
-		await fireEvent.click(screen.getByTestId("variant-option-tarjeta"));
-		await waitFor(() =>
-			expect(screen.getByTestId("error-render-404").getAttribute("data-variant")).toBe("tarjeta"),
-		);
-
-		// jsdom no corre la hoja de estilos: se fijan a mano los valores que el navegador computa. La
-		// card es `bg-card` (#fdfdfe) y el pill `bg-destructive/10`, que Chromium serializa a oklab.
-		const card = screen.getByTestId("error-render-404").firstElementChild as HTMLElement;
-		const pill = card.querySelector("p") as HTMLElement;
-		card.style.backgroundColor = "#fdfdfe";
-		pill.style.backgroundColor = "oklab(0.55 0.0869333 0.0232937 / 0.1)";
-		pill.style.color = "#9f5b60";
-
-		// El efecto del instrumento depende del tema: alternarlo relee el DOM ya con los estilos puestos.
-		await fireEvent.click(screen.getByTestId("theme-dark"));
-		await waitFor(() =>
-			expect(screen.getByTestId("contrast-verdict-eyebrow").textContent?.trim()).toBe("falla"),
-		);
-
-		const background = screen.getByTestId("contrast-background-eyebrow").textContent ?? "";
-		expect(background).toContain("#f4edee");
-		expect(background).toContain("compuesto");
-		expect(background).not.toContain("#fdfdfe");
-
-		const ratio = Number.parseFloat(screen.getByTestId("contrast-ratio-eyebrow").textContent ?? "");
-		expect(ratio).toBeLessThan(4.5);
-	});
-
 	it("un fondo que no se puede parsear da «no medible», nunca «ok»", async () => {
 		render(ErrorSheet);
-
-		await fireEvent.click(screen.getByTestId("variant-option-tarjeta"));
-		await waitFor(() =>
-			expect(screen.getByTestId("error-render-404").getAttribute("data-variant")).toBe("tarjeta"),
-		);
 
 		// `lab()` queda sin resolver en jsdom, igual que un fondo que el parser no entiende.
 		const card = screen.getByTestId("error-render-404").firstElementChild as HTMLElement;
@@ -400,15 +383,6 @@ describe("hoja de error — instrumento de contraste", () => {
 });
 
 describe("hoja de error — estado preseleccionado por la URL", () => {
-	it("?variant=banda arranca en esa variante y conserva las cinco tarjetas", () => {
-		setUrl("?variant=banda");
-		render(ErrorSheet);
-
-		expect((screen.getByTestId("variant-option-banda") as HTMLInputElement).checked).toBe(true);
-		expect(screen.getByTestId("error-render-404").getAttribute("data-variant")).toBe("banda");
-		expectAllCards();
-	});
-
 	it("?theme=oscuro arranca en oscuro y conserva las cinco tarjetas", () => {
 		setUrl("?theme=oscuro");
 		render(ErrorSheet);
@@ -426,10 +400,9 @@ describe("hoja de error — estado preseleccionado por la URL", () => {
 	});
 
 	it("un valor inválido cae al default sin romper la hoja", () => {
-		setUrl("?variant=nope&theme=nope&path=nope");
+		setUrl("?theme=nope&path=nope");
 		render(ErrorSheet);
 
-		expect((screen.getByTestId("variant-option-actual") as HTMLInputElement).checked).toBe(true);
 		expect(screen.getByTestId("error-sheet")).not.toHaveClass("dark");
 		expect(within(panel(500)).getByRole("link", { name: /reintentar/i })).toBeInTheDocument();
 		expectAllCards();
@@ -439,7 +412,6 @@ describe("hoja de error — estado preseleccionado por la URL", () => {
 		setUrl("");
 		render(ErrorSheet);
 
-		expect((screen.getByTestId("variant-option-actual") as HTMLInputElement).checked).toBe(true);
 		expect(screen.getByTestId("error-sheet")).not.toHaveClass("dark");
 		expect(within(panel(500)).getByRole("link", { name: /reintentar/i })).toBeInTheDocument();
 		expectAllCards();
@@ -449,12 +421,11 @@ describe("hoja de error — estado preseleccionado por la URL", () => {
 		vi.mocked(replaceState).mockClear();
 		render(ErrorSheet);
 
-		await fireEvent.click(screen.getByTestId("variant-option-sello"));
+		await fireEvent.click(screen.getByTestId("theme-dark"));
 		await waitFor(() => expect(replaceState).toHaveBeenCalled());
 
 		const [url, state] = vi.mocked(replaceState).mock.calls.at(-1) ?? [];
-		expect(url).toContain("variant=sello");
-		expect(url).toContain("theme=claro");
+		expect(url).toContain("theme=oscuro");
 		expect(url).toContain("path=con");
 		// Segundo argumento plano y serializable: un objeto no clonable rompería replaceState.
 		expect(state).toEqual({});

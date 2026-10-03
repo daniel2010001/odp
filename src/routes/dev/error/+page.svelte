@@ -13,9 +13,9 @@
 	· La línea de diagnóstico en inglés sólo se renderiza en desarrollo.
 
 	─── Ronda de revisión visual (WU-2, 2026-10-03) ────────────────────
-	El autor pidió que las páginas de error dejen de verse planas. La hoja agrega, sin promover nada:
-	· un **panel de control** con presets de caso, un interruptor de variante (las cuatro propuestas
-	  de `ErrorPage`) y un interruptor de tema claro/oscuro;
+	El autor pidió que las páginas de error dejen de verse planas y eligió la propuesta **tarjeta**.
+	La hoja agrega, sin promover nada por sí misma:
+	· un **panel de control** con presets de caso y un interruptor de tema claro/oscuro;
 	· un **instrumento** que mide, sobre el nodo real ya renderizado y con `getComputedStyle`, el
 	  contraste WCAG de cada elemento observable y el desborde horizontal. Los números no se escriben
 	  a mano: salen del DOM y de `$lib/color/contrast`.
@@ -27,7 +27,7 @@ import { Info } from "@lucide/svelte";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { contrastRatio, parseCssColor, requiredRatio } from "$lib/color/contrast";
-import ErrorPage, { type ErrorVariant, errorState } from "$lib/components/error/ErrorPage.svelte";
+import ErrorPage, { errorState } from "$lib/components/error/ErrorPage.svelte";
 import { resolveEffectiveBackground } from "./background";
 import { formatMeasures, type SheetMeasures } from "./measures";
 
@@ -73,20 +73,7 @@ const VARIANTS: Variant[] = [
 	},
 ];
 
-interface VariantOption {
-	value: ErrorVariant;
-	label: string;
-}
-
-const VARIANT_OPTIONS: VariantOption[] = [
-	{ value: "actual", label: "Actual" },
-	{ value: "tarjeta", label: "Tarjeta" },
-	{ value: "sello", label: "Sello" },
-	{ value: "banda", label: "Banda" },
-];
-
 // Valores aceptados por los parámetros de consulta que preseleccionan el panel. Ver `paramOr`.
-const VARIANT_VALUES: readonly ErrorVariant[] = VARIANT_OPTIONS.map((option) => option.value);
 const THEME_VALUES = ["claro", "oscuro"] as const;
 const PATH_VALUES = ["con", "sin"] as const;
 
@@ -115,10 +102,9 @@ function paramOr<T extends string>(key: string, allowed: readonly T[], fallback:
 	return raw !== null && (allowed as readonly string[]).includes(raw) ? (raw as T) : fallback;
 }
 
-// Estado inicial preseleccionado por la URL (`?variant=…&theme=…&path=…`) para poder abrir la hoja
-// ya posicionada —un navegador headless no puede hacer clic— y para volver a un estado exacto de
-// la revisión. Sin parámetros, cada campo queda en su default y la hoja se comporta como siempre.
-let variant = $state<ErrorVariant>(paramOr("variant", VARIANT_VALUES, "actual"));
+// Estado inicial preseleccionado por la URL (`?theme=…&path=…`) para poder abrir la hoja ya
+// posicionada —un navegador headless no puede hacer clic— y para volver a un estado exacto de la
+// revisión. Sin parámetros, cada campo queda en su default y la hoja se comporta como siempre.
 let theme = $state<"light" | "dark">(
 	paramOr("theme", THEME_VALUES, "claro") === "oscuro" ? "dark" : "light",
 );
@@ -163,10 +149,6 @@ let measures = $state<SheetMeasures>({
 // conocidas; el `$derived` sólo la aplica a la última medida del árbol.
 const formattedMeasures = $derived(formatMeasures(measures));
 
-const ACTIVE_VARIANT_LABEL = $derived(
-	VARIANT_OPTIONS.find((option) => option.value === variant)?.label ?? variant,
-);
-
 /** El 5xx sólo lleva ruta cuando el preset lo pide; el 4xx siempre la lleva. */
 function pathFor(item: Variant): string | undefined {
 	return errorState(item.status) === "server" && !serverHasPath ? undefined : item.path;
@@ -190,16 +172,10 @@ function applyPreset(preset: CasePreset): void {
  */
 function syncUrl(): void {
 	const params = new URLSearchParams({
-		variant,
 		theme: theme === "dark" ? "oscuro" : "claro",
 		path: serverHasPath ? "con" : "sin",
 	});
 	replaceState(`/dev/error?${params.toString()}`, {});
-}
-
-function selectVariant(value: ErrorVariant): void {
-	variant = value;
-	syncUrl();
 }
 
 function selectTheme(value: "light" | "dark"): void {
@@ -271,10 +247,9 @@ function measureContrast(root: HTMLElement): ContrastRow[] {
 	});
 }
 
-// Recalcula el instrumento cuando cambia la variante, el tema o el caso. El DOM ya está actualizado
-// cuando corre el efecto: los colores se leen del nodo real, no de constantes.
+// Recalcula el instrumento cuando cambia el tema o el caso. El DOM ya está actualizado cuando corre
+// el efecto: los colores se leen del nodo real, no de constantes.
 $effect(() => {
-	void variant;
 	void theme;
 	void serverHasPath;
 
@@ -284,12 +259,7 @@ $effect(() => {
 	const root = card?.firstElementChild instanceof HTMLElement ? card.firstElementChild : null;
 	rows = root ? measureContrast(root) : [];
 
-	const cardShell =
-		variant === "actual" || !root
-			? root
-			: root.firstElementChild instanceof HTMLElement
-				? root.firstElementChild
-				: root;
+	const cardShell = root?.firstElementChild instanceof HTMLElement ? root.firstElementChild : root;
 
 	measures = {
 		columnWidth: root?.getBoundingClientRect().width ?? 0,
@@ -332,7 +302,7 @@ $effect(() => {
 			<span>
 				Página sólo para desarrollo. En producción <code class="font-mono text-xs">/dev/error</code
 				> no existe (responde 404), y por eso se mantiene: los estados 5xx no se pueden provocar
-				desde el navegador. La línea de diagnóstico en inglés que aparece bajo cada variante tampoco
+				desde el navegador. La línea de diagnóstico en inglés que aparece bajo cada tarjeta tampoco
 				se renderiza fuera de desarrollo.
 			</span>
 		</p>
@@ -342,7 +312,7 @@ $effect(() => {
 			data-testid="control-panel"
 			class="mt-8 rounded-xl border border-border bg-card p-4 sm:p-6"
 		>
-			<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<div>
 					<h2 class="text-sm font-semibold text-card-foreground">Presets de caso</h2>
 					<p class="mt-1 text-xs text-muted-foreground">
@@ -358,31 +328,6 @@ $effect(() => {
 							>
 								{preset.label}
 							</button>
-						{/each}
-					</div>
-				</div>
-
-				<div>
-					<h2 class="text-sm font-semibold text-card-foreground">Variante visual</h2>
-					<p class="mt-1 text-xs text-muted-foreground">
-						Cambia la prop <code class="font-mono text-[11px]">variant</code> de las cinco tarjetas.
-					</p>
-					<div class="mt-3 flex flex-wrap gap-2">
-						{#each VARIANT_OPTIONS as option (option.value)}
-							<label
-								class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground"
-							>
-								<input
-									type="radio"
-									name="variant"
-									value={option.value}
-									checked={variant === option.value}
-									onchange={() => selectVariant(option.value)}
-									data-testid={`variant-option-${option.value}`}
-									class="sr-only"
-								/>
-								{option.label}
-							</label>
 						{/each}
 					</div>
 				</div>
@@ -432,7 +377,7 @@ $effect(() => {
 					<header class="border-b border-border bg-muted px-4 py-3">
 						<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
 							<h2 class="font-heading text-base font-semibold text-card-foreground">
-								Variante {item.status}
+								Caso {item.status}
 							</h2>
 							<p class="font-mono text-xs text-muted-foreground">
 								{errorState(item.status) === "client" ? "4xx" : "5xx"} · {item.path}
@@ -444,14 +389,8 @@ $effect(() => {
 					<div
 						class="flex-1 bg-background"
 						data-testid={`error-render-${item.status}`}
-						data-variant={variant}
 					>
-						<ErrorPage
-							status={item.status}
-							message={item.message}
-							path={pathFor(item)}
-							{variant}
-						/>
+						<ErrorPage status={item.status} message={item.message} path={pathFor(item)} />
 					</div>
 				</article>
 			{/each}
@@ -464,8 +403,7 @@ $effect(() => {
 		>
 			<h2 class="font-heading text-xl font-bold text-primary">Instrumento</h2>
 			<p class="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
-				Medición en vivo de la tarjeta del caso activo —
-				<strong class="text-foreground">variante {ACTIVE_VARIANT_LABEL.toLowerCase()}</strong>, tema
+				Medición en vivo de la tarjeta del caso activo — tema
 				<strong class="text-foreground">{theme === "dark" ? "oscuro" : "claro"}</strong>, caso
 				<strong class="text-foreground">{caseStatus}</strong>—. Los colores se leen con
 				<code class="font-mono text-[11px]">getComputedStyle</code> del nodo real y el ratio se

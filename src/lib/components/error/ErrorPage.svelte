@@ -45,15 +45,6 @@ export interface ErrorCopy {
 }
 
 /**
- * Las cuatro propuestas visuales de la ronda de revisión de WU-2 (2026-10-03).
- *
- * **Temporal.** `variant` existe sólo mientras el autor compara en `/dev/error` y elige una. Al
- * promover la elegida se borran las ramas perdedoras, se quita la prop y el componente queda con un
- * único markup. No es una decisión de producto: es el interruptor de la ronda de revisión.
- */
-export type ErrorVariant = "actual" | "tarjeta" | "sello" | "banda";
-
-/**
  * Clasifica el estado HTTP en uno de los dos estados de la página.
  *
  * Todo el rango 4xx es un único estado de cliente. Cualquier otro valor —un 5xx, pero también un
@@ -97,12 +88,7 @@ const SECONDARY_ACTION =
 <script lang="ts">
 	import { FileQuestion, RotateCw, TriangleAlert } from "@lucide/svelte";
 
-	let {
-		status,
-		message,
-		path,
-		variant = "actual",
-	}: { status: number; message?: string; path?: string; variant?: ErrorVariant } = $props();
+	let { status, message, path }: { status: number; message?: string; path?: string } = $props();
 
 	const state = $derived(errorState(status));
 	const copy = $derived(errorCopy(status));
@@ -115,10 +101,7 @@ const SECONDARY_ACTION =
 			.join(" · "),
 	);
 
-	// Clases por estado, compartidas por las ramas de la ronda de revisión.
-	const plainIconClass = $derived(
-		state === "client" ? "mt-6 size-10 text-muted-foreground" : "mt-6 size-10 text-destructive",
-	);
+	// Clases del medallón, por estado.
 	const medallionIconClass = $derived(
 		state === "client" ? "size-8 text-primary" : "size-8 text-destructive",
 	);
@@ -127,143 +110,47 @@ const SECONDARY_ACTION =
 	);
 </script>
 
-{#snippet iconPlain()}
-	{#if state === "client"}
-		<FileQuestion class={plainIconClass} aria-hidden="true" />
-	{:else}
-		<TriangleAlert class={plainIconClass} aria-hidden="true" />
-	{/if}
-{/snippet}
-
-{#snippet iconMedallion()}
-	{#if state === "client"}
-		<FileQuestion class={medallionIconClass} aria-hidden="true" />
-	{:else}
-		<TriangleAlert class={medallionIconClass} aria-hidden="true" />
-	{/if}
-{/snippet}
-
-{#snippet actions(topClass: string)}
-	<div
-		class="{topClass} flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
-	>
-		{#if state === "client"}
-			<a href="/search" class={PRIMARY_ACTION}>Volver al catálogo</a>
-			<a href="/" class={SECONDARY_ACTION}>Ir a la página de inicio</a>
-		{:else}
-			{#if path}
-				<a href={path} class={PRIMARY_ACTION}>
-					<RotateCw class="size-4" aria-hidden="true" />
-					Reintentar
-				</a>
-			{/if}
-			<a href="/search" class={SECONDARY_ACTION}>Volver al catálogo</a>
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet diagnosticLine()}
-	{#if import.meta.env.DEV}
-		<p class="mt-6 font-mono text-[11px] text-muted-foreground/70">{diagnostic}</p>
-	{/if}
-{/snippet}
-
 <svelte:head>
 	<title>{copy.title}</title>
 </svelte:head>
 
 <div class="mx-auto flex max-w-xl flex-col items-center px-4 py-16 text-center">
-	{#if variant === "actual"}
+	<div class="w-full rounded-xl border border-border bg-card p-6 text-center shadow-md sm:p-8">
 		<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
 
-		{@render iconPlain()}
+		<div class="mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}">
+			{#if state === "client"}
+				<FileQuestion class={medallionIconClass} aria-hidden="true" />
+			{:else}
+				<TriangleAlert class={medallionIconClass} aria-hidden="true" />
+			{/if}
+		</div>
 
 		<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
 
 		<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
 
-		{@render actions("mt-8")}
+		<div class="mt-8 h-px w-16 bg-destructive/30"></div>
 
-		{@render diagnosticLine()}
-	{:else if variant === "tarjeta"}
-		<div class="w-full rounded-xl border border-border bg-card p-6 text-center shadow-md sm:p-8">
-			<p
-				class="inline-flex items-center rounded-full bg-destructive/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-destructive"
-			>
-				ERROR {status}
-			</p>
-
-			<div class="mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}">
-				{@render iconMedallion()}
-			</div>
-
-			<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
-
-			<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
-
-			<div class="mt-8 h-px w-16 bg-destructive/30"></div>
-
-			{@render actions("mt-6")}
-
-			{@render diagnosticLine()}
-		</div>
-	{:else if variant === "sello"}
 		<div
-			class="relative w-full overflow-hidden rounded-xl border border-border bg-card p-8 text-center shadow-md"
+			class="mt-6 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
 		>
-			<span
-				aria-hidden="true"
-				class="pointer-events-none absolute top-2 right-4 select-none font-heading text-[7rem] leading-none font-bold text-primary/10"
-			>
-				{status}
-			</span>
-
-			<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
-
-			<div class="mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}">
-				{@render iconMedallion()}
-			</div>
-
-			<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
-
-			<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
-
-			<div class="mt-8 h-px w-16 bg-destructive/30"></div>
-
-			{@render actions("mt-6")}
-
-			{@render diagnosticLine()}
+			{#if state === "client"}
+				<a href="/search" class={PRIMARY_ACTION}>Volver al catálogo</a>
+				<a href="/" class={SECONDARY_ACTION}>Ir a la página de inicio</a>
+			{:else}
+				{#if path}
+					<a href={path} class={PRIMARY_ACTION}>
+						<RotateCw class="size-4" aria-hidden="true" />
+						Reintentar
+					</a>
+				{/if}
+				<a href="/search" class={SECONDARY_ACTION}>Volver al catálogo</a>
+			{/if}
 		</div>
-	{:else}
-		<div class="w-full overflow-hidden rounded-xl border border-border bg-card shadow-md">
-			<div class="bg-primary px-6 py-8">
-				<div class="flex items-center justify-between gap-4">
-					<div class="flex size-16 items-center justify-center rounded-full bg-primary-foreground/15">
-						{#if state === "client"}
-							<FileQuestion class="size-8 text-primary-foreground" aria-hidden="true" />
-						{:else}
-							<TriangleAlert class="size-8 text-primary-foreground" aria-hidden="true" />
-						{/if}
-					</div>
-					<span aria-hidden="true" class="font-heading text-5xl font-bold text-primary-foreground/30">
-						{status}
-					</span>
-				</div>
-			</div>
 
-			<div class="p-6 text-center sm:p-8">
-				<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
-
-				<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
-
-				<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
-
-				<div class="mt-8 h-px w-16 bg-destructive/30"></div>
-
-				{@render actions("mt-6")}
-
-				{@render diagnosticLine()}
-			</div>
-		</div>
-	{/if}
+		{#if import.meta.env.DEV}
+			<p class="mt-6 font-mono text-[11px] text-muted-foreground/70">{diagnostic}</p>
+		{/if}
+	</div>
 </div>
