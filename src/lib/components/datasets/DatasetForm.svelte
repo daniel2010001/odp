@@ -503,10 +503,15 @@ const singleOrg = $derived(organizations.length === 1 ? organizations[0] : null)
 // sección de organización la leen de acá para que edición no muestre "falta elegir".
 const effectiveOwnerOrg = $derived(mode === "edit" ? orgFact : ownerOrg);
 const orgDisplayTitle = $derived(
-	singleOrg
-		? singleOrg.title
-		: (organizations.find((org) => org.name === effectiveOwnerOrg)?.title ??
-			(effectiveOwnerOrg || "")),
+	mode === "edit"
+		? // En edición manda el hecho cargado: la lista del llamador puede traer **una sola**
+			// organización que no sea la dueña del dataset, y mostrar esa sería mentirle al lector
+			// (`R3-001` de `review-9ce0dea883d3ddb9`).
+			(organizations.find((org) => org.name === orgFact)?.title ?? (orgFact || ""))
+		: singleOrg
+			? singleOrg.title
+			: (organizations.find((org) => org.name === effectiveOwnerOrg)?.title ??
+				(effectiveOwnerOrg || "")),
 );
 // La ficha no puede quedar **en blanco**: mientras haya más de una organización y ninguna elegida, el
 // bloque tiene que decir que falta elegir. Antes pintaba `orgDisplayTitle`, que en ese estado es "", y

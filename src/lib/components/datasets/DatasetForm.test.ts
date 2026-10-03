@@ -81,12 +81,13 @@ function renderCreate(onsubmit: (data: unknown) => void = vi.fn()) {
 function renderEdit(
 	overrides: Partial<DatasetFormInitial> = {},
 	onsubmit: (data: unknown) => void = vi.fn(),
+	organizations: CkanOrganization[] = [org],
 ) {
 	return render(DatasetForm, {
 		props: {
 			mode: "edit",
 			initial: { ...initial, ...overrides },
-			organizations: [org],
+			organizations,
 			licenses: [license],
 			onsubmit,
 		},
@@ -178,6 +179,23 @@ describe("DatasetForm — modo edición", () => {
 		expect(
 			screen.getByText(/mover el dataset a otra organización es una operación aparte/i),
 		).toBeInTheDocument();
+	});
+
+	it("en edición manda la organización dueña, aunque la lista traiga otra sola", () => {
+		// La lista del llamador puede no coincidir con la dueña del dataset: el hecho cargado manda
+		// sobre la heurística de «hay una sola organización en la lista» (`R3-001` de
+		// `review-9ce0dea883d3ddb9`). Mostrar otra organización que la que se va a usar sería
+		// mentirle al lector.
+		const otra: CkanOrganization = {
+			...org,
+			id: "org-2",
+			name: "otra-org",
+			title: "Otra Organización",
+		};
+		const { container } = renderEdit({}, vi.fn(), [otra]);
+
+		expect(container.querySelector("#owner-org")?.textContent).toContain("fcyt");
+		expect(container.textContent).not.toContain("Otra Organización");
 	});
 
 	it("se llama «Guardar cambios» en edición y «Crear dataset» en creación", () => {
