@@ -1958,6 +1958,28 @@ después del cierre que describe el encabezado de esta sección; medición compl
   `lg:sticky lg:top-40` y el encabezado del sitio mide `var(--header-h)` (5rem, `src/app.css`); sin ese margen
   la card se fija por debajo de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
   _Origen: pedido del usuario, 2026-09-17._
+  **Hallazgo (2026-10-03) — la premisa del ítem no se sostiene: NO hay contenedor de scroll.** La dirección de
+  arriba dice «en el contenedor de scroll», y la lista de resultados **no lo tiene**: es un `div.space-y-4` en el
+  flujo normal del documento, y el único `overflow-y-auto` de la página es el del `aside` de filtros
+  (`lg:overflow-y-auto`, `lg:sticky lg:top-40`). O sea que el *snapping* no tiene dónde vivir sin decidir algo antes.
+  Tres salidas, con su costo:
+  **(a)** `scroll-snap-type: y proximity` en el scroller de la página más `snap-start` en las cards, apoyado en el
+  `scroll-margin-top` que ya existe (`estiloDestino`, ligado a `--header-h`): el cambio más chico, y `proximity` no le
+  pelea al scroll largo ni a las otras secciones («pruebe con», «recientes», «organizaciones») ni al encabezado que se
+  achica; el ajuste es sutil por definición.
+  **(b)** `mandatory` en el scroller de la página: es el «se fijan» literal, pero gobierna **todo** el desplazamiento de
+  la página, y con el encabezado de alto variable (`E2b`), el sidebar *sticky* y las secciones altas es el más propenso
+  a sentirse roto.
+  **(c)** darle a la región de resultados su propio `overflow-y-auto` con altura acotada: *snapping* contenido y
+  predecible, a costa de **dos áreas de scroll anidadas** en una página que ya tiene una.
+  **Y una corrección útil: el *snapping* SÍ es verificable sin contenedor de frontend.** Medido el 2026-10-03 en
+  chromium headless sobre sondas propias: en un contenedor con `scroll-snap-type: y mandatory`, `scrollTop = 250`
+  termina en **202**, `scrollTo(310)` en **404** y `scrollTo(410, smooth)` en **404**; sobre el scroller raíz,
+  `scrollTo(0, 500)` termina en **410**. El navegador aplica el *snapping* y devuelve el desplazamiento **ya ajustado**:
+  es comportamiento medido, no estilos computados. El motor de layout lo da un `vite dev` de host **efímero** levantado
+  desde el `node_modules` de este worktree —uso que `AGENTS.md` documenta como legítimo para medir un worktree que el
+  proxy no monta—. Lo que falta acá no es una forma de medir: es **elegir (a), (b) o (c)**.
+  _Anotado por la sesión paralela, 2026-10-03. Sin cambios de código por esta nota._
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
   del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque
