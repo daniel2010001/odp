@@ -19,6 +19,8 @@
 
 ## Barrido de pulido de UI (sesión paralela, 2026-10-03) — qué tomó y cómo cerró
 
+> El **estado de cierre de la línea de datasets**, con las reglas para dos sesiones en este clone, está justo más abajo.
+
 > Sesión `01a102a7-0f94-76b7-86fb-55c8c3d88023`, en un **worktree propio** (`~/projects/odp-ui-polish`,
 > rama `feat/ui-polish-sweep`, base `9bf844a`) para no competir por el índice ni el `HEAD` con la sesión que
 > trabaja la ruta de edición y borrado de datasets. Reparto declarado: esta sesión **no toca**
@@ -32,13 +34,84 @@
 > —el `TooltipTrigger` de bits-ui es un primitivo de botón y la card entera es un enlace: ver ese `[v0]`—.
 > El plan, la evidencia y el handoff viven en `odd/tasks/ui-polish-sweep.md`.
 >
-> **Para el autor:** (1) las dos decisiones que desbloquean el resto —dónde vive el *snapping* y cuál es el
-> disparador del `Tooltip`—; (2) el **push y el PR** de esta rama (10 commits, ninguno pusheado); (3) el contraste
-> del botón primario en oscuro, que es una regla incumplida y decisión suya; (4) mirar la página de error nueva,
-> que necesita el merge para verse en 8082.
+> **La decisión del autor que desbloquea el resto:** las dos de los ítems parqueados —dónde vive el *snapping* y
+> cuál es el disparador del `Tooltip`—. El push, el merge y el contraste del botón oscuro ya están en la lista de
+> arriba: no se repiten acá.
 >
 > **Nota de durabilidad:** lo que esta rama agrega al `BACKLOG` —el análisis de esos dos ítems— **no es durable
 > hasta el merge**. Los dos hallazgos sí lo son: el par les dio copia propia en `main`.
+
+## Estado al cierre (2026-10-03, noche) — handoff: la edición de datasets cerrada, y DOS sesiones en este clone
+
+> **`main` = `ab4dd36` + este commit, 26 commits sin pushear, árbol limpio.** Suite **806/806** (52 archivos) ·
+> `svelte-check` 0 errores / 4 warnings preexistentes · Biome exit 0 · un solo worktree · stack en su línea
+> base (17 datasets).
+>
+> **Catorce compuertas con autoridad quemada** sobre la rebanada 1b-B1 (9 unidades) y su cola (5 más): cada
+> recibo y cada lección viven en `openspec/changes/2026-10-02-dataset-edit-and-delete/apply-progress.md`.
+> La edición de datasets **funciona de punta a punta**: se entra por el botón «Editar» del dashboard o de la
+> página del dataset, se guarda con `package_revise` y el resumen se escribe **de verdad** (medido por efecto:
+> resumen en su lugar, extras ajenos intactos, recursos intactos, conflicto = aviso sin pisar).
+
+### Primero: HAY DOS SESIONES EN ESTE CLONE
+
+Es lo que más conviene saber antes de tocar nada, porque no está escrito en ningún otro lado del repo.
+
+- **Esta línea** (`main`, worktree `~/projects/odp`): el módulo de edición/borrado de datasets. Alcance
+  reservado: `src/routes/dashboard/datasets/**`, `src/lib/components/datasets/**`, `src/routes/dataset/**`,
+  `src/lib/utils/dataset-payload.*`, `src/lib/api/datasets.*`, `src/lib/components/form/TagsInput.svelte` y
+  `openspec/changes/2026-10-02-dataset-edit-and-delete/**`.
+- **La otra línea** (worktree `~/projects/odp-ui-polish`, rama `feat/ui-polish-sweep`, **10 commits encima de
+  `ab4dd36`, sin pushear**): el barrido de pulido de UI. Alcance suyo: `src/routes/search/**` y
+  `src/lib/components/search/**`. **Nada de lo suyo escribe en CKAN.**
+- **Tres reglas que costaron aprender, y valen para cualquier par de sesiones:**
+  1. **Un solo dueño por archivo** — `BACKLOG.md` es el punto de colisión clásico.
+  2. **El hallazgo compartido vive en la copia durable y con el MÍNIMO para actuar**, no con el más completo:
+     lo que tiene que estar en `main` es el **ítem**, no el detalle; el detalle viaja con la rama y converge
+     en el merge.
+  3. **Git detecta conflictos de texto, no duplicados semánticos.** El mismo hallazgo anotado dos veces pasó
+     un rebase **sin un solo ruido**. Si al mergear aparece conflicto en la sección de hallazgos de la sesión
+     paralela, la resolución correcta es **una sola copia** (la de `main` con las adiciones de la rama encima)
+     y **nunca** «quedarse con los dos lados», que recrea el duplicado.
+- **Entorno, para no volver a tropezar:** el portal se ve en **`http://localhost:8082`** (contenedor
+  `frontend-proxy`); el 5173 del contenedor es interno y no está publicado; el contenedor monta **sólo**
+  `src/` y `static/` de este worktree, así que **la UI de la otra rama no se ve** salvo que se monte en otro
+  contenedor. Un `vite dev` **de host** sí es legítimo para **medir** un worktree no montado —estilos
+  computados y comportamiento que jsdom no reproduce, como el *scroll snapping*— con la regla de que sea
+  **efímero**. Detalle en `AGENTS.md`.
+- **El stack de CKAN es compartido**: un catálogo y una base. Los datasets descartables se purgan y la
+  limpieza se verifica **por efecto** (el conteo, no la respuesta de éxito).
+
+### Para el autor (decisiones suyas; ninguna bloquea)
+
+1. **El push**: 26 commits locales, ninguno subido. Todo lo revisado vive sólo en esta máquina.
+2. **El linaje atascado** `review-6b517157db5f4274`: inmutable en `correction_required`, autoridad sin
+   consumir. Su corrección no se pudo admitir en ese linaje —commitearla rompe los artefactos, dejarla sin
+   commitear la oculta— y el contenido corregido se aprobó y quemó en una **transacción nueva**. Abandonarlo
+   con la operación auditada, o dejarlo.
+3. **La revisión en el navegador de los puntos de entrada**: el botón «Editar» ya existe. El copy de los
+   cuatro estados de negativa es **propuesta del agente**, y la regla 8 dice que la interfaz la aprueba el
+   autor.
+4. **El contraste del botón primario en modo oscuro** (ítem abajo): **3.73:1** contra la regla 7
+   (`AGENTS.md:35`, ≥ 4.5:1), portal-wide y preexistente. El arreglo son **tokens** en `src/app.css`.
+5. **El merge de `feat/ui-polish-sweep`** (10 commits, sin pushear): entra limpio mientras `main` no mueva las
+   líneas de la sección de hallazgos paralelos — y **esta sesión se comprometió a no tocarlas**.
+
+### Para la sesión siguiente (trabajo, no decisiones)
+
+1. **Slice 2 (recursos)** del cambio en curso: metadatos por recurso, reemplazo de archivo con SHA-256 en el
+   navegador y motivo obligatorio, y la lista de recursos propia de la edición (1b.8). **Construir las
+   escrituras sobre la forma medida** —`design.md`, «The write shape, corrected by measurement»: `filter` +
+   listas completas— y **nunca** sobre el patrón que el plan de la rebanada 1b asumía.
+2. **La receta del ciclo de compuerta** (en `apply-progress.md`, «Operational lessons»): `inspect` → `START`
+   **con `baseRef` explícito al commit padre** (sin él, el candidato son las 27 rutas de toda la sesión) →
+   `STATUS` → captura (el primer intento devuelve **pronóstico** y no corre nada: se reenvía el mismo binding
+   con `reviewerRunAcknowledged: true`) → acuse. **Las llamadas de la compuerta van directas, nunca dentro de
+   `codemode`** (dos timeouts las cancelaron). **El sobre de consentimiento caduca a los 10 minutos.**
+3. **La primera compuerta de esa sesión cubre el delta de documentación de este cierre** (estos commits de
+   registro quedaron sin compuerta a propósito: registrar el resultado de una compuerta es documentación).
+4. **Los pendientes técnicos** de la sección de abajo: el más barato y con más retorno es el `response.json()`
+   sin guarda en `client.ts`.
 
 ## Anotado el 2026-10-03 — el bloque de edición de datasets cerró, y esto queda para después
 
@@ -66,9 +139,9 @@ pedidos nuevos.
   corren con el formulario desmontado, así que ninguna aserción de DOM distingue guardado de no guardado (dos
   avisos de `review-dfab596fdb93734a`). El arreglo es **extraer la carga a una unidad testeable** o colapsar
   las banderas en un estado único — **no** agregar más aserciones.
-- [ ] **[v1]** **Falta el punto de entrada a la edición.** La ruta `/dashboard/datasets/[id]/edit` funciona y
-  está gateada, pero nada en la interfaz lleva a ella: eso es 1b-B2 (la fila del dashboard y la página del
-  dataset).
+- [x] **[v1]** **Los puntos de entrada a la edición** — cerrados en `8ebae13`: el botón «Editar» en la
+  fila del dashboard y en la página del dataset, con la pregunta de permiso en **una sola llamada por página**
+  y fallando cerrado. Queda **la revisión del autor** en el navegador (ver arriba).
 
 ## Anotado el 2026-10-03 — hallazgos de la sesión paralela de pulido de UI, traídos a `main`
 

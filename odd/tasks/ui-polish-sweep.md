@@ -167,8 +167,8 @@ dejado por el propio desmontaje del andamio.
 | WU-3 · *scroll snapping* del buscador | **bloqueado por el diseño, no por el entorno** | Mi diagnóstico anterior («no se puede verificar») era **falso y lo corregí midiendo**: en chromium headless el *snapping* real es observable —`scrollTop = 250` sobre un contenedor con `snap-type: y mandatory` devuelve **202**, `scrollTo(310)` devuelve **404**, y en la raíz `scrollTo(0, 500)` devuelve **410**—. Lo que falta no es un motor, es una decisión: **la lista de resultados no tiene contenedor de scroll propio** (`div.space-y-4` en el flujo del documento; el único `overflow-y-auto` es el del sidebar), así que el *snapping* tiene que ir o en el scroller de la página (`proximity`, sutil y sin pelear con el encabezado; o `mandatory`, que gobierna toda la página) o en un contenedor nuevo (scroll anidado). Las tres están escritas en el ítem del `BACKLOG` con su costo. |
 | WU-4 · los tags cortados de la card | bloqueado por una decisión | El autor eligió el `Tooltip` de bits-ui, y el disparador es un primitivo de botón: contra una card-enlace hay que elegir entre **(a)** la card como disparador o **(b)** reestructurar la card. El análisis completo está en el ítem del `BACKLOG`. |
 
-**Estado del árbol al cerrar:** rama `feat/ui-polish-sweep` en `~/projects/odp-ui-polish`, **rebaseada sobre `main`
-(`ab4dd36`), 10 commits encima, 0 detrás**, árbol limpio, **55 archivos / 858 tests en verde**, `pnpm check` 0 errores,
+**Estado del árbol al cerrar:** rama `feat/ui-polish-sweep` en `~/projects/odp-ui-polish`, **mergeada con `main` ya en
+su tope** —11 commits propios más el merge, 0 detrás—, árbol limpio, **55 archivos / 858 tests en verde**, `pnpm check` 0 errores,
 `biome check .` (164 archivos) **0 warnings / 0 infos**, **nada pusheado**.
 
 > **El rebase salió sin un solo conflicto, y eso destapó un duplicado.** Los dos hallazgos existían **dos veces** —la
@@ -178,11 +178,12 @@ dejado por el propio desmontaje del andamio.
 > concretas del arreglo de contraste y el detalle medido del 254— se consolidó en la sección de `main` (`ff52b7c`),
 > con tres cambios aditivos que el par aceptó.
 >
-> **La fragilidad que queda, y es de merge:** si alguien mueve las líneas de esa sección en `main` antes de que esta
-> rama se integre, hay conflicto, y la resolución tentadora —«quedarse con los dos lados»— **recrea el duplicado**,
-> otra vez sin ruido. La resolución correcta es **una sola copia**: la sección de `main` con las adiciones encima, y
-> **sin** reinsertar la sección vieja. El par se comprometió a no tocar esas líneas hasta el merge, y verificado al
-> cerrar con `git merge-tree`: hoy entra **sin conflictos**.
+> **La fragilidad se materializó, y era la prevista:** el par commiteó `2a1677c` sobre `BACKLOG.md` mientras esta
+> rama cerraba —su handoff de cierre, que además documenta las dos sesiones— y el merge entró en conflicto **en el
+> único archivo que las dos escribimos**. Resuelto en `57b8a5e` quitando duplicación en vez de sumarla: su sección
+> quedó **verbatim** y el bloque de esta sesión se recortó para que ningún hecho ni ninguna regla se digan dos veces.
+> Es la resolución que los dos habíamos acordado **antes** de que hiciera falta, y que sirvió de nada si no se
+> escribía.
 
 **Cero procesos dejados atrás:** el servidor de desarrollo que levanté en el host (puerto 5175) quedó apagado,
 verificado por `ss` y por `curl`. El portal sigue siendo 8082, servido por el contenedor del par.
