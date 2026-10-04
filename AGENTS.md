@@ -123,3 +123,9 @@ compartir estado mutable**: el aislamiento lo da el worktree, no el consenso.
 - **Git verifica texto, no significado.** Un rebase sin conflictos puede dejar el mismo contenido dos veces,
   una al lado de la otra, sin un solo ruido — pasó el 2026-10-03 con el mismo hallazgo duplicado en
   `BACKLOG.md`. Ante un conflicto ahí, la resolución es **una sola copia**, nunca «quedarse con los dos lados».
+- **El conflicto no es de contenido, es de anclaje.** Dos sesiones que agregan cosas **distintas** chocan igual
+  si lo hacen **en el mismo punto del archivo**, por más que cada una se cuide de lo del otro: pasó el
+  2026-10-03, cuando las dos insertamos en el tope de `BACKLOG.md` con texto distinto y la regla «no muevas
+  esa sección» no alcanzó para evitarlo. Entonces: **no insertar en el mismo anclaje**, y al resolver,
+  **quitar duplicación en vez de sumarla** — el contenido de cada una se conserva, lo que se recorta es lo
+  que ya está dicho.
