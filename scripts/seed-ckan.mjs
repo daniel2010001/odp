@@ -116,7 +116,7 @@ async function login() {
 		}
 		const payload = await mint.json();
 		if (!payload.success || !payload.result?.token) {
-			throw new Error("api_token_create falló: " + JSON.stringify(payload.error ?? {}));
+			throw new Error(`api_token_create falló: ${JSON.stringify(payload.error ?? {})}`);
 		}
 		token = payload.result.token;
 		jti = (await tokenIds()).find((id) => !idsBefore.has(id));

@@ -17,6 +17,30 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Barrido de pulido de UI (sesión paralela, 2026-10-03) — qué tomó y cómo cerró
+
+> El **estado de cierre de la línea de datasets**, con las reglas para dos sesiones en este clone, está justo más abajo.
+
+> Sesión `01a102a7-0f94-76b7-86fb-55c8c3d88023`, en un **worktree propio** (`~/projects/odp-ui-polish`,
+> rama `feat/ui-polish-sweep`, base `9bf844a`) para no competir por el índice ni el `HEAD` con la sesión que
+> trabaja la ruta de edición y borrado de datasets. Reparto declarado: esta sesión **no toca**
+> `src/lib/components/datasets/**`, `src/routes/dashboard/datasets/**` ni `src/routes/dataset/**`.
+>
+> **Ítems tomados, con el go del autor (2026-10-03):** los 11 diagnósticos de Biome · el pulido visual de las
+> páginas de error · el *scroll snapping* del buscador · los tags cortados de la card de dataset.
+> **Cerrados:** los dos primeros (`034ac61`, `5cc46c4`, `db63617`). **Parqueados con su decisión escrita:**
+> el *snapping* —que la lista de resultados **no tenga contenedor de scroll** fuerza la elección entre
+> `proximity`, `mandatory` o un contenedor anidado: ver el ítem del `[v1]` del buscador— y los tags cortados
+> —el `TooltipTrigger` de bits-ui es un primitivo de botón y la card entera es un enlace: ver ese `[v0]`—.
+> El plan, la evidencia y el handoff viven en `odd/tasks/ui-polish-sweep.md`.
+>
+> **La decisión del autor que desbloquea el resto:** las dos de los ítems parqueados —dónde vive el *snapping* y
+> cuál es el disparador del `Tooltip`—. El push, el merge y el contraste del botón oscuro ya están en la lista de
+> arriba: no se repiten acá.
+>
+> **Nota de durabilidad:** lo que esta rama agrega al `BACKLOG` —el análisis de esos dos ítems— **no es durable
+> hasta el merge**. Los dos hallazgos sí lo son: el par les dio copia propia en `main`.
+
 ## Estado al cierre (2026-10-03, noche) — handoff: la edición de datasets cerrada, y DOS sesiones en este clone
 
 > **`main` = `d2f53ce` + este commit, 29 commits sin pushear, árbol limpio.** Suite **806/806** (52 archivos) ·
@@ -123,15 +147,17 @@ pedidos nuevos.
 
 ## Anotado el 2026-10-03 — hallazgos de la sesión paralela de pulido de UI, traídos a `main`
 
-La sesión paralela (`feat/ui-polish-sweep`, sobre `9bf844a`) lleva sus propios ítems en su rama, y **esa rama
-todavía no está mergeada**. Sus hallazgos no pueden vivir sólo ahí, así que acá va la copia durable con lo
-mínimo para actuar. Al mergear, las dos secciones quedan yuxtapuestas y una de las dos se borra; **el registro
-de medición completo es el suyo**.
+La sesión paralela (`feat/ui-polish-sweep`, sobre `9bf844a`) llevaba sus propios ítems en su rama, y **esa rama
+todavía no está mergeada**. Sus hallazgos no podían vivir sólo ahí, así que acá va la copia durable. Cuando esa
+rama se rebaseó sobre este `main`, su duplicado se borró y **el registro de medición se consolidó acá**: esta
+sección es ahora la única copia, y por eso lleva el detalle y no sólo el resumen.
 
 - [ ] **[v1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
   texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
   **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
-  arreglo son tokens, así que la decisión es del autor. Reproducir: `/dev/error?theme=oscuro`.
+  arreglo son tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su
+  `--primary-foreground`, o ambos—, así que la decisión es del autor y no de una sesión. Reproducir:
+  `/dev/error?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
   **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
   texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
   arbitrario: es el tamaño del texto.
@@ -143,6 +169,11 @@ de medición completo es el suyo**.
   Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
 - [ ] **[v1+]** **`pnpm lint` sale con 254 de forma transitoria.** Medido por la sesión paralela; **no lo
   reproduje acá**. Es ruido de herramienta, no del código: `biome check` sobre archivos concretos sale 0.
+  La medición: `pnpm exec biome check .` falló **dos veces seguidas** con `Linter process terminated abnormally`
+  y después dio **12/12 corridas con exit 0** por la misma vía y con el mismo binario; `which pnpm` es el binario
+  real de mise, sin wrapper, sin alias y sin hooks, así que **no es un proxy ni falta de memoria**.
+  Consecuencia práctica: **la compuerta sirve**, pero ante el 254 hay que **reintentar**, no leerlo como fallo del
+  código. Baseline limpio medido ese día: **0 warnings / 0 infos** sobre 155 archivos.
 
 ## Estado al cierre (2026-10-02) — handoff: el módulo de edición y borrado de datasets, en curso (SDD)
 
@@ -1798,6 +1829,18 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): VIVO.** `DatasetCard.svelte:95` sigue con `dataset.tags.slice(0, 3)` y un `+N` pelado
   (`:118` para los formatos), y **no existe ningún componente `Tooltip`** en `src/lib/components`. **Frena en la decisión
   del autor:** `title` nativo, vendorizar el `Tooltip` de bits-ui, o no truncar.
+  **Decisión del autor (2026-10-03): vendorizar el `Tooltip` de bits-ui.** Pero apareció un obstáculo que el ítem no
+  había medido, así que la decisión **quedó a medio camino y no se resolvió por la vía obvia** —leído de la API
+  instalada, no de memoria: `TooltipTrigger`, en bits-ui 2.19.2, está tipado como primitivo de **botón**
+  (`TooltipTriggerProps` interseca `BitsPrimitiveButtonAttributes`) y admite delegación con `child`. Contra una card que
+  **entera** es un `<a>`, eso deja sólo dos formas honestas:
+  **(a)** el `<a>` de la card es el disparador, y el contenido lista las etiquetas y los formatos que el recorte
+  esconde —cero contenido interactivo anidado, el foco del enlace cubre el teclado, y un solo mecanismo arregla los dos
+  defectos—; o **(b)** reestructurar la card para que el título sea el enlace y la divulgación sea un `<button>` real,
+  lo que **mueve la superficie de clic de toda la card** y necesita su propia ronda de revisión visual.
+  Queda descartado por el propio arnés poner el disparador sobre un `<span>` no enfocable: exigiría `tabindex`, que es
+  exactamente la violación (`a11y_no_noninteractive_tabindex`) que `/dev/nav` ya documentó al intentarlo.
+  **Falta elegir (a) o (b), y no antes.** El defecto sigue vivo y medido: nada de esto cambió el código.
 
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
@@ -1981,6 +2024,28 @@ después del cierre que describe el encabezado de esta sección; medición compl
   `lg:sticky lg:top-40` y el encabezado del sitio mide `var(--header-h)` (5rem, `src/app.css`); sin ese margen
   la card se fija por debajo de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
   _Origen: pedido del usuario, 2026-09-17._
+  **Hallazgo (2026-10-03) — la premisa del ítem no se sostiene: NO hay contenedor de scroll.** La dirección de
+  arriba dice «en el contenedor de scroll», y la lista de resultados **no lo tiene**: es un `div.space-y-4` en el
+  flujo normal del documento, y el único `overflow-y-auto` de la página es el del `aside` de filtros
+  (`lg:overflow-y-auto`, `lg:sticky lg:top-40`). O sea que el *snapping* no tiene dónde vivir sin decidir algo antes.
+  Tres salidas, con su costo:
+  **(a)** `scroll-snap-type: y proximity` en el scroller de la página más `snap-start` en las cards, apoyado en el
+  `scroll-margin-top` que ya existe (`estiloDestino`, ligado a `--header-h`): el cambio más chico, y `proximity` no le
+  pelea al scroll largo ni a las otras secciones («pruebe con», «recientes», «organizaciones») ni al encabezado que se
+  achica; el ajuste es sutil por definición.
+  **(b)** `mandatory` en el scroller de la página: es el «se fijan» literal, pero gobierna **todo** el desplazamiento de
+  la página, y con el encabezado de alto variable (`E2b`), el sidebar *sticky* y las secciones altas es el más propenso
+  a sentirse roto.
+  **(c)** darle a la región de resultados su propio `overflow-y-auto` con altura acotada: *snapping* contenido y
+  predecible, a costa de **dos áreas de scroll anidadas** en una página que ya tiene una.
+  **Y una corrección útil: el *snapping* SÍ es verificable sin contenedor de frontend.** Medido el 2026-10-03 en
+  chromium headless sobre sondas propias: en un contenedor con `scroll-snap-type: y mandatory`, `scrollTop = 250`
+  termina en **202**, `scrollTo(310)` en **404** y `scrollTo(410, smooth)` en **404**; sobre el scroller raíz,
+  `scrollTo(0, 500)` termina en **410**. El navegador aplica el *snapping* y devuelve el desplazamiento **ya ajustado**:
+  es comportamiento medido, no estilos computados. El motor de layout lo da un `vite dev` de host **efímero** levantado
+  desde el `node_modules` de este worktree —uso que `AGENTS.md` documenta como legítimo para medir un worktree que el
+  proxy no monta—. Lo que falta acá no es una forma de medir: es **elegir (a), (b) o (c)**.
+  _Anotado por la sesión paralela, 2026-10-03. Sin cambios de código por esta nota._
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
   del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque

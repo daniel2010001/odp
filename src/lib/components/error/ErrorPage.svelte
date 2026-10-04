@@ -88,11 +88,7 @@ const SECONDARY_ACTION =
 <script lang="ts">
 	import { FileQuestion, RotateCw, TriangleAlert } from "@lucide/svelte";
 
-	let {
-		status,
-		message,
-		path,
-	}: { status: number; message?: string; path?: string } = $props();
+	let { status, message, path }: { status: number; message?: string; path?: string } = $props();
 
 	const state = $derived(errorState(status));
 	const copy = $derived(errorCopy(status));
@@ -104,6 +100,14 @@ const SECONDARY_ACTION =
 			.filter((part) => part !== undefined && part !== "")
 			.join(" · "),
 	);
+
+	// Clases del medallón, por estado.
+	const medallionIconClass = $derived(
+		state === "client" ? "size-8 text-primary" : "size-8 text-destructive",
+	);
+	const medallionBackgroundClass = $derived(
+		state === "client" ? "bg-primary/10" : "bg-destructive/10",
+	);
 </script>
 
 <svelte:head>
@@ -111,34 +115,42 @@ const SECONDARY_ACTION =
 </svelte:head>
 
 <div class="mx-auto flex max-w-xl flex-col items-center px-4 py-16 text-center">
-	<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
+	<div class="w-full rounded-xl border border-border bg-card p-6 text-center shadow-md sm:p-8">
+		<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
 
-	{#if state === "client"}
-		<FileQuestion class="mt-6 size-10 text-muted-foreground" aria-hidden="true" />
-	{:else}
-		<TriangleAlert class="mt-6 size-10 text-destructive" aria-hidden="true" />
-	{/if}
-
-	<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
-
-	<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
-
-	<div class="mt-8 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
-		{#if state === "client"}
-			<a href="/search" class={PRIMARY_ACTION}>Volver al catálogo</a>
-			<a href="/" class={SECONDARY_ACTION}>Ir a la página de inicio</a>
-		{:else}
-			{#if path}
-				<a href={path} class={PRIMARY_ACTION}>
-					<RotateCw class="size-4" aria-hidden="true" />
-					Reintentar
-				</a>
+		<div class="mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}">
+			{#if state === "client"}
+				<FileQuestion class={medallionIconClass} aria-hidden="true" />
+			{:else}
+				<TriangleAlert class={medallionIconClass} aria-hidden="true" />
 			{/if}
-			<a href="/search" class={SECONDARY_ACTION}>Volver al catálogo</a>
+		</div>
+
+		<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
+
+		<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
+
+		<div class="mt-8 h-px w-16 bg-destructive/30"></div>
+
+		<div
+			class="mt-6 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
+		>
+			{#if state === "client"}
+				<a href="/search" class={PRIMARY_ACTION}>Volver al catálogo</a>
+				<a href="/" class={SECONDARY_ACTION}>Ir a la página de inicio</a>
+			{:else}
+				{#if path}
+					<a href={path} class={PRIMARY_ACTION}>
+						<RotateCw class="size-4" aria-hidden="true" />
+						Reintentar
+					</a>
+				{/if}
+				<a href="/search" class={SECONDARY_ACTION}>Volver al catálogo</a>
+			{/if}
+		</div>
+
+		{#if import.meta.env.DEV}
+			<p class="mt-6 font-mono text-[11px] text-muted-foreground/70">{diagnostic}</p>
 		{/if}
 	</div>
-
-	{#if import.meta.env.DEV}
-		<p class="mt-6 font-mono text-[11px] text-muted-foreground/70">{diagnostic}</p>
-	{/if}
 </div>
