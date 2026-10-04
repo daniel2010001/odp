@@ -17,52 +17,20 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
-## En curso (sesión paralela, 2026-10-03) — barrido de pulido de UI
+## Barrido de pulido de UI (sesión paralela, 2026-10-03) — qué tomó y cómo cerró
 
 > Sesión `01a102a7-0f94-76b7-86fb-55c8c3d88023`, en un **worktree propio** (`~/projects/odp-ui-polish`,
-> rama `feat/ui-polish-sweep`, base `9bf844a`) para no competir por el índice ni el `HEAD` con la sesión
-> que trabaja la ruta de edición de datasets. Reparto declarado: esta sesión **no toca**
-> `src/lib/components/datasets/**` ni `src/routes/dashboard/datasets/**`.
+> rama `feat/ui-polish-sweep`, base `9bf844a`) para no competir por el índice ni el `HEAD` con la sesión que
+> trabaja la ruta de edición y borrado de datasets. Reparto declarado: esta sesión **no toca**
+> `src/lib/components/datasets/**`, `src/routes/dashboard/datasets/**` ni `src/routes/dataset/**`.
 >
 > **Ítems tomados, con el go del autor (2026-10-03):** los 11 diagnósticos de Biome · el pulido visual de las
-> páginas de error · el *scroll snapping* del buscador · los tags cortados de la card de dataset (éste con
-> decisión de producto pendiente). El plan y la evidencia viven en `odd/tasks/ui-polish-sweep.md`.
-
-## Anotado el 2026-10-03 — lo que encontró el barrido de pulido de UI (sesión paralela)
-
-Cosas **encontradas** por la sesión paralela mientras medía contraste y diagnósticos de Biome. No son pedidos
-nuevos: salieron de medir.
-
-- [ ] **[v1]** **En modo oscuro, el botón primario del portal incumple la regla 7 de `AGENTS.md`: 3.72:1 contra
-  el 4.5:1 que la regla exige.** Verificado el texto en `AGENTS.md:35` («contraste de texto ≥ 4.5:1»). No es un
-  pulido de UI: es **una regla escrita del repositorio incumplida, y portal-wide**. Medido en Chromium sobre el
-  componente real renderizado: `--primary-foreground` (`#f7f8fa`) sobre `--primary` en oscuro (`#5882bb`) da
-  **3.72**. **Es un par de tokens, no una página**: afecta a todos los botones primarios del portal (el de
-  «Iniciar Sesión» del encabezado, «Volver al catálogo», etc.), en cualquier ruta.
-  **Una precisión que conviene tener a mano:** el encabezado del mismo bloque mide 3.71 y **sí pasa**, porque es
-  texto grande y su umbral es 3:1; el rótulo del botón es de 14 px y su umbral es 4.5. Si alguien mira los dos
-  números y le parecen el mismo caso, no lo son, y esa diferencia es la que hay que poder explicar.
-  **No lo introdujo ninguna sesión reciente**: el código de hoy sin tocar ya mide 3.72. Arreglarlo es una decisión
-  sobre tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su `--primary-foreground`, o
-  ambos— con efecto en todo el portal, así que es del autor y no de una sesión. Medición reproducible: la hoja
-  `/dev/error` con `?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
-  **Durabilidad, y es un defecto de dónde está anotado:** este ítem vive en la rama `feat/ui-polish-sweep`, que
-  **no está mergeada**. Una regla incumplida portal-wide no debería depender de que esa rama se integre: la copia
-  durable debería estar en `main`. Mientras tanto, esto es un registro de medición, no la fuente.
-  **Precisión verificada entre las dos sesiones (2026-10-03), y conviene tenerla a mano.** La sesión paralela
-  recomputó el par con su propio instrumento, calibrado contra blanco/negro, y obtuvo **3.733** en oscuro y
-  **5.284** en claro. Mi módulo puro (`src/lib/color/contrast.ts`) sobre los mismos tokens de `src/app.css` da
-  **exactamente lo mismo**: 3.733 y 5.284, con autotest blanco/negro en 21.000. Y la medición del navegador
-  —sobre `getComputedStyle` del nodo real— dio **3.72** y **5.30**. Las tres coinciden; la diferencia de 0,01 es
-  que el navegador serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión
-  completa. **Mismo veredicto por los tres caminos:** en claro pasa, en oscuro **falla**. Si alguien compara
-  3.72 contra 3.733 y le parece una discrepancia, es esto.
-- [ ] **[v1+]** **`pnpm lint` puede morir esporádicamente con `Linter process terminated abnormally` (exit 254).**
-  No es falta de memoria y no es un proxy: es un cuelgue **transitorio** del worker de Biome. Medido el 2026-10-03:
-  `pnpm exec biome check .` falló dos veces seguidas con ese mensaje y después dio **12/12 corridas con exit 0** por
-  la misma vía, con el mismo binario; `which pnpm` es el binario real de mise, sin wrapper, sin alias y sin hooks.
-  Consecuencia práctica: **la compuerta sirve**, pero hay que reintentar ante el 254 en vez de leerlo como fallo del
-  código. El baseline limpio de hoy es **0 warnings / 0 infos** sobre 155 archivos.
+> páginas de error · el *scroll snapping* del buscador · los tags cortados de la card de dataset.
+> **Cerrados:** los dos primeros (`034ac61`, `5cc46c4`, `db63617`). **Parqueados con su decisión escrita:**
+> el *snapping* —que la lista de resultados **no tenga contenedor de scroll** fuerza la elección entre
+> `proximity`, `mandatory` o un contenedor anidado: ver el ítem del `[v1]` del buscador— y los tags cortados
+> —el `TooltipTrigger` de bits-ui es un primitivo de botón y la card entera es un enlace: ver ese `[v0]`—.
+> El plan y la evidencia viven en `odd/tasks/ui-polish-sweep.md`.
 
 ## Anotado el 2026-10-03 — el bloque de edición de datasets cerró, y esto queda para después
 
@@ -96,15 +64,17 @@ pedidos nuevos.
 
 ## Anotado el 2026-10-03 — hallazgos de la sesión paralela de pulido de UI, traídos a `main`
 
-La sesión paralela (`feat/ui-polish-sweep`, sobre `9bf844a`) lleva sus propios ítems en su rama, y **esa rama
-todavía no está mergeada**. Sus hallazgos no pueden vivir sólo ahí, así que acá va la copia durable con lo
-mínimo para actuar. Al mergear, las dos secciones quedan yuxtapuestas y una de las dos se borra; **el registro
-de medición completo es el suyo**.
+La sesión paralela (`feat/ui-polish-sweep`, sobre `9bf844a`) llevaba sus propios ítems en su rama, y **esa rama
+todavía no está mergeada**. Sus hallazgos no podían vivir sólo ahí, así que acá va la copia durable. Cuando esa
+rama se rebaseó sobre este `main`, su duplicado se borró y **el registro de medición se consolidó acá**: esta
+sección es ahora la única copia, y por eso lleva el detalle y no sólo el resumen.
 
 - [ ] **[v1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
   texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
   **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
-  arreglo son tokens, así que la decisión es del autor. Reproducir: `/dev/error?theme=oscuro`.
+  arreglo son tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su
+  `--primary-foreground`, o ambos—, así que la decisión es del autor y no de una sesión. Reproducir:
+  `/dev/error?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
   **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
   texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
   arbitrario: es el tamaño del texto.
@@ -116,6 +86,11 @@ de medición completo es el suyo**.
   Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
 - [ ] **[v1+]** **`pnpm lint` sale con 254 de forma transitoria.** Medido por la sesión paralela; **no lo
   reproduje acá**. Es ruido de herramienta, no del código: `biome check` sobre archivos concretos sale 0.
+  La medición: `pnpm exec biome check .` falló **dos veces seguidas** con `Linter process terminated abnormally`
+  y después dio **12/12 corridas con exit 0** por la misma vía y con el mismo binario; `which pnpm` es el binario
+  real de mise, sin wrapper, sin alias y sin hooks, así que **no es un proxy ni falta de memoria**.
+  Consecuencia práctica: **la compuerta sirve**, pero ante el 254 hay que **reintentar**, no leerlo como fallo del
+  código. Baseline limpio medido ese día: **0 warnings / 0 infos** sobre 155 archivos.
 
 ## Estado al cierre (2026-10-02) — handoff: el módulo de edición y borrado de datasets, en curso (SDD)
 
