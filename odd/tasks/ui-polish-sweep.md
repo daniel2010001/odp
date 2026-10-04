@@ -137,10 +137,12 @@ el veredicto **`no medible`**, nunca `ok`: un instrumento que no puede medir tie
 - **El par no acusó recibo.** Los dos mensajes quedaron «accepted for delivery». No hay bloqueo real entre
   sesiones: el aislamiento lo da el worktree, no un acuerdo. Si la otra sesión también crea un worktree o
   mueve `main`, la sincronización final (rebase sobre `main`) es responsabilidad de esta sesión.
-- **`BACKLOG.md` es el punto caliente compartido.** Las dos sesiones lo editan. La anotación de «en curso»
-  se hizo en esta rama y puede conflictuar al integrar; se resuelve a mano, no con `-X ours`.
-- **Biome no completa** bajo la presión de memoria medida. Si vuelve a fallar, el baseline de esta sesión no
-  es comparable y hay que decirlo, no inventar el conteo.
+- **`BACKLOG.md` es el punto caliente compartido, y ya se materializó una vez.** Ver el bloque del rebase: el
+  duplicado apareció **sin ningún conflicto**. Al integrar, la resolución es a mano y **una sola copia**, nunca
+  `-X ours` ni «quedarse con los dos lados».
+- **Biome: el `exit 254` es transitorio, no falta de memoria.** Corregido por medición: dos fallos seguidos y
+  después **12/12 corridas con exit 0**, mismo binario, con `pnpm` real de mise y sin wrapper. Ante el 254 se
+  **reintenta**; no se lee como fallo del código ni como baseline incomparable.
 
 ## Evidencia
 
@@ -165,13 +167,54 @@ dejado por el propio desmontaje del andamio.
 | WU-3 · *scroll snapping* del buscador | **bloqueado por el diseño, no por el entorno** | Mi diagnóstico anterior («no se puede verificar») era **falso y lo corregí midiendo**: en chromium headless el *snapping* real es observable —`scrollTop = 250` sobre un contenedor con `snap-type: y mandatory` devuelve **202**, `scrollTo(310)` devuelve **404**, y en la raíz `scrollTo(0, 500)` devuelve **410**—. Lo que falta no es un motor, es una decisión: **la lista de resultados no tiene contenedor de scroll propio** (`div.space-y-4` en el flujo del documento; el único `overflow-y-auto` es el del sidebar), así que el *snapping* tiene que ir o en el scroller de la página (`proximity`, sutil y sin pelear con el encabezado; o `mandatory`, que gobierna toda la página) o en un contenedor nuevo (scroll anidado). Las tres están escritas en el ítem del `BACKLOG` con su costo. |
 | WU-4 · los tags cortados de la card | bloqueado por una decisión | El autor eligió el `Tooltip` de bits-ui, y el disparador es un primitivo de botón: contra una card-enlace hay que elegir entre **(a)** la card como disparador o **(b)** reestructurar la card. El análisis completo está en el ítem del `BACKLOG`. |
 
-**Estado del árbol al cerrar:** rama `feat/ui-polish-sweep` en `~/projects/odp-ui-polish`, **5 commits** sobre la base
-`9bf844a`, árbol limpio, 54 archivos / 840 tests en verde, `pnpm check` 0 errores, Biome 0/0, **nada pusheado**.
+**Estado del árbol al cerrar:** rama `feat/ui-polish-sweep` en `~/projects/odp-ui-polish`, **rebaseada sobre `main`
+(`ab4dd36`), 10 commits encima, 0 detrás**, árbol limpio, **55 archivos / 858 tests en verde**, `pnpm check` 0 errores,
+`biome check .` (164 archivos) **0 warnings / 0 infos**, **nada pusheado**.
 
-> **`main` se movió dos commits durante la sesión** (`cf465f0`, `8ebae13`), así que la rama quedó **2 commits detrás**:
-> `cf465f0` documenta que el portal es 8082 y que no hay que correr `pnpm dev` en el host, y `8ebae13` toca la ruta
-> pública del dataset. Ninguno toca los archivos de esta sesión, así que el rebase no debería tener conflicto salvo en
-> `BACKLOG.md`, que es el punto de colisión declarado y se resuelve a mano. El rebase queda como primer paso al retomar.
+> **El rebase salió sin un solo conflicto, y eso destapó un duplicado.** Los dos hallazgos existían **dos veces** —la
+> sección que el par trajo a `main` y la mía—, una al lado de la otra, y git no dijo nada porque los hunks caen en
+> regiones distintas. **Git verifica texto, no significado.** Se borró mi copia y no la suya por una razón que es la
+> regla entera: la de `main` sobrevive sin esta rama, la mía no. Lo único que sólo estaba en la mía —las opciones
+> concretas del arreglo de contraste y el detalle medido del 254— se consolidó en la sección de `main` (`ff52b7c`),
+> con tres cambios aditivos que el par aceptó.
+>
+> **La fragilidad que queda, y es de merge:** si alguien mueve las líneas de esa sección en `main` antes de que esta
+> rama se integre, hay conflicto, y la resolución tentadora —«quedarse con los dos lados»— **recrea el duplicado**,
+> otra vez sin ruido. La resolución correcta es **una sola copia**: la sección de `main` con las adiciones encima, y
+> **sin** reinsertar la sección vieja. El par se comprometió a no tocar esas líneas hasta el merge, y verificado al
+> cerrar con `git merge-tree`: hoy entra **sin conflictos**.
 
 **Cero procesos dejados atrás:** el servidor de desarrollo que levanté en el host (puerto 5175) quedó apagado,
 verificado por `ss` y por `curl`. El portal sigue siendo 8082, servido por el contenedor del par.
+## Handoff para la próxima sesión
+
+**Todo lo de esta sesión vive en esta rama y aterriza con el merge.** Nada de lo escrito acá es durable hasta que la
+rama se integre. Los dos *hallazgos* sí lo son: el par les dio copia propia en `main`. Lo que viaja con la rama es el
+**análisis de los dos ítems parqueados** y este expediente.
+
+**Primer paso al retomar:** `git log --oneline main..HEAD` para ver si `main` se movió, y rebasear si hace falta.
+Verificado al cerrar: `main` = `ab4dd36`, **0 detrás**, y `git merge-tree` daba **sin conflictos**.
+
+**Las dos decisiones que hay que tomar ANTES de escribir código, y las dos son del autor:**
+
+| Ítem | La decisión | La restricción medida que la fuerza |
+|---|---|---|
+| WU-3 · *scroll snapping* del buscador | `proximity` en el scroller de la página · `mandatory` (que gobierna **toda** la página y pelea con el encabezado de alto variable) · o un contenedor nuevo con scroll anidado | **La premisa del ítem no se sostiene: la lista de resultados no tiene contenedor de scroll.** Es `div.space-y-4` en el flujo del documento; el único `overflow-y-auto` es el del sidebar de filtros |
+| WU-4 · los tags cortados de la card | la card entera como disparador del `Tooltip` · o reestructurar la card con el título como enlace y un `<button>` afuera | **`TooltipTrigger` es un primitivo de botón** (bits-ui 2.19.2) y la card entera es un `<a>`: dentro sería contenido interactivo anidado. Un `<span>` no enfocable con `tabindex` es la violación `a11y_no_noninteractive_tabindex` que `/dev/nav` ya documentó |
+
+**Y una medición corregida que conviene no volver a deshacer:** el *snapping* **sí** se puede verificar sin contenedor
+de frontend. Un `vite dev` de host **efímero** desde el `node_modules` de este worktree, más chromium headless, que
+aplica el snap y devuelve el desplazamiento **ya ajustado** (`scrollTop = 250` → 202, `scrollTo(310)` → 404, raíz
+`scrollTo(500)` → 410). `AGENTS.md` documenta ese uso como legítimo para medir un worktree que el proxy no monta.
+
+## Para el autor — lo que espera una decisión suya
+
+1. **Las dos decisiones de arriba**, que son las que desbloquean el trabajo que queda.
+2. **El push y el PR:** 10 commits en `feat/ui-polish-sweep`, ninguno pusheado, y `main` local también adelante de
+   `origin/main`. Eso no es de ninguna sesión.
+3. **El contraste del botón primario en modo oscuro.** Ya está en `main`: es una **regla escrita incumplida**
+   (`AGENTS.md:35` exige ≥ 4.5:1 y el par mide **3.733**), portal-wide y preexistente. El arreglo son tokens en
+   `src/app.css`, así que la decisión es suya.
+4. **Mirar la página de error promovida** —card del portal, medallón del ícono, regla coral—. Para verla en el portal
+   (8082) hace falta el merge, porque el proxy sirve el árbol de `main`. La medición de contraste de los cinco
+   elementos en los dos temas está en la tabla de más arriba.

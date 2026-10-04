@@ -30,7 +30,15 @@
 > el *snapping* —que la lista de resultados **no tenga contenedor de scroll** fuerza la elección entre
 > `proximity`, `mandatory` o un contenedor anidado: ver el ítem del `[v1]` del buscador— y los tags cortados
 > —el `TooltipTrigger` de bits-ui es un primitivo de botón y la card entera es un enlace: ver ese `[v0]`—.
-> El plan y la evidencia viven en `odd/tasks/ui-polish-sweep.md`.
+> El plan, la evidencia y el handoff viven en `odd/tasks/ui-polish-sweep.md`.
+>
+> **Para el autor:** (1) las dos decisiones que desbloquean el resto —dónde vive el *snapping* y cuál es el
+> disparador del `Tooltip`—; (2) el **push y el PR** de esta rama (10 commits, ninguno pusheado); (3) el contraste
+> del botón primario en oscuro, que es una regla incumplida y decisión suya; (4) mirar la página de error nueva,
+> que necesita el merge para verse en 8082.
+>
+> **Nota de durabilidad:** lo que esta rama agrega al `BACKLOG` —el análisis de esos dos ítems— **no es durable
+> hasta el merge**. Los dos hallazgos sí lo son: el par les dio copia propia en `main`.
 
 ## Anotado el 2026-10-03 — el bloque de edición de datasets cerró, y esto queda para después
 
