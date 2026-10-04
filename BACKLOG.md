@@ -19,6 +19,10 @@
 
 ## Barrido de pulido de UI (sesión paralela, 2026-10-03) — qué tomó y cómo cerró
 
+> **Mergeado a `main` el 2026-10-04** (`d334c3f`), con la rama y el worktree retirados: **ya no hay una segunda
+> línea en este clone**. Del barrido sigue parqueado lo mismo, y son los dos únicos ítems de esta sección que
+> esperan una decisión del autor: el *scroll snapping* del buscador y los tags cortados de la card.
+
 > El **estado de cierre de la línea de datasets**, con las reglas para dos sesiones en este clone, está justo más abajo.
 
 > Sesión `01a102a7-0f94-76b7-86fb-55c8c3d88023`, en un **worktree propio** (`~/projects/odp-ui-polish`,
@@ -38,8 +42,9 @@
 > cuál es el disparador del `Tooltip`—. El push, el merge y el contraste del botón oscuro ya están en la lista de
 > arriba: no se repiten acá.
 >
-> **Nota de durabilidad:** lo que esta rama agrega al `BACKLOG` —el análisis de esos dos ítems— **no es durable
-> hasta el merge**. Los dos hallazgos sí lo son: el par les dio copia propia en `main`.
+> **Nota de durabilidad, cumplida:** el análisis de esos dos ítems **dejó de depender de la rama al mergear**
+> (`d334c3f`), así que ahora es durable por estar acá. Los dos hallazgos ya tenían copia propia desde antes: son la
+> sección «Anotado el 2026-10-03 — hallazgos de la sesión paralela de pulido de UI, traídos a `main`».
 
 ## Estado al cierre (2026-10-03, noche) — handoff: la edición de datasets cerrada, y DOS sesiones en este clone
 
@@ -57,7 +62,11 @@
 
 ### Primero: HAY DOS SESIONES EN ESTE CLONE
 
-Es lo que más conviene saber antes de tocar nada, porque no está escrito en ningún otro lado del repo.
+> **Resuelto el 2026-10-04:** la segunda línea (`feat/ui-polish-sweep`) **se mergeó a `main`** en `d334c3f`, y su
+> rama y su worktree se retiraron. **Hoy hay una sola sesión y un solo worktree.** Lo de abajo queda como el
+> registro de cómo se convivió, y **las tres reglas siguen valiendo para la próxima vez**.
+
+Es lo que más convenía saber antes de tocar nada, porque no estaba escrito en ningún otro lado del repo.
 
 - **Esta línea** (`main`, worktree `~/projects/odp`): el módulo de edición/borrado de datasets. Alcance
   reservado: `src/routes/dashboard/datasets/**`, `src/lib/components/datasets/**`, `src/routes/dataset/**`,
@@ -96,8 +105,9 @@ Es lo que más conviene saber antes de tocar nada, porque no está escrito en ni
    autor.
 4. **El contraste del botón primario en modo oscuro** (ítem abajo): **3.73:1** contra la regla 7
    (`AGENTS.md:35`, ≥ 4.5:1), portal-wide y preexistente. El arreglo son **tokens** en `src/app.css`.
-5. **El merge de `feat/ui-polish-sweep`** (10 commits, sin pushear): entra limpio mientras `main` no mueva las
-   líneas de la sección de hallazgos paralelos — y **esta sesión se comprometió a no tocarlas**.
+5. ~~**El merge de `feat/ui-polish-sweep`**~~ — **hecho el 2026-10-04**: merge limpio, **sin un solo conflicto**
+   (`d334c3f`), con la rama y el worktree retirados. Con eso, **el push** pasa a ser el pendiente principal: son
+   **44 commits** locales, ninguno subido.
 
 ### Para la sesión siguiente (trabajo, no decisiones)
 
