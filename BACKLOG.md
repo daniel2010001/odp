@@ -30,6 +30,11 @@
 > `biome check` sobre los 14 archivos del merge **exit 0** (el `pnpm lint` del repo entero no corre: aborto
 > transitorio 254 en 4/4 intentos). **Cuatro hallazgos informativos**, ninguno bloqueante: van en el ítem de
 > abajo. El detalle completo está en `odd/tasks/merge-ui-polish-sweep.md`.
+>
+> **Pusheado el 2026-10-04** (`fa9a886` → `origin/main`, rango `42711a2..fa9a886`): **46 commits**, y **CI verde**
+> (job `ci`, run `37224581891` — lint, typecheck y suite). Con eso **se cierra la incógnita del `pnpm lint` del
+> repo entero**, que acá no se podía verificar por el aborto transitorio 254: en un runner limpio **pasa**, así
+> que el 254 es de esta máquina, no del código.
 
 > El **estado de cierre de la línea de datasets**, con las reglas para dos sesiones en este clone, está justo más abajo.
 
@@ -103,7 +108,8 @@ Es lo que más convenía saber antes de tocar nada, porque no estaba escrito en 
 
 ### Para el autor (decisiones suyas; ninguna bloquea)
 
-1. **El push**: 26 commits locales, ninguno subido. Todo lo revisado vive sólo en esta máquina.
+1. ~~**El push**~~ — **hecho el 2026-10-04**: el sha, el rango y el resultado de CI están en la nota del barrido
+   de UI, arriba. «26 commits locales» era el estado de *esa* noche; al pushear eran **46**.
 2. **El linaje atascado** `review-6b517157db5f4274`: inmutable en `correction_required`, autoridad sin
    consumir. Su corrección no se pudo admitir en ese linaje —commitearla rompe los artefactos, dejarla sin
    commitear la oculta— y el contenido corregido se aprobó y quemó en una **transacción nueva**. Abandonarlo
