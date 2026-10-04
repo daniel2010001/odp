@@ -19,9 +19,11 @@
 
 ## Estado al cierre (2026-10-03, noche) — handoff: la edición de datasets cerrada, y DOS sesiones en este clone
 
-> **`main` = `ab4dd36` + este commit, 26 commits sin pushear, árbol limpio.** Suite **806/806** (52 archivos) ·
+> **`main` = `d2f53ce` + este commit, 29 commits sin pushear, árbol limpio.** Suite **806/806** (52 archivos) ·
 > `svelte-check` 0 errores / 4 warnings preexistentes · Biome exit 0 · un solo worktree · stack en su línea
-> base (17 datasets).
+> base (17 datasets). Después de este handoff entraron **dos commits más de documentación**: la **convención
+> para dos sesiones en este repo** (`AGENTS.md`) y su corrección —el conflicto entre sesiones es de
+> **anclaje**, no de contenido—, las dos sin compuerta a propósito.
 >
 > **Catorce compuertas con autoridad quemada** sobre la rebanada 1b-B1 (9 unidades) y su cola (5 más): cada
 > recibo y cada lección viven en `openspec/changes/2026-10-02-dataset-edit-and-delete/apply-progress.md`.
