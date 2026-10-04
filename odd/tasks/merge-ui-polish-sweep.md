@@ -72,3 +72,84 @@ encuentra, sin borrar el registro histórico:
    registro y las tres reglas siguen vigentes.
 3. El ítem «El merge de `feat/ui-polish-sweep`» de la lista del autor → cerrado, y el pendiente real que queda
    es **el push** (44 commits).
+
+### Verificación del árbol mergeado (delegada a `gentle-ai-verify`)
+
+Sobre el árbol exacto en `c3869ac`, sin mutaciones (`git status --porcelain` vacío antes y después):
+
+| Compuerta | Resultado |
+|---|---|
+| `pnpm test` | **GREEN** — `Test Files 55 passed (55)` · `Tests 858 passed (858)` · 202 s |
+| `pnpm check` | **GREEN** — `svelte-check found 0 errors and 4 warnings in 3 files` |
+| `pnpm lint` (repo entero) | **NO VERIFICABLE** — 4/4 intentos (inicial + 3 reintentos) con `[warn] Linter process terminated abnormally`, exit 254 |
+| `biome check` **acotado a los 14 archivos del merge** | **exit 0** — `Checked 14 files in 137ms. No fixes applied.` |
+
+Los 4 warnings de `check` son **preexistentes** y ajenos al merge: `SearchBar.svelte:26` (`state_referenced_locally`),
+`ThemePlayground.svelte:198` y `:258` (`a11y_label_has_associated_control`) y `tsconfig.json` (tipos de `node`).
+El aborto 254 del lint de repo entero es el cuelgue transitorio ya medido en este repo; **acotado a los archivos
+del merge, Biome sale 0**, así que la compuerta A queda respaldada por una medición más fina en vez de por una
+excepción.
+
+### Compuertas nativas: tres, por unidad, todas aprobadas y con autoridad quemada
+
+| Unidad | Linaje | Archivos / líneas | Tier | Lentes | Presupuesto | Resultado |
+|---|---|---|---|---|---|---|
+| A — diagnósticos de Biome | `review-236918db1f135803` | 5 / 32 | medium (`configuration_change`: `biome.json`) | `review-reliability` | 16 | **approved**, quemada |
+| B — hoja `/dev/error` + instrumento | `review-44dbd42660f4154f` | 9 / 1887 | medium (`executable_change`) | `review-reliability` | 200 | **approved**, quemada |
+| C — página de error promovida | `review-7ad1e9b391960117` | 3 / 516 | medium (`executable_change`) | `review-reliability` | 200 | **approved**, quemada |
+
+Cada una costó **una corrida de modelo** (`pi_host_relay`), precedida de su pronóstico. Los tres acuses
+devolvieron `gentle-ai.review-acknowledged/v1` y `mutation_outcome: committed`.
+
+**Cómo se acotó cada candidata** (la trampa evitada): el `inspect` ofrece por defecto
+`--base-ref=42711a2a…` = `origin/main`, o sea **la rama acumulada entera** (33 a 41 paths, según la unidad);
+seguir esa transición al pie de la letra habría revisado todo el trabajo de las dos líneas. Cada `START` fue con
+**`baseRef` explícito al commit padre de la unidad** y `committedOnly: true`, y el proveedor devolvió exactamente
+los paths de esa unidad (`actor_binding.candidate_paths`).
+
+**Dónde corrieron y por qué**: el candidato de una compuerta es `baseRef..HEAD`, así que para gatear por unidad
+hace falta que `HEAD` **sea** el commit de la unidad. Con `HEAD` ya en el merge eso no es expresable, así que el
+worktree `~/projects/odp-ui-polish` —que se iba a retirar de todas formas— se usó como banco: `git checkout
+--detach` sobre `81581c2`, `11842c3` y `417bd61`, una unidad por vez, con `workspaceRoot` en ese worktree. El
+worktree principal nunca se movió de `main`.
+
+**Desviación declarada:** la compuerta B revisa el **estado intermedio** de `ErrorPage.svelte` y de
+`dev/error/+page.svelte`, porque la unidad C los reescribió después. Su núcleo —`contrast.ts` y el instrumento—
+es estado final y eso es lo que se revisó; los dos archivos superseded son ruido acotado, y su versión final la
+revisó la compuerta C.
+
+### Hallazgos informativos (no bloqueantes, ninguno abre corrección)
+
+| Hallazgo | Lente | Ubicación tal como se emitió | Severidad |
+|---|---|---|---|
+| `R3-001` | reliability | `src/routes/dev/error/+page.svelte:259` | WARNING |
+| `R3-002` | reliability | `src/routes/dev/error/+page.svelte:277-302` | WARNING |
+| `R3-003` | reliability | `src/routes/dev/error/+page.svelte:232-233` | SUGGESTION |
+| `R3-001` | reliability | `src/lib/components/error/ErrorPage.svelte:118` | SUGGESTION |
+
+**Lo que hay en esas líneas del árbol mergeado** (transcripto, para poder releerlas sin confiar en el número):
+
+- `+page.svelte:232-233` — `requiredRatio(Number.parseFloat(computed.fontSize) || 16, computed.fontWeight || "400")`:
+  los dos valores de respaldo del instrumento.
+- `+page.svelte:259` — `const root = card?.firstElementChild instanceof HTMLElement ? card.firstElementChild : null;`:
+  el respaldo que decide si hay algo que medir.
+- `+page.svelte:277-302` — el `<div data-testid="error-sheet" bind:this={sheetRoot} class:dark={theme === "dark"}>`,
+  su encabezado y la nota de «página sólo para desarrollo».
+- `ErrorPage.svelte:118` — `<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>`:
+  el eyebrow coral.
+
+**Advertencia medida, y la lección de esta sesión:** el sobre de cierre trae id, lente, ubicación, severidad y
+disposición, **pero nunca el texto del hallazgo**; y el `review-state.json`, que **sí** lo tiene mientras el
+linaje vive, **lo borra el acuse**. En las tres compuertas acusé antes de leerlo, así que **el texto de estos
+cuatro hallazgos no existe más** y lo que queda es la ubicación con su severidad. La receta ya estaba escrita en
+`BACKLOG.md` para la línea CKAN («leer el `review-state.json` **entre el cierre y el acuse**») y no se aplicó:
+**la próxima compuerta lee primero, acusa después.** Nada bloqueante se perdió —las cuatro son informativas y
+ninguna abrió corrección—, pero la evidencia se degradó de «texto reclamado con su prueba» a «coordenada».
+
+### Retiro de la rama y del worktree
+
+- `git worktree remove /home/danielblc/projects/odp-ui-polish` — sin `--force`.
+- `git branch -d feat/ui-polish-sweep` — borrado seguro, aceptado porque la rama estaba **contenida en `main`**
+  (verificado con `git merge-base --is-ancestor`).
+- Estado final: **un solo worktree** (`~/projects/odp`) y las ramas `main` y `wip/pr2-directo-publicacion`
+  (la aparcada a propósito).

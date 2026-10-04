@@ -22,6 +22,14 @@
 > **Mergeado a `main` el 2026-10-04** (`d334c3f`), con la rama y el worktree retirados: **ya no hay una segunda
 > línea en este clone**. Del barrido sigue parqueado lo mismo, y son los dos únicos ítems de esta sección que
 > esperan una decisión del autor: el *scroll snapping* del buscador y los tags cortados de la card.
+>
+> **Las 1987 líneas entraron revisadas, por unidad**, las tres aprobadas y con la autoridad quemada:
+> `review-236918db1f135803` (Biome, 5 archivos) · `review-44dbd42660f4154f` (la hoja `/dev/error` y su
+> instrumento, 9 archivos) · `review-7ad1e9b391960117` (la página de error promovida, 3 archivos). Verificado
+> sobre el árbol mergeado: **858/858 tests**, `svelte-check` **0 errores** / 4 warnings preexistentes, y
+> `biome check` sobre los 14 archivos del merge **exit 0** (el `pnpm lint` del repo entero no corre: aborto
+> transitorio 254 en 4/4 intentos). **Cuatro hallazgos informativos**, ninguno bloqueante: van en el ítem de
+> abajo. El detalle completo está en `odd/tasks/merge-ui-polish-sweep.md`.
 
 > El **estado de cierre de la línea de datasets**, con las reglas para dos sesiones en este clone, está justo más abajo.
 
@@ -184,6 +192,16 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
   real de mise, sin wrapper, sin alias y sin hooks, así que **no es un proxy ni falta de memoria**.
   Consecuencia práctica: **la compuerta sirve**, pero ante el 254 hay que **reintentar**, no leerlo como fallo del
   código. Baseline limpio medido ese día: **0 warnings / 0 infos** sobre 155 archivos.
+  **Re-medido el 2026-10-04 sobre el árbol mergeado:** 4/4 intentos con exit 254 y **ningún conteo emitido**, así
+  que `pnpm lint` sobre el repo entero quedó **no verificable**; **acotado a los 14 archivos del merge: exit 0**.
+  La lección operativa es que la salida barata existe y es acotar, no reintentar en vano.
+- [ ] **[v1+]** **Cuatro hallazgos informativos de las compuertas del barrido.** Ninguno bloqueante, ninguno abre
+  corrección, ninguno fue causa de este merge — son trabajo posterior: `R3-001`/`R3-002` (WARNING) y `R3-003`
+  (SUGGESTION) en `src/routes/dev/error/+page.svelte`, y `R3-001` (SUGGESTION) en
+  `src/lib/components/error/ErrorPage.svelte`. **Aviso medido:** el sobre de cierre **no trae el texto del
+  hallazgo** (sólo id, lente, ubicación, severidad), y el acuse **borra** el `review-state.json` donde sí estaba;
+  acusé antes de leerlo, así que de las cuatro quedan la coordenada y las líneas transcriptas en
+  `odd/tasks/merge-ui-polish-sweep.md`. **Para la próxima compuerta: leer el estado entre el cierre y el acuse.**
 
 ## Estado al cierre (2026-10-02) — handoff: el módulo de edición y borrado de datasets, en curso (SDD)
 
