@@ -100,3 +100,26 @@ El portal vive en los contenedores de `../odp-docker`. Se levantan con
   está montado**: su UI no se puede ver hasta montarlo en otro contenedor.
 - Para verificar el estado: `docker ps --format '{{.Names}}\t{{.Status}}'` y, para el mapeo del portal,
   `docker port odp-dev-frontend-proxy-1`.
+## Trabajo con dos sesiones en paralelo en este repo
+
+Se puede trabajar con más de una sesión a la vez, y conviene. Lo que hace falta **no es un acuerdo, es no
+compartir estado mutable**: el aislamiento lo da el worktree, no el consenso.
+
+- **Una sesión, un worktree, una rama.** Dos sesiones en el mismo árbol comparten índice y `HEAD`, y eso ya
+  se pagó: costó **dos linajes de revisión accidentales en dos sesiones** (handoff del 2026-09-24, en
+  `BACKLOG.md`).
+- **Alcance por archivo, declarado y escrito.** Cada sesión declara qué rutas son suyas y no entra en las del
+  otro. Declararlo por chat no alcanza: los mensajes entre sesiones son notificaciones, no registros, y no
+  sobreviven a la sesión.
+- **Cada sesión abre el linaje de revisión de sus propios candidatos**, con su `workspaceRoot` y en su
+  worktree. Ninguna congela ni revisa el trabajo de la otra.
+- **`git add <paths>` explícitos. Nunca `git add -A` ni `git checkout -- <archivo>`**, para no barrer hunks
+  ajenos.
+- **`main` lo mueve una sesión a la vez.** Si las dos necesitan tocarlo, coordinen el orden **antes** de mover
+  líneas compartidas.
+- **Lo durable va a `main`; una rama sin mergear no es un registro.** El desempate no es la autoría ni el
+  nivel de detalle: es **durabilidad + el mínimo con el que el autor puede actuar**. Un hallazgo que vive sólo
+  en una rama sin mergear **no está anotado**.
+- **Git verifica texto, no significado.** Un rebase sin conflictos puede dejar el mismo contenido dos veces,
+  una al lado de la otra, sin un solo ruido — pasó el 2026-10-03 con el mismo hallazgo duplicado en
+  `BACKLOG.md`. Ante un conflicto ahí, la resolución es **una sola copia**, nunca «quedarse con los dos lados».
