@@ -12,7 +12,11 @@
 //
 // Las variantes G y H suman una segunda acción «Eliminar» —copia declarada, no implementada— para
 // comparar la disposición de dos acciones. El control «Revelado» fija el estado de D y F, y el
-// control «Tamaño» cambia el objetivo entre 36 y 44 px.
+// control «Tamaño» cambia el objetivo entre 36 y 44 px. La cuarta ronda agrega tres controles más,
+// todos con cobertura: «Tratamiento destructivo» elige entre el tratamiento de `UserMenu` y el de
+// la acción de editar —y el de «como la acción de editar» es el mismo string del ícono, no uno
+// parecido—, «Ancho» lleva el listado al ancho de un teléfono, y «Bajo lg» esconde las acciones por
+// debajo de `lg` siguiendo el precedente de `dashboard/+page.svelte:423`.
 //
 // La variante «menú de tres puntos» no existe: el componente vendorizado `dropdown-menu` no está en
 // el repo y esta hoja no vendoriza componentes nuevos.
@@ -344,6 +348,95 @@ describe("hoja de las tarjetas — controles de la acción", () => {
 	});
 });
 
+describe("hoja de las tarjetas — controles de la cuarta ronda", () => {
+	it("«Tratamiento destructivo» cambia las clases del botón «Eliminar»", async () => {
+		render(CardsSheet);
+
+		// Por defecto rige el tratamiento de UserMenu: destructivo en reposo y tinte al hover.
+		expect(screen.getByTestId("delete-usermenu")).toHaveAttribute("aria-pressed", "true");
+		const userMenu = screen.getByTestId("delete-g-0").getAttribute("class") ?? "";
+		expect(userMenu).toContain("text-destructive");
+		expect(userMenu).toContain("hover:bg-destructive/10");
+		expect(userMenu).not.toContain("hover:text-destructive");
+		// El tercer comportamiento —apagado en reposo y destructivo recién al hover— queda descartado.
+		expect(userMenu).not.toContain("text-muted-foreground");
+
+		await fireEvent.click(screen.getByTestId("delete-edit"));
+		await waitFor(() => {
+			expect(screen.getByTestId("delete-edit")).toHaveAttribute("aria-pressed", "true");
+		});
+		const comoEditar = screen.getByTestId("delete-g-0").getAttribute("class") ?? "";
+		// «Como la acción de editar» es exactamente el mismo tratamiento del ícono de editar.
+		expect(comoEditar).toBe(editOf("g").getAttribute("class"));
+		expect(comoEditar).toContain("text-muted-foreground");
+		expect(comoEditar).toContain("hover:bg-accent");
+		expect(comoEditar).not.toContain("text-destructive");
+		expect(comoEditar).not.toContain("bg-destructive/10");
+	});
+
+	it("el instrumento declara el tratamiento destructivo y cambia con el control", async () => {
+		render(CardsSheet);
+
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-row-delete-g")).toHaveTextContent(
+				"como UserMenu: destructivo en reposo",
+			);
+		});
+		// Una variante sin acción destructiva declara «—».
+		expect(screen.getByTestId("instrument-row-delete-a")).toHaveTextContent("—");
+
+		await fireEvent.click(screen.getByTestId("delete-edit"));
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-row-delete-h")).toHaveTextContent(
+				"como la acción de editar",
+			);
+		});
+	});
+
+	it("«Ancho» lleva el listado al ancho de un teléfono y el instrumento lo declara", async () => {
+		render(CardsSheet);
+
+		expect(screen.getByTestId("width-completo")).toHaveAttribute("aria-pressed", "true");
+		const completo = renderOf("a").getAttribute("class") ?? "";
+		expect(completo).not.toContain("max-w-[380px]");
+		expect(screen.getByTestId("instrument-viewport")).toHaveTextContent("ancho completo");
+
+		await fireEvent.click(screen.getByTestId("width-angosto"));
+		await waitFor(() => {
+			expect(screen.getByTestId("width-angosto")).toHaveAttribute("aria-pressed", "true");
+		});
+		const angosto = renderOf("a").getAttribute("class") ?? "";
+		expect(angosto).toContain("max-w-[380px]");
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-viewport")).toHaveTextContent("angosto, ≈380 px");
+		});
+	});
+
+	it("«Bajo lg» esconde las acciones por debajo de lg, en todas las formas", async () => {
+		render(CardsSheet);
+
+		expect(screen.getByTestId("breakpoint-siempre")).toHaveAttribute("aria-pressed", "true");
+		expect(editOf("b").getAttribute("class")).toContain("inline-flex");
+		expect(editOf("b").getAttribute("class")).not.toContain("hidden");
+
+		await fireEvent.click(screen.getByTestId("breakpoint-desde-lg"));
+		await waitFor(() => {
+			expect(screen.getByTestId("breakpoint-desde-lg")).toHaveAttribute("aria-pressed", "true");
+		});
+		// El ícono directo de la fila (B) y el botón de texto (A) se ocultan por su cuenta.
+		expect(editOf("b").getAttribute("class")).toContain("hidden lg:inline-flex");
+		expect(editOf("a").getAttribute("class")).toContain("hidden lg:inline-flex");
+		// El grupo de dos acciones de G y H se oculta entero.
+		expect(screen.getByTestId("actions-g-0").getAttribute("class")).toContain("hidden lg:flex");
+		expect(screen.getByTestId("actions-h-0").getAttribute("class")).toContain("hidden lg:flex");
+
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-row-breakpoint-b")).toHaveTextContent("sólo desde lg");
+		});
+		expect(screen.getByTestId("instrument-row-breakpoint-a")).toHaveTextContent("sólo desde lg");
+	});
+});
+
 describe("hoja de las tarjetas — la ruta no existe en producción", () => {
 	it("deja pasar la carga en desarrollo", async () => {
 		const { load } = await import("./+page");
@@ -374,6 +467,8 @@ describe("formatCardActionMeasurement", () => {
 				opacity: 1,
 				declaredPx: 36,
 				reveal: "siempre",
+				deleteTreatment: null,
+				actionsFromLg: false,
 			}),
 		).toEqual({
 			variant: "b",
@@ -383,6 +478,8 @@ describe("formatCardActionMeasurement", () => {
 			touch: "no cumple 44 px",
 			visibility: "visible en reposo",
 			reveal: "siempre visible",
+			deleteStyle: "—",
+			breakpoint: "visible siempre",
 		});
 	});
 
@@ -395,6 +492,8 @@ describe("formatCardActionMeasurement", () => {
 			opacity: 0,
 			declaredPx: 44,
 			reveal: "en reposo",
+			deleteTreatment: null,
+			actionsFromLg: false,
 		});
 
 		expect(formatted.touch).toBe("cumple 44 px");
@@ -411,6 +510,8 @@ describe("formatCardActionMeasurement", () => {
 			opacity: 1,
 			declaredPx: 44,
 			reveal: "siempre",
+			deleteTreatment: null,
+			actionsFromLg: false,
 		});
 
 		expect(formatted.declared).toBe("44 px");
@@ -428,10 +529,44 @@ describe("formatCardActionMeasurement", () => {
 			opacity: 1,
 			declaredPx: 36,
 			reveal: "siempre",
+			deleteTreatment: null,
+			actionsFromLg: false,
 		});
 
 		expect(formatted.target).toBe("—");
 		expect(formatted.touch).toBe("—");
 		expect(formatted.visibility).toBe("—");
+	});
+
+	it("declara el tratamiento destructivo y el punto de quiebre de las acciones", () => {
+		const userMenu = formatCardActionMeasurement({
+			variant: "g",
+			label: "G · Editar y eliminar, lado a lado",
+			width: 36,
+			height: 36,
+			opacity: 1,
+			declaredPx: 36,
+			reveal: "siempre",
+			deleteTreatment: "usermenu",
+			actionsFromLg: true,
+		});
+
+		expect(userMenu.deleteStyle).toBe("como UserMenu: destructivo en reposo");
+		expect(userMenu.breakpoint).toBe("sólo desde lg");
+
+		const editLike = formatCardActionMeasurement({
+			variant: "h",
+			label: "H · Editar y eliminar, en columna",
+			width: 0,
+			height: 0,
+			opacity: 1,
+			declaredPx: 36,
+			reveal: "siempre",
+			deleteTreatment: "editar",
+			actionsFromLg: false,
+		});
+
+		expect(editLike.deleteStyle).toBe("como la acción de editar");
+		expect(editLike.breakpoint).toBe("visible siempre");
 	});
 });

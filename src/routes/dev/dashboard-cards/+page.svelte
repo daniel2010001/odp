@@ -28,12 +28,26 @@
 	La variante C (menú de tres puntos) **no se construye**: `src/lib/components/ui/dropdown-menu/`
 	no existe y esta hoja no vendoriza componentes nuevos.
 
-	─── Dos controles, además de un interruptor por variante ───────────
+	─── Controles, además de un interruptor por variante ───────────────
 	  · «Revelado: en reposo | forzado» fija el estado revelado para poder revisarlo **sin puntero**.
 	  · «Tamaño: 36 | 44 px» cambia el objetivo de la acción para compararlo con el mínimo de
 	    WCAG 2.5.5. Es preferido sobre variantes nuevas porque el resto del tratamiento no cambia.
-	El instrumento imprime el lado declarado por el control («Objetivo declarado») y la declaración
-	de revelado, además de la caja medida y la opacidad computada.
+	  · «Tratamiento destructivo: como UserMenu | como la acción de editar» reduce a dos los
+	    tratamientos del botón «Eliminar» de G y H. Hoy tiene un tercero que no existe en ningún
+	    otro lugar del portal —apagado en reposo, destructivo recién al pasar el cursor—, y ése es
+	    el que lo volvía irreconocible. Los dos del control son tokens ya presentes: `UserMenu.svelte:81`
+	    usa texto destructivo en reposo y tinte destructivo al hover; el ícono de editar usa el
+	    apagado con acento al hover.
+	  · «Ancho: completo | angosto (≈380 px)» lleva el listado a un ancho de teléfono para poder
+	    revisar el caso que reportó el autor: en un teléfono la fila se rompe y el título deja de
+	    leerse.
+	  · «Bajo lg: visibles | sólo desde lg» reproduce el precedente del portal
+	    (`dashboard/+page.svelte:423`): esconde las acciones por debajo de `lg` y deja la fila
+	    entera como único objetivo para abrir el dataset. En móvil, dos botones de 36 px le roban
+	    esa área y aprietan el título antes de que pueda partirse en sus dos líneas.
+	El instrumento imprime el lado declarado por el control («Objetivo declarado»), la declaración
+	de revelado, el tratamiento destructivo declarado y el punto de quiebre declarado, además de la
+	caja medida y la opacidad computada. El ancho declarado es global y se imprime fuera de la tabla.
 
 	─── Lo medido sobre la revelación (variantes D y F) ────────────────
 	Contra el CSS que sirve el servidor de desarrollo: Tailwind emite la variante `group-hover/row`
@@ -59,7 +73,11 @@
 <script lang="ts">
 import { ChevronRight, Database, Lock, Pencil, Trash2 } from "@lucide/svelte";
 import { formatDate } from "$lib/utils/ckan";
-import { type FormattedCardActionMeasurement, formatCardActionMeasurement } from "./measures";
+import {
+	type DeleteTreatment,
+	type FormattedCardActionMeasurement,
+	formatCardActionMeasurement,
+} from "./measures";
 
 interface Row {
 	id: string;
@@ -203,14 +221,31 @@ function toggleVariant(id: string): void {
 // ─── Controles de la acción ─────────────────────────────────────────
 // «Revelado» fija el estado de las variantes que se revelan al hover o al foco, para poder
 // revisarlas sin puntero. «Tamaño» cambia el objetivo táctil entre el `size-9` de hoy (36 px) y
-// el mínimo de WCAG 2.5.5 (44 px), sin tocar el resto del tratamiento.
+// el mínimo de WCAG 2.5.5 (44 px), sin tocar el resto del tratamiento. Los tres controles de
+// abajo son de la cuarta ronda: el tratamiento destructivo, el ancho del listado y el punto de
+// quiebre de las acciones.
 let revealMode = $state<"reposo" | "forzado">("reposo");
 let targetSize = $state<36 | 44>(36);
+let deleteStyle = $state<DeleteTreatment>("usermenu");
+let viewport = $state<"completo" | "angosto">("completo");
+let actionsBreakpoint = $state<"siempre" | "desde-lg">("siempre");
 
 /** `size-9` = 36 px, `size-11` = 44 px. */
 const iconSizeClass = $derived(targetSize === 44 ? "size-11" : "size-9");
 /** `h-9` = 36 px, `h-11` = 44 px, para el botón de texto de A. */
 const textActionHeightClass = $derived(targetSize === 44 ? "h-11" : "h-9");
+
+/**
+ * Precedente de `dashboard/+page.svelte:423`: una superficie que sólo aparece desde `lg`. Con
+ * «desde-lg» la acción se oculta por debajo de ese punto y la fila entera queda como objetivo para
+ * abrir el dataset.
+ */
+const actionDisplay = $derived(
+	actionsBreakpoint === "desde-lg" ? "hidden lg:inline-flex" : "inline-flex",
+);
+const actionsContainerDisplay = $derived(
+	actionsBreakpoint === "desde-lg" ? "hidden lg:flex" : "flex",
+);
 
 const REVEALING_VARIANTS = new Set(["d", "f"]);
 
@@ -220,18 +255,33 @@ const datasetCountLabel = (count: number) => (count === 1 ? "1 recurso" : `${cou
 // El botón de ícono comparte una base; la variante que se revela agrega la coreografía de
 // opacidad —que el control «Revelado» puede forzar visible— y el resto usa `transition-colors`.
 const ICON_ACTION_BASE =
-	"inline-flex shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+	"shrink-0 items-center justify-center rounded-lg border border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+/** El tratamiento apagado con acento al hover: es el de la acción de editar. */
+const ICON_ACTION_IDLE = "text-muted-foreground hover:bg-accent hover:text-foreground";
 
 function iconActionClass(revealing: boolean): string {
-	if (!revealing) return `${ICON_ACTION_BASE} ${iconSizeClass} transition-colors`;
-	if (revealMode === "forzado") {
-		return `${ICON_ACTION_BASE} ${iconSizeClass} transition-opacity opacity-100`;
+	if (!revealing) {
+		return `${actionDisplay} ${ICON_ACTION_BASE} ${ICON_ACTION_IDLE} ${iconSizeClass} transition-colors`;
 	}
-	return `${ICON_ACTION_BASE} ${iconSizeClass} pointer-events-none opacity-0 transition-opacity group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100`;
+	if (revealMode === "forzado") {
+		return `${actionDisplay} ${ICON_ACTION_BASE} ${ICON_ACTION_IDLE} ${iconSizeClass} transition-opacity opacity-100`;
+	}
+	return `${actionDisplay} ${ICON_ACTION_BASE} ${ICON_ACTION_IDLE} ${iconSizeClass} pointer-events-none opacity-0 transition-opacity group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100`;
 }
 
+// El botón destructivo tiene dos tratamientos posibles, ambos con tokens existentes:
+//   · «como UserMenu» —texto destructivo **en reposo** más tinte destructivo al hover, como
+//     `src/lib/components/auth/UserMenu.svelte:81`—;
+//   · «como la acción de editar» —exactamente el mismo apagado y acento del ícono de editar—.
+// El tercero que había antes —apagado en reposo y destructivo recién al hover— no lo usa ninguna
+// otra superficie del portal, y es lo que hacía irreconocible la acción.
 function deleteActionClass(): string {
-	return `${ICON_ACTION_BASE} ${iconSizeClass} transition-colors hover:bg-destructive/10 hover:text-destructive`;
+	if (deleteStyle === "usermenu") {
+		return `${actionDisplay} ${ICON_ACTION_BASE} ${iconSizeClass} text-destructive transition-colors hover:bg-destructive/10`;
+	}
+	// «Como la acción de editar» devuelve el mismo string del ícono de editar: es la garantía de que
+	// el tratamiento es idéntico y no sólo parecido.
+	return iconActionClass(false);
 }
 
 const CONTROL_BUTTON_BASE =
@@ -252,9 +302,13 @@ $effect(() => {
 	void visibleVariants;
 	void sheetRoot;
 	// El tamaño y el revelado son declaraciones del control: re-medir cuando cambian mantiene el
-	// instrumento al día con lo que está en pantalla.
+	// instrumento al día con lo que está en pantalla. Los tres controles de la cuarta ronda también
+	// son declaraciones: el tratamiento destructivo, el ancho y el punto de quiebre.
 	void targetSize;
 	void revealMode;
+	void deleteStyle;
+	void viewport;
+	void actionsBreakpoint;
 
 	if (!sheetRoot) {
 		measurements = [];
@@ -279,6 +333,8 @@ $effect(() => {
 		}
 
 		const exposing = REVEALING_VARIANTS.has(variant.id);
+		// El botón destructivo sólo existe en G y H; en el resto el instrumento declara «—».
+		const deleteTreatment = variant.id === "g" || variant.id === "h" ? deleteStyle : null;
 		next.push(
 			formatCardActionMeasurement({
 				variant: variant.id,
@@ -288,6 +344,8 @@ $effect(() => {
 				opacity,
 				declaredPx: targetSize,
 				reveal: exposing ? (revealMode === "forzado" ? "forzado" : "en reposo") : "siempre",
+				deleteTreatment,
+				actionsFromLg: actionsBreakpoint === "desde-lg",
 			}),
 		);
 	}
@@ -350,7 +408,7 @@ $effect(() => {
 				<a
 					href={`/dashboard/datasets/${item.name}/edit`}
 					data-testid={`edit-${variantId}-${index}`}
-					class="inline-flex {textActionHeightClass} shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class="{actionDisplay} {textActionHeightClass} shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				>
 					<Pencil class="size-4" aria-hidden="true" />
 					Editar
@@ -360,7 +418,7 @@ $effect(() => {
 				     existe en la página real. La columna de H se apila; la fila de G va en línea. -->
 				<div
 					data-testid={`actions-${variantId}-${index}`}
-					class="flex shrink-0 {variantId === "h" ? "flex-col gap-2" : "items-center gap-2"}"
+					class="{actionsContainerDisplay} shrink-0 {variantId === "h" ? "flex-col gap-2" : "items-center gap-2"}"
 				>
 					<a
 						href={`/dashboard/datasets/${item.name}/edit`}
@@ -437,6 +495,25 @@ $effect(() => {
 				táctil nunca la ve. Por eso el control
 				<strong class="font-semibold text-foreground">«Revelado»</strong> permite fijar el estado
 				revelado sin puntero.
+			</p>
+			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+				El botón «Eliminar» de G y H arrastra hoy un tercer comportamiento que no existe en
+				ninguna otra superficie del portal: en reposo queda apagado y recién al pasar el cursor se
+				vuelve destructivo. Ése es el que lo hacía irreconocible. El control
+				<strong class="font-semibold text-foreground">«Tratamiento destructivo»</strong> lo reduce a
+				dos, ambos con tokens ya presentes: «como UserMenu» —texto destructivo en reposo y tinte
+				destructivo al hover, como la acción de cerrar sesión— o «como la acción de editar» —idéntico
+				al ícono de editar—.
+			</p>
+			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+				El control <strong class="font-semibold text-foreground">«Ancho»</strong> lleva el listado a
+				un ancho de teléfono (≈380 px) o lo deja a lo ancho: es lo que el autor reportó, que en un
+				teléfono la fila se rompe y el título deja de leerse. Y el interruptor
+				<strong class="font-semibold text-foreground">«Bajo lg»</strong> reproduce el precedente del
+				portal (<code class="font-mono text-xs">dashboard/+page.svelte:423</code>): esconde las acciones
+				por debajo de <code class="font-mono text-xs">lg</code> para que la fila entera sea
+				un único objetivo para abrir el dataset. En móvil, dos botones de 36 px le roban esa área y
+				aprietan el título antes de que pueda partirse en sus dos líneas.
 			</p>
 			<p
 				class="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
@@ -563,6 +640,91 @@ $effect(() => {
 							</button>
 						</div>
 					</div>
+
+					<div>
+						<p class="text-xs font-medium text-foreground">Tratamiento destructivo</p>
+						<p class="mt-1 text-xs text-muted-foreground">
+							Reduce a dos los tratamientos del botón «Eliminar» de G y H. El de hoy —apagado en
+							reposo y destructivo recién al hover— no lo usa ninguna otra superficie del portal, y ése es
+							el que lo volvía irreconocible.
+						</p>
+						<div class="mt-2 flex flex-wrap gap-2">
+							<button
+								type="button"
+								data-testid="delete-usermenu"
+								aria-pressed={deleteStyle === "usermenu"}
+								onclick={() => (deleteStyle = "usermenu")}
+								class={controlButtonClass(deleteStyle === "usermenu")}
+							>
+								Como UserMenu
+							</button>
+							<button
+								type="button"
+								data-testid="delete-edit"
+								aria-pressed={deleteStyle === "editar"}
+								onclick={() => (deleteStyle = "editar")}
+								class={controlButtonClass(deleteStyle === "editar")}
+							>
+								Como la acción de editar
+							</button>
+						</div>
+					</div>
+
+					<div>
+						<p class="text-xs font-medium text-foreground">Ancho</p>
+						<p class="mt-1 text-xs text-muted-foreground">
+							Lleva el listado al ancho de un teléfono (≈380 px) o lo deja a lo ancho, para revisar el
+							caso que reportó el autor: en un teléfono la fila se rompe y el título deja de leerse.
+						</p>
+						<div class="mt-2 flex flex-wrap gap-2">
+							<button
+								type="button"
+								data-testid="width-completo"
+								aria-pressed={viewport === "completo"}
+								onclick={() => (viewport = "completo")}
+								class={controlButtonClass(viewport === "completo")}
+							>
+								Ancho completo
+							</button>
+							<button
+								type="button"
+								data-testid="width-angosto"
+								aria-pressed={viewport === "angosto"}
+								onclick={() => (viewport = "angosto")}
+								class={controlButtonClass(viewport === "angosto")}
+							>
+								Angosto (≈380 px)
+							</button>
+						</div>
+					</div>
+
+					<div>
+						<p class="text-xs font-medium text-foreground">Bajo lg</p>
+						<p class="mt-1 text-xs text-muted-foreground">
+							Esconde las acciones por debajo de <code class="font-mono text-[11px]">lg</code> y deja la fila
+							entera como objetivo para abrir el dataset, siguiendo el precedente del portal.
+						</p>
+						<div class="mt-2 flex flex-wrap gap-2">
+							<button
+								type="button"
+								data-testid="breakpoint-siempre"
+								aria-pressed={actionsBreakpoint === "siempre"}
+								onclick={() => (actionsBreakpoint = "siempre")}
+								class={controlButtonClass(actionsBreakpoint === "siempre")}
+							>
+								Visibles siempre
+							</button>
+							<button
+								type="button"
+								data-testid="breakpoint-desde-lg"
+								aria-pressed={actionsBreakpoint === "desde-lg"}
+								onclick={() => (actionsBreakpoint = "desde-lg")}
+								class={controlButtonClass(actionsBreakpoint === "desde-lg")}
+							>
+								Sólo desde lg
+							</button>
+						</div>
+					</div>
 				</div>
 			</div>
 		</section>
@@ -584,7 +746,12 @@ $effect(() => {
 							</p>
 						</header>
 
-						<div data-testid={`card-render-${variant.id}`} class="px-4 py-4 sm:px-6">
+						<div
+							data-testid={`card-render-${variant.id}`}
+							class="px-4 py-4 sm:px-6 {viewport === 'angosto'
+								? 'mx-auto max-w-[380px] rounded-xl ring-1 ring-border'
+								: ''}"
+						>
 							<ul class="space-y-1">
 								{#each preset.rows as item, index (item.id)}
 									{@render rowCard(variant.id, item, index)}
@@ -605,10 +772,17 @@ $effect(() => {
 			<p class="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
 				Mide la caja de la acción «Editar» de cada variante sobre el nodo ya renderizado y compara
 				el lado menor contra los <strong class="font-semibold text-foreground">44 px</strong> de
-				WCAG 2.5.5. Imprime además el lado declarado por el control de tamaño y la declaración de
-				revelado, que no dependen del layout; la opacidad en reposo muestra si la variante esconde la
-				acción. Sin motor de layout (jsdom) las cifras medidas dan <code class="font-mono text-[11px]"
-					>—</code
+				WCAG 2.5.5. Imprime además el lado declarado por el control de tamaño, la declaración de
+				revelado, el tratamiento destructivo declarado por su control y el punto de quiebre declarado
+				por el de «Bajo lg», que no dependen del layout; la opacidad en reposo muestra si la variante
+				esconde la acción. Sin motor de layout (jsdom) las cifras medidas dan <code
+					class="font-mono text-[11px]">—</code
+				>.
+			</p>
+
+			<p data-testid="instrument-viewport" class="mt-3 text-xs leading-relaxed text-muted-foreground">
+				Ancho declarado del listado: <strong class="font-semibold text-foreground"
+					>{viewport === "angosto" ? "angosto, ≈380 px" : "ancho completo"}</strong
 				>.
 			</p>
 
@@ -624,6 +798,8 @@ $effect(() => {
 							<th class="px-3 py-2 font-semibold">Táctil (mín. 44 px)</th>
 							<th class="px-3 py-2 font-semibold">Opacidad en reposo</th>
 							<th class="px-3 py-2 font-semibold">Revelado</th>
+							<th class="px-3 py-2 font-semibold">Tratamiento destructivo</th>
+							<th class="px-3 py-2 font-semibold">Bajo lg</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -644,6 +820,18 @@ $effect(() => {
 									class="px-3 py-2 text-foreground"
 								>
 									{row.reveal}
+								</td>
+								<td
+									data-testid={`instrument-row-delete-${row.variant}`}
+									class="px-3 py-2 text-foreground"
+								>
+									{row.deleteStyle}
+								</td>
+								<td
+									data-testid={`instrument-row-breakpoint-${row.variant}`}
+									class="px-3 py-2 text-foreground"
+								>
+									{row.breakpoint}
 								</td>
 							</tr>
 						{/each}
