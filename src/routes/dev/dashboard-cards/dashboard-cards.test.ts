@@ -290,6 +290,11 @@ describe("hoja de las tarjetas — controles de la acción", () => {
 		const forced = editOf("d").getAttribute("class") ?? "";
 		expect(forced).toContain("opacity-100");
 		expect(forced).not.toContain("opacity-0");
+		// El estado forzado tiene que ser **usable**, no sólo visible. Si el forzado conservara
+		// `pointer-events-none`, el botón se vería y no se podría pulsar —el clic caería en el enlace de
+		// la card—, así que la revisión mostraría un estado que no funciona. Hallazgo `R3-001` de la
+		// compuerta `review-4121eaed7585ad6b`.
+		expect(forced).not.toContain("pointer-events-none");
 		// Una variante siempre visible no cambia con el control.
 		expect(editOf("b").getAttribute("class")).toContain("transition-colors");
 
