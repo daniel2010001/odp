@@ -181,7 +181,7 @@ const SECONDARY_ACTION =
 		<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
 
 		<div
-			class="mx-auto mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}"
+			class="mx-auto mt-10 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}"
 		>
 			{#if state === "client"}
 				<FileQuestion class={medallionIconClass} aria-hidden="true" />
@@ -190,14 +190,16 @@ const SECONDARY_ACTION =
 			{/if}
 		</div>
 
-		<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{resolved.heading}</h1>
+		<h1 class="mt-8 font-heading text-3xl font-bold text-primary sm:text-4xl">{resolved.heading}</h1>
 
 		<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{resolved.body}</p>
 
-		<div class="mt-8 h-px w-16 bg-destructive/30"></div>
+		<!-- La regla separa el texto de las acciones **de extremo a extremo** del contenido: el tramo
+		     corto se leía como un adorno suelto, no como el corte entre las dos partes de la card. -->
+		<div class="mt-8 h-px w-full bg-destructive/30"></div>
 
 		<div
-			class="mt-6 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
+			class="mt-6 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center"
 		>
 			{#if state === "client"}
 				<a href={primaryAction?.href ?? "/search"} class={PRIMARY_ACTION}
