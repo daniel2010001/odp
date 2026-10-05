@@ -8,6 +8,7 @@
 // conocidas, porque en jsdom no hay layout.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { tick } from "svelte";
 import { describe, expect, it, vi } from "vitest";
 import HeroSheet from "./+page.svelte";
 import { formatHeroMeasurement } from "./measures";
@@ -267,6 +268,47 @@ describe("hoja del hero — el acuse de copiar", () => {
 			expect(screen.queryByRole("button", { name: "Enlace copiado" })).toBeNull();
 		} finally {
 			vi.useRealTimers();
+		}
+	});
+
+	it("cancela el temporizador al desmontar, en vez de disparar sobre la hoja muerta", async () => {
+		// Hallazgo `R3-001` de la compuerta `review-ba2348da1d5c0683`: el arreglo traía la cancelación
+		// pero ninguna prueba la ejercía, así que la propiedad seguía sin demostrar. Un llamador
+		// espía es lo que hace observable la cancelación: en jsdom, un `setState` posterior al
+		// desmontaje no se queja, así que el silencio no probaría nada.
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		const espia = vi.spyOn(globalThis, "clearTimeout");
+		try {
+			const { unmount } = render(HeroSheet);
+			const botones = screen.getAllByRole("button", { name: "Copiar enlace del dataset" });
+			await fireEvent.click(botones[0]);
+			expect(espia).not.toHaveBeenCalled();
+
+			await unmount();
+			expect(espia).toHaveBeenCalled();
+		} finally {
+			espia.mockRestore();
+			vi.useRealTimers();
+		}
+	});
+
+	it("vuelve a medir cuando cambia el ancho", async () => {
+		// Hallazgo `R3-002` de la misma compuerta: el oyente de `resize` y su dependencia no los
+		// ejercía ningún test, así que la re-medición tampoco estaba demostrada. Se cuenta la lectura
+		// del rectángulo, que es lo que el efecto hace al re-correr.
+		const espia = vi.spyOn(Element.prototype, "getBoundingClientRect");
+		try {
+			render(HeroSheet);
+			await tick();
+			const antes = espia.mock.calls.length;
+			expect(antes).toBeGreaterThan(0);
+
+			window.dispatchEvent(new Event("resize"));
+			await tick();
+
+			expect(espia.mock.calls.length).toBeGreaterThan(antes);
+		} finally {
+			espia.mockRestore();
 		}
 	});
 });
