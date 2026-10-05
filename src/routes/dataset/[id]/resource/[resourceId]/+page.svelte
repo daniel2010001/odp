@@ -1,6 +1,5 @@
 <script lang="ts">
 import {
-	ArrowLeft,
 	Check,
 	ChevronLeft,
 	ChevronRight,
@@ -22,8 +21,10 @@ import {
 	type FailurePresentation,
 	failureActions,
 	isDefinitive,
+	statusFor,
 } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
+import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -231,6 +232,20 @@ const actions = $derived(
 	failure ? failureActions(failure.presentation, failure.access) : { retry: false },
 );
 
+// El estado que la página de error rotula. `invalidParams` no observó ninguna respuesta del
+// catálogo: la dirección no lleva a nada, y eso se rotula como tal.
+const failureStatus = $derived(
+	invalidParams ? 404 : failure ? statusFor(failure.presentation.kind) : 503,
+);
+
+// Qué se puede ofrecer, que NO es lo mismo que el código observado: un `403` de una sonda que no
+// concluyó conserva su rótulo y **ofrece reintento**, porque no es una respuesta final. La señal es
+// la acción disponible (`retry`); `presentation.definitive` no sirve acá porque mira sólo la clase
+// del fallo y declara final un `403` cuya causa nadie confirmó.
+const failureVariant = $derived<"client" | "server">(
+	invalidParams || !actions.retry ? "client" : "server",
+);
+
 const errorTitle = $derived(
 	invalidParams ? "Parámetros de navegación inválidos" : (failure?.presentation.title ?? ""),
 );
@@ -431,41 +446,19 @@ async function handleCopyResourceLink() {
 	<!-- Expulsión: el guard ya limpió la sesión y navegó, no queda nada que renderizar -->
 	{:else if expelled}
 
-	<!-- Error / 404 state -->
+	<!-- Error state — la MISMA página de error que una ruta inexistente, con el copy honesto de
+	     `describeFailure` pasado como `copy`: un solo diseño para un solo estado. Vuelve al dataset
+	     cuando se sabe cuál es, porque ése es el paso siguiente útil. -->
 	{:else if invalidParams || failure}
-		<div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-			<div class="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
-				<p class="text-lg font-medium text-destructive">{errorTitle}</p>
-				<p class="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
-				<div class="mt-6 flex items-center justify-center gap-3">
-					{#if datasetId}
-						<a
-							href={`/dataset/${datasetId}`}
-							class="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-						>
-							<ArrowLeft class="size-4" />
-							Volver al dataset
-						</a>
-					{:else}
-						<a
-							href="/search"
-							class="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-						>
-							<ArrowLeft class="size-4" />
-							Volver al catálogo
-						</a>
-					{/if}
-					{#if actions.retry}
-						<button
-							onclick={() => loadData()}
-							class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-						>
-							Reintentar
-						</button>
-					{/if}
-				</div>
-			</div>
-		</div>
+		<ErrorPage
+			status={failureStatus}
+			variant={failureVariant}
+			copy={{ title: pageTitle, heading: errorTitle, body: errorMessage }}
+			primaryAction={datasetId
+				? { href: `/dataset/${datasetId}`, label: "Volver al dataset" }
+				: { href: "/search", label: "Volver al catálogo" }}
+			retry={actions.retry ? () => loadData() : null}
+		/>
 
 	<!-- Resource content -->
 	{:else if resource}

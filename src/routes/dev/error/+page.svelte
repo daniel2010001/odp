@@ -10,7 +10,8 @@
 	  delate la existencia de un recurso privado (`src/lib/api/failure.ts` razona igual).
 	· El reintento aparece sólo en el 5xx: reintentar *puede* cambiar un 5xx y *nunca* un 404.
 	· Ningún estado ofrece iniciar sesión; ese camino vive en el encabezado del layout.
-	· La línea de diagnóstico en inglés sólo se renderiza en desarrollo.
+	· La línea de diagnóstico sólo se renderiza en desarrollo: dice el estado y la ruta en español,
+	  y cita el mensaje crudo del framework entre comillas.
 
 	─── Ronda de revisión visual (WU-2, 2026-10-03) ────────────────────
 	El autor pidió que las páginas de error dejen de verse planas y eligió la propuesta **tarjeta**.
@@ -35,7 +36,7 @@ interface Variant {
 	status: number;
 	/** Ruta fallida que el diagnóstico muestra y a la que apunta «Reintentar» en el 5xx. */
 	path: string;
-	/** Mensaje crudo del framework, en inglés, tal como lo recibiría el componente. */
+	/** Mensaje crudo del framework, en el idioma del framework, tal como lo recibiría el componente. */
 	message: string;
 	note: string;
 }
@@ -302,8 +303,9 @@ $effect(() => {
 			<span>
 				Página sólo para desarrollo. En producción <code class="font-mono text-xs">/dev/error</code
 				> no existe (responde 404), y por eso se mantiene: los estados 5xx no se pueden provocar
-				desde el navegador. La línea de diagnóstico en inglés que aparece bajo cada tarjeta tampoco
-				se renderiza fuera de desarrollo.
+				desde el navegador. La línea de diagnóstico que aparece bajo cada tarjeta tampoco se
+				renderiza fuera de desarrollo: dice el estado y la ruta en español, y cita el mensaje del
+				framework en su idioma original, rotulado como suyo.
 			</span>
 		</p>
 

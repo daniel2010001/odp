@@ -74,6 +74,19 @@ export function isDefinitive(kind: ApiFailureKind): boolean {
 	return kind === "unauthorized" || kind === "not-found";
 }
 
+/**
+ * El estado HTTP que le corresponde a cada clase de fallo, para las superficies que lo rotulan.
+ *
+ * Es la única traducción de esa correspondencia: las páginas no la repiten a mano. Un fallo
+ * `unavailable` no observó ningún estado del catálogo — se rotula `503` porque el portal tampoco
+ * puede afirmar un código que nunca recibió.
+ */
+export function statusFor(kind: ApiFailureKind): number {
+	if (kind === "unauthorized") return 403;
+	if (kind === "not-found") return 404;
+	return 503;
+}
+
 /** `dataset` → `dataset`, `resource` → `recurso`, para el texto de abajo. */
 function subjectWord(subject: ApiSubject): string {
 	return subject === "dataset" ? "dataset" : "recurso";

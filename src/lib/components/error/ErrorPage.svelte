@@ -88,15 +88,77 @@ const SECONDARY_ACTION =
 <script lang="ts">
 	import { FileQuestion, RotateCw, TriangleAlert } from "@lucide/svelte";
 
-	let { status, message, path }: { status: number; message?: string; path?: string } = $props();
+	let {
+		status,
+		message,
+		path,
+		copy: copyOverride = null,
+		primaryAction = null,
+		retry = null,
+		variant = null,
+	}: {
+		status: number;
+		message?: string;
+		path?: string;
+		/**
+		 * Copy del llamador, para las superficies que ya saben qué pasó mejor que un código HTTP.
+		 * Sin esto, unificar el diseño obligaría a tirar el texto honesto que `$lib/api/failure.ts`
+		 * construye (el que distingue «sesión viva sin permiso» de «anónimo»): el diseño se comparte,
+		 * la información no se pierde.
+		 */
+		copy?: Partial<ErrorCopy> | null;
+		/** Destino y rótulo de la acción principal de la vuelta. */
+		primaryAction?: { href: string; label: string } | null;
+		/** Reintento con recarga real; si no viene, se usa `path` como navegación. */
+		retry?: (() => void) | null;
+		/**
+		 * El estado de presentación, cuando el código HTTP **no** lo determina por sí solo.
+		 *
+		 * Son dos hechos distintos: el `status` dice qué respondió el catálogo, y el estado dice qué
+		 * se puede ofrecer. Un `403` observado en una sonda que no concluyó no es una respuesta final,
+		 * así que el llamador pide el estado de servidor conservando el `403` en el rótulo. Sin esto,
+		 * el único camino era mentir en uno de los dos.
+		 */
+		variant?: "client" | "server" | null;
+	} = $props();
 
-	const state = $derived(errorState(status));
-	const copy = $derived(errorCopy(status));
+	const state = $derived(variant ?? errorState(status));
+	const base = $derived(errorCopy(status));
+	const resolved = $derived({
+		title: copyOverride?.title ?? base.title,
+		heading: copyOverride?.heading ?? base.heading,
+		body: copyOverride?.body ?? base.body,
+	});
 
-	// Diagnóstico de desarrollo: estado observado, ruta y el mensaje crudo del framework (en
-	// inglés). Se renderiza sólo con `import.meta.env.DEV`.
+	/** Rótulo en español del estado observado, para el diagnóstico de desarrollo. */
+	function statusLabel(value: number): string {
+		switch (value) {
+			case 0:
+				return "sin respuesta del catálogo";
+			case 400:
+				return "la solicitud está mal formada";
+			case 401:
+				return "la sesión no está autenticada";
+			case 403:
+				return "acceso denegado";
+			case 404:
+				return "la dirección no existe";
+			case 408:
+				return "el cliente agotó el tiempo de espera";
+			default:
+				return value >= 500 ? "error del servidor" : "";
+		}
+	}
+
+	// Diagnóstico de desarrollo. El estado y la ruta se dicen **en español**; el mensaje del
+	// framework se conserva **citado y rotulado**, porque su valor es justamente ser el texto crudo
+	// que emitió el framework. Se renderiza sólo con `import.meta.env.DEV`.
 	const diagnostic = $derived(
-		[String(status), path, message]
+		[
+			`Estado ${status}${statusLabel(status) ? ` — ${statusLabel(status)}` : ""}`,
+			path,
+			message ? `el framework dice «${message}»` : undefined,
+		]
 			.filter((part) => part !== undefined && part !== "")
 			.join(" · "),
 	);
@@ -111,14 +173,16 @@ const SECONDARY_ACTION =
 </script>
 
 <svelte:head>
-	<title>{copy.title}</title>
+	<title>{resolved.title}</title>
 </svelte:head>
 
 <div class="mx-auto flex max-w-xl flex-col items-center px-4 py-16 text-center">
 	<div class="w-full rounded-xl border border-border bg-card p-6 text-center shadow-md sm:p-8">
 		<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
 
-		<div class="mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}">
+		<div
+			class="mx-auto mt-6 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}"
+		>
 			{#if state === "client"}
 				<FileQuestion class={medallionIconClass} aria-hidden="true" />
 			{:else}
@@ -126,9 +190,9 @@ const SECONDARY_ACTION =
 			{/if}
 		</div>
 
-		<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{copy.heading}</h1>
+		<h1 class="mt-4 font-heading text-3xl font-bold text-primary sm:text-4xl">{resolved.heading}</h1>
 
-		<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
+		<p class="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">{resolved.body}</p>
 
 		<div class="mt-8 h-px w-16 bg-destructive/30"></div>
 
@@ -136,16 +200,25 @@ const SECONDARY_ACTION =
 			class="mt-6 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
 		>
 			{#if state === "client"}
-				<a href="/search" class={PRIMARY_ACTION}>Volver al catálogo</a>
+				<a href={primaryAction?.href ?? "/search"} class={PRIMARY_ACTION}
+					>{primaryAction?.label ?? "Volver al catálogo"}</a
+				>
 				<a href="/" class={SECONDARY_ACTION}>Ir a la página de inicio</a>
 			{:else}
-				{#if path}
+				{#if retry}
+					<button type="button" onclick={retry} class={PRIMARY_ACTION}>
+						<RotateCw class="size-4" aria-hidden="true" />
+						Reintentar
+					</button>
+				{:else if path}
 					<a href={path} class={PRIMARY_ACTION}>
 						<RotateCw class="size-4" aria-hidden="true" />
 						Reintentar
 					</a>
 				{/if}
-				<a href="/search" class={SECONDARY_ACTION}>Volver al catálogo</a>
+				<a href={primaryAction?.href ?? "/search"} class={SECONDARY_ACTION}
+					>{primaryAction?.label ?? "Volver al catálogo"}</a
+				>
 			{/if}
 		</div>
 
