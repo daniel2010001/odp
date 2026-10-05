@@ -17,6 +17,31 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Afinado pendiente de la página de error (pedido del autor, 2026-10-05)
+
+> El autor dio por buena la página de error («mucho mejor, queda») y pidió **anotar todo lo que quede para
+> afinarla después**, en una sesión de pulido. Detalle y contexto en `odd/tasks/error-surfaces.md`. **Nada de
+> esto es un defecto declarado**: son los puntos que ya se conocen y que conviene resolver **en la hoja
+> `/dev/error`** antes de tocar el componente, porque las tres superficies (ruta inexistente, página del dataset
+> y página del recurso) comparten `ErrorPage.svelte` y **cualquier retoque se hace una sola vez**.
+
+- [ ] **[v1+]** **La regla coral llega al borde del *contenido*, no al borde físico de la card.** Hoy separa el
+  texto de las acciones dentro del `padding` (`p-6 sm:p-8`). Si el afinado la quiere tocando los bordes de la
+  card, necesita márgenes negativos, y eso hay que decidirlo viéndolo.
+- [ ] **[v1+]** **El caso angosto (móvil) no está afinado.** La fila de acciones se apila y ocupa el ancho
+  completo; el centrado aplica desde `sm`. Revisar cómo se ve en pantalla chica antes de dar el estado por bueno.
+- [ ] **[v1+]** **Proporciones del medallón.** Ahora tiene `mt-10` arriba y `mt-8` abajo. Si el afinado pide
+  otra relación con el título, son dos números en un solo lugar.
+- [ ] **[v1+]** **El diagnóstico de desarrollo conserva el texto del framework en su idioma**, citado y rotulado
+  (`el framework dice «Not Found»»). Fue una decisión declarada —su valor es ser crudo—, pero si el afinado
+  prefiere no ver inglés en la página, se traduce o se quita.
+- [ ] **[v1+]** **La hoja `/dev/error` no tiene instrumento de geometría.** El hero y las cards sí lo tienen
+  (imprimen ancho, alto y separación en píxeles). Para afinar la página de error con números en vez de a ojo,
+  conviene el mismo tipo de instrumento: medallón, regla y acciones por caso.
+- [ ] **[v1]** **Los cuatro hallazgos informativos** de las compuertas de las superficies de error (dos WARNING y
+  dos SUGGESTION): sus **ubicaciones** están en `odd/tasks/error-surfaces.md`, **sin su texto** — se perdieron
+  antes de aprender a leer el estado de la compuerta, y hay que releer la línea antes de tratarlos como trabajo.
+
 ## Revisión del autor (2026-10-05) — lo corregido y lo que queda
 
 > De la revisión del portal corriendo, con **capturas propias** (el agente renderizó y miró las páginas): el

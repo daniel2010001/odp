@@ -173,6 +173,27 @@ sucesivas es un ciclo que no termina.
    atascado** que el `BACKLOG` da por inmutable. Sus textos de hallazgos **siguen siendo legibles**; los de las
    tres compuertas de ayer no, porque el acuse sí los borró (no aparecen en el store).
 
+### Afinado pendiente (pedido del autor, 2026-10-05)
+
+El autor dio la página por buena y pidió **anotar todo** lo que quede para una sesión de pulido. Nada de esto es
+un defecto abierto: son los puntos conocidos, y todos se resuelven **en la hoja `/dev/error`** —las tres
+superficies comparten el componente, así que el retoque se hace una sola vez y se revisa en la hoja antes de
+promoverlo—.
+
+| Punto | Qué falta decidir |
+|---|---|
+| La regla coral | Llega al borde del **contenido**, no al borde físico de la card. De borde a borde exige márgenes negativos |
+| El caso angosto (móvil) | La fila de acciones se apila a ancho completo; el centrado aplica desde `sm` |
+| Proporciones del medallón | Hoy `mt-10` / `mt-8`: son dos números si el afinado pide otra relación |
+| El diagnóstico de DEV | Conserva el texto del framework **en su idioma**, citado y rotulado. Decisión declarada: si el afinado no lo quiere, se traduce o se quita |
+| Instrumento de geometría | La hoja **no** tiene uno. El hero y las cards sí (ancho, alto y separación en píxeles). Para afinar con números, conviene el mismo tipo de sonda por caso |
+| Los cuatro hallazgos informativos | Dos WARNING y dos SUGGESTION; quedaron sus **ubicaciones sin su texto**. Releer la línea antes de tratarlos como trabajo |
+
+**Lo que ya no es deuda de afinado**, para no reabrirlo sin motivo: el medallón está centrado, la regla cruza la
+card, los botones están centrados y el diagnóstico está en español. Y el **contraste del botón primario en oscuro
+(3.73:1)** es un ítem **de tokens**, no de esta página: se ve en `/dev/error?theme=oscuro`, y vive como ítem
+propio en este archivo.
+
 ### Desviaciones declaradas
 
 1. **Sin RED propio para `statusFor`**: el helper se extrajo de la necesidad de las páginas y su RED fue el de
