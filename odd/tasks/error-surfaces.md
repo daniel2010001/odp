@@ -143,6 +143,24 @@ defensivo se conserva para un llamador sin tipos o un `as` — que es exactament
 esta segunda corrección produce un tercer hallazgo sobre el mismo lugar, se anota en el `BACKLOG` en vez de
 re-abrir el ciclo — es trabajo posterior, no una razón para re-revisar este candidato.
 
+**Tercera compuerta — y ésta no era un detalle de línea, era una prueba faltante.** `review-c28228e16181377e`
+(medium, reliability, 3 archivos / 48 líneas, una corrida de modelo) aprobó con un tercer `R3-001`
+(SUGGESTION):
+
+> «The candidate adds a runtime fallback but its changed-path manifest contains no test asserting that an
+> out-of-union kind maps to `503`; the externally observable regression fix remains unproved.»
+
+Es correcto, y **se satisface**: dos pruebas nuevas en `src/lib/api/failure.test.ts` — las tres clases, y un valor
+fuera de la unión forzado con un cast que debe seguir devolviendo `503` (`52 passed` en ese archivo).
+
+**Sin RED, declarado**: el hallazgo pedía prueba de un comportamiento ya escrito, así que la prueba es de
+verificación y no un ciclo. No se simuló una falla previa para fabricar un ROJO que no existió.
+
+**Y el bucle se cierra acá, de verdad**: tres rondas, tres hallazgos informativos, ninguno bloqueante. Si esta
+corrección vuelve a producir un hallazgo sobre el mismo lugar, se anota y no se re-abre: el revisor ya demostró
+que tiene más que decir sobre estas cinco líneas, y seguir editando código para satisfacer sugerencias
+sucesivas es un ciclo que no termina.
+
 ### Dos correcciones a recetas del repo
 
 1. **La ruta del `review-state.json` estaba mal escrita.** No vive en `.git/gentle-ai/v2/review-<linaje>/` sino

@@ -50,6 +50,10 @@ autoridad quemada. Y los dos trajeron un hallazgo informativo que **se aplicó e
 - `review-a23b77b7964565df` — `R3-001` (WARNING): **encontró un defecto en el arreglo del primero** — el `never`
   protege el tipo pero no el runtime, y devolver el valor recibido rompía el contrato de `number`. Quedan **dos
   guardas**: el `never` para la compilación y el `503` defensivo para el runtime.
+- `review-c28228e16181377e` — `R3-001` (SUGGESTION): el respaldo de runtime **no tenía prueba**. Se satisfizo con
+  dos pruebas nuevas en `failure.test.ts` (las tres clases, y un valor fuera de la unión que debe seguir dando
+  `503`). **El bucle se cierra acá**: tres rondas y tres hallazgos informativos sobre las mismas cinco líneas; un
+  cuarto se anota, no se re-abre.
 
 Es la primera vez en este repo que un hallazgo informativo se cierra al recibirlo en vez de sumarse a la lista de
 deuda — y sólo fue posible porque ahora se lee el `review-state.json` **antes** del acuse.

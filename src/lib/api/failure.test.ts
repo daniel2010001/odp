@@ -23,6 +23,7 @@ import {
 	describeFailure,
 	failureActions,
 	isDefinitive,
+	statusFor,
 } from "./failure";
 
 const SUBJECTS: ApiSubject[] = ["dataset", "resource"];
@@ -307,5 +308,22 @@ describe("failureActions — qué acciones ofrecer según el fallo", () => {
 		expect(present("unauthorized", "anonymous").retry).toBe(false);
 		expect(present("unauthorized", "unknown").retry).toBe(true);
 		expect(present("unavailable", "anonymous").retry).toBe(true);
+	});
+});
+
+describe("statusFor — el código que le toca a cada clase de fallo", () => {
+	it("mapea las tres clases del catálogo", () => {
+		expect(statusFor("unauthorized")).toBe(403);
+		expect(statusFor("not-found")).toBe(404);
+		expect(statusFor("unavailable")).toBe(503);
+	});
+
+	it("un valor fuera de la unión conserva el 503 defensivo, y no vuelve como si fuera un número", () => {
+		// Hallazgos `R3-001` de `review-a23b77b7964565df` y `review-c28228e16181377e`: el `never` protege
+		// el tipo, no el runtime, así que el respaldo necesita su propia prueba. El cast es el camino que
+		// el revisor nombró —un llamador sin tipos, o un `as`— y lo que se afirma es el contrato: sigue
+		// siendo un número, y el mismo que `classifyFailure` le da a todo lo desconocido.
+		const fueraDeLaUnion = "clase-inexistente" as unknown as ApiFailureKind;
+		expect(statusFor(fueraDeLaUnion)).toBe(503);
 	});
 });
