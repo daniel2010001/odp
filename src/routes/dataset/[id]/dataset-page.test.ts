@@ -722,11 +722,15 @@ describe("Página de dataset — el reparto de las acciones del hero (la regla)"
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 
-		const { title } = await renderHero();
+		await renderHero();
 		const editar = await screen.findByRole("link", { name: "Editar" });
-		// El permiso acaba de cambiar el reparto: la rama de una acción se desmontó, así que el botón
-		// de copiar se vuelve a leer del DOM nuevo en vez de reusar el nodo viejo.
+		// El permiso acaba de cambiar el reparto: la rama de una acción se desmontó, así que **las dos
+		// cosas** se vuelven a leer del DOM nuevo —el botón de copiar y el título—. Reusar el título
+		// capturado antes del cambio haría que la aserción dependiera de cuándo se resolvió el helper:
+		// un nodo desmontado no está contenido en ninguna fila, así que la prueba pasaría o fallaría
+		// según los microtasks. Hallazgo `R3-1` de la compuerta `review-e6dab4f3b36e3fdb`.
 		const copy = screen.getByRole("button", { name: "Copiar enlace del dataset" });
+		const title = screen.getByRole("heading", { level: 1, name: "Matrícula 2026" });
 
 		const grupo = copy.parentElement as HTMLElement;
 		expect(grupo).toContainElement(editar);
