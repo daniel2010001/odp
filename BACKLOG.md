@@ -63,6 +63,19 @@ Y dos correcciones a recetas que el repo tenía mal escritas: el `review-state.j
 **los linajes sin acuse conservan sus claims**: hay **seis** vivos, incluido el atascado
 `review-6b517157db5f4274`, así que su texto de hallazgos **es recuperable**.
 
+**Hojas de revisión de los botones (2026-10-05), con dos compuertas aprobadas y una deuda de prueba declarada:**
+`/dev/dataset-hero` y `/dev/dashboard-cards` están construidas, con panel de control, presets, un interruptor por
+variante e instrumento en números. La compuerta de la hoja del hero dejó **una deuda que no se esconde**: sus dos
+pruebas nuevas **prueban menos de lo que dicen sus comentarios** — la de cancelación sólo espía `clearTimeout` sin
+comprobar que el clic agendó un temporizador ni que el id cancelado sea el suyo, y la de re-medición cuenta
+llamadas **globales** a `getBoundingClientRect` sin atarlas al nodo medido. **El ciclo se cortó por decisión**, tras
+tres rondas sobre la misma hoja. Las dos mejoras concretas, pendientes:
+
+- `[ ]` **[v1+]** En la prueba de cancelación, capturar el id que devuelve el `setTimeout` y afirmar que es ése el
+  que `clearTimeout` recibe.
+- `[ ]` **[v1+]** En la prueba de re-medición, afirmar la lectura **sobre el nodo del hero** (por ejemplo contando
+  las llamadas que recibe el nodo medido) y no el total global.
+
 **Queda, en orden:**
 
 1. **La aprobación del copy de los cuatro estados de negativa** del formulario de edición (propuesta del agente:
