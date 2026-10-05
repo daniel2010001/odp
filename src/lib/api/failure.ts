@@ -82,9 +82,21 @@ export function isDefinitive(kind: ApiFailureKind): boolean {
  * puede afirmar un código que nunca recibió.
  */
 export function statusFor(kind: ApiFailureKind): number {
-	if (kind === "unauthorized") return 403;
-	if (kind === "not-found") return 404;
-	return 503;
+	switch (kind) {
+		case "unauthorized":
+			return 403;
+		case "not-found":
+			return 404;
+		case "unavailable":
+			return 503;
+		default: {
+			// Exhaustividad por el compilador, no por disciplina: si `ApiFailureKind` suma una clase y
+			// no se mapea acá, `kind` deja de ser `never` y esto **no compila**. Hallazgo `R3-001` de la
+			// compuerta `review-55de0c344451cd06`, aplicado en vez de anotado.
+			const exhaustive: never = kind;
+			return exhaustive;
+		}
+	}
 }
 
 /** `dataset` → `dataset`, `resource` → `recurso`, para el texto de abajo. */

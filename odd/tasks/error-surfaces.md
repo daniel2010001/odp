@@ -106,6 +106,37 @@ ofrecer») **son dos hechos distintos**, y conflarlos fue lo que produjo los dos
   «Estado 404 — la dirección no existe · /pagina-que-no-existe-xyz · el framework dice «Not Found»».
 - Capturas en `/tmp/rev/fix_privado.png` y `/tmp/rev/fix_ruta404.png`.
 
+### Compuerta nativa
+
+`review-55de0c344451cd06` — tier **medium**, lente `review-reliability`, 7 archivos / 392 líneas,
+presupuesto de corrección 196, **una corrida de modelo**. **Aprobada**, autoridad quemada
+(`gentle-ai.review-acknowledged/v1`).
+
+**Un hallazgo informativo, y esta vez con su texto**: se leyó del estado **antes** del acuse, que es la lección
+de la ronda anterior.
+
+> `R3-001` (reliability, SUGGESTION) — «The new `statusFor` mapping is non-exhaustive: it returns 503 for any
+> `ApiFailureKind` other than unauthorized and not-found. A future kind addition would silently map to 503
+> instead of producing a compile-time error. Consider an exhaustive switch with a never check so the mapping
+> stays correct as kinds evolve.» — `src/lib/api/failure.ts:84-88`
+
+**Se aplicó en el momento, no se anotó**: `statusFor` es ahora un `switch` exhaustivo con un `never`, así que
+agregar una clase sin mapearla **deja de compilar**. Es la primera vez en este repo que un hallazgo informativo
+se cierra al recibirlo en vez de sumarse a la lista de deuda — y sólo fue posible porque esta vez se leyó el
+estado antes de acusar.
+
+### Dos correcciones a recetas del repo
+
+1. **La ruta del `review-state.json` estaba mal escrita.** No vive en `.git/gentle-ai/v2/review-<linaje>/` sino
+   en **`.git/gentle-ai/review-transactions/v2/review-<linaje>/review-state.json`**. La nota del `BACKLOG`
+   («leer el `review-state.json` **entre el cierre y el acuse**») la ubicaba mal, y eso hizo que dos búsquedas
+   dieran «no existe» y se concluyera demasiado rápido que el texto se había perdido.
+2. **Los linajes sin acuse conservan sus claims.** Hay **seis** directorios vivos en el store
+   (`review-134fe0b2e9b4dfa5`, `review-16c7b879f44c6b95`, `review-5ab16f231f1adb49`,
+   **`review-6b517157db5f4274`**, `review-6b9e55bc959708a1`, `review-9e769e5f903471c7`) — incluido **el linaje
+   atascado** que el `BACKLOG` da por inmutable. Sus textos de hallazgos **siguen siendo legibles**; los de las
+   tres compuertas de ayer no, porque el acuse sí los borró (no aparecen en el store).
+
 ### Desviaciones declaradas
 
 1. **Sin RED propio para `statusFor`**: el helper se extrajo de la necesidad de las páginas y su RED fue el de
