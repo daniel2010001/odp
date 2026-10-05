@@ -3,7 +3,7 @@
 
 	Decide **cómo se ofrece la acción «Editar»** en cada fila de «Mis datasets». Hoy es un botón de
 	texto, hermano de la tarjeta y nunca anidado: un elemento interactivo dentro de un `<a>` es HTML
-	inválido. La hoja pone tres tratamientos a la vista para elegir mirando.
+	inválido. La hoja pone las alternativas a la vista para elegir mirando.
 
 	─── Qué es real y qué es copia ─────────────────────────────────────
 	Real (se importa del repo):
@@ -21,8 +21,15 @@
 	  A · Botón de texto (hoy).
 	  B · Botón sólo ícono, con `title` nativo y `aria-label`.
 	  D · Acción revelada al pasar el cursor o al enfocar; la superficie de la tarjeta no cambia.
+	  E · Igual que B, sin el chevron.
+	  F · Igual que D, sin el chevron.
 	La variante C (menú de tres puntos) **no se construye**: `src/lib/components/ui/dropdown-menu/`
 	no existe y esta hoja no vendoriza componentes nuevos.
+
+	─── El chevron es la objeción del autor ────────────────────────────
+	El autor prefiere el botón sólo ícono (B) sobre el de texto, pero rechaza el `>`: se lee como una
+	instrucción de «presione» sobre la tarjeta. E y F repiten B y D **quitando el chevron** para que
+	la comparación sea explícita; el resto de la fila no cambia.
 
 	─── Nota de la variante B ──────────────────────────────────────────
 	El botón sólo ícono usa `title` nativo más `aria-label`. Un tooltip real exigiría vendorizar el
@@ -107,7 +114,7 @@ const preset = $derived(PRESETS.find((item) => item.id === presetId) ?? PRESETS[
 
 // ─── Variantes (un interruptor por variante) ────────────────────────
 interface Variant {
-	id: "a" | "b" | "d";
+	id: "a" | "b" | "d" | "e" | "f";
 	label: string;
 	description: string;
 }
@@ -131,9 +138,21 @@ const VARIANTS: Variant[] = [
 		description:
 			"La acción está en el DOM pero en reposo queda oculta (`opacity-0`), y aparece con el cursor sobre la fila o con el foco del teclado. La superficie de la tarjeta no cambia.",
 	},
+	{
+		id: "e",
+		label: "E · Ícono sin chevron",
+		description:
+			"Igual que B: el `<a>` con forma de botón de ícono, `size-9`, `title` nativo y `aria-label`, pero sin el chevron. El `>` se leía como una instrucción de presionar.",
+	},
+	{
+		id: "f",
+		label: "F · Ícono sin chevron, revelado al cursor",
+		description:
+			"Igual que D: la acción está en el DOM, en reposo oculta (`opacity-0`) y aparece con el cursor sobre la fila o con el foco, pero sin el chevron.",
+	},
 ];
 
-let enabled = $state<Record<string, boolean>>({ a: true, b: true, d: true });
+let enabled = $state<Record<string, boolean>>({ a: true, b: true, d: true, e: true, f: true });
 const visibleVariants = $derived(VARIANTS.filter((variant) => enabled[variant.id]));
 
 function toggleVariant(id: string): void {
@@ -195,10 +214,10 @@ $effect(() => {
 {#snippet rowCard(variantId: string, item: Row, index: number)}
 	<li
 		data-testid={`row-${variantId}-${index}`}
-		class="flex items-center gap-2 {variantId === "d" ? "group/row" : ""}"
+		class="flex items-center gap-2 {variantId === "d" || variantId === "f" ? "group/row" : ""}"
 	>
 		<!-- Copia del `<a>` de la tarjeta real. El grupo `group` es el del enlace; el `group/row` de
-		     la variante D vive en el `<li>` para poder revelar la acción sin tocar esta superficie. -->
+		     las variantes D y F vive en el `<li>` para poder revelar la acción sin tocar esta superficie. -->
 		<a
 			href={`/dataset/${item.name}`}
 			data-testid={`card-link-${variantId}-${index}`}
@@ -227,14 +246,16 @@ $effect(() => {
 					Privado
 				</span>
 			{/if}
-			<ChevronRight
-				class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-				aria-hidden="true"
-			/>
+			{#if variantId !== "e" && variantId !== "f"}
+				<ChevronRight
+					class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+					aria-hidden="true"
+				/>
+			{/if}
 		</a>
 
 		<!-- Fail closed: sin permiso afirmativo no hay enlace. La acción es hermana del `<a>`, nunca
-		     anidada, en las tres variantes. -->
+		     anidada, en todas las variantes. -->
 		{#if item.editable}
 			{#if variantId === "a"}
 				<a
@@ -245,7 +266,7 @@ $effect(() => {
 					<Pencil class="size-4" aria-hidden="true" />
 					Editar
 				</a>
-			{:else if variantId === "b"}
+			{:else if variantId === "b" || variantId === "e"}
 				<a
 					href={`/dashboard/datasets/${item.name}/edit`}
 					data-testid={`edit-${variantId}-${index}`}
@@ -285,6 +306,12 @@ $effect(() => {
 				<strong class="font-semibold text-foreground">copia declarada</strong> de
 				<code class="font-mono text-xs">src/routes/dashboard/+page.svelte</code>: los tokens son los
 				reales de <code class="font-mono text-xs">src/app.css</code>, pero el markup no se importa.
+			</p>
+			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+				El autor prefiere el botón sólo ícono sobre el de texto, pero el chevron se lee como una
+				instrucción de «presione»: ésa es su objeción. Las variantes E y F repiten B y D
+				<strong class="font-semibold text-foreground">quitando el chevron</strong>, para que la
+				comparación sea explícita.
 			</p>
 			<p
 				class="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground"

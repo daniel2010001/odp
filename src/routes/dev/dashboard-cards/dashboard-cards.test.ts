@@ -1,10 +1,13 @@
 // Tests de la hoja de revisión de la tarjeta de fila del dashboard.
 //
-// La propiedad que la hace útil es que las tres formas de ofrecer «Editar» queden distinguibles y
+// La propiedad que la hace útil es que las formas de ofrecer «Editar» queden distinguibles y
 // revisables. El test fija la invariante que no puede romperse —la acción es hermana de la tarjeta,
 // nunca anidada dentro del `<a>`, porque un interactivo dentro de un `<a>` es HTML inválido— y que
 // el interruptor de cada variante cambie lo que se renderiza. El instrumento se prueba aparte, con
 // entradas conocidas, porque en jsdom no hay layout.
+//
+// El chevron era la objeción del autor: las variantes E y F repiten B y D sin él, y el test lo fija
+// contra la presencia del ícono `lucide-chevron-right`.
 //
 // La variante «menú de tres puntos» no existe: el componente vendorizado `dropdown-menu` no está en
 // el repo y esta hoja no vendoriza componentes nuevos.
@@ -14,7 +17,7 @@ import { describe, expect, it, vi } from "vitest";
 import CardsSheet from "./+page.svelte";
 import { formatCardActionMeasurement } from "./measures";
 
-const VARIANT_IDS = ["a", "b", "d"] as const;
+const VARIANT_IDS = ["a", "b", "d", "e", "f"] as const;
 
 const PRESET_IDS = [
 	"con-permiso",
@@ -34,12 +37,13 @@ function editOf(variantId: string, index = 0): HTMLElement {
 }
 
 describe("hoja de las tarjetas — cobertura de variantes", () => {
-	it("renderiza las tres variantes construidas y no la del menú de tres puntos", () => {
+	it("renderiza las variantes construidas y no la del menú de tres puntos", () => {
 		render(CardsSheet);
 
 		for (const id of VARIANT_IDS) {
 			expect(screen.getByTestId(`card-variant-${id}`)).toBeInTheDocument();
 		}
+		expect(screen.getAllByTestId(/^card-variant-/)).toHaveLength(VARIANT_IDS.length);
 		expect(screen.queryByTestId("card-variant-c")).toBeNull();
 	});
 
@@ -93,6 +97,16 @@ describe("hoja de las tarjetas — forma de la acción", () => {
 		expect(edit).toHaveAttribute("title", "Editar");
 	});
 
+	it("la variante E es sólo ícono, como B, y sin chevron", () => {
+		render(CardsSheet);
+
+		const edit = editOf("e");
+		expect(edit.textContent?.trim()).toBe("");
+		expect(edit).toHaveAttribute("aria-label", "Editar dataset");
+		expect(edit).toHaveAttribute("title", "Editar");
+		expect(renderOf("e").querySelector(".lucide-chevron-right")).toBeNull();
+	});
+
 	it("la variante D revela la acción con el cursor o el foco sin tocar la tarjeta", () => {
 		render(CardsSheet);
 
@@ -106,6 +120,29 @@ describe("hoja de las tarjetas — forma de la acción", () => {
 		// La acción es hermana del `<a>`: la superficie de la tarjeta no cambia.
 		const link = screen.getByTestId("card-link-d-0");
 		expect(link.contains(edit)).toBe(false);
+	});
+
+	it("la variante F revela la acción como D, y sin chevron", () => {
+		render(CardsSheet);
+
+		const edit = editOf("f");
+		const classes = edit.getAttribute("class") ?? "";
+
+		expect(classes).toContain("opacity-0");
+		expect(classes).toContain("group-hover/row:opacity-100");
+		expect(classes).toContain("group-focus-within/row:opacity-100");
+		expect(renderOf("f").querySelector(".lucide-chevron-right")).toBeNull();
+	});
+
+	it("A, B y D conservan el chevron; E y F lo quitan", () => {
+		render(CardsSheet);
+
+		for (const id of ["a", "b", "d"] as const) {
+			expect(renderOf(id).querySelector(".lucide-chevron-right")).not.toBeNull();
+		}
+		for (const id of ["e", "f"] as const) {
+			expect(renderOf(id).querySelector(".lucide-chevron-right")).toBeNull();
+		}
 	});
 });
 
