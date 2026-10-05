@@ -17,6 +17,51 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-10-05, noche) — handoff: la interfaz revisada en vivo, dos diseños promovidos, y **nada a medias**
+
+> **`main` = `22a3fa4` = `origin/main`, árbol limpio, 0 sin pushear, CI verde** (run `37380003988`: lint,
+> typecheck y suite completa). Suite **919/919** en 57 archivos · `svelte-check` 0 errores / 4 warnings
+> preexistentes · `node_modules/.bin/biome check .` limpio sobre **164** archivos.
+>
+> **Lo que pasó, en una línea por cosa:**
+> 1. **Una sola página de error en todas las superficies.** La página del dataset y la del recurso usaban un
+>    bloque propio viejo; ahora renderizan `ErrorPage`, con el copy honesto **intacto** (los tests no se
+>    editaron: cambió el dibujo, no el texto). El medallón estaba desalineado, el diagnóstico de DEV estaba en
+>    inglés, la regla coral era un tramo corto y los botones quedaban contra la pared: las cuatro cosas se
+>    arreglaron y se verificaron **mirando la página renderizada**.
+> 2. **Dos hojas de revisión construidas, recorridas y retiradas**: `/dev/dataset-hero` y
+>    `/dev/dashboard-cards`, con panel de presets, un interruptor por variante e instrumento en números. Se
+>    borraron al promover, como manda la regla 8; git conserva su historia.
+> 3. **El hero se rige por la regla**: una acción en la fila del título, dos o más en la de las insignias.
+> 4. **La card del dashboard**: la acción de editar es un ícono de 36 px, sin el chevron `>`, **oculta por
+>    debajo de `lg`**, con el grupo listo para una segunda acción — **la papelera no se publicó** porque el
+>    borrado no existe.
+>
+> **Lo que queda, en orden de valor:**
+>
+> 1. **Las demos de *scroll snapping* y de los tags** — lo único que falta de lo pedido por el autor. El
+>    *snapping* tiene **tres salidas** (proximidad, obligatorio, o un contenedor con scroll propio) y los tags
+>    **dos** (el `<a>` de la card como disparador, o reestructurar la card para que el título sea el enlace y la
+>    divulgación un `<button>` real). Las dos se deciden **mirándolas**, y el *snapping* exige **medir el
+>    desplazamiento en un navegador** (jsdom no lo reproduce): la sesión anterior ya probó que `scrollTo(310)`
+>    termina en `404` con `mandatory`.
+> 2. **El vistazo del autor en el navegador, con sesión**, a las dos superficies que el agente **no puede**
+>    verificar: la **card en ancho angosto** (`/dashboard`, las acciones deben desaparecer y el título quedar
+>    legible) y **el hero con permiso de edición** (el grupo en la fila de insignias, el título solo arriba).
+> 3. **Los cuatro estados del copy** del formulario de edición, aprobados **de memoria**: llevarlos a
+>    `/dev/dataset-edit` con un selector de caso para que la aprobación sea **leída en contexto**.
+> 4. El **afinado de la página de error**, cuya lista completa está en la sección siguiente.
+> 5. **La deuda de prueba declarada** de la hoja del hero (dos pruebas más débiles que su comentario), en la
+>    sección «Revisión del autor».
+> 6. Y lo que ya venía de antes: el **push** ya está hecho; quedan el linaje atascado
+>    `review-6b517157db5f4274`, los **cuatro hallazgos informativos** de las compuertas de error (ubicaciones
+>    sin texto), y el ítem de **tokens** del contraste en oscuro (**3.73:1**, regla 7).
+>
+> **Nota de entorno, medida hoy y que ahorra tiempo:** `pnpm lint` y `pnpm exec` **abortan en esta máquina
+> con exit 254** —incluso en `biome --version`—, mientras que `node_modules/.bin/biome check .` recorre todo
+> limpio en menos de un segundo. **En CI, `pnpm lint` pasa.** Localmente, la verificación confiable es el
+> binario directo.
+
 ## Afinado pendiente de la página de error (pedido del autor, 2026-10-05)
 
 > El autor dio por buena la página de error («mucho mejor, queda») y pidió **anotar todo lo que quede para
