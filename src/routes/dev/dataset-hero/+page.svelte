@@ -146,25 +146,49 @@ function toggleVariant(id: string): void {
 }
 
 let copiedVariant = $state<string | null>(null);
+// El temporizador del acuse se guarda para poder **cancelarlo**: sin eso el callback dispara
+// después del desmontaje (hallazgo `R3-COPY` de la compuerta `review-5667c785ed46242e`).
+let copyTimer: ReturnType<typeof setTimeout> | null = null;
 
 // La copia es sólo visual en la hoja: no hay portapapeles que usar en jsdom. Lo que se revisa es
-// el tratamiento, no la integración con `navigator.clipboard`.
+// el tratamiento, no la integración con `navigator.clipboard`. El acuse se anuncia por
+// `aria-label` y no sólo por el ícono: un cambio de color no le dice nada a un lector de pantalla.
 function handleCopy(variantId: string): void {
 	copiedVariant = variantId;
-	setTimeout(() => {
+	if (copyTimer !== null) clearTimeout(copyTimer);
+	copyTimer = setTimeout(() => {
 		if (copiedVariant === variantId) copiedVariant = null;
+		copyTimer = null;
 	}, 2000);
 }
+
+$effect(() => () => {
+	if (copyTimer !== null) clearTimeout(copyTimer);
+});
 
 // ─── Instrumento: la separación título ↔ copiar ─────────────────────
 let sheetRoot = $state<HTMLElement>();
 let measurements = $state<FormattedHeroMeasurement[]>([]);
 
+// El instrumento tiene que re-medirse cuando cambia el ancho: el caso que esta hoja existe para
+// evaluar —la fila que envuelve con un título largo— depende del ancho, así que una medición de
+// una sola vez queda rancia (hallazgo `R3-RESIZE`).
+let resizeTick = $state(0);
+
 $effect(() => {
-	// Dependencias del efecto: el caso, las variantes encendidas y la raíz montada.
+	const onResize = () => {
+		resizeTick += 1;
+	};
+	window.addEventListener("resize", onResize);
+	return () => window.removeEventListener("resize", onResize);
+});
+
+$effect(() => {
+	// Dependencias del efecto: el caso, las variantes encendidas, la raíz montada y el ancho.
 	void preset;
 	void visibleVariants;
 	void sheetRoot;
+	void resizeTick;
 
 	if (!sheetRoot) {
 		measurements = [];
@@ -211,7 +235,7 @@ $effect(() => {
 	<button
 		type="button"
 		data-testid={`hero-copy-${variantId}`}
-		aria-label="Copiar enlace del dataset"
+		aria-label={copiedVariant === variantId ? "Enlace copiado" : "Copiar enlace del dataset"}
 		title="Copiar enlace"
 		onclick={() => handleCopy(variantId)}
 		class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -245,3 +245,28 @@ describe("formatHeroMeasurement", () => {
 		expect(formatted.gapY).toBe("16.00 px");
 	});
 });
+
+describe("hoja del hero — el acuse de copiar", () => {
+	it("acusa el clic y lo retira a los 2 s, sin dejar el temporizador vivo", async () => {
+		// Hallazgo `R3-COPY` de la compuerta `review-5667c785ed46242e`: el único camino que mutaba
+		// `copiedVariant` no lo ejercía ningún test, y su temporizador no se cancelaba nunca.
+		// Se falsean sólo los temporizadores: falsear las microtareas también dejaría a Svelte sin
+		// forma de aplicar el cambio de estado.
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		try {
+			render(HeroSheet);
+
+			const botones = screen.getAllByRole("button", { name: "Copiar enlace del dataset" });
+			expect(botones.length).toBeGreaterThan(0);
+			expect(screen.queryByRole("button", { name: "Enlace copiado" })).toBeNull();
+
+			await fireEvent.click(botones[0]);
+			expect(screen.getByRole("button", { name: "Enlace copiado" })).toBeTruthy();
+
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(screen.queryByRole("button", { name: "Enlace copiado" })).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
