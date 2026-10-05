@@ -42,6 +42,30 @@
   dos SUGGESTION): sus **ubicaciones** están en `odd/tasks/error-surfaces.md`, **sin su texto** — se perdieron
   antes de aprender a leer el estado de la compuerta, y hay que releer la línea antes de tratarlos como trabajo.
 
+## Aprobaciones del autor (2026-10-05, tarde) — hero y card promovidos
+
+> Salen de la revisión en vivo de las dos hojas: el autor recorrió los variantes, comparó y decidió. Todo esto
+> **reemplaza** a las propuestas que estaban pendientes.
+
+- **Hero: la regla, variante G.** Sus palabras: «una mezcla entre ambos, me encanta, aprobado». Se promueve la
+  **regla condicional** —una acción en la fila del título; dos o más en la fila de las insignias— y no una
+  posición fija. El costo aceptado: son dos disposiciones, y cada visitante ve la suya.
+- **Card: la disposición de G con objetivo de 36 px**, sin el chevron `>` (que se leía como una orden de
+  presionar) y **con las acciones ocultas por debajo de `lg`** (su lectura: en un teléfono toda la fila es el
+  blanco para abrir el dataset, y dos botones se roban esa área y aprietan el título).
+  **Corrección de una etiqueta mía:** el instrumento decía «no cumple 44 px» como si fuera un incumplimiento;
+  **44 px es el mínimo del criterio AAA (2.5.5)** y el **AA (2.5.8) pide 24 px**, así que **36 px cumple AA**.
+  La elección es correcta y no es deuda.
+- **Los cuatro estados de negativa del formulario de edición: aprobados.** Con una advertencia honesta: **se
+  aprobaron de memoria**, porque hoy no se pueden ver en ninguna pantalla. La propuesta de llevarlos a la hoja
+  `/dev/dataset-edit` con un selector de caso **sigue en pie** para que la aprobación sea verificable; si al
+  verlos en contexto algo no cierra, se cambia.
+
+**Y una cosa que NO se promueve:** la papelera de «Eliminar». El borrado es la rebanada 3 del cambio y **hoy no
+hay acción que la respalde**, así que la card promueve la **disposición lista para dos acciones pero con una
+sola** (editar), y la papelera entra cuando el borrado exista, con el tratamiento de hover ya elegido
+(«como UserMenu»). Un botón que no hace nada no se publica.
+
 ## Revisión del autor (2026-10-05) — lo corregido y lo que queda
 
 > De la revisión del portal corriendo, con **capturas propias** (el agente renderizó y miró las páginas): el
