@@ -21,22 +21,29 @@
 	El instrumento (`formatHeroMeasurement`) es de la hoja, no de producto.
 
 	─── Variantes e interruptores ──────────────────────────────────────
-	Un interruptor por variante (regla 8): apagar una deja ver las otras dos sin perder el caso.
+	Un interruptor por variante (regla 8): apagar una deja ver las otras sin perder el caso.
 	  A · Copiar junto al título (hoy): la fila única que el autor rechazó.
 	  B · Copiar en el grupo de acciones: la prescripción de `dataset-edit`.
 	  C · Copiar en la fila de insignias: el hero queda sin botón propio.
+	  D · B y C fusionadas (pedido del autor): el grupo de acciones viaja en la MISMA fila del título.
+	  E · Sólo copiar, en la fila del título: el caso fijado en que la única acción es copiar.
 
 	─── Nota de la variante B ──────────────────────────────────────────
 	El botón sólo ícono usa `title` nativo más `aria-label`. Un tooltip real exigiría vendorizar el
 	Tooltip de bits-ui, que este repo no tiene: por eso no se construye esa variante.
 
-	─── Hallazgo al renderizar la variante B ───────────────────────────
-	La prescripción de `dataset-edit` usa **sólo** `justify-between`. Con un título largo la fila
-	envuelve, y una línea de flex envuelta con un solo ítem **ignora `justify-between`**: las acciones
-	caen en la línea siguiente alineadas a la IZQUIERDA, que es lo contrario de lo que la prescripción
-	dice. Por eso el grupo de acciones lleva `ml-auto`: mantiene el borde derecho tanto en la misma
-	línea como después de envolver. Es lo que conviene promover, y no se ve leyendo el código: apareció
-	al renderizar el caso de título largo.
+	─── Por qué B envuelve y D no ──────────────────────────────────────
+	La prescripción de `dataset-edit` usa `flex flex-wrap items-start justify-between gap-4`. Con un
+	título largo la fila **envuelve**, y una línea de flex envuelta con un solo ítem **ignora
+	`justify-between`**: el grupo de acciones cae en la línea siguiente alineado a la IZQUIERDA, lo
+	contrario de lo que la prescripción dice. B envuelve porque su columna de texto no puede
+	encogerse: con `flex-wrap` la columna toma el ancho de su contenido y empuja al grupo. Por eso B
+	lleva `ml-auto`, que sostiene el borde derecho **aun después** de envolver. No se ve leyendo el
+	código: apareció al renderizar el caso de título largo.
+	D, en cambio, no envuelve: su fila no declara `flex-wrap`, la columna de texto lleva
+	`flex-1 min-w-0` y el grupo `shrink-0`. Así el título se parte **dentro de su columna** y las
+	acciones conservan la fila y el borde derecho. Ése es el mecanismo que D existe para fijar.
+	E repite el reparto de D y fija el caso de sólo copiar, para verlo sin cambiar de preset.
 -->
 <script lang="ts">
 import { Building2, Check, Link2, Pencil, ShieldAlert } from "@lucide/svelte";
@@ -108,7 +115,7 @@ const UPDATED = "18 de junio de 2025";
 
 // ─── Variantes (un interruptor por variante) ────────────────────────
 interface Variant {
-	id: "a" | "b" | "c";
+	id: "a" | "b" | "c" | "d" | "e";
 	label: string;
 	description: string;
 }
@@ -132,13 +139,25 @@ const VARIANTS: Variant[] = [
 		description:
 			"El hero no lleva botón propio: copiar baja a la fila de insignias, junto a las etiquetas de estado y visibilidad.",
 	},
+	{
+		id: "d",
+		label: "D · B y C fusionadas",
+		description:
+			"Fusión pedida por el autor: el título a la izquierda y el grupo copiar + «Editar» a la derecha en la MISMA fila. La columna de texto lleva `flex-1 min-w-0` y el grupo `shrink-0`, así que el título se parte dentro de su columna y el grupo nunca cae a una línea propia. Las insignias quedan bajo el título.",
+	},
+	{
+		id: "e",
+		label: "E · Sólo copiar, en la fila del título",
+		description:
+			"Mismo reparto que D, fijado al caso en que la única acción disponible es copiar. El botón queda deliberadamente solo en la fila del título, no como un grupo al que le falta una pieza. Se fija el caso para poder compararlo con D sin cambiar de preset.",
+	},
 ];
 
 let presetId = $state("puede-editar");
 const preset = $derived(PRESETS.find((item) => item.id === presetId) ?? PRESETS[0]);
 const title = $derived(preset.longTitle ? LONG_TITLE : NORMAL_TITLE);
 
-let enabled = $state<Record<string, boolean>>({ a: true, b: true, c: true });
+let enabled = $state<Record<string, boolean>>({ a: true, b: true, c: true, d: true, e: true });
 const visibleVariants = $derived(VARIANTS.filter((variant) => enabled[variant.id]));
 
 function toggleVariant(id: string): void {
@@ -449,7 +468,7 @@ $effect(() => {
 											{/if}
 										</div>
 									</div>
-								{:else}
+								{:else if variant.id === "c"}
 									<!-- Copiar baja a la fila de insignias. -->
 									<div class="flex flex-wrap items-start justify-between gap-4">
 										<div class="min-w-0">
@@ -479,6 +498,63 @@ $effect(() => {
 											{/if}
 										</div>
 									</div>
+								{:else if variant.id === "d"}
+									<!-- D · Fusión de B y C: una sola fila; el título se parte dentro de su columna. -->
+									<div data-testid="hero-row-d" class="flex items-start gap-4">
+										<div class="min-w-0 flex-1">
+											<h1
+												data-testid="hero-title-d"
+												class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+											>
+												{title}
+											</h1>
+											<p class="mt-2 text-sm text-muted-foreground">
+												Actualizado {UPDATED} · {ORG}
+											</p>
+											<div
+												data-testid="hero-badges-d"
+												class="mt-3 flex flex-wrap items-center gap-2"
+											>
+												{@render badges()}
+											</div>
+										</div>
+										<div
+											data-testid="hero-actions-d"
+											class="flex shrink-0 items-center gap-2"
+										>
+											{@render copyButton("d")}
+											{#if preset.permState === "puede-editar"}
+												{@render editLink("d")}
+											{/if}
+										</div>
+									</div>
+								{:else}
+									<!-- E · Mismo reparto que D, fijado al caso de sólo copiar. -->
+									<div data-testid="hero-row-e" class="flex items-start gap-4">
+										<div class="min-w-0 flex-1">
+											<h1
+												data-testid="hero-title-e"
+												class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+											>
+												{title}
+											</h1>
+											<p class="mt-2 text-sm text-muted-foreground">
+												Actualizado {UPDATED} · {ORG}
+											</p>
+											<div
+												data-testid="hero-badges-e"
+												class="mt-3 flex flex-wrap items-center gap-2"
+											>
+												{@render badges()}
+											</div>
+										</div>
+										<div
+											data-testid="hero-actions-e"
+											class="flex shrink-0 items-center gap-2"
+										>
+											{@render copyButton("e")}
+										</div>
+									</div>
 								{/if}
 
 								{#if preset.permState === "permiso-fallo"}
@@ -500,7 +576,7 @@ $effect(() => {
 			<p class="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
 				Mide la caja del título y su separación hasta el botón de copiar enlace, sobre el nodo ya
 				renderizado. Es el número de la queja «pegado al título»: en la fila única la separación es
-				la del <code class="font-mono text-[11px]">gap-3</code>, y en las variantes B y C el botón
+				la del <code class="font-mono text-[11px]">gap-3</code>, y en las variantes B, C, D y E el botón
 				se aleja del título. Sin motor de layout (jsdom) todas las cifras dan 0; el texto se arma con
 				<code class="font-mono text-[11px]">formatHeroMeasurement</code>.
 			</p>

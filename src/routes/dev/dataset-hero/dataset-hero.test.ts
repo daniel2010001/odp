@@ -1,11 +1,15 @@
 // Tests de la hoja de revisión del hero del dataset.
 //
-// La propiedad que la hace útil es que las tres colocaciones del botón «Copiar enlace» sean
-// distinguibles y revisables: junto al título (hoy), en el grupo de acciones y en la fila de
-// insignias. El test fija la estructura —no la apariencia—: que el interruptor de cada variante
-// cambie lo que se renderiza, que el botón de copiar caiga en la fila que la variante declara, y
-// que el permiso siga gobernando la acción «Editar». El instrumento se prueba aparte, con entradas
-// conocidas, porque en jsdom no hay layout.
+// La propiedad que la hace útil es que las colocaciones del botón «Copiar enlace» sean
+// distinguibles y revisables: junto al título (hoy), en el grupo de acciones, en la fila de
+// insignias, y las dos fusiones pedidas por el autor (D y E). El test fija la estructura —no la
+// apariencia—: que el interruptor de cada variante cambie lo que se renderiza, que el botón de
+// copiar caiga en la fila que la variante declara, y que el permiso siga gobernando la acción
+// «Editar». El instrumento se prueba aparte, con entradas conocidas, porque en jsdom no hay
+// layout.
+//
+// La variante E fija el caso de sólo copiar para poder verlo sin cambiar de preset; por eso no
+// muestra «Editar» aunque el preset permita editar.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { tick } from "svelte";
@@ -13,7 +17,7 @@ import { describe, expect, it, vi } from "vitest";
 import HeroSheet from "./+page.svelte";
 import { formatHeroMeasurement } from "./measures";
 
-const VARIANT_IDS = ["a", "b", "c"] as const;
+const VARIANT_IDS = ["a", "b", "c", "d", "e"] as const;
 
 const PRESET_IDS = [
 	"puede-editar",
@@ -29,13 +33,13 @@ function renderOf(variantId: string): HTMLElement {
 }
 
 describe("hoja del hero — cobertura de variantes", () => {
-	it("renderiza las tres variantes, y ninguna de más", () => {
+	it("renderiza las variantes construidas, y ninguna de más", () => {
 		render(HeroSheet);
 
 		for (const id of VARIANT_IDS) {
 			expect(screen.getByTestId(`hero-variant-${id}`)).toBeInTheDocument();
 		}
-		expect(screen.queryByTestId("hero-variant-d")).toBeNull();
+		expect(screen.getAllByTestId(/^hero-variant-/)).toHaveLength(VARIANT_IDS.length);
 	});
 
 	it("el interruptor de cada variante cambia lo que se renderiza", async () => {
@@ -88,6 +92,23 @@ describe("hoja del hero — cobertura de variantes", () => {
 				.getByTestId("hero-badges-c")
 				.querySelector('[data-testid="hero-title-c"]'),
 		).toBeNull();
+
+		// D · copiar y «Editar» comparten la fila del título como grupo de acciones.
+		const rowD = within(renderOf("d")).getByTestId("hero-row-d");
+		expect(rowD).toContainElement(within(renderOf("d")).getByTestId("hero-title-d"));
+		expect(rowD).toContainElement(within(renderOf("d")).getByTestId("hero-copy-d"));
+		expect(rowD).toContainElement(within(renderOf("d")).getByTestId("hero-edit-d"));
+		expect(
+			within(renderOf("d"))
+				.getByTestId("hero-badges-d")
+				.querySelector('[data-testid="hero-copy-d"]'),
+		).toBeNull();
+
+		// E · mismo reparto que D, con copiar como única acción de la fila del título.
+		const rowE = within(renderOf("e")).getByTestId("hero-row-e");
+		expect(rowE).toContainElement(within(renderOf("e")).getByTestId("hero-title-e"));
+		expect(rowE).toContainElement(within(renderOf("e")).getByTestId("hero-copy-e"));
+		expect(within(renderOf("e")).queryByTestId("hero-edit-e")).toBeNull();
 	});
 });
 
@@ -100,10 +121,12 @@ describe("hoja del hero — presets de caso", () => {
 		}
 	});
 
-	it("«puede editar» muestra «Editar» en cada variante visible", () => {
+	it("«puede editar» muestra «Editar» en las variantes que lo ofrecen, y E no", () => {
 		render(HeroSheet);
 
-		expect(screen.getAllByRole("link", { name: "Editar" })).toHaveLength(VARIANT_IDS.length);
+		// A, B, C y D muestran «Editar»; E fija el caso de sólo copiar.
+		expect(screen.getAllByRole("link", { name: "Editar" })).toHaveLength(4);
+		expect(within(renderOf("e")).queryByRole("link", { name: "Editar" })).toBeNull();
 	});
 
 	it("«no puede editar» no muestra ninguna acción", async () => {
