@@ -42,10 +42,19 @@ HTML del servidor no trae el texto) y la carga ocurre en el navegador; moverla a
 token de sesión vive en el navegador** (la cookie `httpOnly` sigue pendiente). El 200 **se queda** y es una
 propiedad de la arquitectura, no un defecto de esa página.
 
-**Compuerta nativa:** `review-55de0c344451cd06` — `medium`, lente reliability, **aprobada** con la autoridad
-quemada. Un hallazgo informativo —`R3-001`: `statusFor` no era exhaustivo, y una clase nueva se habría mapeado
-en silencio a `503`— **aplicado en el momento** en vez de anotado. Y dos correcciones a recetas que el repo
-tenían mal escritas: el `review-state.json` vive en
+**Compuerta nativa:** dos linajes, los dos `medium` y con lente reliability, los dos **aprobados** con la
+autoridad quemada. Y los dos trajeron un hallazgo informativo que **se aplicó en el momento** en vez de anotarse:
+
+- `review-55de0c344451cd06` — `R3-001`: `statusFor` no era exhaustivo y una clase nueva se habría mapeado en
+  silencio a `503`.
+- `review-a23b77b7964565df` — `R3-001` (WARNING): **encontró un defecto en el arreglo del primero** — el `never`
+  protege el tipo pero no el runtime, y devolver el valor recibido rompía el contrato de `number`. Quedan **dos
+  guardas**: el `never` para la compilación y el `503` defensivo para el runtime.
+
+Es la primera vez en este repo que un hallazgo informativo se cierra al recibirlo en vez de sumarse a la lista de
+deuda — y sólo fue posible porque ahora se lee el `review-state.json` **antes** del acuse.
+
+Y dos correcciones a recetas que el repo tenía mal escritas: el `review-state.json` vive en
 **`.git/gentle-ai/review-transactions/v2/review-<linaje>/review-state.json`** (no en `.git/gentle-ai/v2/…`), y
 **los linajes sin acuse conservan sus claims**: hay **seis** vivos, incluido el atascado
 `review-6b517157db5f4274`, así que su texto de hallazgos **es recuperable**.

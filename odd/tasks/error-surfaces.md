@@ -125,6 +125,24 @@ agregar una clase sin mapearla **deja de compilar**. Es la primera vez en este r
 se cierra al recibirlo en vez de sumarse a la lista de deuda — y sólo fue posible porque esta vez se leyó el
 estado antes de acusar.
 
+**Segunda compuerta, y encontró un defecto en el arreglo de la primera.** `review-a23b77b7964565df` (medium,
+lente reliability, 3 archivos / 57 líneas, una corrida de modelo) aprobó con otro `R3-001`, esta vez
+**WARNING**, en `src/lib/api/failure.ts:96-97` — las líneas que acababa de agregar:
+
+> «The new exhaustive default branch returns the unexpected `kind` value at runtime instead of throwing or
+> preserving the previous 503 fallback. If an out-of-union value reaches `statusFor` (for example through an
+> untyped caller or an `as ApiFailureKind` cast), the function returns that value, violating its `number`
+> return contract and regressing the prior defensive 503 response.»
+
+Correcto, y **más filoso que mi arreglo**: el `never` protege el **tipo**, no el **runtime**. Ahora hay dos
+guardas y cada una cubre lo suyo: el `never` rompe la compilación si la unión crece sin mapearse, y el `503`
+defensivo se conserva para un llamador sin tipos o un `as` — que es exactamente la política que el propio
+`classifyFailure` ya aplica («lo desconocido cae del lado del servidor»).
+
+**El bucle se acota acá**: son dos rondas sobre las mismas cinco líneas, las dos con hallazgo informativo. Si
+esta segunda corrección produce un tercer hallazgo sobre el mismo lugar, se anota en el `BACKLOG` en vez de
+re-abrir el ciclo — es trabajo posterior, no una razón para re-revisar este candidato.
+
 ### Dos correcciones a recetas del repo
 
 1. **La ruta del `review-state.json` estaba mal escrita.** No vive en `.git/gentle-ai/v2/review-<linaje>/` sino

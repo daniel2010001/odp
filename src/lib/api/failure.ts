@@ -90,11 +90,16 @@ export function statusFor(kind: ApiFailureKind): number {
 		case "unavailable":
 			return 503;
 		default: {
-			// Exhaustividad por el compilador, no por disciplina: si `ApiFailureKind` suma una clase y
-			// no se mapea acá, `kind` deja de ser `never` y esto **no compila**. Hallazgo `R3-001` de la
-			// compuerta `review-55de0c344451cd06`, aplicado en vez de anotado.
+			// Dos guardas distintas, a propósito:
+			//   · el `never` rompe la **compilación** si la unión crece sin mapearse;
+			//   · el `503` defensivo es el de **runtime**, para un llamador sin tipos o un `as`:
+			//     devolver el valor recibido violaría el contrato de `number` y perdería la respuesta
+			//     defensiva. Es la política que el propio `classifyFailure` ya aplica: lo desconocido
+			//     cae del lado del servidor.
+			// Los dos hallazgos `R3-001` que llevaron acá: `review-55de0c344451cd06` y `review-a23b77b7964565df`.
 			const exhaustive: never = kind;
-			return exhaustive;
+			void exhaustive;
+			return 503;
 		}
 	}
 }
