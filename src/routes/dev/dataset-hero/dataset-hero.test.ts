@@ -2,14 +2,15 @@
 //
 // La propiedad que la hace útil es que las colocaciones del botón «Copiar enlace» sean
 // distinguibles y revisables: junto al título (hoy), en el grupo de acciones, en la fila de
-// insignias, y las dos fusiones pedidas por el autor (D y E). El test fija la estructura —no la
-// apariencia—: que el interruptor de cada variante cambie lo que se renderiza, que el botón de
-// copiar caiga en la fila que la variante declara, y que el permiso siga gobernando la acción
-// «Editar». El instrumento se prueba aparte, con entradas conocidas, porque en jsdom no hay
-// layout.
+// insignias, las dos fusiones pedidas por el autor (D y E) y las acciones a la altura de las
+// insignias (F). El test fija la estructura —no la apariencia—: que el interruptor de cada
+// variante cambie lo que se renderiza, que el botón de copiar caiga en la fila que la variante
+// declara, y que el permiso siga gobernando la acción «Editar». El instrumento se prueba aparte,
+// con entradas conocidas, porque en jsdom no hay layout; su columna «Fila con» se prueba sobre el
+// nodo renderizado, que es estructural y no depende del motor de layout.
 //
 // La variante E fija el caso de sólo copiar para poder verlo sin cambiar de preset; por eso no
-// muestra «Editar» aunque el preset permita editar.
+// muestra «Editar» aunque el preset permita editar. F sí lo muestra: sus acciones son un grupo.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { tick } from "svelte";
@@ -17,7 +18,7 @@ import { describe, expect, it, vi } from "vitest";
 import HeroSheet from "./+page.svelte";
 import { formatHeroMeasurement } from "./measures";
 
-const VARIANT_IDS = ["a", "b", "c", "d", "e"] as const;
+const VARIANT_IDS = ["a", "b", "c", "d", "e", "f"] as const;
 
 const PRESET_IDS = [
 	"puede-editar",
@@ -109,6 +110,16 @@ describe("hoja del hero — cobertura de variantes", () => {
 		expect(rowE).toContainElement(within(renderOf("e")).getByTestId("hero-title-e"));
 		expect(rowE).toContainElement(within(renderOf("e")).getByTestId("hero-copy-e"));
 		expect(within(renderOf("e")).queryByTestId("hero-edit-e")).toBeNull();
+
+		// F · el título queda en su propia fila; copiar y «Editar» comparten la de las insignias.
+		const rowF = within(renderOf("f")).getByTestId("hero-badges-row-f");
+		expect(rowF).toContainElement(within(renderOf("f")).getByTestId("hero-badges-f"));
+		expect(rowF).toContainElement(within(renderOf("f")).getByTestId("hero-actions-f"));
+		expect(rowF).toContainElement(within(renderOf("f")).getByTestId("hero-copy-f"));
+		expect(within(renderOf("f")).getByTestId("hero-actions-f")).toContainElement(
+			within(renderOf("f")).getByTestId("hero-edit-f"),
+		);
+		expect(rowF).not.toContainElement(within(renderOf("f")).getByTestId("hero-title-f"));
 	});
 });
 
@@ -124,8 +135,8 @@ describe("hoja del hero — presets de caso", () => {
 	it("«puede editar» muestra «Editar» en las variantes que lo ofrecen, y E no", () => {
 		render(HeroSheet);
 
-		// A, B, C y D muestran «Editar»; E fija el caso de sólo copiar.
-		expect(screen.getAllByRole("link", { name: "Editar" })).toHaveLength(4);
+		// A, B, C, D y F muestran «Editar»; E fija el caso de sólo copiar.
+		expect(screen.getAllByRole("link", { name: "Editar" })).toHaveLength(5);
 		expect(within(renderOf("e")).queryByRole("link", { name: "Editar" })).toBeNull();
 	});
 
@@ -161,6 +172,7 @@ describe("hoja del hero — presets de caso", () => {
 		await waitFor(() => {
 			expect(renderOf("a")).toHaveTextContent("Registro histórico consolidado de flujos");
 		});
+		expect(renderOf("f")).toHaveTextContent("Registro histórico consolidado de flujos");
 	});
 
 	it("recorre los seis presets sin dejar la hoja vacía ni perder las variantes", async () => {
@@ -213,6 +225,26 @@ describe("hoja del hero — instrumento", () => {
 			expect(screen.queryByTestId("instrument-row-a")).toBeNull();
 		});
 	});
+
+	it("«Fila con» declara con qué comparte fila el botón de cada variante", async () => {
+		render(HeroSheet);
+
+		// Estructural, no geométrico: se resuelve subiendo por el DOM, así que vale también en
+		// jsdom. A, B, D y E comparten la fila del título; C y F bajan a la de las insignias.
+		const expected: Record<string, string> = {
+			a: "título",
+			b: "título",
+			c: "insignias",
+			d: "título",
+			e: "título",
+			f: "insignias",
+		};
+		for (const [id, rowWith] of Object.entries(expected)) {
+			await waitFor(() => {
+				expect(screen.getByTestId(`instrument-row-with-${id}`)).toHaveTextContent(rowWith);
+			});
+		}
+	});
 });
 
 describe("hoja del hero — la ruta no existe en producción", () => {
@@ -244,6 +276,7 @@ describe("formatHeroMeasurement", () => {
 				titleHeight: 72.5,
 				gapX: 12,
 				gapY: 0,
+				rowWith: "título",
 			}),
 		).toEqual({
 			variant: "a",
@@ -251,21 +284,22 @@ describe("formatHeroMeasurement", () => {
 			title: "512.00 × 72.50 px",
 			gapX: "12.00 px",
 			gapY: "0.00 px",
-			sameRow: "sí",
+			rowWith: "título",
 		});
 	});
 
-	it("marca «no» cuando el botón de copiar no comparte fila con el título", () => {
+	it("nombra la fila de las insignias cuando el botón no comparte la del título", () => {
 		const formatted = formatHeroMeasurement({
-			variant: "c",
-			label: "C · Copiar en la fila de insignias",
+			variant: "f",
+			label: "F · Acciones a la altura de las insignias",
 			titleWidth: 480,
 			titleHeight: 96,
 			gapX: 0,
 			gapY: 16,
+			rowWith: "insignias",
 		});
 
-		expect(formatted.sameRow).toBe("no");
+		expect(formatted.rowWith).toBe("insignias");
 		expect(formatted.gapY).toBe("16.00 px");
 	});
 });

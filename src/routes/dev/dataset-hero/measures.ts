@@ -6,6 +6,11 @@
 // para poder testearlo con entradas conocidas: en jsdom no hay motor de layout y toda medida vale
 // 0, así que la única parte verificable sin navegador es que el texto impreso sea exactamente el
 // que corresponde a la medida.
+//
+// «Misma fila» medía el botón contra el TÍTULO, y por eso mentía en la variante F: ahí las
+// acciones comparten la fila de las INSIGNIAS. La columna pasó a llamarse «Fila con» y declara
+// explícitamente con qué comparte fila el botón, mientras la separación —horizontal y vertical—
+// se sigue midiendo contra el título, que es la queja original.
 
 export interface HeroMeasurement {
 	variant: string;
@@ -16,6 +21,8 @@ export interface HeroMeasurement {
 	gapX: number;
 	/** Separación vertical entre el título y el botón de copiar; 0 si comparten fila. */
 	gapY: number;
+	/** Con qué comparte fila el botón de copiar: el título o las insignias. */
+	rowWith: "título" | "insignias" | "—";
 }
 
 export interface FormattedHeroMeasurement {
@@ -24,7 +31,7 @@ export interface FormattedHeroMeasurement {
 	title: string;
 	gapX: string;
 	gapY: string;
-	sameRow: string;
+	rowWith: string;
 }
 
 export function formatHeroMeasurement(measurement: HeroMeasurement): FormattedHeroMeasurement {
@@ -34,6 +41,6 @@ export function formatHeroMeasurement(measurement: HeroMeasurement): FormattedHe
 		title: `${measurement.titleWidth.toFixed(2)} × ${measurement.titleHeight.toFixed(2)} px`,
 		gapX: `${measurement.gapX.toFixed(2)} px`,
 		gapY: `${measurement.gapY.toFixed(2)} px`,
-		sameRow: measurement.gapY === 0 ? "sí" : "no",
+		rowWith: measurement.rowWith,
 	};
 }

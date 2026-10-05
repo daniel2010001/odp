@@ -27,6 +27,16 @@
 	  C · Copiar en la fila de insignias: el hero queda sin botón propio.
 	  D · B y C fusionadas (pedido del autor): el grupo de acciones viaja en la MISMA fila del título.
 	  E · Sólo copiar, en la fila del título: el caso fijado en que la única acción es copiar.
+	  F · Acciones a la altura de las insignias (pedido del autor): el título ocupa la primera fila
+	      solo y a lo ancho, y debajo van las insignias a la izquierda y el grupo copiar + «Editar»
+	      a la derecha. D y E dejan las acciones en la fila del título; F las baja a la fila de las
+	      insignias para comparar ese reparto.
+
+	─── El instrumento no miente sobre la fila ─────────────────────────
+	La columna «Fila con» declara explícitamente con qué comparte fila el botón de copiar. Antes
+	«Misma fila» lo comparaba contra el TÍTULO, y en F esa comparación no significa nada: las
+	automáticas comparten la fila de las INSIGNIAS. La separación horizontal y vertical se sigue
+	midiendo contra el título, que es la queja «pegado al título».
 
 	─── Nota de la variante B ──────────────────────────────────────────
 	El botón sólo ícono usa `title` nativo más `aria-label`. Un tooltip real exigiría vendorizar el
@@ -115,7 +125,7 @@ const UPDATED = "18 de junio de 2025";
 
 // ─── Variantes (un interruptor por variante) ────────────────────────
 interface Variant {
-	id: "a" | "b" | "c" | "d" | "e";
+	id: "a" | "b" | "c" | "d" | "e" | "f";
 	label: string;
 	description: string;
 }
@@ -151,13 +161,26 @@ const VARIANTS: Variant[] = [
 		description:
 			"Mismo reparto que D, fijado al caso en que la única acción disponible es copiar. El botón queda deliberadamente solo en la fila del título, no como un grupo al que le falta una pieza. Se fija el caso para poder compararlo con D sin cambiar de preset.",
 	},
+	{
+		id: "f",
+		label: "F · Acciones a la altura de las insignias",
+		description:
+			"El título ocupa la primera fila solo y a lo ancho. Debajo, las insignias a la izquierda y el grupo copiar + «Editar» a la derecha, con `flex flex-wrap items-center justify-between gap-3`. Compara D y E contra bajar las acciones a la fila de las insignias.",
+	},
 ];
 
 let presetId = $state("puede-editar");
 const preset = $derived(PRESETS.find((item) => item.id === presetId) ?? PRESETS[0]);
 const title = $derived(preset.longTitle ? LONG_TITLE : NORMAL_TITLE);
 
-let enabled = $state<Record<string, boolean>>({ a: true, b: true, c: true, d: true, e: true });
+let enabled = $state<Record<string, boolean>>({
+	a: true,
+	b: true,
+	c: true,
+	d: true,
+	e: true,
+	f: true,
+});
 const visibleVariants = $derived(VARIANTS.filter((variant) => enabled[variant.id]));
 
 function toggleVariant(id: string): void {
@@ -188,6 +211,25 @@ $effect(() => () => {
 // ─── Instrumento: la separación título ↔ copiar ─────────────────────
 let sheetRoot = $state<HTMLElement>();
 let measurements = $state<FormattedHeroMeasurement[]>([]);
+
+// Con qué comparte fila el botón de copiar. Se resuelve subiendo por el DOM desde el botón hasta
+// el primer contenedor que contiene al título o a las insignias: así F —cuyas acciones y
+// insignias son hermanas dentro de la misma fila— se reporta como «insignias» sin depender del
+// motor de layout, que en jsdom no existe. Si un contenedor tiene a los dos, gana el título: es
+// el caso de A, B, D y E, donde las acciones viven en la fila del título.
+function resolveRowWith(
+	copy: HTMLElement,
+	title: HTMLElement,
+	badges: HTMLElement,
+): "título" | "insignias" | "—" {
+	let node: HTMLElement | null = copy.parentElement;
+	while (node) {
+		if (node.contains(title)) return "título";
+		if (node.contains(badges)) return "insignias";
+		node = node.parentElement;
+	}
+	return "—";
+}
 
 // El instrumento tiene que re-medirse cuando cambia el ancho: el caso que esta hoja existe para
 // evaluar —la fila que envuelve con un título largo— depende del ancho, así que una medición de
@@ -223,12 +265,16 @@ $effect(() => {
 			`[data-testid="hero-title-${variant.id}"]`,
 		);
 		const copyNode = render?.querySelector<HTMLElement>(`[data-testid="hero-copy-${variant.id}"]`);
+		const badgesNode = render?.querySelector<HTMLElement>(
+			`[data-testid="hero-badges-${variant.id}"]`,
+		);
 		if (!render || !titleNode || !copyNode) continue;
 
 		const titleRect = titleNode.getBoundingClientRect();
 		const copyRect = copyNode.getBoundingClientRect();
 		const gapX = Math.max(copyRect.left - titleRect.right, titleRect.left - copyRect.right, 0);
 		const gapY = Math.max(copyRect.top - titleRect.bottom, titleRect.top - copyRect.bottom, 0);
+		const rowWith = badgesNode ? resolveRowWith(copyNode, titleNode, badgesNode) : "—";
 
 		next.push(
 			formatHeroMeasurement({
@@ -238,6 +284,7 @@ $effect(() => {
 				titleHeight: titleRect.height,
 				gapX,
 				gapY,
+				rowWith,
 			}),
 		);
 	}
@@ -528,7 +575,7 @@ $effect(() => {
 											{/if}
 										</div>
 									</div>
-								{:else}
+								{:else if variant.id === "e"}
 									<!-- E · Mismo reparto que D, fijado al caso de sólo copiar. -->
 									<div data-testid="hero-row-e" class="flex items-start gap-4">
 										<div class="min-w-0 flex-1">
@@ -555,6 +602,36 @@ $effect(() => {
 											{@render copyButton("e")}
 										</div>
 									</div>
+								{:else}
+									<!-- F · El título ocupa la primera fila solo; insignias y acciones comparten la de abajo. -->
+									<div>
+										<h1
+											data-testid="hero-title-f"
+											class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+										>
+											{title}
+										</h1>
+										<p class="mt-2 text-sm text-muted-foreground">
+											Actualizado {UPDATED} · {ORG}
+										</p>
+										<div
+											data-testid="hero-badges-row-f"
+											class="mt-3 flex flex-wrap items-center justify-between gap-3"
+										>
+											<div
+												data-testid="hero-badges-f"
+												class="flex flex-wrap items-center gap-2"
+											>
+												{@render badges()}
+											</div>
+											<div data-testid="hero-actions-f" class="flex items-center gap-2">
+												{@render copyButton("f")}
+												{#if preset.permState === "puede-editar"}
+													{@render editLink("f")}
+												{/if}
+											</div>
+										</div>
+									</div>
 								{/if}
 
 								{#if preset.permState === "permiso-fallo"}
@@ -577,7 +654,9 @@ $effect(() => {
 				Mide la caja del título y su separación hasta el botón de copiar enlace, sobre el nodo ya
 				renderizado. Es el número de la queja «pegado al título»: en la fila única la separación es
 				la del <code class="font-mono text-[11px]">gap-3</code>, y en las variantes B, C, D y E el botón
-				se aleja del título. Sin motor de layout (jsdom) todas las cifras dan 0; el texto se arma con
+				se aleja del título. La columna «Fila con» dice con qué comparte fila el botón —el título o
+				las insignias—, que es lo que «Misma fila» daba por sentado y no era cierto en F. Sin motor de
+				layout (jsdom) las cifras de separación dan 0; el texto se arma con
 				<code class="font-mono text-[11px]">formatHeroMeasurement</code>.
 			</p>
 
@@ -591,7 +670,7 @@ $effect(() => {
 							<th class="px-3 py-2 font-semibold">Título (ancho × alto)</th>
 							<th class="px-3 py-2 font-semibold">Separación horizontal</th>
 							<th class="px-3 py-2 font-semibold">Separación vertical</th>
-							<th class="px-3 py-2 font-semibold">Misma fila</th>
+							<th class="px-3 py-2 font-semibold">Fila con</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -601,7 +680,12 @@ $effect(() => {
 								<td class="px-3 py-2 font-mono text-xs text-muted-foreground">{row.title}</td>
 								<td class="px-3 py-2 font-mono text-xs text-muted-foreground">{row.gapX}</td>
 								<td class="px-3 py-2 font-mono text-xs text-muted-foreground">{row.gapY}</td>
-								<td class="px-3 py-2 text-foreground">{row.sameRow}</td>
+								<td
+									data-testid={`instrument-row-with-${row.variant}`}
+									class="px-3 py-2 text-foreground"
+								>
+									{row.rowWith}
+								</td>
 							</tr>
 						{/each}
 					</tbody>
