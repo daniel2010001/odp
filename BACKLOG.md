@@ -17,6 +17,42 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Revisión del autor (2026-10-05) — lo corregido y lo que queda
+
+> De la revisión del portal corriendo, con **capturas propias** (el agente renderizó y miró las páginas): el
+> 404, el dataset inexistente, el hero, la card del dashboard y las hojas `/dev`. Expediente:
+> `odd/tasks/error-surfaces.md`.
+
+**Corregido y verificado** (229/229 tests, `check` 0 errores, Biome 0):
+
+- **Una sola página de error en todas las superficies.** La página del dataset y la del recurso usaban un
+  **bloque propio viejo**; ahora renderizan `ErrorPage`, con el **copy honesto intacto** (los tests no se
+  editaron: cambió el dibujo, no el texto).
+- **El medallón del ícono estaba desalineado** (`flex size-16` sin `mx-auto` en una card que no es flex): es lo
+  que se veía «raro». Centrado.
+- **El diagnóstico de desarrollo estaba en inglés** (`Not Found`, `Access denied`): ahora dice el estado y la ruta
+  **en español** y cita el mensaje del framework rotulado como suyo.
+
+**Decisión tomada por el autor:** la **ambigüedad del 403 se mantiene** para el espectador sin sesión (no se
+revela que el recurso existe); lo que se unificó es el diseño.
+
+**Corrección de una promesa mía, declarada:** la opción elegida decía «y el estado HTTP deja de ser 200». **No es
+viable a este costo**: `/dataset/privado` responde 200 porque el servidor devuelve el **armazón de la SPA** (el
+HTML del servidor no trae el texto) y la carga ocurre en el navegador; moverla al servidor choca con que **el
+token de sesión vive en el navegador** (la cookie `httpOnly` sigue pendiente). El 200 **se queda** y es una
+propiedad de la arquitectura, no un defecto de esa página.
+
+**Queda, en orden:**
+
+1. **La aprobación del copy de los cuatro estados de negativa** del formulario de edición (propuesta del agente:
+   `extras`, `version`, `noPermission`, `permissionUnknown`).
+2. **Los playgrounds de botones**, con interruptor de variantes: el **hero** del dataset (hoy `[copiar enlace]
+   [título] [Editar]` en una fila; la hoja prescribe acciones a la derecha, con los metadatos a la izquierda) y la
+   **card del dashboard** (hoy el botón «Editar» es hermano del enlace de la card — no puede anidarse, es HTML
+   inválido— y se ve forzado: variantes de ícono, menú, columna de acciones o acción al pasar el mouse).
+3. **Las demos de decisión**: las tres salidas del *scroll snapping* y las dos formas del `Tooltip` de los tags,
+   en una hoja con interruptor.
+
 ## Barrido de pulido de UI (sesión paralela, 2026-10-03) — qué tomó y cómo cerró
 
 > **Mergeado a `main` el 2026-10-04** (`d334c3f`), con la rama y el worktree retirados: **ya no hay una segunda
