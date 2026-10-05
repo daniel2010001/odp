@@ -4,10 +4,15 @@
 // revisables. El test fija la invariante que no puede romperse —la acción es hermana de la tarjeta,
 // nunca anidada dentro del `<a>`, porque un interactivo dentro de un `<a>` es HTML inválido— y que
 // el interruptor de cada variante cambie lo que se renderiza. El instrumento se prueba aparte, con
-// entradas conocidas, porque en jsdom no hay layout.
+// entradas conocidas, porque en jsdom no hay layout; sus columnas «declarado» y «revelado» sí se
+// prueban sobre el nodo renderizado, porque no dependen del layout.
 //
-// El chevron era la objeción del autor: las variantes E y F repiten B y D sin él, y el test lo fija
-// contra la presencia del ícono `lucide-chevron-right`.
+// El chevron era la objeción del autor: E, F, G y H repiten B y D sin él, y el test lo fija contra
+// la presencia del ícono `lucide-chevron-right`.
+//
+// Las variantes G y H suman una segunda acción «Eliminar» —copia declarada, no implementada— para
+// comparar la disposición de dos acciones. El control «Revelado» fija el estado de D y F, y el
+// control «Tamaño» cambia el objetivo entre 36 y 44 px.
 //
 // La variante «menú de tres puntos» no existe: el componente vendorizado `dropdown-menu` no está en
 // el repo y esta hoja no vendoriza componentes nuevos.
@@ -17,7 +22,7 @@ import { describe, expect, it, vi } from "vitest";
 import CardsSheet from "./+page.svelte";
 import { formatCardActionMeasurement } from "./measures";
 
-const VARIANT_IDS = ["a", "b", "d", "e", "f"] as const;
+const VARIANT_IDS = ["a", "b", "d", "e", "f", "g", "h"] as const;
 
 const PRESET_IDS = [
 	"con-permiso",
@@ -73,8 +78,10 @@ describe("hoja de las tarjetas — cobertura de variantes", () => {
 			const link = screen.getByTestId(`card-link-${id}-0`);
 			const edit = editOf(id);
 
+			// Nunca dentro del `<a>`; y siempre en la misma fila que la tarjeta, nunca fuera del `<li>`.
+			// En G y H el botón vive dentro del contenedor de acciones, que sí es hermano del `<a>`.
 			expect(link.contains(edit)).toBe(false);
-			expect(edit.parentElement).toBe(link.parentElement);
+			expect(link.parentElement).toContainElement(edit);
 		}
 	});
 });
@@ -134,13 +141,40 @@ describe("hoja de las tarjetas — forma de la acción", () => {
 		expect(renderOf("f").querySelector(".lucide-chevron-right")).toBeNull();
 	});
 
-	it("A, B y D conservan el chevron; E y F lo quitan", () => {
+	it("la variante G pone editar y eliminar lado a lado", () => {
+		render(CardsSheet);
+
+		const actions = screen.getByTestId("actions-g-0");
+		const classes = actions.getAttribute("class") ?? "";
+		expect(classes).toContain("items-center");
+		expect(classes).not.toContain("flex-col");
+		expect(actions).toContainElement(editOf("g"));
+		expect(actions).toContainElement(screen.getByTestId("delete-g-0"));
+
+		// «Eliminar» es una copia declarada: un botón, no un enlace, con `title` que lo dice.
+		const remove = screen.getByTestId("delete-g-0");
+		expect(remove.tagName).toBe("BUTTON");
+		expect(remove).toHaveAttribute("aria-label", "Eliminar dataset");
+		expect(remove).toHaveAttribute("title", "Eliminar (copia)");
+		expect(remove.querySelector(".lucide-trash-2")).not.toBeNull();
+	});
+
+	it("la variante H apila editar y eliminar en columna", () => {
+		render(CardsSheet);
+
+		const actions = screen.getByTestId("actions-h-0");
+		expect(actions.getAttribute("class")).toContain("flex-col");
+		expect(actions).toContainElement(editOf("h"));
+		expect(actions).toContainElement(screen.getByTestId("delete-h-0"));
+	});
+
+	it("A, B y D conservan el chevron; E, F, G y H lo quitan", () => {
 		render(CardsSheet);
 
 		for (const id of ["a", "b", "d"] as const) {
 			expect(renderOf(id).querySelector(".lucide-chevron-right")).not.toBeNull();
 		}
-		for (const id of ["e", "f"] as const) {
+		for (const id of ["e", "f", "g", "h"] as const) {
 			expect(renderOf(id).querySelector(".lucide-chevron-right")).toBeNull();
 		}
 	});
@@ -162,6 +196,7 @@ describe("hoja de las tarjetas — presets de caso", () => {
 		await waitFor(() => {
 			for (const id of VARIANT_IDS) {
 				expect(screen.queryByTestId(`edit-${id}-0`)).toBeNull();
+				expect(screen.queryByTestId(`delete-${id}-0`)).toBeNull();
 			}
 		});
 	});
@@ -241,6 +276,69 @@ describe("hoja de las tarjetas — instrumento", () => {
 	});
 });
 
+describe("hoja de las tarjetas — controles de la acción", () => {
+	it("«Revelado» fuerza visible la acción que en reposo está oculta", async () => {
+		render(CardsSheet);
+
+		expect(screen.getByTestId("reveal-reposo")).toHaveAttribute("aria-pressed", "true");
+		expect(editOf("d").getAttribute("class")).toContain("opacity-0");
+
+		await fireEvent.click(screen.getByTestId("reveal-forzado"));
+		await waitFor(() => {
+			expect(screen.getByTestId("reveal-forzado")).toHaveAttribute("aria-pressed", "true");
+		});
+		const forced = editOf("d").getAttribute("class") ?? "";
+		expect(forced).toContain("opacity-100");
+		expect(forced).not.toContain("opacity-0");
+		// Una variante siempre visible no cambia con el control.
+		expect(editOf("b").getAttribute("class")).toContain("transition-colors");
+
+		await fireEvent.click(screen.getByTestId("reveal-reposo"));
+		await waitFor(() => {
+			expect(editOf("d").getAttribute("class")).toContain("opacity-0");
+		});
+	});
+
+	it("el instrumento declara el revelado y lo actualiza con el control", async () => {
+		render(CardsSheet);
+
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-row-reveal-d")).toHaveTextContent(
+				"oculta hasta hover o foco",
+			);
+		});
+		expect(screen.getByTestId("instrument-row-reveal-b")).toHaveTextContent("siempre visible");
+
+		await fireEvent.click(screen.getByTestId("reveal-forzado"));
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-row-reveal-d")).toHaveTextContent("forzada visible");
+		});
+	});
+
+	it("«Tamaño» cambia las clases del objetivo y su número declarado", async () => {
+		render(CardsSheet);
+
+		expect(screen.getByTestId("size-36")).toHaveAttribute("aria-pressed", "true");
+		expect(editOf("b").getAttribute("class")).toContain("size-9");
+		expect(editOf("b").getAttribute("class")).not.toContain("size-11");
+
+		await fireEvent.click(screen.getByTestId("size-44"));
+		await waitFor(() => {
+			expect(screen.getByTestId("size-44")).toHaveAttribute("aria-pressed", "true");
+		});
+		const sized = editOf("b").getAttribute("class") ?? "";
+		expect(sized).toContain("size-11");
+		expect(sized).not.toContain("size-9");
+		// El botón de texto de A crece en alto con el mismo control.
+		expect(editOf("a").getAttribute("class")).toContain("h-11");
+
+		await waitFor(() => {
+			expect(screen.getByTestId("instrument-row-declared-b")).toHaveTextContent("44 px");
+		});
+		expect(screen.getByTestId("instrument-row-declared-a")).toHaveTextContent("44 px");
+	});
+});
+
 describe("hoja de las tarjetas — la ruta no existe en producción", () => {
 	it("deja pasar la carga en desarrollo", async () => {
 		const { load } = await import("./+page");
@@ -269,13 +367,17 @@ describe("formatCardActionMeasurement", () => {
 				width: 36,
 				height: 36,
 				opacity: 1,
+				declaredPx: 36,
+				reveal: "siempre",
 			}),
 		).toEqual({
 			variant: "b",
 			label: "B · Botón sólo ícono",
+			declared: "36 px",
 			target: "36.00 × 36.00 px",
 			touch: "no cumple 44 px",
 			visibility: "visible en reposo",
+			reveal: "siempre visible",
 		});
 	});
 
@@ -286,10 +388,30 @@ describe("formatCardActionMeasurement", () => {
 			width: 44,
 			height: 44,
 			opacity: 0,
+			declaredPx: 44,
+			reveal: "en reposo",
 		});
 
 		expect(formatted.touch).toBe("cumple 44 px");
 		expect(formatted.visibility).toBe("oculta en reposo");
+		expect(formatted.reveal).toBe("oculta hasta hover o foco");
+	});
+
+	it("declara el número del control aunque no haya layout", () => {
+		const formatted = formatCardActionMeasurement({
+			variant: "a",
+			label: "A · Botón de texto (hoy)",
+			width: 0,
+			height: 0,
+			opacity: 1,
+			declaredPx: 44,
+			reveal: "siempre",
+		});
+
+		expect(formatted.declared).toBe("44 px");
+		expect(formatted.target).toBe("—");
+		expect(formatted.touch).toBe("—");
+		expect(formatted.visibility).toBe("—");
 	});
 
 	it("sin layout no inventa un veredicto", () => {
@@ -299,6 +421,8 @@ describe("formatCardActionMeasurement", () => {
 			width: 0,
 			height: 0,
 			opacity: 1,
+			declaredPx: 36,
+			reveal: "siempre",
 		});
 
 		expect(formatted.target).toBe("—");

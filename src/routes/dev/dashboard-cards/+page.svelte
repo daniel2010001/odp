@@ -23,8 +23,29 @@
 	  D · Acción revelada al pasar el cursor o al enfocar; la superficie de la tarjeta no cambia.
 	  E · Igual que B, sin el chevron.
 	  F · Igual que D, sin el chevron.
+	  G · Dos íconos —editar y eliminar— lado a lado a la derecha.
+	  H · Los mismos dos íconos apilados en columna.
 	La variante C (menú de tres puntos) **no se construye**: `src/lib/components/ui/dropdown-menu/`
 	no existe y esta hoja no vendoriza componentes nuevos.
+
+	─── Dos controles, además de un interruptor por variante ───────────
+	  · «Revelado: en reposo | forzado» fija el estado revelado para poder revisarlo **sin puntero**.
+	  · «Tamaño: 36 | 44 px» cambia el objetivo de la acción para compararlo con el mínimo de
+	    WCAG 2.5.5. Es preferido sobre variantes nuevas porque el resto del tratamiento no cambia.
+	El instrumento imprime el lado declarado por el control («Objetivo declarado») y la declaración
+	de revelado, además de la caja medida y la opacidad computada.
+
+	─── Lo medido sobre la revelación (variantes D y F) ────────────────
+	Contra el CSS que sirve el servidor de desarrollo: Tailwind emite la variante `group-hover/row`
+	como `&:is(:where(.group\/row):hover *)` **envuelta en `@media (hover: hover)`**, mientras que
+	`group-focus-within/row` NO va envuelta. Eso es el argumento de diseño contra una acción que
+	sólo existe al hover: un dispositivo de puntero primario táctil nunca la ve, y con ratón el
+	camino del foco es inalcanzable porque hacer clic en la tarjeta sigue el enlace. Por eso la hoja
+	agrega «Revelado»: para poder revisar esa superficie sin depender del puntero.
+
+	─── La acción «Eliminar» es una copia ──────────────────────────────
+	Ninguna página real borra datasets desde esta fila. «Eliminar» se asume **sólo para comparar**
+	cómo se dispone una tarjeta con dos acciones, y está marcado como copia en el markup.
 
 	─── El chevron es la objeción del autor ────────────────────────────
 	El autor prefiere el botón sólo ícono (B) sobre el de texto, pero rechaza el `>`: se lee como una
@@ -36,7 +57,7 @@
 	Tooltip de bits-ui, que este repo no tiene.
 -->
 <script lang="ts">
-import { ChevronRight, Database, Lock, Pencil } from "@lucide/svelte";
+import { ChevronRight, Database, Lock, Pencil, Trash2 } from "@lucide/svelte";
 import { formatDate } from "$lib/utils/ckan";
 import { type FormattedCardActionMeasurement, formatCardActionMeasurement } from "./measures";
 
@@ -114,7 +135,7 @@ const preset = $derived(PRESETS.find((item) => item.id === presetId) ?? PRESETS[
 
 // ─── Variantes (un interruptor por variante) ────────────────────────
 interface Variant {
-	id: "a" | "b" | "d" | "e" | "f";
+	id: "a" | "b" | "d" | "e" | "f" | "g" | "h";
 	label: string;
 	description: string;
 }
@@ -150,16 +171,77 @@ const VARIANTS: Variant[] = [
 		description:
 			"Igual que D: la acción está en el DOM, en reposo oculta (`opacity-0`) y aparece con el cursor sobre la fila o con el foco, pero sin el chevron.",
 	},
+	{
+		id: "g",
+		label: "G · Editar y eliminar, lado a lado",
+		description:
+			"Dos acciones sólo ícono en una fila a la derecha de la tarjeta: «Editar» y «Eliminar» (copia). Sin chevron. Compara cuánto pesa una segunda acción cuando se suma al costado.",
+	},
+	{
+		id: "h",
+		label: "H · Editar y eliminar, en columna",
+		description:
+			"Las mismas dos acciones sólo ícono, apiladas en columna a la derecha. Sin chevron. La columna es más alta que el cuerpo de la tarjeta: compara el costo de crecer en vertical.",
+	},
 ];
 
-let enabled = $state<Record<string, boolean>>({ a: true, b: true, d: true, e: true, f: true });
+let enabled = $state<Record<string, boolean>>({
+	a: true,
+	b: true,
+	d: true,
+	e: true,
+	f: true,
+	g: true,
+	h: true,
+});
 const visibleVariants = $derived(VARIANTS.filter((variant) => enabled[variant.id]));
 
 function toggleVariant(id: string): void {
 	enabled = { ...enabled, [id]: !enabled[id] };
 }
 
+// ─── Controles de la acción ─────────────────────────────────────────
+// «Revelado» fija el estado de las variantes que se revelan al hover o al foco, para poder
+// revisarlas sin puntero. «Tamaño» cambia el objetivo táctil entre el `size-9` de hoy (36 px) y
+// el mínimo de WCAG 2.5.5 (44 px), sin tocar el resto del tratamiento.
+let revealMode = $state<"reposo" | "forzado">("reposo");
+let targetSize = $state<36 | 44>(36);
+
+/** `size-9` = 36 px, `size-11` = 44 px. */
+const iconSizeClass = $derived(targetSize === 44 ? "size-11" : "size-9");
+/** `h-9` = 36 px, `h-11` = 44 px, para el botón de texto de A. */
+const textActionHeightClass = $derived(targetSize === 44 ? "h-11" : "h-9");
+
+const REVEALING_VARIANTS = new Set(["d", "f"]);
+
 const datasetCountLabel = (count: number) => (count === 1 ? "1 recurso" : `${count} recursos`);
+
+// ─── Clases de la acción ────────────────────────────────────────────
+// El botón de ícono comparte una base; la variante que se revela agrega la coreografía de
+// opacidad —que el control «Revelado» puede forzar visible— y el resto usa `transition-colors`.
+const ICON_ACTION_BASE =
+	"inline-flex shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function iconActionClass(revealing: boolean): string {
+	if (!revealing) return `${ICON_ACTION_BASE} ${iconSizeClass} transition-colors`;
+	if (revealMode === "forzado") {
+		return `${ICON_ACTION_BASE} ${iconSizeClass} transition-opacity opacity-100`;
+	}
+	return `${ICON_ACTION_BASE} ${iconSizeClass} pointer-events-none opacity-0 transition-opacity group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100`;
+}
+
+function deleteActionClass(): string {
+	return `${ICON_ACTION_BASE} ${iconSizeClass} transition-colors hover:bg-destructive/10 hover:text-destructive`;
+}
+
+const CONTROL_BUTTON_BASE =
+	"rounded-lg border border-input px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const CONTROL_BUTTON_ACTIVE = "bg-primary text-primary-foreground";
+const CONTROL_BUTTON_INACTIVE = "bg-background text-foreground hover:bg-accent";
+
+function controlButtonClass(active: boolean): string {
+	return `${CONTROL_BUTTON_BASE} ${active ? CONTROL_BUTTON_ACTIVE : CONTROL_BUTTON_INACTIVE}`;
+}
 
 // ─── Instrumento: el objetivo táctil de la acción ───────────────────
 let sheetRoot = $state<HTMLElement>();
@@ -169,6 +251,10 @@ $effect(() => {
 	void preset;
 	void visibleVariants;
 	void sheetRoot;
+	// El tamaño y el revelado son declaraciones del control: re-medir cuando cambian mantiene el
+	// instrumento al día con lo que está en pantalla.
+	void targetSize;
+	void revealMode;
 
 	if (!sheetRoot) {
 		measurements = [];
@@ -192,6 +278,7 @@ $effect(() => {
 			if (!Number.isNaN(parsed)) opacity = parsed;
 		}
 
+		const exposing = REVEALING_VARIANTS.has(variant.id);
 		next.push(
 			formatCardActionMeasurement({
 				variant: variant.id,
@@ -199,6 +286,8 @@ $effect(() => {
 				width,
 				height,
 				opacity,
+				declaredPx: targetSize,
+				reveal: exposing ? (revealMode === "forzado" ? "forzado" : "en reposo") : "siempre",
 			}),
 		);
 	}
@@ -246,7 +335,7 @@ $effect(() => {
 					Privado
 				</span>
 			{/if}
-			{#if variantId !== "e" && variantId !== "f"}
+			{#if !["e", "f", "g", "h"].includes(variantId)}
 				<ChevronRight
 					class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
 					aria-hidden="true"
@@ -261,18 +350,44 @@ $effect(() => {
 				<a
 					href={`/dashboard/datasets/${item.name}/edit`}
 					data-testid={`edit-${variantId}-${index}`}
-					class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class="inline-flex {textActionHeightClass} shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				>
 					<Pencil class="size-4" aria-hidden="true" />
 					Editar
 				</a>
-			{:else if variantId === "b" || variantId === "e"}
+			{:else if variantId === "g" || variantId === "h"}
+				<!-- Dos acciones sólo para comparar la disposición. «Eliminar» es una copia declarada: no
+				     existe en la página real. La columna de H se apila; la fila de G va en línea. -->
+				<div
+					data-testid={`actions-${variantId}-${index}`}
+					class="flex shrink-0 {variantId === "h" ? "flex-col gap-2" : "items-center gap-2"}"
+				>
+					<a
+						href={`/dashboard/datasets/${item.name}/edit`}
+						data-testid={`edit-${variantId}-${index}`}
+						aria-label="Editar dataset"
+						title="Editar"
+						class={iconActionClass(false)}
+					>
+						<Pencil class="size-4" aria-hidden="true" />
+					</a>
+					<button
+						type="button"
+						data-testid={`delete-${variantId}-${index}`}
+						aria-label="Eliminar dataset"
+						title="Eliminar (copia)"
+						class={deleteActionClass()}
+					>
+						<Trash2 class="size-4" aria-hidden="true" />
+					</button>
+				</div>
+			{:else if variantId === "d" || variantId === "f"}
 				<a
 					href={`/dashboard/datasets/${item.name}/edit`}
 					data-testid={`edit-${variantId}-${index}`}
 					aria-label="Editar dataset"
 					title="Editar"
-					class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class={iconActionClass(true)}
 				>
 					<Pencil class="size-4" aria-hidden="true" />
 				</a>
@@ -282,7 +397,7 @@ $effect(() => {
 					data-testid={`edit-${variantId}-${index}`}
 					aria-label="Editar dataset"
 					title="Editar"
-					class="pointer-events-none inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground opacity-0 transition-opacity group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class={iconActionClass(false)}
 				>
 					<Pencil class="size-4" aria-hidden="true" />
 				</a>
@@ -309,9 +424,19 @@ $effect(() => {
 			</p>
 			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
 				El autor prefiere el botón sólo ícono sobre el de texto, pero el chevron se lee como una
-				instrucción de «presione»: ésa es su objeción. Las variantes E y F repiten B y D
+				instrucción de «presione»: ésa es su objeción. Las variantes E, F, G y H repiten B y D
 				<strong class="font-semibold text-foreground">quitando el chevron</strong>, para que la
 				comparación sea explícita.
+			</p>
+			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+				Contra el CSS que sirve el servidor de desarrollo, Tailwind emite la variante
+				<code class="font-mono text-xs">group-hover/row</code> envuelta en
+				<code class="font-mono text-xs">@media (hover: hover)</code>, mientras que el
+				<code class="font-mono text-xs">group-focus-within/row</code> no va envuelto. Ésa es la razón
+				de peso contra una acción que sólo existe al hover: un dispositivo de puntero primario
+				táctil nunca la ve. Por eso el control
+				<strong class="font-semibold text-foreground">«Revelado»</strong> permite fijar el estado
+				revelado sin puntero.
 			</p>
 			<p
 				class="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
@@ -379,6 +504,67 @@ $effect(() => {
 					</div>
 				</div>
 			</div>
+
+			<div class="mt-6 border-t border-border pt-6">
+				<h2 class="text-sm font-semibold text-card-foreground">Controles de la acción</h2>
+				<div class="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">
+					<div>
+						<p class="text-xs font-medium text-foreground">Revelado</p>
+						<p class="mt-1 text-xs text-muted-foreground">
+							Fija el estado de las variantes D y F para poder revisarlas sin puntero. El hover y el foco
+							siguen funcionando igual.
+						</p>
+						<div class="mt-2 flex flex-wrap gap-2">
+							<button
+								type="button"
+								data-testid="reveal-reposo"
+								aria-pressed={revealMode === "reposo"}
+								onclick={() => (revealMode = "reposo")}
+								class={controlButtonClass(revealMode === "reposo")}
+							>
+								En reposo
+							</button>
+							<button
+								type="button"
+								data-testid="reveal-forzado"
+								aria-pressed={revealMode === "forzado"}
+								onclick={() => (revealMode = "forzado")}
+								class={controlButtonClass(revealMode === "forzado")}
+							>
+								Forzado
+							</button>
+						</div>
+					</div>
+
+					<div>
+						<p class="text-xs font-medium text-foreground">Tamaño</p>
+						<p class="mt-1 text-xs text-muted-foreground">
+							Compara el objetivo táctil de hoy (36 px) con el mínimo de WCAG 2.5.5 (44 px), sin tocar el
+							resto del tratamiento.
+						</p>
+						<div class="mt-2 flex flex-wrap gap-2">
+							<button
+								type="button"
+								data-testid="size-36"
+								aria-pressed={targetSize === 36}
+								onclick={() => (targetSize = 36)}
+								class={controlButtonClass(targetSize === 36)}
+							>
+								36 px
+							</button>
+							<button
+								type="button"
+								data-testid="size-44"
+								aria-pressed={targetSize === 44}
+								onclick={() => (targetSize = 44)}
+								class={controlButtonClass(targetSize === 44)}
+							>
+								44 px
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
 		</section>
 
 		<!-- ─── Las variantes de la fila ─────────────────────────────── -->
@@ -419,9 +605,10 @@ $effect(() => {
 			<p class="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
 				Mide la caja de la acción «Editar» de cada variante sobre el nodo ya renderizado y compara
 				el lado menor contra los <strong class="font-semibold text-foreground">44 px</strong> de
-				WCAG 2.5.5. También imprime la opacidad en reposo: la variante D debería dar 0 hasta que el
-				cursor o el foco la revelen. Sin motor de layout (jsdom) las cifras dan <code
-					class="font-mono text-[11px]">—</code
+				WCAG 2.5.5. Imprime además el lado declarado por el control de tamaño y la declaración de
+				revelado, que no dependen del layout; la opacidad en reposo muestra si la variante esconde la
+				acción. Sin motor de layout (jsdom) las cifras medidas dan <code class="font-mono text-[11px]"
+					>—</code
 				>.
 			</p>
 
@@ -432,18 +619,32 @@ $effect(() => {
 							class="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground"
 						>
 							<th class="px-3 py-2 font-semibold">Variante</th>
-							<th class="px-3 py-2 font-semibold">Objetivo</th>
+							<th class="px-3 py-2 font-semibold">Objetivo declarado</th>
+							<th class="px-3 py-2 font-semibold">Objetivo medido</th>
 							<th class="px-3 py-2 font-semibold">Táctil (mín. 44 px)</th>
-							<th class="px-3 py-2 font-semibold">En reposo</th>
+							<th class="px-3 py-2 font-semibold">Opacidad en reposo</th>
+							<th class="px-3 py-2 font-semibold">Revelado</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each measurements as row (row.variant)}
 							<tr data-testid={`instrument-row-${row.variant}`} class="border-b border-border/60">
 								<td class="px-3 py-2 text-foreground">{row.label}</td>
+								<td
+									data-testid={`instrument-row-declared-${row.variant}`}
+									class="px-3 py-2 font-mono text-xs text-muted-foreground"
+								>
+									{row.declared}
+								</td>
 								<td class="px-3 py-2 font-mono text-xs text-muted-foreground">{row.target}</td>
 								<td class="px-3 py-2 text-foreground">{row.touch}</td>
 								<td class="px-3 py-2 text-foreground">{row.visibility}</td>
+								<td
+									data-testid={`instrument-row-reveal-${row.variant}`}
+									class="px-3 py-2 text-foreground"
+								>
+									{row.reveal}
+								</td>
 							</tr>
 						{/each}
 					</tbody>
