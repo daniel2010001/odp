@@ -296,6 +296,13 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
   **Re-medido el 2026-10-04 sobre el árbol mergeado:** 4/4 intentos con exit 254 y **ningún conteo emitido**, así
   que `pnpm lint` sobre el repo entero quedó **no verificable**; **acotado a los 14 archivos del merge: exit 0**.
   La lección operativa es que la salida barata existe y es acotar, no reintentar en vano.
+  **Re-medido el 2026-10-05, y el diagnóstico ahora es más filoso:** `pnpm exec biome --version` —una consulta de
+  versión, **sin archivos que revisar**— sale **254**; `./node_modules/.bin/biome --version` sale **0**;
+  `./node_modules/.bin/biome check .` recorre **172 archivos en 819 ms con exit 0** (y la máquina tenía ~1 GB
+  libre: **no es memoria ni el volumen de trabajo**); `pnpm lint` dio **254** y, minutos después, el mismo
+  `pnpm run lint` dio **0**. Conclusión: **el fallo vive en el camino de pnpm hacia el binario, es intermitente, y
+  no está en Biome ni en los archivos**. Regla operativa: **localmente la verificación confiable es el binario
+  directo** (`node_modules/.bin/biome check .`), y la autoridad final es **CI**, donde `pnpm lint` pasa.
 - [ ] **[v1+]** **Cuatro hallazgos informativos de las compuertas del barrido.** Ninguno bloqueante, ninguno abre
   corrección, ninguno fue causa de este merge — son trabajo posterior: `R3-001`/`R3-002` (WARNING) y `R3-003`
   (SUGGESTION) en `src/routes/dev/error/+page.svelte`, y `R3-001` (SUGGESTION) en
