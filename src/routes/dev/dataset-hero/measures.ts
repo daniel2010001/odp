@@ -11,6 +11,12 @@
 // acciones comparten la fila de las INSIGNIAS. La columna pasó a llamarse «Fila con» y declara
 // explícitamente con qué comparte fila el botón, mientras la separación —horizontal y vertical—
 // se sigue midiendo contra el título, que es la queja original.
+//
+// La variante G construye una regla en vez de un lugar: **una acción va en la fila del título;
+// dos o más van en la fila de las insignias.** Por eso su «Fila con» cambia con el preset, y la
+// columna ahora también imprime el número de acciones que la variante ofrece. Sin ese número, el
+// lector no puede saber si la regla se aplicó o si la colocación quedó fija: «título · 1 acción»
+// y «insignias · 2 acciones» son el mismo hecho declarado, con su causa a la vista.
 
 export interface HeroMeasurement {
 	variant: string;
@@ -23,6 +29,8 @@ export interface HeroMeasurement {
 	gapY: number;
 	/** Con qué comparte fila el botón de copiar: el título o las insignias. */
 	rowWith: "título" | "insignias" | "—";
+	/** Cuántas acciones ofrece la variante: copiar siempre, y «Editar» si el permiso lo permite. */
+	actions: number;
 }
 
 export interface FormattedHeroMeasurement {
@@ -34,6 +42,10 @@ export interface FormattedHeroMeasurement {
 	rowWith: string;
 }
 
+function actionCountLabel(count: number): string {
+	return count === 1 ? "1 acción" : `${count} acciones`;
+}
+
 export function formatHeroMeasurement(measurement: HeroMeasurement): FormattedHeroMeasurement {
 	return {
 		variant: measurement.variant,
@@ -41,6 +53,9 @@ export function formatHeroMeasurement(measurement: HeroMeasurement): FormattedHe
 		title: `${measurement.titleWidth.toFixed(2)} × ${measurement.titleHeight.toFixed(2)} px`,
 		gapX: `${measurement.gapX.toFixed(2)} px`,
 		gapY: `${measurement.gapY.toFixed(2)} px`,
-		rowWith: measurement.rowWith,
+		rowWith:
+			measurement.rowWith === "—"
+				? "—"
+				: `${measurement.rowWith} · ${actionCountLabel(measurement.actions)}`,
 	};
 }

@@ -31,12 +31,20 @@
 	      solo y a lo ancho, y debajo van las insignias a la izquierda y el grupo copiar + «Editar»
 	      a la derecha. D y E dejan las acciones en la fila del título; F las baja a la fila de las
 	      insignias para comparar ese reparto.
+	  G · La regla: en vez de elegir un lugar, se construye el criterio. **Una acción va en la fila
+	      del título; dos o más van en la fila de las insignias.** Por eso G rinde distinto según el
+	      preset —con «Puede editar» son dos acciones (copiar + «Editar») y bajan a las insignias;
+	      con «No puede editar» o «Falló la verificación de permiso» sólo queda copiar y vuelve a la
+	      fila del título—. Es la síntesis de D/E (una acción) y F (dos acciones): no elige entre
+	      ellas, las usa como los dos brazos de una misma regla. Costo declarado: son dos layouts
+	      los que hay que verificar, y cada revisor sólo ve el suyo.
 
 	─── El instrumento no miente sobre la fila ─────────────────────────
 	La columna «Fila con» declara explícitamente con qué comparte fila el botón de copiar. Antes
 	«Misma fila» lo comparaba contra el TÍTULO, y en F esa comparación no significa nada: las
 	automáticas comparten la fila de las INSIGNIAS. La separación horizontal y vertical se sigue
-	midiendo contra el título, que es la queja «pegado al título».
+	midiendo contra el título, que es la queja «pegado al título». La columna imprime además el
+	número de acciones de cada variante: es lo que hace visible que la regla de G es condicional.
 
 	─── Nota de la variante B ──────────────────────────────────────────
 	El botón sólo ícono usa `title` nativo más `aria-label`. Un tooltip real exigiría vendorizar el
@@ -125,7 +133,7 @@ const UPDATED = "18 de junio de 2025";
 
 // ─── Variantes (un interruptor por variante) ────────────────────────
 interface Variant {
-	id: "a" | "b" | "c" | "d" | "e" | "f";
+	id: "a" | "b" | "c" | "d" | "e" | "f" | "g";
 	label: string;
 	description: string;
 }
@@ -167,6 +175,12 @@ const VARIANTS: Variant[] = [
 		description:
 			"El título ocupa la primera fila solo y a lo ancho. Debajo, las insignias a la izquierda y el grupo copiar + «Editar» a la derecha, con `flex flex-wrap items-center justify-between gap-3`. Compara D y E contra bajar las acciones a la fila de las insignias.",
 	},
+	{
+		id: "g",
+		label: "G · La regla: una acción arriba, dos abajo",
+		description:
+			"Construye la regla en vez de elegir un lugar: con una sola acción disponible —sólo copiar— el botón vuelve a la fila del título; con dos o más —copiar y «Editar»— baja a la fila de las insignias. Cambie de preset para ver las dos formas; el resto de la hoja no cambia.",
+	},
 ];
 
 let presetId = $state("puede-editar");
@@ -180,6 +194,7 @@ let enabled = $state<Record<string, boolean>>({
 	d: true,
 	e: true,
 	f: true,
+	g: true,
 });
 const visibleVariants = $derived(VARIANTS.filter((variant) => enabled[variant.id]));
 
@@ -275,6 +290,12 @@ $effect(() => {
 		const gapX = Math.max(copyRect.left - titleRect.right, titleRect.left - copyRect.right, 0);
 		const gapY = Math.max(copyRect.top - titleRect.bottom, titleRect.top - copyRect.bottom, 0);
 		const rowWith = badgesNode ? resolveRowWith(copyNode, titleNode, badgesNode) : "—";
+		// El número de acciones es lo que vuelve legible la regla de G: copiar siempre está, y
+		// «Editar» sólo cuando el permiso lo permite. Se cuentan sobre el DOM ya renderizado para
+		// que el instrumento reporte lo que la variante hace, no lo que el código dice que hará.
+		const actions = render.querySelectorAll(
+			`[data-testid="hero-copy-${variant.id}"], [data-testid="hero-edit-${variant.id}"]`,
+		).length;
 
 		next.push(
 			formatHeroMeasurement({
@@ -285,6 +306,7 @@ $effect(() => {
 				gapX,
 				gapY,
 				rowWith,
+				actions,
 			}),
 		);
 	}
@@ -385,6 +407,17 @@ $effect(() => {
 				<code class="font-mono text-xs">src/routes/dataset/[id]/+page.svelte</code>: los tokens son
 				los reales de <code class="font-mono text-xs">src/app.css</code>, pero el markup no se importa
 				—la convención del repo es duplicar la página, revisarla y recién entonces promoverla—.
+			</p>
+			<p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+				La variante <strong class="font-semibold text-foreground">G</strong> no elige un lugar:
+				construye la regla. <strong class="font-semibold text-foreground"
+					>Una acción va en la fila del título; dos o más van en la fila de las insignias.</strong
+				>
+				Por eso G rinde distinto según el preset —con «Puede editar» son dos acciones (copiar y
+				«Editar») y bajan a las insignias; con «No puede editar» o «Falló la verificación de permiso»
+				sólo queda copiar y vuelve a la fila del título—. Es el costo de la regla: hay dos layouts que
+				verificar en vez de uno, y cada revisor sólo ve el suyo, así que la comparación entre ambos
+				exige cambiar de preset.
 			</p>
 		</header>
 
@@ -602,7 +635,7 @@ $effect(() => {
 											{@render copyButton("e")}
 										</div>
 									</div>
-								{:else}
+								{:else if variant.id === "f"}
 									<!-- F · El título ocupa la primera fila solo; insignias y acciones comparten la de abajo. -->
 									<div>
 										<h1
@@ -632,6 +665,64 @@ $effect(() => {
 											</div>
 										</div>
 									</div>
+								{:else}
+									<!-- G · La regla: una acción en la fila del título, dos o más en la de insignias. -->
+									{#if preset.permState === "puede-editar"}
+										<!-- Dos acciones (copiar + «Editar»): bajan a la fila de las insignias. -->
+										<div>
+											<h1
+												data-testid="hero-title-g"
+												class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+											>
+												{title}
+											</h1>
+											<p class="mt-2 text-sm text-muted-foreground">
+												Actualizado {UPDATED} · {ORG}
+											</p>
+											<div
+												data-testid="hero-badges-row-g"
+												class="mt-3 flex flex-wrap items-center justify-between gap-3"
+											>
+												<div
+													data-testid="hero-badges-g"
+													class="flex flex-wrap items-center gap-2"
+												>
+													{@render badges()}
+												</div>
+												<div data-testid="hero-actions-g" class="flex items-center gap-2">
+													{@render copyButton("g")}
+													{@render editLink("g")}
+												</div>
+											</div>
+										</div>
+									{:else}
+										<!-- Una sola acción (copiar): vuelve a la fila del título, como grupo a la derecha. -->
+										<div data-testid="hero-row-g" class="flex items-start gap-4">
+											<div class="min-w-0 flex-1">
+												<h1
+													data-testid="hero-title-g"
+													class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
+												>
+													{title}
+												</h1>
+												<p class="mt-2 text-sm text-muted-foreground">
+													Actualizado {UPDATED} · {ORG}
+												</p>
+												<div
+													data-testid="hero-badges-g"
+													class="mt-3 flex flex-wrap items-center gap-2"
+												>
+													{@render badges()}
+												</div>
+											</div>
+											<div
+												data-testid="hero-actions-g"
+												class="flex shrink-0 items-center gap-2"
+											>
+												{@render copyButton("g")}
+											</div>
+										</div>
+									{/if}
 								{/if}
 
 								{#if preset.permState === "permiso-fallo"}
@@ -655,8 +746,11 @@ $effect(() => {
 				renderizado. Es el número de la queja «pegado al título»: en la fila única la separación es
 				la del <code class="font-mono text-[11px]">gap-3</code>, y en las variantes B, C, D y E el botón
 				se aleja del título. La columna «Fila con» dice con qué comparte fila el botón —el título o
-				las insignias—, que es lo que «Misma fila» daba por sentado y no era cierto en F. Sin motor de
-				layout (jsdom) las cifras de separación dan 0; el texto se arma con
+				las insignias—, que es lo que «Misma fila» daba por sentado y no era cierto en F. Además
+				imprime cuántas acciones ofrece la variante, que es lo que hace visible que la regla de G es
+				condicional: cambie de preset y la misma variante pasa de «título · 1 acción» a
+				«insignias · 2 acciones». Sin motor de layout (jsdom) las cifras de separación dan 0; el texto
+				se arma con
 				<code class="font-mono text-[11px]">formatHeroMeasurement</code>.
 			</p>
 
