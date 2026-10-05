@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 	getMockDatasetById: vi.fn(),
 	listUpdatableOrganizationIds: vi.fn(),
 	check: vi.fn(),
+	copyToClipboard: vi.fn(),
 }));
 
 // Se mockea en el borde de módulo para que `package_show` nunca dispare HTTP real. `$lib/mock/data`
@@ -36,6 +37,12 @@ vi.mock("$lib/api/organizations", () => ({
 	}),
 }));
 vi.mock("$lib/mock/data", () => ({ getMockDatasetById: mocks.getMockDatasetById }));
+// La copia al portapapeles se intercepta para poder probar el acuse del botón sin depender de
+// `navigator.clipboard`, que jsdom no implementa. El resto del módulo —las citas— queda real.
+vi.mock("$lib/utils/citation", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("$lib/utils/citation")>();
+	return { ...actual, copyToClipboard: mocks.copyToClipboard };
+});
 // La sonda de sesión se inyecta como mock: la decisión `resolveUnauthorized` que la usa sigue
 // siendo la real, así que la expulsión y su orden se miden de verdad.
 vi.mock("$lib/api/session", () => ({
@@ -106,6 +113,8 @@ beforeEach(() => {
 	);
 	// Fail closed: sin respuesta explícita, la página no ofrece editar.
 	mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
+	// La copia del enlace tiene éxito salvo que un test diga lo contrario.
+	mocks.copyToClipboard.mockResolvedValue(true);
 	// Sonda por defecto no concluyente: sólo los tests de sesión viva/muerta la cambian.
 	mocks.check.mockResolvedValue({
 		state: "inconclusive",
@@ -668,5 +677,92 @@ describe("Página de dataset — acceso a la edición", () => {
 		// Macrotarea: Node emite `unhandledRejection` recién después de agotar las microtareas.
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(sinManejar).toEqual([]);
+	});
+});
+
+// ─── El reparto de las acciones del hero ──────────────────────────────
+// La hoja `/dev/dataset-hero` (variante G) fijó el criterio en vez de una posición fija: **una
+// acción va en la fila del título; dos o más van en la fila de las insignias**, alineadas a la
+// derecha. Acá copiar enlace siempre está y «Editar» sólo con permiso, así que la misma página
+// rinde de dos formas. jsdom no tiene motor de layout: la fila se mide por la relación entre nodos
+// —el contenedor común— y la alineación por la clase declarada, no por píxeles.
+describe("Página de dataset — el reparto de las acciones del hero (la regla)", () => {
+	async function renderHero(): Promise<{ copy: HTMLElement; title: HTMLElement }> {
+		render(DatasetPage);
+
+		const copy = await screen.findByRole("button", { name: "Copiar enlace del dataset" });
+		const title = screen.getByRole("heading", { level: 1, name: "Matrícula 2026" });
+		return { copy, title };
+	}
+
+	it("con una sola acción, copiar comparte la fila del título y la columna de texto puede encogerse", async () => {
+		// Fail closed por defecto: sin permiso confirmado, la única acción disponible es copiar.
+		const { copy, title } = await renderHero();
+
+		expect(screen.queryByRole("link", { name: "Editar" })).toBeNull();
+
+		const columna = title.parentElement as HTMLElement;
+		expect(columna.className).toContain("min-w-0");
+		expect(columna.className).toContain("flex-1");
+
+		const fila = columna.parentElement as HTMLElement;
+		expect(fila.className).toContain("flex");
+		expect(fila.contains(copy)).toBe(true);
+
+		// El grupo no empuja al título: es `shrink-0` y hermano de la columna, así que el título se
+		// parte dentro de su columna en vez de empujar la acción a una línea propia.
+		const grupo = copy.parentElement as HTMLElement;
+		expect(grupo.className).toContain("shrink-0");
+		expect(grupo.parentElement).toBe(fila);
+	});
+
+	it("con dos acciones, copiar y «Editar» bajan a la fila de las insignias y el título queda solo", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ owner_org: "org-1", organization: makeOrganization() }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+
+		const { title } = await renderHero();
+		const editar = await screen.findByRole("link", { name: "Editar" });
+		// El permiso acaba de cambiar el reparto: la rama de una acción se desmontó, así que el botón
+		// de copiar se vuelve a leer del DOM nuevo en vez de reusar el nodo viejo.
+		const copy = screen.getByRole("button", { name: "Copiar enlace del dataset" });
+
+		const grupo = copy.parentElement as HTMLElement;
+		expect(grupo).toContainElement(editar);
+
+		// La fila de las insignias aloja las dos cosas: las insignias a la izquierda y las acciones a
+		// la derecha (`justify-between`), sin que el título comparta esa fila.
+		const fila = grupo.parentElement as HTMLElement;
+		expect(fila.className).toContain("justify-between");
+		expect(within(fila).getByRole("link", { name: "Facultad de Ciencias" })).toBeTruthy();
+		expect(fila.contains(title)).toBe(false);
+		expect(title.parentElement).toBe(fila.parentElement);
+	});
+});
+
+// ─── El acuse de «Copiar enlace» ──────────────────────────────────────
+// El ícono cambia, pero un cambio de color no le dice nada a un lector de pantalla: el acuse vive
+// en el nombre accesible, que pasa a «Enlace copiado» y vuelve a los 2 s.
+describe("Página de dataset — el acuse de «Copiar enlace»", () => {
+	it("cambia el nombre accesible a «Enlace copiado» y vuelve a los 2 s, con el ícono como refuerzo", async () => {
+		render(DatasetPage);
+
+		const copiar = await screen.findByRole("button", { name: "Copiar enlace del dataset" });
+		expect(copiar.querySelector(".lucide-link-2")).not.toBeNull();
+
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		try {
+			await fireEvent.click(copiar);
+			expect(mocks.copyToClipboard).toHaveBeenCalledTimes(1);
+
+			const copiado = screen.getByRole("button", { name: "Enlace copiado" });
+			expect(copiado.querySelector(".lucide-check")).not.toBeNull();
+
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(screen.getByRole("button", { name: "Copiar enlace del dataset" })).toBeTruthy();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

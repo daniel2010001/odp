@@ -299,6 +299,11 @@ const puedeEditarDataset = $derived.by(() => {
 	return orgsEditables.includes(ownerOrgIdOf(dataset));
 });
 
+// La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título;
+// dos o más van en la fila de las insignias. Acá copiar enlace siempre existe y «Editar» sólo con
+// permiso, así que el conteo —y por lo tanto el reparto— depende de la respuesta de permiso.
+const heroActionCount = $derived(puedeEditarDataset ? 2 : 1);
+
 // ─── Technical metadata table ───────────────────────────────────
 // La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
 // monoespaciada bajo la tabla, igual que en la tarjeta del recurso.
@@ -408,93 +413,122 @@ async function handleCopyLink() {
 
 	<!-- Dataset content -->
 	{:else if dataset}
+		<!-- ─── Piezas del hero ─────────────────────────────────────────────
+		     La regla es condicional, así que las acciones y las insignias se declaran una sola vez y
+		     el reparto las mueve de fila. Duplicarlas sería la forma más segura de que las dos ramas
+		     se desincronicen. -->
+		{#snippet copyLinkButton()}
+			<button
+				type="button"
+				onclick={handleCopyLink}
+				aria-label={copiedLink ? "Enlace copiado" : "Copiar enlace del dataset"}
+				title="Copiar enlace"
+				class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+			>
+				{#if copiedLink}
+					<Check class="size-4 text-emerald-600" aria-hidden="true" />
+				{:else}
+					<Link2 class="size-4" aria-hidden="true" />
+				{/if}
+			</button>
+		{/snippet}
+
+		{#snippet heroActions(item: CkanPackage)}
+			<div class="flex shrink-0 items-center gap-2">
+				{@render copyLinkButton()}
+				<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
+				     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
+				{#if puedeEditarDataset}
+					<a
+						href={`/dashboard/datasets/${item.name}/edit`}
+						class="inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						<Pencil class="size-4" aria-hidden="true" />
+						Editar
+					</a>
+				{/if}
+			</div>
+		{/snippet}
+
+		{#snippet heroBadges(item: CkanPackage)}
+			{#if item.organization?.title}
+				{#if orgHref}
+					<a
+						href={orgHref}
+						class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+					>
+						<Building2 class="size-3.5" />
+						{item.organization.title}
+					</a>
+				{:else}
+					<span
+						class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
+					>
+						<Building2 class="size-3.5" />
+						{item.organization.title}
+					</span>
+				{/if}
+			{/if}
+
+			{#if stateLabel}
+				<span
+					class={cn(
+						"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
+						item.state === "active"
+							? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+							: "border-destructive/20 bg-destructive/10 text-destructive",
+					)}
+				>
+					<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+					{stateLabel}
+				</span>
+			{/if}
+
+			<span
+				class={cn(
+					"inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold",
+					item.private
+						? "border-destructive/20 bg-destructive/10 text-destructive"
+						: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+				)}
+			>
+				{visibilityLabel}
+			</span>
+		{/snippet}
+
 		<!-- Hero -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-				<!-- Title + copy link -->
-				<div class="flex flex-wrap items-center gap-3">
-					<button
-						type="button"
-						onclick={handleCopyLink}
-						aria-label="Copiar enlace del dataset"
-						title="Copiar enlace"
-						class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-					>
-						{#if copiedLink}
-							<Check class="size-4 text-emerald-600" />
-						{:else}
-							<Link2 class="size-4" />
-						{/if}
-					</button>
-					<h1
-						class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl"
-					>
+				{#if heroActionCount > 1}
+					<!-- Dos acciones (copiar + «Editar»): bajan a la fila de las insignias, alineadas a la
+					     derecha; el título se queda con la primera fila. -->
+					<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
 						{dataset.title || dataset.name}
 					</h1>
-					<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
-					     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
-					{#if puedeEditarDataset}
-						<a
-							href={`/dashboard/datasets/${dataset.name}/edit`}
-							class="inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						>
-							<Pencil class="size-4" aria-hidden="true" />
-							Editar
-						</a>
-					{/if}
-				</div>
-
-				<!-- Subtitle: updated -->
-				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
-				</div>
-
-				<!-- Badges row -->
-				<div class="mt-4 flex flex-wrap items-center gap-2">
-					{#if dataset.organization?.title}
-						{#if orgHref}
-							<a
-								href={orgHref}
-								class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
-							>
-								<Building2 class="size-3.5" />
-								{dataset.organization.title}
-							</a>
-						{:else}
-							<span
-								class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
-							>
-								<Building2 class="size-3.5" />
-								{dataset.organization.title}
-							</span>
-						{/if}
-					{/if}
-
-					{#if stateLabel}
-						<span
-							class={cn(
-								"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
-								dataset.state === "active"
-									? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-									: "border-destructive/20 bg-destructive/10 text-destructive",
-							)}
-						>
-							<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-							{stateLabel}
-						</span>
-					{/if}
-
-					<span
-						class={cn(
-							"inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold",
-							dataset.private
-								? "border-destructive/20 bg-destructive/10 text-destructive"
-								: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-						)}
-					>
-						{visibilityLabel}
-					</span>
-				</div>
+					<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+						<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
+					</div>
+					<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+						<div class="flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
+						{@render heroActions(dataset)}
+					</div>
+				{:else}
+					<!-- Una sola acción (copiar): se queda en la fila del título. La columna de texto lleva
+					     `min-w-0 flex-1` y el grupo `shrink-0`, así el título se parte dentro de su columna y
+					     la acción nunca cae a una línea propia. -->
+					<div class="flex items-start gap-4">
+						<div class="min-w-0 flex-1">
+							<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+								{dataset.title || dataset.name}
+							</h1>
+							<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+								<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
+							</div>
+							<div class="mt-4 flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
+						</div>
+						{@render heroActions(dataset)}
+					</div>
+				{/if}
 			</div>
 		</section>
 
