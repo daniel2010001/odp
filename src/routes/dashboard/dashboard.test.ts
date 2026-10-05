@@ -653,7 +653,7 @@ describe("Paginación de «Mis datasets»", () => {
 });
 
 describe("Acceso a la edición desde «Mis datasets»", () => {
-	it("muestra «Editar» apuntando a la ruta de edición cuando el dataset es de una organización editable", async () => {
+	it("muestra la acción de edición sólo ícono —nunca anidada— cuando el dataset es de una organización editable", async () => {
 		mocks.currentUser.mockResolvedValue({
 			count: 1,
 			results: [makePackage({ owner_org: "org-1" })],
@@ -663,8 +663,26 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 
 		render(Dashboard);
 
-		const editar = await screen.findByRole("link", { name: /editar/i });
+		// La variante E promovida: sólo ícono, con el nombre accesible en `aria-label`/`title`. La
+		// etiqueta visible «Editar» desapareció del layout, no del nombre accesible ni del rol.
+		const editar = await screen.findByRole("link", { name: "Editar" });
 		expect(editar).toHaveAttribute("href", "/dashboard/datasets/matricula-estudiantil-2026/edit");
+		expect(editar).toHaveAttribute("aria-label", "Editar");
+		expect(editar).toHaveAttribute("title", "Editar");
+		expect(editar.textContent?.trim()).toBe("");
+		expect(editar.querySelector(".lucide-pencil")).not.toBeNull();
+
+		// Nunca anidada en el enlace de la tarjeta: un interactivo dentro de un `<a>` es HTML
+		// inválido. El grupo de acciones es hermano del `<a>`, y el chevron ya no está.
+		const tarjeta = screen.getByRole("link", { name: /matrícula estudiantil 2026/i });
+		expect(tarjeta.contains(editar)).toBe(false);
+		expect(tarjeta.querySelector(".lucide-chevron-right")).toBeNull();
+
+		// Oculto por debajo de `lg`: en un teléfono la fila entera es el objetivo para abrir el dataset
+		// y el título conserva su ancho. jsdom no aplica Tailwind, así que se afirma la declaración.
+		const grupo = editar.parentElement as HTMLElement;
+		expect(grupo.className).toContain("hidden");
+		expect(grupo.className).toContain("lg:flex");
 	});
 
 	it("no muestra «Editar» en la fila cuya organización no es editable", async () => {
@@ -686,7 +704,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 		render(Dashboard);
 
 		// La fila editable prueba que el bulk resolvió; la otra exige la discriminación por `owner_org`.
-		const enlaces = await screen.findAllByRole("link", { name: /editar/i });
+		const enlaces = await screen.findAllByRole("link", { name: "Editar" });
 		expect(enlaces).toHaveLength(1);
 		expect(enlaces[0]).toHaveAttribute("href", "/dashboard/datasets/editable-1/edit");
 	});
@@ -703,7 +721,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 
 		await screen.findByRole("link", { name: /matrícula estudiantil 2026/i });
 		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
-		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
 	});
 
 	it("no ofrece editar y no deja un rechazo sin manejar cuando la pregunta de permiso rechaza", async () => {
@@ -717,7 +735,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 		render(Dashboard);
 		await screen.findByRole("link", { name: /matrícula estudiantil 2026/i });
 		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));
-		expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(sinManejar).toHaveLength(0);
 	});

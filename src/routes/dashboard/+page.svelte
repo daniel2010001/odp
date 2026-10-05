@@ -553,21 +553,25 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 												Privado
 											</span>
 										{/if}
-										<ChevronRight
-											class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-											aria-hidden="true"
-										/>
 									</a>
+									<!-- El chevron se quitó: el autor lo leía como una orden de presionar, y la fila entera ya es
+									     el enlace. El grupo queda armado para una segunda acción —la papelera entrará recién cuando
+									     exista el borrado—, oculto por debajo de `lg` para que en un teléfono la fila entera sea el
+									     objetivo y el título conserve su ancho (mismo precedente que la etiqueta «Acciones» de la
+									     barra pegajosa). -->
 									<!-- Fail closed: sin respuesta afirmativa no hay enlace. `unknown` y el conjunto vacío se
 									     tratan igual; CKAN es la frontera de seguridad, no el botón oculto. -->
 									{#if puedeEditarDataset(dataset)}
-										<a
-											href={`/dashboard/datasets/${dataset.name}/edit`}
-											class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-										>
-											<Pencil class="size-4" aria-hidden="true" />
-											Editar
-										</a>
+										<div class="hidden shrink-0 items-center gap-2 lg:flex">
+											<a
+												href={`/dashboard/datasets/${dataset.name}/edit`}
+												aria-label="Editar"
+												title="Editar"
+												class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											>
+												<Pencil class="size-4" aria-hidden="true" />
+											</a>
+										</div>
 									{/if}
 								</li>
 							{/each}
