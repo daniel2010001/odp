@@ -1,18 +1,5 @@
-<script lang="ts" module>
-/**
- * Cómo se divulga lo que el recorte de tags y formatos esconde.
- *
- * - `off`: el comportamiento de hoy (3 tags + un `+N` pelado, 4 formatos + `+N más`).
- * - `link-tooltip`: la card entera sigue siendo un `<a>` y ese enlace es el disparador
- *   del tooltip; el contenido lista las etiquetas y los formatos que el recorte esconde.
- * - `title-link`: el `<h3>` envuelve el `<a>` y la divulgación es un `<button>` real que
- *   despliega una región; la card deja de ser un enlace clicable.
- */
-export type CardDisclosure = "off" | "link-tooltip" | "title-link";
-</script>
-
 <script lang="ts">
-import { Building2, Calendar, ChevronDown, FileText } from "@lucide/svelte";
+import { Building2, Calendar, FileText } from "@lucide/svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { Tooltip, TooltipContent, TooltipTrigger } from "$lib/components/ui/tooltip";
 import { formatChips, MAX_FORMAT_CHIPS, normalizeFormats } from "$lib/resources/formats";
@@ -20,17 +7,11 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { datasetSummary } from "$lib/utils/dataset-summary";
 
-let {
-	dataset,
-	class: className = "",
-	disclosure = "off",
-	forceOpen = false,
-}: {
-	dataset: CkanPackage;
-	class?: string;
-	disclosure?: CardDisclosure;
-	forceOpen?: boolean;
-} = $props();
+// La card sigue siendo **un solo enlace** clicable. Cuando el recorte esconde tags o formatos,
+// ese mismo `<a>` es el disparador de un tooltip que los lista; sin nada escondido, degrada al
+// enlace normal (un tooltip vacío sería ruido). No hay `<button>` ni región: ningún interactivo
+// anida dentro del enlace.
+let { dataset, class: className = "" }: { dataset: CkanPackage; class?: string } = $props();
 
 const formatSummary = $derived(formatChips(dataset.resources));
 
@@ -53,46 +34,6 @@ const hiddenTagCount = $derived(hiddenTags.length);
 const hiddenFormatCount = $derived(hiddenFormats.length);
 const hasHidden = $derived(hiddenTagCount > 0 || hiddenFormatCount > 0);
 
-// Rótulo preciso sobre qué hay escondido; en español neutro y trato de usted.
-const disclosureLabel = $derived.by(() => {
-	if (hiddenTagCount > 0 && hiddenFormatCount > 0)
-		return `Ver ${hiddenTagCount} etiquetas y ${hiddenFormatCount} formatos ocultos`;
-	if (hiddenTagCount > 0) return `Ver ${hiddenTagCount} etiquetas ocultas`;
-	if (hiddenFormatCount > 0) return `Ver ${hiddenFormatCount} formatos ocultos`;
-	return "Ver más";
-});
-
-const regionId = $props.id();
-let expanded = $state(false);
-let tooltipOpen = $state(false);
-const isExpanded = $derived(forceOpen || expanded);
-// Marca que el abierto del tooltip vino del forzado, para poder cerrarlo al apagarlo.
-let wasForced = false;
-
-// `forceOpen` fija la divulgación mientras está encendido: si el puntero o el foco la cierran, el
-// efecto la vuelve a abrir. Al **apagarlo** hay que cerrarla: con `forceOpen || tooltipOpen` a
-// secas, el `true` forzado quedaría pegado y el tooltip seguiría abierto hasta un blur o un
-// pointer-leave. `wasForced` distingue el abierto forzado del abierto real del usuario: sólo se
-// marca cuando el forzado **causó** el abierto, nunca cuando encontró la divulgación ya abierta por
-// el usuario —si no, apagarlo cerraría un tooltip que el puntero todavía está sosteniendo.
-$effect(() => {
-	if (forceOpen) {
-		if (!tooltipOpen) {
-			wasForced = true;
-			tooltipOpen = true;
-		}
-		return;
-	}
-	if (wasForced) {
-		wasForced = false;
-		if (tooltipOpen) tooltipOpen = false;
-	}
-});
-
-function toggleDisclosure() {
-	expanded = !expanded;
-}
-
 // El disparador del tooltip es un `<a>`: bits-ui inyecta `type="button"` en las props
 // delegadas (su tipado es un primitivo de botón) y sobre un enlace ese atributo es
 // inválido. Se descarta acá, donde se elige el elemento; el envoltorio del tooltip no
@@ -102,16 +43,11 @@ function dropButtonType(props: Record<string, unknown>): Record<string, unknown>
 	return anchorProps;
 }
 
-// En `title-link` la card deja de ser un enlace, así que pierde el `cursor-pointer`
-// y los realces de `group-hover` (no hay `group`); el resto de las formas conserva
-// las clases de hoy.
 const cardClass = $derived(
-	disclosure === "title-link"
-		? cn("border-primary/15 transition-all duration-200", className)
-		: cn(
-				"cursor-pointer border-primary/15 transition-all duration-200 group-hover:border-primary/35 group-hover:shadow-md",
-				className,
-			),
+	cn(
+		"cursor-pointer border-primary/15 transition-all duration-200 group-hover:border-primary/35 group-hover:shadow-md",
+		className,
+	),
 );
 
 // Color como ACENTO sobre contenedor neutro: los chips comparten el mismo
@@ -147,9 +83,8 @@ function shortDate(iso: string): string {
 }
 </script>
 
-<!-- Un solo bloque de detalles escondidos, compartido por las dos formas: lo
-     consume el `Tooltip` de `link-tooltip` y la región de `title-link`. Es el
-     punto donde «un mecanismo arregla los dos recortes» se vuelve literal. -->
+<!-- Detalles escondidos por el recorte, en español neutro y trato de usted. Sólo los consume el
+     `Tooltip`; el recorte visible de la card sigue siendo el `+N` pelado de siempre. -->
 {#snippet hiddenDetails()}
 	{#if hiddenTags.length > 0}
 		<div class="space-y-1">
@@ -165,29 +100,14 @@ function shortDate(iso: string): string {
 	{/if}
 {/snippet}
 
-<!-- El cuerpo de la card, idéntico en las tres formas salvo el título (que en
-     `title-link` envuelve el enlace) y el bloque de divulgación. -->
 {#snippet cardBody()}
 	<div class="space-y-2.5 p-6">
-		{#if disclosure === "title-link"}
-			<h3
-				class="font-heading text-xl font-bold leading-[1.2] line-clamp-2 break-words text-primary"
-			>
-				<a
-					href={`/dataset/${dataset.name}`}
-					class="rounded-sm underline-offset-2 hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-				>
-					{dataset.title || dataset.name}
-				</a>
-			</h3>
-		{:else}
-			<!-- Title: text-xl bold para que domine sobre la meta -->
-			<h3
-				class="font-heading text-xl font-bold leading-[1.2] line-clamp-2 break-words text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline"
-			>
-				{dataset.title || dataset.name}
-			</h3>
-		{/if}
+		<!-- Title: text-xl bold para que domine sobre la meta -->
+		<h3
+			class="font-heading text-xl font-bold leading-[1.2] line-clamp-2 break-words text-primary underline-offset-2 transition-colors group-hover:text-primary/80 group-hover:underline"
+		>
+			{dataset.title || dataset.name}
+		</h3>
 
 		<!-- Meta: org (con icono, estilo actual) + privado -->
 		<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -253,32 +173,6 @@ function shortDate(iso: string): string {
 				</span>
 			</div>
 		</div>
-
-		{#if disclosure === "title-link" && hasHidden}
-			<button
-				type="button"
-				class="inline-flex w-fit items-center gap-1.5 rounded-md text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-				aria-expanded={isExpanded}
-				aria-controls={regionId}
-				onclick={toggleDisclosure}
-			>
-				{isExpanded ? "Ocultar" : disclosureLabel}
-				<ChevronDown
-					class={cn(
-						"size-3.5 transition-transform motion-reduce:transition-none",
-						isExpanded && "rotate-180",
-					)}
-					aria-hidden="true"
-				/>
-			</button>
-			<div
-				id={regionId}
-				hidden={!isExpanded}
-				class="space-y-2 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground"
-			>
-				{@render hiddenDetails()}
-			</div>
-		{/if}
 	</div>
 {/snippet}
 
@@ -293,13 +187,11 @@ function shortDate(iso: string): string {
 	</a>
 {/snippet}
 
-{#if disclosure === "link-tooltip" && hasHidden}
-	<Tooltip bind:open={tooltipOpen}>
+{#if hasHidden}
+	<Tooltip>
 		<TooltipTrigger child={linkTrigger} />
 		<TooltipContent class="space-y-2">{@render hiddenDetails()}</TooltipContent>
 	</Tooltip>
-{:else if disclosure === "title-link"}
-	<Card class={cardClass}>{@render cardBody()}</Card>
 {:else}
 	<a
 		href={`/dataset/${dataset.name}`}

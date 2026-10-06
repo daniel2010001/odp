@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { render, screen } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 import type { CkanPackage, CkanResource, CkanTag } from "$lib/types/ckan";
 import DatasetCard from "./DatasetCard.svelte";
@@ -46,269 +46,109 @@ function makeDataset({
 
 const EIGHT_TAGS_SIX_FORMATS = { tags: 8, formats: ["CSV", "JSON", "PDF", "XLSX", "XML", "RDF"] };
 
-/** El único enlace de la card cuando la card entera es un enlace. */
+/** El único enlace de la card: la card entera es un `<a>`. */
 function cardLink(): HTMLAnchorElement {
 	const link = screen.getByRole("link");
 	if (link.tagName !== "A") throw new Error(`Se esperaba un <a> y llegó <${link.tagName}>`);
 	return link as HTMLAnchorElement;
 }
 
-function disclosureButton(): HTMLButtonElement {
-	return screen.getByRole("button") as HTMLButtonElement;
-}
-
 describe("DatasetCard — recorte de tags y formatos", () => {
-	describe("forma `off`: exactamente el comportamiento de hoy", () => {
-		it("con 5 tags muestra 3 y un `+2` pelado", () => {
-			render(DatasetCard, { props: { dataset: makeDataset({ tags: 5 }) } });
+	it("con 5 tags muestra 3 y un `+2` pelado", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ tags: 5 }) } });
 
-			expect(screen.getAllByText(/^#/)).toHaveLength(3);
-			expect(screen.getByText("+2")).toBeInTheDocument();
-		});
-
-		it("con exactamente 3 tags no hay contador `+N`", () => {
-			render(DatasetCard, { props: { dataset: makeDataset({ tags: 3 }) } });
-
-			expect(screen.getAllByText(/^#/)).toHaveLength(3);
-			expect(screen.queryByText(/^\+\d/)).toBeNull();
-		});
-
-		it("con 0 tags no se renderiza el bloque de tags", () => {
-			render(DatasetCard, { props: { dataset: makeDataset({ tags: 0 }) } });
-
-			expect(screen.queryByText(/^#/)).toBeNull();
-			expect(screen.queryByText(/^\+\d/)).toBeNull();
-		});
+		expect(screen.getAllByText(/^#/)).toHaveLength(3);
+		expect(screen.getByText("+2")).toBeInTheDocument();
 	});
 
-	describe("forma `link-tooltip`: el `<a>` de la card es el disparador", () => {
-		it("conserva el recorte visible y agrega la divulgación de lo escondido", async () => {
-			render(DatasetCard, {
-				props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS), disclosure: "link-tooltip" },
-			});
+	it("con exactamente 3 tags no hay contador `+N`", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ tags: 3 }) } });
 
-			// El recorte visible no cambia: 3 tags + `+5`, 4 formatos + `+2 más`.
-			expect(screen.getAllByText(/^#/)).toHaveLength(3);
-			expect(screen.getByText("+5")).toBeInTheDocument();
-			expect(screen.getByText("+2 más")).toBeInTheDocument();
-
-			const link = cardLink();
-			expect(link).toHaveAttribute("href", "/dataset/matricula-2026");
-			// El `<a>` no puede heredar el `type="button"` que bits-ui inyecta en el disparador:
-			// es un atributo inválido sobre un enlace. El recorte del `type` vive acá, donde se
-			// elige el elemento, no en el envoltorio del tooltip (que debe ser pasamanos fiel).
-			expect(link).not.toHaveAttribute("type");
-			expect(link).not.toHaveAttribute("disabled");
-
-			// El camino real, sin forzar: el foco abre el tooltip.
-			link.focus();
-			const tooltip = await screen.findByRole("tooltip");
-			expect(tooltip).toHaveTextContent("etiqueta-4");
-			expect(tooltip).toHaveTextContent("etiqueta-8");
-			expect(tooltip).toHaveTextContent("XML");
-			expect(tooltip).toHaveTextContent("RDF");
-		});
-
-		it("el enlace de la card no contiene contenido interactivo anidado", async () => {
-			render(DatasetCard, {
-				props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS), disclosure: "link-tooltip" },
-			});
-			const link = cardLink();
-			link.focus();
-			await screen.findByRole("tooltip");
-
-			// El tooltip se porta a `document.body`, así que no cuelga del enlace: cero
-			// interactivos anidados dentro del `<a>` (un `<a>` o `<button>` adentro sería
-			// HTML inválido y una trampa para el teclado).
-			expect(link.querySelectorAll("a, button, input, select, textarea")).toHaveLength(0);
-			expect(link.querySelectorAll("[tabindex]")).toHaveLength(0);
-		});
-
-		it("sin nada escondido el enlace queda sin disparador: no hay tooltip vacío", () => {
-			render(DatasetCard, {
-				props: {
-					dataset: makeDataset({ tags: 2, formats: ["CSV"] }),
-					disclosure: "link-tooltip",
-				},
-			});
-
-			const link = cardLink();
-
-			// Un tooltip que no tiene nada que decir es ruido: sin recorte, la forma
-			// degrada al enlace normal. La aserción es sincrónica a propósito: mira la
-			// marca del disparador (`data-tooltip-trigger`), que está o no está sin
-			// esperar a que monte el contenido.
-			expect(link).not.toHaveAttribute("data-tooltip-trigger");
-			expect(document.querySelectorAll("[data-tooltip-content]")).toHaveLength(0);
-		});
+		expect(screen.getAllByText(/^#/)).toHaveLength(3);
+		expect(screen.queryByText(/^\+\d/)).toBeNull();
 	});
 
-	describe("forma `title-link`: título enlazado y divulgación con `<button>`", () => {
-		it("el título contiene el `<a>` y la divulgación es un `<button>` con `aria-expanded`/`aria-controls`", async () => {
-			const { container } = render(DatasetCard, {
-				props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS), disclosure: "title-link" },
-			});
+	it("con 0 tags no se renderiza el bloque de tags", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ tags: 0 }) } });
 
-			const link = cardLink();
-			expect(link).toHaveAttribute("href", "/dataset/matricula-2026");
-			expect(link.closest("h3")).not.toBeNull();
-			// La superficie de clic ya no es la card entera: el enlace lleva sólo el título.
-			expect(link).toHaveTextContent("Matrícula 2026");
+		expect(screen.queryByText(/^#/)).toBeNull();
+		expect(screen.queryByText(/^\+\d/)).toBeNull();
+	});
+});
 
-			const button = disclosureButton();
-			expect(button).toHaveAttribute("type", "button");
-			expect(button).toHaveAttribute("aria-expanded", "false");
+// El `<a>` de la card es el disparador del tooltip: la card sigue siendo **un solo enlace**
+// clicable y la divulgación cuelga de él. Es la única forma de la divulgación.
+describe("DatasetCard — divulgación por tooltip", () => {
+	it("conserva el recorte visible y agrega la divulgación de lo escondido", async () => {
+		render(DatasetCard, { props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS) } });
 
-			const regionId = button.getAttribute("aria-controls");
-			expect(regionId).toBeTruthy();
-			const region = container.querySelector(`[id="${regionId}"]`);
-			expect(region).not.toBeNull();
+		// El recorte visible no cambia: 3 tags + `+5`, 4 formatos + `+2 más`.
+		expect(screen.getAllByText(/^#/)).toHaveLength(3);
+		expect(screen.getByText("+5")).toBeInTheDocument();
+		expect(screen.getByText("+2 más")).toBeInTheDocument();
 
-			await fireEvent.click(button);
-			expect(button).toHaveAttribute("aria-expanded", "true");
-			expect(region).toHaveTextContent("etiqueta-4");
-			expect(region).toHaveTextContent("etiqueta-8");
-			expect(region).toHaveTextContent("XML");
-			expect(region).toHaveTextContent("RDF");
+		const link = cardLink();
+		expect(link).toHaveAttribute("href", "/dataset/matricula-2026");
+		// El `<a>` no puede heredar el `type="button"` que bits-ui inyecta en el disparador:
+		// es un atributo inválido sobre un enlace. El recorte del `type` vive acá, donde se
+		// elige el elemento, no en el envoltorio del tooltip (que debe ser pasamanos fiel).
+		expect(link).not.toHaveAttribute("type");
+		expect(link).not.toHaveAttribute("disabled");
 
-			await fireEvent.click(button);
-			expect(button).toHaveAttribute("aria-expanded", "false");
-		});
+		// El camino real, sin forzar: el foco abre el tooltip.
+		link.focus();
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip).toHaveTextContent("etiqueta-4");
+		expect(tooltip).toHaveTextContent("etiqueta-8");
+		expect(tooltip).toHaveTextContent("XML");
+		expect(tooltip).toHaveTextContent("RDF");
 	});
 
-	describe("`forceOpen`: el estado de divulgación se puede fijar", () => {
-		it("en `link-tooltip` abre el tooltip sin puntero", async () => {
-			render(DatasetCard, {
-				props: {
-					dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS),
-					disclosure: "link-tooltip",
-					forceOpen: true,
-				},
-			});
+	it("el enlace de la card no contiene contenido interactivo anidado", async () => {
+		render(DatasetCard, { props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS) } });
+		const link = cardLink();
+		link.focus();
+		await screen.findByRole("tooltip");
 
-			const tooltip = await screen.findByRole("tooltip");
-			expect(tooltip).toHaveTextContent("etiqueta-4");
-			expect(tooltip).toHaveTextContent("XML");
-		});
-
-		it("en `title-link` deja la región desplegada", () => {
-			const { container } = render(DatasetCard, {
-				props: {
-					dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS),
-					disclosure: "title-link",
-					forceOpen: true,
-				},
-			});
-
-			const button = disclosureButton();
-			expect(button).toHaveAttribute("aria-expanded", "true");
-			const region = container.querySelector(`[id="${button.getAttribute("aria-controls")}"]`);
-			expect(region).not.toBeNull();
-			expect(region).toHaveTextContent("etiqueta-4");
-			expect(region).toHaveTextContent("XML");
-			expect(region?.hasAttribute("hidden")).toBe(false);
-		});
-
-		it("al apagar el forzado, el tooltip se cierra", async () => {
-			const { rerender } = render(DatasetCard, {
-				props: {
-					dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS),
-					disclosure: "link-tooltip",
-					forceOpen: true,
-				},
-			});
-			await screen.findByRole("tooltip");
-
-			// El estado forzado no puede quedar pegado: al bajar el interruptor, se cierra ya.
-			const link = cardLink();
-			expect(link).toHaveAttribute("data-state", "instant-open");
-			await rerender({ forceOpen: false });
-			expect(link).toHaveAttribute("data-state", "closed");
-			await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
-		});
-
-		it("si el tooltip ya estaba abierto por el usuario, apagar el forzado no lo cierra", async () => {
-			const { rerender } = render(DatasetCard, {
-				props: {
-					dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS),
-					disclosure: "link-tooltip",
-					forceOpen: false,
-				},
-			});
-
-			// El usuario abre la divulgación por su cuenta: el foco es el camino real (el navegador
-			// también la abre con hover), sin que el forzado esté encendido.
-			const link = cardLink();
-			link.focus();
-			await screen.findByRole("tooltip");
-
-			// El forzado se enciende **sobre** un abierto del usuario y se apaga enseguida. Como no
-			// fue el forzado el que abrió, apagarlo no puede cerrar algo que el usuario abrió.
-			await rerender({ forceOpen: true });
-			await rerender({ forceOpen: false });
-
-			expect(link).not.toHaveAttribute("data-state", "closed");
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
-		});
-
-		it("al apagar el forzado, la región de `title-link` se cierra", async () => {
-			const { container, rerender } = render(DatasetCard, {
-				props: {
-					dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS),
-					disclosure: "title-link",
-					forceOpen: true,
-				},
-			});
-			const button = disclosureButton();
-			expect(button).toHaveAttribute("aria-expanded", "true");
-
-			await rerender({ forceOpen: false });
-			expect(button).toHaveAttribute("aria-expanded", "false");
-			const region = container.querySelector(`[id="${button.getAttribute("aria-controls")}"]`);
-			expect(region?.hasAttribute("hidden")).toBe(true);
-		});
+		// El tooltip se porta a `document.body`, así que no cuelga del enlace: cero
+		// interactivos anidados dentro del `<a>` (un `<a>` o `<button>` adentro sería
+		// HTML inválido y una trampa para el teclado).
+		expect(link.querySelectorAll("a, button, input, select, textarea")).toHaveLength(0);
+		expect(link.querySelectorAll("[tabindex]")).toHaveLength(0);
 	});
 
-	// Corrección a11y deliberada sobre comportamiento existente: el enlace de la card
-	// llevaba `focus-visible:outline-none` y nada en su lugar, así que el teclado no veía
-	// dónde estaba el foco. Se agrega el anillo con los tokens del repo en las tres formas.
-	describe("foco visible del enlace de la card", () => {
-		const RING = [
-			"focus-visible:ring-2",
-			"focus-visible:ring-ring",
-			"focus-visible:ring-offset-2",
-			// Sin color de offset, Tailwind pinta el `#fff` crudo; el repo exige tokens.
-			"focus-visible:ring-offset-background",
-		];
+	it("sin nada escondido el enlace queda sin disparador: no hay tooltip vacío", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ tags: 2, formats: ["CSV"] }) } });
 
-		it("`off` lo pone en el `<a>` de la card y conserva el `rounded-xl` del anillo", () => {
-			render(DatasetCard, { props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS) } });
+		const link = cardLink();
 
-			const link = cardLink();
-			for (const cls of RING) expect(link.className).toContain(cls);
-			// El anillo tiene que seguir el radio de la card, no una esquina cuadrada.
-			expect(link.className).toContain("rounded-xl");
-		});
+		// Un tooltip que no tiene nada que decir es ruido: sin recorte, la card degrada
+		// al enlace normal. La aserción es sincrónica a propósito: mira la marca del
+		// disparador (`data-tooltip-trigger`), que está o no está sin esperar a que monte
+		// el contenido.
+		expect(link).not.toHaveAttribute("data-tooltip-trigger");
+		expect(document.querySelectorAll("[data-tooltip-content]")).toHaveLength(0);
+	});
+});
 
-		it("`link-tooltip` lo pone en el `<a>` que es el disparador", () => {
-			render(DatasetCard, {
-				props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS), disclosure: "link-tooltip" },
-			});
+// Corrección a11y deliberada sobre comportamiento existente: el enlace de la card
+// llevaba `focus-visible:outline-none` y nada en su lugar, así que el teclado no veía
+// dónde estaba el foco. Se agrega el anillo con los tokens del repo.
+describe("foco visible del enlace de la card", () => {
+	const RING = [
+		"focus-visible:ring-2",
+		"focus-visible:ring-ring",
+		"focus-visible:ring-offset-2",
+		// Sin color de offset, Tailwind pinta el `#fff` crudo; el repo exige tokens.
+		"focus-visible:ring-offset-background",
+	];
 
-			const link = cardLink();
-			for (const cls of RING) expect(link.className).toContain(cls);
-		});
+	it("lo pone en el `<a>` de la card y conserva el `rounded-xl` del anillo", () => {
+		render(DatasetCard, { props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS) } });
 
-		it("`title-link` lo pone en el enlace del título y en el `<button>` de divulgación", () => {
-			render(DatasetCard, {
-				props: { dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS), disclosure: "title-link" },
-			});
-
-			const link = cardLink();
-			for (const cls of RING) expect(link.className).toContain(cls);
-
-			const button = disclosureButton();
-			for (const cls of RING) expect(button.className).toContain(cls);
-		});
+		const link = cardLink();
+		for (const cls of RING) expect(link.className).toContain(cls);
+		// El anillo tiene que seguir el radio de la card, no una esquina cuadrada.
+		expect(link.className).toContain("rounded-xl");
 	});
 });
