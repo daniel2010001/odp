@@ -20,8 +20,15 @@
 ## Estado al cierre (2026-10-05, noche) — handoff: la interfaz revisada en vivo, dos diseños promovidos, y **nada a medias**
 
 > **`main` = `22a3fa4` = `origin/main`, árbol limpio, 0 sin pushear, CI verde** (run `37380003988`: lint,
-> typecheck y suite completa). Suite **919/919** en 57 archivos · `svelte-check` 0 errores / 4 warnings
+> typecheck y suite completa). Suite **863/863** en 55 archivos · `svelte-check` 0 errores / 4 warnings
 > preexistentes · `node_modules/.bin/biome check .` limpio sobre **164** archivos.
+>
+> **Corrección medida al abrir la sesión siguiente (2026-10-05), sobre `ae3e3df` y en un worktree aparte:**
+> el «**919/919 en 57 archivos**» que decía acá corresponde al estado **anterior a `df03eed`**, el commit que
+> retiró las dos hojas de revisión junto con sus **56 tests** (33 + 23). Medido en `df03eed^`: **919/57** —
+> exactamente el número documentado. Medido en `ae3e3df` (HEAD): **863/55**. O sea: `main` está sano y no se
+> perdió nada; el número quedó **viejo por un commit**. Cualquier sesión que compare totales contra este
+> handoff tiene que usar 863/55.
 >
 > **Lo que pasó, en una línea por cosa:**
 > 1. **Una sola página de error en todas las superficies.** La página del dataset y la del recurso usaban un
@@ -2046,6 +2053,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Queda descartado por el propio arnés poner el disparador sobre un `<span>` no enfocable: exigiría `tabindex`, que es
   exactamente la violación (`a11y_no_noninteractive_tabindex`) que `/dev/nav` ya documentó al intentarlo.
   **Falta elegir (a) o (b), y no antes.** El defecto sigue vivo y medido: nada de esto cambió el código.
+  **Hoja construida (2026-10-05, rama `feat/dev-search-decision`):** `/dev/search` —el playground que duplica
+  el buscador real— pone las dos formas en pantalla con el componente real, un interruptor por forma y un
+  **forzado abierto** para el estado que sólo vive en hover (medido: ese estado no se puede revisar y no existe
+  en táctil). **Espera la decisión del autor mirándola**, y no antes: el defecto sigue en el código.
+  **Cambio declarado que la rama trae de paso:** el enlace de la card tenía `focus-visible:outline-none` sin
+  nada detrás —sin foco visible para el teclado—, así que ahora lleva un anillo con tokens en las tres formas
+  (regla 7).
 
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
@@ -2251,6 +2265,13 @@ después del cierre que describe el encabezado de esta sección; medición compl
   desde el `node_modules` de este worktree —uso que `AGENTS.md` documenta como legítimo para medir un worktree que el
   proxy no monta—. Lo que falta acá no es una forma de medir: es **elegir (a), (b) o (c)**.
   _Anotado por la sesión paralela, 2026-10-03. Sin cambios de código por esta nota._
+  **Hoja construida (2026-10-05, rama `feat/dev-search-decision`):** `/dev/search` mide las tres salidas
+  **en el navegador real** y trae un instrumento con auto-test. Lo que ya se midió ahí, y es lo que el autor
+  necesita para elegir: con las cards a una brecha de 225 px, **`proximity` y `mandatory` dan el mismo número**
+  en los cinco sondeos de la zona de resultados; la diferencia aparece **sólo en el punto más lejano a todo
+  borde** (las secciones altas, donde no hay card): `proximity` deja el desplazamiento donde está (Δ 0,1 px) y
+  `mandatory` lo **arrastra 707 px** hasta la última card. Es exactamente el «se siente roto» de este ítem.
+  **Espera la decisión del autor mirándola** (a, b o c).
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
   del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque

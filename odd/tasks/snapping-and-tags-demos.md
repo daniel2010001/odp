@@ -131,4 +131,61 @@ donde (b) se rompe.
 
 ## Evidencia
 
-_(se completa al cerrar cada WU, con su commit y su compuerta nativa si corresponde)_
+### Lo que hay para mirar
+
+- **Hoja: `/dev/search`** —sólo DEV; en producción responde 404— ya servida por el contenedor en
+  **<http://localhost:8082/dev/search>** (el contenedor monta `src/`, no hace falta levantar nada).
+- Cada control está en la URL: `?snap=off|proximity|mandatory|contained`,
+  `?disclosure=off|link-tooltip|title-link`, `?open=1`, `?case=<id>`, `?panel=open`.
+- La hoja **nace colapsada y no mueve el viewport**: mide, restaura la posición y avisa **en rojo** si el
+  navegador se niega a volver.
+
+### Los números, medidos en el navegador (chromium headless contra el 8082)
+
+| Modo | Scroller | `scroll-snap-type` | Margen | Punto más lejano a todo borde |
+|---|---|---|---|---|
+| `off` | window | `none` | 164,0 px | R 2337,9 → S 2338,0 (Δ −0,1) |
+| `proximity` | window | `y proximity` | 164,0 px | R 2337,9 → S **2338,0** (Δ −0,1) |
+| `mandatory` | window | `y mandatory` | 164,0 px | R 2337,9 → S **1631,0** (Δ **706,9**) |
+| `contained` | region | `y mandatory` | 164,0 px | (pedido acotado al máximo, marcado «acot.») |
+
+El auto-test (la misma sonda con el *snapping* anulado por estilo en línea) devolvió **delta máximo 0,4 px**
+las cuatro veces: el instrumento no se está midiendo a sí mismo. El margen de **164,0 px** es
+`--header-h` (80) + barra pegajosa (68) + `1rem` (16), leído de la página.
+
+### El hallazgo que decide Q1
+
+En los cinco sondeos que caen dentro de la zona de resultados —una brecha de 225 px— **`proximity` y
+`mandatory` dan el mismo número**, porque todo desplazamiento queda a menos de ~112 px de un borde y Chrome
+ajusta igual. La diferencia aparece **sólo en el punto más lejano a todo borde**, que son las secciones altas
+donde no hay card: ahí `proximity` deja el desplazamiento donde está y `mandatory` lo **arrastra 707 px**.
+Traducido a la decisión: (a) y (b) se comportan igual **donde el usuario mira las cards**, y difieren **donde
+la página tiene contenido que no es card** — que es el «se siente roto» que el ítem del `BACKLOG` ya preveía.
+
+### Defectos que salieron de medir, no de leer
+
+Los seis se arreglaron en la rama: (1) el instrumento **secuestraba el viewport** al cargar; (2) cinco
+sondeos dentro de una misma brecha hacían que (a) y (b) imprimieran **lo mismo**; (3) el margen se leía
+**antes** de que el alto de la barra pegajosa se asentara (imprimía 96 px donde el CSS dice 164); (4) la
+línea «expected» nombraba el borde más cercano y el aterrizaje la **contradecía** en la misma pantalla;
+(5) `y` se imprimía por lo que es `y proximity`; (6) un pedido por encima del máximo del scroller se leía
+como «no se ajustó» en vez de **acotado**.
+
+### Verificación
+
+- **Suite completa: 944/944 en 60 archivos** con la rama; **863/863 en 55** en `ae3e3df` (HEAD antes de
+  ella). `biome check .` limpio sobre 180 archivos · `svelte-check` 0 errores / 4 warnings preexistentes.
+- **El baseline documentado del cierre anterior estaba viejo:** «919/919 en 57 archivos» corresponde a
+  `df03eed^`; ese commit retiró las dos hojas y con ellas **56 tests** (33 + 23). Medido en un worktree
+  aparte para no tocar el árbol de trabajo.
+- **Verificación independiente:** la primera pasada quedó **invalidada porque el árbol se movió durante su
+  corrida** — defecto de orquestación propio, al mandar correcciones en paralelo al verificador. La segunda
+  corre sobre el commit congelado.
+- **Compuertas nativas (RDD):** ver el cierre de la sesión; el switch está encendido y la decisión de qué
+  candidato se congela es del autor.
+
+### Commits de la rama `feat/dev-search-decision`
+
+`9273083` expediente · `967d2f6` tooltip vendorizado · `0d5b056` la card que divulga lo que trunca ·
+`7cdaf90` la hoja de decisión. **Nada pusheado y nada mergeado:** el push, el PR y el merge son decisiones
+ del autor.
