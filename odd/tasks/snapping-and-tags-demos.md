@@ -197,8 +197,29 @@ como «no se ajustó» en vez de **acotado**.
   aterrizaje coinciden en `69,0`.
 - **Entrega:** nada pusheado, nada mergeado, ningún PR. Es decisión del autor.
 
+## Decisiones del autor (2026-10-06) y cierre
+
+- **Tags de la card: opción (a), el tooltip. Promovida.** «El tooltip está bonito, no tengo observaciones sobre
+  el A, por mí queda.» La card volvió a ser **un solo `<a>`** con el tooltip como único comportamiento: se
+  retiraron el prop `disclosure`, el forzado abierto y toda la variante `title-link` con su botón y su región.
+- **Scroll snapping: NO se adopta.** El autor reportó que el scroll «baja uno por uno» y pidió sacarlo si no se
+  podía arreglar. **No se puede**, y está medido: con las cards a **225 px**, `proximity` y `mandatory` se
+  comportan **igual dentro de la zona de resultados** (la diferencia sólo aparece lejos de toda card), así que
+  el bloqueo es proporcional a la **densidad de puntos de snap**, no a la fuerza del modo. No hay interruptor
+  CSS intermedio: `scroll-snap-stop` está en `normal` por defecto y `always` sería peor. Lo que **sí** cubre la
+  necesidad de fondo —una card cortada bajo la barra pegajosa al navegar— es el `scroll-margin-top` que ya
+  existe en el buscador (`estiloDestino`).
+- **Límite declarado de lo promovido:** el tooltip **no existe en táctil**. En el teléfono el `+N` sigue sin
+  explicarse; la variante con `<button>` real, que sí funcionaba en táctil, fue revisada y no se eligió. Queda
+  anotado como el camino disponible si algún día molesta.
+- **Descartado por el propio arnés, no reintentar:** interceptar la rueda con JavaScript para «snapping suave»
+  —rompe el scroll nativo y la accesibilidad— y poner `tabindex` a un `<span>` (violación
+  `a11y_noninteractive_tabindex`).
+
 ### Commits de la rama `feat/dev-search-decision`
 
 `9273083` expediente · `967d2f6` tooltip vendorizado · `0d5b056` la card que divulga lo que trunca ·
-`7cdaf90` la hoja de decisión. **Nada pusheado y nada mergeado:** el push, el PR y el merge son decisiones
+`7cdaf90` la hoja de decisión · `1032b59` el `BACKLOG` y la corrección del total de la suite · `be0c5ee` los
+arreglos de la primera compuerta · `6f98629` el registro de las compuertas · `8d7924f` la promoción del tooltip
+· `8c7b96d` el retiro de la hoja. **Nada pusheado y nada mergeado:** el push, el PR y el merge son decisiones
  del autor.

@@ -2022,7 +2022,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   artefactos del cambio SDD, y en **ninguno** puesta en `true`. La mitad literal del ítem (`.env.example`) **no es
   verificable** bajo la política estricta de rutas de entorno. **Frena en medir el stack y en la decisión de habilitarla.**
 
-- [ ] **[v0]** `TODO:` **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
+- [x] **[v0]** **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
+  **CERRADO (2026-10-06): promovido.** El `Tooltip` de bits-ui quedó vendorizado y la card ahora divulga las
+  etiquetas **y** los formatos que el recorte esconde, con el `<a>` de la card como disparador: es la opción
+  **(a)**, elegida por el autor mirando la hoja `/dev/search`. **Límite declarado:** un tooltip **no existe en
+  táctil**, así que en el teléfono el `+N` sigue sin explicarse; la variante estructural con `<button>` real
+  (b) se revisó y no se eligió. El cambio de paso del enlace —sin foco visible para el teclado— también quedó
+  arreglado. El cuerpo de abajo es el registro de cómo se llegó hasta acá y se borra al limpiar el backlog.
   Observación del autor (2026-09-25): «cuando son muchos aparece un `+X`, esto es ambiguo». **Causa medida**:
   `src/lib/components/search/DatasetCard.svelte:93-103` muestra `dataset.tags.slice(0, 3)` y después
   `+{dataset.tags.length - 3}` —un `+2` pelado, **sin rótulo y sin forma de saber qué etiquetas son**—.
@@ -2235,7 +2241,15 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## v1 — producto usable en producción
 
-- [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
+- [x] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).**
+  **CERRADO (2026-10-06): NO se adopta**, decisión del autor mirando la hoja y sintiendo el scroll. **La razón,
+  medida:** con las cards a una brecha de 225 px, `proximity` y `mandatory` **se comportan igual dentro de la
+  zona de resultados**, así que el «baja uno por uno» que el autor reportó **no se puede suavizar** mientras el
+  *snapping* viva en el scroller de la página: no hay interruptor CSS intermedio (`scroll-snap-stop` está en
+  `normal` por defecto, y `always` sería peor; el propio ejemplo de la doc de Tailwind sufre lo mismo). Lo que
+  **sí** queda, y cubre la necesidad de fondo —que una card no quede cortada bajo la barra pegajosa al
+  navegar—, es el `scroll-margin-top` que ya existe (`estiloDestino`, atado a `--header-h`). La medición y el
+  instrumento viven en `odd/tasks/snapping-and-tags-demos.md`. El cuerpo de abajo se borra al limpiar el backlog. El usuario lo
   pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
   `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
   `snap-mandatory`) en el contenedor de scroll y `snap-start` en cada card. **La trampa es el encabezado
