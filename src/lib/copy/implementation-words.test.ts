@@ -66,6 +66,24 @@ const EXCEPCIONES: { archivo: string; fragmento: string; motivo: string }[] = [
 		fragmento: "$lib/api/datastore",
 		motivo: "Ruta de módulo de un `import`, no copy visible.",
 	},
+	{
+		archivo: "src/routes/dashboard/datasets/new/+page.svelte",
+		fragmento: "slug «",
+		motivo:
+			"La oración del nombre ya tomado la fija `wizard.test.ts` con el término `slug`, y el commit de copy dejó ese término como decisión pendiente del autor. La entrada del denylist ahora sí lo marca; la excepción queda explícita para que reescribirla sea una decisión, no un hueco silencioso.",
+	},
+	{
+		archivo: "src/lib/components/datasets/DatasetForm.svelte",
+		fragmento: "El slug identifica",
+		motivo:
+			"La etiqueta y la ayuda del campo usan el término que el autor eligió para el valor, decisión pendiente registrada en el commit de copy; `DatasetForm.svelte` queda fuera de las superficies de este cambio.",
+	},
+	{
+		archivo: "src/lib/schemas/dataset.ts",
+		fragmento: "El slug debe tener al menos 2 caracteres",
+		motivo:
+			"El mensaje de validación del nombre usa el mismo término; `src/lib/schemas/dataset.ts` queda fuera de las superficies de este cambio. La excepción es explícita y revisable, no un hueco: el escáner de regexs destapó este string al arreglar el escáner de literales.",
+	},
 ];
 
 /** Los nombres que no deben aparecer en el copy visible, con la etiqueta del hallazgo. */
@@ -80,7 +98,12 @@ const PROHIBIDOS: { token: string; re: RegExp }[] = [
 	{ token: "headless", re: /\bheadless\b/i },
 	{ token: "endpoint", re: /\bendpoints?\b/i },
 	{ token: "ID:", re: /\bID:/ },
-	{ token: "Slug:", re: /\bSlug:/ },
+	// El término crudo `slug` se persigue en las dos formas en que llegaba a la pantalla: la etiqueta
+	// con dos puntos (`Slug:`) y la palabra dentro de una oración (`Elija otro slug e intente...`).
+	// No se marca un identificador de código (`id: "slug"`, `slug-hint`): la alternativa exige el
+	// término precedido de un espacio y no seguido de guion o letra, porque el escáner también ve
+	// los strings del script.
+	{ token: "slug", re: /\bslugs?:|\sslug(?![\w-])/i },
 ];
 
 type Violacion = { archivo: string; token: string; fragmento: string };
@@ -96,6 +119,21 @@ function recortarComentarios(fuente: string): string {
 		.replace(/<!--[\s\S]*?-->/g, "")
 		.replace(/\/\*[\s\S]*?\*\//g, "")
 		.replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+/**
+ * Saca los literales de regex (`/…/flags`). Un literal de regex **no es copy**, pero puede contener
+ * comillas o backticks (el patrón de email de `schemas/dataset.ts` trae los dos) y desalinear al
+ * escáner de cadenas: medido, una racha de strings de ese archivo quedaba dentro de un falso
+ * template y `quitarLlaves` la borraba, así que un mensaje visible como «El slug debe tener al menos
+ * 2 caracteres» no se veía. El lookbehind exige un contexto donde JS sólo admite un literal
+ * (tras `=`, `(`, `,`, `:`, `[`, `{`, `;`, …), que es donde el repo los escribe.
+ */
+function recortarLiteralesRegex(fuente: string): string {
+	return fuente.replace(
+		/(?<=[(,=:[!&|?{};]\s*)\/(?![/*])(?:[^/\\\n[]|\\.|\[(?:[^\]\\]|\\.)*\])+\/[a-z]*/g,
+		"(regex)",
+	);
 }
 
 /** Saca las expresiones `{...}` (incluye `{#if}`, `{/if}` y `${...}`). */
@@ -144,7 +182,7 @@ function quitarLlaves(texto: string): string {
 
 /** Junta los fragmentos de copy literal: cadenas y nodos de texto de markup. */
 function fragmentosDe(fuente: string): string[] {
-	const sinComentarios = recortarComentarios(fuente);
+	const sinComentarios = recortarLiteralesRegex(recortarComentarios(fuente));
 	const fragmentos: string[] = [];
 	const cadenas = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g;
 	for (const m of sinComentarios.matchAll(cadenas)) {
@@ -197,6 +235,34 @@ describe("El detector de palabras prohibidas está afilado", () => {
 	it("marca una etiqueta de campo cruda en el texto visible", () => {
 		expect(auditar("sintetico.svelte", "<span>ID: 42</span>")).toHaveLength(1);
 		expect(auditar("sintetico.svelte", "<span>Slug: matricula</span>")).toHaveLength(1);
+	});
+
+	it("marca el término crudo en minúscula dentro de una oración, sin dos puntos", () => {
+		// El caso que la entrada anterior dejaba escapar: el copy del error de creación usaba `slug`
+		// en minúscula y sin dos puntos. La entrada ensanchada lo cubre en las dos formas.
+		expect(
+			auditar("sintetico.svelte", "<p>Elija otro slug e intente nuevamente.</p>"),
+		).toHaveLength(1);
+		expect(auditar("sintetico.svelte", '"El valor del slug ya existe."')).toHaveLength(1);
+	});
+
+	it("no marca un identificador de código que sólo comparte el término", () => {
+		// `id: "slug"` y las clases `slug-hint` son strings del fuente, no copy: el ensanchamiento
+		// exige el término como palabra de una oración para no volver ruidoso al escáner.
+		expect(auditar("sintetico.svelte", '{ id: "slug" }')).toHaveLength(0);
+		expect(auditar("sintetico.svelte", '"slug-hint slug-error"')).toHaveLength(0);
+	});
+
+	it("ve una cadena visible aunque un literal de regex anterior traiga comillas o backticks", () => {
+		// El patrón de email de `schemas/dataset.ts` mete `'` y un backtick dentro de un `/…/`; sin
+		// sacar los literales de regex, el escáner abría un falso template que `quitarLlaves` borraba
+		// junto con el mensaje de validación, y la infracción no se veía.
+		const fuente = [
+			"const re = /[`]/;",
+			'const obj = { a: "El valor del slug ya existe." };',
+			"const otro = `x`;",
+		].join("\n");
+		expect(auditar("sintetico.svelte", fuente)).toHaveLength(1);
 	});
 
 	it("no marca un nombre que sólo vive en un comentario", () => {

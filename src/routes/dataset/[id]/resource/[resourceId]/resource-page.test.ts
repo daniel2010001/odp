@@ -555,6 +555,35 @@ describe("Página de recurso — la sección de acceso por API", () => {
 	});
 });
 
+describe("Página de recurso — extras sin card propia", () => {
+	it("traduce las claves internas conocidas y distingue dos extras desconocidos sin mostrar la clave cruda", async () => {
+		mocks.showResource.mockResolvedValue(
+			makeResource({
+				url_type: "upload",
+				datastore_active: true,
+				extras: [
+					{ key: "api_key", value: "clave-de-la-tabla" },
+					{ key: "formato_legado", value: "uno" },
+					{ key: "otro_campo", value: "dos" },
+				],
+			}),
+		);
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { name: /Acceso por API/i });
+		expect(screen.getByText("Clave de la API")).toBeTruthy();
+
+		// Dos extras desconocidos: cada uno con su propio ordinal, no dos «Campo adicional» idénticos.
+		const etiquetas = screen.getAllByText(/^Campo adicional \d+$/).map((nodo) => nodo.textContent);
+		expect(etiquetas).toHaveLength(2);
+		expect(new Set(etiquetas).size).toBe(2);
+
+		// La clave cruda del extra nunca llega a la pantalla.
+		expect(screen.queryByText(/formato_legado|otro_campo/)).toBeNull();
+	});
+});
+
 describe("Página de recurso — el dataset del breadcrumb", () => {
 	it("un 403 definitivo del dataset no se enmascara en DEV: el recurso se muestra y el breadcrumb degrada", async () => {
 		vi.stubEnv("DEV", true);

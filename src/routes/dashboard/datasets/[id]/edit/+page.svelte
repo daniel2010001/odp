@@ -183,10 +183,9 @@ async function cargarLicencias(client: CkanClient, generation: number) {
 	} catch (err) {
 		if (generation !== loadId) return;
 		licenses = [];
-		if (import.meta.env.DEV) {
-			// El texto crudo del servidor no entra a la oración visible; queda acá, sólo en desarrollo.
-			console.error("No se pudo cargar la lista de licencias:", err);
-		}
+		// El diagnóstico va a la consola en **todos** los modos: en producción es el único registro
+		// disponible, y el texto crudo del servidor no puede entrar a la oración visible.
+		console.error("No se pudo cargar la lista de licencias:", err);
 		licensesError = "No se pudo cargar la lista de licencias.";
 	} finally {
 		if (generation === loadId) licensesLoading = false;
@@ -204,6 +203,30 @@ async function cargarEtiquetas(client: CkanClient, generation: number) {
 		if (generation !== loadId) return;
 		tagSugerencias = [];
 	}
+}
+
+// ─── Copy de los fallos de guardado ──────────────────────────────────
+// Un fallo conocido se dice con su causa y con lo que el lector puede hacer; sólo lo inesperado cae
+// en el reintento genérico. Un 5xx, un timeout o una caída de red no observaron respuesta del
+// catálogo, así que no se les atribuye una causa. El reintento no es ciego igual: el `match` del
+// guardado lleva el `metadata_modified` cargado, de modo que un cambio ya aplicado se rinde como
+// conflicto en vez de pisar el estado nuevo.
+function describeSaveError(err: unknown): string {
+	// El diagnóstico va a la consola en todos los modos; el texto crudo del servidor no entra a la
+	// oración visible.
+	console.error("No se pudo guardar el dataset:", err);
+	if (err instanceof CkanApiError) {
+		if (err.status === 403) {
+			return "No se pudo guardar el dataset: su cuenta no tiene permiso para modificar este dataset.";
+		}
+		// Un 400/409/422 es una respuesta definitiva al payload: corregir los campos cambia el
+		// resultado, reintentar lo mismo no. El conflicto de `metadata_modified` ya lo atendió
+		// `isEditConflict`, así que lo que llega acá es validación de esquema.
+		if (err.status === 400 || err.status === 409 || err.status === 422) {
+			return "No se pudo guardar el dataset: el catálogo rechazó los cambios. Revise los campos del formulario e intente nuevamente.";
+		}
+	}
+	return "No se pudo guardar el dataset. Verifique los valores actuales del dataset antes de reintentar.";
 }
 
 // ─── Guardado ────────────────────────────────────────────────────────
@@ -235,11 +258,7 @@ async function handleSubmit(data: DatasetCreateInput) {
 			// El formulario ya no conoce el estado del dataset: se bloquea hasta recargarlo.
 			conflict = true;
 		} else {
-			if (import.meta.env.DEV) {
-				// El texto crudo del servidor no entra a la oración visible; queda acá, sólo en desarrollo.
-				console.error("No se pudo guardar el dataset:", err);
-			}
-			submitError = "No se pudo guardar el dataset. Intente nuevamente más tarde.";
+			submitError = describeSaveError(err);
 		}
 	} finally {
 		submitting = false;

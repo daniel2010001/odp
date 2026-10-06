@@ -276,16 +276,82 @@ describe("Ruta de edición de dataset", () => {
 
 			await waitFor(() =>
 				expect(screen.getByRole("alert")).toHaveTextContent(
-					/No se pudo guardar el dataset\. Intente nuevamente más tarde\./,
+					/No se pudo guardar el dataset\. Verifique los valores actuales del dataset antes de reintentar\./,
 				),
 			);
-			// El texto crudo del servidor ya no llega a la oración visible...
+			// El texto crudo del servidor ya no llega a la oración visible.
 			expect(screen.getByRole("alert")).not.toHaveTextContent(/Boom/);
-			// ...pero el diagnóstico sobrevive, sólo en DEV, en la consola.
+			// El diagnóstico se emite en todos los modos, no sólo con la bandera DEV: esta aserción no
+			// depende del modo de build.
 			expect(consola).toHaveBeenCalledWith("No se pudo guardar el dataset:", expect.anything());
 			expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeEnabled();
 		} finally {
 			consola.mockRestore();
+		}
+	});
+
+	it("con un error de validación del catálogo dice la causa en vez de ofrecer un fallo transitorio", async () => {
+		auth.login("tok-123", user);
+		// 409 con `Validation Error` pero sin `match: ["metadata_modified"]`: no es el conflicto de
+		// concurrencia, es una validación de esquema. Corregir los campos cambia el resultado.
+		mocks.post.mockRejectedValue(
+			new CkanApiError("Validation Error", 409, "Validation Error", { title: ["Missing value"] }),
+		);
+		const consola = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		try {
+			const { container } = renderPage();
+			await screen.findByLabelText(/título/i);
+			await fireEvent.submit(getForm(container));
+
+			await waitFor(() =>
+				expect(screen.getByRole("alert")).toHaveTextContent(/rechazó los cambios/i),
+			);
+			expect(screen.getByRole("alert")).not.toHaveTextContent(/Intente nuevamente más tarde/i);
+		} finally {
+			consola.mockRestore();
+		}
+	});
+
+	it("con un 403 de guardado dice la falta de permiso en vez de un fallo transitorio", async () => {
+		auth.login("tok-123", user);
+		mocks.post.mockRejectedValue(new CkanApiError("Access denied", 403));
+		const consola = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		try {
+			const { container } = renderPage();
+			await screen.findByLabelText(/título/i);
+			await fireEvent.submit(getForm(container));
+
+			await waitFor(() =>
+				expect(screen.getByRole("alert")).toHaveTextContent(
+					/no tiene permiso para modificar este dataset/i,
+				),
+			);
+		} finally {
+			consola.mockRestore();
+		}
+	});
+
+	it("si la carga de licencias falla, el diagnóstico queda en la consola aunque no sea modo desarrollo", async () => {
+		auth.login("tok-123", user);
+		mocks.licenseList.mockRejectedValue(new CkanApiError("Server Error", 500));
+		// El registro no puede depender del modo: en producción es el único diagnóstico que existe.
+		vi.stubEnv("DEV", false);
+		const consola = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		try {
+			renderPage();
+			await waitFor(() => expect(mocks.licenseList).toHaveBeenCalled());
+			await waitFor(() =>
+				expect(consola).toHaveBeenCalledWith(
+					"No se pudo cargar la lista de licencias:",
+					expect.anything(),
+				),
+			);
+		} finally {
+			consola.mockRestore();
+			vi.unstubAllEnvs();
 		}
 	});
 

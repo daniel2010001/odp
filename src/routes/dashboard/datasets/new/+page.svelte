@@ -18,6 +18,7 @@ import { env } from "$lib/env";
 import type { DatasetCreateInput } from "$lib/schemas/dataset";
 import { endInvalidSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanLicense, CkanOrganization, CkanPackage } from "$lib/types/ckan";
 import { buildPackagePayload } from "$lib/utils/dataset-payload";
 
@@ -145,7 +146,10 @@ function hasFailedResources(): boolean {
 }
 
 function describeCreateError(err: unknown, name: string): string {
-	const message = err instanceof Error ? err.message : "Error desconocido";
+	// El diagnóstico va a la consola en **todos** los modos: en producción es el único registro
+	// disponible, y el texto crudo del servidor no puede entrar a la oración visible.
+	console.error("No se pudo crear el dataset:", err);
+	const message = err instanceof Error ? err.message : "";
 	// Sólo el mensaje que CKAN emite para un nombre ya tomado es un conflicto de slug: lo produce
 	// `package_name_validator` (`ckan/logic/validators.py:408-427`). Antes el patrón incluía `url` suelto y
 	// marcaba como conflicto cualquier error que nombrara una URL —el de un recurso, por ejemplo—, así que
@@ -153,11 +157,20 @@ function describeCreateError(err: unknown, name: string): string {
 	if (/that url is already in use/i.test(message)) {
 		return `El slug «${name}» ya está en uso. Elija otro slug e intente nuevamente.`;
 	}
-	if (import.meta.env.DEV) {
-		// El texto crudo del servidor no entra a la oración visible; queda acá, sólo en desarrollo.
-		console.error("No se pudo crear el dataset:", err);
+	if (err instanceof CkanApiError) {
+		if (err.status === 403) {
+			return "No se pudo crear el dataset: su cuenta no está autorizada para publicar en esta organización. Verifique su sesión e intente nuevamente.";
+		}
+		// 400/409/422 es una respuesta definitiva del catálogo al payload: corregir un campo cambia
+		// el resultado. Un reintento sin tocar nada no lo haría.
+		if (err.status === 400 || err.status === 409 || err.status === 422) {
+			return "No se pudo crear el dataset: el catálogo rechazó los datos. Revise los campos del formulario e intente nuevamente.";
+		}
 	}
-	return "No se pudo crear el dataset. Intente nuevamente más tarde.";
+	// Sólo acá vive el aviso de duplicado: un 5xx, un timeout o una caída de red pudieron ocurrir
+	// **después** de que el catálogo guardara el paquete, y la creación no es idempotente. Reintentar
+	// sin mirar crearía un segundo dataset, así que se pide verificar primero.
+	return "No se pudo crear el dataset. Verifique si ya aparece en el catálogo antes de reintentar: la creación no se puede repetir sin arriesgar un duplicado.";
 }
 
 // ─── Submit: crear el paquete y luego subir los recursos ─────────────

@@ -316,29 +316,41 @@ const fieldList = $derived.by(() => {
 });
 
 // ─── Derived: API extras ───────────────────────────────────────
+// Las cuatro claves que el portal muestra en sus propias cards. El resto de las extras del recurso
+// se lista al pie de la tarjeta de la API.
+const API_EXTRA_CARD_KEYS = ["api_base_url", "docs_url", "example_request", "example_response"];
+
 const apiExtras = $derived.by((): CkanExtra[] => {
 	if (!resource?.extras) return [];
-	const apiKeys = ["api_base_url", "docs_url", "example_request", "example_response"];
-	return resource.extras.filter((e) => apiKeys.includes(e.key));
+	return resource.extras.filter((e) => API_EXTRA_CARD_KEYS.includes(e.key));
 });
 
 const hasApiExtras = $derived(apiExtras.length > 0);
 
-const apiExtraLabel = (key: string): string => {
-	const labels: Record<string, string> = {
-		api_base_url: "Dirección base",
-		docs_url: "Documentación",
-		example_request: "Ejemplo de solicitud",
-		example_response: "Ejemplo de respuesta",
-	};
-	return labels[key] ?? "Campo adicional";
+// Etiquetas de las claves internas que CKAN agrega a un recurso. Las cuatro primeras viven en las
+// cards; `api_key` y `datastore_active` son extras internos que el portal traduce en vez de mostrar
+// la clave cruda.
+const API_EXTRA_LABELS: Record<string, string> = {
+	api_base_url: "Dirección base",
+	docs_url: "Documentación",
+	example_request: "Ejemplo de solicitud",
+	example_response: "Ejemplo de respuesta",
+	api_key: "Clave de la API",
+	datastore_active: "Tabla de datos",
 };
 
-// Extras de API no contemplados en las cards (p.ej. api_key, datastore_active)
+/**
+ * Rótulo del extra que no tiene su propia card. Un extra desconocido no se rotula con su clave cruda
+ * (nombraría la implementación) ni con una etiqueta repetida: dos «Campo adicional» idénticos
+ * borrarían cuál valor es cuál. El ordinal lo mantiene distinguible.
+ */
+const apiExtraLabel = (key: string, index: number): string =>
+	API_EXTRA_LABELS[key] ?? `Campo adicional ${index + 1}`;
+
+// Extras que no tienen card propia. Se derivan del recurso **completo**: hacerlo de `apiExtras` (ya
+// filtrado a las cuatro claves de las cards) dejaba esta lista siempre vacía.
 const apiExtraRows = $derived(
-	apiExtras.filter(
-		(e) => !["api_base_url", "docs_url", "example_request", "example_response"].includes(e.key),
-	),
+	(resource?.extras ?? []).filter((e) => !API_EXTRA_CARD_KEYS.includes(e.key)),
 );
 
 const apiBaseUrl = $derived(
@@ -680,9 +692,9 @@ async function handleCopyResourceLink() {
 						{/if}
 						{#if apiExtraRows.length > 0}
 							<div class="mt-4 divide-y divide-border/60 border-t border-border/60">
-								{#each apiExtraRows as extra}
+								{#each apiExtraRows as extra, i}
 									<div class="flex items-start justify-between gap-3 py-2.5">
-										<span class="text-xs text-muted-foreground">{apiExtraLabel(extra.key)}</span>
+										<span class="text-xs text-muted-foreground">{apiExtraLabel(extra.key, i)}</span>
 										<span class="break-all text-right text-xs font-medium text-foreground">
 											{extra.value}
 										</span>

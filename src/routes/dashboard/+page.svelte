@@ -722,7 +722,7 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 																: "border-border bg-muted text-muted-foreground",
 														)}
 													>
-						{capacityLabel[organization.capacity] ?? "Rol desconocido"}
+														{capacityLabel[organization.capacity] ?? "Rol desconocido"}
 													</span>
 												{/if}
 											</span>
