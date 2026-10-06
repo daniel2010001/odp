@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CkanResource } from "$lib/types/ckan";
-import { formatChips } from "./formats";
+import { formatChips, normalizeFormats } from "./formats";
 
 /**
  * Fixture mínimo: `formatChips` sólo lee `format`, así que el resto del recurso no participa de la
@@ -10,6 +10,32 @@ import { formatChips } from "./formats";
 function withFormats(...formats: (string | undefined)[]): Pick<CkanResource, "format">[] {
 	return formats.map((format) => ({ format }));
 }
+
+describe("normalizeFormats", () => {
+	it("recorta, pasa a mayúsculas y deduplica conservando el orden de aparición", () => {
+		expect(normalizeFormats(withFormats(" pdf ", "CSV", "PDF"))).toEqual(["PDF", "CSV"]);
+	});
+
+	it("descarta los formatos en blanco y los ausentes", () => {
+		expect(normalizeFormats(withFormats(" ", undefined, "csv"))).toEqual(["CSV"]);
+	});
+
+	it("no aplica el tope de chips: devuelve todos los formatos distintos", () => {
+		expect(normalizeFormats(withFormats("CSV", "PDF", "JSON", "XLSX", "XML", "GEOJSON"))).toEqual([
+			"CSV",
+			"PDF",
+			"JSON",
+			"XLSX",
+			"XML",
+			"GEOJSON",
+		]);
+	});
+
+	it("una lista ausente o vacía da una lista vacía", () => {
+		expect(normalizeFormats(undefined)).toEqual([]);
+		expect(normalizeFormats([])).toEqual([]);
+	});
+});
 
 describe("formatChips", () => {
 	it("deduplica los formatos repetidos, conservando el orden de primera aparición", () => {
