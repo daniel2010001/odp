@@ -55,8 +55,12 @@
 > 2. **El vistazo del autor en el navegador, con sesión**, a las dos superficies que el agente **no puede**
 >    verificar: la **card en ancho angosto** (`/dashboard`, las acciones deben desaparecer y el título quedar
 >    legible) y **el hero con permiso de edición** (el grupo en la fila de insignias, el título solo arriba).
-> 3. **Los cuatro estados del copy** del formulario de edición, aprobados **de memoria**: llevarlos a
->    `/dev/dataset-edit` con un selector de caso para que la aprobación sea **leída en contexto**.
+> 3. ~~**Los cuatro estados del copy** del formulario de edición, aprobados **de memoria**: llevarlos a
+>    `/dev/dataset-edit` con un selector de caso para que la aprobación sea **leída en contexto**.~~
+>    **CERRADO (2026-10-06): el autor los revisó y los dio por buenos.** El selector de caso no hace falta para
+>    cerrar la aprobación, y los cuatro estados **no se pueden provocar en ninguna pantalla** (dependen de
+>    respuestas de permiso que ningún caso produce hoy): si uno aparece mal en la página real será un defecto
+>    normal, no una aprobación pendiente.
 > 4. El **afinado de la página de error**, cuya lista completa está en la sección siguiente.
 > 5. **La deuda de prueba declarada** de la hoja del hero (dos pruebas más débiles que su comentario), en la
 >    sección «Revisión del autor».
@@ -108,10 +112,12 @@
   **Corrección de una etiqueta mía:** el instrumento decía «no cumple 44 px» como si fuera un incumplimiento;
   **44 px es el mínimo del criterio AAA (2.5.5)** y el **AA (2.5.8) pide 24 px**, así que **36 px cumple AA**.
   La elección es correcta y no es deuda.
-- **Los cuatro estados de negativa del formulario de edición: aprobados.** Con una advertencia honesta: **se
-  aprobaron de memoria**, porque hoy no se pueden ver en ninguna pantalla. La propuesta de llevarlos a la hoja
-  `/dev/dataset-edit` con un selector de caso **sigue en pie** para que la aprobación sea verificable; si al
-  verlos en contexto algo no cierra, se cambia.
+- **Los cuatro estados de negativa del formulario de edición: aprobados.** **CERRADO (2026-10-06):** el autor
+  los revisó y los dio por buenos. La advertencia original —que **se aprobaron de memoria**, porque hoy no se
+  pueden ver en ninguna pantalla— sigue siendo cierta como descripción del estado del código, pero **ya no deja
+  nada abierto**: la propuesta de llevarlos a `/dev/dataset-edit` con un selector de caso **se retira**, porque
+  la decisión era del autor y el autor ya decidió. Si alguno aparece mal al verlo en una pantalla real, es un
+  defecto normal que se corrige entonces, no una aprobación que quedó a medias.
 
 **Y una cosa que NO se promueve:** la papelera de «Eliminar». El borrado es la rebanada 3 del cambio y **hoy no
 hay acción que la respalde**, así que la card promueve la **disposición lista para dos acciones pero con una
