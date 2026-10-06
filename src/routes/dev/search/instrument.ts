@@ -70,12 +70,20 @@ function windowGeometry(cards: HTMLElement[]): ProbeGeometry {
 	};
 }
 
-/** Coordenadas del contenido de la región para el modo `contained`. */
-function regionGeometry(region: HTMLElement, cards: HTMLElement[]): ProbeGeometry {
+/**
+ * Coordenadas del contenido de la región para el modo `contained`.
+ *
+ * El rect de la región es su **caja de borde**; el origen del scroll es su **caja de padding**, así
+ * que hay que descontar el borde (`clientTop`). El padding **no** se descuenta: ya está dentro de la
+ * geometría del contenido que refleja el rect de cada card, y restarlo otra vez correría cada borde
+ * 8px de más. Medido: `contained` reportaba 70 con el borde sin descontar y el navegador aterrizaba
+ * en 69.
+ */
+export function regionGeometry(region: HTMLElement, cards: HTMLElement[]): ProbeGeometry {
 	const scrollerTop = region.scrollTop;
-	const regionTop = region.getBoundingClientRect().top;
+	const paddingBoxTop = region.getBoundingClientRect().top + region.clientTop;
 	return {
-		cardTops: cards.map((card) => card.getBoundingClientRect().top - regionTop + scrollerTop),
+		cardTops: cards.map((card) => card.getBoundingClientRect().top - paddingBoxTop + scrollerTop),
 		firstCardMarginTop: readMarginTop(cards[0]),
 		maxScroll: Math.max(0, region.scrollHeight - region.clientHeight),
 		viewport: region.clientHeight,

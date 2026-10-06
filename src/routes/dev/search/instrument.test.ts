@@ -9,7 +9,7 @@
 // los intentos agotados, el instrumento tiene que avisar por callback.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { measureDom } from "./instrument";
+import { measureDom, regionGeometry } from "./instrument";
 
 const CARD_TOPS = [0, 900, 1900, 3000, 4200, 6000];
 const MARGIN = 164;
@@ -190,6 +190,38 @@ describe("sonda DOM — la batería y su restauración", () => {
 		expect(report.rows.some((row) => row.clamped)).toBe(true);
 		// El veredicto no se apoya en las filas acotadas.
 		expect(report.verdict).not.toBe("broken");
+	});
+});
+
+describe("geometría de la región — el origen es la caja de padding", () => {
+	function stubRegion(clientTop: number, regionTop: number): HTMLElement {
+		const region = document.createElement("div");
+		region.getBoundingClientRect = () => rectObject(regionTop);
+		Object.defineProperty(region, "clientTop", { get: () => clientTop, configurable: true });
+		Object.defineProperty(region, "scrollTop", { get: () => 0, configurable: true });
+		return region;
+	}
+
+	function stubCard(viewportTop: number): HTMLElement {
+		const card = document.createElement("div");
+		card.getBoundingClientRect = () => rectObject(viewportTop);
+		return card;
+	}
+
+	it("descuenta el borde de la región pero no el padding que ya trae el rect de la card", () => {
+		// Caja de borde en 0 y borde de 1px: la caja de padding arranca en 1. Los rects de las
+		// cards ya incluyen el padding (8px), así que la geometría del contenido empieza en 8.
+		const region = stubRegion(1, 0);
+		const cards = [stubCard(9), stubCard(109)];
+
+		expect(regionGeometry(region, cards).cardTops).toEqual([8, 108]);
+	});
+
+	it("sin borde no corre los bordes, y tampoco descuenta el padding dos veces", () => {
+		const region = stubRegion(0, 0);
+		const cards = [stubCard(8), stubCard(108)];
+
+		expect(regionGeometry(region, cards).cardTops).toEqual([8, 108]);
 	});
 });
 

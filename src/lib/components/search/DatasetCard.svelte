@@ -72,11 +72,15 @@ let wasForced = false;
 // `forceOpen` fija la divulgación mientras está encendido: si el puntero o el foco la cierran, el
 // efecto la vuelve a abrir. Al **apagarlo** hay que cerrarla: con `forceOpen || tooltipOpen` a
 // secas, el `true` forzado quedaría pegado y el tooltip seguiría abierto hasta un blur o un
-// pointer-leave. `wasForced` distingue el abierto forzado del abierto real del usuario.
+// pointer-leave. `wasForced` distingue el abierto forzado del abierto real del usuario: sólo se
+// marca cuando el forzado **causó** el abierto, nunca cuando encontró la divulgación ya abierta por
+// el usuario —si no, apagarlo cerraría un tooltip que el puntero todavía está sosteniendo.
 $effect(() => {
 	if (forceOpen) {
-		wasForced = true;
-		if (!tooltipOpen) tooltipOpen = true;
+		if (!tooltipOpen) {
+			wasForced = true;
+			tooltipOpen = true;
+		}
 		return;
 	}
 	if (wasForced) {

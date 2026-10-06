@@ -227,6 +227,30 @@ describe("DatasetCard — recorte de tags y formatos", () => {
 			await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
 		});
 
+		it("si el tooltip ya estaba abierto por el usuario, apagar el forzado no lo cierra", async () => {
+			const { rerender } = render(DatasetCard, {
+				props: {
+					dataset: makeDataset(EIGHT_TAGS_SIX_FORMATS),
+					disclosure: "link-tooltip",
+					forceOpen: false,
+				},
+			});
+
+			// El usuario abre la divulgación por su cuenta: el foco es el camino real (el navegador
+			// también la abre con hover), sin que el forzado esté encendido.
+			const link = cardLink();
+			link.focus();
+			await screen.findByRole("tooltip");
+
+			// El forzado se enciende **sobre** un abierto del usuario y se apaga enseguida. Como no
+			// fue el forzado el que abrió, apagarlo no puede cerrar algo que el usuario abrió.
+			await rerender({ forceOpen: true });
+			await rerender({ forceOpen: false });
+
+			expect(link).not.toHaveAttribute("data-state", "closed");
+			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+		});
+
 		it("al apagar el forzado, la región de `title-link` se cierra", async () => {
 			const { container, rerender } = render(DatasetCard, {
 				props: {
