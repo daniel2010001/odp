@@ -153,7 +153,11 @@ function describeCreateError(err: unknown, name: string): string {
 	if (/that url is already in use/i.test(message)) {
 		return `El slug «${name}» ya está en uso. Elija otro slug e intente nuevamente.`;
 	}
-	return `No se pudo crear el dataset: ${message}`;
+	if (import.meta.env.DEV) {
+		// El texto crudo del servidor no entra a la oración visible; queda acá, sólo en desarrollo.
+		console.error("No se pudo crear el dataset:", err);
+	}
+	return "No se pudo crear el dataset. Intente nuevamente más tarde.";
 }
 
 // ─── Submit: crear el paquete y luego subir los recursos ─────────────
@@ -301,8 +305,8 @@ function handleCancel() {
 		<header class="mb-8">
 			<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Crear dataset</h1>
 			<p class="mt-2 text-sm text-muted-foreground">
-				Complete los metadatos y adjunte los recursos. Los archivos se suben directamente a
-				CKAN, sin pasar por el servidor del portal.
+				Complete los metadatos y adjunte los recursos. Los archivos se suben directamente al
+				servicio de datos, sin pasar por el servidor del portal.
 			</p>
 		</header>
 

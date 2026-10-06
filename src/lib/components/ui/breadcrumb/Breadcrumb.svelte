@@ -71,7 +71,7 @@ export interface BreadcrumbGroup {
 	</DropdownMenu.Item>
 {/snippet}
 
-<nav aria-label="Breadcrumb" class="min-w-0">
+<nav aria-label="Ruta de navegación" class="min-w-0">
 	<!-- Escritorio y tabletas: el recorrido completo. `min-w-0` en la raíz y en cada miga es lo que deja
 	     actuar al `truncate`: sin él, un item flexible no baja de su ancho de contenido y la fila desborda
 	     en horizontal en vez de recortar (lo encontró `review-5ab16f231f1adb49`). -->

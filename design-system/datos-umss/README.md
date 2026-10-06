@@ -207,6 +207,9 @@ duplicar estilos.
   "No encontramos datasets", "Limpiar búsqueda y filtros", "Volver al catálogo",
   "Descargar recurso", "Navegue por las organizaciones", "Intente nuevamente más tarde".
 - **Tono institucional**, neutro y profesional; sin jerga de marketing agresivo.
+- **El copy visible no nombra la implementación:** sin nombres de tecnología, sin nombres de
+  servicios internos y sin identificadores de campo crudos; el visitante lee «catálogo»,
+  «conjunto de datos», «dirección web». La excepción declarada vive en «Acerca de» (ver `AGENTS.md`).
 
 ---
 

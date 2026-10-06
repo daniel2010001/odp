@@ -264,7 +264,7 @@ $effect(() => {
 								href="/dashboard"
 								class="transition-colors duration-200 hover:text-footer-foreground"
 							>
-								Dashboard
+								Panel
 							</a>
 						</li>
 					</ul>
@@ -318,7 +318,7 @@ $effect(() => {
 				<p class="text-xs text-footer-foreground/70">
 					© {new Date().getFullYear()} Universidad Mayor de San Simón. Todos los derechos reservados.
 				</p>
-				<p class="text-xs text-footer-foreground/70">Plataforma de Datos Abiertos · SvelteKit + CKAN</p>
+				<p class="text-xs text-footer-foreground/70">Plataforma de Datos Abiertos</p>
 			</div>
 		</div>
 	</footer>

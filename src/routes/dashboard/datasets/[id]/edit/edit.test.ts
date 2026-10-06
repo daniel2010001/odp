@@ -264,18 +264,29 @@ describe("Ruta de edición de dataset", () => {
 		expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeDisabled();
 	});
 
-	it("con un fallo de guardado que no es conflicto dice el error en vez de callarse", async () => {
+	it("con un fallo de guardado que no es conflicto muestra un mensaje honesto y no el texto crudo del servidor", async () => {
 		auth.login("tok-123", user);
 		mocks.post.mockRejectedValue(new CkanApiError("Boom", 500));
+		const consola = vi.spyOn(console, "error").mockImplementation(() => {});
 
-		const { container } = renderPage();
-		await screen.findByLabelText(/título/i);
-		await fireEvent.submit(getForm(container));
+		try {
+			const { container } = renderPage();
+			await screen.findByLabelText(/título/i);
+			await fireEvent.submit(getForm(container));
 
-		await waitFor(() =>
-			expect(screen.getByRole("alert")).toHaveTextContent(/No se pudo guardar el dataset: Boom/i),
-		);
-		expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeEnabled();
+			await waitFor(() =>
+				expect(screen.getByRole("alert")).toHaveTextContent(
+					/No se pudo guardar el dataset\. Intente nuevamente más tarde\./,
+				),
+			);
+			// El texto crudo del servidor ya no llega a la oración visible...
+			expect(screen.getByRole("alert")).not.toHaveTextContent(/Boom/);
+			// ...pero el diagnóstico sobrevive, sólo en DEV, en la consola.
+			expect(consola).toHaveBeenCalledWith("No se pudo guardar el dataset:", expect.anything());
+			expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeEnabled();
+		} finally {
+			consola.mockRestore();
+		}
 	});
 
 	it("si la sugerencia de etiquetas rechaza, la página no queda cargando", async () => {

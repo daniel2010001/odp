@@ -183,7 +183,11 @@ async function cargarLicencias(client: CkanClient, generation: number) {
 	} catch (err) {
 		if (generation !== loadId) return;
 		licenses = [];
-		licensesError = err instanceof Error ? err.message : "No se pudo cargar la lista de licencias.";
+		if (import.meta.env.DEV) {
+			// El texto crudo del servidor no entra a la oración visible; queda acá, sólo en desarrollo.
+			console.error("No se pudo cargar la lista de licencias:", err);
+		}
+		licensesError = "No se pudo cargar la lista de licencias.";
 	} finally {
 		if (generation === loadId) licensesLoading = false;
 	}
@@ -231,7 +235,11 @@ async function handleSubmit(data: DatasetCreateInput) {
 			// El formulario ya no conoce el estado del dataset: se bloquea hasta recargarlo.
 			conflict = true;
 		} else {
-			submitError = `No se pudo guardar el dataset: ${err instanceof Error ? err.message : "error desconocido"}`;
+			if (import.meta.env.DEV) {
+				// El texto crudo del servidor no entra a la oración visible; queda acá, sólo en desarrollo.
+				console.error("No se pudo guardar el dataset:", err);
+			}
+			submitError = "No se pudo guardar el dataset. Intente nuevamente más tarde.";
 		}
 	} finally {
 		submitting = false;

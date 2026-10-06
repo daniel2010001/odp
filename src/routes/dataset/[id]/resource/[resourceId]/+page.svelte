@@ -326,12 +326,12 @@ const hasApiExtras = $derived(apiExtras.length > 0);
 
 const apiExtraLabel = (key: string): string => {
 	const labels: Record<string, string> = {
-		api_base_url: "Endpoint base",
+		api_base_url: "Dirección base",
 		docs_url: "Documentación",
 		example_request: "Ejemplo de solicitud",
 		example_response: "Ejemplo de respuesta",
 	};
-	return labels[key] ?? key;
+	return labels[key] ?? "Campo adicional";
 };
 
 // Extras de API no contemplados en las cards (p.ej. api_key, datastore_active)
@@ -638,18 +638,18 @@ async function handleCopyResourceLink() {
 		{#if resource.datastore_active === true}
 			<div>
 				<div>
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">API · Endpoint</p>
+					<p class="text-xs font-medium uppercase tracking-wider text-destructive">API</p>
 					<h2 class="mt-1 font-heading text-xl font-bold text-primary">Acceso por API</h2>
 					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-						Consulte las filas de este recurso desde el endpoint del DataStore.
+						Consulte las filas de este recurso a través de la API.
 					</p>
 				</div>
 	
 				<div class="mt-4 space-y-4">
-					<!-- Endpoint card -->
+					<!-- Tarjeta de la API -->
 					<Card class="p-5">
 						<div class="flex flex-wrap items-center justify-between gap-3">
-							<p class="text-sm font-semibold text-foreground">Endpoint</p>
+							<p class="text-sm font-semibold text-foreground">Dirección de la API</p>
 							<button
 								type="button"
 								onclick={handleCopyEndpoint}
@@ -775,7 +775,7 @@ async function handleCopyResourceLink() {
 				<!-- Footer info -->
 				<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
 					<p class="text-xs text-muted-foreground">
-						ID: <code class="font-mono">{resource.id}</code>
+						Identificador: <code class="font-mono">{resource.id}</code>
 						{#if resource.package_id}
 							<span class="mx-2">·</span>
 							Dataset: <code class="font-mono">{resource.package_id}</code>

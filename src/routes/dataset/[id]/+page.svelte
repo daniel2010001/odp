@@ -626,9 +626,9 @@ async function handleCopyLink() {
 						     largo no sea lo primero en romperse; `break-all` queda en el `code` como último recurso. -->
 						<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
 							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-								<span>Slug: <code class="break-all font-mono">{dataset.name}</code></span>
+								<span>Dirección web: <code class="break-all font-mono">{dataset.name}</code></span>
 								<span>·</span>
-								<span>ID: <code class="break-all font-mono">{dataset.id}</code></span>
+								<span>Identificador: <code class="break-all font-mono">{dataset.id}</code></span>
 							</div>
 						</div>
 					</Card>

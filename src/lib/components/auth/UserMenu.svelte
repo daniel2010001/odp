@@ -72,7 +72,7 @@ async function handleLogout() {
 				class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 			>
 				<LayoutDashboard class="size-4" aria-hidden="true" />
-				Dashboard
+				Panel
 			</a>
 			<button
 				type="button"

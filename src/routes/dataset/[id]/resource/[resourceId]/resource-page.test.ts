@@ -585,7 +585,7 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		render(ResourcePage);
 
 		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]');
 		expect(nav).not.toBeNull();
 		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
 		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
@@ -602,7 +602,7 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		render(ResourcePage);
 
 		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]');
 		expect(nav).not.toBeNull();
 		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
 		expect(crumb).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
@@ -619,7 +619,7 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		render(ResourcePage);
 
 		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]') as HTMLElement;
 		expect(nav).not.toBeNull();
 		// La miga sigue mostrándose como texto (la información de dónde estás no se pierde)…
 		expect(within(nav).getByText("Facultad de Ciencias")).toBeTruthy();
@@ -639,7 +639,7 @@ describe("Página de recurso — el dataset del breadcrumb", () => {
 		render(ResourcePage);
 
 		await screen.findByRole("heading", { name: /Matrícula 2026/i });
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]');
 		expect(nav).not.toBeNull();
 		// El chip (móvil) muestra la miga ACTUAL; el recorrido completo es de escritorio.
 		expect(nav?.textContent).toContain("Matrícula 2026");
@@ -801,7 +801,7 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		render(ResourcePage);
 
 		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]') as HTMLElement;
 		const bar = nav.closest(".border-b") as HTMLElement;
 
 		expect(within(bar).queryByText(/Recurso \d+ de \d+/)).toBeNull();

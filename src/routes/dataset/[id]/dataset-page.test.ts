@@ -360,7 +360,7 @@ describe("Página de dataset — el enlace de la organización", () => {
 	it("el breadcrumb lleva la organización a su página, no a una búsqueda filtrada", async () => {
 		await renderWithOrganization();
 
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]');
 		expect(nav).not.toBeNull();
 		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
 		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
@@ -392,7 +392,7 @@ describe("Página de dataset — el enlace de la organización", () => {
 		render(DatasetPage);
 		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]');
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]');
 		expect(nav).not.toBeNull();
 		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
 		expect(crumb).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
@@ -412,7 +412,7 @@ describe("Página de dataset — el enlace de la organización", () => {
 		render(DatasetPage);
 		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]') as HTMLElement;
 		expect(nav).not.toBeNull();
 		// La miga sigue mostrándose como texto (la información de dónde estás no se pierde)…
 		expect(within(nav).getByText("Facultad de Ciencias")).toBeTruthy();
@@ -444,7 +444,7 @@ describe("Página de dataset — la primera miga del breadcrumb", () => {
 		render(DatasetPage);
 		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 
-		const nav = document.querySelector('nav[aria-label="Breadcrumb"]') as HTMLElement;
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]') as HTMLElement;
 		expect(nav).not.toBeNull();
 		const crumb = within(nav).getByRole("link", { name: "Datasets" });
 		expect(crumb).toHaveAttribute("href", "/search");
@@ -574,11 +574,11 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 
 		expect(within(table as HTMLElement).getByText("Visibilidad")).toBeTruthy();
 		expect(within(table as HTMLElement).getByText("Estado")).toBeTruthy();
-		expect(within(table as HTMLElement).queryByText("Slug")).toBeNull();
-		expect(within(table as HTMLElement).queryByText("ID")).toBeNull();
+		expect(within(table as HTMLElement).queryByText("Dirección web")).toBeNull();
+		expect(within(table as HTMLElement).queryByText("Identificador")).toBeNull();
 	});
 
-	it("muestra Slug e ID en la franja monoespaciada bajo la tabla", async () => {
+	it("muestra la dirección web y el identificador en la franja monoespaciada bajo la tabla", async () => {
 		const card = await renderTechnicalCard();
 		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
 		const strip = table?.nextElementSibling as HTMLElement | null;
@@ -586,8 +586,8 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 		// La franja es hermana de la tabla, no una fila dentro de ella: antes del cambio los
 		// identificadores vivían en `code.font-mono` dentro de la tabla y este caso pasaba en falso.
 		expect(strip).not.toBeNull();
-		expect((strip as HTMLElement).textContent).toContain("Slug");
-		expect((strip as HTMLElement).textContent).toContain("ID");
+		expect((strip as HTMLElement).textContent).toContain("Dirección web");
+		expect((strip as HTMLElement).textContent).toContain("Identificador");
 		const codes = Array.from((strip as HTMLElement).querySelectorAll("code.font-mono")).map(
 			(code) => code.textContent,
 		);
@@ -608,11 +608,11 @@ describe("Página de dataset — la tarjeta de información técnica", () => {
 		expect((row as HTMLElement).className).toContain("flex");
 		expect((row as HTMLElement).className).toContain("flex-wrap");
 
-		// Cada identificador es su propio hijo: el navegador puede bajar de línea «ID: …» entero en
-		// vez de partir la oración. El `·` conserva la separación visual del molde.
+		// Cada identificador es su propio hijo: el navegador puede bajar de línea «Identificador: …»
+		// entero en vez de partir la oración. El `·` conserva la separación visual del molde.
 		const items = Array.from((row as HTMLElement).children);
-		const slugItem = items.find((el) => el.textContent?.startsWith("Slug:"));
-		const idItem = items.find((el) => el.textContent?.startsWith("ID:"));
+		const slugItem = items.find((el) => el.textContent?.startsWith("Dirección web:"));
+		const idItem = items.find((el) => el.textContent?.startsWith("Identificador:"));
 		expect(slugItem).not.toBeUndefined();
 		expect(idItem).not.toBeUndefined();
 		expect(slugItem).not.toBe(idItem);

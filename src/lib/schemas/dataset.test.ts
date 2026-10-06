@@ -318,6 +318,8 @@ describe("licenseIdError — CKAN no valida la licencia", () => {
 	});
 
 	it("rechaza un id que no está en la lista (CKAN lo aceptaría igual)", () => {
-		expect(licenseIdError("no-existe", lista)).toContain("no está en la lista de CKAN");
+		expect(licenseIdError("no-existe", lista)).toContain(
+			"no está en la lista de licencias disponibles",
+		);
 	});
 });

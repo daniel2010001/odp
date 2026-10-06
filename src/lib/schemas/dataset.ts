@@ -181,7 +181,9 @@ export type DatasetCreateInput = z.infer<typeof datasetCreateSchema>;
  */
 export function licenseIdError(id: string | undefined, validIds: readonly string[]): string | null {
 	if (!id) return null;
-	return validIds.includes(id) ? null : `La licencia «${id}» no está en la lista de CKAN.`;
+	return validIds.includes(id)
+		? null
+		: `La licencia «${id}» no está en la lista de licencias disponibles.`;
 }
 
 export const datasetUpdateSchema = datasetCreateSchema.partial();

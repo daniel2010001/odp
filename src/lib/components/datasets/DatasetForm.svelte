@@ -1267,7 +1267,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 													</div>
 													<p class="flex items-center gap-1.5 text-xs font-medium text-primary">
 														<LoaderCircle class="size-3.5 animate-spin" aria-hidden="true" />
-														Procesando en CKAN… (validando y guardando; no cierre la página)
+														Procesando… (validando y guardando; no cierre la página)
 													</p>
 												</div>
 											{:else if recurso.estado === "error"}

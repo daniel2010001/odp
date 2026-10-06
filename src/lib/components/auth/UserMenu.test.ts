@@ -45,13 +45,13 @@ describe("UserMenu", () => {
 		expect(screen.getByText("jdoe")).toBeInTheDocument();
 	});
 
-	it("abre el dropdown y muestra Dashboard y Cerrar sesión", async () => {
+	it("abre el dropdown y muestra Panel y Cerrar sesión", async () => {
 		auth.login("tok-123", baseUser);
 
 		render(UserMenu);
 		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
 
-		expect(screen.getByRole("menuitem", { name: /dashboard/i })).toBeInTheDocument();
+		expect(screen.getByRole("menuitem", { name: /panel/i })).toBeInTheDocument();
 		expect(screen.getByRole("menuitem", { name: /cerrar sesión/i })).toBeInTheDocument();
 	});
 
@@ -60,11 +60,11 @@ describe("UserMenu", () => {
 
 		render(UserMenu);
 		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
-		expect(screen.getByRole("menuitem", { name: /dashboard/i })).toBeInTheDocument();
+		expect(screen.getByRole("menuitem", { name: /panel/i })).toBeInTheDocument();
 
 		await fireEvent.keyDown(document, { key: "Escape" });
 
-		expect(screen.queryByRole("menuitem", { name: /dashboard/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole("menuitem", { name: /panel/i })).not.toBeInTheDocument();
 	});
 
 	it("cierra sesión: revoca el token, limpia el store y redirige a /", async () => {

@@ -31,7 +31,8 @@
 5. **Iconos:** Lucide (SVG). Prohibido emojis como iconos.
 6. **Copy de UI en español neutro y formal (trato de "usted"):** "Explore", "Navegue",
    "Limpie los filtros", "Volver al catálogo". Sin voseo ni regionalismos. Tono institucional,
-   sin marketing agresivo.
+   sin marketing agresivo. El copy visible tampoco nombra la implementación: ver
+   `design-system/datos-umss/README.md` §10.
 7. **Accesibilidad:** contraste de texto ≥ 4.5:1, focus visible, `prefers-reduced-motion`,
    hovers que no desplazan el layout, responsive sin scroll horizontal en móvil.
 8. **UI: el agente propone, el usuario revisa, se itera.** Para cualquier trabajo de interfaz
