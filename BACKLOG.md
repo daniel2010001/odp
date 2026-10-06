@@ -20,8 +20,15 @@
 ## Estado al cierre (2026-10-05, noche) — handoff: la interfaz revisada en vivo, dos diseños promovidos, y **nada a medias**
 
 > **`main` = `22a3fa4` = `origin/main`, árbol limpio, 0 sin pushear, CI verde** (run `37380003988`: lint,
-> typecheck y suite completa). Suite **919/919** en 57 archivos · `svelte-check` 0 errores / 4 warnings
+> typecheck y suite completa). Suite **863/863** en 55 archivos · `svelte-check` 0 errores / 4 warnings
 > preexistentes · `node_modules/.bin/biome check .` limpio sobre **164** archivos.
+>
+> **Corrección medida al abrir la sesión siguiente (2026-10-05), sobre `ae3e3df` y en un worktree aparte:**
+> el «**919/919 en 57 archivos**» que decía acá corresponde al estado **anterior a `df03eed`**, el commit que
+> retiró las dos hojas de revisión junto con sus **56 tests** (33 + 23). Medido en `df03eed^`: **919/57** —
+> exactamente el número documentado. Medido en `ae3e3df` (HEAD): **863/55**. O sea: `main` está sano y no se
+> perdió nada; el número quedó **viejo por un commit**. Cualquier sesión que compare totales contra este
+> handoff tiene que usar 863/55.
 >
 > **Lo que pasó, en una línea por cosa:**
 > 1. **Una sola página de error en todas las superficies.** La página del dataset y la del recurso usaban un
@@ -2015,7 +2022,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   artefactos del cambio SDD, y en **ninguno** puesta en `true`. La mitad literal del ítem (`.env.example`) **no es
   verificable** bajo la política estricta de rutas de entorno. **Frena en medir el stack y en la decisión de habilitarla.**
 
-- [ ] **[v0]** `TODO:` **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
+- [x] **[v0]** **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
+  **CERRADO (2026-10-06): promovido.** El `Tooltip` de bits-ui quedó vendorizado y la card ahora divulga las
+  etiquetas **y** los formatos que el recorte esconde, con el `<a>` de la card como disparador: es la opción
+  **(a)**, elegida por el autor mirando la hoja `/dev/search`. **Límite declarado:** un tooltip **no existe en
+  táctil**, así que en el teléfono el `+N` sigue sin explicarse; la variante estructural con `<button>` real
+  (b) se revisó y no se eligió. El cambio de paso del enlace —sin foco visible para el teclado— también quedó
+  arreglado. El cuerpo de abajo es el registro de cómo se llegó hasta acá y se borra al limpiar el backlog.
   Observación del autor (2026-09-25): «cuando son muchos aparece un `+X`, esto es ambiguo». **Causa medida**:
   `src/lib/components/search/DatasetCard.svelte:93-103` muestra `dataset.tags.slice(0, 3)` y después
   `+{dataset.tags.length - 3}` —un `+2` pelado, **sin rótulo y sin forma de saber qué etiquetas son**—.
@@ -2046,6 +2059,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Queda descartado por el propio arnés poner el disparador sobre un `<span>` no enfocable: exigiría `tabindex`, que es
   exactamente la violación (`a11y_no_noninteractive_tabindex`) que `/dev/nav` ya documentó al intentarlo.
   **Falta elegir (a) o (b), y no antes.** El defecto sigue vivo y medido: nada de esto cambió el código.
+  **Hoja construida (2026-10-05, rama `feat/dev-search-decision`):** `/dev/search` —el playground que duplica
+  el buscador real— pone las dos formas en pantalla con el componente real, un interruptor por forma y un
+  **forzado abierto** para el estado que sólo vive en hover (medido: ese estado no se puede revisar y no existe
+  en táctil). **Espera la decisión del autor mirándola**, y no antes: el defecto sigue en el código.
+  **Cambio declarado que la rama trae de paso:** el enlace de la card tenía `focus-visible:outline-none` sin
+  nada detrás —sin foco visible para el teclado—, así que ahora lleva un anillo con tokens en las tres formas
+  (regla 7).
 
 - [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
@@ -2221,7 +2241,15 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## v1 — producto usable en producción
 
-- [ ] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).** El usuario lo
+- [x] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).**
+  **CERRADO (2026-10-06): NO se adopta**, decisión del autor mirando la hoja y sintiendo el scroll. **La razón,
+  medida:** con las cards a una brecha de 225 px, `proximity` y `mandatory` **se comportan igual dentro de la
+  zona de resultados**, así que el «baja uno por uno» que el autor reportó **no se puede suavizar** mientras el
+  *snapping* viva en el scroller de la página: no hay interruptor CSS intermedio (`scroll-snap-stop` está en
+  `normal` por defecto, y `always` sería peor; el propio ejemplo de la doc de Tailwind sufre lo mismo). Lo que
+  **sí** queda, y cubre la necesidad de fondo —que una card no quede cortada bajo la barra pegajosa al
+  navegar—, es el `scroll-margin-top` que ya existe (`estiloDestino`, atado a `--header-h`). La medición y el
+  instrumento viven en `odd/tasks/snapping-and-tags-demos.md`. El cuerpo de abajo se borra al limpiar el backlog. El usuario lo
   pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
   `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
   `snap-mandatory`) en el contenedor de scroll y `snap-start` en cada card. **La trampa es el encabezado
@@ -2251,6 +2279,13 @@ después del cierre que describe el encabezado de esta sección; medición compl
   desde el `node_modules` de este worktree —uso que `AGENTS.md` documenta como legítimo para medir un worktree que el
   proxy no monta—. Lo que falta acá no es una forma de medir: es **elegir (a), (b) o (c)**.
   _Anotado por la sesión paralela, 2026-10-03. Sin cambios de código por esta nota._
+  **Hoja construida (2026-10-05, rama `feat/dev-search-decision`):** `/dev/search` mide las tres salidas
+  **en el navegador real** y trae un instrumento con auto-test. Lo que ya se midió ahí, y es lo que el autor
+  necesita para elegir: con las cards a una brecha de 225 px, **`proximity` y `mandatory` dan el mismo número**
+  en los cinco sondeos de la zona de resultados; la diferencia aparece **sólo en el punto más lejano a todo
+  borde** (las secciones altas, donde no hay card): `proximity` deja el desplazamiento donde está (Δ 0,1 px) y
+  `mandatory` lo **arrastra 707 px** hasta la última card. Es exactamente el «se siente roto» de este ítem.
+  **Espera la decisión del autor mirándola** (a, b o c).
 
 - [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
   del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque
