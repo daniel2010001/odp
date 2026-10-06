@@ -181,8 +181,21 @@ como «no se ajustó» en vez de **acotado**.
 - **Verificación independiente:** la primera pasada quedó **invalidada porque el árbol se movió durante su
   corrida** — defecto de orquestación propio, al mandar correcciones en paralelo al verificador. La segunda
   corre sobre el commit congelado.
-- **Compuertas nativas (RDD):** ver el cierre de la sesión; el switch está encendido y la decisión de qué
-  candidato se congela es del autor.
+- **Compuertas nativas (RDD, switch encendido). Dos, las dos aprobadas y con la autoridad quemada:**
+  1. **`review-0e6437ebb2cc58b3`** — el rango de la rama (`ae3e3df..1032b59`, 21 rutas, 3582 líneas), tier
+     **medium**, una lente (`review-reliability`). **Aprobada** con **dos hallazgos informativos**, los dos
+     deterministas y los dos introducidos por este trabajo: el forzado abierto se marcaba como forzado aunque
+     el puntero ya lo hubiera abierto (y al apagarlo cerraba un tooltip que el puntero seguía sosteniendo), y
+     `regionGeometry` no convertía del *border box* al *padding box* del contenedor. El recibo se quemó.
+  2. **`review-79f4e248aefb91e7`** — **el candidato mínimo**: sólo el commit del arreglo (`be0c5ee`, 4
+     archivos, 84 líneas), tier medium, la misma lente. **Aprobada sin un solo hallazgo.** El recibo se quemó.
+  **El rango acotado hubo que pedirlo explícitamente:** la ruta por defecto del proveedor vuelve a cubrir toda
+  la rama, y su propio cierre dice que los hallazgos informativos **no son razón** para repetir la revisión del
+  candidato aprobado. La corrección del segundo hallazgo **no se aplicó como estaba escrita**: decía «borde y
+  padding, ~9 px» y el término que faltaba era **el borde, 1 px** (medido: objetivo 70,0 vs aterrizaje 69,0;
+  restar también el padding habría metido un error de 8 px al revés). Verificado después: objetivo y
+  aterrizaje coinciden en `69,0`.
+- **Entrega:** nada pusheado, nada mergeado, ningún PR. Es decisión del autor.
 
 ### Commits de la rama `feat/dev-search-decision`
 
