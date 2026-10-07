@@ -1286,6 +1286,11 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > las cinco acciones (`publication_request_create` / `_cancel` / `_decide` / `publication_publish` /
 > `publication_request_list`).
 >
+> **¿Sos la sesión que trabaja en `odp-docker` para hacer publicable un dataset, y preguntaste si había
+> que tocar ese repo? Tu respuesta está acá, no en el chat:** el alcance es **B** (el corte A se evaluó y
+> se descartó), y tus unidades son **A1/A2/A3/A5**. `B1`/`B2` son de la sesión del portal. Buscá por
+> «Reparto declarado».
+>
 > **Siguiente: la unidad A1** — modelo + migración + registro en `ckanext-umss` (`odp-docker`).
 > Expedientes: `odd/tasks/publication-lifecycle-minimum.md` y `odd/tasks/publication-guard-design.md`.
 >
