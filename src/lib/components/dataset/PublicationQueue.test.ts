@@ -54,6 +54,8 @@ type QueueProps = {
 	ondecided?: (item: DecisionResult) => void;
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. */
 	currentUser?: string | null;
+	/** Reloj inyectable: fija la antigüedad que muestra cada fila. */
+	now?: Date;
 };
 
 // La respuesta de `publication_request_decide`: la fila decidida, más el dataset resultante cuando la
@@ -199,6 +201,53 @@ describe("PublicationQueue — qué carga y qué muestra", () => {
 		const fila = await rowFor("Matrícula 2026");
 		expect(within(fila).getByText(new RegExp(REQUESTER_FALLBACK))).toBeInTheDocument();
 		expect(within(fila).queryByText(new RegExp(SOLICITANTE_ID))).toBeNull();
+	});
+});
+
+describe("PublicationQueue — antigüedad de una solicitud", () => {
+	// Reloj fijo: la hoja de revisión y estas pruebas fijan `now` para que la antigüedad no dependa
+	// de cuándo se corran.
+	const AHORA = new Date("2026-10-07T12:00:00");
+
+	it("marca la antigüedad de una solicitud vieja y deja sin marca la reciente", async () => {
+		const list = vi.fn<QueueProps["list"]>().mockResolvedValue([
+			makeItem({
+				id: "req-vieja",
+				dataset_title: "Encuesta de satisfacción 2024",
+				created_at: "2026-04-03T00:00:00.000000",
+			}),
+			makeItem({ id: "req-nueva", created_at: "2026-10-01T00:00:00.000000" }),
+		]);
+		renderQueue({ list, now: AHORA });
+
+		const vieja = await rowFor("Encuesta de satisfacción 2024");
+		// Mutación que lo rompe: si la fila no renderizara la edad, no habría texto que encontrar.
+		const edadVieja = within(vieja).getByText("hace 6 meses");
+		// Mutación que lo rompe: quitar el énfasis (o invertir el umbral) dejaría la clase fuera.
+		expect(edadVieja).toHaveClass("text-destructive");
+		expect(edadVieja).toHaveAttribute("data-stale", "true");
+
+		const nueva = await rowFor("Matrícula 2026");
+		const edadNueva = within(nueva).getByText("hace 6 días");
+		// Mutación que lo rompe: marcar toda edad por igual pondría la clase en la fila reciente.
+		expect(edadNueva).not.toHaveClass("text-destructive");
+		expect(edadNueva).toHaveAttribute("data-stale", "false");
+	});
+
+	it("además de la edad, la fila sigue mostrando la fecha absoluta", async () => {
+		const list = vi.fn<QueueProps["list"]>().mockResolvedValue([
+			makeItem({
+				id: "req-vieja",
+				dataset_title: "Encuesta de satisfacción 2024",
+				created_at: "2026-04-03T00:00:00.000000",
+			}),
+		]);
+		renderQueue({ list, now: AHORA });
+
+		const fila = await rowFor("Encuesta de satisfacción 2024");
+		// Mutación que lo rompe: reemplazar la fecha absoluta por la relativa dejaría la primera fuera.
+		expect(within(fila).getByText(/3 de abril de 2026/)).toBeInTheDocument();
+		expect(within(fila).getByText("hace 6 meses")).toBeInTheDocument();
 	});
 });
 

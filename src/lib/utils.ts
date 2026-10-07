@@ -6,4 +6,4 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Re-export desde modules específicos para acceso centralizado
-export { formatDate, formatSize } from "./utils/ckan";
+export { formatDate, formatRelativeAge, formatSize } from "./utils/ckan";

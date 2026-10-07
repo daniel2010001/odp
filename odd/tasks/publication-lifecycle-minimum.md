@@ -423,3 +423,17 @@ tenga su UI.
   ausente y `publish` no conforme— nacen los dos de **adoptar el contrato nuevo antes de que el código lo
   cumpla**. Lo que evitó que el portal rompiera publicaciones fue la regla de **no cablear contra una forma
   que todavía no existe**.
+- **2026-10-07 — Decisión del autor: las solicitudes NO vencen, y la cola muestra la antigüedad.** El hueco
+  estaba declarado y sin decidir; se cerró **como decisión, no como olvido** — que es la diferencia entre un
+  ítem que no reaparece y uno que reaparece cada sesión. La forma elegida: **nada expira automáticamente**, y
+  la cola dice **hace cuánto** está pendiente cada solicitud, con **énfasis visual** pasado un umbral
+  (**90 días**, declarado como **elección de presentación, no política**). La razón: el problema real no es
+  que la solicitud exista, sino que **nadie note su edad**; un vencimiento automático decidiría *por* el
+  usuario cuando la organización está en pausa, y habría exigido un estado nuevo o una transición por tiempo.
+  **Implementado:** `formatRelativeAge` en `src/lib/utils/ckan.ts` (pura, con `now` inyectable, y **agregada
+  al barril** `src/lib/utils.ts` porque así importa la cola — el escritor la había importado directo del
+  módulo y eso rompía la convención del propio archivo); la fila muestra **fecha absoluta y antigüedad**; y
+  la hoja tiene el preset «Solicitud antigua» para revisarlo mirando. Suite **956 → 967**; `pnpm check` 0
+  errores / 4 warnings preexistentes. Registrado en `design.md` (la decisión y su porqué), en `spec.md` (la
+  lista de no-objetivos **y** el requisito de la cola, con escenario propio) y en el mapa de cobertura de
+  `tasks.md`.

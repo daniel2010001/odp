@@ -79,6 +79,12 @@ export function makeRequest(overrides: Partial<PublicationRequest> = {}): Public
 	};
 }
 
+/**
+ * Reloj fijo de la hoja de revisión: la antigüedad de la cola no depende de cuándo se mire. Se usa
+ * el mismo día del ejemplo del autor («Solicitada el 3 de abril — hace 6 meses»).
+ */
+export const AHORA_REVISION = new Date("2026-10-07T12:00:00");
+
 export const COLA: PublicationQueueItem[] = [
 	{
 		id: "req-1",
@@ -97,6 +103,17 @@ export const COLA: PublicationQueueItem[] = [
 		requested_by: OTRO_SOLICITANTE_ID,
 		requested_by_name: "editor.economicas",
 		created_at: "2026-10-03T00:00:00.000000",
+		status: "pending",
+		comments: null,
+	},
+	{
+		id: "req-3",
+		dataset_title: "Encuesta de satisfacción 2024",
+		organization_title: OTRA_ORGANIZACION.title,
+		requested_by: OTRO_SOLICITANTE_ID,
+		requested_by_name: "editor.arquitectura",
+		// Antigua a propósito: con `AHORA_REVISION` la fila dice «hace 6 meses» y lleva el énfasis.
+		created_at: "2026-04-03T00:00:00.000000",
 		status: "pending",
 		comments: null,
 	},

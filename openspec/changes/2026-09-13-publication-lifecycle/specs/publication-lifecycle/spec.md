@@ -12,6 +12,7 @@ This capability is specified separately from `dataset-publishing` because it is 
 
 - The editorial lifecycle machine of `RF-15` steps 1–3: the `draft`/`review`/`approved` vocabulary and any CKAN `state` marker for it (`PRD.md:143-148`). The visibility transition is the only lifecycle step this capability implements.
 - Retraction of an already published dataset — the direct degradation of `RF-42` and the requested degradation of `RF-41` (`PRD.md:156-164`) — deferred to `[v1]` with its reason: it belongs to the full lifecycle and arrives with it. The store already carries the `annulled` outcome, the `motive` column and the `decided_at`/`consumed_at` timestamps they need, and `bulk_update_private` is their future carrier. This is a **deferral, not an exclusion**.
+- **Expiry of a pending request** — **decided against, not deferred** (author, 2026-10-07). A `pending` request never becomes undecidable by age; the queue instead shows **how long** each request has been pending, with visible emphasis past a threshold, so staleness is noticed rather than enforced. The threshold is a presentation choice and MUST NOT be read as an expiry rule.
 - Versioning of datasets (`RF-14`, `RF-16`, `RF-17`).
 - A collection-level approval gate (`RF-23`).
 - A search or facet filter by publication status.
@@ -585,7 +586,15 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 
 ### Requirement: Portal Approval Queue
 
-The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name** for rendering, and the row MUST show that name rather than the raw `requested_by` id; when the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
+The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name** for rendering, and the row MUST show that name rather than the raw `requested_by` id; when the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The row MUST also show **how long** the request has been pending, alongside its absolute date, and MUST make a **stale** request noticeable; the threshold is a presentation choice and MUST NOT be read as an expiry rule, because nothing expires. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
+
+#### Scenario: A stale request shows its age and stays decidable
+
+- GIVEN an authenticated administrator and a pending request created long before the current time
+- WHEN the queue renders
+- THEN the row shows how long it has been pending, alongside its absolute date
+- AND the row is still decidable: nothing expires
+- AND a recently created request shows its age without the stale emphasis
 
 #### Scenario: The queue renders pending requests
 

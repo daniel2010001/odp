@@ -204,6 +204,15 @@ looks public while `dataset.private` is `true` is **not** a success. This was un
 built, and the mismatch was found by crossing the implemented signature against the component that
 consumes it.
 
+**Expiry: decided against, and the queue shows the age instead.** A pending request does **not** expire —
+that is a decision, not an omission. The failure it guards against is real: a request approved months
+later publishes a dataset that changed underneath it. But an expiry rule needs a new state or a
+time-based transition, and it decides *for* the user when an organization pauses or the dataset is still
+waiting. The compensating control is information: the queue shows **how long** each request has been
+pending, with visible emphasis past a threshold, so a stale request becomes a **visible decision** for
+the administrator instead of an accident. The threshold is a **presentation choice, not a policy** —
+nothing expires, and a request past it stays decidable.
+
 **Four eyes: nobody approves a request they created.** The store is a **gate, not a log**, and a gate
 requires an approver who is not the requester. With self-approval the whole scope degenerates into a
 record, and the repository had **already written the principle**: when it parked the old PR 2,

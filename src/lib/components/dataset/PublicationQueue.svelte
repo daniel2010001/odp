@@ -63,7 +63,7 @@ import {
 import Button from "$lib/components/ui/button/button.svelte";
 import { currentUser as currentUserStore } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
-import { cn, formatDate } from "$lib/utils";
+import { cn, formatDate, formatRelativeAge } from "$lib/utils";
 
 /** Lee las solicitudes de la cola; sin argumento, todas las que el catálogo autorice. */
 export type ListPublicationRequests = (
@@ -101,6 +101,7 @@ let {
 	decide,
 	currentUser,
 	ondecided,
+	now = new Date(),
 	class: className = "",
 }: {
 	list: ListPublicationRequests;
@@ -108,6 +109,11 @@ let {
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. Default: la sesión. */
 	currentUser?: string | null;
 	ondecided?: (item: PublicationQueueItem) => void;
+	/**
+	 * Reloj inyectable: fija la antigüedad que muestra cada fila. Por defecto, el momento de montar la
+	 * cola; la hoja de revisión lo fija para que el ejemplo no dependa de cuándo se mire.
+	 */
+	now?: Date;
 	class?: string;
 } = $props();
 
@@ -130,6 +136,29 @@ const viewer = $derived(currentUser === undefined ? ($currentUserStore?.id ?? nu
 function isOwn(item: PublicationQueueItem): boolean {
 	return viewer !== null && item.requested_by === viewer;
 }
+
+// Énfasis de **presentación**, no una política: la solicitud no expira. A partir de los 90 días la
+// antigüedad se marca para que una solicitud estancada se note al mirar la cola, en vez de quedar
+// como un dato más entre varios. Noventa días es una elección de la fila —sobrevivió a un
+// trimestre—, no un umbral del catálogo.
+const UMBRAL_ANTIGUA_MS = 90 * 24 * 60 * 60 * 1000;
+
+/**
+ * La antigüedad ya resuelta por fila, para no recalcularla en cada referencia del template. `null`
+ * cuando la fecha falta o no se puede parsear: la fila no inventa una frase ni una marca.
+ */
+const antiguedades = $derived(
+	new Map(
+		items.map((item) => {
+			if (!item.created_at) return [item.id, null] as const;
+			const texto = formatRelativeAge(item.created_at, now);
+			if (texto === "") return [item.id, null] as const;
+			const creada = new Date(item.created_at).getTime();
+			const antigua = !Number.isNaN(creada) && now.getTime() - creada >= UMBRAL_ANTIGUA_MS;
+			return [item.id, { texto, antigua }] as const;
+		}),
+	),
+);
 
 async function load() {
 	loading = true;
@@ -249,7 +278,20 @@ function setComment(id: string, value: string) {
 						<p class="mt-1 text-xs text-muted-foreground">
 							{#if item.requested_by_name || item.requested_by}Solicitada por {item.requested_by_name ?? REQUESTER_FALLBACK}{/if}
 							{#if (item.requested_by_name || item.requested_by) && item.created_at} · {/if}
-							{#if item.created_at}{formatDate(item.created_at)}{/if}
+							{#if item.created_at}
+								{formatDate(item.created_at)}
+								{#if antiguedades.get(item.id)}
+									·
+									<span
+										data-testid="request-age"
+										data-stale={antiguedades.get(item.id)?.antigua ? "true" : "false"}
+										class={cn(
+											"whitespace-nowrap",
+											antiguedades.get(item.id)?.antigua && "font-semibold text-destructive",
+										)}
+									>{antiguedades.get(item.id)?.texto}</span>
+								{/if}
+							{/if}
 						</p>
 					{/if}
 

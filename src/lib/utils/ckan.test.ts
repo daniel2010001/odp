@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
-import { ownerOrgIdOf } from "./ckan";
+import { formatRelativeAge, ownerOrgIdOf } from "./ckan";
 
 function makeOrganization(overrides: Partial<CkanOrganization> = {}): CkanOrganization {
 	return {
@@ -30,6 +30,57 @@ function makePackage(overrides: Partial<CkanPackage> = {}): CkanPackage {
 		...overrides,
 	};
 }
+
+describe("formatRelativeAge", () => {
+	// La antigüedad es una función pura de (fecha, ahora): se prueba siempre con un `now` fijo y
+	// nunca contra la hora real de la máquina.
+	const AHORA = new Date("2026-10-07T12:00:00");
+
+	it("el mismo día dice «hoy»", () => {
+		// Mutación que lo rompe: contar por milisegundos y cortar en 1 día devolvería «hace 1 día».
+		expect(formatRelativeAge("2026-10-07T08:00:00.000000", AHORA)).toBe("hoy");
+	});
+
+	it("un día es «hace 1 día» (singular)", () => {
+		// Mutación que lo rompe: pluralizar siempre devolvería «hace 1 días».
+		expect(formatRelativeAge("2026-10-06T09:00:00.000000", AHORA)).toBe("hace 1 día");
+	});
+
+	it("varios días es «hace N días» (plural)", () => {
+		// Mutación que lo rompe: singularizar siempre devolvería «hace 5 día».
+		expect(formatRelativeAge("2026-10-02T00:00:00.000000", AHORA)).toBe("hace 5 días");
+	});
+
+	it("un mes es «hace 1 mes» (singular)", () => {
+		// Mutación que lo rompe: pluralizar siempre devolvería «hace 1 meses».
+		expect(formatRelativeAge("2026-09-07T12:00:00.000000", AHORA)).toBe("hace 1 mes");
+	});
+
+	it("varios meses es «hace N meses» (plural)", () => {
+		// Mutación que lo rompe: contar mal el tramo devolvería otro N; saltar a años daría «hace 0 años».
+		expect(formatRelativeAge("2026-04-03T00:00:00.000000", AHORA)).toBe("hace 6 meses");
+	});
+
+	it("un año es «hace 1 año» (singular)", () => {
+		// Mutación que lo rompe: pluralizar siempre devolvería «hace 1 años».
+		expect(formatRelativeAge("2025-10-07T12:00:00.000000", AHORA)).toBe("hace 1 año");
+	});
+
+	it("varios años es «hace N años» (plural)", () => {
+		// Mutación que lo rompe: singularizar siempre devolvería «hace 2 año».
+		expect(formatRelativeAge("2024-10-07T12:00:00.000000", AHORA)).toBe("hace 2 años");
+	});
+
+	it("un valor que no se puede parsear no produce ninguna frase", () => {
+		// Mutación que lo rompe: devolver el valor crudo o «hace NaN años» contaminaría la fila.
+		expect(formatRelativeAge("no-es-una-fecha", AHORA)).toBe("");
+	});
+
+	it("una fecha futura dice «en …», nunca «hace -N días»", () => {
+		// Mutación que lo rompe: omitir la rama futura devolvería «hace -3 días».
+		expect(formatRelativeAge("2026-10-10T00:00:00.000000", AHORA)).toBe("en 3 días");
+	});
+});
 
 describe("ownerOrgIdOf", () => {
 	it("devuelve `owner_org` cuando el paquete lo trae", () => {

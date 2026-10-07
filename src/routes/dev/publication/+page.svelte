@@ -57,6 +57,7 @@ import { cn, formatDate } from "$lib/utils";
 import {
 	ADMINISTRADOR,
 	ADMINISTRADOR_ID,
+	AHORA_REVISION,
 	COLA,
 	DATASET,
 	DATASET_PUBLICADO,
@@ -220,6 +221,16 @@ const PRESETS: Preset[] = [
 		caso: "sin-solicitud",
 		fallo: "ninguno",
 		cola: "error",
+	},
+	{
+		id: "solicitud-antigua",
+		label: "12 · Solicitud antigua",
+		detalle:
+			"Una solicitud pendiente desde hace meses: la cola muestra su antigüedad con énfasis para que una solicitud estancada se note al mirar.",
+		vista: "administrador",
+		caso: "sin-solicitud",
+		fallo: "ninguno",
+		cola: "con-solicitudes",
 	},
 ];
 
@@ -536,7 +547,12 @@ $effect(() => {
 
 {#snippet colaDeSolicitudes()}
 	{#key montaje}
-		<PublicationQueue list={listarCola} decide={decidirCola} currentUser={usuarioActual} />
+		<PublicationQueue
+			list={listarCola}
+			decide={decidirCola}
+			currentUser={usuarioActual}
+			now={AHORA_REVISION}
+		/>
 	{/key}
 {/snippet}
 

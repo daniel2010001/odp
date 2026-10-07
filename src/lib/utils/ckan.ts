@@ -65,6 +65,50 @@ export function formatDate(iso: string): string {
 	}
 }
 
+/**
+ * Edad relativa de una fecha ISO en español neutro y formal: «hoy», «hace 1 día», «hace 5 meses»,
+ * «hace 2 años». `now` entra **inyectado** para que el resultado sea determinista en las pruebas y en
+ * la hoja de revisión: la función no lee la hora del sistema.
+ *
+ * Dos honestidades:
+ *  · Un valor que no se puede parsear devuelve `""` — ninguna frase inventada: la fila se queda con
+ *    su fecha absoluta y nada más.
+ *  · Una fecha futura no se lee como «hace -3 días»: dice «en 3 días», que es lo que es.
+ *
+ * La antigüedad se cuenta por **días de calendario**, no por milisegundos: cruzar la medianoche
+ * cuenta como un día entero y el resultado no depende de la hora del día. Los tramos son de
+ * presentación (30 días = 1 mes, 365 días = 1 año), no una política de vencimiento: la solicitud no
+ * expira.
+ */
+export function formatRelativeAge(iso: string, now: Date): string {
+	const fecha = new Date(iso);
+	if (Number.isNaN(fecha.getTime()) || Number.isNaN(now.getTime())) return "";
+
+	const dias = Math.round(
+		(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+			Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())) /
+			86_400_000,
+	);
+
+	if (dias === 0) return "hoy";
+
+	const futuro = dias < 0;
+	const abs = Math.abs(dias);
+
+	let cantidad: string;
+	if (abs === 1) cantidad = "1 día";
+	else if (abs < 30) cantidad = `${abs} días`;
+	else if (abs < 365) {
+		const meses = Math.floor(abs / 30);
+		cantidad = meses === 1 ? "1 mes" : `${meses} meses`;
+	} else {
+		const anios = Math.floor(abs / 365);
+		cantidad = anios === 1 ? "1 año" : `${anios} años`;
+	}
+
+	return futuro ? `en ${cantidad}` : `hace ${cantidad}`;
+}
+
 /** Parsear tamaño de archivo a formato legible */
 export function formatSize(bytes?: number): string {
 	if (bytes === undefined || bytes === null) return "—";

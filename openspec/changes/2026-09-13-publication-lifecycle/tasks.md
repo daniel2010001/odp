@@ -606,7 +606,7 @@ means the runner does not cover it; the right column says who does, or that nobo
 | Sysadmin Bypass | `test_auth.py` | `P6.1` and the sysadmin action path | — |
 | Published Datasets Reach The Catalogue | none in-repo | `P7` (anonymous count) | **only the live probe** — Solr behaviour; no Python unit or portal runner |
 | Portal Publication Affordance | Vitest `PublishControl.test.ts` (sysadmin-flag gate), `RequestPublicationControl.test.ts` + dataset-page test (both gates) | — | the real CKAN calls end-to-end: the repo has no integration/E2E runner → manual (B2.8) |
-| Portal Approval Queue | Vitest queue test (required reject reason, self-approval state) | — | the real CKAN call end-to-end → manual (B2.8) |
+| Portal Approval Queue | Vitest queue test (required reject reason, self-approval state, a stale request's age and emphasis) | — | the real CKAN call end-to-end → manual (B2.8) |
 | No Fabricated Publication | Vitest `PublishControl.test.ts` | — | — |
 | Honest Lifecycle Copy | Vitest copy tests | — | the global "no shipped string promises a deferred step" sweep is a **manual read** |
 
