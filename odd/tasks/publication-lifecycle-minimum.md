@@ -407,3 +407,19 @@ tenga su UI.
   con su propia compuerta. **Contra la acción desplegada, el portal leería cada publicación exitosa como
   fallo.** Por eso **B1 espera esa clave, no sólo a A2** — y el doble inyectado de la hoja es, por ahora,
   la única forma de ejercitar la regla.
+- **2026-10-07 — La par confirma el hallazgo y consolida la dependencia: NO cablear B1 contra A2.**
+  Verificaron mi `41de6c2` en `origin/main` y concluyen que **A2 quedó no conforme** con D4. El riesgo que
+  marcan es concreto y es el **espejo** del de `dataset`: **`publication_publish` pasa a ser sólo `sysadmin`,
+  así que un `admin` de organización recibe `403`** — un control del portal cableado contra A2 **haría fallar
+  cada publicación de un `admin`**.
+  **La unidad de seguimiento de A2 lleva siete cosas, con una sola compuerta**, antes de que yo cablee:
+  (1) `publish` sólo `sysadmin`; (2) `decide` cuatro ojos con `403` distinguible; (3) motivo obligatorio al
+  rechazar; (4) el **campo de presentación** en `list`; (5) **A2.6** la re-verificación del estado actual;
+  (6) **A2.7** la anulación; (7) el **retorno aditivo** (fila + `dataset`).
+  **`A5` queda mío, y ellos lo verificaron**: revisaron que `probe.sh` es de **este** repo y que el registro
+  está corregido, y no lo pueden reescribir porque **corre contra el stack que construyen**. Su trabajo
+  abierto: esa unidad, A3 y A6.
+  **Y el orden se sostuvo por disciplina, no por suerte:** los dos riesgos que aparecieron hoy —`dataset`
+  ausente y `publish` no conforme— nacen los dos de **adoptar el contrato nuevo antes de que el código lo
+  cumpla**. Lo que evitó que el portal rompiera publicaciones fue la regla de **no cablear contra una forma
+  que todavía no existe**.
