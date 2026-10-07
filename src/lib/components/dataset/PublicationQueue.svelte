@@ -10,6 +10,8 @@ import type { PublicationRequestStatus } from "./RequestPublicationControl.svelt
 // estado reusa el vocabulario de `PublicationRequest`, que es el dueño de la tabla.
 export interface PublicationQueueItem {
 	id: string;
+	/** Id del dataset de la solicitud; es lo que la cola relee para confirmar una aprobación. */
+	dataset_id: string;
 	dataset_title: string;
 	organization_title?: string;
 	/** Id de usuario de quien creó la solicitud; sólo alimenta la comparación de cuatro ojos. */
@@ -24,12 +26,12 @@ export interface PublicationQueueItem {
 }
 
 /**
- * La respuesta de `publication_request_decide`: la fila decidida, más el dataset resultante cuando la
- * decisión fue una aprobación. Un rechazo no toca la visibilidad y puede no traerlo.
+ * La respuesta de `publication_request_decide`: **sólo** su fila `publication_requests`, el contrato
+ * uniforme de las cinco acciones. No trae el dataset; la confirmación de una aprobación viene de
+ * releer el **valor almacenado** (`readDataset`), y un rechazo confirma con el estado de su propia
+ * fila.
  */
-export interface PublicationDecisionResult extends PublicationQueueItem {
-	dataset?: CkanPackage;
-}
+export type PublicationDecisionResult = PublicationQueueItem;
 </script>
 
 <script lang="ts">
@@ -49,11 +51,13 @@ export interface PublicationDecisionResult extends PublicationQueueItem {
 // existen en la capa de API del portal. Quién puede decidir lo decide el catálogo; acá sólo se lee su
 // respuesta.
 //
-// Regla de honestidad: la fila sale de la cola **sólo** cuando el catálogo confirmó la decisión. Un
-// `200` cuya solicitud sigue pendiente no es una decisión. Y aprobar es más que el estado: la fila
-// sale únicamente si el catálogo devolvió además el dataset ya público (`dataset.private === false`),
-// porque un `approved` sin el flip no concedió la publicación. Un `403` se explica como capacidad
-// faltante, no como error de red.
+// Regla de honestidad: la fila sale de la cola **sólo** cuando el catálogo confirmó la decisión, y
+// las tres situaciones se mantienen separadas. *La acción falló* (`403` o error). *La acción
+// concedió y la confirmación no se pudo establecer*: aprobar confirma contra el valor **almacenado**
+// —la fila no trae dataset—, así que una relectura que sigue privada o que falla es esa confirmación
+// que no se pudo establecer, no un fallo de la acción. *Confirmada*: una aprobación sale de la cola
+// sólo si la relectura ve el dataset ya público; un rechazo no toca la visibilidad y sale con el
+// estado que su propia fila devolvió, sin relectura.
 import {
 	CheckCircle2,
 	CircleAlert,
@@ -73,8 +77,8 @@ export type ListPublicationRequests = (
 ) => Promise<PublicationQueueItem[]>;
 
 /**
- * Registra la decisión sobre una solicitud y devuelve la fila, más el dataset resultante cuando la
- * decisión fue una aprobación.
+ * Registra la decisión sobre una solicitud y devuelve **sólo** su fila `publication_requests`. La
+ * aprobación se confirma releyendo el valor almacenado; el rechazo, con el estado de la fila.
  */
 export type DecidePublicationRequest = (
 	requestId: string,
@@ -107,6 +111,7 @@ const ANNULLED_NOTE = "Anulada: la solicitud dejó de estar vigente.";
 let {
 	list,
 	decide,
+	readDataset,
 	currentUser,
 	ondecided,
 	now = new Date(),
@@ -114,6 +119,11 @@ let {
 }: {
 	list: ListPublicationRequests;
 	decide: DecidePublicationRequest;
+	/**
+	 * Relee el dataset almacenado. Es la confirmación de una aprobación: la fila de `decide` no trae
+	 * el dataset, y medir el valor guardado es más fuerte que creerle a quien lo cambió.
+	 */
+	readDataset: (id: string) => Promise<CkanPackage>;
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. Default: la sesión. */
 	currentUser?: string | null;
 	ondecided?: (item: PublicationQueueItem) => void;
@@ -204,18 +214,35 @@ async function decideOn(item: PublicationQueueItem, approve: boolean) {
 
 	try {
 		const respuesta = await decide(item.id, approve, comentario || undefined);
-		const esperado: PublicationRequestStatus = approve ? "approved" : "rejected";
 
-		// Aprobar se concede sólo cuando, además del estado, el catálogo devuelve el dataset ya público:
-		// un `approved` sin el flip (`dataset.private` en `true`, o sin `dataset`) no concedió la
-		// publicación. Un rechazo no toca la visibilidad, así que su fila confirmada alcanza.
-		const confirmada =
-			respuesta?.status === esperado && (!approve || respuesta.dataset?.private === false);
+		if (!approve) {
+			// Rechazar no toca la visibilidad: su propia fila confirmada alcanza, sin relectura. Un `200`
+			// que la deja pendiente no concedió la decisión.
+			if (respuesta?.status === "rejected") {
+				sacarDeLaCola(item, respuesta, REJECTED_NOTE);
+			} else {
+				outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
+			}
+			return;
+		}
 
-		if (confirmada) {
-			items = items.filter((solicitud) => solicitud.id !== item.id);
-			announcement = approve ? APPROVED_NOTE : REJECTED_NOTE;
-			ondecided?.(respuesta);
+		// Aprobar se confirma sólo contra el valor **almacenado**: la fila no trae el dataset, así que un
+		// `200` no es la concesión. Una relectura que falla o que sigue privada es la confirmación que no
+		// se pudo establecer, no un fallo de la acción.
+		const datasetId = respuesta?.dataset_id;
+		if (!datasetId) {
+			outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
+			return;
+		}
+		let almacenado: CkanPackage;
+		try {
+			almacenado = await readDataset(datasetId);
+		} catch {
+			outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
+			return;
+		}
+		if (almacenado.private === false) {
+			sacarDeLaCola(item, respuesta, APPROVED_NOTE);
 		} else {
 			outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
 		}
@@ -232,6 +259,17 @@ async function decideOn(item: PublicationQueueItem, approve: boolean) {
 	} finally {
 		deciding = null;
 	}
+}
+
+/** Confirma una fila: sale de la cola y el anuncio nombra el desenlace. */
+function sacarDeLaCola(
+	item: PublicationQueueItem,
+	respuesta: PublicationDecisionResult,
+	nombre: string,
+) {
+	items = items.filter((solicitud) => solicitud.id !== item.id);
+	announcement = nombre;
+	ondecided?.(respuesta);
 }
 
 /**

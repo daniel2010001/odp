@@ -286,7 +286,9 @@ Five actions MUST be registered through `IActions`:
 | `publication_publish(dataset_id, comments?)` | **`sysadmin` only** | the sysadmin's **recorded** direct path: writes the row and approves/consumes it in the act |
 | `publication_request_list(status?)` | anyone who administers or edits in the organization | the queue: requests of the orgs where the caller has capacity, plus the caller's own (their own are listed but not decidable by them) |
 
-**Return shape.** Each action returns its `publication_requests` row at the **top level**, carrying the derived display names `requested_by_name` and `approved_by_name` (resolved in one batched lookup per call, uniform across all five actions). `publication_publish`, and `publication_request_decide` with `approve: true`, MUST **also** return a `dataset` key holding the result of the flip, so a caller can confirm the stored value without a second read; `publication_request_decide` with `approve: false` returns the row alone. A portal MUST confirm a publication from `dataset.private === false` and MUST NOT treat a top-level `200` as a grant — a response whose top level looks public while `dataset.private` is `true` is not a success.
+**Return shape.** Each action returns **only** its `publication_requests` row at the top level, carrying the derived display names `requested_by_name` and `approved_by_name` (resolved in one batched lookup per call, uniform across all five actions). **No action returns the dataset.** A portal MUST therefore **re-read the dataset** after `publication_publish` or an approving `publication_request_decide`, and MUST confirm from the **stored** `private` value: a `200` from the action is not a grant, and a response that does not carry a dataset is not a failure. The portal MUST keep three states apart and MUST NOT collapse them: the action **failed**; the action succeeded and the confirmation **could not be established** (the re-read reports the value still private, or the re-read itself fails); and **confirmed**. Presenting the second as a failure is a false statement.
+
+*This replaces the earlier additive wording (a `dataset` key on the two flipping actions): the confirmation is the re-read of the stored value, not a field on the response.*
 
 **Four eyes — nobody approves a request they created.** `publication_request_decide` MUST refuse a caller whose identity equals the request's `requested_by`, and the refusal MUST be an authorization failure, not a silent no-op: the row stays `pending`. An organization `admin` has **no** direct publish path; `publication_publish` is `sysadmin`-only and MUST write and consume a `publication_requests` row rather than flipping through the stock bypass alone. The approver's `comments` is **required when rejecting** and **optional when approving**.
 
@@ -586,7 +588,7 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 
 ### Requirement: Portal Approval Queue
 
-The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name for each party** — the requester **and**, when the row has been decided, whoever decided it — and the row MUST show those names rather than the raw `requested_by`/`approved_by` **ids**. The names MUST be resolved by the action in **a single batched lookup per call**, not one lookup per row, and MUST be present uniformly across all five actions. When the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The row MUST also show **how long** the request has been pending, alongside its absolute date, and MUST make a **stale** request noticeable; the threshold is a presentation choice and MUST NOT be read as an expiry rule, because nothing expires. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
+The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name for each party** — the requester **and**, when the row has been decided, whoever decided it — and the row MUST show those names rather than the raw `requested_by`/`approved_by` **ids**. The names MUST be resolved by the action in **a single batched lookup per call**, not one lookup per row, and MUST be present uniformly across all five actions. When the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The portal MUST confirm an **approval** only by **re-reading the dataset** and seeing the **stored** `private` is `false`; a `200` from `publication_request_decide` is not the confirmation, and a response that does not carry a dataset is not a failure. A **rejection** does not touch visibility and MUST be confirmed from the status on the returned row, with no re-read. A re-read that fails is the confirmation that could not be established, not a failure of the action, and MUST NOT be presented as one. The row MUST also show **how long** the request has been pending, alongside its absolute date, and MUST make a **stale** request noticeable; the threshold is a presentation choice and MUST NOT be read as an expiry rule, because nothing expires. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
 
 #### Scenario: A decided row names who decided, and only when someone did
 
@@ -616,14 +618,14 @@ The portal MUST host an approval queue for the pending publication requests an a
 - GIVEN a rendered pending request created by another caller
 - WHEN the administrator approves it
 - THEN the browser sends `POST /api/3/action/publication_request_decide` with the request id and `approve: true`
-- AND on a confirming response the request leaves the pending queue
+- AND the portal re-reads the dataset, and the request leaves the pending queue only when the stored `private` is `false`
 
 #### Scenario: Rejecting a request
 
 - GIVEN a rendered pending request created by another caller
 - WHEN the administrator rejects it with a comment
 - THEN the browser sends `POST /api/3/action/publication_request_decide` with the request id, `approve: false` and the comment
-- AND on a confirming response the request leaves the pending queue
+- AND on the returned row's status `rejected` the request leaves the pending queue, with no re-read
 
 #### Scenario: A request the administrator created is not decidable
 
@@ -665,7 +667,7 @@ The portal MUST host an approval queue for the pending publication requests an a
 
 ### Requirement: No Fabricated Publication
 
-The portal MUST render only what CKAN confirmed, and MUST NOT present a publication CKAN did not grant. The dataset state shown after a request MUST derive from CKAN's response, never from an optimistic assumption, and an authorization failure and a validation failure MUST be reported as different conditions.
+The portal MUST render only what CKAN confirmed, and MUST NOT present a publication CKAN did not grant. The dataset state shown after a request MUST derive from the **re-read** of the stored value, never from an optimistic assumption and never from the action's own response, and an authorization failure and a validation failure MUST be reported as different conditions.
 
 #### Scenario: CKAN refuses with 403
 
@@ -675,20 +677,28 @@ The portal MUST render only what CKAN confirmed, and MUST NOT present a publicat
 - AND the control is offered again
 - AND the dataset is still shown as private
 
-#### Scenario: CKAN answers 200 without granting publication
+#### Scenario: The action returns 200 without the stored value being public
 
 - GIVEN a rendered publication control
-- WHEN CKAN answers `200` but the response reports `private` as `true`
+- WHEN the action returns `200` with its row, but the re-read of the stored value reports `private` as `true`
 - THEN the page states "El catálogo no confirmó la publicación."
 - AND the dataset is still shown as private
 - AND no success state is rendered
 
-#### Scenario: CKAN confirms publication
+#### Scenario: The confirmation re-read fails
 
 - GIVEN a rendered publication control
-- WHEN CKAN answers `200` and the response reports `private: false`
+- WHEN the action returns `200` with its row, but the re-read of the stored value fails
+- THEN the page states "El catálogo no confirmó la publicación."
+- AND the dataset is still shown as private
+- AND the state is not presented as a failure of the action, because the action succeeded
+
+#### Scenario: The re-read confirms publication
+
+- GIVEN a rendered publication control
+- WHEN the action returns `200` and the re-read reports the stored `private: false`
 - THEN the page shows the dataset as public
-- AND the page's dataset object is replaced by CKAN's response
+- AND the page's dataset object is replaced by the re-read's dataset
 
 #### Scenario: Another failure kind
 

@@ -20,11 +20,12 @@
 	con nombre propio, un `200` que no concede, una solicitud rechazada con su motivo y una cola que no
 	carga.
 
-	Todas las llamadas —`publish`, `request`, `cancel`, `list`, `decide`— entran por **dobles**: las
-	acciones del catálogo todavía no existen en la capa de API del portal, así que la hoja no puede
-	cablearlas de verdad. El panel de control es de la hoja, no del producto: es fijo y colapsable,
-	guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&colocacion=&panel=`) y `?clic=1` aprieta el
-	primer control disponible, para poder enlazar un estado que sólo aparece después del clic.
+	Todas las llamadas —`publish`, `readDataset`, `request`, `cancel`, `list`, `decide`— entran por
+	**dobles**: las acciones del catálogo todavía no existen en la capa de API del portal, así que la
+	hoja no puede cablearlas de verdad. El panel de control es de la hoja, no del producto: es fijo y
+	colapsable, guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&colocacion=&panel=`) y `?clic=1`
+	aprieta el primer control disponible, para poder enlazar un estado que sólo aparece después del
+	clic.
 
 	La hoja es material de revisión: se borra sin tocar los componentes. La compuerta de producción
 	está en `+page.ts`.
@@ -64,6 +65,7 @@ import {
 	DATASET,
 	DATASET_PUBLICADO,
 	MOTIVO_RECHAZO,
+	makeDataset,
 	makeRequest,
 	SOLICITANTE_ID,
 } from "./fixtures";
@@ -71,7 +73,7 @@ import {
 // ─── Dimensiones del panel ────────────────────────────────────────────
 type Vista = "ambas" | "editor" | "administrador" | "sysadmin";
 type Caso = "sin-solicitud" | "pendiente" | "rechazada" | "propia" | "sin-motivo" | "annulada";
-type Fallo = "ninguno" | "403" | "sin-confirmar" | "red";
+type Fallo = "ninguno" | "403" | "sin-confirmar" | "relectura" | "red";
 type Cola = "con-solicitudes" | "vacia" | "error" | "resueltas";
 /** Dónde vive la cola: el eje que el autor quiere decidir. */
 type Colocacion = "dashboard" | "ruta" | "contador" | "aviso";
@@ -93,7 +95,8 @@ const CASOS: { id: Caso; label: string }[] = [
 const FALLOS: { id: Fallo; label: string }[] = [
 	{ id: "ninguno", label: "Concede" },
 	{ id: "403", label: "403: rechazo honesto" },
-	{ id: "sin-confirmar", label: "200 que no concede" },
+	{ id: "sin-confirmar", label: "La relectura sigue privada" },
+	{ id: "relectura", label: "La confirmación no se puede leer" },
 	{ id: "red", label: "Falla de red o 5xx" },
 ];
 const COLAS: { id: Cola; label: string }[] = [
@@ -199,17 +202,27 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "sin-conceder",
-		label: "9 · 200 que no concede",
+		label: "9 · La relectura sigue privada",
 		detalle:
-			"Apriete Publicar: el catálogo contesta 200 y no concede; no hay ningún estado de éxito. Enlace con ?clic=1.",
+			"Apriete Publicar: el catálogo contesta 200 con su fila, pero la relectura del valor almacenado sigue privada. No hay ningún estado de éxito. Enlace con ?clic=1.",
 		vista: "sysadmin",
 		caso: "sin-solicitud",
 		fallo: "sin-confirmar",
 		cola: "con-solicitudes",
 	},
 	{
+		id: "relectura-falla",
+		label: "10 · La confirmación no se puede leer",
+		detalle:
+			"Apriete Publicar: la acción concede y devuelve su fila, pero la relectura del valor almacenado falla. La hoja lo reporta como confirmación no establecida, no como un fallo de la acción. Enlace con ?clic=1.",
+		vista: "sysadmin",
+		caso: "sin-solicitud",
+		fallo: "relectura",
+		cola: "con-solicitudes",
+	},
+	{
 		id: "cola-vacia",
-		label: "10 · Cola sin solicitudes",
+		label: "11 · Cola sin solicitudes",
 		detalle: "El estado vacío de la cola, sin filas inventadas.",
 		vista: "administrador",
 		caso: "sin-solicitud",
@@ -218,7 +231,7 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "cola-error",
-		label: "11 · Cola que no carga",
+		label: "12 · Cola que no carga",
 		detalle: "La cola no cargada no se disfraza de cola vacía: error explícito con reintento.",
 		vista: "administrador",
 		caso: "sin-solicitud",
@@ -227,7 +240,7 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "solicitud-antigua",
-		label: "12 · Solicitud antigua",
+		label: "13 · Solicitud antigua",
 		detalle:
 			"Una solicitud pendiente desde hace meses: la cola muestra su antigüedad con énfasis para que una solicitud estancada se note al mirar.",
 		vista: "administrador",
@@ -237,7 +250,7 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "resueltas",
-		label: "13 · Solicitudes resueltas",
+		label: "14 · Solicitudes resueltas",
 		detalle:
 			"La cola con desenlaces: la decidida muestra quién la aprobó o rechazó, y la cancelada o anulada no se atribuye un decisor. Una aprobada llega sin nombre para ver la etiqueta neutral.",
 		vista: "administrador",
@@ -397,10 +410,18 @@ async function publicar(id: string): Promise<PublishResult> {
 	registrar(`Publicar «${id}»`);
 	if (fallo === "403") throw fallaDeAutorizacion();
 	if (fallo === "red") throw fallaDeRed();
-	if (fallo === "sin-confirmar")
-		// El nivel superior diría público, pero el dataset devuelto sigue privado: no hay confirmación.
-		return { ...DATASET_PUBLICADO, id, dataset: { ...DATASET, id, private: true } };
-	return { ...DATASET_PUBLICADO, id, dataset: { ...DATASET_PUBLICADO, id } };
+	// La acción devuelve SÓLO su fila `publication_requests`: no trae el dataset. La confirmación
+	// sale de `leerDataset`, que relee el valor almacenado.
+	return makeRequest({ dataset_id: id, id: "publicacion-nueva", status: "approved" });
+}
+
+async function leerDataset(id: string): Promise<CkanPackage> {
+	registrar(`Leer el dataset «${id}»`);
+	// La relectura es la confirmación: puede fallar, y entonces la confirmación no se establece —no es
+	// un fallo de la acción, que ya concedió.
+	if (fallo === "relectura") throw fallaDeRed();
+	// Con `sin-confirmar` el valor almacenado sigue privado: la acción resolvió, pero no concedió.
+	return makeDataset({ id, private: fallo === "sin-confirmar" });
 }
 
 async function solicitar(id: string): Promise<PublicationRequest> {
@@ -441,22 +462,19 @@ async function decidirCola(
 	if (fallo === "red") throw fallaDeRed();
 	const fila = COLA.find((item) => item.id === requestId) ?? {
 		id: requestId,
+		dataset_id: DATASET.id,
 		dataset_title: "Solicitud sin título",
 		status: "pending" as const,
 	};
-	if (fallo === "sin-confirmar") {
-		// Aprobar sin el dataset devuelto: la fila diría `approved`, pero sin el flip confirmado no se
-		// concede. Rechazar, en cambio, vuelve pendiente.
-		return approve ? { ...fila, status: "approved" } : { ...fila, status: "pending" };
+	if (!approve) {
+		// Rechazar confirma con su propia fila y no toca la visibilidad; con `sin-confirmar` vuelve
+		// pendiente y no concede.
+		return fallo === "sin-confirmar"
+			? { ...fila, status: "pending" }
+			: { ...fila, status: "rejected", comments: comments ?? null };
 	}
-	if (!approve) return { ...fila, status: "rejected", comments: comments ?? null };
-	return {
-		...fila,
-		status: "approved",
-		comments: comments ?? null,
-		// La aprobación confirmada trae el dataset que el catálogo ya publicó.
-		dataset: { ...DATASET_PUBLICADO, title: fila.dataset_title },
-	};
+	// Aprobar devuelve SÓLO su fila: la confirmación sale de `leerDataset`.
+	return { ...fila, status: "approved", comments: comments ?? null };
 }
 
 // `?clic=1` aprieta el primer control disponible: los estados de fallo sólo existen después del
@@ -553,6 +571,7 @@ $effect(() => {
 			<PublishControl
 				dataset={item}
 				publish={publicar}
+				readDataset={leerDataset}
 				canPublish={canPublish}
 				onpublished={(publicado) => (dataset = publicado)}
 			/>
@@ -565,6 +584,7 @@ $effect(() => {
 		<PublicationQueue
 			list={listarCola}
 			decide={decidirCola}
+			readDataset={leerDataset}
 			currentUser={usuarioActual}
 			now={AHORA_REVISION}
 		/>

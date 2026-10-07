@@ -3,16 +3,23 @@
 // portal: un administrador de organización **no** recibe el control directo (su camino es aprobar
 // solicitudes), y sólo cuenta como publicación lo que el catálogo confirmó.
 //
-// La llamada que publica es **inyectada** (`publish`): la acción no existe todavía del lado del
-// catálogo, así que el componente no la cablea por defecto. La capacidad también es inyectable
-// (`canPublish`) para que la hoja de revisión y la página real la conduzcan; sin ella, el default es
-// el flag `sysadmin` que el portal ya mantiene (`isSuperAdmin`), sin ninguna llamada nueva.
+// El contrato de retorno es **uniforme**: la acción `publish` devuelve sólo su fila
+// `publication_requests`, sin `dataset`. La confirmación de la publicación entra por una segunda
+// llamada inyectada (`readDataset`), que relee el **valor almacenado**; el portal no la toma de la
+// respuesta de quien escribió. Las tres situaciones se mantienen separadas: *la acción falló*,
+// *la acción concedió y la confirmación no se pudo establecer* —porque la relectura sigue privada o
+// porque la relectura misma falló— y *confirmada*.
+//
+// La capacidad también es inyectable (`canPublish`) para que la hoja de revisión y la página real
+// la conduzcan; sin ella, el default es el flag `sysadmin` que el portal ya mantiene
+// (`isSuperAdmin`), sin ninguna llamada nueva.
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanUser } from "$lib/types/ckan";
+import type { PublicationRequest } from "./RequestPublicationControl.svelte";
 import PublishControl from "./PublishControl.svelte";
 
 // La frase que ve un administrador de organización: nombra quién aprueba y no le promete el camino
@@ -24,7 +31,11 @@ const REFUSAL = "Solo la superadministración de la plataforma puede publicar es
 // la alerta mostraría este texto y las aserciones de abajo fallarían.
 const SERVER_403_PUBLISH =
 	"Authorization Error: la acción 'publication_publish' requiere el flag sysadmin.";
+// La confirmación que no se pudo establecer: cubre la relectura que sigue privada y la que falla.
 const UNCONFIRMED = "El catálogo no confirmó la publicación.";
+// El estado confirmado, distinto de los dos vecinos.
+const CONFIRMED = "El catálogo confirmó la publicación.";
+const ERROR_PREFIX = "No se pudo publicar el dataset";
 const CONSEQUENCE = "Será visible en el catálogo público.";
 const PUBLISH_LABEL = "Publicar dataset";
 
@@ -56,33 +67,43 @@ function makeUser(overrides: Partial<CkanUser> = {}): CkanUser {
 	};
 }
 
-// La respuesta de `publication_publish`: la fila que el catálogo ya devolvía, más el dataset
-// resultante bajo `dataset`. La publicación se lee de `dataset`, no del nivel superior.
-type PublishResult = CkanPackage & { dataset: CkanPackage };
+// La respuesta de `publication_publish`: **sólo** su fila `publication_requests`. No hay `dataset` en
+// la forma; la confirmación sale de `readDataset`, que relee el valor almacenado.
+function makeRow(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
+	return {
+		id: "pub-1",
+		dataset_id: "pkg-1",
+		status: "approved",
+		...overrides,
+	};
+}
 
 type ControlProps = {
 	dataset: CkanPackage;
-	publish: (id: string) => Promise<PublishResult>;
+	publish: (id: string) => Promise<PublicationRequest>;
+	readDataset: (id: string) => Promise<CkanPackage>;
 	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
 };
 
 /** Renderiza un dataset privado con la capacidad de publicar ya concedida. */
 function renderPrivate(overrides: Partial<ControlProps> = {}) {
-	const publish = vi.fn<(id: string) => Promise<PublishResult>>();
+	const publish = vi.fn<(id: string) => Promise<PublicationRequest>>();
+	const readDataset = vi.fn<(id: string) => Promise<CkanPackage>>();
 	const onpublished = vi.fn();
 
 	const resultado = render(PublishControl, {
 		props: {
 			dataset: makeDataset(),
 			publish,
+			readDataset,
 			canPublish: true,
 			onpublished,
 			...overrides,
 		} satisfies ControlProps,
 	});
 
-	return { publish, onpublished, ...resultado };
+	return { publish, readDataset, onpublished, ...resultado };
 }
 
 beforeEach(() => {
@@ -96,6 +117,7 @@ describe("PublishControl — qué se ofrece", () => {
 			props: {
 				dataset: makeDataset({ private: false }),
 				publish: vi.fn(),
+				readDataset: vi.fn(),
 				canPublish: true,
 			} satisfies ControlProps,
 		});
@@ -117,6 +139,7 @@ describe("PublishControl — qué se ofrece", () => {
 			props: {
 				dataset: makeDataset(),
 				publish: vi.fn(),
+				readDataset: vi.fn(),
 				canPublish: false,
 			} satisfies ControlProps,
 		});
@@ -129,7 +152,7 @@ describe("PublishControl — qué se ofrece", () => {
 		auth.login("tok", makeUser({ sysadmin: true }));
 
 		render(PublishControl, {
-			props: { dataset: makeDataset(), publish: vi.fn() } satisfies ControlProps,
+			props: { dataset: makeDataset(), publish: vi.fn(), readDataset: vi.fn() } satisfies ControlProps,
 		});
 
 		await waitFor(() =>
@@ -143,7 +166,7 @@ describe("PublishControl — qué se ofrece", () => {
 		auth.login("tok", makeUser({ capacity: "admin", sysadmin: false }));
 
 		render(PublishControl, {
-			props: { dataset: makeDataset(), publish: vi.fn() } satisfies ControlProps,
+			props: { dataset: makeDataset(), publish: vi.fn(), readDataset: vi.fn() } satisfies ControlProps,
 		});
 
 		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
@@ -152,24 +175,68 @@ describe("PublishControl — qué se ofrece", () => {
 });
 
 describe("PublishControl — qué reporta después del click", () => {
-	it("llama a publish con el id del dataset y muestra el resultado como éxito sólo si el catálogo confirmó", async () => {
-		// La confirmación vive bajo `dataset`: es ese objeto —no el nivel superior— el que reemplaza al
-		// dataset y el que se reporta.
-		const respuesta: PublishResult = { ...makeDataset(), dataset: makeDataset({ private: false }) };
-		const { publish, onpublished } = renderPrivate();
-		publish.mockResolvedValue(respuesta);
+	it("la fila de la acción no trae dataset y la relectura pública confirma la publicación", async () => {
+		// La acción devuelve SÓLO su fila: la confirmación no puede salir de ahí. La relectura del
+		// valor almacenado trae el dataset ya público y es la única fuente del estado.
+		const { publish, readDataset, onpublished } = renderPrivate();
+		const fila = makeRow();
+		publish.mockResolvedValue(fila);
+		const almacenado = makeDataset({ private: false });
+		readDataset.mockResolvedValue(almacenado);
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
 
-		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(respuesta.dataset));
+		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(almacenado));
 		expect(publish).toHaveBeenCalledWith("pkg-1");
-		// El dataset renderizado es la respuesta del catálogo: el control desaparece porque ya es
-		// público.
+		// La relectura es la fuente: pidió el mismo dataset que la acción publicó.
+		expect(readDataset).toHaveBeenCalledWith("pkg-1");
+		// Mutación que lo rompe: leer `private` de la fila de la acción (donde la forma ya no lleva
+		// `dataset`) dejaría el control ofrecido, sin `onpublished` y sin el estado confirmado.
+		expect((fila as PublicationRequest & { dataset?: unknown }).dataset).toBeUndefined();
 		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
+		expect(screen.getByText(CONFIRMED)).toBeInTheDocument();
+	});
+
+	it("la relectura sigue privada: no confirma y el dataset de la UI no cambia", async () => {
+		const { publish, readDataset, onpublished } = renderPrivate();
+		publish.mockResolvedValue(makeRow());
+		// El valor almacenado sigue privado: la acción resolvió, pero no concedió lo que dice.
+		readDataset.mockResolvedValue(makeDataset({ private: true }));
+
+		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
+
+		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(UNCONFIRMED));
+		// La confirmación sí se intentó: la relectura del valor almacenado se pidió.
+		expect(readDataset).toHaveBeenCalledWith("pkg-1");
+		expect(onpublished).not.toHaveBeenCalled();
+		// El dataset renderizado sigue privado y el control sigue ofrecido.
+		expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument();
+		expect(screen.queryByText(CONFIRMED)).toBeNull();
+		// No se confundió con un fallo de la acción.
+		expect(screen.getByRole("alert")).not.toHaveTextContent(ERROR_PREFIX);
+	});
+
+	it("la relectura falla: estado intermedio, distinguible de un fallo de la acción", async () => {
+		const { publish, readDataset, onpublished } = renderPrivate();
+		publish.mockResolvedValue(makeRow());
+		readDataset.mockRejectedValue(new Error("502 Bad Gateway"));
+
+		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
+
+		// La acción resolvió: se ejecutó una vez y no es su fallo.
+		expect(publish).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(UNCONFIRMED));
+		// La relectura se intentó y falló: la confirmación no se pudo establecer.
+		expect(readDataset).toHaveBeenCalledWith("pkg-1");
+		// Distinguible del vecino de abajo: no es el error genérico del intento de publicación.
+		expect(screen.getByRole("alert")).not.toHaveTextContent(ERROR_PREFIX);
+		expect(screen.getByRole("alert")).not.toHaveTextContent(REFUSAL);
+		expect(onpublished).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument();
 	});
 
 	it("403: alerta de rechazo, control disponible otra vez y el dataset sigue privado", async () => {
-		const { publish, onpublished } = renderPrivate();
+		const { publish, readDataset, onpublished } = renderPrivate();
 		publish.mockRejectedValue(new CkanApiError(SERVER_403_PUBLISH, 403, "Authorization Error"));
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
@@ -180,45 +247,31 @@ describe("PublishControl — qué reporta después del click", () => {
 			expect(screen.getByRole("alert")).toHaveTextContent(new RegExp(`^${REFUSAL}$`)),
 		);
 		expect(screen.getByRole("alert")).not.toHaveTextContent(SERVER_403_PUBLISH);
+		// La acción no concedió nada: no hay nada que releer.
+		expect(readDataset).not.toHaveBeenCalled();
 		const boton = screen.getByRole("button", { name: PUBLISH_LABEL });
 		expect(boton).toBeEnabled();
 		expect(onpublished).not.toHaveBeenCalled();
 	});
 
-	it("no confirma por el nivel superior: el dataset devuelto sigue privado aunque arriba diga público", async () => {
-		const { publish, onpublished } = renderPrivate();
-		// El nivel superior de la respuesta dice `private: false`, pero el dataset que el catálogo
-		// devuelve bajo `dataset` sigue privado: la publicación no se concedió. Si la regla volviera al
-		// objeto superior, este caso pasaría por éxito, `onpublished` se llamaría y el control
-		// desaparecería.
-		publish.mockResolvedValue({
-			...makeDataset({ private: false }),
-			dataset: makeDataset({ private: true }),
-		});
-
-		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
-
-		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(UNCONFIRMED));
-		expect(onpublished).not.toHaveBeenCalled();
-		// La lectura del dataset no cambió: sigue siendo privado y el control sigue ofrecido.
-		expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument();
-	});
-
-	it("otro fallo: error explícito con reintento que vuelve a intentar", async () => {
-		const respuesta: PublishResult = { ...makeDataset(), dataset: makeDataset({ private: false }) };
-		const { publish, onpublished } = renderPrivate();
-		publish.mockRejectedValueOnce(new Error("502 Bad Gateway")).mockResolvedValueOnce(respuesta);
+	it("otro fallo de la acción: error explícito con reintento que vuelve a intentar", async () => {
+		const { publish, readDataset, onpublished } = renderPrivate();
+		const almacenado = makeDataset({ private: false });
+		publish.mockRejectedValueOnce(new Error("502 Bad Gateway")).mockResolvedValueOnce(makeRow());
+		readDataset.mockResolvedValue(almacenado);
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
 
 		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("502 Bad Gateway"));
 		expect(publish).toHaveBeenCalledTimes(1);
+		expect(readDataset).not.toHaveBeenCalled();
 
 		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
 
-		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(respuesta.dataset));
+		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(almacenado));
 		expect(publish).toHaveBeenCalledTimes(2);
 		expect(publish).toHaveBeenLastCalledWith("pkg-1");
+		expect(readDataset).toHaveBeenCalledTimes(1);
 	});
 
 	it("en vuelo: el control reporta ocupado y no anuncia éxito", async () => {

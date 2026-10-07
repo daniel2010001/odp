@@ -88,6 +88,7 @@ export const AHORA_REVISION = new Date("2026-10-07T12:00:00");
 export const COLA: PublicationQueueItem[] = [
 	{
 		id: "req-1",
+		dataset_id: DATASET.id,
 		dataset_title: "Matrícula 2026",
 		organization_title: ORGANIZACION.title,
 		requested_by: SOLICITANTE_ID,
@@ -98,6 +99,7 @@ export const COLA: PublicationQueueItem[] = [
 	},
 	{
 		id: "req-2",
+		dataset_id: "pkg-2",
 		dataset_title: "Presupuesto de investigación 2026",
 		organization_title: OTRA_ORGANIZACION.title,
 		requested_by: OTRO_SOLICITANTE_ID,
@@ -108,6 +110,7 @@ export const COLA: PublicationQueueItem[] = [
 	},
 	{
 		id: "req-3",
+		dataset_id: "pkg-3",
 		dataset_title: "Encuesta de satisfacción 2024",
 		organization_title: OTRA_ORGANIZACION.title,
 		requested_by: OTRO_SOLICITANTE_ID,
@@ -119,18 +122,16 @@ export const COLA: PublicationQueueItem[] = [
 	},
 ];
 
+/**
+ * La decisión confirmada devuelve **sólo** su fila: el contrato es uniforme y ninguna acción trae el
+ * dataset. La hoja confirma la aprobación con su propia relectura (`leerDataset`).
+ */
 export function decidedRow(
 	item: PublicationQueueItem,
 	approve: boolean,
 ): PublicationDecisionResult {
 	return approve
-		? {
-				...item,
-				status: "approved",
-				comments: null,
-				// La aprobación confirmada trae el dataset que el catálogo ya publicó.
-				dataset: makeDataset({ private: false, title: item.dataset_title }),
-			}
+		? { ...item, status: "approved", comments: null }
 		: { ...item, status: "rejected", comments: null };
 }
 
@@ -142,6 +143,7 @@ export function decidedRow(
 export const COLA_RESUELTA: PublicationQueueItem[] = [
 	{
 		id: "req-4",
+		dataset_id: DATASET.id,
 		dataset_title: "Matrícula 2026",
 		organization_title: ORGANIZACION.title,
 		requested_by: SOLICITANTE_ID,
@@ -153,6 +155,7 @@ export const COLA_RESUELTA: PublicationQueueItem[] = [
 	},
 	{
 		id: "req-5",
+		dataset_id: "pkg-5",
 		dataset_title: "Presupuesto de investigación 2026",
 		organization_title: OTRA_ORGANIZACION.title,
 		requested_by: OTRO_SOLICITANTE_ID,
@@ -164,6 +167,7 @@ export const COLA_RESUELTA: PublicationQueueItem[] = [
 	},
 	{
 		id: "req-6",
+		dataset_id: "pkg-6",
 		dataset_title: "Encuesta de satisfacción 2024",
 		organization_title: OTRA_ORGANIZACION.title,
 		requested_by: OTRO_SOLICITANTE_ID,
@@ -175,6 +179,7 @@ export const COLA_RESUELTA: PublicationQueueItem[] = [
 	},
 	{
 		id: "req-7",
+		dataset_id: "pkg-7",
 		dataset_title: "Calendario académico 2026",
 		organization_title: ORGANIZACION.title,
 		requested_by: SOLICITANTE_ID,
@@ -185,6 +190,7 @@ export const COLA_RESUELTA: PublicationQueueItem[] = [
 	},
 	{
 		id: "req-8",
+		dataset_id: "pkg-8",
 		dataset_title: "Inventario de laboratorios 2025",
 		organization_title: OTRA_ORGANIZACION.title,
 		requested_by: OTRO_SOLICITANTE_ID,

@@ -8,10 +8,12 @@
 //  2. **Rechazar exige un motivo**: sin comentario la decisión no se envía y se explica por qué. Si
 //     la comprobación desapareciera, `decide` se llamaría sin comentario y la aserción fallaría.
 //
-// Las dos llamadas entran inyectadas (`list` y `decide`): las acciones del catálogo todavía no
-// existen en la capa de API del portal. Lo que se prueba además es la honestidad: la fila sólo sale
-// de la cola cuando el catálogo confirmó la decisión con el estado correspondiente, y un `403` se
-// explica como capacidad faltante, no como error de red.
+// El contrato de retorno es **uniforme**: `decide` devuelve sólo su fila `publication_requests`, sin
+// `dataset`. Por eso la aprobación se confirma con una segunda llamada inyectada (`readDataset`),
+// que relee el **valor almacenado**; el rechazo no toca la visibilidad y confirma con el estado que
+// la propia fila devolvió. Las tres situaciones se mantienen separadas: *la acción falló*,
+// *la acción concedió y la confirmación no se pudo establecer* —relectura que sigue privada o que
+// falla— y *confirmada*.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,7 +35,9 @@ const REFUSED_DECIDE =
 // genérica, la alerta mostraría este texto y las aserciones de abajo fallarían.
 const SERVER_403_DECIDE =
 	"Authorization Error: la acción 'package_update' requiere el rol admin de la organización.";
+// La confirmación que no se pudo establecer: cubre la relectura que sigue privada y la que falla.
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
+const ERROR_PREFIX = "No se pudo registrar la decisión";
 const APPROVED_NOTE = "La solicitud fue aprobada.";
 const REJECTED_NOTE = "La solicitud fue rechazada.";
 // Etiqueta neutral cuando el catálogo no entrega un nombre visible: la fila nunca cae al id crudo.
@@ -56,6 +60,7 @@ const OTRO_NAME = "editor.economicas";
 type QueueProps = {
 	list: (status?: PublicationQueueItem["status"]) => Promise<PublicationQueueItem[]>;
 	decide: (requestId: string, approve: boolean, comments?: string) => Promise<DecisionResult>;
+	readDataset: (id: string) => Promise<CkanPackage>;
 	ondecided?: (item: DecisionResult) => void;
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. */
 	currentUser?: string | null;
@@ -63,9 +68,9 @@ type QueueProps = {
 	now?: Date;
 };
 
-// La respuesta de `publication_request_decide`: la fila decidida, más el dataset resultante cuando la
-// decisión fue una aprobación. Un rechazo no toca la visibilidad y por eso puede no traerlo.
-type DecisionResult = PublicationQueueItem & { dataset?: CkanPackage };
+// La respuesta de `publication_request_decide`: **sólo** su fila `publication_requests`. No hay
+// `dataset` en la forma; la confirmación de una aprobación sale de `readDataset`.
+type DecisionResult = PublicationQueueItem;
 
 function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 	return {
@@ -84,9 +89,10 @@ function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 	};
 }
 
-function makeItem(overrides: Partial<DecisionResult> = {}): DecisionResult {
+function makeItem(overrides: Partial<PublicationQueueItem> = {}): PublicationQueueItem {
 	return {
 		id: "req-1",
+		dataset_id: "pkg-1",
 		dataset_title: "Matrícula 2026",
 		organization_title: "Facultad de Tecnología",
 		requested_by: SOLICITANTE_ID,
@@ -113,6 +119,7 @@ const ITEMS: PublicationQueueItem[] = [
 	makeItem(),
 	makeItem({
 		id: "req-2",
+		dataset_id: "pkg-2",
 		dataset_title: "Presupuesto 2026",
 		organization_title: "Facultad de Ciencias Económicas",
 		requested_by: OTRO_ID,
@@ -123,13 +130,21 @@ const ITEMS: PublicationQueueItem[] = [
 function renderQueue(overrides: Partial<QueueProps> = {}) {
 	const list = vi.fn<QueueProps["list"]>().mockResolvedValue(ITEMS);
 	const decide = vi.fn<QueueProps["decide"]>();
+	const readDataset = vi.fn<QueueProps["readDataset"]>();
 	const ondecided = vi.fn();
 
 	const resultado = render(PublicationQueue, {
-		props: { list, decide, ondecided, currentUser: null, ...overrides } satisfies QueueProps,
+		props: {
+			list,
+			decide,
+			readDataset,
+			ondecided,
+			currentUser: null,
+			...overrides,
+		} satisfies QueueProps,
 	});
 
-	return { list, decide, ondecided, ...resultado };
+	return { list, decide, readDataset, ondecided, ...resultado };
 }
 
 beforeEach(() => {
@@ -398,9 +413,9 @@ describe("PublicationQueue — rechazar exige un motivo", () => {
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
 	});
 
-	it("rechazar con el motivo escrito sí envía la decisión con ese comentario", async () => {
+	it("rechazar con el motivo escrito envía la decisión con ese comentario", async () => {
 		const { decide } = renderQueue();
-		// Un rechazo no toca la visibilidad: basta con su fila confirmada, sin `dataset`.
+		// Un rechazo no toca la visibilidad: basta con su fila confirmada, sin relectura.
 		const rechazada = makeItem({ status: "rejected" });
 		decide.mockResolvedValue(rechazada);
 
@@ -419,28 +434,32 @@ describe("PublicationQueue — rechazar exige un motivo", () => {
 });
 
 describe("PublicationQueue — qué reporta después de decidir", () => {
-	it("aprobar: decide sin comentario y la fila sale de la cola", async () => {
-		const { decide, ondecided } = renderQueue();
-		// El catálogo devolvió el estado y el dataset ya público: la aprobación se concede.
-		const aprobada = makeItem({ status: "approved", dataset: makeDataset({ private: false }) });
+	it("aprobar: confirma con la relectura del valor almacenado y la fila sale de la cola", async () => {
+		const { decide, readDataset, ondecided } = renderQueue();
+		// La acción devuelve sólo su fila `approved`; la confirmación viene de la relectura pública.
+		const aprobada = makeItem({ status: "approved" });
 		decide.mockResolvedValue(aprobada);
+		readDataset.mockResolvedValue(makeDataset({ private: false }));
 
 		const fila = await rowFor("Matrícula 2026");
 		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
 
 		await waitFor(() => expect(ondecided).toHaveBeenCalledWith(aprobada));
 		expect(decide).toHaveBeenCalledWith("req-1", true, undefined);
+		// La relectura es la fuente: pidió el dataset de la solicitud aprobada.
+		expect(readDataset).toHaveBeenCalledWith("pkg-1");
 		expect(screen.getByText(APPROVED_NOTE)).toBeInTheDocument();
 		expect(screen.queryByText("Matrícula 2026")).toBeNull();
 		// La otra solicitud sigue en la cola: sólo salió la decidida.
 		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
 	});
 
-	it("aprobar sin el dataset devuelto: el estado no alcanza y la fila no sale", async () => {
-		const { decide, ondecided } = renderQueue();
-		// El catálogo contestó `approved` pero no devolvió el dataset: sin el flip confirmado no hay
-		// publicación concedida, así que la fila sigue pendiente.
+	it("aprobar cuya relectura sigue privada: la fila no sale de la cola", async () => {
+		const { decide, readDataset, ondecided } = renderQueue();
+		// La fila dice `approved`, pero el valor almacenado sigue privado: la aprobación no se
+		// concedió. Mutación que lo rompe: confiar en el estado de la fila la sacaría de la cola.
 		decide.mockResolvedValue(makeItem({ status: "approved" }));
+		readDataset.mockResolvedValue(makeDataset({ private: true }));
 
 		const fila = await rowFor("Matrícula 2026");
 		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
@@ -448,30 +467,72 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		await waitFor(() =>
 			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
 		);
+		// La confirmación sí se intentó: la relectura del valor almacenado se pidió.
+		expect(readDataset).toHaveBeenCalledWith("pkg-1");
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeEnabled();
+	});
+
+	it("aprobar cuya relectura falla: estado intermedio, no un fallo de la acción", async () => {
+		const { decide, readDataset, ondecided } = renderQueue();
+		decide.mockResolvedValue(makeItem({ status: "approved" }));
+		readDataset.mockRejectedValue(new Error("502 Bad Gateway"));
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() =>
+			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
+		);
+		// La acción resolvió: su error genérico no aparece, y la fila sigue en la cola.
+		expect(readDataset).toHaveBeenCalledWith("pkg-1");
+		expect(within(fila).getByRole("alert")).not.toHaveTextContent(ERROR_PREFIX);
 		expect(ondecided).not.toHaveBeenCalled();
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
 	});
 
-	it("aprobar con el dataset aún privado: la fila no sale aunque el estado diga aprobada", async () => {
-		const { decide, ondecided } = renderQueue();
-		// La fila dice `approved`, pero el dataset resultante sigue privado: la aprobación no se
-		// concedió. Si la regla mirara sólo el estado de la fila, saldría de la cola.
-		decide.mockResolvedValue(
-			makeItem({ status: "approved", dataset: makeDataset({ private: true }) }),
-		);
+	it("rechazar: confirma con el estado devuelto y no relee el dataset", async () => {
+		const { decide, readDataset, ondecided } = renderQueue();
+		const rechazada = makeItem({ status: "rejected" });
+		decide.mockResolvedValue(rechazada);
 
 		const fila = await rowFor("Matrícula 2026");
-		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+		await fireEvent.input(within(fila).getByLabelText(COMMENT_LABEL), {
+			target: { value: "Los datos aún no están consolidados." },
+		});
+		await fireEvent.click(within(fila).getByRole("button", { name: REJECT_LABEL }));
+
+		await waitFor(() =>
+			expect(decide).toHaveBeenCalledWith("req-1", false, "Los datos aún no están consolidados."),
+		);
+		expect(screen.getByText(REJECTED_NOTE)).toBeInTheDocument();
+		expect(screen.queryByText("Matrícula 2026")).toBeNull();
+		// Un rechazo no toca la visibilidad: no hay nada que releer.
+		expect(readDataset).not.toHaveBeenCalled();
+	});
+
+	it("rechazar con 200 que no deja la solicitud rechazada: no confirma y la conserva", async () => {
+		const { decide, readDataset, ondecided } = renderQueue();
+		// El catálogo contestó 200 pero la solicitud volvió pendiente: no concedió la decisión.
+		decide.mockResolvedValue(makeItem({ status: "pending" }));
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.input(within(fila).getByLabelText(COMMENT_LABEL), {
+			target: { value: "Los datos aún no están consolidados." },
+		});
+		await fireEvent.click(within(fila).getByRole("button", { name: REJECT_LABEL }));
 
 		await waitFor(() =>
 			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
 		);
 		expect(ondecided).not.toHaveBeenCalled();
+		expect(readDataset).not.toHaveBeenCalled();
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
 	});
 
 	it("403: rechazo honesto con la capacidad que falta y la fila sigue pendiente", async () => {
-		const { decide, ondecided } = renderQueue();
+		const { decide, readDataset, ondecided } = renderQueue();
 		decide.mockRejectedValue(new CkanApiError(SERVER_403_DECIDE, 403, "Authorization Error"));
 
 		const fila = await rowFor("Matrícula 2026");
@@ -483,31 +544,18 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		);
 		expect(within(fila).getByRole("alert")).not.toHaveTextContent(SERVER_403_DECIDE);
 		expect(ondecided).not.toHaveBeenCalled();
+		// La decisión no se registró: no hay nada que releer.
+		expect(readDataset).not.toHaveBeenCalled();
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
 		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeEnabled();
 	});
 
-	it("200 que no deja la solicitud decidida: dice que el catálogo no confirmó y la conserva", async () => {
-		const { decide, ondecided } = renderQueue();
-		// El catálogo contestó 200 pero la solicitud volvió pendiente: no concedió la decisión.
-		decide.mockResolvedValue(makeItem({ status: "pending" }));
-
-		const fila = await rowFor("Matrícula 2026");
-		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
-
-		await waitFor(() =>
-			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
-		);
-		expect(ondecided).not.toHaveBeenCalled();
-		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
-	});
-
 	it("otro fallo: error explícito y la fila sigue ahí para reintentar", async () => {
-		const { decide, ondecided } = renderQueue();
-		const aprobada = makeItem({ status: "approved", dataset: makeDataset({ private: false }) });
-		decide
-			.mockRejectedValueOnce(new Error("503 Service Unavailable"))
-			.mockResolvedValueOnce(aprobada);
+		const { decide, readDataset, ondecided } = renderQueue();
+		decide.mockRejectedValueOnce(new Error("503 Service Unavailable"));
+		const aprobada = makeItem({ status: "approved" });
+		decide.mockResolvedValueOnce(aprobada);
+		readDataset.mockResolvedValue(makeDataset({ private: false }));
 
 		const fila = await rowFor("Matrícula 2026");
 		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));

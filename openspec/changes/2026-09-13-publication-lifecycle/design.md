@@ -194,15 +194,21 @@ hot-mounts the plugin, production bakes it — see **Deployment**).
 | `publication_publish(dataset_id, comments?)` | **`sysadmin` only** | the sysadmin's **recorded** direct path: writes the row and approves/consumes it in the act, on top of CKAN's unflagged sysadmin bypass |
 | `publication_request_list(status?)` | anyone who administers or edits in the org | the queue: requests of the orgs where the caller has capacity, plus the caller's own — a caller's own request is listed but not decidable by them |
 
-**Return shape — decided 2026-10-07, and its absence is what cost a round trip with the other repository.**
-Every action returns its `publication_requests` row at the **top level**, and the two that flip
-(`publication_publish`, and `publication_request_decide` with `approve: true`) **add a `dataset` key**
-holding the `package_patch` result, so `result.dataset.private === false` is the caller's confirmation
-that the flip landed. `publication_request_decide` with `approve: false` returns the row alone. A portal
-MUST read the confirmation from `dataset` and **never** from the top level: a response whose top level
-looks public while `dataset.private` is `true` is **not** a success. This was unspecified while A2 was
-built, and the mismatch was found by crossing the implemented signature against the component that
-consumes it.
+**Return shape — decided finally on 2026-10-07, after the same point was decided three times in a day.** Every
+action returns **only** its `publication_requests` row, carrying the derived display names. **No action returns
+the dataset.** A portal therefore does not learn the stored value from the response: after a flipping action it
+**re-reads the dataset** and confirms from the stored `private`. The verification is deliberately at the source
+— measuring the stored value is stronger than trusting the response of the writer that changed it — and the
+trade is deliberate too: an exception in a public contract lives forever, while a re-read lives inside one
+consumer.
+
+**The re-read adds a call that can fail, so a portal MUST keep three states apart and MUST NOT collapse
+them:** *the action failed* · *the action succeeded and the confirmation could not be established* — either the
+re-read shows the value still private, **or** the re-read itself failed · *confirmed*. Rendering the middle
+state as a failure is worse than showing nothing, because it is false.
+
+*This replaces the earlier additive wording (the row plus a `dataset` key on the two flipping actions), which
+the same sentence reverses: the confirmation is the re-read of the stored value, not a field on the response.*
 
 **Expiry: decided against, and the queue shows the age instead.** A pending request does **not** expire —
 that is a decision, not an omission. The failure it guards against is real: a request approved months

@@ -500,3 +500,24 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   **Consecuencia de mi lado, ya hecha:** el contrato de presentación completo —los **dos** nombres, batcheados y
   uniformes en las cinco— quedó escrito en `spec.md`, con el escenario que fija que una fila `cancelled` o
   `annulled` **no** declara decididor. **Un contrato que vive sólo en un mensaje no es un contrato.**
+- **2026-10-07 — El contrato del retorno pasó a UNIFORME, y ganó el argumento más fuerte, no el más cómodo.**
+  **Cuarta y última decisión del día sobre este punto: las cinco acciones devuelven SÓLO la fila**; ninguna
+  devuelve `dataset`. El portal **re-lee el dataset** después de una acción que pliega y confirma desde **el
+  valor almacenado**. Lo que decidió el punto fue un dato que a la par le faltaba y que es mío: **el portal
+  asume el aditivo en `main` pero NO está cableado**, así que caerlo cuesta **una frontera, no trabajo**; más
+  el criterio — **una excepción en un contrato público vive para siempre, mientras el costo de la re-lectura
+  vive en un solo consumidor**, y medir el valor almacenado es más fuerte que creerle a la respuesta del que
+  lo escribió.
+  **Mi contra quedó registrada tal cual, y ahora es parte del contrato:** la re-lectura agrega **una llamada
+  que puede fallar**, así que el portal **no puede colapsar tres estados en dos** — *la acción falló* ·
+  *funcionó y la confirmación no se pudo establecer* (la re-lectura dice que sigue privado, **o** la
+  re-lectura misma falla) · *confirmado*. **Mostrar el del medio como fallo es falso**, y no se hace.
+  **Reemplazo, no agregado:** la redacción aditiva se **sustituyó** en `design.md` y en `spec.md`, con una
+  línea que dice qué la reemplazó — dejar las dos afirmaciones vivas es exactamente la incoherencia que este
+  cambio se pasó el día eliminando. Verificado con `grep` propio **antes** de commitear: ninguna frase
+  aditiva sobrevive.
+  **Implementado:** los dos componentes con la **segunda llamada inyectada** (`readDataset`) como **única**
+  concesión; en la cola, la aprobación sale **sólo si la re-lectura confirma** el pliegue, y el rechazo sale
+  por el estado de la fila **sin** re-lectura; los dobles de la hoja devuelven filas y tienen un caso nuevo de
+  **re-lectura que falla**, para que el estado del medio sea revisable mirándolo. REDs de comportamiento
+  (ocho fallos contra los componentes sin cambiar); suite **971 → 973**.

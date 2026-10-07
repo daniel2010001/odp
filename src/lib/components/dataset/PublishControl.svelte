@@ -7,40 +7,57 @@
 // capacidad es **inyectable** (`canPublish`) para que la hoja de revisión y la página real la
 // conduzcan; sin ella, el default es el flag, sin ninguna llamada nueva.
 //
-// La llamada que publica entra **inyectada** (`publish`): la acción `publication_publish` todavía no
-// está en la capa de API del portal.
+// El contrato de retorno es **uniforme**: `publish` —la acción `publication_publish`— devuelve sólo
+// su fila `publication_requests`, sin `dataset`. La confirmación entra por una segunda llamada
+// inyectada (`readDataset`), que relee el **valor almacenado**: el portal no la toma de la respuesta
+// de quien escribió, porque medir el valor guardado es más fuerte que creerle al escritor que lo
+// cambió.
 //
-// La regla de honestidad: se reporta como publicación **sólo** lo que el catálogo confirmó. Un `200`
-// cuya respuesta sigue diciendo `private: true` no es un éxito, y un `403` no se disfraza de error
-// genérico.
-import { CircleAlert, Globe, LoaderCircle, RefreshCw, ShieldAlert } from "@lucide/svelte";
+// La regla de honestidad: se mantienen separadas tres situaciones y no se colapsan. *La acción
+// falló* (un `403` se explica como capacidad faltante, no como error de red). *La acción concedió y
+// la confirmación no se pudo establecer* —porque la relectura sigue privada o porque la relectura
+// misma falla—: presentarla como un fallo de la acción sería falso. *Confirmada*: sólo el valor
+// almacenado ya público reemplaza al dataset.
+import { CheckCircle2, CircleAlert, Globe, LoaderCircle, RefreshCw, ShieldAlert } from "@lucide/svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import { isSuperAdmin } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
+import type { PublicationRequest } from "./RequestPublicationControl.svelte";
 
 /**
- * Publica el dataset y devuelve la respuesta del catálogo: la fila que ya devolvía, más el dataset
- * resultante bajo `dataset`. La publicación se lee de `dataset`, nunca del nivel superior.
+ * Publica el dataset y devuelve **sólo** su fila `publication_requests`: el contrato uniforme de las
+ * cinco acciones. No trae el dataset; la confirmación sale de releer el valor almacenado.
  *
  * Es la acción de publicación directa (`publication_publish`), autorizada a la superadministración
  * de la plataforma. La inyecta quien monta el control: la capa de API del portal todavía no la
  * expone.
  */
-export type PublishResult = CkanPackage & { dataset: CkanPackage };
-
+export type PublishResult = PublicationRequest;
 export type PublishDataset = (id: string) => Promise<PublishResult>;
+
+/**
+ * Relee el dataset del catálogo. Es la **confirmación**: el portal mide el valor almacenado en vez
+ * de creerle a la respuesta de quien lo cambió. También es inyectada.
+ */
+export type ReadDataset = (id: string) => Promise<CkanPackage>;
+
+const REFUSAL = "Solo la superadministración de la plataforma puede publicar este dataset.";
+const UNCONFIRMED = "El catálogo no confirmó la publicación.";
+const CONFIRMED = "El catálogo confirmó la publicación.";
 
 let {
 	dataset,
 	publish,
+	readDataset,
 	canPublish,
 	onpublished,
 	class: className = "",
 }: {
 	dataset: CkanPackage;
 	publish: PublishDataset;
+	readDataset: ReadDataset;
 	/** Capacidad ya resuelta por quien monta el control; por defecto, el flag `sysadmin`. */
 	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
@@ -55,8 +72,9 @@ type Outcome = { kind: "refused" | "unconfirmed" | "error"; message: string };
 
 let pending = $state(false);
 let outcome = $state<Outcome | null>(null);
-// Sólo la respuesta confirmada del catálogo reemplaza al dataset. No hay estado optimista: si el
-// catálogo contesta 200 sin conceder la publicación, el dataset sigue privado y así se reporta.
+// Sólo la relectura confirmada del valor almacenado reemplaza al dataset. No hay estado optimista: si
+// la acción contesta 200 sin que el valor guardado sea público, el dataset sigue privado y así se
+// reporta.
 let published = $state<CkanPackage | null>(null);
 
 const current = $derived(published ?? dataset);
@@ -68,35 +86,52 @@ async function handlePublish() {
 	outcome = null;
 
 	try {
-		const respuesta = await publish(current.id);
-		if (respuesta.dataset?.private === false) {
-			// El catálogo lo confirmó: el dataset que se renderiza es `dataset`, no lo que pedimos ni el
-			// nivel superior de la respuesta.
-			published = respuesta.dataset;
-			onpublished?.(respuesta.dataset);
-		} else {
-			outcome = { kind: "unconfirmed", message: "El catálogo no confirmó la publicación." };
-		}
+		// La acción devuelve sólo su fila. Que resuelva no es la confirmación.
+		await publish(current.id);
 	} catch (err) {
 		// Un 403 es una negativa de autorización (distinguible de un 409 de validación): se
 		// explica qué capacidad falta y se vuelve a ofrecer el control.
 		outcome =
 			err instanceof CkanApiError && err.status === 403
-				? {
-						kind: "refused",
-						message: "Solo la superadministración de la plataforma puede publicar este dataset.",
-					}
+				? { kind: "refused", message: REFUSAL }
 				: {
 						kind: "error",
 						message: `No se pudo publicar el dataset: ${
 							err instanceof Error ? err.message : "error desconocido"
 						}`,
 					};
+		pending = false;
+		return;
+	}
+
+	// La acción concedió: confirmar contra el valor **almacenado**. Un fallo de la relectura —o un
+	// valor que sigue privado— es la confirmación que no se pudo establecer, no un fallo de la
+	// acción.
+	try {
+		const almacenado = await readDataset(current.id);
+		if (almacenado.private === false) {
+			published = almacenado;
+			onpublished?.(almacenado);
+		} else {
+			outcome = { kind: "unconfirmed", message: UNCONFIRMED };
+		}
+	} catch {
+		outcome = { kind: "unconfirmed", message: UNCONFIRMED };
 	} finally {
 		pending = false;
 	}
 }
 </script>
+
+{#if published}
+	<p
+		role="status"
+		class="flex w-full items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-primary"
+	>
+		<CheckCircle2 class="size-4 shrink-0" aria-hidden="true" />
+		<span>{CONFIRMED}</span>
+	</p>
+{/if}
 
 {#if current.private}
 	<div class={cn("flex flex-col items-start gap-2", className)}>
