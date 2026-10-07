@@ -84,6 +84,8 @@ type ControlProps = {
 	readDataset: (id: string) => Promise<CkanPackage>;
 	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
+	/** Presentación: `"accion"` lo dibuja como una acción del hero; `"bloque"` (hoy) con el texto debajo. */
+	apariencia?: "bloque" | "accion";
 };
 
 /** Renderiza un dataset privado con la capacidad de publicar ya concedida. */
@@ -292,5 +294,39 @@ describe("PublishControl — qué reporta después del click", () => {
 		expect(boton).toBeDisabled();
 		expect(screen.queryByRole("alert")).toBeNull();
 		expect(onpublished).not.toHaveBeenCalled();
+	});
+});
+
+// La presentación de **acción**: el control en la fila del hero de la ficha. Ahí tiene que verse como
+// sus hermanos —«Copiar enlace» y «Editar»— y la explicación que en la presentación de bloque va debajo
+// del botón pasa al `title`, que es el mecanismo que el hermano «Copiar enlace» ya usa.
+describe("PublishControl — la presentación de acción", () => {
+	it("en `accion` dibuja sólo el botón, con la forma de las acciones del hero y la explicación en el tooltip", async () => {
+		renderPrivate({ apariencia: "accion" });
+
+		const boton = await screen.findByRole("button", { name: PUBLISH_LABEL });
+
+		// La forma de sus hermanos del hero, no la del botón de bloque.
+		expect(boton.className).toContain("h-9");
+		expect(boton.className).toContain("border-input");
+		expect(boton.className).toContain("bg-background");
+
+		// La explicación no ocupa lugar en el flujo: no hay ningún párrafo con ella...
+		expect(screen.queryByText(CONSEQUENCE, { selector: "p" })).toBeNull();
+		// ...pero no se pierde. Es el tooltip, y además queda asociada al botón: el `title` solo alcanza
+		// al puntero, no al teclado.
+		expect(boton).toHaveAttribute("title", CONSEQUENCE);
+		const descrito = boton.getAttribute("aria-describedby");
+		expect(descrito).toBeTruthy();
+		const copia = document.getElementById(descrito ?? "");
+		expect(copia).toHaveTextContent(CONSEQUENCE);
+		expect(copia).toHaveClass("sr-only");
+	});
+
+	it("en `bloque` la explicación sigue debajo del botón, y sin tooltip", async () => {
+		renderPrivate();
+
+		expect(await screen.findByText(CONSEQUENCE)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: PUBLISH_LABEL })).not.toHaveAttribute("title");
 	});
 });

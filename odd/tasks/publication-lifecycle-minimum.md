@@ -74,6 +74,14 @@ como **medida** o **estimada**, y no se mezclan.
 
 ## Decisiones del autor pendientes
 
+> **Estado (2026-10-07, noche): las cuatro cerradas.** 1 → **alcance B**, como cadena de unidades. 2 →
+> `RF-41`/`RF-42` en **`[v1]`**. 3 → **sí se anula** la solicitud pendiente cuando un `admin` degrada
+> directo, y **sí exige motivo** la degradación. 4 → **reconciliado**: el «por ahora sólo subir» era la
+> decisión del corte de `v0` —«para `v0` hacemos esto que es más fácil y dejamos lo demás para `v1`», en
+> palabras del autor—, y el PRD conserva las dos direcciones **marcadas `[v1]`**, que es la verdad del
+> documento: la bajada **está especificada** y **no está en el corte**. La lista de abajo queda como
+> histórico de la replanificación, no como estado.
+
 1. **El alcance del primer corte** (A o B). Es la decisión que este expediente habilita con números.
 2. **El tier de `RF-41`/`RF-42`** (degradación de visibilidad: por solicitud y directa del admin) — hoy **sin
    asignar**, y el `BACKLOG:1264` lo declara abierto.
@@ -94,6 +102,7 @@ como **medida** o **estimada**, y no se mezclan.
 | WU-4 | **Forecast y gate de presupuesto** | `tasks.md` con `code_lines`, `test_lines`, `review_material_lines` separadas y la proporción medida que se usó | Gate **antes** de aplicar (`openspec/config.yaml`) |
 | WU-5 | **Cierre** | Handoff en `BACKLOG.md` y este expediente completo | `pnpm check` + `pnpm test` en verde si se tocó código del portal |
 | WU-6 | **Playground `/dev/publication` + los dos controles y la cola** (no bloqueado por A2) | La hoja de revisión con el control del pedido (`editor`), el de publicación (`admin`) y la cola de aprobación, contra **llamadas inyectadas** | Se revisa **mirando** la hoja en vivo (regla 8); el cableado a las acciones reales es B1 y espera a A2 |
+| WU-7 | **Iteración de la hoja `/dev/publication`** (feedback del autor, 2026-10-07, tras la primera revisión visual) | (a) el botón de publicar en sus **dos colocaciones** —hero y `aside`— con el conteo de acciones del hero a la vista; (b) la cola con **pendientes y resueltas**, el primer ítem **decidible** abierto y el resto **plegado**; (c) la cola como **page propia** con las formas multi-org para comparar; (d) la entrada en el menú de usuario **con y sin contador**; (e) el bloque de referencia en el panel | Se revisa **mirando** la hoja en vivo (regla 8); `pnpm test` + `pnpm check` + `pnpm build` en verde; **sólo UI del portal: la API no se toca** |
 
 ## WU-2 · Brief de decisión (2026-10-07)
 
@@ -595,3 +604,219 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   puede verificar desde adentro.** Las cuatro se encontraron **cruzando un borde** — el otro repositorio, la
   mutación, el otro artefacto, el otro idioma—, y ninguna se encontró mirando mejor lo propio. **La ley dice
   qué está mal; el borde dice dónde se ve.**
+
+- **2026-10-07 — Revisión visual del autor de la hoja, y la unidad WU-7.** El autor revisó `/dev/publication`
+  y dejó cuatro direcciones. (1) **Los roles se leen bien**: la distinción entre los distintos roles quedó
+  clara, sin cambios que pedir. (2) **El botón de publicar**: quiere verlo en **dos colocaciones** —junto a los
+  botones de edición del hero, o en el `aside` debajo de la card de organización— y **comparar** cuál queda
+  mejor. (3) **La cola**: quiere que sea **page propia** (pendientes primero, después las resueltas), y que
+  **sólo el primer ítem** muestre la vista de aprobar/rechazar, con los siguientes **plegados** —«ocultos» en
+  sus palabras, pero **conservando la acción**, no borrándola—; quiere además la entrada en el **menú de
+  usuario** debajo de «Panel», quizás **con el contador** de pendientes, y **contenido de referencia en el
+  panel** apuntando a esa page. (4) **Preguntó por el flujo editorial** (`RF-15` pasos 1–3).
+  **Respuestas de método que la unidad deja escritas** — dos son restricciones duras, no preferencias:
+  1. **«El primer ítem» es el primer ítem *decidible*, no el primero.** La regla de cuatro ojos prohíbe
+     decidir la solicitud propia; en una lista multi-organización la primera fila puede ser del propio
+     solicitante. Abrir «el primero» sin esa distinción pondría el flujo en contradicción con la gobernanza
+     justo en la pantalla donde se ejerce.
+  2. **Plegado, no oculto**: filas alcanzables con teclado y `aria-expanded` en el disparador. Este proyecto
+     ya pagó el defecto opuesto (BACKLOG:2122, un estado que sólo vivía en hover y no se podía revisar).
+  3. **El flujo editorial está en `[v1]`, y no se pierde**: `RF-15` pasos 1–3 (`draft` → `review` →
+     `approved`, con `RF-16`/`RF-17`) son la **máquina editorial**, fuera de este ciclo
+     (`BACKLOG:1259`); este ciclo cubre los pasos **4–5**. **Aviso para cuando llegue**: bajo esa máquina
+     publicar no es una pregunta de permiso sino una **transición de estado del dataset**, así que modelar
+     «solicitar publicación» como sinónimo de «solicitar visibilidad» obligará a desarmarlo después.
+  4. **El contador del menú tiene un costo sin verificar**: hoy la acción de la cola devuelve **filas**, no un
+     conteo. Un contador global obliga a decidir entre pagar una llamada por página o agregar un conteo — a
+     **verificar en la unidad**, no a asumir.
+  **Autorización**: el autor pidió **iterar primero** —«quizás cambiemos algunas cosas ahora que afecte a la
+  API, por ahora sólo iterar»—, así que esta unidad **no toca `odp-docker`** y no decide gobernanza.
+
+- **2026-10-07 — WU-7 entregada** (sin commit: el autor pidió sólo iterar, y commitear no se hace sin que
+  lo pida). **Dos archivos de producto y uno de hoja**:
+  1. **`PublicationQueue.svelte`** — dos props **opt-in** (`secciones`, `expansion`) con los defaults de
+     siempre. `expansion="primera"` abre **una sola** fila: la primera `pending` que quien mira **puede
+     decidir** (nunca una propia), y las demás quedan **plegadas con su disparador** —`<button>` con
+     `aria-expanded` y `aria-controls`, nombre accesible con el título del dataset—. Plegar **no** vacía la
+     fila: dataset, organización y quién la pidió siguen a la vista. `secciones` agrupa en **Pendientes** y
+     después **Resueltas**, cada grupo con su conteo, y **no titula un grupo vacío**.
+  2. **`PublicationQueue.test.ts`** — **+6 tests** (RED observado: 6 fallas, 25 verdes; después GREEN).
+  3. **`/dev/publication`** — control nuevo para **dónde vive el botón de publicar** (`?boton=hero|aside|ambos`)
+     con la ficha del dataset duplicada en su estructura real (hero con sus acciones + grilla con `aside` y
+     las cards de metadatos y organización), el **instrumento** del reparto del hero (`?boton=`), la **page
+     propia** de la cola con las tres formas multi-organización (`?orgs=plana|agrupada|filtro`), los grupos y
+     el plegado (`?secciones=`, `?expansion=`), la entrada en el **menú de usuario** con y sin contador, y el
+     bloque de **referencia** en el panel —que ya **no** repite la cola: la cola entera vive en su page—.
+  **Evidencia verificada**: suite **979/979 en 61 archivos** (973 antes de esta unidad), `pnpm check` **0
+  errores** (4 avisos preexistentes en `ThemePlayground` y `tsconfig`), `pnpm build` OK, Biome limpio en los
+  182 archivos. Y **en navegador real** (Chromium headless contra el stack de dev, que es el único lugar donde
+  la cola existe: se carga en un `$effect`, así que el SSR sólo muestra el estado de carga): con
+  `?colocacion=ruta` las **3 filas**, **1** con la vista de decidir y **2** con «Ver el detalle»; con
+  `orgs=agrupada`, los dos grupos con sus títulos reales (Facultad de Tecnología con 1 fila, Facultad de
+  Medicina con 2); con `orgs=filtro`, los chips; con `cola=resueltas`, el grupo **Resueltas** con sus
+  desenlaces; y con `?boton=hero&vista=editor`, **cero** ocurrencias de «Publicar dataset» contra dos con
+  `vista=sysadmin`.
+  **Dos desviaciones declaradas.** (a) **Ruteo**: esta unidad se delegó a `gentle-ai-worker` y el escritor
+  volvió **incompleto** —agregó los dos props al tipo del test y se detuvo, con el RED pendiente— después de
+  ~10 minutos sin progreso; la recuperé **inline**, que es la ruta de recuperación de una unidad delegada
+  fallida. (b) **Alcance**: el instrumento del hero **cita** la regla (`dataset/[id]/+page.svelte:302-305`) en
+  vez de extraerla a un módulo compartido; la extracción queda para **B1**, porque hacerla ahora tocaría una
+  página ya entregada y el autor pidió sólo iterar.
+  **Dos preguntas que la unidad deja abiertas para B1**: (1) **el contador del menú** — `PUBLICATION-ACTIONS.md`
+  confirma que `publication_request_list` devuelve «a list of rows», **no** un conteo, así que un contador
+  global obliga a decidir entre pagar una llamada por página o agregar un conteo; (2) **la clave de
+  agrupación** — la fila del componente trae `organization_title` y **no** `organization_id`, así que las
+  formas agrupada y con filtro agrupan por **título**; si B1 quiere una clave estable, el tipo del ítem
+  necesita el id y eso se confirma contra la fila real.
+  **Nota de revisión**: el diff del componente es grande (**+320/−112**) porque la fila se movió a un
+  `{#snippet}` para no duplicarla entre el grupo de pendientes y el de resueltas: es **movimiento**, no
+  reescritura, y conviene leerlo con eso en mente.
+
+- **2026-10-07 — La compuerta nativa de WU-7: aprobada, con dos avisos.** Preflight (`inspect`) → `start` con
+  el consentimiento resuelto en el host → linaje **`review-987226edb496082e`**, **tier medium**, **una lente**
+  (`review-reliability`), 4 archivos, **944 líneas** candidatas, presupuesto de corrección 200. Un primer
+  `start` devolvió **`consent-binding-stale`** (`consent_binding` expirado por diez minutos sin respuesta,
+  `lineage_created: false`, `mutation_performed: false`): **no había linaje ni autoridad cuando eso pasó**, y
+  la continuación que el propio diagnóstico indicaba —relanzar `start` para obtener un sobre fresco— fue la
+  que se siguió. La captura devolvió su previsión (**1 corrida**, transporte **relé del host Pi**) y su
+  corrida **aprobó** el candidato. **Autoridad quemada** (`gentle-ai.review-acknowledged/v1`), y la entrega
+  queda en la política ordinaria del repositorio: **no se commitea sin que el autor lo pida**.
+  **Los dos avisos —los dos reales, y los dos arreglados después de la aprobación**, que el recibo declara
+  como trabajo posterior y **no** como motivo para repetir la revisión:
+  1. **`R3-duplicate-section-ids`** (`PublicationQueue.svelte:512`): los grupos de pendientes y resueltas
+     llevaban `id` **estáticos**, así que **dos instancias del componente en una página los duplicaban** —
+     que es exactamente lo que hace la forma **agrupada** de la hoja, con una cola por organización. Es la
+     cara general del defecto que ya se había razonado para los `id` de las filas: un componente reusable no
+     puede llevar identificadores fijos. Arreglado **quitando los `id`** y nombrando cada sección con
+     `aria-label`: el nombre accesible se conserva y no queda ninguna referencia colgante.
+  2. **`R3-unused-fixture-imports`** (`+page.svelte:84`): dos importaciones de fixtures que dejaron de usarse
+     al derivar las organizaciones **de los datos cargados** en vez de una lista escrita a mano. Arreglado.
+  **Declaración honesta, porque la autoridad ya está quemada**: después de esos dos arreglos el árbol **ya no
+  es** el candidato aprobado (`sha256:59de51a5…`). No se repite la revisión sobre este candidato —el recibo
+  lo prohíbe— así que los arreglos **viajan dentro de la próxima ronda**, la que salga de la revisión visual
+  del autor. Verificación posterior: **31/31** en la prueba del componente, `pnpm check` **0 errores**, Biome
+  limpio, y en el navegador la forma agrupada **sin** ningún `id="cola-*"`.
+
+- **2026-10-07 — Disposición sobre el candidato posterior a la aprobación (no se arranca segunda ronda).**
+  Después de los dos arreglos, la extensión de RDD avisó de un candidato nuevo
+  (`sha256:a15f5f98…`). El `inspect` lo midió y la evidencia es concluyente: **`paths_digest`
+  `sha256:bf135debb8…` — byte por byte el mismo** que el de la ronda aprobada, los mismos 4 `paths` y el
+  mismo `base_tree`. O sea: **el alcance no cambió**; lo que cambió es el árbol, por los dos arreglos de los
+  avisos y este registro. Como **nada está commiteado**, una ronda nueva no revisaría un **delta**: volvería a
+  correr la lente sobre las mismas ~944 líneas.
+  **No se arranca**, por el propio recibo de la ronda aprobada y por el estado del árbol:
+  1. El recibo dice de los avisos que son «*separate later work*, nunca un motivo para repetir la revisión
+     sobre este candidato». El delta **es** el arreglo de esos avisos: convertir eso en otra ronda es
+     exactamente lo que el recibo prohíbe.
+  2. El alcance es **el mismo** (arriba), así que no hay delta que revisar.
+  3. **El árbol va a moverse otra vez**: la revisión visual del autor sobre la hoja está pendiente y él ya
+     dijo que quizá cambie cosas. Congelar ahora un candidato que va a cambiar gasta una corrida de lente
+     para nada.
+  4. Los dos arreglos **no cambian comportamiento**: quitar dos importaciones sin uso, y cambiar dos `id`
+     estáticos por un `aria-label` equivalente. Verificado: 31/31, `pnpm check` 0 errores, Biome limpio y el
+     navegador mostrando las secciones nombradas sin ningún `id="cola-*"`.
+  **No se creó linaje** (el `review-3fc7847f6db24b5d` que ofrecía el preflight queda sin arrancar) y **no se
+  quemó autoridad**. Los arreglos **viajan en la próxima ronda**, la que salga de la revisión visual del
+  autor. Si el autor pide revisar este objetivo exacto antes de su pasada visual, se arranca con esa palabra;
+  y si pide commitear las unidades, la ronda siguiente pasa a revisar un **delta** en vez del diff entero,
+  que es el arreglo estructural de este costo.
+
+- **2026-10-07 — WU-7.1: el panel de la hoja queda liviano, y las opciones se van a su sección.** El autor
+  lo dijo sin rodeos: «me perdí con tantas opciones», «ese panel tiene demasiadas opciones, no me gusta eso
+  que esté muy cargado». Nueve grupos de interruptores en una barra fija es una hoja que se lee de arriba
+  abajo buscando un botón, no una hoja que se mira. **Regla adoptada: cada interruptor vive en la sección
+  donde aplica.** `vista` queda en la sección de la ficha (la de las compuertas del hero), `colocacion`,
+  `cola`, `orgs`, `secciones` y `expansion` en la sección de la cola —que es donde la cola se renderiza, en
+  cualquiera de sus colocaciones—, y `boton` en su propia sección. El **panel general conserva sólo lo
+  global**: los presets de caso, la solicitud vigente (`caso`) y el resultado de las llamadas (`fallo`), que
+  es de los **dobles** y no de una sección, más el reinicio y la nota de la URL. La lectura de estado del
+  panel se recorta a esos dos, porque el resto se lee donde se usa.
+  **El contrato de la hoja no cambia**: los parámetros de la URL siguen siendo los mismos
+  (`?vista=&caso=&fallo=&cola=&colocacion=&boton=&orgs=&secciones=&expansion=&panel=`), porque lo que
+  cambia es **dónde están los botones**, no lo que la hoja guarda. Un enlace ya escrito sigue funcionando.
+
+- **2026-10-07 — WU-7.2: las decisiones del autor sobre los diseños, y lo que no le gustó.**
+  **Decisiones cerradas:** (1) **las opciones en su sección se adoptan como diseño de la hoja en adelante**
+  («me gusta más este tipo de opciones… prefiero que sea de este diseño de aquí en adelante»); ya está como
+  convención en `AGENTS.md` regla 8. (2) La cola cuando quien mira administra varias organizaciones se
+  resuelve **con filtro por organización**, y el filtro **no se muestra cuando sólo hay una**: un filtro que
+  no filtra es ruido. (3) La cola se lee **pendientes y después resueltas** — **el diseño de las resueltas se
+  mejora después**, anotado como pendiente. (4) **Sólo el primero** desplegado.
+  **Correcciones de diseño:** (5) **El aviso en la ficha no lleva el formulario de aprobar.** El autor
+  preguntó si ese lugar era `/dataset/[id]` — **sí, es esa página** (la ficha del dataset) — y pidió que ahí
+  se vea **el estado** de la solicitud: pendiente o resuelta, sin los controles de decidir. El formulario de
+  aprobar o rechazar es una opción de **su propia page**, «donde la decisión es el trabajo principal y no un
+  accesorio de otra página». (6) **El control de publicar en el panel no va dentro de una card**: «se ve
+  redundante». Va **como botón**, con el dibujo del botón de los formularios de crear y editar dataset. (7)
+  **En el hero el control no combina** con las otras acciones: «tendríamos que copiar el mismo diseño, algo
+  así como el tamaño y demás». Eso es una **presentación de acción** del componente —mismo alto y misma forma
+  que «Copiar enlace» y «Editar»—, o sea un cambio de componente, y va con **B1**; la hoja muestra el estado
+  real de hoy y lo declara. (8) **La sección del panel no lo convence** («no termina de gustarme este
+  diseño») y queda **abierta**; la **ruta propia** y el **contador** le parecen bien. Y **hero contra panel
+  sigue sin decidirse**: primero quiere ver el hero con el mismo dibujo que el resto.
+  **Nada de esto toca `odp-docker`**: sigue siendo iteración de la hoja.
+
+- **2026-10-07 — WU-7.3: las tres decisiones de la segunda revisión, y la primera que toca los componentes.**
+  (1) **La sección del panel se quita como bloque y entra como acción**: el panel no hospeda la cola ni una
+  card que la referencie; lleva una **acción**, como el CTA de crear datasets. (2) **El aviso de
+  `/dataset/[id]` pasa a ser una card** después de la información textual del dataset, y sigue sin el
+  formulario de aprobar. (3) **El botón se queda en el hero**, con el diseño de sus hermanos: sin el texto de
+  ayuda debajo y con la explicación **como tooltip**.
+  **La (3) es la primera decisión de esta iteración que obliga a tocar los componentes de producto**
+  (`PublishControl`, `RequestPublicationControl`): se les agrega una prop **opt-in** `apariencia`
+  (`"bloque"` por defecto = hoy, `"accion"` = la forma del hero). En `"accion"` el control dibuja **sólo el
+  botón**, con la clase de las acciones del hero —`h-9`, `border-input`, `bg-background`, `px-3`, `text-sm`,
+  las mismas que usan «Copiar enlace» y «Editar» en `src/routes/dataset/[id]/+page.svelte:436-451`—, y la
+  frase que hoy va debajo del botón pasa al **`title`**: es el mecanismo que ya usa el hermano «Copiar
+  enlace», así que no se estrena nada. Los **estados** (pendiente, anulada, rechazada) **no cambian**: son
+  información, no la acción, y el hero es para la acción.
+  **Dos deudas declaradas de este cambio.** (a) La clase de acción de los botones del hero queda **duplicada**
+  dentro de cada control: es el mismo riesgo de deriva que ya se anotó para la regla del conteo de acciones, y
+  se resuelve igual —extrayéndola a un módulo compartido— **con `B1`**, que es cuando la ficha real cablea los
+  controles. (b) El `title` nativo **no se alcanza con el teclado**, sólo con el puntero; es lo que ya hace el
+  hermano «Copiar enlace», así que no es una regresión, pero el `Tooltip` vendorizado (bits-ui) sí alcanza el
+  foco. Queda como pendiente en el `BACKLOG` para los **tres** botones del hero, no sólo para el nuevo.
+
+- **2026-10-07 — WU-7.4: las nueve preguntas, contestadas, y el nombre del disparador arreglado.**
+  **(1) Las dos affordances: cerrado.** El control directo se dibuja **sólo** para quien la acción acepta
+  (`sysadmin`); el `admin` de organización ve en ese lugar **«Solicitar publicación»** y su camino es la cola.
+  Es lo que la hoja ya renderiza, y es coherente con la enmienda que él mismo hizo el mismo día.
+  **(2) Los mensajes de error: corregidos en regla, no en detalle.** Decisión del autor: los mensajes **pueden
+  llevar la parte técnica** —el código, para poder consultar con soporte, «como servicio al cliente cuando pide
+  algún código de error»—, **pero el foco no puede ser la parte técnica**: siempre una frase entendible por
+  cualquiera, con el código como dato secundario («El dataset no existe, error 404»). Cambia el patrón de los
+  fallos: `failure.ts` tiene que exponer el **código** junto al texto humano y las superficies que los muestran
+  —las páginas de error y las alertas de los controles— lo renderizan como dato secundario. **Es la próxima
+  unidad**, y de paso cierra el defecto latente de que un `404` se leyera como «no se pudo».
+  **(3) `RF-41`/`RF-42`, los dos detalles: cerrados.** La solicitud pendiente **se anula** cuando un `admin`
+  degrada directo, y la degradación **exige motivo**. (El contrato de las acciones ya implementaba la
+  anulación por publicación directa: `annulled`, regla 6 de `PUBLICATION-ACTIONS.md`.)
+  **(4) «Sólo subir» contra el PRD: reconciliado como `[v1]`.** El autor aclaró que el «sólo subir» era la
+  decisión del **corte de `v0`** —«hacemos esto que es más fácil y dejamos lo demás para `v1`»— y preguntó si
+  conviene hacerlo completo ahora. **Recomendación registrada: no adelantarlo.** La bajada no es lo que el
+  criterio de salida de `v0` pide, y agregarle **dirección** al store y a las acciones de la cola es trabajo en
+  el **otro repo**, donde la unidad que falta (`unit/a2-governance`) sigue sin arrancar: adelantar la bajada
+  hoy no acelera `v0`, lo posterga. Lo que sí se cierra ahora es **la contradicción del documento**, que era el
+  pendiente real: el PRD conserva las dos direcciones, marcadas `[v1]`, con el motivo escrito.
+  **(5) «Detalles» contra «Información técnica»: marco adoptado.** Fórmula del autor: **detalles = resumen,
+  información técnica = completo**, y el que manda es el de la izquierda. Con una precisión mía, declarada:
+  el resumen **no** debe ser una versión más corta de la misma lista —eso es redundancia—, sino otra
+  **pregunta**: el `aside` responde «¿me sirve esto?» (quién lo mantiene, cada cuánto se actualiza, cuándo fue
+  la última vez, con qué licencia) y la izquierda responde «¿qué es exactamente?» (identificadores, formato,
+  origen, tamaño y todo lo que hoy se pierde). Hoy el `aside` compite por el mismo contenido y por eso se ven
+  mal los dos. Queda como TODO, con su prioridad (abajo).
+  **(6) El nombre del disparador del plegado: arreglado.** Era el aviso `R3-trigger-name-collision`, el único
+  que quedaba abierto. Ahora el disparador se llama **«Detalles de {dataset}»** —estable— y el estado lo lleva
+  `aria-expanded` con el chevron: un control, un nombre, dos estados. Las pruebas ya no buscan dos nombres
+  distintos para el mismo botón.
+  **(7) El tooltip de las acciones del hero: propuesta registrada**, para que la decida: el `Tooltip`
+  vendorizado alcanza el foco del teclado y el `title` no; la propuesta es usarlo **sólo donde la etiqueta no
+  alcanza** —el botón de copiar enlace, que es un ícono, y la consecuencia de publicar— y **no** en «Editar»,
+  que ya dice lo que hace. Va con el cableado de `B1`.
+  **(8) Prioridad invertida: primero promover.** El autor decidió que el diseño del grupo **Resueltas** se
+  mejora **después de promover** la hoja, porque promover tiene más prioridad. Con un dato que le dije: la
+  promoción (`B1`) está **bloqueada del lado del otro repo**, así que la prioridad queda fijada y el trabajo
+  de esa prioridad no puede empezar todavía.
+  **(9) Entrega autorizada:** commit, push, PR y merge. El trabajo se cierra **en unidades de trabajo** sobre
+  una rama, no en un commit único: es lo que hace que la próxima revisión sea un **delta** en vez del diff
+  entero — 1423 líneas cada vez, medido.

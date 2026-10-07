@@ -42,7 +42,12 @@
    real y se borra el playground. Los mockups de OpenPencil son punto de partida, no fuente de
    verdad. El playground lleva un **panel de control** —presets de caso y un interruptor por
    variante— para ver las opciones **en acción** en vez de imaginarlas y, cuando el cambio tiene una
-   medición, un **instrumento** que la muestre en números.
+   medición, un **instrumento** que la muestre en números. Ese panel es **liviano**: ahí vive sólo lo
+   **global** —los presets y el estado que no pertenece a ninguna sección—, y **cada interruptor de
+   variante va en la sección donde aplica**, al lado de lo que cambia. Un panel con nueve grupos se
+   lee buscando un botón en vez de mirar el diseño (2026-10-07, en `/dev/publication`). Los
+   parámetros de la URL no cambian por mover un interruptor: cambia dónde está el botón, no lo que la
+   hoja guarda.
 
 9. **Antes de empezar un ítem ambiguo, preguntar qué se quería.** El `BACKLOG.md` y el `PRD.md` son
    documentos: registran lo que alguien escribió en un momento, y pueden **no coincidir** con lo que el

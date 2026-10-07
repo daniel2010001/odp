@@ -60,6 +60,7 @@ export type PublicationDecisionResult = PublicationQueueItem;
 // estado que su propia fila devolvió, sin relectura.
 import {
 	CheckCircle2,
+	ChevronDown,
 	CircleAlert,
 	LoaderCircle,
 	RefreshCw,
@@ -97,6 +98,14 @@ const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
 const REFUSED_DECIDE =
 	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
+// La presentación de la cola cuando se pide plegada y por secciones. El disparador del plegado lleva
+// el título del dataset en su nombre accesible —dos filas nunca comparten nombre— y un **nombre
+// estable**: el estado lo lleva `aria-expanded` y el chevron, no el texto. Un nombre que cambia con el
+// estado («Ver…»/«Ocultar…») obliga a reconocer dos controles donde hay uno, y repite en el nombre lo
+// que el estado ya dice.
+const DETAILS_LABEL = "Detalles";
+const SECTION_PENDING = "Pendientes";
+const SECTION_RESOLVED = "Resueltas";
 const APPROVED_NOTE = "La solicitud fue aprobada.";
 const REJECTED_NOTE = "La solicitud fue rechazada.";
 // Etiqueta neutral cuando el catálogo no entrega el nombre visible: la fila nunca cae al id crudo.
@@ -116,6 +125,8 @@ let {
 	ondecided,
 	now = new Date(),
 	class: className = "",
+	secciones = false,
+	expansion = "todas",
 }: {
 	list: ListPublicationRequests;
 	decide: DecidePublicationRequest;
@@ -133,6 +144,18 @@ let {
 	 */
 	now?: Date;
 	class?: string;
+	/**
+	 * Presentación: `true` agrupa la cola en **Pendientes** y después **Resueltas**, cada grupo con su
+	 * conteo, y no titula un grupo vacío. `false` (lo de siempre) deja la lista plana, sin títulos.
+	 */
+	secciones?: boolean;
+	/**
+	 * Presentación: `"primera"` abre **sólo** el primer pendiente que quien mira puede decidir —nunca
+	 * una solicitud propia— y pliega el resto, cada uno con su disparador. `"todas"` (lo de siempre)
+	 * abre cada fila. Plegar no es ocultar: el disparador es un botón, y la fila plegada sigue
+	 * mostrando el dataset, la organización y quién la pidió.
+	 */
+	expansion?: "todas" | "primera";
 } = $props();
 
 type Outcome = { kind: "refused" | "unconfirmed" | "error" | "reason-required"; message: string };
@@ -153,6 +176,30 @@ const viewer = $derived(currentUser === undefined ? ($currentUserStore?.id ?? nu
 
 function isOwn(item: PublicationQueueItem): boolean {
 	return viewer !== null && item.requested_by === viewer;
+}
+
+// ─── Presentación: el plegado y las secciones ─────────────────────────
+// El plegado es una decisión de **presentación**, no una política: lo único que se esconde es la
+// vista de decidir, y el disparador es un botón —nunca un estado que sólo viva en el hover—.
+let abiertos = $state<Record<string, boolean>>({});
+
+const pendientes = $derived(items.filter((item) => item.status === "pending"));
+const resueltas = $derived(items.filter((item) => item.status !== "pending"));
+
+// La fila que arranca abierta: la primera que quien mira **puede decidir**. Cuatro ojos: la propia
+// nunca, porque abrirla para decidir sería ofrecer lo que no se puede hacer. Si no hay ninguna
+// decidible, no se abre ninguna.
+const abiertaPorDefecto = $derived(
+	expansion === "primera" ? (pendientes.find((item) => !isOwn(item))?.id ?? null) : null,
+);
+
+function estaAbierta(item: PublicationQueueItem): boolean {
+	if (expansion !== "primera") return true;
+	return abiertos[item.id] ?? item.id === abiertaPorDefecto;
+}
+
+function alternar(item: PublicationQueueItem): void {
+	abiertos[item.id] = !estaAbierta(item);
 }
 
 // Énfasis de **presentación**, no una política: la solicitud no expira. A partir de los 90 días la
@@ -297,6 +344,141 @@ function setComment(id: string, value: string) {
 }
 </script>
 
+{#snippet cuerpoPendiente(item: PublicationQueueItem)}
+	{#if isOwn(item)}
+		<div
+			role="note"
+			class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+		>
+			<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
+			<span>{SELF_APPROVAL}</span>
+		</div>
+	{:else}
+		<label
+			for={`comentario-${item.id}`}
+			class="mt-3 block text-xs font-medium text-muted-foreground"
+		>
+			{COMMENT_LABEL}
+		</label>
+		<textarea
+			id={`comentario-${item.id}`}
+			rows="2"
+			placeholder={COMMENT_PLACEHOLDER}
+			value={comments[item.id] ?? ""}
+			oninput={(event) => setComment(item.id, event.currentTarget.value)}
+			class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+		></textarea>
+
+		{#if outcomes[item.id]}
+			<div
+				role="alert"
+				class={cn(
+					"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
+					outcomes[item.id]?.kind === "refused"
+						? "border-destructive/20 bg-destructive/10 text-destructive"
+						: "border-border bg-muted/40 text-muted-foreground",
+				)}
+			>
+				<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
+				<span>{outcomes[item.id]?.message}</span>
+			</div>
+		{/if}
+
+		<div class="mt-3 flex flex-wrap gap-2">
+			<Button size="sm" onclick={() => void decideOn(item, true)} disabled={deciding !== null}>
+				{#if deciding?.id === item.id && deciding.approve}
+					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+					Aprobando…
+				{:else}
+					<CheckCircle2 class="size-4" aria-hidden="true" />
+					{APPROVE_LABEL}
+				{/if}
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={() => void decideOn(item, false)}
+				disabled={deciding !== null}
+			>
+				{#if deciding?.id === item.id && !deciding.approve}
+					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+					Rechazando…
+				{:else}
+					<XCircle class="size-4" aria-hidden="true" />
+					{REJECT_LABEL}
+				{/if}
+			</Button>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet fila(item: PublicationQueueItem)}
+	{@const desenlace = outcomeLine(item)}
+	{@const plegable = expansion === "primera" && item.status === "pending"}
+	{@const abierta = estaAbierta(item)}
+	<li class="rounded-lg border border-border bg-card p-4" data-request-id={item.id}>
+		<div class="flex flex-wrap items-baseline justify-between gap-2">
+			<p class="font-heading text-sm font-semibold text-card-foreground">
+				{item.dataset_title}
+			</p>
+			{#if item.organization_title}
+				<span class="text-xs text-muted-foreground">{item.organization_title}</span>
+			{/if}
+		</div>
+
+		{#if item.requested_by_name || item.requested_by || item.created_at}
+			<p class="mt-1 text-xs text-muted-foreground">
+				{#if item.requested_by_name || item.requested_by}Solicitada por {item.requested_by_name ?? CATALOG_NAME_FALLBACK}{/if}
+				{#if (item.requested_by_name || item.requested_by) && item.created_at} · {/if}
+				{#if item.created_at}
+					{formatDate(item.created_at)}
+					{#if antiguedades.get(item.id)}
+						·
+						<span
+							data-testid="request-age"
+							data-stale={antiguedades.get(item.id)?.antigua ? "true" : "false"}
+							class={cn(
+								"whitespace-nowrap",
+								antiguedades.get(item.id)?.antigua && "font-semibold text-destructive",
+							)}
+						>{antiguedades.get(item.id)?.texto}</span>
+					{/if}
+				{/if}
+			</p>
+		{/if}
+
+		{#if desenlace}
+			<p data-testid="request-outcome" class="mt-1 text-xs text-muted-foreground">
+				{desenlace}
+			</p>
+		{/if}
+
+		{#if item.status === "pending"}
+			{#if plegable}
+				<button
+					type="button"
+					aria-expanded={abierta}
+					aria-controls={`detalle-${item.id}`}
+					onclick={() => alternar(item)}
+					class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<ChevronDown
+						class={cn("size-3.5 transition-transform", abierta && "rotate-180")}
+						aria-hidden="true"
+					/>
+					{DETAILS_LABEL}
+					<span class="sr-only"> de {item.dataset_title}</span>
+				</button>
+				<div id={`detalle-${item.id}`}>
+					{#if abierta}{@render cuerpoPendiente(item)}{/if}
+				</div>
+			{:else}
+				{@render cuerpoPendiente(item)}
+			{/if}
+		{/if}
+	</li>
+{/snippet}
+
 <div class={cn("flex flex-col gap-3", className)}>
 	{#if announcement}
 		<p
@@ -327,120 +509,36 @@ function setComment(id: string, value: string) {
 		</div>
 	{:else if items.length === 0}
 		<p class="text-sm text-muted-foreground">{EMPTY}</p>
+	{:else if secciones}
+		{#if pendientes.length > 0}
+			<section aria-label={SECTION_PENDING} class="flex flex-col gap-3">
+				<h3 class="font-heading text-sm font-semibold text-foreground">
+					{SECTION_PENDING}
+					<span
+						class="ml-1 rounded-full border border-border bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">{pendientes.length}</span
+					>
+				</h3>
+				<ul class="flex flex-col gap-3">
+					{#each pendientes as item (item.id)}{@render fila(item)}{/each}
+				</ul>
+			</section>
+		{/if}
+		{#if resueltas.length > 0}
+			<section aria-label={SECTION_RESOLVED} class="flex flex-col gap-3">
+				<h3 class="font-heading text-sm font-semibold text-foreground">
+					{SECTION_RESOLVED}
+					<span
+						class="ml-1 rounded-full border border-border bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">{resueltas.length}</span
+					>
+				</h3>
+				<ul class="flex flex-col gap-3">
+					{#each resueltas as item (item.id)}{@render fila(item)}{/each}
+				</ul>
+			</section>
+		{/if}
 	{:else}
 		<ul class="flex flex-col gap-3">
-			{#each items as item (item.id)}
-				{@const desenlace = outcomeLine(item)}
-				<li class="rounded-lg border border-border bg-card p-4" data-request-id={item.id}>
-					<div class="flex flex-wrap items-baseline justify-between gap-2">
-						<p class="font-heading text-sm font-semibold text-card-foreground">
-							{item.dataset_title}
-						</p>
-						{#if item.organization_title}
-							<span class="text-xs text-muted-foreground">{item.organization_title}</span>
-						{/if}
-					</div>
-
-					{#if item.requested_by_name || item.requested_by || item.created_at}
-						<p class="mt-1 text-xs text-muted-foreground">
-							{#if item.requested_by_name || item.requested_by}Solicitada por {item.requested_by_name ?? CATALOG_NAME_FALLBACK}{/if}
-							{#if (item.requested_by_name || item.requested_by) && item.created_at} · {/if}
-							{#if item.created_at}
-								{formatDate(item.created_at)}
-								{#if antiguedades.get(item.id)}
-									·
-									<span
-										data-testid="request-age"
-										data-stale={antiguedades.get(item.id)?.antigua ? "true" : "false"}
-										class={cn(
-											"whitespace-nowrap",
-											antiguedades.get(item.id)?.antigua && "font-semibold text-destructive",
-										)}
-									>{antiguedades.get(item.id)?.texto}</span>
-								{/if}
-							{/if}
-						</p>
-					{/if}
-
-					{#if desenlace}
-						<p data-testid="request-outcome" class="mt-1 text-xs text-muted-foreground">
-							{desenlace}
-						</p>
-					{/if}
-
-					{#if item.status === "pending"}
-						{#if isOwn(item)}
-							<div
-								role="note"
-								class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-							>
-								<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
-								<span>{SELF_APPROVAL}</span>
-							</div>
-						{:else}
-							<label
-								for={`comentario-${item.id}`}
-								class="mt-3 block text-xs font-medium text-muted-foreground"
-							>
-								{COMMENT_LABEL}
-							</label>
-							<textarea
-								id={`comentario-${item.id}`}
-								rows="2"
-								placeholder={COMMENT_PLACEHOLDER}
-								value={comments[item.id] ?? ""}
-								oninput={(event) => setComment(item.id, event.currentTarget.value)}
-								class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							></textarea>
-
-							{#if outcomes[item.id]}
-								<div
-									role="alert"
-									class={cn(
-										"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
-										outcomes[item.id]?.kind === "refused"
-											? "border-destructive/20 bg-destructive/10 text-destructive"
-											: "border-border bg-muted/40 text-muted-foreground",
-									)}
-								>
-									<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-									<span>{outcomes[item.id]?.message}</span>
-								</div>
-							{/if}
-
-							<div class="mt-3 flex flex-wrap gap-2">
-								<Button
-									size="sm"
-									onclick={() => void decideOn(item, true)}
-									disabled={deciding !== null}
-								>
-									{#if deciding?.id === item.id && deciding.approve}
-										<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-										Aprobando…
-									{:else}
-										<CheckCircle2 class="size-4" aria-hidden="true" />
-										{APPROVE_LABEL}
-									{/if}
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									onclick={() => void decideOn(item, false)}
-									disabled={deciding !== null}
-								>
-									{#if deciding?.id === item.id && !deciding.approve}
-										<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-										Rechazando…
-									{:else}
-										<XCircle class="size-4" aria-hidden="true" />
-										{REJECT_LABEL}
-									{/if}
-								</Button>
-							</div>
-						{/if}
-					{/if}
-				</li>
-			{/each}
+			{#each items as item (item.id)}{@render fila(item)}{/each}
 		</ul>
 	{/if}
 </div>

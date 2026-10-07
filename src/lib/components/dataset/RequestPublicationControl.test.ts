@@ -43,6 +43,8 @@ type ControlProps = {
 	cancel: (requestId: string) => Promise<PublicationRequest>;
 	onrequested?: (request: PublicationRequest) => void;
 	oncancelled?: (request: PublicationRequest) => void;
+	/** Presentación: `"accion"` lo dibuja como una acción del hero; `"bloque"` (hoy) con el texto debajo. */
+	apariencia?: "bloque" | "accion";
 };
 
 function makeRequest(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
@@ -284,5 +286,45 @@ describe("RequestPublicationControl — qué reporta después del click", () => 
 
 		await waitFor(() => expect(oncancelled).toHaveBeenCalledWith(cancelada));
 		expect(cancel).toHaveBeenCalledTimes(2);
+	});
+});
+
+// La presentación de **acción**: el control en la fila del hero. Se dibuja como sus hermanos y la
+// explicación pasa al `title`. Los **estados** no cambian: una solicitud pendiente o anulada es
+// información, no la acción, y sigue ocupando su bloque.
+describe("RequestPublicationControl — la presentación de acción", () => {
+	it("en `accion` dibuja sólo el botón, con la forma de las acciones del hero y la explicación en el tooltip", async () => {
+		renderControl({ apariencia: "accion" });
+
+		const boton = await screen.findByRole("button", { name: REQUEST_LABEL });
+
+		expect(boton.className).toContain("h-9");
+		expect(boton.className).toContain("border-input");
+		expect(boton.className).toContain("bg-background");
+
+		// La explicación no ocupa lugar en el flujo: no hay ningún párrafo con ella...
+		expect(screen.queryByText(CONSEQUENCE, { selector: "p" })).toBeNull();
+		// ...pero no se pierde. Es el tooltip, y además queda asociada al botón: el `title` solo alcanza
+		// al puntero, no al teclado.
+		expect(boton).toHaveAttribute("title", CONSEQUENCE);
+		const descrito = boton.getAttribute("aria-describedby");
+		expect(descrito).toBeTruthy();
+		const copia = document.getElementById(descrito ?? "");
+		expect(copia).toHaveTextContent(CONSEQUENCE);
+		expect(copia).toHaveClass("sr-only");
+	});
+
+	it("en `accion` el estado pendiente sigue siendo información, con su cancelar", async () => {
+		renderControl({ apariencia: "accion", currentRequest: makeRequest({ status: "pending" }) });
+
+		expect(await screen.findByText(PENDING_HEADING)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: CANCEL_LABEL })).toBeInTheDocument();
+	});
+
+	it("en `bloque` la explicación sigue debajo del botón, y sin tooltip", async () => {
+		renderControl();
+
+		expect(await screen.findByText(CONSEQUENCE)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: REQUEST_LABEL })).not.toHaveAttribute("title");
 	});
 });

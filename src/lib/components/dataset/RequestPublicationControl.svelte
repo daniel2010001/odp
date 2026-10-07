@@ -56,6 +56,14 @@ export type CancelPublicationRequest = (requestId: string) => Promise<Publicatio
 const REQUEST_LABEL = "Solicitar publicación";
 const REQUEST_AGAIN_LABEL = "Volver a solicitar";
 const CONSEQUENCE = "Un administrador de la organización revisará su solicitud.";
+
+// La forma de las acciones del hero de la ficha (`src/routes/dataset/[id]/+page.svelte:436-451`): las
+// mismas clases que usan «Copiar enlace» y «Editar», para que el control no se vea más grande que sus
+// hermanos. La clase está **duplicada a propósito y por ahora**: cuando el cableado real monte estos
+// controles en la ficha, sale a un módulo compartido — la misma deuda que la regla del conteo de
+// acciones del hero.
+const ACCION_CLASS =
+	"inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
 const PENDING_HEADING = "Solicitud pendiente de revisión";
 const PENDING_BODY = "Su solicitud está a la espera de que un administrador de la organización la revise.";
 const CANCEL_LABEL = "Cancelar solicitud";
@@ -78,6 +86,7 @@ let {
 	cancel,
 	onrequested,
 	oncancelled,
+	apariencia = "bloque",
 	class: className = "",
 }: {
 	/** Del dataset sólo se necesitan el identificador y si sigue privado. */
@@ -90,8 +99,20 @@ let {
 	cancel: CancelPublicationRequest;
 	onrequested?: (request: PublicationRequest) => void;
 	oncancelled?: (request: PublicationRequest) => void;
+	/**
+	 * Presentación. `"bloque"` (lo de siempre) dibuja el botón con su explicación debajo. `"accion"`
+	 * dibuja **sólo el botón**, con la forma de las acciones del hero de la ficha —mismo alto y misma
+	 * forma que «Copiar enlace» y «Editar»— y la explicación como **tooltip**, asociada además con
+	 * `aria-describedby` porque el `title` no se alcanza con el teclado. Los **estados** (pendiente,
+	 * anulada, rechazada) no cambian: son información, no la acción.
+	 */
+	apariencia?: "bloque" | "accion";
 	class?: string;
 } = $props();
+
+// Identificador único por instancia: dos controles del mismo dataset en una página —la hoja los monta
+// dos veces— no pueden compartir el `id` de la descripción.
+const uid = $props.id();
 
 type Outcome = { kind: "refused" | "unconfirmed" | "error"; message: string };
 
@@ -246,8 +267,17 @@ function retry() {
 				</div>
 			{/if}
 
-			<div class="flex flex-col items-start gap-1.5">
-				<Button onclick={handleRequest} disabled={pending !== null}>
+			{#if apariencia === "accion"}
+				<!-- En la fila del hero el control es **una acción más**: se dibuja como sus hermanos y la
+				     explicación no ocupa lugar, va al tooltip. -->
+				<button
+					type="button"
+					onclick={handleRequest}
+					disabled={pending !== null}
+					title={CONSEQUENCE}
+					aria-describedby={`${uid}-consecuencia`}
+					class={ACCION_CLASS}
+				>
 					{#if pending === "request"}
 						<LoaderCircle class="size-4 animate-spin" />
 						Enviando…
@@ -255,9 +285,22 @@ function retry() {
 						<Send class="size-4" />
 						{active?.status === "rejected" ? REQUEST_AGAIN_LABEL : REQUEST_LABEL}
 					{/if}
-				</Button>
-				<p class="text-xs text-muted-foreground">{CONSEQUENCE}</p>
-			</div>
+				</button>
+				<span id={`${uid}-consecuencia`} class="sr-only">{CONSEQUENCE}</span>
+			{:else}
+				<div class="flex flex-col items-start gap-1.5">
+					<Button onclick={handleRequest} disabled={pending !== null}>
+						{#if pending === "request"}
+							<LoaderCircle class="size-4 animate-spin" />
+							Enviando…
+						{:else}
+							<Send class="size-4" />
+							{active?.status === "rejected" ? REQUEST_AGAIN_LABEL : REQUEST_LABEL}
+						{/if}
+					</Button>
+					<p class="text-xs text-muted-foreground">{CONSEQUENCE}</p>
+				</div>
+			{/if}
 		{/if}
 	</div>
 {/if}
