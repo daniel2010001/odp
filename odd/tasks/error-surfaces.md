@@ -194,6 +194,55 @@ card, los botones están centrados y el diagnóstico está en español. Y el **c
 (3.73:1)** es un ítem **de tokens**, no de esta página: se ve en `/dev/error?theme=oscuro`, y vive como ítem
 propio en este archivo.
 
+### La parte técnica en los mensajes: la regla del autor (2026-10-07)
+
+**Decisión del autor, textual:** los mensajes que ve un usuario **pueden** llevar la parte técnica —el código,
+«para poder consultar con otros, algo así como servicio al cliente cuando pide algún código de error»—,
+**pero el foco no puede ser la técnica**: «a pesar de tener una parte técnica se debería mostrar info o texto
+que un usuario cualquiera pueda entender», con el ejemplo «El dataset no existe, error 404».
+
+**Qué ya lo cumplía, verificado antes de tocar nada:** la **página de error** lo hace desde el 2026-10-05 —
+renderiza `ERROR {status}` como rótulo y debajo el encabezado y el cuerpo que arma `failure.ts`. Ahí no había
+nada que agregar, y decirlo antes de escribir código evitó duplicar el mecanismo.
+
+**Qué faltaba:** las **alertas dentro de los componentes**, que mostraban el **texto crudo del catálogo**
+—`No se pudo publicar el dataset: 502 Bad Gateway`— donde el único dato útil para soporte es el código, y la
+frase que lo acompaña tiene que ser nuestra. Cinco sitios en tres componentes: la cola (no carga, y no se pudo
+decidir), publicar, pedir y cancelar.
+
+**Cómo quedó:** `technicalCode(err)` en `failure.ts` —**una sola función decide qué código se muestra**, y
+devuelve `null` cuando el error no trae estado, en vez de inventar un código que nadie observó—, y las alertas
+renderizan la frase humana con el código como **dato secundario** en monoespaciada.
+
+**Y una tensión que queda abierta, porque es una decisión del autor y no mía.** La política de
+**indistinguibilidad sin sesión** (decisión suya del 2026-09-20) dice que un espectador anónimo recibe **el
+mismo** encabezado y la **misma** oración para un `403` y un `404`, para no filtrar la existencia de un
+recurso privado. Pero el rótulo `ERROR {status}` de la página de error muestra el estado **observado**: a un
+espectador anónimo **le distingue `403` de `404`** por el rótulo mientras el texto se lo oculta. Es **anterior
+a esta unidad** y **no se tocó**. Si el código tiene que seguir la misma regla que el texto —resuelto cuando el
+espectador está identificado, **fusionado** cuando es anónimo—, eso cambia la política vigente y lo decide él.
+La recomendación es fusionarlo, porque hoy el rótulo deshace lo que el texto hace.
+
+### Entregado (2026-10-07)
+
+**`technicalDetail(err)`** en `failure.ts`, con dos reglas que las pruebas fijan: **no inventa** un estado que
+nadie observó, y **no tira** el único dato técnico que existe —cuando el error no trae estado, su propio texto
+lo es—. Un estado `0` se nombra como lo que es: «sin respuesta del catálogo».
+
+**Los cinco sitios** que mostraban texto crudo ahora muestran **la frase primero y el dato detrás**: la cola al
+no cargar, la cola al no poder decidir, publicar, pedir y cancelar. Las frases son nuestras («No se pudo publicar
+el dataset.», «No se pudo enviar la solicitud.»…), en el idioma del usuario, y el dato técnico va en
+monoespaciada como dato secundario.
+
+**Verificación**: RED observado (9 fallas: las 4 nuevas de `technicalDetail` y las 5 alertas), después GREEN;
+suite **989/989 en 61 archivos**, `pnpm check` 0 errores, `pnpm build` OK, Biome limpio. Y **en la hoja, en el
+navegador**, con el fallo de red y la vista de superadministración: aparece `No se pudo publicar el dataset.`
+con `error 502` detrás, y **cero** ocurrencias de `502 Bad Gateway` y de la forma vieja con dos puntos.
+
+**Una aserción mía estaba mal y la implementación tenía razón**: había escrito que un `CkanApiError` **sin**
+estado devolviera `null`, cuando su texto sigue siendo el único dato que existe. La prueba ahora afirma la
+regla —fallback al texto— y reserva el `null` para lo que de verdad no tiene nada que citar.
+
 ### Desviaciones declaradas
 
 1. **Sin RED propio para `statusFor`**: el helper se extrajo de la necesidad de las páginas y su RED fue el de

@@ -69,6 +69,7 @@ import {
 } from "@lucide/svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import { currentUser as currentUserStore } from "$lib/stores/auth";
+import { technicalDetail } from "$lib/api/failure";
 import { CkanApiError } from "$lib/types/api";
 import { cn, formatDate, formatRelativeAge } from "$lib/utils";
 
@@ -98,6 +99,9 @@ const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
 const REFUSED_DECIDE =
 	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
+// La frase que el usuario lee cuando el fallo al decidir no es de autorización. Es **nuestra**: el dato
+// técnico va detrás, como dato secundario.
+const DECIDE_FAILED = "No se pudo registrar la decisión.";
 // La presentación de la cola cuando se pide plegada y por secciones. El disparador del plegado lleva
 // el título del dataset en su nombre accesible —dos filas nunca comparten nombre— y un **nombre
 // estable**: el estado lo lleva `aria-expanded` y el chevron, no el texto. Un nombre que cambia con el
@@ -158,11 +162,18 @@ let {
 	expansion?: "todas" | "primera";
 } = $props();
 
-type Outcome = { kind: "refused" | "unconfirmed" | "error" | "reason-required"; message: string };
+type Outcome = {
+	kind: "refused" | "unconfirmed" | "error" | "reason-required";
+	message: string;
+	/** El dato técnico que sigue a la frase; `null` cuando no hay ninguno que citar. */
+	technical?: string | null;
+};
 
 let items = $state<PublicationQueueItem[]>([]);
 let loading = $state(true);
-let listError = $state<string | null>(null);
+// El fallo tal como se observó, no su texto: el dato técnico que se muestra sale de
+// `technicalDetail`, que decide qué se puede citar.
+let listError = $state<unknown>(null);
 /** La decisión en vuelo, con su fila y su sentido; mientras haya una, ninguna fila acepta otra. */
 let deciding = $state<{ id: string; approve: boolean } | null>(null);
 let outcomes = $state<Record<string, Outcome | undefined>>({});
@@ -232,8 +243,9 @@ async function load() {
 	try {
 		items = await list("pending");
 	} catch (err) {
-		// La cola no cargada no se disfraza de cola vacía: son estados distintos.
-		listError = err instanceof Error ? err.message : "error desconocido";
+		// La cola no cargada no se disfraza de cola vacía: son estados distintos. Se guarda el fallo
+		// —no su texto— porque el mensaje que el usuario lee es nuestro y el dato técnico se deriva.
+		listError = err;
 		items = [];
 	} finally {
 		loading = false;
@@ -299,9 +311,8 @@ async function decideOn(item: PublicationQueueItem, approve: boolean) {
 				? { kind: "refused", message: REFUSED_DECIDE }
 				: {
 						kind: "error",
-						message: `No se pudo registrar la decisión: ${
-							err instanceof Error ? err.message : "error desconocido"
-						}`,
+						message: DECIDE_FAILED,
+						technical: technicalDetail(err),
 					};
 	} finally {
 		deciding = null;
@@ -381,6 +392,9 @@ function setComment(id: string, value: string) {
 			>
 				<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
 				<span>{outcomes[item.id]?.message}</span>
+				{#if outcomes[item.id]?.technical}
+					<span class="font-mono text-xs">{outcomes[item.id]?.technical}</span>
+				{/if}
 			</div>
 		{/if}
 
@@ -496,12 +510,16 @@ function setComment(id: string, value: string) {
 			{LOADING}
 		</p>
 	{:else if listError}
+		{@const detalle = technicalDetail(listError)}
 		<div
 			role="alert"
 			class="flex w-full flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
 		>
 			<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-			<span>No se pudieron cargar las solicitudes: {listError}</span>
+			<span>No se pudieron cargar las solicitudes.</span>
+			{#if detalle}
+				<span class="font-mono text-xs">{detalle}</span>
+			{/if}
 			<Button variant="outline" size="sm" onclick={() => void load()}>
 				<RefreshCw class="size-4" aria-hidden="true" />
 				Reintentar

@@ -1733,10 +1733,19 @@ completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: 
 >   resumen es **otra pregunta** («¿me sirve esto?»: quién lo mantiene, cada cuánto se actualiza, cuándo fue la
 >   última vez, con qué licencia), no una lista más corta de la misma información; y que la izquierda tiene que
 >   estar **completa** —hoy se pierden datos que el dataset tiene—. TODO para una sesión de diseño.
-> - **La parte técnica en los mensajes de error: la próxima unidad.** Decisión del autor: los mensajes
+> - **La parte técnica en los mensajes de error — ENTREGADA (2026-10-07).** Decisión del autor: los mensajes
 >   **pueden** llevar el código (para consultarlo con soporte), pero **el foco no es la técnica**: frase
->   entendible primero, código como dato secundario («El dataset no existe, error 404»). Toca `failure.ts` y las
->   superficies que muestran fallos, y de paso cierra que un `404` se lea como «no se pudo».
+>   entendible primero, código como dato secundario («El dataset no existe, error 404»). La **página de error
+>   ya lo hacía** (rótulo `ERROR {status}`); lo que cambió son las **cinco alertas** de los componentes, que
+>   mostraban texto crudo del catálogo. Ahora: `technicalDetail` en `failure.ts` —no inventa un estado y no tira
+>   el único dato que existe— y las frases son nuestras. Suite **989/989**, `check` 0 errores, verificado en la
+>   hoja en el navegador. Expediente: `odd/tasks/error-surfaces.md`.
+> - **DECISIÓN ABIERTA, encontrada al implementar lo anterior:** el rótulo `ERROR {status}` de la página de
+>   error muestra el estado **observado**, así que a un espectador **anónimo** le distingue `403` de `404`
+>   mientras el texto —por la política de indistinguibilidad del 2026-09-20— se lo oculta. Hoy **el rótulo
+>   deshace lo que el texto hace**. La recomendación es que el código siga la misma regla del texto: resuelto
+>   con sesión identificada, **fusionado** sin sesión. Es una decisión del autor porque cambia una política
+>   vigente; **no se tocó**.
 > - **El tooltip de los tres botones del hero.** Propuesta: el `Tooltip` vendorizado (alcanza el teclado) **sólo
 >   donde la etiqueta no alcanza** —el botón de copiar enlace y la consecuencia de publicar—, y **no** en
 >   «Editar», que ya dice lo que hace. Va con `B1`.

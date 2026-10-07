@@ -26,6 +26,7 @@ import {
 	RefreshCw,
 	ShieldAlert,
 } from "@lucide/svelte";
+import { technicalDetail } from "$lib/api/failure";
 import Button from "$lib/components/ui/button/button.svelte";
 import { isSuperAdmin } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
@@ -52,6 +53,10 @@ export type ReadDataset = (id: string) => Promise<CkanPackage>;
 
 const REFUSAL = "Solo la superadministración de la plataforma puede publicar este dataset.";
 const UNCONFIRMED = "El catálogo no confirmó la publicación.";
+// La frase que el usuario lee cuando el fallo no es de autorización. Es **nuestra**, en su idioma: el
+// dato técnico va detrás, como dato secundario, porque un mensaje crudo del servidor no es un mensaje
+// para una persona.
+const PUBLISH_FAILED = "No se pudo publicar el dataset.";
 const CONFIRMED = "El catálogo confirmó la publicación.";
 // La consecuencia de publicar: en la presentación de bloque va debajo del botón; en la de acción
 // viaja como tooltip. Es **una sola frase**, y tiene que ser la misma en los dos lugares.
@@ -99,7 +104,12 @@ const uid = $props.id();
 // store que el portal ya mantiene: no hay ninguna llamada nueva que inventar.
 const offered = $derived(canPublish ?? $isSuperAdmin);
 
-type Outcome = { kind: "refused" | "unconfirmed" | "error"; message: string };
+type Outcome = {
+	kind: "refused" | "unconfirmed" | "error";
+	message: string;
+	/** El dato técnico que sigue a la frase; `null` cuando no hay ninguno que citar. */
+	technical?: string | null;
+};
 
 let pending = $state(false);
 let outcome = $state<Outcome | null>(null);
@@ -127,9 +137,8 @@ async function handlePublish() {
 				? { kind: "refused", message: REFUSAL }
 				: {
 						kind: "error",
-						message: `No se pudo publicar el dataset: ${
-							err instanceof Error ? err.message : "error desconocido"
-						}`,
+						message: PUBLISH_FAILED,
+						technical: technicalDetail(err),
 					};
 		pending = false;
 		return;
@@ -182,6 +191,9 @@ async function handlePublish() {
 					<CircleAlert class="size-4 shrink-0" />
 				{/if}
 				<span>{outcome.message}</span>
+				{#if outcome.technical}
+					<span class="font-mono text-xs">{outcome.technical}</span>
+				{/if}
 				{#if outcome.kind === "error"}
 					<Button variant="outline" size="sm" onclick={handlePublish}>
 						<RefreshCw class="size-4" />

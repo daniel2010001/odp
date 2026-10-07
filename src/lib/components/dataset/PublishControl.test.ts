@@ -272,7 +272,10 @@ describe("PublishControl — qué reporta después del click", () => {
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
 
-		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("502 Bad Gateway"));
+		const alerta = await screen.findByRole("alert");
+		// La frase humana **encabeza**; el dato técnico la sigue, como dato secundario.
+		expect(alerta).toHaveTextContent(/^No se pudo publicar el dataset\./);
+		expect(alerta).toHaveTextContent("502 Bad Gateway");
 		expect(publish).toHaveBeenCalledTimes(1);
 		expect(readDataset).not.toHaveBeenCalled();
 
