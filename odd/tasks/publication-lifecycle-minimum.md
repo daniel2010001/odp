@@ -928,7 +928,39 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   **mapa de sus filas**: en vez de inventar cobertura, medir cada acción que ellos ya identificaron, más los
   límites de `private` y la fila de `'false'`. **Y ese PR cierra además el agujero del espejo de
   `boolean_validator` que estaba vivo en `master`** —`private: 0` publicaba, para un **editor**—, lo que
-  convierte a `private: 0` de observación interesante en **regresión a pin**ear desde el lado del consumidor. **Por eso `A5` suma los valores límite de `private`
+  convierte a `private: 0` de observación interesante en **regresión a pin**ear desde el lado del consumidor.
+
+- **2026-10-07 (noche) — `A3` aterrizó, `A5` se desbloqueó, y la sonda ya está medida contra el muro nuevo.**
+  Verificado en `origin/master` de `odp-docker`: **`6472e48 Merge pull request #3`** — la pared está puesta. Y el
+  literal viejo sigue vivo donde estaba (`auth.py:109` y la tabla del contrato), así que la unidad del literal
+  nuevo está pendiente, como la par avisó.
+  **La sonda corrió dos veces contra el stack y el resultado es el mapa de `A5`:** **22/25**, y las tres fallas
+  son **exactamente** las expectativas que `A3` invalidó — o sea, la sonda está haciendo su trabajo:
+  | fila | esperaba | mide | cuerpo |
+  |---|---|---|---|
+  | `P6` | `200` | **`403`** | «Publication goes through the publication flow, not package_patch» |
+  | `P6.stored` | `false` | **`true`** — el dataset **no** se publicó, que es la parte que importa |
+  | `P10` | `200` | **`403`** | el mismo, para el admin de la organización **padre** |
+  **Y una confirmación de mi `P8` en vivo:** la sonda ahora imprime el cuerpo, así que se ve **de quién** es la
+  negativa — `bulk_update_public` recibe el mensaje **genérico** del muro («Only an organization administrator
+  can publish a dataset»), no el del flujo. Antes eso no se podía distinguir; era exactamente lo que el `P8`
+  afirmaba sin poder probar.
+  **Alcance de `A5`, derivado de esto y no de la imaginación:** (1) dar vuelta `P6`/`P6.stored`/`P10` a `403`
+  con el mensaje del muro; (2) `P8` pasa a afirmar **el mensaje**, no sólo el código; (3) los **valores límite
+  de `private`** (`0`, `0.0`, `[]`, `{}`, `'banana'`, `''`, `'false'`, `null`, omitida) contra el muro, con
+  `'false'` como fila propia por contraintuitiva; (4) las **18 acciones del inventario** del PR #3 como mapa
+  de filas, separando **lo que el muro cierra** de **lo que no**; (5) la gobernanza de las **cinco acciones**
+  (`publish` sólo `sysadmin` y sólo sobre privado, cuatro ojos **con su mensaje**, rechazo sin motivo como
+  `ValidationError` con la clave `comments`, anulación, `NotFound` y no `403`, y la lista anónima en `200` con
+  `[]`).
+  **Una dependencia dura, declarada:** las filas que afirman el literal del **flujo** no se escriben contra el
+  texto viejo. Se escriben cuando la par mande el commit del literal nuevo — regla que quedó de esta misma
+  noche: **no pinear un literal que está por cambiar**.
+  **Lo que la par me ahorró, y lo anoté como método:** la distinción «lo que el muro cierra vs lo que no» está
+  **línea por línea en el transcript del inventario**, así que las filas se mapean contra ese transcript sin
+  volver a medir la fuente de CKAN. Y su advertencia sobre `private: 0` cambia qué mide la fila: el muro ahora
+  lo **rechaza**, así que la fila mide **la negativa**, y el síntoma a detectar si alguien afloja el muro es
+  **`200` con el dataset público** — peor que una excepción, porque **no se ve**. **Por eso `A5` suma los valores límite de `private`
   (`0`, `"false"`, `"banana"`, `""`, `null`, omitida) como filas a medir, no a suponer**: ahí es donde un
   espejo y su original se separan en silencio.
 
