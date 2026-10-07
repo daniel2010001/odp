@@ -1759,9 +1759,20 @@ completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: 
 >   y el control de publicación hace lo mismo para parecerse; el `Tooltip` vendorizado (bits-ui, ya presente
 >   en `DatasetCard`) alcanza también el **foco del teclado**, que el `title` no. Los tres deberían usarlo.
 >
-> **Deuda de revisión: los avisos de las compuertas nativas de la hoja (2026-10-07).** El tercero queda
-> **sin reinterpretar**: el recibo entrega identificador y ubicación, no el texto del hallazgo, así que
-> deducirlo sería inventarlo y el arreglo se decide mirándolo.
+> **Deuda de revisión: la ronda del rango commiteado (`4195de4..5b6ae97`, 2026-10-07).** Aprobada con **dos
+> sugerencias**, las dos deuda declarada o de cobertura, y las dos anotadas para la unidad siguiente:
+> - `R3-hero-action-class-drift` (`PublishControl.svelte`) — la clase de acción del hero está **duplicada**
+>   dentro de cada control, que es exactamente la deuda que se declaró al introducirla. Lo que falta es la
+>   extracción a un módulo compartido, y va con el cableado de `B1`, que es cuando la ficha real monta los
+>   controles.
+> - `R3-multi-instance-id-regression-uncovered` (`PublicationQueue.test.ts`) — los `id` estáticos de los
+>   grupos **se arreglaron** (dos instancias los duplicaban), pero **ninguna prueba lo fija**: la prueba de las
+>   secciones monta una sola cola. Falta una prueba con dos instancias que afirme que no hay colisión. Es
+>   cobertura, no comportamiento.
+> Ninguna de las dos abre corrección ni reabre la ronda: entran con la unidad siguiente (**la parte técnica en
+> los mensajes de error**), que ya es un candidato nuevo.
+> **Deuda de revisión: los avisos de las compuertas de la hoja (2026-10-07, primera y segunda ronda).**
+> Los cuatro se arreglaron; quedan acá como registro de qué encontró cada ronda y qué se hizo con eso.
 > - `R3-empty-queue-filter-chips` (WARNING, `src/routes/dev/publication/+page.svelte`) — **arreglado**: el
 >   filtro leía el fixture en vez de lo cargado y ofrecía organizaciones **sobre una cola vacía**.
 > - `R3-tooltip-only-consequence` (SUGGESTION, `PublishControl.svelte`) — **arreglado**: la consecuencia de
