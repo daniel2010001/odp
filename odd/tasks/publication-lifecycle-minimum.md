@@ -789,6 +789,28 @@ distinguirla de otras; y **la tabla del store en la base de dev**, que hoy no es
   apagado en `ckan.ini`— y `package_delete`, que escribe `state='deleted'` a nivel modelo y es una **excepción
   intencional** (el spec pide que el borrado siga funcionando).
 
+- **2026-10-07 (noche) — La tabla del store ya está en la base de dev, y el camino para lograrlo tenía un
+  no-op silencioso.** La par autorizó aplicar la migración (con tres razones medidas, entre ellas que su
+  verificación corre contra `ckan_test` y **nunca** contra la base de dev, así que no nos pisamos).
+  **Resultado verificado:** `publication_request_list` anónimo responde **`200` con
+  `{"success": true, "result": []}`** — antes devolvía **`500`** por falta de tabla. O sea: **`B1` ya se puede
+  verificar contra la API**, no sólo construir contra el contrato.
+  1. **`--skip-core` junto con `-p <plugin>` es un no-op silencioso en el CLI de CKAN**, y lo pagué yo: imprimió
+     **`Upgrading DB: SUCCESS`** sin escribir **nada**. En `ckan/cli/db.py`, `if not skip_core:
+     _run_migrations(plugin, version)` es la **única** llamada que recibe `plugin`, y el bucle de plugins sólo
+     corre **si no hay `-p`**: con los dos flags **no queda nadie que trabaje**, y el `SUCCESS` es
+     incondicional. El comando correcto para «sólo la extensión» es **`-p umss` sin `--skip-core`** —
+     `_run_migrations` cambia la config de alembic al repo del plugin (`_repo_for_plugin`) y no toca el core.
+     Con eso: `CKAN database version upgraded: base -> 0001 (head)`.
+     **Le toca a `A6`:** un camino de despliegue que use los dos flags va a **reportar éxito sin hacer nada**, y
+     el síntoma va a ser exactamente el `500` de antes. Se le pasó a la par.
+  2. **La base efectiva no es la del ini.** El `ckan.ini` dice `…@localhost/ckan_default` y **esa base no
+     existe**: gana `CKAN_SQLALCHEMY_URL` del compose → **`ckandb`**. Me costó una vuelta de verificación
+     (la tabla «aparecía» sólo en `ckan_test`, que es la de los tests) — la misma forma de siempre: leer una
+     referencia y creerle.
+  **Y la lección de forma:** un `SUCCESS` **incondicional** es una referencia que no prueba nada. La
+  verificación honesta fue **la tabla y la acción**, no el mensaje del comando.
+
 - **2026-10-07 — WU-7.2: las decisiones del autor sobre los diseños, y lo que no le gustó.**
   **Decisiones cerradas:** (1) **las opciones en su sección se adoptan como diseño de la hoja en adelante**
   («me gusta más este tipo de opciones… prefiero que sea de este diseño de aquí en adelante»); ya está como
