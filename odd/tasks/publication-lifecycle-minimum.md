@@ -382,3 +382,28 @@ tenga su UI.
   comprobación de cuatro ojos** —la única condición es la capacidad `admin`— y `publication_publish`
   (124-131) **autorizando al `admin` de organización**, con el docstring «on their own authority». El
   hallazgo no dependía del push: depende de las líneas del archivo publicado.
+- **2026-10-07 — Los linajes de las compuertas, que era lo que faltaba para el registro del repo.** Reportados
+  por la sesión par (su store de revisión vive en el otro clon; se anotan **atribuidos**, no verificados acá):
+  **A1** — `review-04308fb1e12fe578` (2 SUGGESTION) · `review-256de69ad107978d` (2 WARNING + 2 SUGGESTION) ·
+  `review-32bb63b000a52fcb` (1 WARNING) · `review-bffb15b83bcefbd9` (1 WARNING) · `review-2945fa36b804f1d9`
+  (cero hallazgos). **Cinco, todas `approved` con la autoridad quemada**, y **7 hallazgos no bloqueantes,
+  los 7 cerrados dentro de la unidad** — no diferidos. **A2** — `review-5f706892311805c8`, tier high, 4
+  lentes, `correction_required` → **approved** tras la ronda de corrección.
+- **2026-10-07 — El ratio del forecast, tercera corrección en un día, y la buena es que la predicción era
+  falsable.** Predije —y escribí la predicción— que A2, siendo lógica densa como `auth.py`, se acercaría al
+  **2,20**; si salía muy por debajo, el ratio estaba midiendo otra cosa. **Salió 1,20.** Medido acá con
+  `git diff --stat 01aabc7..1a2d6c2`: código **427** (acción 249 + auth 142 + plugin +36/−3) y tests **513**.
+  La par reportó 404 y 485 (otra convención de conteo); **el ratio coincide: 1,20 en los dos casos**, y ése
+  es el número que viaja.
+  **Consecuencia: el ratio NO es propiedad de una clase de material.** El 2,20 midió la densidad particular
+  de `auth.py`, y extrapolarlo a «lógica densa» —el refinamiento que este mismo expediente propuso tras
+  A1— está mal por el mismo factor. Con cuatro mediciones (A1 **0,99** · A2 **1,20** · componente denso del
+  portal **1,69** · `auth.py` **2,20**), la guía revisada es **pronosticar `test_lines` como un rango de
+  1,0–1,7 × código** y **retirar el 2,20 como default del backend**.
+  **La lección de fondo es sobre la regla, no sobre el número:** **una regla derivada de dos muestras es una
+  hipótesis, y ésta quedó escrita como regla.** Hicieron falta la tercera y la cuarta para verlo.
+- **2026-10-07 — Aviso operativo: `dataset` todavía NO está en el código.** El contrato aditivo está
+  **decidido** (y el portal ya lo consume), pero la clave `dataset` llega en la unidad de seguimiento de A2
+  con su propia compuerta. **Contra la acción desplegada, el portal leería cada publicación exitosa como
+  fallo.** Por eso **B1 espera esa clave, no sólo a A2** — y el doble inyectado de la hoja es, por ahora,
+  la única forma de ejercitar la regla.

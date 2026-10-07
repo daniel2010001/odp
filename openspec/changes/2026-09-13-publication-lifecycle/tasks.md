@@ -86,6 +86,46 @@ re-measure as they land; **the total is not revised on one sample.**
 **down-migration**, and the migration's `CHECK` constraints carry nullability tests. The extension suite
 went 54 → **79**; CI is green on both jobs (`37564700222`).
 
+### Re-measured — A2 (`odp-docker` `01aabc7..1a2d6c2`, 2026-10-07)
+
+The second backend measurement, and it **falsifies the guidance the A1 block drew**:
+
+| Slice | Measured |
+|---|---|
+| `logic/action/publication.py` (new) | **249** |
+| `logic/auth/publication.py` (new) | **142** |
+| `plugin.py` (delta) | **+36 / −3** |
+| code subtotal | **427** |
+| `tests/test_publication_actions.py` (new) | **513** |
+| **ratio** | **513 / 427 = 1.20** |
+
+**The 2.20 predicted for this material was 1.8× pessimistic — again.** The other session reported
+404 and 485 for the same two numbers (a different counting convention); the ratio is **1.20 either way**,
+which is why it is the number that travels.
+
+**What that does to the guidance, stated plainly because it has now been revised three times in one
+day:** the ratio is **not** a property of a material class. 2.20 measured the particular density of
+`auth.py`, and extrapolating it to "logic-dense code" — the refinement this very section proposed after
+A1 — is wrong by the same factor A1's was. The four measurements now in hand are:
+
+| Artifact | Ratio |
+|---|---|
+| A1: declarative model + copied alembic boilerplate | **0.99** |
+| A2: the five actions and their auth | **1.20** |
+| portal: a dense component with logic | **1.69** |
+| `auth.py` alone (the outlier that started it) | **2.20** |
+
+**Revised guidance: forecast `test_lines` as a range of `1.0–1.7 × code_lines` for the backend and the
+portal, re-measuring per unit as it lands, and retire 2.20 as a backend default.** The deeper lesson is
+about the rule itself: **a rule derived from two samples is a hypothesis, and this one was written as a
+rule.** It took a third and fourth sample to see it.
+
+**And one consequence that is not a forecast matter:** the additive return contract (`dataset` on the two
+flipping actions) is **decided but not yet in the code** — it lands in A2's follow-up unit with its own
+gate. The portal now requires `result.dataset.private === false`, so against the deployed action it would
+read **every successful publication as a failure**. The wiring unit (B1) therefore waits for that key, not
+merely for A2.
+
 ### `review_material_lines` — declared, does not compete with the budget
 
 | Artifact | Lines | Basis |
