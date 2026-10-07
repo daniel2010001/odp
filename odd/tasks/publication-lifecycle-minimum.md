@@ -233,3 +233,20 @@ tenga su UI.
   en vez de ~660). El ratio real de A1 es **0,78** — el valor atípico que el propio artefacto había
   anticipado para el boilerplate de alembic. Se mantiene 2,20 para la auth densa (A3) y **no se revisa el
   total con una sola muestra**.
+- **2026-10-07 — A1 CERRADA y pusheada por la sesión par** (`odp-docker` `82ae6b6..01aabc7`, 3 commits,
+  **CI verde en los dos jobs**, run `37564700222`; árbol de `master` limpio y en sync). Suite de la
+  extensión **54 → 79**. Medido acá, no heredado: **663 líneas** finales — modelo 101, árbol de migración
+  232 (alembic.ini 52, env.py 89, script.py.mako 24, `versions/0001_*` 67), tests 330 con 17 funciones —
+  y **cinco compuertas nativas**, la última con cero hallazgos. A1 entregó **más** que el plan: la suite
+  ejercita el **downgrade** y las restricciones `CHECK` de la migración llevan pruebas de nulabilidad.
+  - **Corrección propia, declarada:** el bloque de re-medición del forecast en `tasks.md` había quedado
+    con una **instantánea a mitad de camino** (509 líneas sobre `27b8ab8`). El estado final es 663.
+    Corregido con los números finales y con la lección escrita: **una unidad se mide cuando cierra, no
+    mientras se mueve** — la misma familia que «no mandar correcciones a un verificador que corre»
+    (2026-10-06) y que «medir el artefacto contra lo que corre» (`diff`, 2026-09-21).
+  - Con los números finales, el veredicto del forecast cambia de signo en la mitad del código: **el código
+    se estimó 11% corto** (300 → 333) y **el ratio de tests fue 2,0× pesimista** (330 reales vs ~660
+    previstos con 2,20). El ratio propio de A1 es **330 / 333 = 0,99**. Se mantiene 2,20 para la auth densa
+    y **no** se aplica a boilerplate ni a modelo declarativo, cuyo ratio medido es ~1,0.
+  - **Nada pendiente del lado de la par hasta A2** (las cinco acciones). Faltan los **identificadores de
+    linaje** de las cinco compuertas para el registro del repo (la convención los anota).

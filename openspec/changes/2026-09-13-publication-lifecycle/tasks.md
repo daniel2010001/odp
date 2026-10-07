@@ -59,22 +59,32 @@ alembic boilerplate that carries little test weight; the same 2.20 ratio applied
 backend gives a floor of `(765 − 220) × 2.20 = 1,199`. The declared line uses the full 2.20, because
 the rule in `openspec/config.yaml` is to use the closest measured artifact and not to shave.
 
-### Re-measured as units land — A1 (`odp-docker` `27b8ab8`, 2026-10-07)
+### Re-measured as units land — A1 (`odp-docker` `82ae6b6..01aabc7`, 2026-10-07)
+
+**Correction first: this block initially recorded a mid-flight snapshot.** A1 was measured at `27b8ab8`
+(509 lines) while the unit was still being closed; its final state is `01aabc7`, two commits later
+(663 lines). The numbers below are the final ones. The lesson is this repository's own: **measure a unit
+after it closes, not while it is still moving.**
 
 The first real backend measurement against this forecast:
 
-| Slice | Forecast | Measured | Delta |
+| Slice | Forecast | Measured (final) | Delta |
 |---|---|---|---|
-| `model.py` | 80 `[ESTIMATE]` | **73** | estimate 10% high |
-| `migration/umss/**` (4 files) | 220 `[ESTIMATE]` | **213** | estimate 3% high |
-| `tests/test_publication_store.py` | ~660 (300 × 2.20) | **223** | **the ratio was 3.0× too pessimistic** |
+| `model.py` | 80 `[ESTIMATE]` | **101** | 26% low |
+| `migration/umss/**` (4 files) | 220 `[ESTIMATE]` | **232** | 5% low |
+| code subtotal | ~300 | **333** | **11% low** |
+| `tests/test_publication_store.py` | ~660 (300 × 2.20) | **330** | **the ratio was 2.0× pessimistic** |
 
-**The code forecast was sound; the test ratio was not, for this kind of material.** A1's own ratio is
-`223 / 286 = 0.78`, far below the 2.20 measured on `auth.py` — which is the outlier this section already
-predicted for copied alembic boilerplate, only further than predicted. What carries into the remaining
+**The code estimate held within 11%; the test ratio did not, for this kind of material.** A1's own ratio
+is `330 / 333 = 0.99`, well below the 2.20 measured on `auth.py` — the outlier this section already
+predicted for copied alembic boilerplate, and further than predicted. What carries into the remaining
 units: keep **2.20 for logic-dense auth code** (A3), where it was measured, and **do not** apply it to
-boilerplate or declarative model code. The remaining backend units re-measure as they land; **the total
-is not revised on one sample.**
+boilerplate or declarative model code, whose measured ratio is ~1.0. The remaining backend units
+re-measure as they land; **the total is not revised on one sample.**
+
+**A1 shipped more than this plan asked for**, and that is to its credit: the suite exercises the
+**down-migration**, and the migration's `CHECK` constraints carry nullability tests. The extension suite
+went 54 → **79**; CI is green on both jobs (`37564700222`).
 
 ### `review_material_lines` — declared, does not compete with the budget
 
