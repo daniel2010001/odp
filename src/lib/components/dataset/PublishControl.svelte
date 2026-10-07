@@ -80,8 +80,7 @@ async function handlePublish() {
 			err instanceof CkanApiError && err.status === 403
 				? {
 						kind: "refused",
-						message:
-							"Solo la superadministración de la plataforma puede publicar este dataset.",
+						message: "Solo la superadministración de la plataforma puede publicar este dataset.",
 					}
 				: {
 						kind: "error",

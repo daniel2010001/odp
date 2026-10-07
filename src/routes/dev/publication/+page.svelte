@@ -385,8 +385,7 @@ $effect(() => {
 	const intervalo = setInterval(() => {
 		intentos += 1;
 		const boton = [...document.querySelectorAll("button")].find(
-			(candidato) =>
-				objetivo.test((candidato.textContent ?? "").trim()) && !candidato.disabled,
+			(candidato) => objetivo.test((candidato.textContent ?? "").trim()) && !candidato.disabled,
 		);
 		if (boton) {
 			clearInterval(intervalo);
