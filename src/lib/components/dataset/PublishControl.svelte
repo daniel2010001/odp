@@ -53,6 +53,17 @@ export type ReadDataset = (id: string) => Promise<CkanPackage>;
 const REFUSAL = "Solo la superadministración de la plataforma puede publicar este dataset.";
 const UNCONFIRMED = "El catálogo no confirmó la publicación.";
 const CONFIRMED = "El catálogo confirmó la publicación.";
+// La consecuencia de publicar: en la presentación de bloque va debajo del botón; en la de acción
+// viaja como tooltip. Es **una sola frase**, y tiene que ser la misma en los dos lugares.
+const CONSEQUENCE = "Será visible en el catálogo público.";
+
+// La forma de las acciones del hero de la ficha (`src/routes/dataset/[id]/+page.svelte:436-451`): las
+// mismas clases que usan «Copiar enlace» y «Editar», para que el control no se vea más grande que sus
+// hermanos. La clase está **duplicada a propósito y por ahora**: cuando el cableado real monte estos
+// controles en la ficha, sale a un módulo compartido — la misma deuda que la regla del conteo de
+// acciones del hero.
+const ACCION_CLASS =
+	"inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
 
 let {
 	dataset,
@@ -60,6 +71,7 @@ let {
 	readDataset,
 	canPublish,
 	onpublished,
+	apariencia = "bloque",
 	class: className = "",
 }: {
 	dataset: CkanPackage;
@@ -68,8 +80,20 @@ let {
 	/** Capacidad ya resuelta por quien monta el control; por defecto, el flag `sysadmin`. */
 	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
+	/**
+	 * Presentación. `"bloque"` (lo de siempre) dibuja el botón con su explicación debajo. `"accion"`
+	 * dibuja **sólo el botón**, con la forma de las acciones del hero de la ficha —mismo alto y misma
+	 * forma que «Copiar enlace» y «Editar»— y la explicación como **tooltip**. El `title` es lo que hace
+	 * el hermano «Copiar enlace», pero **no se alcanza con el teclado**, así que la misma frase se
+	 * asocia al botón con `aria-describedby`: la explicación no se pierde para quien navega sin puntero.
+	 */
+	apariencia?: "bloque" | "accion";
 	class?: string;
 } = $props();
+
+// Identificador único por instancia: dos controles del mismo dataset en una página —la hoja los monta
+// dos veces— no pueden compartir el `id` de la descripción.
+const uid = $props.id();
 
 // La compuerta es el flag `sysadmin`, no la capacidad de organización. Si no se inyecta, se lee del
 // store que el portal ya mantiene: no hay ninguna llamada nueva que inventar.
@@ -168,8 +192,17 @@ async function handlePublish() {
 		{/if}
 
 		{#if offered}
-			<div class="flex flex-col items-start gap-1.5">
-				<Button onclick={handlePublish} disabled={pending}>
+			{#if apariencia === "accion"}
+				<!-- En la fila del hero el control es **una acción más**: se dibuja como sus hermanos y la
+				     explicación no ocupa lugar, va al tooltip. -->
+				<button
+					type="button"
+					onclick={handlePublish}
+					disabled={pending}
+					title={CONSEQUENCE}
+					aria-describedby={`${uid}-consecuencia`}
+					class={ACCION_CLASS}
+				>
 					{#if pending}
 						<LoaderCircle class="size-4 animate-spin" />
 						Publicando…
@@ -177,9 +210,22 @@ async function handlePublish() {
 						<Globe class="size-4" />
 						Publicar dataset
 					{/if}
-				</Button>
-				<p class="text-xs text-muted-foreground">Será visible en el catálogo público.</p>
-			</div>
+				</button>
+				<span id={`${uid}-consecuencia`} class="sr-only">{CONSEQUENCE}</span>
+			{:else}
+				<div class="flex flex-col items-start gap-1.5">
+					<Button onclick={handlePublish} disabled={pending}>
+						{#if pending}
+							<LoaderCircle class="size-4 animate-spin" />
+							Publicando…
+						{:else}
+							<Globe class="size-4" />
+							Publicar dataset
+						{/if}
+					</Button>
+					<p class="text-xs text-muted-foreground">{CONSEQUENCE}</p>
+				</div>
+			{/if}
 		{:else}
 			<p class="text-sm text-muted-foreground">
 				Solo un administrador de la organización puede aprobar esta publicación.
