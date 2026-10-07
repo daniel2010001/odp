@@ -735,6 +735,36 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   (`?vista=&caso=&fallo=&cola=&colocacion=&boton=&orgs=&secciones=&expansion=&panel=`), porque lo que
   cambia es **dónde están los botones**, no lo que la hoja guarda. Un enlace ya escrito sigue funcionando.
 
+- **2026-10-07 (noche) — La par corrigió, y era el defecto del día otra vez: mi handoff estaba viejo.**
+  `unit/a2-governance` **arrancó, se entregó y se mergeó** (PR #1, `27c9c5b`) y encima aterrizó
+  `unit/a2-advisories-v2` (PR #2, `f036e56`). Tres afirmaciones de este expediente quedan **falsas**, y se
+  corrigen acá sin borrar lo que decían —el registro de lo que se verificó es parte de la historia—:
+  1. **«`unit/a2-governance` sigue sin arrancar»** (WU-7.4, arriba) — **falso**: está entregada y en `master`.
+     Lo mismo vale para cualquier variante de «la unidad que falta».
+  2. **«`B1` no puede empezar hasta que A2 fije el nombre y el payload»** — **cumplido**, y el propio contrato
+     lo dice: la tabla **se puede cablear** y la advertencia anterior ya no aplica.
+  3. **«`A5` necesita la pared de A3 *y* la autorización de la puerta»** — **la autorización ya no falta**:
+     `A5` depende **sólo de `A3`**, que está en curso (`unit/a3-wall`, 138 tests verdes).
+  **El mecanismo, porque es el del día y ahora del otro lado:** leí un **handoff** —un snapshot— como si fuera
+  el estado, y la par lo había actualizado en `6aa8501`. **No lo encontré releyendo lo mío: lo encontró el
+  otro repositorio.** Es el corolario de la ley del día funcionando en reversa.
+  **Tres cosas nuevas de cara al consumidor** (entraron en el PR #2 y **no** estaban en la tabla que leí):
+  (a) `publication_publish` es `sysadmin`-only **y sólo sobre un dataset privado**: publicar uno ya público se
+  **rechaza** (`403`, «That dataset is already public»), y **la capacidad se evalúa antes que el estado**, así
+  que la negativa a un no-sysadmin **no revela la visibilidad**; (b) las filas llevan
+  `requested_by_name`/`approved_by_name` batcheados por llamada, con **los dos vacíos distintos**: id sin
+  asignar → `None`, id asignado que no resuelve → el token **`"unknown"`**, nunca el id; (c) `motive` lleva
+  tokens estables (`dataset_deleted`, `published_by_another_path`) que el portal puede leer.
+  **Lo que `B1` tiene que resolver ahora —dos cosas, no una—:** el **costo declarado del `403`**, porque la
+  negativa de cuatro ojos sigue siendo un `403` y el consumidor tiene que **leer el mensaje** para
+distinguirla de otras; y **la tabla del store en la base de dev**, que hoy no está: sin ella
+  `publication_request_list` devuelve **`500`** ahí (medido por la par), así que el cableado real **no se puede
+  verificar contra la API** hasta que corra la migración (**`A6`**) o alguien la aplique en el entorno
+  compartido — decisión de **las dos sesiones**, porque el stack es el mismo.
+  **Y una nota que le mandé a la par:** su `master` local está **3 commits detrás de `origin/master`** (medido
+  con `git rev-list --left-right --count`); no rompe nada mientras nadie lea ese ref, pero es la misma clase de
+  referencia vieja que este expediente acaba de corregir.
+
 - **2026-10-07 — WU-7.2: las decisiones del autor sobre los diseños, y lo que no le gustó.**
   **Decisiones cerradas:** (1) **las opciones en su sección se adoptan como diseño de la hoja en adelante**
   («me gusta más este tipo de opciones… prefiero que sea de este diseño de aquí en adelante»); ya está como
@@ -796,7 +826,8 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   conviene hacerlo completo ahora. **Recomendación registrada: no adelantarlo.** La bajada no es lo que el
   criterio de salida de `v0` pide, y agregarle **dirección** al store y a las acciones de la cola es trabajo en
   el **otro repo**, donde la unidad que falta (`unit/a2-governance`) sigue sin arrancar: adelantar la bajada
-  hoy no acelera `v0`, lo posterga. Lo que sí se cierra ahora es **la contradicción del documento**, que era el
+  hoy no acelera `v0`, lo posterga. *(**Corregido el mismo día, más abajo: esa unidad ya está entregada y
+  mergeada.** El argumento del corte de `v0` sigue en pie, pero su segunda mitad —«la unidad que falta»— ya no.)* Lo que sí se cierra ahora es **la contradicción del documento**, que era el
   pendiente real: el PRD conserva las dos direcciones, marcadas `[v1]`, con el motivo escrito.
   **(5) «Detalles» contra «Información técnica»: marco adoptado.** Fórmula del autor: **detalles = resumen,
   información técnica = completo**, y el que manda es el de la izquierda. Con una precisión mía, declarada:

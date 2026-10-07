@@ -1293,6 +1293,14 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > las cinco acciones (`publication_request_create` / `_cancel` / `_decide` / `publication_publish` /
 > `publication_request_list`).
 >
+> **CORREGIDO (2026-10-07, noche): cumplida.** La unidad aterrizó —`unit/a2-governance` por PR #1 (`27c9c5b`)
+> y `unit/a2-advisories-v2` por PR #2 (`f036e56`), las dos en `master` con CI verde— y **el contrato
+> `PUBLICATION-ACTIONS.md` dice que la tabla se puede cablear**. Tres cosas nuevas de cara al consumidor:
+> `publication_publish` rechaza un dataset **ya público** (y evalúa la capacidad antes que el estado, así que la
+> negativa no revela visibilidad); las filas llevan los **nombres batcheados** (id sin asignar → `None`, id que
+> no resuelve → el token `"unknown"`, nunca el id); y `motive` lleva tokens estables (`dataset_deleted`,
+> `published_by_another_path`). **Lo que queda abierto no es la autorización: es la pared (`A3`, en curso).**
+>
 > **Unidad de seguimiento, definida por la sesión par (2026-10-07): `unit/a2-governance`, una sola compuerta.**
 > Lleva: las **cuatro deltas de gobernanza** (`publish` sólo `sysadmin`; `decide` nunca el solicitante y
 > comparando **ids**; motivo **obligatorio al rechazar**; re-verificación del estado actual y anulación de la
@@ -1317,6 +1325,12 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > **Y una precisión de orden para que no se asuma:** `A5` (la sonda, de esta sesión) va **después de A3**, pero
 > necesita **las dos cosas** — la pared de A3 *y* la autorización de la puerta de `unit/a2-governance`. Sin las
 > dos no hay nada nuevo que medir: la sonda actual (25/25) asume que un `admin` publica con `package_patch`.
+>
+> **CORREGIDO (2026-10-07, noche): la autorización ya no falta.** `A5` depende **sólo de `A3`** — la unidad de
+> la puerta está entregada y mergeada. Y el otro lado del mismo dato: **`B1` ya no está bloqueado** por la
+> autorización; lo que le falta es la **tabla del store en la base de dev** (sin ella
+> `publication_request_list` devuelve `500` ahí: medido por la par) y **leer el mensaje del `403`** de cuatro
+> ojos para distinguirlo de otras negativas, que es el costo que el contrato declara abierto.
 >
 > **¿Sos la sesión que trabaja en `odp-docker` para hacer publicable un dataset, y preguntaste si había
 > que tocar ese repo? Tu respuesta está acá, no en el chat:** el alcance es **B** (el corte A se evaluó y
