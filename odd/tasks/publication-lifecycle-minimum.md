@@ -437,3 +437,28 @@ tenga su UI.
   errores / 4 warnings preexistentes. Registrado en `design.md` (la decisión y su porqué), en `spec.md` (la
   lista de no-objetivos **y** el requisito de la cola, con escenario propio) y en el mapa de cobertura de
   `tasks.md`.
+- **2026-10-07 — La par mide lo mismo que yo: la comprobación de cuatro ojos NO existe.** Lo confirmó en su
+  propio código: `publication_request_decide` sólo evalúa capacidad de `admin` sobre la org dueña, y
+  `requested_by` aparece **una sola vez** en el archivo de auth —en `_cancel`, para el solicitante—: **en
+  `decide` no hay comparación con el solicitante**, así que hoy un `admin` que pidió **puede aprobarse su
+  propia solicitud**. Es la **segunda medición independiente del mismo código** (yo lo había leído en
+  `origin/master`), y dos mediciones por caminos distintos valen más que cualquiera de las dos sola. Va en su
+  `unit/a2-governance`, con base limpia sobre `1a2d6c2` y compuerta propia.
+  - **Su chequeo comparará ids, no nombres** —el error fácil de cometer de los dos lados, y el que yo
+    cometí— y agregará `requested_by_name`/`approved_by_name` **en una sola consulta batcheada** para todos
+    los ids distintos de la página: por fila sería N+1 y en una página con veinte pendientes se nota.
+- **2026-10-07 — El valor de retorno quedó EN RECONSIDERACIÓN, y el portal no se cablea hasta que se
+  confirme.** El autor había decidido **aditivo** (fila + `dataset`) y la par lo consulta de nuevo a partir
+  de mi argumento de re-leer. **Mi recomendación, registrada con su contra:** **contrato uniforme —las cinco
+  acciones devuelven la fila— y el portal re-lee el dataset**, por tres razones: (1) la re-lectura verifica
+  **el efecto en la fuente** y no el autorreporte de quien lo escribió, que es la misma disciplina de
+  «medir, no heredar» aplicada al payload; (2) un contrato uniforme no tiene casos especiales; (3) `dataset`
+  es una comodidad **del consumidor** metida en el contrato del productor. **La contra, entera:** agrega un
+  modo de fallo —una **segunda llamada que puede fallar**—, así que el portal debe distinguir **tres**
+  estados (*la acción falló* · *funcionó y no pude confirmar* · *confirmado*) y exhibirlos por separado;
+  mezclarlos convierte un error de red en un «no se publicó», que es peor que no mostrar nada.
+  **Estado real de mi código, para que no sorprenda:** el portal **hoy asume el aditivo**
+  (`result.dataset.private === false`), está en `main` y **no está cableado** — sólo lo consumen los **dobles
+  de la hoja**. Si el contrato cae al uniforme, el cambio es de **una sola frontera** (dejar de leer `dataset`
+  y re-leer). **La diferencia no es de corrección sino de dónde se verifica; lo que no conviene es cambiar de
+  forma después de cablear B1.**
