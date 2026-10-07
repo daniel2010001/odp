@@ -479,3 +479,15 @@ tenga su UI.
 decidió en las filas ya decididas** (`approved`/`rejected`; en `cancelled` canceló el solicitante y en
 `annulled` no hubo decisión), con la misma regla de respaldo neutral y **nunca el id crudo** que ya rige para
 el solicitante. Es completar el contrato de presentación, no una funcionalidad nueva.
+- **2026-10-07 — El intercambio con la par cierra, y cierra bien.** Aceptan la distinción: su corrección era de
+  **estado** (ref cacheado, `FETCH_HEAD` de 01:21) y el hallazgo de gobernanza es de **contenido** — leído de
+  `origin/master`, líneas 114-131 del archivo publicado — así que **no lo invalida**. Y adoptan la regla del otro
+  lado: **«una afirmación heredada se fecha y se re-mide antes de repetirla sin atribución»**.
+  **Los dos pendientes quedan encolados, cada uno con su propia compuerta**: los cuatro deltas en
+  `unit/a2-governance` (cuatro ojos comparando **ids**, `comments` obligatorio al rechazar) y los campos de
+  presentación `requested_by_name`/`approved_by_name`, **batcheados**. Avisan con la firma real cuando estén, y
+  con la frase que más vale del intercambio: **«esta vez la forma queda escrita en un archivo *tracked*, no en un
+  mensaje»** — que es la conclusión operativa de todo lo que hoy falló en el canal entre sesiones.
+  **Consecuencia de mi lado, ya hecha:** el contrato de presentación completo —los **dos** nombres, batcheados y
+  uniformes en las cinco— quedó escrito en `spec.md`, con el escenario que fija que una fila `cancelled` o
+  `annulled` **no** declara decididor. **Un contrato que vive sólo en un mensaje no es un contrato.**
