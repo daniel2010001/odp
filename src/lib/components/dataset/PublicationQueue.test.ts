@@ -17,7 +17,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
-import type { CkanUser } from "$lib/types/ckan";
+import type { CkanPackage, CkanUser } from "$lib/types/ckan";
 import PublicationQueue, { type PublicationQueueItem } from "./PublicationQueue.svelte";
 
 const LOADING = "Cargando solicitudes…";
@@ -50,13 +50,34 @@ const OTRO_NAME = "editor.economicas";
 
 type QueueProps = {
 	list: (status?: PublicationQueueItem["status"]) => Promise<PublicationQueueItem[]>;
-	decide: (requestId: string, approve: boolean, comments?: string) => Promise<PublicationQueueItem>;
-	ondecided?: (item: PublicationQueueItem) => void;
+	decide: (requestId: string, approve: boolean, comments?: string) => Promise<DecisionResult>;
+	ondecided?: (item: DecisionResult) => void;
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. */
 	currentUser?: string | null;
 };
 
-function makeItem(overrides: Partial<PublicationQueueItem> = {}): PublicationQueueItem {
+// La respuesta de `publication_request_decide`: la fila decidida, más el dataset resultante cuando la
+// decisión fue una aprobación. Un rechazo no toca la visibilidad y por eso puede no traerlo.
+type DecisionResult = PublicationQueueItem & { dataset?: CkanPackage };
+
+function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
+	return {
+		id: "pkg-1",
+		name: "matricula-2026",
+		title: "Matrícula 2026",
+		private: true,
+		state: "active",
+		resources: [],
+		tags: [],
+		groups: [],
+		extras: [],
+		metadata_created: "2026-01-01T00:00:00.000000",
+		metadata_modified: "2026-01-01T00:00:00.000000",
+		...overrides,
+	};
+}
+
+function makeItem(overrides: Partial<DecisionResult> = {}): DecisionResult {
 	return {
 		id: "req-1",
 		dataset_title: "Matrícula 2026",
@@ -240,6 +261,7 @@ describe("PublicationQueue — rechazar exige un motivo", () => {
 
 	it("rechazar con el motivo escrito sí envía la decisión con ese comentario", async () => {
 		const { decide } = renderQueue();
+		// Un rechazo no toca la visibilidad: basta con su fila confirmada, sin `dataset`.
 		const rechazada = makeItem({ status: "rejected" });
 		decide.mockResolvedValue(rechazada);
 
@@ -260,7 +282,8 @@ describe("PublicationQueue — rechazar exige un motivo", () => {
 describe("PublicationQueue — qué reporta después de decidir", () => {
 	it("aprobar: decide sin comentario y la fila sale de la cola", async () => {
 		const { decide, ondecided } = renderQueue();
-		const aprobada = makeItem({ status: "approved" });
+		// El catálogo devolvió el estado y el dataset ya público: la aprobación se concede.
+		const aprobada = makeItem({ status: "approved", dataset: makeDataset({ private: false }) });
 		decide.mockResolvedValue(aprobada);
 
 		const fila = await rowFor("Matrícula 2026");
@@ -272,6 +295,40 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		expect(screen.queryByText("Matrícula 2026")).toBeNull();
 		// La otra solicitud sigue en la cola: sólo salió la decidida.
 		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
+	});
+
+	it("aprobar sin el dataset devuelto: el estado no alcanza y la fila no sale", async () => {
+		const { decide, ondecided } = renderQueue();
+		// El catálogo contestó `approved` pero no devolvió el dataset: sin el flip confirmado no hay
+		// publicación concedida, así que la fila sigue pendiente.
+		decide.mockResolvedValue(makeItem({ status: "approved" }));
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() =>
+			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
+		);
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+	});
+
+	it("aprobar con el dataset aún privado: la fila no sale aunque el estado diga aprobada", async () => {
+		const { decide, ondecided } = renderQueue();
+		// La fila dice `approved`, pero el dataset resultante sigue privado: la aprobación no se
+		// concedió. Si la regla mirara sólo el estado de la fila, saldría de la cola.
+		decide.mockResolvedValue(
+			makeItem({ status: "approved", dataset: makeDataset({ private: true }) }),
+		);
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() =>
+			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
+		);
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
 	});
 
 	it("403: rechazo honesto con la capacidad que falta y la fila sigue pendiente", async () => {
@@ -308,7 +365,7 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 
 	it("otro fallo: error explícito y la fila sigue ahí para reintentar", async () => {
 		const { decide, ondecided } = renderQueue();
-		const aprobada = makeItem({ status: "approved" });
+		const aprobada = makeItem({ status: "approved", dataset: makeDataset({ private: false }) });
 		decide
 			.mockRejectedValueOnce(new Error("503 Service Unavailable"))
 			.mockResolvedValueOnce(aprobada);

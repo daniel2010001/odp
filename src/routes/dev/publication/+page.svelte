@@ -42,9 +42,10 @@ import {
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import PublicationQueue, {
+	type PublicationDecisionResult,
 	type PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
-import PublishControl from "$lib/components/dataset/PublishControl.svelte";
+import PublishControl, { type PublishResult } from "$lib/components/dataset/PublishControl.svelte";
 import RequestPublicationControl, {
 	type PublicationRequest,
 } from "$lib/components/dataset/RequestPublicationControl.svelte";
@@ -367,12 +368,14 @@ function fallaDeRed(): CkanApiError {
 	return new CkanApiError("502 Bad Gateway", 502, "Bad Gateway");
 }
 
-async function publicar(id: string): Promise<CkanPackage> {
+async function publicar(id: string): Promise<PublishResult> {
 	registrar(`Publicar «${id}»`);
 	if (fallo === "403") throw fallaDeAutorizacion();
 	if (fallo === "red") throw fallaDeRed();
-	if (fallo === "sin-confirmar") return { ...DATASET, id, private: true };
-	return { ...DATASET_PUBLICADO, id };
+	if (fallo === "sin-confirmar")
+		// El nivel superior diría público, pero el dataset devuelto sigue privado: no hay confirmación.
+		return { ...DATASET_PUBLICADO, id, dataset: { ...DATASET, id, private: true } };
+	return { ...DATASET_PUBLICADO, id, dataset: { ...DATASET_PUBLICADO, id } };
 }
 
 async function solicitar(id: string): Promise<PublicationRequest> {
@@ -402,7 +405,7 @@ async function decidirCola(
 	requestId: string,
 	approve: boolean,
 	comments?: string,
-): Promise<PublicationQueueItem> {
+): Promise<PublicationDecisionResult> {
 	registrar(
 		`${approve ? "Aprobar" : "Rechazar"} la solicitud «${requestId}»${
 			comments ? ` con el comentario «${comments}»` : " sin comentario"
@@ -415,8 +418,19 @@ async function decidirCola(
 		dataset_title: "Solicitud sin título",
 		status: "pending" as const,
 	};
-	if (fallo === "sin-confirmar") return { ...fila, status: "pending" };
-	return { ...fila, status: approve ? "approved" : "rejected", comments: comments ?? null };
+	if (fallo === "sin-confirmar") {
+		// Aprobar sin el dataset devuelto: la fila diría `approved`, pero sin el flip confirmado no se
+		// concede. Rechazar, en cambio, vuelve pendiente.
+		return approve ? { ...fila, status: "approved" } : { ...fila, status: "pending" };
+	}
+	if (!approve) return { ...fila, status: "rejected", comments: comments ?? null };
+	return {
+		...fila,
+		status: "approved",
+		comments: comments ?? null,
+		// La aprobación confirmada trae el dataset que el catálogo ya publicó.
+		dataset: { ...DATASET_PUBLICADO, title: fila.dataset_title },
+	};
 }
 
 // `?clic=1` aprieta el primer control disponible: los estados de fallo sólo existen después del

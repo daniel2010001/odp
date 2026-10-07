@@ -194,6 +194,16 @@ hot-mounts the plugin, production bakes it — see **Deployment**).
 | `publication_publish(dataset_id, comments?)` | **`sysadmin` only** | the sysadmin's **recorded** direct path: writes the row and approves/consumes it in the act, on top of CKAN's unflagged sysadmin bypass |
 | `publication_request_list(status?)` | anyone who administers or edits in the org | the queue: requests of the orgs where the caller has capacity, plus the caller's own — a caller's own request is listed but not decidable by them |
 
+**Return shape — decided 2026-10-07, and its absence is what cost a round trip with the other repository.**
+Every action returns its `publication_requests` row at the **top level**, and the two that flip
+(`publication_publish`, and `publication_request_decide` with `approve: true`) **add a `dataset` key**
+holding the `package_patch` result, so `result.dataset.private === false` is the caller's confirmation
+that the flip landed. `publication_request_decide` with `approve: false` returns the row alone. A portal
+MUST read the confirmation from `dataset` and **never** from the top level: a response whose top level
+looks public while `dataset.private` is `true` is **not** a success. This was unspecified while A2 was
+built, and the mismatch was found by crossing the implemented signature against the component that
+consumes it.
+
 **Four eyes: nobody approves a request they created.** The store is a **gate, not a log**, and a gate
 requires an approver who is not the requester. With self-approval the whole scope degenerates into a
 record, and the repository had **already written the principle**: when it parked the old PR 2,

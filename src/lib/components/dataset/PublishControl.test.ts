@@ -56,16 +56,20 @@ function makeUser(overrides: Partial<CkanUser> = {}): CkanUser {
 	};
 }
 
+// La respuesta de `publication_publish`: la fila que el catálogo ya devolvía, más el dataset
+// resultante bajo `dataset`. La publicación se lee de `dataset`, no del nivel superior.
+type PublishResult = CkanPackage & { dataset: CkanPackage };
+
 type ControlProps = {
 	dataset: CkanPackage;
-	publish: (id: string) => Promise<CkanPackage>;
+	publish: (id: string) => Promise<PublishResult>;
 	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
 };
 
 /** Renderiza un dataset privado con la capacidad de publicar ya concedida. */
 function renderPrivate(overrides: Partial<ControlProps> = {}) {
-	const publish = vi.fn<(id: string) => Promise<CkanPackage>>();
+	const publish = vi.fn<(id: string) => Promise<PublishResult>>();
 	const onpublished = vi.fn();
 
 	const resultado = render(PublishControl, {
@@ -149,13 +153,15 @@ describe("PublishControl — qué se ofrece", () => {
 
 describe("PublishControl — qué reporta después del click", () => {
 	it("llama a publish con el id del dataset y muestra el resultado como éxito sólo si el catálogo confirmó", async () => {
-		const respuesta = makeDataset({ private: false });
+		// La confirmación vive bajo `dataset`: es ese objeto —no el nivel superior— el que reemplaza al
+		// dataset y el que se reporta.
+		const respuesta: PublishResult = { ...makeDataset(), dataset: makeDataset({ private: false }) };
 		const { publish, onpublished } = renderPrivate();
 		publish.mockResolvedValue(respuesta);
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
 
-		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(respuesta));
+		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(respuesta.dataset));
 		expect(publish).toHaveBeenCalledWith("pkg-1");
 		// El dataset renderizado es la respuesta del catálogo: el control desaparece porque ya es
 		// público.
@@ -179,10 +185,16 @@ describe("PublishControl — qué reporta después del click", () => {
 		expect(onpublished).not.toHaveBeenCalled();
 	});
 
-	it("200 sin confirmar: dice que el catálogo no confirmó y no muestra ningún estado de éxito", async () => {
+	it("no confirma por el nivel superior: el dataset devuelto sigue privado aunque arriba diga público", async () => {
 		const { publish, onpublished } = renderPrivate();
-		// El catálogo contestó 200 pero la respuesta sigue reportando `private: true`.
-		publish.mockResolvedValue(makeDataset({ private: true }));
+		// El nivel superior de la respuesta dice `private: false`, pero el dataset que el catálogo
+		// devuelve bajo `dataset` sigue privado: la publicación no se concedió. Si la regla volviera al
+		// objeto superior, este caso pasaría por éxito, `onpublished` se llamaría y el control
+		// desaparecería.
+		publish.mockResolvedValue({
+			...makeDataset({ private: false }),
+			dataset: makeDataset({ private: true }),
+		});
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
 
@@ -193,7 +205,7 @@ describe("PublishControl — qué reporta después del click", () => {
 	});
 
 	it("otro fallo: error explícito con reintento que vuelve a intentar", async () => {
-		const respuesta = makeDataset({ private: false });
+		const respuesta: PublishResult = { ...makeDataset(), dataset: makeDataset({ private: false }) };
 		const { publish, onpublished } = renderPrivate();
 		publish.mockRejectedValueOnce(new Error("502 Bad Gateway")).mockResolvedValueOnce(respuesta);
 
@@ -204,7 +216,7 @@ describe("PublishControl — qué reporta después del click", () => {
 
 		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
 
-		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(respuesta));
+		await waitFor(() => expect(onpublished).toHaveBeenCalledWith(respuesta.dataset));
 		expect(publish).toHaveBeenCalledTimes(2);
 		expect(publish).toHaveBeenLastCalledWith("pkg-1");
 	});

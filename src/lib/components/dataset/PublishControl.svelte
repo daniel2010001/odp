@@ -21,13 +21,16 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 
 /**
- * Publica el dataset y devuelve su estado tal como quedó en el catálogo.
+ * Publica el dataset y devuelve la respuesta del catálogo: la fila que ya devolvía, más el dataset
+ * resultante bajo `dataset`. La publicación se lee de `dataset`, nunca del nivel superior.
  *
  * Es la acción de publicación directa (`publication_publish`), autorizada a la superadministración
  * de la plataforma. La inyecta quien monta el control: la capa de API del portal todavía no la
  * expone.
  */
-export type PublishDataset = (id: string) => Promise<CkanPackage>;
+export type PublishResult = CkanPackage & { dataset: CkanPackage };
+
+export type PublishDataset = (id: string) => Promise<PublishResult>;
 
 let {
 	dataset,
@@ -66,10 +69,11 @@ async function handlePublish() {
 
 	try {
 		const respuesta = await publish(current.id);
-		if (respuesta.private === false) {
-			// El catálogo lo confirmó: el dataset que se renderiza es su respuesta, no lo que pedimos.
-			published = respuesta;
-			onpublished?.(respuesta);
+		if (respuesta.dataset?.private === false) {
+			// El catálogo lo confirmó: el dataset que se renderiza es `dataset`, no lo que pedimos ni el
+			// nivel superior de la respuesta.
+			published = respuesta.dataset;
+			onpublished?.(respuesta.dataset);
 		} else {
 			outcome = { kind: "unconfirmed", message: "El catálogo no confirmó la publicación." };
 		}

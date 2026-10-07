@@ -2,7 +2,10 @@
 // producto vive acá. Los tipos salen de los componentes reales, así que si el vocabulario de una
 // solicitud cambia, estas fixtures dejan de compilar.
 
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
+import type {
+	PublicationDecisionResult,
+	PublicationQueueItem,
+} from "$lib/components/dataset/PublicationQueue.svelte";
 import type { PublicationRequest } from "$lib/components/dataset/RequestPublicationControl.svelte";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 
@@ -99,6 +102,17 @@ export const COLA: PublicationQueueItem[] = [
 	},
 ];
 
-export function decidedRow(item: PublicationQueueItem, approve: boolean): PublicationQueueItem {
-	return { ...item, status: approve ? "approved" : "rejected", comments: null };
+export function decidedRow(
+	item: PublicationQueueItem,
+	approve: boolean,
+): PublicationDecisionResult {
+	return approve
+		? {
+				...item,
+				status: "approved",
+				comments: null,
+				// La aprobación confirmada trae el dataset que el catálogo ya publicó.
+				dataset: makeDataset({ private: false, title: item.dataset_title }),
+			}
+		: { ...item, status: "rejected", comments: null };
 }

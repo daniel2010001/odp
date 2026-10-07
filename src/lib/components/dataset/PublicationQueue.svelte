@@ -1,4 +1,5 @@
 <script module lang="ts">
+import type { CkanPackage } from "$lib/types/ckan";
 import type { PublicationRequestStatus } from "./RequestPublicationControl.svelte";
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
@@ -19,6 +20,14 @@ export interface PublicationQueueItem {
 	status: PublicationRequestStatus;
 	comments?: string | null;
 }
+
+/**
+ * La respuesta de `publication_request_decide`: la fila decidida, más el dataset resultante cuando la
+ * decisión fue una aprobación. Un rechazo no toca la visibilidad y puede no traerlo.
+ */
+export interface PublicationDecisionResult extends PublicationQueueItem {
+	dataset?: CkanPackage;
+}
 </script>
 
 <script lang="ts">
@@ -38,9 +47,11 @@ export interface PublicationQueueItem {
 // existen en la capa de API del portal. Quién puede decidir lo decide el catálogo; acá sólo se lee su
 // respuesta.
 //
-// Regla de honestidad: la fila sale de la cola **sólo** cuando el catálogo devolvió la solicitud con
-// el estado de la decisión pedida. Un `200` cuya solicitud sigue pendiente no es una decisión, y un
-// `403` se explica como capacidad faltante, no como error de red.
+// Regla de honestidad: la fila sale de la cola **sólo** cuando el catálogo confirmó la decisión. Un
+// `200` cuya solicitud sigue pendiente no es una decisión. Y aprobar es más que el estado: la fila
+// sale únicamente si el catálogo devolvió además el dataset ya público (`dataset.private === false`),
+// porque un `approved` sin el flip no concedió la publicación. Un `403` se explica como capacidad
+// faltante, no como error de red.
 import {
 	CheckCircle2,
 	CircleAlert,
@@ -59,12 +70,15 @@ export type ListPublicationRequests = (
 	status?: PublicationRequestStatus,
 ) => Promise<PublicationQueueItem[]>;
 
-/** Registra la decisión sobre una solicitud y devuelve la solicitud tal como quedó en el catálogo. */
+/**
+ * Registra la decisión sobre una solicitud y devuelve la fila, más el dataset resultante cuando la
+ * decisión fue una aprobación.
+ */
 export type DecidePublicationRequest = (
 	requestId: string,
 	approve: boolean,
 	comments?: string,
-) => Promise<PublicationQueueItem>;
+) => Promise<PublicationDecisionResult>;
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
@@ -155,7 +169,13 @@ async function decideOn(item: PublicationQueueItem, approve: boolean) {
 		const respuesta = await decide(item.id, approve, comentario || undefined);
 		const esperado: PublicationRequestStatus = approve ? "approved" : "rejected";
 
-		if (respuesta?.status === esperado) {
+		// Aprobar se concede sólo cuando, además del estado, el catálogo devuelve el dataset ya público:
+		// un `approved` sin el flip (`dataset.private` en `true`, o sin `dataset`) no concedió la
+		// publicación. Un rechazo no toca la visibilidad, así que su fila confirmada alcanza.
+		const confirmada =
+			respuesta?.status === esperado && (!approve || respuesta.dataset?.private === false);
+
+		if (confirmada) {
 			items = items.filter((solicitud) => solicitud.id !== item.id);
 			announcement = approve ? APPROVED_NOTE : REJECTED_NOTE;
 			ondecided?.(respuesta);
