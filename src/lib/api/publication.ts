@@ -57,6 +57,13 @@ tabla** más los dos nombres de presentación, así que una fila trae `id`, `dat
  * repositorio **antes de cablear la page**, que es el único momento en que la forma puede cambiar. Hasta
  * que lleguen, la page no se cablea contra suposiciones: una lista con la línea principal vacía se ve
  * terminada y no lo está.
+ *
+ * **Los dos campos ya fueron concedidos** (2026-10-07) y viajan en la **misma** consulta por llamada —la
+ * que ya resuelve la organización dueña—, así que no agregan una llamada. Cuando aterricen traen, con la
+ * **misma** semántica que los nombres (dos fallbacks distintos en una fila sería una trampa):
+ * **campo vacío → `None`**, **seteado pero irresoluble → el token `"unknown"`**, y **nunca el id crudo**
+ * — un campo `..._title` no puede contener un `dataset_id`, igual que un `..._name` no puede contener un
+ * id de usuario. Se cablea contra eso cuando la par avise que aterrizó.
  */
 export interface PublicationRequest {
 	id: string;
