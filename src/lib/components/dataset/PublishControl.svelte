@@ -18,7 +18,14 @@
 // la confirmación no se pudo establecer* —porque la relectura sigue privada o porque la relectura
 // misma falla—: presentarla como un fallo de la acción sería falso. *Confirmada*: sólo el valor
 // almacenado ya público reemplaza al dataset.
-import { CheckCircle2, CircleAlert, Globe, LoaderCircle, RefreshCw, ShieldAlert } from "@lucide/svelte";
+import {
+	CheckCircle2,
+	CircleAlert,
+	Globe,
+	LoaderCircle,
+	RefreshCw,
+	ShieldAlert,
+} from "@lucide/svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import { isSuperAdmin } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";

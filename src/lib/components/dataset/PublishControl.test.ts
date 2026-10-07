@@ -19,8 +19,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanUser } from "$lib/types/ckan";
-import type { PublicationRequest } from "./RequestPublicationControl.svelte";
 import PublishControl from "./PublishControl.svelte";
+import type { PublicationRequest } from "./RequestPublicationControl.svelte";
 
 // La frase que ve un administrador de organización: nombra quién aprueba y no le promete el camino
 // directo, que no existe para él.
@@ -152,7 +152,11 @@ describe("PublishControl — qué se ofrece", () => {
 		auth.login("tok", makeUser({ sysadmin: true }));
 
 		render(PublishControl, {
-			props: { dataset: makeDataset(), publish: vi.fn(), readDataset: vi.fn() } satisfies ControlProps,
+			props: {
+				dataset: makeDataset(),
+				publish: vi.fn(),
+				readDataset: vi.fn(),
+			} satisfies ControlProps,
 		});
 
 		await waitFor(() =>
@@ -166,7 +170,11 @@ describe("PublishControl — qué se ofrece", () => {
 		auth.login("tok", makeUser({ capacity: "admin", sysadmin: false }));
 
 		render(PublishControl, {
-			props: { dataset: makeDataset(), publish: vi.fn(), readDataset: vi.fn() } satisfies ControlProps,
+			props: {
+				dataset: makeDataset(),
+				publish: vi.fn(),
+				readDataset: vi.fn(),
+			} satisfies ControlProps,
 		});
 
 		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
