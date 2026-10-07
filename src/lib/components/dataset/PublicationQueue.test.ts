@@ -66,6 +66,10 @@ type QueueProps = {
 	currentUser?: string | null;
 	/** Reloj inyectable: fija la antigüedad que muestra cada fila. */
 	now?: Date;
+	/** Presentación: `true` agrupa en Pendientes y Resueltas; `false` (hoy) deja la lista plana. */
+	secciones?: boolean;
+	/** Presentación: `"primera"` abre sólo el primer pendiente ajeno; `"todas"` (hoy) abre todo. */
+	expansion?: "todas" | "primera";
 };
 
 // La respuesta de `publication_request_decide`: **sólo** su fila `publication_requests`. No hay
@@ -584,5 +588,141 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		expect(within(fila).queryByRole("alert")).toBeNull();
 		expect(ondecided).not.toHaveBeenCalled();
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+	});
+});
+
+// La presentación de la cola: las secciones y el plegado. Nada de esto cambia **qué** se decide ni
+// **quién** puede decidirlo; cambia cuánto detalle se ve de entrada. El disparador del plegado lleva
+// el título del dataset en su nombre accesible, así que dos filas nunca comparten nombre y estas
+// aserciones no dependen de una posición en la lista.
+describe("PublicationQueue — la presentación: secciones y plegado", () => {
+	// El disparador tiene **un solo** nombre accesible, estable: el estado lo dice `aria-expanded`. Por
+	// eso estas aserciones buscan el mismo nombre antes y después de plegar, y leen el estado del
+	// atributo — no de un texto que cambia.
+	const detalles = (titulo: string) => `Detalles de ${titulo}`;
+
+	it('con `expansion="primera"` abre sólo el primer pendiente ajeno y pliega el resto, que sigue siendo legible', async () => {
+		renderQueue({ expansion: "primera" });
+
+		const abierta = await rowFor("Matrícula 2026");
+		const plegada = await rowFor("Presupuesto 2026");
+
+		// La primera —la que quien mira puede decidir— conserva la vista de decidir.
+		expect(within(abierta).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+
+		// La segunda queda plegada: sin botones de decisión, con su disparador a la vista.
+		expect(within(plegada).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(within(plegada).queryByRole("button", { name: REJECT_LABEL })).toBeNull();
+		expect(
+			within(plegada).getByRole("button", { name: detalles("Presupuesto 2026") }),
+		).toHaveAttribute("aria-expanded", "false");
+
+		// Plegada no es vacía: el dataset, la organización y quién la pidió siguen a la vista.
+		expect(within(plegada).getByText("Facultad de Ciencias Económicas")).toBeInTheDocument();
+		expect(within(plegada).getByText(/^Solicitada por editor\.economicas/)).toBeInTheDocument();
+	});
+
+	it("desplegar una fila plegada muestra la vista de decidir, y volver a activar la pliega", async () => {
+		renderQueue({ expansion: "primera" });
+
+		const fila = await rowFor("Presupuesto 2026");
+		const disparador = within(fila).getByRole("button", { name: detalles("Presupuesto 2026") });
+		await fireEvent.click(disparador);
+
+		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+		// El nombre **no cambió**: es el mismo control, y el estado lo dice el atributo.
+		expect(disparador).toHaveAttribute("aria-expanded", "true");
+
+		await fireEvent.click(disparador);
+
+		expect(within(fila).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(disparador).toHaveAttribute("aria-expanded", "false");
+	});
+
+	it("cuatro ojos: nunca abre la solicitud propia, abre la primera que quien mira puede decidir", async () => {
+		renderQueue({ expansion: "primera", currentUser: SOLICITANTE_ID });
+
+		const propia = await rowFor("Matrícula 2026");
+		const ajena = await rowFor("Presupuesto 2026");
+
+		// La propia (req-1, de quien mira) queda plegada; la ajena es la que arranca abierta.
+		expect(
+			within(propia).getByRole("button", { name: detalles("Matrícula 2026") }),
+		).toHaveAttribute("aria-expanded", "false");
+		expect(within(propia).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(within(ajena).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+
+		// Y al desplegarla muestra la nota de cuatro ojos, sin ofrecer ninguna decisión.
+		await fireEvent.click(within(propia).getByRole("button", { name: detalles("Matrícula 2026") }));
+		expect(within(propia).getByText(SELF_APPROVAL)).toBeInTheDocument();
+		expect(within(propia).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(within(propia).queryByRole("button", { name: REJECT_LABEL })).toBeNull();
+	});
+
+	it("con todas las solicitudes propias no abre ninguna: no hay nada que decidir", async () => {
+		renderQueue({
+			expansion: "primera",
+			currentUser: SOLICITANTE_ID,
+			list: vi.fn().mockResolvedValue([makeItem()]),
+		});
+
+		const fila = await rowFor("Matrícula 2026");
+		expect(within(fila).getByRole("button", { name: detalles("Matrícula 2026") })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		expect(within(fila).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+	});
+
+	it("`secciones` agrupa en Pendientes y después Resueltas, cada grupo con su conteo", async () => {
+		renderQueue({
+			secciones: true,
+			list: vi.fn().mockResolvedValue([
+				...ITEMS,
+				makeItem({
+					id: "req-9",
+					dataset_id: "pkg-9",
+					dataset_title: "Egresados 2025",
+					status: "approved",
+					approved_by_name: DECISOR_NAME,
+				}),
+			]),
+		});
+
+		const pendientes = await screen.findByRole("heading", { name: "Pendientes 2" });
+		const resueltas = screen.getByRole("heading", { name: "Resueltas 1" });
+
+		// El orden es el pedido: primero lo que falta decidir, después lo ya resuelto.
+		expect(
+			pendientes.compareDocumentPosition(resueltas) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+
+		// Y la **pertenencia**, que el orden solo no prueba: cada fila está dentro del grupo que le
+		// toca, no simplemente antes o después del otro título.
+		const grupoPendientes = pendientes.closest("section");
+		const grupoResueltas = resueltas.closest("section");
+		expect(grupoPendientes).not.toBeNull();
+		expect(grupoResueltas).not.toBeNull();
+		expect(within(grupoPendientes as HTMLElement).getByText("Matrícula 2026")).toBeInTheDocument();
+		expect(
+			within(grupoPendientes as HTMLElement).getByText("Presupuesto 2026"),
+		).toBeInTheDocument();
+		expect(within(grupoResueltas as HTMLElement).getByText("Egresados 2025")).toBeInTheDocument();
+		expect(within(grupoResueltas as HTMLElement).queryByText("Matrícula 2026")).toBeNull();
+	});
+
+	it("`secciones` no titula un grupo vacío", async () => {
+		renderQueue({
+			secciones: true,
+			list: vi
+				.fn()
+				.mockResolvedValue([
+					makeItem({ id: "req-9", status: "approved", approved_by_name: DECISOR_NAME }),
+				]),
+		});
+
+		await rowFor("Matrícula 2026");
+		expect(screen.queryByRole("heading", { name: /^Pendientes/ })).toBeNull();
+		expect(screen.getByRole("heading", { name: "Resueltas 1" })).toBeInTheDocument();
 	});
 });
