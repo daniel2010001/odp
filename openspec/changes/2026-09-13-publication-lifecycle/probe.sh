@@ -8,13 +8,20 @@
 # expectations below are the post-A3 target of design.md's truth table (D3) **and of the wall**:
 # every `403` row answered `200` before the guard and before the wall.
 #
-# LOS RÓTULOS, PENDIENTES (2026-10-07, noche). El autor decidió que cada negativa sea
-# `<rótulo congelado>: <prosa libre>` —`Four eyes:`, `Requester capacity:`, `Not an approver:`,
-# `Already public:`, `Publication flow:`, `Publish denied:`— y que lo declarado como **interfaz sean los
-# rótulos, no las oraciones**. Cuando esa unidad aterrice, **cada fila de negativa tiene que afirmar su
-# rótulo** y no sólo el estado: hoy afirma `Authorization Error`, que dice que hubo negativa pero **no de
-# quién**, y ése es el hueco que `P8` dejó abierto ayer. La etiqueta congelada es también la razón por la que
-# ese cambio no va a romper nada acá: la prosa de atrás queda libre.
+# LOS RÓTULOS (2026-10-07, noche). El autor decidió que cada negativa sea `<rótulo congelado>: <prosa libre>`,
+# y **el conjunto quedó cerrado por construcción de su lado**: un test recorre todas las constantes de negativa
+# y falla si alguna no empieza con un rótulo declarado. Son **nueve**, no siete. Para lo declarado como
+# interfaz son los **rótulos**, nunca las oraciones: mejorar la redacción no puede romper a este consumidor.
+#
+# Cuando esa unidad aterrice, cada fila de negativa de este script afirma **dos capas** (y no una):
+#   1. **la FORMA** — el mensaje es `Access denied: <Rótulo>: …` —, que es el invariante que ellos garantizan
+#      por test. Esta capa **no necesita la lista** y por eso **no puede quedar vieja** si mañana aparece una
+#      décima negativa: afirma la propiedad, no el inventario.
+#   2. **el rótulo propio**, sólo en las filas cuya razón de existir es **distinguir** una negativa de otra
+#      (cuatro ojos, capacidad del solicitante). Ahí sí la lista importa, y ahí se copia una vez.
+#
+# Hoy las filas afirman `error.__type`, que es `Authorization Error` en **las nueve** y por lo tanto **no dice
+# de quién** es la negativa: el hueco que `P8` dejó abierto, y la razón por la que la capa 1 existe.
 #
 # WHERE IT LIVES AND WHY. The script sits in the change directory of the `odp`
 # repository because that is the path a reviewer of PR 1 already reads, even
@@ -334,6 +341,23 @@ row P6c.del.editor "$EDITOR_TOKEN" bulk_update_delete \
 row P6c.del.admin "$ADMIN_TOKEN" bulk_update_delete \
     "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D_BLK\"]}" 403 \
     "admin bulk_update_delete — core admits it; what refuses is the wall" 'Authorization Error'
+
+hr
+say "P11 — el contrato de las cinco acciones: existencia y alcance de la cola"
+# **`NotFound`, no `403`** (regla 7 del contrato): un `request_id` o un `dataset_id` irresoluble **no** puede
+# reportarse como capacidad faltante — eso diría que falta un permiso cuando lo que falta es la cosa. Las dos
+# filas son la misma regla por las dos puertas.
+row P11.nf.request "$ADMIN_TOKEN" publication_request_decide \
+    "{\"request_id\": \"no-such-request-xyz\", \"approve\": true}" 404 \
+    "decide with an unresolvable request_id — NotFound, not 403" 'Not Found Error'
+row P11.nf.dataset "$SYS_TOKEN" publication_publish \
+    "{\"dataset_id\": \"no-such-dataset-xyz\"}" 404 \
+    "publish with an unresolvable dataset_id — NotFound, not 403" 'Not Found Error'
+# Y la cola: la acción **no** tiene autorización forzada, la acota el **propio cuerpo**, así que un anónimo
+# recibe una lista **vacía** y no un `403`. Es la fila que confirma desde afuera la corrección que el contrato
+# hizo midiendo: hace dos unidades decía «un anónimo es rechazado por CKAN antes», y era falso.
+row P11.list.anon - publication_request_list "{}" 200 \
+    "anonymous publication_request_list — narrowed by the body, not refused by auth"
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"
