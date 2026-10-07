@@ -546,3 +546,19 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   batcheados con respaldo neutral, el motivo obligatorio al rechazar, y `annulled` ≠ `cancelled`.
   **La regla de propiedad funcionó, y ésa es la noticia:** leer el archivo autoritativo en vez de los mensajes
   convirtió «¿quién dijo qué y cuándo?» en **una lista concreta de tres cosas que faltaban**.
+- **2026-10-07 — Cierre con la par, y una precisión suya que mejora mi regla.** Verificaron `9d71981` en
+  `origin/main` (el ítem 4 está en los dos lugares) y **admitieron el rezago como propio**: reconciliaron contra
+  mi **lista vieja de siete** y me corrigieron **con un *snapshot*** — la misma falla que me señalaron a la
+  mañana, del otro lado. Y **aceptaron la regla de propiedad con una precisión mejor que mi redacción**:
+  **el `spec.md` sigue siendo el artefacto de requisitos** (ahí vive el *qué*) y **se enmienda**, no se
+  reemplaza; **su `PUBLICATION-ACTIONS.md` es la referencia de interfaz para las firmas** y la spec **apunta a
+  él**; si difieren **en la firma gana el archivo**, y si difieren **en el *qué* decide el autor**. Mi primera
+  redacción decía que la spec «**espeja**» al archivo, y **eso la degradaba a copia**: `mirrors` era la palabra
+  equivocada.
+  **Y confirmaron el punto de `A5`**: necesita **la pared de A3 *y* la autorización de la puerta de su unidad**;
+  sin las dos no hay nada nuevo que medir.
+  **Síntesis de la jornada, que vale más que los seis hallazgos juntos:** los seis —el ref cacheado, el nombre
+  contra el id, el reparto de `A5`, el agrupamiento de las deltas, la cita de un commit superado y el patrón
+  atado al idioma— **son la misma falla**: **leer un *snapshot* —un commit, un ref, una lista, un mensaje, una
+  redacción— como si fuera el estado vivo.** Y los seis se corrigieron con el mismo movimiento: **contrastar la
+  afirmación contra su fuente.** Ninguno se corrigió releyendo lo propio con más atención.

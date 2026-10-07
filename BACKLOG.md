@@ -1306,10 +1306,14 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > espera.
 >
 > **Ahora hay DOS copias durables del mismo contrato, y necesita regla de propiedad** — si no, cambiamos un
-> canal que pierde mensajes por dos copias que se separan en silencio. **El archivo *tracked* de `odp-docker`
-> es autoritativo para las firmas de las cinco acciones** (las implementa esa sesión); el `spec.md` de este
-> repo las **espeja** para el portal. **Cuando el archivo aterrice, se re-sincroniza `spec.md` contra él**, y si
-> alguna vez difieren lo resuelve el autor, no un mensaje.
+> canal que pierde mensajes por dos copias que se separan en silencio. **Regla, con la precisión que aportó la sesión par y que es mejor que mi primera redacción:** el `spec.md` de
+> este repo **sigue siendo el artefacto de requisitos** —ahí vive el **qué**— y **se enmienda**, no se
+> reemplaza; el `PUBLICATION-ACTIONS.md` de `odp-docker` es la **referencia de interfaz** para las **firmas**, y
+> la spec **apunta a él**. **Si difieren en la firma, gana el archivo; si difieren en el *qué* del requisito,
+> decide el autor** — nunca un mensaje. **Cuando el archivo cambie, se enmienda la spec contra él.**
+> *(La primera redacción decía que el `spec.md` «espeja» al archivo: eso **degradaba la spec a copia**, y la spec
+> es el artefacto de requisitos. `Mirrors` era la palabra equivocada.)* **Cuando el archivo aterrice se
+> re-sincroniza `spec.md` contra él**, y si alguna vez difieren lo resuelve el autor, no un mensaje.
 > **Y una precisión de orden para que no se asuma:** `A5` (la sonda, de esta sesión) va **después de A3**, pero
 > necesita **las dos cosas** — la pared de A3 *y* la autorización de la puerta de `unit/a2-governance`. Sin las
 > dos no hay nada nuevo que medir: la sonda actual (25/25) asume que un `admin` publica con `package_patch`.
