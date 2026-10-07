@@ -208,13 +208,14 @@ make_dataset() {  # make_dataset <name> <owner-org>
 }
 D1="$(make_dataset "$PREFIX-d1" "$ORG_A")"        # P3, P4*, P6, P8
 D2="$(make_dataset "$PREFIX-d2" "$ORG_A")"        # P6.1
-D3="$(make_dataset "$PREFIX-d3" "$ORG_A")"        # P6.2, P6.3
+D3="$(make_dataset "$PREFIX-d3" "$ORG_A")"        # P6.2, P6.3 — y **debe quedar privado** (P7.d3)
+D_GOV="$(make_dataset "$PREFIX-gov" "$ORG_A")"    # P12: el único que la puerta **publica**
 D6="$(make_dataset "$PREFIX-d6" "$ORG_CHILD")"    # P10
 D7="$(make_dataset "$PREFIX-d7" "$ORG_A")"        # P7: never targeted by a publish row
 # Every dataset name this run may create, including the ones only a *refused*
 # call could create. P7 and P9 are complete only against this list.
-DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk"
-say "P1.3  private datasets seeded (d1,d2,d3,d7,blk in $ORG_A, d6 in $ORG_CHILD)"
+DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk $PREFIX-gov"
+say "P1.3  private datasets seeded (d1,d2,d3,d7,blk in $ORG_A, gov too; d6 in $ORG_CHILD)"
 
 hr
 say "P2 forward — the wizard's payload must still work"
@@ -358,6 +359,29 @@ row P11.nf.dataset "$SYS_TOKEN" publication_publish \
 # hizo midiendo: hace dos unidades decía «un anónimo es rechazado por CKAN antes», y era falso.
 row P11.list.anon - publication_request_list "{}" 200 \
     "anonymous publication_request_list — narrowed by the body, not refused by auth"
+
+hr
+say "P12 — la puerta y la segunda decisión: la carrera real de la cola"
+# La puerta: un aprobador que **no** es el solicitante decide, y el dataset queda **público**. La
+# confirmación es el **valor almacenado** —`package_show`— y no la fila que devolvió la acción: el contrato
+# dice que la acción devuelve **sólo su fila**, así que medir el valor guardado es más fuerte que creerle al
+# que lo escribió.
+row P12.request "$ADMIN_TOKEN" publication_request_create "{\"dataset_id\": \"$D_GOV\"}" 200 \
+    "the admin requests the publication of a private dataset"
+REQ_GOV="$(jq_get '.result.id')"
+row P12.decide.first "$SYS_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_GOV\", \"approve\": true}" 200 \
+    "the door: an approver who is not the requester decides it"
+raw package_show "{\"id\": \"$D_GOV\"}" "$SYS_TOKEN"
+value P12.published "$(jq_get '.result.private')" false \
+    "the stored value is public — the action's own row is not the confirmation"
+# Y la carrera: dos administradores con la misma lista, uno decide primero, el otro recibe **`409` claveado
+# por campo** (`request_id`) y **sin** el envoltorio `Access denied:` de los `403`. Es la fila más realista del
+# bloque: un consumidor que afirmara «todo rechazo tiene la forma del `403`» daría acá un **falso negativo**,
+# y el portal mostraría «error inesperado» donde la verdad es «ya estaba decidida».
+row P12.decide.second "$SYS_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_GOV\", \"approve\": true}" 409 \
+    "a second decision on the same request — validation, keyed by field, not the authorization shape" 'Validation Error'
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"

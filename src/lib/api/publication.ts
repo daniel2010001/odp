@@ -52,6 +52,22 @@ tabla** más los dos nombres de presentación, así que una fila trae `id`, `dat
  * `requested_visibility` es la **dirección pedida** y hoy existe en la tabla aunque la degradación esté
  * en `[v1]`: el portal puede mostrarla sin inventar nada el día que la bajada se construya.
  *
+ * **Los fallos tienen DOS clases, y se distinguen por la forma — no por el texto** (medido por la par en el
+ * contrato y en el código, 2026-10-07):
+ *
+ *  · **`403`, falla de autorización**: `{"__type": "Authorization Error", "message": "Access denied:
+ *    <Rótulo>: …"}`. El **rótulo** congelado es lo declarado como interfaz —las oraciones de atrás quedan
+ *    libres—, y son **nueve**. El portal matchea el prefijo y **no** lo renderiza: el copy visible es suyo.
+ *  · **`409`, falla de validación**: `{"__type": "Validation Error", …}` con el payload **claveado por
+ *    campo** y **sin** el envoltorio `Access denied:`. Acá lo que hay que mirar es **la clave**, no el texto:
+ *    `comments` (rechazar sin motivo), `request_id` (**la solicitud ya no está pendiente**: alguien la decidió
+ *    mientras se miraba) y `approve` (ausente o no booleano).
+ *
+ * **Por qué esto importa en la cola y no en un caso raro:** el `409` de `request_id` es la **carrera real**
+ * —dos administradores con la misma lista, uno decide primero— y el portal tiene que presentarlo como
+ * **«esta solicitud ya fue decidida»** y no como «no se pudo registrar la decisión». La diferencia es si el
+ * usuario recarga la lista o reintenta algo que no va a funcionar nunca.
+ *
  * **Sin `dataset_title` ni `organization_title` (todavía).** La fila de la cola se lee por el título del
  * dataset y por su organización, y esos dos campos **no** están en la tabla: se pidieron al otro
  * repositorio **antes de cablear la page**, que es el único momento en que la forma puede cambiar. Hasta
