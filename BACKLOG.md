@@ -1272,6 +1272,20 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > predicado de lectura: doble consumo posible y ventana de replay. La consecuencia aceptada: se pierde la
 > salida de emergencia por API (queda el `sysadmin`) y hay que enmendar `Approver Capacity` y la sonda.
 >
+> **Reparto declarado (2026-10-07), por la regla de alcance escrito de `AGENTS.md`** — dos sesiones, dos
+> repos, **cero archivos compartidos**:
+> - **Sesión par → `odp-docker`**: las unidades **A1** (modelo + migración + registro), **A2** (las cinco
+>   acciones), **A3** (la pared + inventario de escritores nativos) y **A5** (la sonda reescrita).
+> - **Esta sesión → `odp`**: las unidades **B1** (API + los dos controles del portal) y **B2** (la cola +
+>   cableado + copy).
+>
+> La frontera es el repositorio, y es lo único que sostiene el reparto: `orchestrator_send_message`
+> devuelve «accepted for delivery», **no** acuse de lectura, y no hay bloqueo entre sesiones (medido el
+> 2026-10-04). Ninguna sesión toca `openspec/**`, `BACKLOG.md` ni `odd/**` de la otra.
+> **Dependencia declarada:** B1 no puede empezar hasta que **A2** fije el nombre y el payload exactos de
+> las cinco acciones (`publication_request_create` / `_cancel` / `_decide` / `publication_publish` /
+> `publication_request_list`).
+>
 > **Siguiente: la unidad A1** — modelo + migración + registro en `ckanext-umss` (`odp-docker`).
 > Expedientes: `odd/tasks/publication-lifecycle-minimum.md` y `odd/tasks/publication-guard-design.md`.
 >

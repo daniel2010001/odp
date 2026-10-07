@@ -197,3 +197,11 @@ tenga su UI.
   pasó a **«Replanificación HECHA»** con el bloque viejo conservado y marcado como histórico, y el estado
   «EN CURSO» del cambio actualizado. Commit a `main`. **Siguiente: la unidad A1** (modelo + migración +
   registro en `ckanext-umss`).
+- **2026-10-07 — Reparto declarado y escrito.** Una sesión par preguntó si había que tocar `odp-docker`
+  (creía que el corte podía ser A, 0 líneas). Se le confirmó el **alcance B** con los punteros a los
+  artefactos y los hechos ya medidos (registro de la migración por nombre de plugin, `MANIFEST.in`,
+  `bulk_update_public` sin delegar, los dos hazards, la deriva 2.11.6 → 2.12.0), y el autor confirmó el
+  reparto: **la par hace `odp-docker` (A1/A2/A3/A5); esta sesión hace `odp` (B1/B2)**. Está escrito en
+  `BACKLOG.md` → «Replanificación HECHA», porque **los mensajes entre sesiones son notificaciones, no
+  registros** — y `orchestrator_send_message` devuelve «accepted for delivery», no acuse de lectura.
+  **Dependencia declarada: B1 queda esperando a que A2 fije las firmas de las cinco acciones.**
