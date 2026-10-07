@@ -1,0 +1,230 @@
+// Pruebas de `PublicationQueue`: la cola del **administrador de la organización** — las solicitudes
+// pendientes de las organizaciones donde administra, con aprobar, rechazar y un comentario opcional.
+//
+// Las dos llamadas entran inyectadas (`list` y `decide`): las acciones del catálogo todavía no
+// existen en la capa de API del portal. Lo que se prueba es la honestidad: la fila sólo sale de la
+// cola cuando el catálogo confirmó la decisión con el estado correspondiente, y un `403` se explica
+// como capacidad faltante, no como error de red.
+
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { describe, expect, it, vi } from "vitest";
+import { CkanApiError } from "$lib/types/api";
+import PublicationQueue, { type PublicationQueueItem } from "./PublicationQueue.svelte";
+
+const LOADING = "Cargando solicitudes…";
+const EMPTY = "No hay solicitudes pendientes de revisión.";
+const COMMENT_LABEL = "Comentario (opcional)";
+const APPROVE_LABEL = "Aprobar";
+const REJECT_LABEL = "Rechazar";
+const REFUSED_DECIDE =
+	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
+// Mensaje crudo del catálogo, distinto de la frase amable: si el `403` cayera en la rama
+// genérica, la alerta mostraría este texto y las aserciones de abajo fallarían.
+const SERVER_403_DECIDE =
+	"Authorization Error: la acción 'package_update' requiere el rol admin de la organización.";
+const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
+const APPROVED_NOTE = "La solicitud fue aprobada.";
+const REJECTED_NOTE = "La solicitud fue rechazada.";
+
+type QueueProps = {
+	list: (status?: PublicationQueueItem["status"]) => Promise<PublicationQueueItem[]>;
+	decide: (requestId: string, approve: boolean, comments?: string) => Promise<PublicationQueueItem>;
+	ondecided?: (item: PublicationQueueItem) => void;
+};
+
+function makeItem(overrides: Partial<PublicationQueueItem> = {}): PublicationQueueItem {
+	return {
+		id: "req-1",
+		dataset_title: "Matrícula 2026",
+		organization_title: "Facultad de Tecnología",
+		requested_by: "editor.tecnologia",
+		created_at: "2026-10-01T00:00:00.000000",
+		status: "pending",
+		comments: null,
+		...overrides,
+	};
+}
+
+const ITEMS: PublicationQueueItem[] = [
+	makeItem(),
+	makeItem({
+		id: "req-2",
+		dataset_title: "Presupuesto 2026",
+		organization_title: "Facultad de Ciencias Económicas",
+		requested_by: "editor.economicas",
+	}),
+];
+
+function renderQueue(overrides: Partial<QueueProps> = {}) {
+	const list = vi.fn<QueueProps["list"]>().mockResolvedValue(ITEMS);
+	const decide = vi.fn<QueueProps["decide"]>();
+	const ondecided = vi.fn();
+
+	const resultado = render(PublicationQueue, {
+		props: { list, decide, ondecided, ...overrides } satisfies QueueProps,
+	});
+
+	return { list, decide, ondecided, ...resultado };
+}
+
+/** Devuelve la fila (el `li`) cuyo título de dataset es `titulo`. */
+async function rowFor(titulo: string): Promise<HTMLElement> {
+	await screen.findByText(titulo);
+	const fila = screen.getByText(titulo).closest("li");
+	if (!fila) throw new Error(`No se encontró la fila de «${titulo}»`);
+	return fila;
+}
+
+describe("PublicationQueue — qué carga y qué muestra", () => {
+	it("pide las solicitudes pendientes al montarse y las lista", async () => {
+		const { list } = renderQueue();
+
+		await waitFor(() => expect(screen.getByText("Matrícula 2026")).toBeInTheDocument());
+		expect(list).toHaveBeenCalledWith("pending");
+		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
+		expect(screen.getAllByRole("listitem")).toHaveLength(2);
+	});
+
+	it("mientras carga lo dice y no muestra la lista", () => {
+		renderQueue({ list: vi.fn().mockReturnValue(new Promise(() => {})) });
+
+		expect(screen.getByText(LOADING)).toBeInTheDocument();
+		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+	});
+
+	it("sin solicitudes pendientes lo dice sin inventar filas", async () => {
+		renderQueue({ list: vi.fn().mockResolvedValue([]) });
+
+		await waitFor(() => expect(screen.getByText(EMPTY)).toBeInTheDocument());
+		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+	});
+
+	it("un fallo al cargar: error explícito y reintento que vuelve a pedirlas", async () => {
+		const list = vi
+			.fn<QueueProps["list"]>()
+			.mockRejectedValueOnce(new Error("502 Bad Gateway"))
+			.mockResolvedValueOnce(ITEMS);
+		renderQueue({ list });
+
+		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("502 Bad Gateway"));
+
+		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+		await waitFor(() => expect(screen.getByText("Matrícula 2026")).toBeInTheDocument());
+		expect(list).toHaveBeenCalledTimes(2);
+	});
+
+	it("cada fila dice de qué dataset y de quién es la solicitud", async () => {
+		renderQueue();
+
+		const fila = await rowFor("Matrícula 2026");
+		expect(within(fila).getByText(/editor\.tecnologia/)).toBeInTheDocument();
+		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+		expect(within(fila).getByRole("button", { name: REJECT_LABEL })).toBeInTheDocument();
+		expect(within(fila).getByLabelText(COMMENT_LABEL)).toBeInTheDocument();
+	});
+});
+
+describe("PublicationQueue — qué reporta después de decidir", () => {
+	it("aprobar: decide sin comentario y la fila sale de la cola", async () => {
+		const { decide, ondecided } = renderQueue();
+		const aprobada = makeItem({ status: "approved" });
+		decide.mockResolvedValue(aprobada);
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() => expect(ondecided).toHaveBeenCalledWith(aprobada));
+		expect(decide).toHaveBeenCalledWith("req-1", true, undefined);
+		expect(screen.getByText(APPROVED_NOTE)).toBeInTheDocument();
+		expect(screen.queryByText("Matrícula 2026")).toBeNull();
+		// La otra solicitud sigue en la cola: sólo salió la decidida.
+		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
+	});
+
+	it("rechazar con comentario: decide con el motivo escrito y la fila sale de la cola", async () => {
+		const { decide } = renderQueue();
+		const rechazada = makeItem({ status: "rejected" });
+		decide.mockResolvedValue(rechazada);
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.input(within(fila).getByLabelText(COMMENT_LABEL), {
+			target: { value: "Los datos aún no están consolidados." },
+		});
+		await fireEvent.click(within(fila).getByRole("button", { name: REJECT_LABEL }));
+
+		await waitFor(() =>
+			expect(decide).toHaveBeenCalledWith("req-1", false, "Los datos aún no están consolidados."),
+		);
+		expect(screen.getByText(REJECTED_NOTE)).toBeInTheDocument();
+		expect(screen.queryByText("Matrícula 2026")).toBeNull();
+	});
+
+	it("403: rechazo honesto con la capacidad que falta y la fila sigue pendiente", async () => {
+		const { decide, ondecided } = renderQueue();
+		decide.mockRejectedValue(new CkanApiError(SERVER_403_DECIDE, 403, "Authorization Error"));
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		// Anclado: la alerta debe ser exactamente la frase honesta, y el mensaje crudo no debe verse.
+		await waitFor(() =>
+			expect(within(fila).getByRole("alert")).toHaveTextContent(new RegExp(`^${REFUSED_DECIDE}$`)),
+		);
+		expect(within(fila).getByRole("alert")).not.toHaveTextContent(SERVER_403_DECIDE);
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeEnabled();
+	});
+
+	it("200 que no deja la solicitud decidida: dice que el catálogo no confirmó y la conserva", async () => {
+		const { decide, ondecided } = renderQueue();
+		// El catálogo contestó 200 pero la solicitud volvió pendiente: no concedió la decisión.
+		decide.mockResolvedValue(makeItem({ status: "pending" }));
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() =>
+			expect(within(fila).getByRole("alert")).toHaveTextContent(UNCONFIRMED_DECIDE),
+		);
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+	});
+
+	it("otro fallo: error explícito y la fila sigue ahí para reintentar", async () => {
+		const { decide, ondecided } = renderQueue();
+		const aprobada = makeItem({ status: "approved" });
+		decide
+			.mockRejectedValueOnce(new Error("503 Service Unavailable"))
+			.mockResolvedValueOnce(aprobada);
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() =>
+			expect(within(fila).getByRole("alert")).toHaveTextContent("503 Service Unavailable"),
+		);
+		expect(decide).toHaveBeenCalledTimes(1);
+
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() => expect(ondecided).toHaveBeenCalledWith(aprobada));
+		expect(decide).toHaveBeenCalledTimes(2);
+	});
+
+	it("en vuelo: la fila reporta ocupado y no anuncia ninguna decisión", async () => {
+		const { decide, ondecided } = renderQueue();
+		decide.mockReturnValue(new Promise(() => {}));
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		const enVuelo = within(fila).getByRole("button", { name: /aprobando/i });
+		expect(enVuelo).toBeDisabled();
+		expect(within(fila).getByRole("button", { name: REJECT_LABEL })).toBeDisabled();
+		expect(within(fila).queryByRole("alert")).toBeNull();
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+	});
+});
