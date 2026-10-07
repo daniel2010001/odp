@@ -207,6 +207,21 @@ describe("PublicationQueue — qué carga y qué muestra", () => {
 		expect(list).toHaveBeenCalledTimes(2);
 	});
 
+	it("un fallo que lanza un valor falsy sigue siendo un fallo: la cola no se disfraza de vacía", async () => {
+		// Un `throw ""` —o `0`, o `null`— es falsy: si el estado de fallo se guardara como el valor
+		// lanzado, la cola caída caería a «no hay solicitudes», que es lo que este componente no hace.
+		const list = vi.fn<QueueProps["list"]>().mockRejectedValueOnce("").mockResolvedValueOnce(ITEMS);
+		renderQueue({ list });
+
+		const alerta = await screen.findByRole("alert");
+		expect(alerta).toHaveTextContent("No se pudieron cargar las solicitudes.");
+		expect(screen.queryByText(EMPTY)).toBeNull();
+
+		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+		await waitFor(() => expect(screen.getByText("Matrícula 2026")).toBeInTheDocument());
+	});
+
 	it("un fallo al cargar con respuesta del catálogo: el código, no la prosa del servidor", async () => {
 		const list = vi
 			.fn<QueueProps["list"]>()
@@ -570,7 +585,7 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 
 	it("otro fallo: error explícito y la fila sigue ahí para reintentar", async () => {
 		const { decide, readDataset, ondecided } = renderQueue();
-		decide.mockRejectedValueOnce(new Error("503 Service Unavailable"));
+		decide.mockRejectedValueOnce(new CkanApiError("Service Unavailable", 503));
 		const aprobada = makeItem({ status: "approved" });
 		decide.mockResolvedValueOnce(aprobada);
 		readDataset.mockResolvedValue(makeDataset({ private: false }));
@@ -583,6 +598,8 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 				/^No se pudo registrar la decisión\./,
 			),
 		);
+		// Y el dato técnico detrás, que es lo que el usuario cita cuando consulta con soporte.
+		expect(within(fila).getByRole("alert")).toHaveTextContent("error 503");
 		expect(decide).toHaveBeenCalledTimes(1);
 
 		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
