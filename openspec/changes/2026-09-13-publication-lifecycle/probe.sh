@@ -41,9 +41,21 @@
 # this script: package_delete + `ckan dataset purge`, organization_purge,
 # api_token_revoke by `jti` (verified by listing, because a revoke of an unknown
 # `jti` also answers `success: true`), user_delete, and a final anonymous count
-# check against the pre-run baseline. The only residual is that CKAN 2.11.6
-# exposes no user hard-delete, so the four probe users survive as
-# `state='deleted'` rows.
+# check against the pre-run baseline. The only residual is that CKAN exposes no user
+# hard-delete, so the four probe users survive as `state='deleted'` rows.
+#
+# LA CONSECUENCIA PARA UN LECTOR CONCURRENTE (declarada el 2026-10-07). **Mientras corre, esta sonda muta la
+# base de dev.** Un tercero que esté midiendo `ckandb` al mismo tiempo ve los conteos **moverse entre dos
+# SELECT de sólo lectura** — mirado por la sesión par durante una corrida: paquetes `29→24→29`, usuarios
+# `30→34`. No es un defecto de ninguno de los dos: es la sonda haciendo exactamente lo que dice. Dos
+# consecuencias, las dos prácticas:
+#   * **Nadie puede certificar «`ckandb` sin cambios» mientras esto corre.** Si alguien necesita una ventana
+#     quieta para medir, se le avisa antes de correrla; su verificación, mientras tanto, tiene que apoyarse en
+#     `ckan_test` y en el core de test, que no los toca esta sonda.
+#   * **Lo que queda son cuatro usuarios** en `state='deleted'` por corrida —CKAN no borra usuarios de verdad,
+#     tampoco en 2.12.0—, así que el **conteo de usuarios no es un invariante del stack**. Los datasets y las
+#     organizaciones sí se purgan enteros.
+#     *(Nota de versión: acá decía 2.11.6 y el stack corre 2.12.0 desde el upgrade.)*
 #
 # MECHANICS WORTH NOT REDISCOVERING (measured 2026-09-14):
 #   * `api_token_create {user: <other user>}` returns no `result.id`, so a
