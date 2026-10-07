@@ -561,6 +561,16 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   afirmación falsa sobre lo que pasó. Con su escenario.
   **Estado del contrato: cerrado y coincidente en los dos repos.** El mío enmendado, el suyo con el banner de
   estado vigente; **la unidad `unit/a2-governance` es lo próximo**, contra ese archivo y con una sola compuerta.
+  *(**Corrección posterior, y el error es mío:** la par verificó que **`f5fcfce` es un commit de **estilo** del
+  hook —19 líneas sobre `PublishControl.svelte`—, no el del uniforme.** El commit que hizo el cambio es
+  **`d24860a`** («the contract is uniform, and the confirmation is a re-read») y la re-sincronización del espejo
+  es **`fa0688d`**. Yo les había dado `f5fcfce` porque era el **HEAD del push** con el que aterrizó: **el ref
+  apunta al final y el cambio está adentro.** Tercera cara del mismo defecto del día —un *snapshot* leído como
+  estado—, y la pagó la par con una vuelta de verificación. **Una cita mal copiada obliga al otro a re-medir**,
+  que es exactamente lo que estuvimos corrigiéndonos todo el día.)*
+  **Y anotaron de mi spec lo que `A5` va a tener que re-medir**: el **baseline medido con la deriva 2.11.6 →
+  2.12.0 declarada**, y **`P6` identificado como la fila que la pared retira** (un `admin` publicando con
+  `package_patch`).
 - **2026-10-07 — Cierre con la par, y una precisión suya que mejora mi regla.** Verificaron `9d71981` en
   `origin/main` (el ítem 4 está en los dos lugares) y **admitieron el rezago como propio**: reconciliaron contra
   mi **lista vieja de siete** y me corrigieron **con un *snapshot*** — la misma falla que me señalaron a la
