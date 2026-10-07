@@ -677,7 +677,15 @@ The portal MUST host an approval queue for the pending publication requests an a
 
 ### Requirement: No Fabricated Publication
 
-The portal MUST render only what CKAN confirmed, and MUST NOT present a publication CKAN did not grant. The dataset state shown after a request MUST derive from the **re-read** of the stored value, never from an optimistic assumption and never from the action's own response, and an authorization failure and a validation failure MUST be reported as different conditions.
+The portal MUST render only what CKAN confirmed, and MUST NOT present a publication CKAN did not grant. The dataset state shown after a request MUST derive from the **re-read** of the stored value, never from an optimistic assumption and never from the action's own response, and an authorization failure and a validation failure MUST be reported as different conditions. **A `NotFound` answer is a third condition and MUST NOT be reported as either.** When an action answers `NotFound` — the request or the dataset no longer exists, which the actions answer as `NotFound` and never as `403` (see `Distinguishable Authorization Errors`) — the portal MUST say the object is gone, MUST NOT present it as a failure to publish and MUST NOT present it as a capacity the caller lacks. Collapsing it into the generic error branch is a false statement about what happened, and it is the same class of defect as comparing a username against an id: **a consumer's assumption that only becomes visible when the interface is crossed.**
+
+#### Scenario: A vanished request or dataset
+
+- GIVEN a rendered publication control or a rendered queue row whose action answers `NotFound`
+- WHEN the portal reports the outcome
+- THEN it says the request or the dataset no longer exists
+- AND it does NOT present the answer as a failure to publish, nor as a capacity the caller lacks
+- AND it does not offer the action again for an object that is gone
 
 #### Scenario: CKAN refuses with 403
 

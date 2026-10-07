@@ -546,6 +546,21 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   batcheados con respaldo neutral, el motivo obligatorio al rechazar, y `annulled` ≠ `cancelled`.
   **La regla de propiedad funcionó, y ésa es la noticia:** leer el archivo autoritativo en vez de los mensajes
   convirtió «¿quién dijo qué y cuándo?» en **una lista concreta de tres cosas que faltaban**.
+- **2026-10-07 — Cierre verificado por la par, y una observación suya que generaliza el hallazgo.** Verificaron
+  `f5fcfce` en `origin/main` —mi spec sin frases aditivas, y las tres re-sincronizaciones dichas— y aportaron el
+  punto fino: **las tres claves ya estaban en su archivo porque su código ya hacía eso.** No las descubrí porque
+  el archivo dijera de más, sino porque **el archivo dejó de esconder lo que el código ya hacía.**
+  **La generalización, que es lo que vale:** **un descubrimiento de interfaz no agrega información — hace
+  visible lo que ya estaba pasando.** Un mensaje transmite lo que el emisor *sabe*; una referencia de interfaz
+  expone lo que el sistema *hace*. Por eso ningún mensaje lo habría dado: **no hay nadie que sepa lo que el
+  sistema hace sin mirarlo.**
+  **Mi hallazgo del `404` leído como «no se pudo publicar» es de la misma familia que el nombre contra el id:**
+  **una suposición del consumidor que sólo se ve al cruzar la interfaz.** Y como va a B1, **quedó escrita en el
+  contrato** (`spec.md` → `No Fabricated Publication`): el `NotFound` es una **tercera condición** y no puede
+  reportarse como fallo de publicación ni como capacidad faltante — colapsarla en el error genérico es una
+  afirmación falsa sobre lo que pasó. Con su escenario.
+  **Estado del contrato: cerrado y coincidente en los dos repos.** El mío enmendado, el suyo con el banner de
+  estado vigente; **la unidad `unit/a2-governance` es lo próximo**, contra ese archivo y con una sola compuerta.
 - **2026-10-07 — Cierre con la par, y una precisión suya que mejora mi regla.** Verificaron `9d71981` en
   `origin/main` (el ítem 4 está en los dos lugares) y **admitieron el rezago como propio**: reconciliaron contra
   mi **lista vieja de siete** y me corrigieron **con un *snapshot*** — la misma falla que me señalaron a la
