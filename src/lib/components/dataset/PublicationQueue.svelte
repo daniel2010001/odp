@@ -3,14 +3,18 @@ import type { PublicationRequestStatus } from "./RequestPublicationControl.svelt
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
 // Lo que el portal necesita mostrar de una solicitud: de qué dataset es, quién la pidió y cuándo.
-// Los campos de presentación (`dataset_title`, `organization_title`, `requested_by`) son valores ya
-// resueltos por la capa de API; si faltan, la fila simplemente no los muestra. El estado reusa el
-// vocabulario de `PublicationRequest`, que es el dueño de la tabla.
+// Los campos de presentación (`dataset_title`, `organization_title`, `requested_by_name`) son valores
+// ya resueltos por la capa de API; si faltan, la fila simplemente no los muestra. `requested_by` es
+// el **id** de usuario y sólo se usa para la comparación de cuatro ojos: nunca se renderiza. El
+// estado reusa el vocabulario de `PublicationRequest`, que es el dueño de la tabla.
 export interface PublicationQueueItem {
 	id: string;
 	dataset_title: string;
 	organization_title?: string;
+	/** Id de usuario de quien creó la solicitud; sólo alimenta la comparación de cuatro ojos. */
 	requested_by?: string;
+	/** Nombre visible de quien creó la solicitud; es lo que la fila muestra. */
+	requested_by_name?: string;
 	created_at?: string;
 	status: PublicationRequestStatus;
 	comments?: string | null;
@@ -22,9 +26,10 @@ export interface PublicationQueueItem {
 // donde administra, con aprobar, rechazar y un comentario.
 //
 // Dos reglas de la cola:
-//  · **Cuatro ojos**: nadie aprueba una solicitud que creó. Una fila cuyo `requested_by` es quien
-//    mira se muestra como **no decidible** — sin aprobar ni rechazar — en vez de ofrecer un botón que
-//    el catálogo va a rechazar.
+//  · **Cuatro ojos**: nadie aprueba una solicitud que creó. Una fila cuyo `requested_by` —el **id**
+//    de usuario— es quien mira se muestra como **no decidible** — sin aprobar ni rechazar — en vez de
+//    ofrecer un botón que el catálogo va a rechazar. El nombre visible viaja aparte
+//    (`requested_by_name`) y es lo único que la fila muestra: el id nunca se renderiza.
 //  · **Rechazar exige un motivo**: el control se niega a enviar un rechazo sin comentario y lo
 //    explica, en vez de dejar que el catálogo lo rechace. Aprobar con comentario sigue siendo
 //    opcional.
@@ -74,6 +79,8 @@ const REFUSED_DECIDE =
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
 const APPROVED_NOTE = "La solicitud fue aprobada.";
 const REJECTED_NOTE = "La solicitud fue rechazada.";
+// Etiqueta neutral cuando el catálogo no entrega el nombre visible: la fila nunca cae al id crudo.
+const REQUESTER_FALLBACK = "un usuario del catálogo";
 
 let {
 	list,
@@ -101,8 +108,10 @@ let outcomes = $state<Record<string, Outcome | undefined>>({});
 let comments = $state<Record<string, string>>({});
 let announcement = $state<string | null>(null);
 
-// La identidad de quien mira: la inyectada, o la de la sesión. Con `null` ninguna fila se bloquea.
-const viewer = $derived(currentUser === undefined ? ($currentUserStore?.name ?? null) : currentUser);
+// La identidad de quien mira: la inyectada, o la de la sesión. La comparación de cuatro ojos es por
+// **id** de usuario, que es lo que el catálogo devuelve en `requested_by`; con `null` ninguna fila se
+// bloquea.
+const viewer = $derived(currentUser === undefined ? ($currentUserStore?.id ?? null) : currentUser);
 
 function isOwn(item: PublicationQueueItem): boolean {
 	return viewer !== null && item.requested_by === viewer;
@@ -216,10 +225,10 @@ function setComment(id: string, value: string) {
 						{/if}
 					</div>
 
-					{#if item.requested_by || item.created_at}
+					{#if item.requested_by_name || item.requested_by || item.created_at}
 						<p class="mt-1 text-xs text-muted-foreground">
-							{#if item.requested_by}Solicitada por {item.requested_by}{/if}
-							{#if item.requested_by && item.created_at} · {/if}
+							{#if item.requested_by_name || item.requested_by}Solicitada por {item.requested_by_name ?? REQUESTER_FALLBACK}{/if}
+							{#if (item.requested_by_name || item.requested_by) && item.created_at} · {/if}
 							{#if item.created_at}{formatDate(item.created_at)}{/if}
 						</p>
 					{/if}

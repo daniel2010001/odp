@@ -50,10 +50,18 @@ export const DATASET_PUBLICADO = makeDataset({
 /** Motivo de rechazo que la hoja usa para el estado «rechazada con su motivo». */
 export const MOTIVO_RECHAZO = "Los datos personales de los estudiantes aún deben anonimizarse.";
 
-/** Quien decide en la cola: no es el autor de las solicitudes de la fixture. */
+/**
+ * Ids de usuario del catálogo: `requested_by` guarda y devuelve el **id**, no el nombre. La hoja de
+ * revisión debe ver la misma forma que producción, así que las fixtures separan el id del nombre.
+ */
+export const ADMINISTRADOR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+export const SOLICITANTE_ID = "7f3c1a2e-9b4d-4e6f-8a10-2c5d6e7f8a90";
+export const OTRO_SOLICITANTE_ID = "0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d";
+
+/** Nombre visible de quien decide en la cola: no es el autor de las solicitudes de la fixture. */
 export const ADMINISTRADOR = "admin.tecnologia";
 
-/** Quien creó la solicitud `req-1`: su propia solicitud no la puede decidir. */
+/** Nombre visible de quien creó la solicitud `req-1`. */
 export const SOLICITANTE = "editor.tecnologia";
 
 export function makeRequest(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
@@ -61,7 +69,7 @@ export function makeRequest(overrides: Partial<PublicationRequest> = {}): Public
 		id: "req-1",
 		dataset_id: DATASET.id,
 		status: "pending",
-		requested_by: "editor.tecnologia",
+		requested_by: SOLICITANTE_ID,
 		comments: null,
 		created_at: "2026-10-01T00:00:00.000000",
 		...overrides,
@@ -73,7 +81,8 @@ export const COLA: PublicationQueueItem[] = [
 		id: "req-1",
 		dataset_title: "Matrícula 2026",
 		organization_title: ORGANIZACION.title,
-		requested_by: SOLICITANTE,
+		requested_by: SOLICITANTE_ID,
+		requested_by_name: SOLICITANTE,
 		created_at: "2026-10-01T00:00:00.000000",
 		status: "pending",
 		comments: null,
@@ -82,7 +91,8 @@ export const COLA: PublicationQueueItem[] = [
 		id: "req-2",
 		dataset_title: "Presupuesto de investigación 2026",
 		organization_title: OTRA_ORGANIZACION.title,
-		requested_by: "editor.economicas",
+		requested_by: OTRO_SOLICITANTE_ID,
+		requested_by_name: "editor.economicas",
 		created_at: "2026-10-03T00:00:00.000000",
 		status: "pending",
 		comments: null,

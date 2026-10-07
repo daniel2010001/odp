@@ -14,8 +14,10 @@
 // explica como capacidad faltante, no como error de red.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
+import type { CkanUser } from "$lib/types/ckan";
 import PublicationQueue, { type PublicationQueueItem } from "./PublicationQueue.svelte";
 
 const LOADING = "Cargando solicitudes…";
@@ -34,6 +36,17 @@ const SERVER_403_DECIDE =
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
 const APPROVED_NOTE = "La solicitud fue aprobada.";
 const REJECTED_NOTE = "La solicitud fue rechazada.";
+// Etiqueta neutral cuando el catálogo no entrega el nombre visible de quien solicitó: la fila nunca
+// cae al id crudo.
+const REQUESTER_FALLBACK = "un usuario del catálogo";
+
+// `requested_by` es el **id** de usuario que el catálogo guarda y devuelve; el nombre visible viaja
+// aparte (`requested_by_name`). Los fixtures usan la forma real —ids con forma de UUID más el
+// nombre—: el id sólo sirve para la comparación de cuatro ojos y nunca se renderiza.
+const SOLICITANTE_ID = "7f3c1a2e-9b4d-4e6f-8a10-2c5d6e7f8a90";
+const SOLICITANTE_NAME = "editor.tecnologia";
+const OTRO_ID = "0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d";
+const OTRO_NAME = "editor.economicas";
 
 type QueueProps = {
 	list: (status?: PublicationQueueItem["status"]) => Promise<PublicationQueueItem[]>;
@@ -48,10 +61,22 @@ function makeItem(overrides: Partial<PublicationQueueItem> = {}): PublicationQue
 		id: "req-1",
 		dataset_title: "Matrícula 2026",
 		organization_title: "Facultad de Tecnología",
-		requested_by: "editor.tecnologia",
+		requested_by: SOLICITANTE_ID,
+		requested_by_name: SOLICITANTE_NAME,
 		created_at: "2026-10-01T00:00:00.000000",
 		status: "pending",
 		comments: null,
+		...overrides,
+	};
+}
+
+function makeUser(overrides: Partial<CkanUser> = {}): CkanUser {
+	return {
+		id: "user-1",
+		name: "admin.tecnologia",
+		display_name: "Administración de Tecnología",
+		created: "2026-01-01T00:00:00.000000",
+		state: "active",
 		...overrides,
 	};
 }
@@ -62,7 +87,8 @@ const ITEMS: PublicationQueueItem[] = [
 		id: "req-2",
 		dataset_title: "Presupuesto 2026",
 		organization_title: "Facultad de Ciencias Económicas",
-		requested_by: "editor.economicas",
+		requested_by: OTRO_ID,
+		requested_by_name: OTRO_NAME,
 	}),
 ];
 
@@ -77,6 +103,12 @@ function renderQueue(overrides: Partial<QueueProps> = {}) {
 
 	return { list, decide, ondecided, ...resultado };
 }
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	localStorage.clear();
+	auth.reset();
+});
 
 /** Devuelve la fila (el `li`) cuyo título de dataset es `titulo`. */
 async function rowFor(titulo: string): Promise<HTMLElement> {
@@ -129,17 +161,30 @@ describe("PublicationQueue — qué carga y qué muestra", () => {
 		renderQueue();
 
 		const fila = await rowFor("Matrícula 2026");
+		// La fila muestra el nombre visible de quien solicitó, no el id con el que se compara.
 		expect(within(fila).getByText(/editor\.tecnologia/)).toBeInTheDocument();
+		expect(within(fila).queryByText(new RegExp(SOLICITANTE_ID))).toBeNull();
 		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
 		expect(within(fila).getByRole("button", { name: REJECT_LABEL })).toBeInTheDocument();
 		expect(within(fila).getByLabelText(COMMENT_LABEL)).toBeInTheDocument();
+	});
+
+	it("sin nombre de quien solicitó, la fila usa una etiqueta neutral y nunca el id", async () => {
+		const list = vi
+			.fn<QueueProps["list"]>()
+			.mockResolvedValue([makeItem({ requested_by_name: undefined })]);
+		renderQueue({ list });
+
+		const fila = await rowFor("Matrícula 2026");
+		expect(within(fila).getByText(new RegExp(REQUESTER_FALLBACK))).toBeInTheDocument();
+		expect(within(fila).queryByText(new RegExp(SOLICITANTE_ID))).toBeNull();
 	});
 });
 
 describe("PublicationQueue — cuatro ojos", () => {
 	it("una solicitud creada por quien mira se muestra como no decidible, sin ofrecer decidirla", async () => {
 		// La persona que mira es la misma que creó la solicitud `req-1`; `req-2` es de otra persona.
-		renderQueue({ currentUser: "editor.tecnologia" });
+		renderQueue({ currentUser: SOLICITANTE_ID });
 
 		const propia = await rowFor("Matrícula 2026");
 		expect(within(propia).getByText(SELF_APPROVAL)).toBeInTheDocument();
@@ -150,6 +195,33 @@ describe("PublicationQueue — cuatro ojos", () => {
 		// La solicitud de otra persona sigue siendo decidible: el bloqueo es por solicitud, no global.
 		const ajena = await rowFor("Presupuesto 2026");
 		expect(within(ajena).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+	});
+
+	it("sin `currentUser` inyectado, la sesión bloquea la propia por `id`", async () => {
+		// Camino real del default: la sesión trae el usuario y la fila trae el mismo `id` de usuario.
+		// El nombre de la sesión no coincide con el id de la fila a propósito: si la comparación
+		// volviera al nombre, no habría bloqueo y la aserción fallaría.
+		auth.login("tok", makeUser({ id: SOLICITANTE_ID, name: "otro.nombre" }));
+		renderQueue({ currentUser: undefined });
+
+		const propia = await rowFor("Matrícula 2026");
+		expect(within(propia).getByText(SELF_APPROVAL)).toBeInTheDocument();
+		expect(within(propia).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(within(propia).queryByRole("button", { name: REJECT_LABEL })).toBeNull();
+		expect(within(propia).queryByLabelText(COMMENT_LABEL)).toBeNull();
+	});
+
+	it("un `name` de la sesión igual al id de la fila no bloquea si el `id` difiere", async () => {
+		// Guarda contra revertir la comparación al nombre: el `name` de la sesión ES el id de la fila
+		// `req-1`, pero su `id` es otro. La comparación por id no debe bloquear.
+		auth.login("tok", makeUser({ id: OTRO_ID, name: SOLICITANTE_ID }));
+		renderQueue({ currentUser: undefined });
+
+		const fila = await rowFor("Matrícula 2026");
+		expect(within(fila).queryByText(SELF_APPROVAL)).toBeNull();
+		expect(within(fila).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+		expect(within(fila).getByRole("button", { name: REJECT_LABEL })).toBeInTheDocument();
+		expect(within(fila).getByLabelText(COMMENT_LABEL)).toBeInTheDocument();
 	});
 });
 

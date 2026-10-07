@@ -583,7 +583,7 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 
 ### Requirement: Portal Approval Queue
 
-The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes**: a request whose `requested_by` is the caller MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The queue MUST require a comment before submitting a rejection. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
+The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name** for rendering, and the row MUST show that name rather than the raw `requested_by` id; when the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
 
 #### Scenario: The queue renders pending requests
 
@@ -608,11 +608,20 @@ The portal MUST host an approval queue for the pending publication requests an a
 
 #### Scenario: A request the administrator created is not decidable
 
-- GIVEN the queue lists a pending request whose `requested_by` is the current administrator
+- GIVEN the queue lists a pending request whose `requested_by` is the current administrator's **user id**
 - WHEN the request renders
 - THEN it is shown with the state "No puede aprobar su propia solicitud."
 - AND no approve or reject action is offered for it
+- AND the row shows the requester's display name, not the `requested_by` id
 - AND CKAN would refuse the decision if it were attempted
+
+#### Scenario: The four-eyes check compares user ids, not names
+
+- GIVEN a session user whose `id` differs from a pending request's `requested_by`, but whose `name` string equals that `requested_by` id
+- WHEN the queue renders that request
+- THEN it is shown as decidable
+- AND an approve or reject action is offered for it
+- AND the row label shows the request's display name, never the raw id
 
 #### Scenario: Rejecting requires a comment
 

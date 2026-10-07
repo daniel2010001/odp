@@ -334,3 +334,37 @@ tenga su UI.
   explican su propia hoja —, así que borrar la hoja **no toca el producto**.
   **Pendiente de la revisión del autor:** la pregunta que quedó abierta de la iteración anterior —si un
   `admin` debe ver **las dos** affordances o sólo la cola— y el `err.message` crudo en las alertas.
+- **2026-10-07 — Hallazgo grave, y era mío: la regla de cuatro ojos estaba INERTE en producción.** La par
+  reportó las cinco firmas de A2 y, entre los datos para el portal, que `requested_by`/`approved_by` son
+  **ids de usuario, no nombres**. Cruzado con el componente: la cola defaulteaba el espectador a
+  `$currentUserStore?.name` —el **nombre de usuario**— y comparaba `item.requested_by === viewer`. Con ids
+  del lado del catálogo, **la comparación nunca da igual**: `isOwn()` siempre `false`, el bloqueo de cuatro
+  ojos **nunca se activa**. Implementado, **en verde**, y muerto.
+  - **Por qué las pruebas no lo vieron**: los fixtures usaban `"editor.tecnologia"`, un **nombre** — la
+    misma forma que producía el default. La prueba no era falsa: era **incompleta**, porque afirmaba la
+    regla sobre una forma que la API no devuelve. Un fixture que coincide con el default propio es un
+    **espejo**, no una prueba.
+  - **Arreglado**: la comparación es por **id**; la fila renderiza una **persona**, no un identificador
+    (campo de presentación aparte, etiqueta neutral cuando no viene, y **nunca** el id crudo). Y las dos
+    pruebas que faltaban existen: una recorre el **camino real** (sesión sin inyección, con su `id` igual al
+    de la fila) y otra guarda el **falso positivo** (un `name` igual al `id` de la fila **no** bloquea).
+    Suite **951 → 954**; cuatro REDs de comportamiento antes del arreglo.
+  - **Lección generalizada, escrita porque ya van dos veces en esta sesión** (las cuatro aserciones de
+    `403` y esto): **una suite verde puede esconder una regla muerta cuando los datos de prueba se eligen
+    para coincidir con la implementación en vez de con el contrato.** La regla operativa: **el fixture se
+    escribe con la forma que la API realmente devuelve**, y se pregunta explícitamente «¿qué forma produce
+    el otro lado?» antes de darla por buena.
+- **2026-10-07 — A2 aprobada, pero contra el contrato derogado en dos puntos.** La par reporta
+  `review-5f706892311805c8` (tier high, 4 lentes, con ronda de corrección) sobre `1a2d6c2` (**local, sin
+  pushear**). Dos de las cinco firmas **contradicen la decisión del autor del mismo día**: `publication_publish`
+  autoriza «admin o sysadmin» (el contrato vigente lo quiere **sólo `sysadmin`**, `design.md:194,207`) y
+  `publication_request_decide` no menciona la exclusión del solicitante (`spec.md:284`, «**never the
+  requester**»). **La causa no es un error de ellos: el autor cambió la regla mientras A2 corría**, y el
+  canal entre sesiones —ya medido como no confiable— puede no haber entregado el aviso a tiempo. Reportado
+  con las citas y reenviado. **Los dos deltas necesitan su propia compuerta**, no repetir la misma: no es
+  reabrir A2, es un delta acotado.
+  **Y una lección de autoría propia, declarada:** el **valor de retorno** de las cinco acciones **nunca se
+  especificó en el artefacto** — asumí que devolvían el dataset y no lo escribí. La par devuelve la **fila**,
+  y eso es legítimo. **Me adapto yo**: el portal **re-lee el dataset** después de la acción, lo que hace la
+  regla «un `200` que no concede no es un éxito» **más fuerte** (verifica el efecto, no la respuesta).
+  **Pendiente de la par:** los 8 *advisory* de su ronda (`wip/a2-advisories`), y después A3/A5/A6.

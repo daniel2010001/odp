@@ -55,12 +55,13 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { cn, formatDate } from "$lib/utils";
 import {
 	ADMINISTRADOR,
+	ADMINISTRADOR_ID,
 	COLA,
 	DATASET,
 	DATASET_PUBLICADO,
 	MOTIVO_RECHAZO,
 	makeRequest,
-	SOLICITANTE,
+	SOLICITANTE_ID,
 } from "./fixtures";
 
 // ─── Dimensiones del panel ────────────────────────────────────────────
@@ -266,8 +267,9 @@ const solicitudVigente = $derived.by(() => {
 	return null;
 });
 
-// Quién mira la cola: en el caso «propia» es la misma persona que creó la solicitud `req-1`.
-const usuarioActual = $derived(caso === "propia" ? SOLICITANTE : ADMINISTRADOR);
+// Quién mira la cola: en el caso «propia» es la misma persona que creó la solicitud `req-1`. La
+// comparación es por id de usuario, que es lo que el catálogo devuelve en `requested_by`.
+const usuarioActual = $derived(caso === "propia" ? SOLICITANTE_ID : ADMINISTRADOR_ID);
 
 // El contador de la navegación refleja lo que falta decidir; con la cola caída no hay dato (`null`).
 const pendientes = $derived(cola === "con-solicitudes" ? COLA.length : cola === "vacia" ? 0 : null);
