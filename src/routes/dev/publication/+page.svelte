@@ -15,8 +15,9 @@
 	Las reglas que la hoja deja mirar: el **camino directo de publicación** sólo se ofrece a la
 	superadministración (un administrador de organización no lo ve); la **cola** no decide la solicitud
 	que creó quien mira y **exige un motivo para rechazar**; y una solicitud **anulada** dice que dejó
-	de estar vigente. También los estados que no se pueden provocar a mano: un `403` rechazado con
-	nombre propio, un `200` que no concede, una solicitud rechazada con su motivo y una cola que no
+	de estar vigente. Una solicitud ya resuelta dice quién la decidió, y la cancelada o la anulada no
+	se atribuyen un decisor. También los estados que no se pueden provocar a mano: un `403` rechazado
+	con nombre propio, un `200` que no concede, una solicitud rechazada con su motivo y una cola que no
 	carga.
 
 	Todas las llamadas —`publish`, `request`, `cancel`, `list`, `decide`— entran por **dobles**: las
@@ -59,6 +60,7 @@ import {
 	ADMINISTRADOR_ID,
 	AHORA_REVISION,
 	COLA,
+	COLA_RESUELTA,
 	DATASET,
 	DATASET_PUBLICADO,
 	MOTIVO_RECHAZO,
@@ -70,7 +72,7 @@ import {
 type Vista = "ambas" | "editor" | "administrador" | "sysadmin";
 type Caso = "sin-solicitud" | "pendiente" | "rechazada" | "propia" | "sin-motivo" | "annulada";
 type Fallo = "ninguno" | "403" | "sin-confirmar" | "red";
-type Cola = "con-solicitudes" | "vacia" | "error";
+type Cola = "con-solicitudes" | "vacia" | "error" | "resueltas";
 /** Dónde vive la cola: el eje que el autor quiere decidir. */
 type Colocacion = "dashboard" | "ruta" | "contador" | "aviso";
 
@@ -98,6 +100,7 @@ const COLAS: { id: Cola; label: string }[] = [
 	{ id: "con-solicitudes", label: "Con solicitudes" },
 	{ id: "vacia", label: "Sin solicitudes" },
 	{ id: "error", label: "No carga" },
+	{ id: "resueltas", label: "Con solicitudes resueltas" },
 ];
 const COLOCACIONES: { id: Colocacion; label: string }[] = [
 	{ id: "dashboard", label: "Sección del panel" },
@@ -232,6 +235,16 @@ const PRESETS: Preset[] = [
 		fallo: "ninguno",
 		cola: "con-solicitudes",
 	},
+	{
+		id: "resueltas",
+		label: "13 · Solicitudes resueltas",
+		detalle:
+			"La cola con desenlaces: la decidida muestra quién la aprobó o rechazó, y la cancelada o anulada no se atribuye un decisor. Una aprobada llega sin nombre para ver la etiqueta neutral.",
+		vista: "administrador",
+		caso: "sin-solicitud",
+		fallo: "ninguno",
+		cola: "resueltas",
+	},
 ];
 
 const PANEL_VALUES = ["abierto", "cerrado"] as const;
@@ -284,7 +297,10 @@ const solicitudVigente = $derived.by(() => {
 const usuarioActual = $derived(caso === "propia" ? SOLICITANTE_ID : ADMINISTRADOR_ID);
 
 // El contador de la navegación refleja lo que falta decidir; con la cola caída no hay dato (`null`).
-const pendientes = $derived(cola === "con-solicitudes" ? COLA.length : cola === "vacia" ? 0 : null);
+// Las colas resuelta y vacía no tienen pendientes: el contador es `0`, no una incógnita.
+const pendientes = $derived(
+	cola === "con-solicitudes" ? COLA.length : cola === "error" ? null : 0,
+);
 const contadorTexto = $derived(pendientes === null ? "—" : String(pendientes));
 
 // El aviso de la ficha sólo aparece si hay una solicitud pendiente que quien mira no creó.
@@ -409,6 +425,7 @@ async function listarCola(): Promise<PublicationQueueItem[]> {
 	if (cola === "error")
 		throw new CkanApiError("503 Service Unavailable", 503, "Service Unavailable");
 	if (cola === "vacia") return [];
+	if (cola === "resueltas") return COLA_RESUELTA;
 	return COLA;
 }
 
@@ -677,7 +694,8 @@ $effect(() => {
 				La misma cola, dentro del contexto real donde el administrador la encontraría. La cola
 				decide, pero si nadie la ve el editor pide y no pasa nada: por eso cada colocación se mira
 				con el contexto que la hace —o no— descubrible. Nadie aprueba una solicitud que creó, y
-				rechazar exige un motivo; aprobar puede llevar uno opcional.
+				rechazar exige un motivo; aprobar puede llevar uno opcional. Una solicitud ya resuelta dice
+				quién la decidió, y la cancelada o la anulada no se atribuyen un decisor.
 			</p>
 
 			<div class="mt-6" data-testid="colocacion-actual" data-colocacion={colocacion}>

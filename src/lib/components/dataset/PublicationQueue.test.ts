@@ -36,9 +36,14 @@ const SERVER_403_DECIDE =
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
 const APPROVED_NOTE = "La solicitud fue aprobada.";
 const REJECTED_NOTE = "La solicitud fue rechazada.";
-// Etiqueta neutral cuando el catálogo no entrega el nombre visible de quien solicitó: la fila nunca
-// cae al id crudo.
+// Etiqueta neutral cuando el catálogo no entrega un nombre visible: la fila nunca cae al id crudo.
+// La misma regla sirve para quien solicitó y para quien decidió.
 const REQUESTER_FALLBACK = "un usuario del catálogo";
+// Nombre visible de quien decide una solicitud ya resuelta; no es quien la solicitó.
+const DECISOR_NAME = "admin.tecnologia";
+// Desenlaces sin decisor: la canceló quien la solicitó, y la anulada perdió su objeto.
+const WITHDRAWN_NOTE = "Cancelada por quien la solicitó.";
+const ANNULLED_NOTE = "Anulada: la solicitud dejó de estar vigente.";
 
 // `requested_by` es el **id** de usuario que el catálogo guarda y devuelve; el nombre visible viaja
 // aparte (`requested_by_name`). Los fixtures usan la forma real —ids con forma de UUID más el
@@ -248,6 +253,93 @@ describe("PublicationQueue — antigüedad de una solicitud", () => {
 		// Mutación que lo rompe: reemplazar la fecha absoluta por la relativa dejaría la primera fuera.
 		expect(within(fila).getByText(/3 de abril de 2026/)).toBeInTheDocument();
 		expect(within(fila).getByText("hace 6 meses")).toBeInTheDocument();
+	});
+});
+
+describe("PublicationQueue — quién decidió la solicitud", () => {
+	it("una solicitud aprobada muestra quién la aprobó, por nombre y nunca por id", async () => {
+		const list = vi.fn<QueueProps["list"]>().mockResolvedValue([
+			makeItem({
+				id: "req-aprobada",
+				dataset_title: "Matrícula 2026",
+				status: "approved",
+				approved_by_name: DECISOR_NAME,
+			}),
+		]);
+		renderQueue({ list });
+
+		const fila = await rowFor("Matrícula 2026");
+		// Mutación que lo rompe: dejar de leer `approved_by_name` quita la frase y no hay texto que hallar.
+		expect(within(fila).getByText(new RegExp(`Aprobada por ${DECISOR_NAME}`))).toBeInTheDocument();
+		// Mutación que lo rompe: caer al id crudo cuando el nombre falta dejaría un UUID a la vista.
+		expect(within(fila).queryByText(new RegExp(SOLICITANTE_ID))).toBeNull();
+	});
+
+	it("una solicitud rechazada muestra quién la rechazó", async () => {
+		const list = vi.fn<QueueProps["list"]>().mockResolvedValue([
+			makeItem({
+				id: "req-rechazada",
+				dataset_title: "Presupuesto 2026",
+				status: "rejected",
+				approved_by_name: DECISOR_NAME,
+			}),
+		]);
+		renderQueue({ list });
+
+		const fila = await rowFor("Presupuesto 2026");
+		// Mutación que lo rompe: mapear el decisor sólo para `approved` dejaría el rechazo sin frase.
+		expect(
+			within(fila).getByText(new RegExp(`Rechazada por ${DECISOR_NAME}`)),
+		).toBeInTheDocument();
+	});
+
+	it("una fila decidida sin nombre usa la etiqueta neutral y nunca un id crudo", async () => {
+		const list = vi.fn<QueueProps["list"]>().mockResolvedValue([
+			makeItem({
+				id: "req-sin-nombre",
+				dataset_title: "Matrícula 2026",
+				status: "approved",
+				approved_by_name: undefined,
+			}),
+		]);
+		renderQueue({ list });
+
+		const fila = await rowFor("Matrícula 2026");
+		// Mutación que lo rompe: sin la etiqueta neutral la frase del decisor no existiría.
+		expect(within(fila).getByText(new RegExp(REQUESTER_FALLBACK))).toBeInTheDocument();
+		// Mutación que lo rompe: caer al id de quien decidió cuando falta el nombre lo haría visible.
+		expect(within(fila).queryByText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/)).toBeNull();
+	});
+
+	it("una solicitud cancelada y una anulada no se atribuyen un decisor", async () => {
+		const list = vi.fn<QueueProps["list"]>().mockResolvedValue([
+			makeItem({
+				id: "req-cancelada",
+				dataset_title: "Solicitud cancelada",
+				status: "cancelled",
+				approved_by_name: DECISOR_NAME,
+			}),
+			makeItem({
+				id: "req-anulada",
+				dataset_title: "Solicitud anulada",
+				status: "annulled",
+				approved_by_name: DECISOR_NAME,
+			}),
+		]);
+		renderQueue({ list });
+
+		for (const [titulo, esperado] of [
+			["Solicitud cancelada", WITHDRAWN_NOTE],
+			["Solicitud anulada", ANNULLED_NOTE],
+		] as const) {
+			const fila = await rowFor(titulo);
+			// Mutación que lo rompe: sin el desenlace honesto la frase no existiría.
+			expect(within(fila).getByText(esperado)).toBeInTheDocument();
+			// Mutación que lo rompe: mostrar `approved_by_name` con sólo traerlo (sin mirar el estado)
+			// pondría el nombre del decisor en un desenlace que no tuvo decisor.
+			expect(within(fila).queryByText(new RegExp(DECISOR_NAME))).toBeNull();
+			expect(within(fila).queryByText(/Aprobada por|Rechazada por/)).toBeNull();
+		}
 	});
 });
 

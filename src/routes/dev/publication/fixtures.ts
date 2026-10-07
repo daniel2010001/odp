@@ -133,3 +133,64 @@ export function decidedRow(
 			}
 		: { ...item, status: "rejected", comments: null };
 }
+
+/**
+ * Cola con solicitudes ya resueltas: la fila decidida muestra quién la decidió, y las canceladas o
+ * anuladas no se atribuyen un decisor. Una de las aprobadas llega sin nombre a propósito: la fila
+ * muestra la etiqueta neutral en vez de un id crudo.
+ */
+export const COLA_RESUELTA: PublicationQueueItem[] = [
+	{
+		id: "req-4",
+		dataset_title: "Matrícula 2026",
+		organization_title: ORGANIZACION.title,
+		requested_by: SOLICITANTE_ID,
+		requested_by_name: SOLICITANTE,
+		approved_by_name: ADMINISTRADOR,
+		created_at: "2026-09-28T00:00:00.000000",
+		status: "approved",
+		comments: null,
+	},
+	{
+		id: "req-5",
+		dataset_title: "Presupuesto de investigación 2026",
+		organization_title: OTRA_ORGANIZACION.title,
+		requested_by: OTRO_SOLICITANTE_ID,
+		requested_by_name: "editor.economicas",
+		approved_by_name: ADMINISTRADOR,
+		created_at: "2026-09-30T00:00:00.000000",
+		status: "rejected",
+		comments: MOTIVO_RECHAZO,
+	},
+	{
+		id: "req-6",
+		dataset_title: "Encuesta de satisfacción 2024",
+		organization_title: OTRA_ORGANIZACION.title,
+		requested_by: OTRO_SOLICITANTE_ID,
+		requested_by_name: "editor.arquitectura",
+		// Sin nombre de quien decidió: la fila usa la etiqueta neutral, nunca un id.
+		created_at: "2026-09-15T00:00:00.000000",
+		status: "approved",
+		comments: null,
+	},
+	{
+		id: "req-7",
+		dataset_title: "Calendario académico 2026",
+		organization_title: ORGANIZACION.title,
+		requested_by: SOLICITANTE_ID,
+		requested_by_name: SOLICITANTE,
+		created_at: "2026-09-20T00:00:00.000000",
+		status: "cancelled",
+		comments: null,
+	},
+	{
+		id: "req-8",
+		dataset_title: "Inventario de laboratorios 2025",
+		organization_title: OTRA_ORGANIZACION.title,
+		requested_by: OTRO_SOLICITANTE_ID,
+		requested_by_name: "editor.economicas",
+		created_at: "2026-09-22T00:00:00.000000",
+		status: "annulled",
+		comments: null,
+	},
+];

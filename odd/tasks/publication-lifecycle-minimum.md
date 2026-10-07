@@ -462,3 +462,20 @@ tenga su UI.
   de la hoja**. Si el contrato cae al uniforme, el cambio es de **una sola frontera** (dejar de leer `dataset`
   y re-leer). **La diferencia no es de corrección sino de dónde se verifica; lo que no conviene es cambiar de
   forma después de cablear B1.**
+- **2026-10-07 — Confirmaciones de la par, y una corrección de criterio mía que acepto.**
+  1. **El contrato aditivo queda CONFIRMADO**: `publication_publish` y `decide {approve: true}` devuelven la
+     fila **más** `dataset`, y **no hay que volver atrás nada** de lo ya commiteado. El portal estaba en lo
+     correcto y su doble también.
+  2. **Los campos de presentación entran**: `requested_by_name` y `approved_by_name` (username de CKAN),
+     **resueltos en una sola consulta batcheada por llamada** y **uniformes en las cinco acciones**.
+  3. **Las dos deltas de autorización van a `unit/a2-governance`, rama aparte de los *advisory*, con su
+     propia compuerta.** Yo había pedido meterlas juntas en la unidad de los advisories;
+     **ellos prefieren no mezclar y tienen razón: `conformance` y calidad son dos preguntas distintas, y una
+     compuerta que las mezcla no puede decir qué aprobó.** Retiro mi sugerencia — la suya es mejor.
+  4. **`A5` queda cerrado**: verificaron `7f4bf86` en `origin/main` y el bloque con su razón escrita.
+  5. Confirman el fondo del asunto: **la garantía es del servidor y el portal es consultivo** — que es
+     exactamente lo que arreglan los deltas.
+  **Consecuencia para el portal:** se agrega `approved_by_name` al tipo de la fila y **se muestra quién
+decidió en las filas ya decididas** (`approved`/`rejected`; en `cancelled` canceló el solicitante y en
+`annulled` no hubo decisión), con la misma regla de respaldo neutral y **nunca el id crudo** que ya rige para
+el solicitante. Es completar el contrato de presentación, no una funcionalidad nueva.

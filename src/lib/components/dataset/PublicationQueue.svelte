@@ -16,6 +16,8 @@ export interface PublicationQueueItem {
 	requested_by?: string;
 	/** Nombre visible de quien creó la solicitud; es lo que la fila muestra. */
 	requested_by_name?: string;
+	/** Nombre visible de quien decidió la solicitud; sólo lo traen las filas ya resueltas. */
+	approved_by_name?: string;
 	created_at?: string;
 	status: PublicationRequestStatus;
 	comments?: string | null;
@@ -94,7 +96,13 @@ const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
 const APPROVED_NOTE = "La solicitud fue aprobada.";
 const REJECTED_NOTE = "La solicitud fue rechazada.";
 // Etiqueta neutral cuando el catálogo no entrega el nombre visible: la fila nunca cae al id crudo.
-const REQUESTER_FALLBACK = "un usuario del catálogo";
+// La misma regla sirve para quien solicitó y para quien decidió.
+const CATALOG_NAME_FALLBACK = "un usuario del catálogo";
+const APPROVED_BY_LABEL = "Aprobada por";
+const REJECTED_BY_LABEL = "Rechazada por";
+// Desenlaces sin decisor: la retiró quien la solicitó, y la anulada perdió su objeto.
+const WITHDRAWN_NOTE = "Cancelada por quien la solicitó.";
+const ANNULLED_NOTE = "Anulada: la solicitud dejó de estar vigente.";
 
 let {
 	list,
@@ -226,6 +234,26 @@ async function decideOn(item: PublicationQueueItem, approve: boolean) {
 	}
 }
 
+/**
+ * El desenlace de una fila ya resuelta, con quién lo decidió cuando hubo un decisor. `null` mientras
+ * la solicitud sigue pendiente: una fila sin desenlace no inventa uno. La cancelada la retiró quien
+ * la solicitó y la anulada perdió su objeto, así que ninguna de las dos se atribuye un decisor.
+ */
+function outcomeLine(item: PublicationQueueItem): string | null {
+	switch (item.status) {
+		case "approved":
+			return `${APPROVED_BY_LABEL} ${item.approved_by_name ?? CATALOG_NAME_FALLBACK}`;
+		case "rejected":
+			return `${REJECTED_BY_LABEL} ${item.approved_by_name ?? CATALOG_NAME_FALLBACK}`;
+		case "cancelled":
+			return WITHDRAWN_NOTE;
+		case "annulled":
+			return ANNULLED_NOTE;
+		default:
+			return null;
+	}
+}
+
 function setComment(id: string, value: string) {
 	comments[id] = value;
 }
@@ -264,6 +292,7 @@ function setComment(id: string, value: string) {
 	{:else}
 		<ul class="flex flex-col gap-3">
 			{#each items as item (item.id)}
+				{@const desenlace = outcomeLine(item)}
 				<li class="rounded-lg border border-border bg-card p-4" data-request-id={item.id}>
 					<div class="flex flex-wrap items-baseline justify-between gap-2">
 						<p class="font-heading text-sm font-semibold text-card-foreground">
@@ -276,7 +305,7 @@ function setComment(id: string, value: string) {
 
 					{#if item.requested_by_name || item.requested_by || item.created_at}
 						<p class="mt-1 text-xs text-muted-foreground">
-							{#if item.requested_by_name || item.requested_by}Solicitada por {item.requested_by_name ?? REQUESTER_FALLBACK}{/if}
+							{#if item.requested_by_name || item.requested_by}Solicitada por {item.requested_by_name ?? CATALOG_NAME_FALLBACK}{/if}
 							{#if (item.requested_by_name || item.requested_by) && item.created_at} · {/if}
 							{#if item.created_at}
 								{formatDate(item.created_at)}
@@ -295,74 +324,82 @@ function setComment(id: string, value: string) {
 						</p>
 					{/if}
 
-					{#if isOwn(item)}
-						<div
-							role="note"
-							class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-						>
-							<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
-							<span>{SELF_APPROVAL}</span>
-						</div>
-					{:else}
-						<label
-							for={`comentario-${item.id}`}
-							class="mt-3 block text-xs font-medium text-muted-foreground"
-						>
-							{COMMENT_LABEL}
-						</label>
-						<textarea
-							id={`comentario-${item.id}`}
-							rows="2"
-							placeholder={COMMENT_PLACEHOLDER}
-							value={comments[item.id] ?? ""}
-							oninput={(event) => setComment(item.id, event.currentTarget.value)}
-							class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						></textarea>
+					{#if desenlace}
+						<p data-testid="request-outcome" class="mt-1 text-xs text-muted-foreground">
+							{desenlace}
+						</p>
+					{/if}
 
-						{#if outcomes[item.id]}
+					{#if item.status === "pending"}
+						{#if isOwn(item)}
 							<div
-								role="alert"
-								class={cn(
-									"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
-									outcomes[item.id]?.kind === "refused"
-										? "border-destructive/20 bg-destructive/10 text-destructive"
-										: "border-border bg-muted/40 text-muted-foreground",
-								)}
+								role="note"
+								class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
 							>
-								<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-								<span>{outcomes[item.id]?.message}</span>
+								<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
+								<span>{SELF_APPROVAL}</span>
+							</div>
+						{:else}
+							<label
+								for={`comentario-${item.id}`}
+								class="mt-3 block text-xs font-medium text-muted-foreground"
+							>
+								{COMMENT_LABEL}
+							</label>
+							<textarea
+								id={`comentario-${item.id}`}
+								rows="2"
+								placeholder={COMMENT_PLACEHOLDER}
+								value={comments[item.id] ?? ""}
+								oninput={(event) => setComment(item.id, event.currentTarget.value)}
+								class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							></textarea>
+
+							{#if outcomes[item.id]}
+								<div
+									role="alert"
+									class={cn(
+										"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
+										outcomes[item.id]?.kind === "refused"
+											? "border-destructive/20 bg-destructive/10 text-destructive"
+											: "border-border bg-muted/40 text-muted-foreground",
+									)}
+								>
+									<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
+									<span>{outcomes[item.id]?.message}</span>
+								</div>
+							{/if}
+
+							<div class="mt-3 flex flex-wrap gap-2">
+								<Button
+									size="sm"
+									onclick={() => void decideOn(item, true)}
+									disabled={deciding !== null}
+								>
+									{#if deciding?.id === item.id && deciding.approve}
+										<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+										Aprobando…
+									{:else}
+										<CheckCircle2 class="size-4" aria-hidden="true" />
+										{APPROVE_LABEL}
+									{/if}
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => void decideOn(item, false)}
+									disabled={deciding !== null}
+								>
+									{#if deciding?.id === item.id && !deciding.approve}
+										<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+										Rechazando…
+									{:else}
+										<XCircle class="size-4" aria-hidden="true" />
+										{REJECT_LABEL}
+									{/if}
+								</Button>
 							</div>
 						{/if}
-
-						<div class="mt-3 flex flex-wrap gap-2">
-							<Button
-								size="sm"
-								onclick={() => void decideOn(item, true)}
-								disabled={deciding !== null}
-							>
-								{#if deciding?.id === item.id && deciding.approve}
-									<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-									Aprobando…
-								{:else}
-									<CheckCircle2 class="size-4" aria-hidden="true" />
-									{APPROVE_LABEL}
-								{/if}
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onclick={() => void decideOn(item, false)}
-								disabled={deciding !== null}
-							>
-								{#if deciding?.id === item.id && !deciding.approve}
-									<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-									Rechazando…
-								{:else}
-									<XCircle class="size-4" aria-hidden="true" />
-									{REJECT_LABEL}
-								{/if}
-							</Button>
-						</div>
 					{/if}
 				</li>
 			{/each}
