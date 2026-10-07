@@ -1103,3 +1103,16 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   misma cosa en direcciones opuestas** —su medición corrigió un dato mío contra una versión que no corre; la mía
   corrigió un conteo de casos—, y en las dos lo que faltaba era lo mismo: **contar o medir antes de fijar la
   conclusión**, y ninguna se vio releyendo lo propio.
+
+- **2026-10-07 (noche) — `A5`, segundo bloque: los valores límite de `private`, medidos contra el muro.**
+  Siete filas nuevas y **todas verdes**, sonda **33/33**. `0`, `0.0`, `[]`, `{}`, `null` y **`'false'`** dan
+  **`403`** del muro —o sea **intento de publicación negado**, no excepción del validador—; un parche que **no**
+  toca `private` ni `state` da **`200`**, porque el muro no se pasa de listo y un muro que refusa todo rompe el
+  portal; y la comprobación que cierra el bloque: después de negar **todos** los valores límite, el dataset
+  **sigue privado** — una negativa que publicara igual pasaría las filas de arriba y sería el peor resultado
+  posible.
+  **Y esto es la falsificación en vivo de mi dato viejo, medida y no argumentada:** `private: 0` —**el valor
+  que publicaba** para un editor antes del PR #3— ahora es una negativa; y **ninguna** fila lanzó excepción,
+  que es exactamente lo contrario de lo que afirmaba mi medición contra el checkout `2.12.0a0`. La fila de
+  `'false'` quedó como propia, por ser la contraintuitiva: no está en la lista de verdaderos, así que se guarda
+  como **público**.

@@ -282,6 +282,37 @@ row P6.3 - package_patch "{\"id\": \"$D3\", \"private\": false}" 403 \
 row P10 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D6\", \"private\": false}" 403 \
     "admin of the parent org publishes the child org's dataset — refused by the wall too" 'Authorization Error'
 
+say "P6.b — los valores límite de \`private\`: todos son intento, ninguno es una excepción"
+# Por qué estas filas existen. Medido en el CKAN que corre (2.12.0): `boolean_validator` es **total** —`0`,
+# `0.0`, `[]`, `{}`, `'banana'`, `''`, `'false'` y `None` se guardan como **público**—, así que cada uno es un
+# **intento de publicación** y el muro tiene que negarlo. **Ninguna** fila puede dar una excepción del
+# validador: la versión que **sí lanza** con un `int` es la `2.12.0a0` de un checkout viejo de este disco, y
+# de ahí salió el espejo que dejaba publicar con `private: 0`. La fila de `'false'` es propia porque es la
+# contraintuitiva: **no está en la lista de verdaderos**, así que se guarda como público.
+row P6b.0 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": 0}" 403 \
+    "admin package_patch {private: 0} — coerces to public, refused" 'Authorization Error'
+row P6b.0f "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": 0.0}" 403 \
+    "admin package_patch {private: 0.0} — coerces to public, refused" 'Authorization Error'
+row P6b.arr "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": []}" 403 \
+    "admin package_patch {private: []} — coerces to public, refused" 'Authorization Error'
+row P6b.obj "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": {}}" 403 \
+    "admin package_patch {private: {}} — coerces to public, refused" 'Authorization Error'
+row P6b.nul "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": null}" 403 \
+    "admin package_patch {private: null} — coerces to public, refused" 'Authorization Error'
+row P6b.fal "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": \"false\"}" 403 \
+    "admin package_patch {private: 'false'} — the counterintuitive one: coerces to public, refused" 'Authorization Error'
+# Y la fila que impide que el muro se pase de listo: un parche que **no** toca la visibilidad ni el estado no
+# es un intento de publicación, así que tiene que pasar. Un muro que refusa todo pasa los `403` de arriba y
+# rompe el portal.
+row P6b.nop "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"notes\": \"tocado por la sonda\"}" 200 \
+    "admin package_patch without private/state — not a publication attempt, must pass"
+# La comprobación que cierra el bloque: después de negar **todos** los valores límite, el dataset sigue
+# privado. Una fila que devolviera `403` y publicara igual pasaría las de arriba y sería el peor resultado
+# posible — una negativa que no niega nada.
+raw package_show "{\"id\": \"$D1\"}" "$SYS_TOKEN"
+value P6b.stored "$(jq_get '.result.private')" true \
+    "stored private **unchanged** after every edge value was refused"
+
 hr
 say "P7 — the catalogue follows private, with no portal query change"
 raw package_search '{"q": "*:*", "rows": 0}' -
