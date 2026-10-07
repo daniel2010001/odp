@@ -811,6 +811,42 @@ distinguirla de otras; y **la tabla del store en la base de dev**, que hoy no es
   **Y la lección de forma:** un `SUCCESS` **incondicional** es una referencia que no prueba nada. La
   verificación honesta fue **la tabla y la acción**, no el mensaje del comando.
 
+- **2026-10-07 (noche) — `B1` arranca, y con qué suelo.** Con la autorización aterrizada y la tabla en la base,
+  `B1` deja de estar bloqueado. **Decisión del autor** (llegó por la par): el rechazo de cuatro ojos se
+  distingue por **literal pinneado por test y declarado como interfaz**, no con un token nuevo — el costo ya se
+  pagó con los tokens del `motive` y **la protección real es la gobernanza**, no el mecanismo. **Los cinco
+  literales que son interfaz**: cuatro ojos; capacidad del solicitante (la fila queda `pending`); `publish`
+  sobre un dataset **ya público**; y los dos del muro (el que nombra el flujo de publicación y el genérico).
+  **El límite de forma, dicho por la par y no descubierto:** un fallo de autorización de CKAN llega siempre como
+  `{"__type": "Authorization Error", "message": …}` — **no hay campo libre para un código**. El **único** caso
+  que ya es distinguible por máquina es el rechazo **sin comentario**: es un `ValidationError` con la clave
+  `comments`, no un `403`. Y eso el portal lo puede leer **sin plomería nueva**, porque su tipo de error ya
+  lleva `ckanType` y `payload` (los usa para el conflicto de `package_revise`). **Consecuencia de diseño:**
+  si ese `ValidationError` llega, hay que presentarlo como «falta el motivo» y **no** como «no se pudo registrar
+  la decisión»: el portal ya valida el motivo antes de mandar, así que el del servidor es respaldo — y un
+  respaldo mal presentado es una mentira.
+  **Orden de la unidad**, y por qué arranca por ahí: la capa de API del portal **no tiene ninguna de las cinco
+  acciones** (los componentes lo dicen en sus propios comentarios: entran inyectadas). Sin ella no hay cableado
+  posible, y es lo único de `B1` que se puede probar **sin UI** contra el contrato. Después: los componentes
+  importan el **tipo de fila** de la capa de API (hoy lo definen ellos, que es la dirección equivocada), la
+  ficha del dataset con el botón en el hero y la tarjeta del estado, y la page de solicitudes.
+
+- **2026-10-07 (noche) — La ley del día, en su forma más filosa: declarar la procedencia no es verificarla.**
+  La par la formuló a partir de la deriva del `bulk_update_public`, y es **mejor que mi descripción del
+  error**: el `explore.md` de ese cambio **ya declaraba** haber leído el checkout viejo de CKAN, y la frase
+  falsa **viajó igual** a tres artefactos. La declaración era honesta y **no era un chequeo**. La ley del día
+  decía «lo que se verifica es el significado, no la forma en que uno lo escribió»; esto la **aterriza**: hay
+  un paso que **parece** verificación —anotar de dónde salió el dato— y no lo es. Lo que verifica es
+  **contrastarlo contra la fuente** antes de repetirlo.
+  **Y una consecuencia de método para el trabajo entre las dos sesiones**, que la par también aportó: el puente
+  entrega **cuando puede, no en orden** —dos de sus mensajes se cruzaron con los míos, uno de ellos
+  autorizándome a hacer algo que ya había hecho y reportado—. Lo útil cuando un mensaje contesta algo ya
+  mandado no es repetirlo: es **decir el estado**.
+  **De nuestro lado, el par del muro, visto desde el otro extremo:** su test de la cadena de
+  `bulk_update_public` se apoya en que la auth del core contesta `{'success': False}` **sin mensaje**; si el
+  core empezara a mandar texto, esa aserción se cae. Es la misma fragilidad que la nuestra, del otro lado del
+  borde, y la está revisando dentro de la verificación de `A3`.
+
 - **2026-10-07 — WU-7.2: las decisiones del autor sobre los diseños, y lo que no le gustó.**
   **Decisiones cerradas:** (1) **las opciones en su sección se adoptan como diseño de la hoja en adelante**
   («me gusta más este tipo de opciones… prefiero que sea de este diseño de aquí en adelante»); ya está como
