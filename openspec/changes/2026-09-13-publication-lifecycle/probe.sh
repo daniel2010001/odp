@@ -206,8 +206,8 @@ D6="$(make_dataset "$PREFIX-d6" "$ORG_CHILD")"    # P10
 D7="$(make_dataset "$PREFIX-d7" "$ORG_A")"        # P7: never targeted by a publish row
 # Every dataset name this run may create, including the ones only a *refused*
 # call could create. P7 and P9 are complete only against this list.
-DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7"
-say "P1.3  5 private datasets seeded (d1,d2,d3,d7 in $ORG_A, d6 in $ORG_CHILD)"
+DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk"
+say "P1.3  private datasets seeded (d1,d2,d3,d7,blk in $ORG_A, d6 in $ORG_CHILD)"
 
 hr
 say "P2 forward — the wizard's payload must still work"
@@ -312,6 +312,28 @@ row P6b.nop "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"notes\": \"tocado 
 raw package_show "{\"id\": \"$D1\"}" "$SYS_TOKEN"
 value P6b.stored "$(jq_get '.result.private')" true \
     "stored private **unchanged** after every edge value was refused"
+
+say "P6.c — las acciones en bloque que van al revés: dos actores, dos motivos"
+# Estas dos filas salen de los **tests de la par**, no de mi lectura, y evitan el defecto que mi propio `P8`
+# tenía: afirmar sólo el código **mezcla motivos**.
+#  · `bulk_update_delete`: a un **editor** lo rechaza **core** —el rol `editor` tiene `update_dataset` pero no
+#    `update`, así que core contesta **sin mensaje**—, y a un **admin** core lo admite y lo rechaza **el muro**.
+#    Dos actores, dos motivos, y los dos `403`.
+#  · `bulk_update_private` va al revés: **permitido al admin** (angostar visibilidad es intencional) y
+#    **rechazado al editor por core**. Una sola frase para los dos mediría dos cosas distintas.
+D_BLK="$(make_dataset "$PREFIX-blk" "$ORG_A")"
+row P6c.priv.admin "$ADMIN_TOKEN" bulk_update_private \
+    "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D_BLK\"]}" 200 \
+    "admin bulk_update_private — narrowing visibility is intentional, so it passes"
+row P6c.priv.editor "$EDITOR_TOKEN" bulk_update_private \
+    "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D_BLK\"]}" 403 \
+    "editor bulk_update_private — refused by core, not by the wall, so it carries no message"
+row P6c.del.editor "$EDITOR_TOKEN" bulk_update_delete \
+    "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D_BLK\"]}" 403 \
+    "editor bulk_update_delete — refused by core (the editor role lacks org-level update), which answers without a message"
+row P6c.del.admin "$ADMIN_TOKEN" bulk_update_delete \
+    "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D_BLK\"]}" 403 \
+    "admin bulk_update_delete — core admits it; what refuses is the wall" 'Authorization Error'
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"
