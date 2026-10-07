@@ -847,6 +847,26 @@ distinguirla de otras; y **la tabla del store en la base de dev**, que hoy no es
   core empezara a mandar texto, esa aserción se cae. Es la misma fragilidad que la nuestra, del otro lado del
   borde, y la está revisando dentro de la verificación de `A3`.
 
+- **2026-10-07 (noche) — El disparador del token, afinado por la par, y con el filo correcto.** Mi condición
+  era «si aparece un **segundo** rechazo que el consumidor tenga que distinguir». La par la corrigió midiendo
+  **qué se cuenta**: como **mensajes** ya hay cinco (cuatro ojos, capacidad del solicitante, ya-público y los
+  dos del muro), así que la regla se habría disparado **hoy** por mensajes que **no ramifican**; como **ramas
+  del consumidor** —los lugares donde el portal tiene que *cambiar de comportamiento* según cuál rechazo es—
+  hay **una sola**: cuatro ojos. Y su segundo argumento cierra el asunto: con «segundo mensaje» alguien podría
+  discutirlo después («éste es el tercero, no el segundo»); con **rama** no hay ambigüedad — o el consumidor
+  bifurca, o no.
+  **La regla queda escrita así, y rige este lado:** *el disparador es la **segunda rama del consumidor**, y el
+  día que el portal tenga que bifurcar por un rechazo distinto de cuatro ojos, el token se diseña **antes de
+  cablear**, aunque la prosa siga funcionando.*
+  **Y una fila nueva para `A5`, de un agujero real que encontró la verificación de `A3`:** su guard no era el
+  espejo fiel de `boolean_validator` que su propio docstring afirmaba — **`private: 0` publicaba**. De este lado
+  hay un dato **medido** que puede ahorrar una hipótesis: `boolean_validator` es **total** (devuelve `False`
+  para `'banana'`, `''` y `None`) y **sólo lanza** para valores sin `.lower()` — un `int`, por ejemplo. O sea
+  que el camino por el que `0` terminó publicando es **otro**, y medirlo antes de arreglar el espejo importa
+  porque el espejo fiel **también lanza** con `0`. **Por eso `A5` suma los valores límite de `private`
+  (`0`, `"false"`, `"banana"`, `""`, `null`, omitida) como filas a medir, no a suponer**: ahí es donde un
+  espejo y su original se separan en silencio.
+
 - **2026-10-07 — WU-7.2: las decisiones del autor sobre los diseños, y lo que no le gustó.**
   **Decisiones cerradas:** (1) **las opciones en su sección se adoptan como diseño de la hoja en adelante**
   («me gusta más este tipo de opciones… prefiero que sea de este diseño de aquí en adelante»); ya está como
