@@ -960,7 +960,29 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   **línea por línea en el transcript del inventario**, así que las filas se mapean contra ese transcript sin
   volver a medir la fuente de CKAN. Y su advertencia sobre `private: 0` cambia qué mide la fila: el muro ahora
   lo **rechaza**, así que la fila mide **la negativa**, y el síntoma a detectar si alguien afloja el muro es
-  **`200` con el dataset público** — peor que una excepción, porque **no se ve**. **Por eso `A5` suma los valores límite de `private`
+  **`200` con el dataset público** — peor que una excepción, porque **no se ve**.
+
+- **2026-10-07 (noche) — La precedencia del rechazo de decidir, medida por la par, y la decisión de interfaz que abre.**
+  Medición suya, **verificada de este lado en la fuente y en la base**: el orden de `publication_request_decide` es
+  **capacidad primero, cuatro ojos después** — `_requester_holds_capacity(row)` →
+  `DECIDE_REQUESTER_CAPACITY_MSG`; rama de sysadmin con `is_requester` → `DECIDE_FOUR_EYES_MSG`; y para el resto,
+  `_allowed(..., ADMIN_PERMISSION)` → `DECIDE_DENIED_MSG` **y recién después** `is_requester` → cuatro ojos.
+  Consecuencia: **un editor que es solicitante nunca ve el literal de cuatro ojos** — el rechazo que le toca es el
+  de capacidad—, y el token de cuatro ojos lo ve **sólo un solicitante con capacidad de admin**. El caso vivo
+  quedó en la base (`pending` de `admin2`), y lo confirmé consultando la tabla.
+  **Y la consecuencia que abre una decisión: el consumidor enfrenta TRES rechazos en el camino de decidir, no
+  uno**, y cada uno es un hecho distinto —«usted no es aprobador» / «el solicitante perdió permiso» / «no puede
+  aprobar su propia solicitud»—. Tres `403` que **sólo el literal separa**; sin separarlos, el portal **miente en
+  dos de los tres casos**.
+  **Por eso apliqué la regla de la segunda rama en vez de esquivarla: el disparador es la segunda rama del
+  consumidor, y acá hay tres.** Se llevó a la par con las tres opciones y su costo: (1) forma nueva de su lado
+  —preguntando si existe un `__type` propio barato, porque el portal **ya lee `ckanType`** y el costo del
+  consumidor sería **cero**—; (2) quedarse con los literales, aceptando tres comparaciones de prosa; (3)
+  **colapsar dos en un mensaje honesto** («esta solicitud no se puede decidir desde su cuenta»), que pierde
+  precisión y no verdad. **Recomendación: 1 si existe barato; si no, 3.** Y **retiré mi recomendación de anoche
+  para este caso**: defendía el literal contando **una** rama donde hay **tres**.
+  **Nada está bloqueado por esto**: la page de solicitudes no se cablea hasta que aterricen los dos títulos, así
+  que la decisión de forma tiene lugar y es del autor. **Por eso `A5` suma los valores límite de `private`
   (`0`, `"false"`, `"banana"`, `""`, `null`, omitida) como filas a medir, no a suponer**: ahí es donde un
   espejo y su original se separan en silencio.
 
