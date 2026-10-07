@@ -1303,6 +1303,15 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > **`B1` y `A5` esperan a esa unidad** — y `dataset` entra ahí en vez de diferirse justamente porque `B1` lo
 > espera.
 >
+> **Ahora hay DOS copias durables del mismo contrato, y necesita regla de propiedad** — si no, cambiamos un
+> canal que pierde mensajes por dos copias que se separan en silencio. **El archivo *tracked* de `odp-docker`
+> es autoritativo para las firmas de las cinco acciones** (las implementa esa sesión); el `spec.md` de este
+> repo las **espeja** para el portal. **Cuando el archivo aterrice, se re-sincroniza `spec.md` contra él**, y si
+> alguna vez difieren lo resuelve el autor, no un mensaje.
+> **Y una precisión de orden para que no se asuma:** `A5` (la sonda, de esta sesión) va **después de A3**, pero
+> necesita **las dos cosas** — la pared de A3 *y* la autorización de la puerta de `unit/a2-governance`. Sin las
+> dos no hay nada nuevo que medir: la sonda actual (25/25) asume que un `admin` publica con `package_patch`.
+>
 > **¿Sos la sesión que trabaja en `odp-docker` para hacer publicable un dataset, y preguntaste si había
 > que tocar ese repo? Tu respuesta está acá, no en el chat:** el alcance es **B** (el corte A se evaluó y
 > se descartó), y tus unidades son **A1/A2/A3**. Las `A5` (la sonda) y `B1`/`B2` son del repo del portal.
