@@ -860,10 +860,25 @@ distinguirla de otras; y **la tabla del store en la base de dev**, que hoy no es
   cablear**, aunque la prosa siga funcionando.*
   **Y una fila nueva para `A5`, de un agujero real que encontró la verificación de `A3`:** su guard no era el
   espejo fiel de `boolean_validator` que su propio docstring afirmaba — **`private: 0` publicaba**. De este lado
-  hay un dato **medido** que puede ahorrar una hipótesis: `boolean_validator` es **total** (devuelve `False`
-  para `'banana'`, `''` y `None`) y **sólo lanza** para valores sin `.lower()` — un `int`, por ejemplo. O sea
-  que el camino por el que `0` terminó publicando es **otro**, y medirlo antes de arreglar el espejo importa
-  porque el espejo fiel **también lanza** con `0`. **Por eso `A5` suma los valores límite de `private`
+  **medí ejecutando** la función en el contenedor vivo (ya no leyéndola) y el dato viejo que le pasé era
+  **falso**: `boolean_validator` **no lanza con nada**. `0`, `0.0`, `[]`, `{}`, `'banana'`, `''`, `'false'` y
+  `None` dan **`False`** — o sea **intento de publicación** — y `1` y `'true'` dan `True`. El cuerpo del
+  2.12.0 protege con `isinstance(value, (bool, int))` y `isinstance(value, str)` antes de `.lower()`.
+  **La procedencia del dato falso, y es la misma copia de siempre:** el checkout **`2.12.0a0`** de este disco
+  llama a `value.lower()` **sin condición** después de `isinstance(value, bool)`, así que **sí lanza** con un
+  `int`. De ahí salió mi «sólo lanza para valores sin `.lower()`». **Un solo checkout viejo produjo los DOS
+  datos falsos de este cambio**: el de `bulk_update_public` (ayer) y el de `boolean_validator` (hoy). Y es la
+  ley del día en su forma más concreta: la procedencia estaba declarada en `explore.md` y los dos datos
+  viajaron igual.
+  **Lo que esto le suma a `A5`:** los valores límite de `private` tienen que estar **medidos**, y el
+  resultado esperado **no** es una excepción del validador sino **intento y negativa del muro**. Con un
+extra contraintuitivo que la par marcó: **`'false'` también es intento**, porque `'false'` no está en la lista
+  de verdaderos y entonces se guarda como **público**.
+  **Y una consecuencia para el arreglo de la par, declarada como procedencia y no como diagnóstico:** su
+  `_as_bool` era «espejo fiel de `boolean_validator`», y el espejo se escribió contra la versión que **ya no
+  corre** — la que lanza. Por eso era verde y publicaba: el espejo era fiel a 2.12.0a0 y la realidad es
+  2.12.0. Es exactamente el modo de falla que la ley del día nombra, y por eso la corrección se hizo
+  **ejecutando** los doce casos en vez de citarlos. **Por eso `A5` suma los valores límite de `private`
   (`0`, `"false"`, `"banana"`, `""`, `null`, omitida) como filas a medir, no a suponer**: ahí es donde un
   espejo y su original se separan en silencio.
 

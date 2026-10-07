@@ -132,9 +132,14 @@ Cambios en `ckan-docker/src/ckanext-umss/ckanext/umss/auth.py`:
    flujo, no por `package_patch`).
 2. **`package_create`**: refusar **también para el `admin`** un `private` que no sea explícitamente `true`.
    Con la puerta, crear público deja de tener sentido: se crea privado y se publica.
-3. **`bulk_update_public`**: nueva función encadenada que lo refusa. Los artefactos lo midieron como
-   **bypass real** (`design.md:153`, sonda P8): escribe directo y **no** delega en `package_update`, así que
-   la pared no lo cubre sola. `bulk_update_private` es la bajada: `[v1]`, con `RF-42`.
+3. **`bulk_update_public`**: nueva función encadenada a **su propia** auth que lo refusa. **Corregido el
+   2026-10-07**: acá decía que «escribe directo y **no** delega en `package_update`» — **falso**. En el CKAN
+   que corre (2.12.0, contenedor vivo) `_bulk_update_dataset` **recorre `package_patch`**
+   (`ckan/logic/action/update.py:1212-1216`), así que el camino interno **sí** existe; lo que la pared no
+   cubre sola es que la acción se niega en **su propio** `_check_access`, antes de que corra el cuerpo. El
+   dato viejo venía del **checkout `2.12.0a0` de este disco**, cuya versión sí escribe un `UPDATE` directo.
+   **Regla que queda: no derivar comportamiento de CKAN de esa copia.** `bulk_update_private` es la bajada:
+   `[v1]`, con `RF-42`.
 4. **Lo que no se toca:** `_as_bool` y la fidelidad a `boolean_validator` (medida: `'banana'` se guarda como
    **público**, así que «diferir un valor no interpretable» sería publicar), y `auth_allow_anonymous_access`
    (la cadena pierde el flag de core: medido en `apply-progress.md:402-407`).

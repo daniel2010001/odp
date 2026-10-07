@@ -397,8 +397,20 @@ publication**, not to a validation error — the exact transition `Publication A
 `_as_bool` mirrors `boolean_validator` exactly (no "improvement": a value this module reads as `True`
 while core reads it as `False` would open the hole, and the reverse would refuse a no-op), so
 `'banana'`, `''` and `None` are treated as publication attempts and refused. `None` is included
-because `boolean_validator(None)` is `False`. Only values core would *raise* on (no `.lower()`) defer,
-which is safe because the exception aborts the request.
+because `boolean_validator(None)` is `False`.
+
+**Corrección (2026-10-07): nada difiere, porque nada lanza.** La frase que cerraba este párrafo —«only
+values core would *raise* on (no `.lower()`) defer, which is safe because the exception aborts the
+request»— es **falsa contra el CKAN que corre**, y salió del **checkout `2.12.0a0` de este disco**: su
+`boolean_validator` llama a `value.lower()` **sin condición** después de `isinstance(value, bool)`, así
+que sí lanza `AttributeError` con un `int`, una lista o un diccionario. El **2.12.0** que corre lo tiene
+protegido — `isinstance(value, (bool, int))` para el caso numérico y `isinstance(value, str)` antes de
+`.lower()`, con `return False` como última línea — de modo que **ni lanza ni difiere**: todo valor que el
+espejo no lea como `True` es un **intento de publicación**. Medido **ejecutando** la función en
+`odp-dev-ckan-dev-1` (2.12.0, `0058b2eb`): `0 → False`, `0.0 → False`, `[] → False`, `{} → False`,
+`'banana' → False`, `'' → False`, `'false' → False`, `None → False`; `1 → True`, `'true' → True`. **Ninguno
+lanza.** El mismo checkout viejo produjo el otro dato falso de este cambio (`bulk_update_public`), y por eso
+el baseline lleva la regla: **no derivar comportamiento de CKAN de esa copia.**
 
 **This contradicts a normative scenario in `spec.md`.** The clause needs amending, not the test: the
 spec's premise is false for 2.11.6, and following it literally re-opens the change's primary success
