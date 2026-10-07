@@ -1072,3 +1072,34 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   **(9) Entrega autorizada:** commit, push, PR y merge. El trabajo se cierra **en unidades de trabajo** sobre
   una rama, no en un commit único: es lo que hace que la próxima revisión sea un **delta** en vez del diff
   entero — 1423 líneas cada vez, medido.
+
+- **2026-10-07 (noche) — La respuesta a mi pregunta sobre la forma, medida, y una tercera opción mejor que las mías.**
+  Pregunté si existía un `__type` propio barato. La par **fue a medirlo** en vez de contestar de memoria:
+  **no existe.** El mapeo de errores de la API es una **tabla fija de `except`** (`ckan/views/api.py:298`):
+  `except NotAuthorized` → `{"__type": "Authorization Error", …}` con `403`, **no derivado del nombre de la
+  clase**, así que un subtipo cae en la misma rama. El único camino con payload propio es `ValidationError`, y
+  devuelve **`409`** — usarlo rompería el spec, que pide que el rechazo sea **falla de autorización**. Un
+  `__type` propio exigiría editar el **core**: no es la extensión, no es de ellos, no es barato.
+  **Y encontraron la tercera forma, que es la que hacía falta: congelar la ETIQUETA y liberar la prosa.** Cada
+  negativa empieza con un **rótulo estable** que el consumidor matchea y después va la oración humana, que puede
+  cambiar **sin romper nada**: `Four eyes:` · `Requester capacity:` · `Not an approver:` · `Already public:` ·
+  `Publication flow:` · `Publish denied:`.
+  **Por qué es mejor que mis tres opciones:** el `403` sigue siendo una falla de autorización (spec y contrato se
+  sostienen), el consumidor distingue por un **prefijo corto y congelado** en vez de por prosa completa, y
+  **mejorar la redacción deja de romper nada**. Mi opción 2 (tres comparaciones de prosa) queda muerta por su
+  argumento, y la 3 también: **no hace falta perder precisión**. El costo es cosmético y acotado —el rótulo se ve
+  en los contextos que muestran su texto crudo (la UI de CKAN, un `curl`), **no en el portal**, que escribe su
+  propio copy—.
+  **Las dos consecuencias del lado del consumidor que declaré:** (1) **el portal descarta la etiqueta**: la
+  matchea y **no** la renderiza, porque el copy visible es suyo y en español, así que el rótulo no tiene que ser
+  *legible* — sólo **único como prefijo**—; y (2) **la unicidad del prefijo es toda la condición**, así que lo que
+  va pinneado por test son **seis prefijos y no seis oraciones**, y su test se vuelve **más barato de mantener**.
+  **Y mejora una unidad mía, que es el efecto colateral bueno:** las filas de `A5` iban a afirmar la **oración
+  entera** de cada negativa; con etiquetas afirman **la etiqueta**. Eso elimina el falso positivo que quise
+  evitar —una mejora de redacción poniendo la sonda en rojo— sin perder lo único que importa: que la sonda
+  distinga **de quién** es la negativa, que era todo el punto de `P8`.
+  **Estado: decide el autor.** Si dice sí, los seis rótulos llegan junto con los dos títulos; si dice no, se
+  aplica la opción 2 y se declara. Y la cuenta de las dos correcciones de hoy, que la par nombró: fueron **la
+  misma cosa en direcciones opuestas** —su medición corrigió un dato mío contra una versión que no corre; la mía
+  corrigió un conteo de casos—, y en las dos lo que faltaba era lo mismo: **contar o medir antes de fijar la
+  conclusión**, y ninguna se vio releyendo lo propio.
