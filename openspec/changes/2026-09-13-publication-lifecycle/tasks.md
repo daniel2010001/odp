@@ -59,6 +59,23 @@ alembic boilerplate that carries little test weight; the same 2.20 ratio applied
 backend gives a floor of `(765 − 220) × 2.20 = 1,199`. The declared line uses the full 2.20, because
 the rule in `openspec/config.yaml` is to use the closest measured artifact and not to shave.
 
+### Re-measured as units land — A1 (`odp-docker` `27b8ab8`, 2026-10-07)
+
+The first real backend measurement against this forecast:
+
+| Slice | Forecast | Measured | Delta |
+|---|---|---|---|
+| `model.py` | 80 `[ESTIMATE]` | **73** | estimate 10% high |
+| `migration/umss/**` (4 files) | 220 `[ESTIMATE]` | **213** | estimate 3% high |
+| `tests/test_publication_store.py` | ~660 (300 × 2.20) | **223** | **the ratio was 3.0× too pessimistic** |
+
+**The code forecast was sound; the test ratio was not, for this kind of material.** A1's own ratio is
+`223 / 286 = 0.78`, far below the 2.20 measured on `auth.py` — which is the outlier this section already
+predicted for copied alembic boilerplate, only further than predicted. What carries into the remaining
+units: keep **2.20 for logic-dense auth code** (A3), where it was measured, and **do not** apply it to
+boilerplate or declarative model code. The remaining backend units re-measure as they land; **the total
+is not revised on one sample.**
+
 ### `review_material_lines` — declared, does not compete with the budget
 
 | Artifact | Lines | Basis |
@@ -196,14 +213,18 @@ Hazard 1; it is abbreviated as `pytest … <path>`.
   Repo/paths: `odp-docker`, `…/ckanext-umss/ckanext/umss/model.py` (new). Proof:
   `pytest … tests/test_publication_store.py` → green. TDD: A1.1 first.
 
-- [ ] **A1.3 GREEN: add the migration tree (strict-TDD exception).** Produce:
+- [ ] **A1.3 GREEN: add the migration tree.** Produce:
   `migration/umss/{alembic.ini, env.py, script.py.mako, versions/0001_add_publication_requests.py}`
   copied from CKAN's own `ckanext/example_database_migrations/` layout; registration is the **plugin
   name** (`umss`), no plugin code needed (`ckan/cli/db.py:142-172`, cited in `design.md` D3).
-  `MANIFEST.in:5` already reserves the tree. **Justified exception to strict TDD:** the tree is
-  copied alembic boilerplate plus a DDL script, which cannot have a meaningful pre-implementation
-  behavior test; the store test (A1.1/A1.2) carries the RED/GREEN and the migration is proven at the
-  CLI. Repo/paths: `odp-docker`, `…/ckanext-umss/ckanext/umss/migration/umss/**` (new). Proof: against
+  `MANIFEST.in:5` already reserves the tree. **Correction (measured 2026-10-07 in `ckan/tests/pytest_ckan/fixtures.py:390-400`; reported by the
+  session working in `odp-docker` and re-verified here): there is no TDD exception, and the migration is
+  not optional in tests.** CKAN's `clean_db` does **not** create extension tables. The fixture
+  `migrate_db_for("<plugin>")` exists for exactly this: its own docstring shows the pattern
+  (`@pytest.mark.usefixtures("clean_db")` … `migrate_db_for("my_plugin")` … `has_table(...)`), and it
+  calls `ckan.cli.db._run_migrations` — the same code path as `ckan db upgrade`. So the store tests take
+  `(clean_db, migrate_db_for)` and call `migrate_db_for("umss")`, and **the migration ends up exercised
+  by the suite**, not only at the CLI. Repo/paths: `odp-docker`, `…/ckanext-umss/ckanext/umss/migration/umss/**` (new). Proof: against
   a database without the table, `ckan -c <ini> db pending-migrations` lists the new migration, `ckan
   -c <ini> db upgrade` applies it, and `ckan -c <ini> db pending-migrations` then reports none with
   the table resolvable; `pytest … tests/test_publication_store.py` stays green.
@@ -267,7 +288,11 @@ Hazard 1; it is abbreviated as `pytest … <path>`.
 
 - [ ] **A3.2 GREEN: implement the wall.** Produce: in `…/ckanext-umss/ckanext/umss/auth.py`, remove the
   admin capacity exception from `package_update`/`package_patch` (D1), refuse public `package_create`
-  for **everyone** (D6.2), and add the `bulk_update_public` chained refusal (D6.3). Keep `_as_bool` a
+  for **everyone** (D6.2), and add the `bulk_update_public` chained refusal (D6.3) — **chain CKAN's own
+  auth function named `bulk_update_public` (`ckan/logic/auth/update.py:261`), not `package_update`**
+  (measured 2026-10-07: it is a separate function that checks
+  `has_user_permission_for_group_or_org(org_id, user, 'update')`, which is precisely why the
+  `package_update` chain does not cover it). Keep `_as_bool` a
   faithful mirror of `boolean_validator` and keep `@toolkit.auth_allow_anonymous_access` (D6.4) —
   `'banana'`/`''`/`None` are publish attempts, not deferrals (`apply-progress.md:363-399`). Add the
   admin's **distinguishable** message ("publication goes through the publication flow, not

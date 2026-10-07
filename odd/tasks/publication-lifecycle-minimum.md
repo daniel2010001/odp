@@ -93,6 +93,7 @@ como **medida** o **estimada**, y no se mezclan.
 | WU-3 | **Reconciliación de artefactos** | `proposal.md`, `specs/publication-lifecycle/spec.md`, `specs/dataset-publishing/spec.md`, `design.md`, `tasks.md` realineados al alcance decidido, y la obsolescencia marcada donde falta | Coherencia cruzada artefacto a artefacto (lo que hoy falla) |
 | WU-4 | **Forecast y gate de presupuesto** | `tasks.md` con `code_lines`, `test_lines`, `review_material_lines` separadas y la proporción medida que se usó | Gate **antes** de aplicar (`openspec/config.yaml`) |
 | WU-5 | **Cierre** | Handoff en `BACKLOG.md` y este expediente completo | `pnpm check` + `pnpm test` en verde si se tocó código del portal |
+| WU-6 | **Playground `/dev/publication` + los dos controles y la cola** (no bloqueado por A2) | La hoja de revisión con el control del pedido (`editor`), el de publicación (`admin`) y la cola de aprobación, contra **llamadas inyectadas** | Se revisa **mirando** la hoja en vivo (regla 8); el cableado a las acciones reales es B1 y espera a A2 |
 
 ## WU-2 · Brief de decisión (2026-10-07)
 
@@ -205,3 +206,30 @@ tenga su UI.
   `BACKLOG.md` → «Replanificación HECHA», porque **los mensajes entre sesiones son notificaciones, no
   registros** — y `orchestrator_send_message` devuelve «accepted for delivery», no acuse de lectura.
   **Dependencia declarada: B1 queda esperando a que A2 fije las firmas de las cinco acciones.**
+- **2026-10-07 — WU-6 abierto** (decisión del autor). Mientras B1 espera a A2, se construye **lo que no está
+  bloqueado**: los dos controles (pedido/cancelar del `editor`, publicar del `admin`), la cola de
+  aprobación y el playground `/dev/publication`, con las llamadas **inyectadas** — no se llama a ninguna
+  acción real porque todavía no existe. La hoja se arma sobre el playground `/dev/dataset-publish` de la
+  rama aparcada (273 líneas medidas, que ya resolvió el panel de presets) y muestra los tres estados del
+  flujo más los dos de fallo (`403` honesto; un `200` que no concede no es un éxito).
+  **Riesgo declarado:** si A2 cambia el payload de alguna acción, se retoca el **doble** del playground,
+  no los componentes — que es exactamente por lo que las llamadas van inyectadas.
+- **2026-10-07 — A1 entregada por la sesión par** (`odp-docker` `27b8ab8`, 509 líneas: modelo 73 +
+  migración 213 + 15 tests en 223). Suite **69 passed** (54 + 15), `db upgrade` aplica, índice parcial
+  confirmado. **Sin pushear todavía.** Verificado acá: el commit existe con ese `--stat`, y **dos
+  correcciones que reportó se confirmaron contra la fuente**, no se heredaron:
+  1. **La migración no es opcional en los tests.** Medido en `ckan/tests/pytest_ckan/fixtures.py:390-400`:
+     `clean_db` **no** crea tablas de extensión, y el fixture `migrate_db_for("umss")` aplica el árbol
+     de migración dentro del test — su propio docstring documenta el patrón, y llama a
+     `ckan.cli.db._run_migrations`, el mismo camino que `ckan db upgrade`. Consecuencia: **el artefacto
+     tenía una excepción a TDD que no correspondía**, y la migración queda ejercitada por la suite en vez
+     de sólo por el CLI. Corregido en `tasks.md` (A1.3).
+  2. **La auth a encadenar para `bulk_update_public` es su propia función**
+     (`ckan/logic/auth/update.py:261`), no `package_update` — medido: es una función aparte que consulta
+     `has_user_permission_for_group_or_org(org_id, user, 'update')`, que es exactamente **por qué** la
+     cadena de `package_update` no lo cubre. Corregido en `tasks.md` (A3.2).
+  **Y la primera medición real del forecast del backend:** el código se estimó bien (80 → 73 y 220 → 213,
+  apenas 3-10% arriba), pero el **ratio de tests 2,20 fue 3,0× pesimista** para este material (223 tests
+  en vez de ~660). El ratio real de A1 es **0,78** — el valor atípico que el propio artefacto había
+  anticipado para el boilerplate de alembic. Se mantiene 2,20 para la auth densa (A3) y **no se revisa el
+  total con una sola muestra**.
