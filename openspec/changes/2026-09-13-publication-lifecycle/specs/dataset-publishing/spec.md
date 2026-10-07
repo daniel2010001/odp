@@ -4,9 +4,9 @@
 
 ### Requirement: Visibility
 
-Datasets MUST always be created **private**: the wizard MUST NOT offer a visibility choice, and `package_create` MUST be called with `private: true` for every submission. Publication MUST be a separate, authorized transition performed by an administrator of the owning organization (see the `publication-lifecycle` capability), never a field of the creation form. The wizard MUST state in the UI that the dataset will be created private, that publishing it requires an organization administrator, and that a private dataset is readable by every member of the owning organization.
+Datasets MUST always be created **private**: the wizard MUST NOT offer a visibility choice, and `package_create` MUST be called with `private: true` for every submission. Creation is private **for everyone**: CKAN itself refuses any `package_create` whose `private` value is not explicitly private, including from an organization administrator (see the `publication-lifecycle` capability, `Publication Authorization`). Publication MUST be a separate, authorized transition through the `publication-lifecycle` actions — an `editor` may request it and an organization administrator decides — never a field of the creation form, and never a stock `package_patch`. The wizard MUST state in the UI that the dataset will be created private, that publishing it requires an organization administrator, and that a private dataset is readable by every member of the owning organization.
 
-(Previously: visibility was an explicit private/public choice in the form, and a "public submission" called `package_create` with `private: false`.)
+(Previously: visibility was an explicit private/public choice in the form, and a "public submission" called `package_create` with `private: false`. The earlier delta of this same change assumed the administrator published with stock `package_patch`; under scope B nobody publishes that way.)
 
 #### Scenario: The wizard always creates privately
 
@@ -31,9 +31,18 @@ Datasets MUST always be created **private**: the wizard MUST NOT offer a visibil
 #### Scenario: Publication is not a form field
 
 - GIVEN a dataset created by the wizard
-- WHEN a caller that is not an organization administrator tries to make it public
-- THEN the wizard performs no transition and CKAN refuses it
+- WHEN the wizard handles any submission
+- THEN it never issues a visibility transition
+- AND the only visibility change path is the `publication-lifecycle` action; a stock `package_patch` from any caller, including an organization administrator, receives `403`
 - AND the refusal is surfaced as an authorization error, not as a form validation error
+
+#### Scenario: An administrator cannot create a public dataset
+
+- GIVEN a caller holding the `admin` capacity in the target organization
+- WHEN the caller sends `package_create {name, owner_org, private: false}`, or omits `private`
+- THEN CKAN answers `403` with `error.__type = "Authorization Error"`
+- AND no dataset is created
+- AND creation is private for everyone, so the administrator publishes afterwards through the publication action
 
 #### Scenario: Private reach is described accurately
 
@@ -46,8 +55,8 @@ Datasets MUST always be created **private**: the wizard MUST NOT offer a visibil
 
 - GIVEN the wizard copy that mentions publication
 - WHEN it renders
-- THEN it names an administrator of the organization as the role that publishes the dataset
-- AND it does not describe a review, approval or draft step
+- THEN it names an administrator of the organization as the role that decides publication
+- AND it does not describe an editorial review, approval or draft state machine
 
 ### Requirement: Dataset Metadata Fields
 

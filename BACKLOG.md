@@ -1251,8 +1251,35 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
 > - **El prefijo `?expired=1` es el contrato entre la expulsión y el login**: si se renombra el parámetro hay que
 >   cambiarlo en `src/lib/session.ts` y en los tests que lo fijan por URL.
 
-## Replanificación pendiente — cambio `2026-09-13-publication-lifecycle`
+## Replanificación HECHA (2026-10-07) — cambio `2026-09-13-publication-lifecycle`
 
+> **RESUELTO el 2026-10-07.** La contradicción que este bloque abría quedó cerrada: el cambio tiene un
+alcance único. **Decisión del autor: el modelo del PRD completo (B)** — el store `publication_requests`,
+el flujo de solicitud obligatorio (`RF-15` paso 5) y la cola de aprobación **entran**; `RF-41`/`RF-42`
+quedan **`[v1]`**; la máquina editorial (`draft`/`review`/`approved`) queda **fuera**.
+>
+> **Los cinco artefactos se reconciliaron a una sola posición** (el aviso de obsolescencia ya no está):
+> `design.md` **401** líneas (D1–D9) · `specs/publication-lifecycle/spec.md` **636** (13 requisitos, 73
+escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** · `proposal.md` **193**.
+>
+> **Gate de presupuesto cerrado por el autor: cadena de unidades**, cada una con su compuerta nativa, sin
+> `size:exception`. Forecast: **1.579** de código / **2.587** de tests / ~**973** de material de revisión;
+> el código solo ya es **3,9×** el presupuesto de 400. Cadena: `A1 → A2 → A3 → A5 → B1 → B2`.
+>
+> **Lo que cambió en el diseño, y es la diferencia de fondo:** el guard **no consulta** la aprobación —
+> **se convierte en pared y se agrega una sola puerta** (una acción autorizada al `admin` que escribe el
+> registro y pliega el valor en la misma transacción). Consultar habría puesto un consumo dentro de un
+> predicado de lectura: doble consumo posible y ventana de replay. La consecuencia aceptada: se pierde la
+> salida de emergencia por API (queda el `sysadmin`) y hay que enmendar `Approver Capacity` y la sonda.
+>
+> **Siguiente: la unidad A1** — modelo + migración + registro en `ckanext-umss` (`odp-docker`).
+> Expedientes: `odd/tasks/publication-lifecycle-minimum.md` y `odd/tasks/publication-guard-design.md`.
+>
+> ---
+>
+> **Lo que sigue es el bloque del 2026-09-16, que abrió la replanificación. Se conserva como histórico y
+> ya no describe el estado:**
+>
 > **Dónde quedó todo (2026-09-16).** El **modelo de producto fue revertido** y el PRD ya está firme para
 > esta feature. Los artefactos del cambio SDD quedaron **obsoletos** (el `proposal.md` lleva el aviso al
 > inicio) y el PR 2 viejo está **aparcado**. Nada quedó a medias ni roto: el stack de dev está `healthy`,
@@ -1639,7 +1666,11 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 
 ### `2026-09-13-publication-lifecycle` — EN CURSO
 
-> **Estado (2026-09-14, tarde):** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
+> **Estado (2026-10-07):** la replanificación está **HECHA** — los cinco artefactos reconciliados al
+alcance B (el modelo del PRD) y el gate de presupuesto cerrado como **cadena de unidades**. El estado
+completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: la unidad A1.**
+>
+> **Estado (2026-09-14, tarde) — histórico, ya no describe el estado:** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
 > `spec` ✅ · `tasks` ✅ · **`apply` del PR 1 ✅ (pusheado: `86f130b` en `odp-docker`)** · **PR 2
 > APARCADO**. · El **modelo de producto fue revertido** el 2026-09-14: manda el PRD, no las decisiones
 > D1–D7 del proposal. Ver el aviso al inicio de `proposal.md`. **Hay que reconciliar proposal → spec →
