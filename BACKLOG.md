@@ -46,32 +46,20 @@
 >
 > **Lo que queda, en orden de valor:**
 >
-> 1. **Las demos de *scroll snapping* y de los tags** — lo único que falta de lo pedido por el autor. El
->    *snapping* tiene **tres salidas** (proximidad, obligatorio, o un contenedor con scroll propio) y los tags
->    **dos** (el `<a>` de la card como disparador, o reestructurar la card para que el título sea el enlace y la
->    divulgación un `<button>` real). Las dos se deciden **mirándolas**, y el *snapping* exige **medir el
->    desplazamiento en un navegador** (jsdom no lo reproduce): la sesión anterior ya probó que `scrollTo(310)`
->    termina en `404` con `mandatory`.
-> 2. **El vistazo del autor en el navegador, con sesión**, a las dos superficies que el agente **no puede**
+> 1. **El vistazo del autor en el navegador, con sesión**, a las dos superficies que el agente **no puede**
 >    verificar: la **card en ancho angosto** (`/dashboard`, las acciones deben desaparecer y el título quedar
 >    legible) y **el hero con permiso de edición** (el grupo en la fila de insignias, el título solo arriba).
-> 3. ~~**Los cuatro estados del copy** del formulario de edición, aprobados **de memoria**: llevarlos a
+> 2. ~~**Los cuatro estados del copy** del formulario de edición, aprobados **de memoria**: llevarlos a
 >    `/dev/dataset-edit` con un selector de caso para que la aprobación sea **leída en contexto**.~~
 >    **CERRADO (2026-10-06): el autor los revisó y los dio por buenos.** El selector de caso no hace falta para
 >    cerrar la aprobación, y los cuatro estados **no se pueden provocar en ninguna pantalla** (dependen de
 >    respuestas de permiso que ningún caso produce hoy): si uno aparece mal en la página real será un defecto
 >    normal, no una aprobación pendiente.
-> 4. El **afinado de la página de error**, cuya lista completa está en la sección siguiente.
-> 5. **La deuda de prueba declarada** de la hoja del hero (dos pruebas más débiles que su comentario), en la
+> 3. El **afinado de la página de error**, cuya lista completa está en la sección siguiente.
+> 4. **La deuda de prueba declarada** de la hoja del hero (dos pruebas más débiles que su comentario), en la
 >    sección «Revisión del autor».
-> 6. Y lo que ya venía de antes: el **push** ya está hecho; quedan el linaje atascado
->    `review-6b517157db5f4274`, los **cuatro hallazgos informativos** de las compuertas de error (ubicaciones
->    sin texto), y el ítem de **tokens** del contraste en oscuro (**3.73:1**, regla 7).
->
-> **Nota de entorno, medida hoy y que ahorra tiempo:** `pnpm lint` y `pnpm exec` **abortan en esta máquina
-> con exit 254** —incluso en `biome --version`—, mientras que `node_modules/.bin/biome check .` recorre todo
-> limpio en menos de un segundo. **En CI, `pnpm lint` pasa.** Localmente, la verificación confiable es el
-> binario directo.
+> 5. Y lo que ya venía de antes: el **push** ya está hecho; queda el linaje atascado
+>    `review-6b517157db5f4274`, con las ubicaciones de sus hallazgos sin texto.
 
 ## Afinado pendiente de la página de error (pedido del autor, 2026-10-05)
 
@@ -91,12 +79,10 @@
 - [ ] **[v1+]** **El diagnóstico de desarrollo conserva el texto del framework en su idioma**, citado y rotulado
   (`el framework dice «Not Found»»). Fue una decisión declarada —su valor es ser crudo—, pero si el afinado
   prefiere no ver inglés en la página, se traduce o se quita.
-- [ ] **[v1+]** **La hoja `/dev/error` no tiene instrumento de geometría.** El hero y las cards sí lo tienen
+- [x] **[v1+]** **La hoja `/dev/error` no tiene instrumento de geometría.** El hero y las cards sí lo tienen
   (imprimen ancho, alto y separación en píxeles). Para afinar la página de error con números en vez de a ojo,
   conviene el mismo tipo de instrumento: medallón, regla y acciones por caso.
-- [ ] **[v1]** **Los cuatro hallazgos informativos** de las compuertas de las superficies de error (dos WARNING y
-  dos SUGGESTION): sus **ubicaciones** están en `odd/tasks/error-surfaces.md`, **sin su texto** — se perdieron
-  antes de aprender a leer el estado de la compuerta, y hay que releer la línea antes de tratarlos como trabajo.
+  **CERRADO (2026-10-06): STALE** — el instrumento existe (`src/routes/dev/error/measures.ts`).
 
 ## Aprobaciones del autor (2026-10-05, tarde) — hero y card promovidos
 
@@ -183,22 +169,16 @@ tres rondas sobre la misma hoja. Las dos mejoras concretas, pendientes:
 - `[ ]` **[v1+]** En la prueba de re-medición, afirmar la lectura **sobre el nodo del hero** (por ejemplo contando
   las llamadas que recibe el nodo medido) y no el total global.
 
-**Queda, en orden:**
-
-1. **La aprobación del copy de los cuatro estados de negativa** del formulario de edición (propuesta del agente:
-   `extras`, `version`, `noPermission`, `permissionUnknown`).
-2. **Los playgrounds de botones**, con interruptor de variantes: el **hero** del dataset (hoy `[copiar enlace]
-   [título] [Editar]` en una fila; la hoja prescribe acciones a la derecha, con los metadatos a la izquierda) y la
-   **card del dashboard** (hoy el botón «Editar» es hermano del enlace de la card — no puede anidarse, es HTML
-   inválido— y se ve forzado: variantes de ícono, menú, columna de acciones o acción al pasar el mouse).
-3. **Las demos de decisión**: las tres salidas del *scroll snapping* y las dos formas del `Tooltip` de los tags,
-   en una hoja con interruptor.
+**Queda, en orden: nada de esta lista.** Los dos ítems se cerraron: el copy de los cuatro estados de negativa el
+**2026-10-06** (el autor los dio por buenos), y los playgrounds de botones el **2026-10-05** (hero y card
+promovidos; las hojas se retiraron).
 
 ## Barrido de pulido de UI (sesión paralela, 2026-10-03) — qué tomó y cómo cerró
 
 > **Mergeado a `main` el 2026-10-04** (`d334c3f`), con la rama y el worktree retirados: **ya no hay una segunda
-> línea en este clone**. Del barrido sigue parqueado lo mismo, y son los dos únicos ítems de esta sección que
-> esperan una decisión del autor: el *scroll snapping* del buscador y los tags cortados de la card.
+> línea en este clone**. Del barrido **ya no queda nada parqueado**: el autor decidió el 2026-10-06 —los tags,
+> divulgados con el `Tooltip` vendorizado (opción a); el *snapping*, no adoptado—, con la hoja `/dev/search`
+> retirada en `8c7b96d`.
 >
 > **Las 1987 líneas entraron revisadas, por unidad**, las tres aprobadas y con la autoridad quemada:
 > `review-236918db1f135803` (Biome, 5 archivos) · `review-44dbd42660f4154f` (la hoja `/dev/error` y su
@@ -294,9 +274,7 @@ Es lo que más convenía saber antes de tocar nada, porque no estaba escrito en 
 3. **La revisión en el navegador de los puntos de entrada**: el botón «Editar» ya existe. El copy de los
    cuatro estados de negativa es **propuesta del agente**, y la regla 8 dice que la interfaz la aprueba el
    autor.
-4. **El contraste del botón primario en modo oscuro** (ítem abajo): **3.73:1** contra la regla 7
-   (`AGENTS.md:35`, ≥ 4.5:1), portal-wide y preexistente. El arreglo son **tokens** en `src/app.css`.
-5. ~~**El merge de `feat/ui-polish-sweep`**~~ — **hecho el 2026-10-04**: merge limpio, **sin un solo conflicto**
+4. ~~**El merge de `feat/ui-polish-sweep`**~~ — **hecho el 2026-10-04**: merge limpio, **sin un solo conflicto**
    (`d334c3f`), con la rama y el worktree retirados. Con eso, **el push** pasa a ser el pendiente principal: son
    **44 commits** locales, ninguno subido.
 
@@ -327,24 +305,19 @@ pedidos nuevos.
   `CkanApiError(…, 0)` y **pierde el status**. Un conflicto real se reporta así como fallo de transporte. No
   hay pérdida de datos —la escritura no ocurre— pero clasifica mal en silencio, que es la dirección que este
   proyecto no acepta.
-- [ ] **[v1]** **`CkanPackage` no declara `owner_org`.** La ruta de edición lo lee por un cast, con respaldo en
+- [x] **[v1]** **`CkanPackage` no declara `owner_org`.** La ruta de edición lo lee por un cast, con respaldo en
   `organization.id`. El arreglo honesto es un campo en `src/lib/types/ckan.ts`.
+  **CERRADO (2026-10-06): DONE** — `owner_org` ya está declarado en `src/lib/types/ckan.ts`.
 - [ ] **[v1+]** **`datasetApi.revise` acepta un payload armado a mano.** Nada obliga a un llamador a pasar por
   `buildRevisePayload`, así que la disciplina del que llama es lo único que mantiene a la ruta de edición en
   el camino verificado — la misma forma de agujero que una compuerta castigó un nivel más abajo. Endurecerlo
   sería que `revise` reciba el paquete crudo (o directamente el resultado del builder).
-- [ ] **[v1]** **El cambio `2026-09-13-publication-lifecycle` está medido sobre CKAN 2.11.6 y el stack corre
-  2.12.0.** Su diseño manda sondear la tabla `package_extra`, que en 2.12 **ya no existe** (`extras` pasó a
-  una columna `jsonb`). Si ese cambio se retoma, sus premisas hay que re-medirlas antes de confiar en ellas.
 - [ ] **[v1]** **La carga de la ruta de edición es estado coordinado a mano** (ocho banderas más un contador de
   generación) y cuatro revisiones consecutivas le encontraron un defecto cada una, dos de ellos introducidos
   por el arreglo anterior. Además su estado **no es testeable desde la página**: los guards de solapamiento
   corren con el formulario desmontado, así que ninguna aserción de DOM distingue guardado de no guardado (dos
   avisos de `review-dfab596fdb93734a`). El arreglo es **extraer la carga a una unidad testeable** o colapsar
   las banderas en un estado único — **no** agregar más aserciones.
-- [x] **[v1]** **Los puntos de entrada a la edición** — cerrados en `8ebae13`: el botón «Editar» en la
-  fila del dashboard y en la página del dataset, con la pregunta de permiso en **una sola llamada por página**
-  y fallando cerrado. Queda **la revisión del autor** en el navegador (ver arriba).
 
 ## Anotado el 2026-10-03 — hallazgos de la sesión paralela de pulido de UI, traídos a `main`
 
@@ -589,10 +562,7 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
    cruda en `odp-docker/odd/tasks/s5-remaining-rows.md` y el resumen en la sección del 2026-09-29 de
    arriba. Lo que hay que retener: #4 no borra recursos, #7 es aditivo y se lee por clave, y **#9
    estaba mal enunciada** (encadena *auth*, no validadores, y recibe el payload de la request).
-4. **Rotar las contraseñas de la base y del sysadmin** que el DebugToolbar publicó. **No es
-   emergencia:** el leak está cerrado, así que no hay exposición activa — es higiene. Con el volumen
-   limpio ya se regeneraron solos los secretos del ini.
-5. ~~**`R2-002` — el tag de CKAN como literal en ocho lugares**~~ — **la parte que es deriva del tag
+4. ~~**`R2-002` — el tag de CKAN como literal en ocho lugares**~~ — **la parte que es deriva del tag
    de CKAN quedó CERRADA el 2026-09-29** con una guarda de host, no con una variable:
    `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`) falla si los tags de CKAN difieren
    entre los sitios que nombran la imagen, si un sitio deja de nombrarla, si la extracción queda
@@ -829,11 +799,10 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
 |---|---|---|---|---|
 | **1** | **El contrato de logout:** hoy `POST /auth/logout` responde `500` si falta `CKAN_INTERNAL_URL` fuera de dev. **La recomendación que vivía acá —«login ruidoso, logout a best-effort»— quedó retirada el 2026-09-24: su premisa (impacto en el usuario) es falsa y está medida** —el cliente descarta el status, y el login ya denuncia la misma variable con la misma fuerza—. Lo único que sigue en pie es si el encabezado de la ruta merece precisar que la revocación *en sí* es best-effort. **Puede cerrarse sin una línea de código**; las mediciones están en «Deuda de revisión (RDD)» | el autor | chico, y probablemente cero código | nada |
 | **2** | **Bloque E — pulido de layout y cards de `v0`** — 7 ítems, plan en `odd/tasks/block-e-layout-polish.md`: encabezado alto en 720p **y los dos `[v1]` que derivan de él**, card de metadatos del dataset, resumen del wizard con varias organizaciones, descripción de organizaciones, badges duplicados del buscador, breadcrumb móvil, vista del enlace. **Tres piden decisión del autor** —el umbral de alto del encabezado, cuál card del dataset, y la estrategia del breadcrumb— y se resuelven mirando un playground; los otros cuatro no — **E1 y E2 cerrados el 2026-09-24** (`review-35a2937ca35fd6fc`, `review-aae5dd97579ec543`) | el autor, para esas tres | medio, seis slices (E1–E6) | nada |
-| **3** | **Ingesta (`[v1+] Datos de muestra para las vistas`):** falta la fuente. **El autor tiene un ejemplo de cómo hacer la carga de datos y todavía no lo pasó**; con eso se decide. El camino «upload + datapusher» **ya está medido y funciona** | el autor (aporta el ejemplo) | medio | el ejemplo |
-| **4** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) | se decide al empezar | grande | nada, pero conviene medir primero |
-| **5** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
-| **6** | **Los `v1+` que el autor pidió:** pulido visual de las páginas de error · la paleta de formato como **tokens** · unificar los colores de los chips en las tres superficies · chips clicables al buscador · reordenar los recursos del asistente · los 11 diagnósticos de Biome | el autor, cuando quiera detalles | chico cada uno | nada |
-| **7** | **Acciones que son sólo del autor:** el `push` de los commits de la rama (17 al cierre del 2026-09-23) · la **rotación de los tres secretos** del `.env` de Engram · el arreglo de `pnpm lint` y el gancho de pre-commit (`shell-emulator=true` en `.npmrc` o Node LTS en `mise`) | el autor | — | — |
+| **3** | **Bloque F — permisos:** habilitar los colaboradores **nativos** de CKAN y **medir** qué cubren antes de decidir cuánto construir fuera (`RF-19`, equipos) — y el **`[v0]` de habilitar la bandera por dataset** en `v0` es su primer paso | se decide al empezar | grande | nada, pero conviene medir primero |
+| **4** | **Bloque G — el oráculo de la API** (`403` que nombra el recurso vs `404`): exige capa server-side | arquitectura | — | **diferido** |
+| **5** | **Los `v1+` que el autor pidió:** la paleta de formato como **tokens** · chips clicables al buscador · reordenar los recursos del asistente | el autor, cuando quiera detalles | chico cada uno | nada |
+| **6** | **Acciones que son sólo del autor:** el `push` de los commits de la rama (17 al cierre del 2026-09-23) · la **rotación de los tres secretos** del `.env` de Engram | el autor | — | — |
 
 > **Dos ítems salieron de la lista de `v1+` el 2026-09-24:** el **breadcrumb móvil** y la **vista del enlace**.
 > Los dos son `[v0]` y los dos estaban listados **también** en el bloque E — duplicados. Quedan sólo en el bloque E.
@@ -1654,9 +1623,8 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 
 **Lo que sigue pendiente de esta tanda** (no bloquea el snapshot):
 
-- Las **dos decisiones `[v1]`** siguen abiertas y **no** bloquean nada: si la edición reutiliza esta UI
-  (hoy el wizard es una **página** con un solo flujo; extraerla a un componente con modo es un refactor
-  mecánico cuando exista edición) y si la creación es de uno o dos pasos (depende de la estrategia del
+- La decisión `[v1]` de **si la edición reutiliza esta UI** quedó **CERRADA (2026-10-06): sí, `DatasetForm.svelte`
+  con su `mode`.** Sigue abierta la de **si la creación es de uno o dos pasos** (depende de la estrategia del
   ciclo de vida, RF-15, todavía sin resolver).
 - **[v1] La página del wizard volvió a crecer** (`~1650` líneas tras el slice 2). Si se toca otra vez, el
   candidato natural es extraer el mini-form y la lista de recursos a componentes, como ya se hizo con
@@ -1897,7 +1865,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 >      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
 >      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
 >
-- [ ] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
+- [x] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
   el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
   (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
   dataset**: en `src/routes` sólo existen el wizard de creación y las vistas de lectura, y
@@ -1910,6 +1878,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): VIVO, libre para implementar o para dejar de prometer.** La frase sigue en
   `new/+page.svelte:1736` y `datasetApi.update` (`lib/api/datasets.ts:64`) **no tiene ni un call site**. El cierre es por
   una de dos vías, no las dos: implementar la edición, o que el copy deje de anunciarla.
+  **CERRADO (2026-10-06): STALE** — la ruta de edición existe (`src/routes/dashboard/datasets/[id]/edit/+page.svelte`); ya no hay promesa sin respaldo.
 
 - [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
   la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
@@ -1938,7 +1907,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   safeExternalUrl(resource?.url)` y `:544` con `href={downloadUrl}`; no hay ruta que proxee (los únicos `+server.ts` son
   los dos de `auth`). **Frena en la decisión del autor:** servirlo por el portal, o aceptar el acoplamiento de forma deliberada.
 
-- [ ] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
+- [x] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
   por roles con capacidad de pasar a permisos, y **es exactamente esto**: `RF-01` define roles **a nivel de
   organización** (`superadmin`, `org_admin`, `editor`, `viewer`) **y además roles por dataset** (`viewer`,
@@ -1954,6 +1923,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): sin acción pendiente hoy.** El texto vigente (`lib/copy/dashboard.ts`,
   `EMPTY_STATE_NO_CREATE_PERMISSION_REQUIREMENT`) ya coincide con la conclusión del ítem; lo que falta es la redacción
   futura de «rol o permiso explícito», atada al trabajo de permisos.
+  **CERRADO (2026-10-06): STALE** — el propio ítem declara que no hay acción pendiente; la redacción futura pertenece al trabajo de permisos.
 
   **Cuándo se decide:** no ahora, sino **al empezar el trabajo de permisos** (el ítem de colaboradores
   nativos de CKAN en `v0`): ahí se mide si lo nativo alcanza antes de construir equipos por fuera de CKAN.
@@ -2093,7 +2063,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
   **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
 
-- [ ] **[v0]** `TODO:` **Aviso benigno de Chromium: «el anclaje de desplazamiento se desactivó… demasiados ajustes
+- [x] **[v0]** `TODO:` **Aviso benigno de Chromium: «el anclaje de desplazamiento se desactivó… demasiados ajustes
   consecutivos». DECIDIDO (2026-10-01): no se actúa.** Lo produce el encabezado que se achica **cambiando su alto en el
   flujo** (80→64 px) y **animado** (200 ms), en `+layout.svelte`: cada cruce mueve el contenido 16 px y la animación lo
   hace **cuadro por cuadro** (~12 ajustes de ~1,3 px), así que tras diez ajustes con distancia diminuta el navegador **se
@@ -2105,6 +2075,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   porque esa compensación es lo que hoy evita el salto. El detalle de la medición está en los commits `e891ed5` y `389f2d0`.
   _Origen: el mensaje de consola que el autor vio el 2026-09-24, en el buscador y en la ficha del PDF de sonda; cierre por
   decisión del autor el 2026-10-01 (no es importante)._
+  **CERRADO (2026-10-06):** ya decidido el 2026-10-01 (no se actúa); no hay trabajo abierto.
 
 - [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
@@ -2301,19 +2272,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
   Decidir cuál es el canónico y alinear el facet. **El duplicado del select ya se arregló**
   (`5d0b751`); esto es la parte de fondo. _Origen: revisión de UI del 2026-09-14._
 
-- [x] **[v1] Estrategia del ciclo de vida de publicación** — **MOVIDA al cambio SDD
-  `2026-09-13-publication-lifecycle` (2026-09-13)**; ver «En curso (cambios SDD)». Lo que sigue es el
-  registro histórico de las opciones evaluadas el 2026-09-11, ya superado por el diseño de ese cambio:
-  - (A) Custom liviano en el portal: `package.extras.lifecycle_status` + `private` + endpoint
-    server-side propio con las transiciones. Menor costo y control total.
-  - (B) Extensión CKAN de terceros: `ckanext-workflow` / `ckanext-datasetapproval` /
-    `ckanext-approvalworkflow`. Trae el flujo resuelto, pero ata el proyecto a extensiones de
-    madurez dispar y hay que verificar compatibilidad con CKAN 2.10 y con `ckanext-umss`.
-  - (C) Extensión propia (`ckanext-umss`) que agregue el ciclo de vida.
-
-  Preferencia expresada por el usuario: extensión propia, con algo más liviano si conviene.
-  **Bloquea RF-14 a RF-17, RF-23 y RF-33.**
-
 - [ ] **[v1] El token de CKAN no debe ser legible por JavaScript (endurecimiento)** — hoy el JWT
   vive en `localStorage` y el navegador lo manda en `Authorization`. En `v0` es un trade-off
   aceptado, no un bug. El costo real es XSS: el portal renderiza contenido que viene de CKAN
@@ -2363,7 +2321,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
   2026-09-11._
 
-- [ ] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
+- [x] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
 
   Hoy el stack corre **2.11.6**, que es el **último patch de su línea** (2.11.6 se publicó el mismo
   día que 2.12.0, y 2.10 también recibió el suyo: quedarse en 2.11.x es una posición soportada, no
@@ -2412,6 +2370,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
   _Origen: pregunta del autor, 2026-09-24; medición propia del mismo día (changelog oficial,
   tags de Docker Hub y estado del repo `ckan/ckan-docker`)._
+  **CERRADO (2026-10-06): DONE** — la actualización se entregó; el registro vive en `odd/tasks/ckan-2.12-upgrade.md`.
 
 - [ ] **[v1] Los roles en el front no se distinguen: ¿qué diferencia hay entre un usuario, un admin de
   organización y un superadmin?** — Observación del autor (2026-09-28), al revisar el badge del dashboard:
@@ -2438,6 +2397,24 @@ después del cierre que describe el encabezado de esta sección; medición compl
 - [ ] **[v1] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
   registro de logins/logouts; la `activity` nativa de CKAN es insuficiente. Evaluar
   `ckanext-event-audit`. Depende del ciclo de vida resuelto.
+
+- [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
+  entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su
+  propio comentario**; (2) otra que podía **ocultar** un token prohibido en vez de señalarlo; y (3) un
+  limpiador *string-aware* que **no parsea las expresiones `${…}`** de los templates, así que una regex
+  dentro de una de ellas desincroniza el escaneo y este **pierde o marca mal**; tampoco señaló nunca la
+  etiqueta pelada sin dos puntos. Es un modo de falla **silencioso** —el peor para una guarda— y ya van tres.
+  **Decisión abierta, con opciones y recomendación:**
+  - **(a) Seguir parchando la heurística** — barato por ronda, pero es lo que produjo las tres fallas:
+    cada parche cubre el caso que se vio y deja el siguiente.
+  - **(b) Reemplazarla por un parser real** (el compilador de TypeScript o el de Svelte, ya dependencias
+    del repo) — precio de una sola vez, y deja de adivinar sobre el texto.
+  - **(c) Acotar la guarda a las superficies de copy puras y declarar el límite** — la más honesta si el
+    alcance del copy no llega a las expresiones.
+  **Recomendación: (b), con (c) como límite declarado si el parser se vuelve caro.** Motivo: una guarda que
+  no puede fallar por el motivo que dice proteger no es una guarda; el parser elimina la clase de defecto
+  (la desincronización por `${…}`) en vez de un caso, y las dos dependencias ya están pagadas.
+  _Origen: observación del autor, 2026-10-06._
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
@@ -2475,11 +2452,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
   copy actual de la tarjeta del dashboard. El slice A del trabajo `v0-portal-honesty` lista **sólo los
   creados por el usuario** y ajusta el copy a eso; cuando esta entidad exista, el copy y la consulta
   vuelven a cambiar. _Origen: respuesta del usuario del 2026-09-17 sobre el alcance de «Mis datasets»._
-
-- [ ] **[v1+] Notas de UI de las páginas de organizaciones.** Al usuario **le gustan** las cards de
-  `/organizations`; son mejoras para después, no defectos. Anotar concretamente qué mejorar cuando se
-  retome esa página (y la de detalle `/organization/[id]`, que quedó bajo la misma observación).
-  _Origen: revisión del 2026-09-14._
 
 - [ ] **[v1+] Metadatos de interoperabilidad (DCAT/Dublin Core)** — agregar los campos que no
   tienen equivalente nativo en CKAN: idioma (`dct:language`) y periodicidad de actualización
@@ -2538,12 +2510,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
   colaboradores por dataset son nativos (ver `v0`); los equipos multi-organización son custom.
   _Referencias: PRD RF-19/RF-20, design-system §9 item 12._
 
-- [ ] **[v1+]** `TODO:` **Pulido visual de las páginas de error.** El autor las revisó y los *mensajes*
-  quedaron bien; lo que falta es la densidad visual: «se ven planas, sin color, sin gracia». Pedido:
-  mejorarlas «como hicimos con las otras pages», cuando haya tiempo de detalles. Alcanza a
-  `src/routes/+error.svelte` (el componente `ErrorPage`) y a la hoja `/dev/error`. No es un defecto de
-  contenido: no cambiar la copia ni los dos estados al hacerlo.
-
 - [ ] **[v1+]** `TODO:` **La paleta de formato, en la misma pasada de detalles.** Decisión del autor
   (2026-09-22): el chip de tipo de recurso queda **neutro** por ahora y la paleta se define **una sola
   vez** para todas las superficies (la lista del dataset, la ficha del recurso y, si corresponde, los
@@ -2555,17 +2521,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
   salida correcta por las reglas es **tokens en `src/app.css`** más la sección de roles en
   `design-system/datos-umss/README.md`, explicando por qué la paleta de formato extiende ese límite.
   **No restaurar el mapa crudo** sin esa decisión: repone las dos violaciones.
-
-- [ ] **[v1+]** `TODO:` **Unificar los colores de los chips en las tres superficies, y resolver el del «Enlace».**
-  Pedido del autor (2026-09-22). Hoy hay **dos paletas y un neutro**: el buscador (`DatasetCard.svelte`)
-  tiene su propio mapa `FORMAT_ACCENT` con ~8 matices en **clases Tailwind** (`text-blue-700`,
-  `text-emerald-700`, …) sobre un marco apagado; la lista del dataset y el encabezado de la ficha usan el
-  chip **neutro**; y el chip «Enlace» usa `bg-muted/50` mientras el de archivo usa `bg-muted`. **Esa
-  diferencia de intensidad era intencional** —distinguía el enlace del archivo cuando el archivo llevaba
-  color propio— **pero al pasar todo a neutro quedó sin razón**, y el autor la notó («veo que el color es
-  un poco distinto»). **El patrón del buscador es el mejor candidato para la paleta unificada**: marco
-  apagado y **sólo el texto** con el color del formato, que respeta mucho mejor el límite de «máximo 2
-  colores saturados por pantalla» que un chip relleno de color. Une con el `TODO:` de la paleta de arriba.
 
 - [ ] **[v1+]** `TODO:` **Chips y badges clicables: que manden al buscador filtrado por formato.**
   Pedido del autor (2026-09-22): que los chips de formato —los de las cards del buscador **y** los de
@@ -2628,6 +2583,13 @@ después del cierre que describe el encabezado de esta sección; medición compl
   buscador cubre. Cuando el volumen lo justifique, la vía barata es un **enlace al buscador prefiltrado
   por creador** (`fq=+creator_user_id:<id>`, el mismo filtro que ya usa la tarjeta), que reutiliza las
   facetas existentes en lugar de reimplementarlas. _Origen: pregunta del usuario, 2026-09-17._
+
+- [ ] **[v1+] La página `about`, una sesión de diseño diferida por decisión del autor.** El autor la ve
+  **«pequeña»** y **falta de información**; hoy **funciona y hace su trabajo**, pero la considera escrita
+  **para él, no para el público general**, así que quiere dedicarle una sesión de diseño **después de lo
+  importante**. **Diferida por decisión suya y por conveniencia: no es un requerimiento.** Existe
+  (`src/routes/about/+page.svelte`) y su contenido actual queda como está hasta esa sesión.
+  _Origen: pedido del autor, 2026-10-06._
 
 ## v2+ — mejoras futuras no solicitadas
 
@@ -2759,7 +2721,11 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## Deuda de revisión (RDD)
 
-- [ ] **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01/02) — SIETE compuertas aprobadas,
+> **Regla de registro:** una compuerta cerrada **no es trabajo pendiente**. Los recibos y los advisories
+> de revisión se anotan como líneas de registro (`- ✅`), con toda su evidencia y sus avisos; el `- [ ]`
+> queda reservado para trabajo que sigue abierto. Nunca se escribe un recibo como casilla.
+
+- ✅ **Recibos de la unidad de los saltos `#id` del vacío y de sus correcciones (2026-10-01/02) — SIETE compuertas aprobadas,
   las siete con authority quemada.** La unidad: el vacío pasó a ser **una sección con nombre accesible** (el aviso promovido a
   `<h2>` y `aria-labelledby`) y los tres bloques quedaron con `id` y un margen de desplazamiento que sale del token
   `--header-h` **más el alto medido** de la barra pegajosa; dentro de la tarjeta del aviso va la fila de saltos, con **un
@@ -2857,7 +2823,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   _Origen: el ítem `[v0]` de las tres salidas dentro de la misma sección, pedido por el autor el 2026-10-01 y desambiguado por
   la regla 9 de `AGENTS.md` antes de escribir una línea._
 
-- [ ] **Recibo de la unidad de los chips y el alto del vacío (2026-10-01)** — cerró **`approved`** con la authority quemada.
+- ✅ **Recibo de la unidad de los chips y el alto del vacío (2026-10-01)** — cerró **`approved`** con la authority quemada.
   `review-a4119e82b86ac72e`: tier **medium**, lente `review-reliability`, **2 archivos / 80 líneas**, presupuesto 40,
   **0 bloqueantes, 2 avisos informativos**. La unidad, después de ver la promoción en vivo: **los chips de «Pruebe con»
   salen del catálogo** (no de las facetas de la búsqueda, que con cero resultados vienen vacías —el bloque era invisible
@@ -2877,7 +2843,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   _Origen: la promoción del vacío del 2026-10-01 y el pedido del autor de duplicar el alto._
 
 
-- [ ] **Recibo de la unidad que llenó el vacío del buscador (2026-10-01)** — cerró **`approved`** con la authority quemada.
+- ✅ **Recibo de la unidad que llenó el vacío del buscador (2026-10-01)** — cerró **`approved`** con la authority quemada.
   `review-f6b3cb06831d7e11`: tier **medium**, lente `review-reliability`, **2 archivos / 441 líneas**, presupuesto 200,
   **0 bloqueantes, 3 avisos informativos**. La unidad: el vacío ganó **tres salidas en el orden que pidió el autor**
   —«Pruebe con» (chips de las facetas que el buscador ya trae), «Mientras tanto, lo más reciente» y «Explorar por
@@ -2896,7 +2862,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   _Origen: el ítem `[v0]` «el área vacía se achica», precisado por el autor el 2026-10-01._
 
 
-- [ ] **Recibo de la barrida de v0 — el censo verificado y sus reglas de conteo (2026-09-30)** — la barrida cerró **15
+- ✅ **Recibo de la barrida de v0 — el censo verificado y sus reglas de conteo (2026-09-30)** — la barrida cerró **15
   ítems** (borrados, según la convención del proyecto), marcó **2 `PARTIAL`** con su corte exacto y anotó **14 vivos**
   con el bloqueo medido; el `[~]` del `R2-002` quedó intacto. **El método del cruce de tier quedó en la convención de
   `L8`; acá va el censo con su fecha y sus commits**, porque **un censo sin reglas de conteo es una cifra de autor**:
@@ -2917,7 +2883,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   _Origen: la barrida de v0 del 2026-09-30; decisión del autor: el método a `L8`, el censo a este registro._
 
 
-- [ ] **Recibo de la revisión nativa de la unidad de los rótulos de metadatos (2026-09-29)** — cerró **`approved`** y
+- ✅ **Recibo de la revisión nativa de la unidad de los rótulos de metadatos (2026-09-29)** — cerró **`approved`** y
   la authority quedó quemada (`gentle-ai.review-acknowledged/v1`). `review-d13fbf017e3991a1`: tier **medium**, lente
   `review-reliability`, **4 archivos / 79 líneas**, presupuesto 40, **0 bloqueantes, 1 aviso informativo**.
   - **Lo que hizo la unidad** (`58c88af` + `beba1a7`): el eyebrow pasó a ser **«Metadatos»** —la cadena que dice
@@ -2975,7 +2941,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     `git rev-parse <ref>^{tree}` es la forma de saber qué se está revisando.
   _Origen: el TODO del cierre del 2026-09-28, ejecutado y cerrado el 2026-09-29._
 
-- [ ] **Recibo de la revisión nativa de la unidad que deja alcanzables los filtros aplicados (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de la unidad que deja alcanzables los filtros aplicados (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-b9b043d8e234d365`: tier **medium**, lente
   `review-reliability`, **2 archivos / 210 líneas**, presupuesto 105, **0 bloqueantes, 2 avisos informativos**.
   - **Los dos avisos caen en la misma función**, la que agregué para el manejo del foco: `R3-001`
@@ -2999,7 +2965,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     advertencias** preexistentes, ninguna en los dos archivos.
   _Origen: el único WARNING abierto que necesitaba diseño, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de la unidad de las dos palabras y el chip del MIME (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de la unidad de las dos palabras y el chip del MIME (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-a5bb1994e01f2df6`: tier **medium**, lente
   `review-reliability`, **4 archivos / 45 líneas**, presupuesto 23, **0 bloqueantes, 1 aviso informativo**.
   - **El aviso es sobre la aserción que yo mismo escribí:** `R3-001` · **WARNING** ·
@@ -3020,7 +2986,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     `svelte-check` **0 errores / 4 advertencias** preexistentes, ninguna en los cuatro archivos.
   _Origen: las observaciones del autor sobre las dos palabras y el chip del MIME, 2026-09-28._
 
-- [ ] **[v0]** `TODO:` **Higiene de datos de dev: el catálogo tiene un residuo de sonda** — medido el 2026-09-28:
+- [x] **[v0]** `TODO:` **Higiene de datos de dev: el catálogo tiene un residuo de sonda** — medido el 2026-09-28:
   **el único recurso del catálogo con `mimetype`** es `Probe origen PDF` (`probe-origen.pdf`,
   `application/pdf`, `url_type: upload`), que **no es dato sembrado** sino el resto de una sonda de una sesión
   anterior. Aparece como «dataset 17» en el catálogo de desarrollo. **Es dato, no código**: se limpia con
@@ -3034,8 +3000,9 @@ después del cierre que describe el encabezado de esta sección; medición compl
   —«no hace falta borrarlo por ahora, es el único PDF que tenemos y puede servirnos hasta que hagamos la inyección de
   datos»—. **No se limpia por iniciativa propia: es el único PDF del catálogo y borrarlo le mueve el piso a la
   verificación de la vista previa del portal.**
+  **CERRADO (2026-10-06):** decisión del autor del 2026-09-28 — se conserva; no hay acción pendiente.
 
-- [ ] **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de los dos seguimientos del buscador y la franja (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-02d3e702f16cc417`: tier **medium**, lente
   `review-reliability`, **3 archivos / 71 líneas**, presupuesto 36, **0 bloqueantes, 2 avisos informativos**.
   - **Los dos avisos caen en el test de la franja, y los dos son la misma observación:** `R3-001`
@@ -3059,7 +3026,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     no la lista), así que la reversión se deshizo bien y nada de ella viajó al commit.
   _Origen: los dos avisos informativos de `review-6afeb0a8ba45dbf0`, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de las dos unidades de la ronda del buscador y la card técnica (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de las dos unidades de la ronda del buscador y la card técnica (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-6afeb0a8ba45dbf0`: tier **medium**, lente
   `review-reliability`, **4 archivos / 282 líneas**, presupuesto 141, **0 bloqueantes, 3 avisos informativos**.
   Las dos unidades van en **una compuerta** (el autor aprobó las dos juntas; los commits van separados para que
@@ -3088,7 +3055,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     pasaba en falso (los identificadores seguían siendo `<code>` dentro de la tabla).
   _Origen: los dos arreglos que el autor aprobó juntos («hazlo, ambos»), 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de la unidad que cerró el guard del dataset y unificó la primera miga (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de la unidad que cerró el guard del dataset y unificó la primera miga (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-3f510d12bc05d495`: tier **medium**, lente
   `review-reliability`, **2 archivos / 54 líneas**, presupuesto 27, **CERO hallazgos** — la segunda vez en esta
   serie que una compuerta cierra sin avisos.
@@ -3112,7 +3079,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     anterior, ahora del lado del que arregla.
   _Origen: TODO del autor sobre los dos breadcrumbs, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de la unidad que promovió A7 y unificó la URL de organización (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de la unidad que promovió A7 y unificó la URL de organización (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-94fc418923877f2d`: tier **medium**, lente
   `review-reliability`, **10 archivos / 119 líneas**, presupuesto 60, **0 bloqueantes**.
   - **Dos avisos, ambos `SUGGESTION`, y los dos apuntan a lo mismo:** `R3-001` en
@@ -3137,7 +3104,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     resultado visual de A7 es juicio del autor: el marco de la hoja es la especificación que se implementó.
   _Origen: promoción de A7 + el aviso del encoding, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de la unidad que cerró el guard y llevó las cards del home a la organización (2026-09-28)** — cerró **`approved`** y la authority quedó quemada. `review-b336caf8983ffd9b`: tier **medium**, lente `review-reliability`, **4 archivos / 121 líneas**, presupuesto 61, **0 bloqueantes**.
+- ✅ **Recibo de la revisión nativa de la unidad que cerró el guard y llevó las cards del home a la organización (2026-09-28)** — cerró **`approved`** y la authority quedó quemada. `review-b336caf8983ffd9b`: tier **medium**, lente `review-reliability`, **4 archivos / 121 líneas**, presupuesto 61, **0 bloqueantes**.
   - **Un aviso informativo:** `R3-001` · reliability · WARNING · `src/routes/+page.svelte:230`. **Sin texto en el envelope**, así que van las **dos lecturas posibles** y cuál me parece más probable. La línea es `href={`/organization/${org.name}`}` de la card de organización del home, o sea **la línea que este cambio agregó**.
     1. **La más probable, y es una regresión mía:** el cambio **quitó el `encodeURIComponent`** que estaba antes (`/search?org=${encodeURIComponent(org.name)}` → `/organization/${org.name}`). Mi justificación fue que el `name` de CKAN es un slug (`[a-z0-9_-]`) y codificar es un no-op — cierto hoy, pero no está garantizado por el tipo (`string`), y un revisor de confiabilidad mira el diff. **Arreglo recomendado: devolver el `encodeURIComponent`** (no cuesta nada y cubre el caso que mi argumento da por sentado).
     2. **La otra:** `org.name` ausente → `/organization/undefined`, el mismo defecto que el aviso `R3-ORG-NAME-GUARD` encontró en la página del recurso. En el home la fuente es `organization_list`, que CKAN siempre devuelve con `name`, así que es defensivo.
@@ -3148,7 +3115,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   - **Gates:** `pnpm test` **663/663** (48 archivos) · `svelte-check` **0 errores / 4 advertencias** preexistentes · Biome **no verificable** (exit 254) · el DOM renderizado del home **no está cubierto** (la página es client-rendered), así que la cobertura son las aserciones del test nuevo.
   _Origen: el guard que la revisión encontró + las cards del home, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de la unidad de los enlaces de organización y el badge (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de la unidad de los enlaces de organización y el badge (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-33850b074b195bfa`: tier **medium**, lente
   `review-reliability`, **6 archivos / 137 líneas**, presupuesto 69, **0 bloqueantes**.
   - **Un aviso informativo que encontró un hueco REAL en la especificación del padre:** `R3-ORG-NAME-GUARD`,
@@ -3168,7 +3135,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     transcribir el binding (un `/schema` menos), no un problema del proveedor.
   _Origen: los dos TODO del autor sobre enlaces de organización y el badge del dashboard, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa de la unidad del salto secuencial y el desborde del desplegable (2026-09-28)** — cerró
+- ✅ **Recibo de la revisión nativa de la unidad del salto secuencial y el desborde del desplegable (2026-09-28)** — cerró
   **`approved`** y la authority quedó quemada. `review-fc7e00d27e1f61cf`: tier **medium**, lente
   `review-reliability`, **4 archivos / 595 líneas**, presupuesto 200, un revisor por `pi_host_relay`, **0
   bloqueantes**.
@@ -3191,7 +3158,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     el código y los tests, no el diseño.
   _Origen: unidad del salto secuencial en el hero + el arreglo del desborde del desplegable, 2026-09-28._
 
-- [ ] **Recibo de la revisión nativa del slice E8 (bloque E, el salto entre recursos) (2026-09-25)** — cerró
+- ✅ **Recibo de la revisión nativa del slice E8 (bloque E, el salto entre recursos) (2026-09-25)** — cerró
   **`approved`** y la authority quedó quemada. `review-865b14e1f735a37a`: tier **medium**, lente
   `review-reliability`, **9 archivos, 931 líneas**, presupuesto 200. Un revisor por `pi_host_relay`, 0 bloqueantes.
   - **Un aviso informativo:** `R3-001` · reliability · SUGGESTION · `src/lib/resources/order.ts:55-57`. **El
@@ -3219,7 +3186,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     murió con `Linter process terminated abnormally` y exit 254, sin imprimir conteos).
   _Origen: cierre de la compuerta de E8, 2026-09-25._
 
-- [ ] **Recibo de la revisión nativa del slice E7 (bloque E, el chip de contexto del breadcrumb) (2026-09-24)** — cerró
+- ✅ **Recibo de la revisión nativa del slice E7 (bloque E, el chip de contexto del breadcrumb) (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada. `review-c918f32f7c87a968`: tier **medium**, lente
   `review-reliability`, **5 archivos, 286 líneas**, presupuesto 143. Un revisor por `pi_host_relay`, 0 bloqueantes.
   - **Los cuatro avisos son informativos**, y el cierre lo dice: ninguno abre corrección ni reabre el candidato.
@@ -3253,7 +3220,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     CKAN 2.12 también **sin commitear**. Nada de eso entró en este candidato: el rango se pidió versionado.
   _Origen: cierre del slice E7 del bloque E, 2026-09-24._
 
-- [ ] **Recibo de la revisión nativa de la hoja de navegación y los dos ítems del backlog (2026-09-24)** — cerró
+- ✅ **Recibo de la revisión nativa de la hoja de navegación y los dos ítems del backlog (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada. `review-a6ba876369a3dd53`: tier **medium** —la hoja es
   ejecutable, vive bajo `src/routes/dev/`—, lente `review-reliability`, **3 archivos, 372 líneas**, presupuesto
   186. Un revisor por `pi_host_relay`, 0 bloqueantes.
@@ -3276,7 +3243,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     `dev/` también.
   _Origen: hoja `/dev/nav` y los dos ítems del bloque E, 2026-09-24._
 
-- [ ] **DEUDA DECLARADA — el arreglo de E5 vive en `HEAD` sin recibo propio y su linaje ya no es ruteable (cerrado el 2026-09-25)** — el linaje
+- ✅ **DEUDA DECLARADA — el arreglo de E5 vive en `HEAD` sin recibo propio y su linaje ya no es ruteable (cerrado el 2026-09-25)** — el linaje
   `review-5ab16f231f1adb49` quedó en **`correction_required`** con el hallazgo `R3-001` (CRITICAL,
   `causal_disposition: introduced`) **ya corregido y commiteado** (`e5d2411`), pero el plan de corrección
   **no se pudo enviar** el 2026-09-24: el slot `capture-correction-plan` rechazó **tres** envíos con
@@ -3315,7 +3282,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     se envía inmediatamente, no después de tres slices.**
   _Origen: slice E5 del bloque E, 2026-09-24; cerrado como deuda el 2026-09-25._
 
-- [ ] **Recibo de la revisión nativa del slice E6 (bloque E, la nota del enlace) (2026-09-24)** — cerró
+- ✅ **Recibo de la revisión nativa del slice E6 (bloque E, la nota del enlace) (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada. `review-97eb68d9224321c5`: tier **medium**, lente
   `review-reliability`, **2 archivos, 30 líneas**, presupuesto 15. Un revisor por `pi_host_relay`, 0 bloqueantes.
   - **Un aviso informativo**: `R3-001` · reliability · SUGGESTION · `resource-page.test.ts:433-435`.
@@ -3330,7 +3297,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   - Gates: `pnpm test` **626/626** · `svelte-check` **0 errores** · Biome **exit 0**.
   _Origen: cierre del slice E6 del bloque E, 2026-09-24._
 
-- [ ] **Recibo de la revisión nativa del slice E3 (bloque E, dos superficies del dashboard) (2026-09-24)** — cerró
+- ✅ **Recibo de la revisión nativa del slice E3 (bloque E, dos superficies del dashboard) (2026-09-24)** — cerró
   **`approved`** con la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   `review-29ba39931af7f59a`: tier **medium**, lente `review-reliability`, **5 archivos, 226 líneas**, presupuesto
   113. Rango revisado **`032046f..HEAD`**, que incluye además el commit de la sesión paralela del autor
@@ -3351,7 +3318,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     la página real.
   _Origen: cierre del slice E3 del bloque E, 2026-09-24._
 
-- [ ] **Recibo de la revisión nativa del ajuste de E2b a 16px (2026-09-24)** — cerró **`approved`** con la
+- ✅ **Recibo de la revisión nativa del ajuste de E2b a 16px (2026-09-24)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`). `review-639ebd76af60c244`: tier **medium**,
   lente `review-reliability`, **3 archivos, 139 líneas**, presupuesto 70. Rango revisado **`1d3a225..HEAD`**, que
   **incluye un commit de documentación que no es de esta sesión** —el `docs(backlog)` de la sesión paralela del
@@ -3371,7 +3338,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     el mismo worktree y sin aislamiento no es una hipótesis: pasó hoy.**
   _Origen: ajuste del slice E2b del bloque E, 2026-09-24._
 
-- [ ] **Recibo de la revisión nativa del slice E2b (bloque E, el encabezado se achica al scrollear) (2026-09-24)** —
+- ✅ **Recibo de la revisión nativa del slice E2b (bloque E, el encabezado se achica al scrollear) (2026-09-24)** —
   cerró **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   - `review-6e034ec319f46e52`: tier **medium**, lente `review-reliability`, **7 archivos, 195 líneas**,
     presupuesto de corrección 98, `risk_reasons: executable_change` (por `src/app.css`). Rango revisado
@@ -3415,7 +3382,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     que pueda derivar. El autor la había reportado como ilegible.
   _Origen: cierre del slice E2b del bloque E, 2026-09-24._
 
-- [ ] **Recibo de la revisión nativa del slice E2 (bloque E, alto del encabezado) (2026-09-24)** — cerró
+- ✅ **Recibo de la revisión nativa del slice E2 (bloque E, alto del encabezado) (2026-09-24)** — cerró
   **`approved`** y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   - `review-aae5dd97579ec543`: tier **medium**, lente `review-reliability`, **7 archivos, 124 líneas**,
     presupuesto de corrección 62, `risk_reasons: executable_change` (por `src/app.css`). Rango revisado
@@ -3456,7 +3423,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     revisor no lo señaló.**
   _Origen: cierre del slice E2 del bloque E, 2026-09-24._
 
-- [ ] **Recibo de la revisión nativa del slice E1 (bloque E, chips de formato) (2026-09-24)** — cerró **`approved`**
+- ✅ **Recibo de la revisión nativa del slice E1 (bloque E, chips de formato) (2026-09-24)** — cerró **`approved`**
   y la authority quedó quemada (evidencia `gentle-ai.review-acknowledged/v1`).
   - `review-35a2937ca35fd6fc`: tier **medium**, lente `review-reliability`, **3 archivos, 130 líneas**,
     presupuesto de corrección 65, `risk_reasons: executable_change` (por `search/DatasetCard.svelte`). Rango
@@ -3482,7 +3449,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     sobre los tres archivos tocados.
   _Origen: cierre del slice E1 del bloque E, 2026-09-24._
 
-- [ ] **Advisory de la revisión nativa del slice D3 (bloque D) (2026-09-23)** — cerró **`approved`** con la
+- ✅ **Advisory de la revisión nativa del slice D3 (bloque D) (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:f0fed33b17ce7fa674719cff96ed9861e57e6e169308f147f72883e110a6aa50` del candidato
   `sha256:08dad6ad4eaa7489f134e80c33bd197d1321a2ec15782c4fc502c9437fcff92b`).
@@ -3505,7 +3472,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: cierre del slice D3 del bloque D (2026-09-23)._
 
-- [ ] **Advisory de la revisión nativa del slice L1 de «localhost» (2026-09-23)** — cerró **`approved`** con la
+- ✅ **Advisory de la revisión nativa del slice L1 de «localhost» (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:cdae297f4106d8926fcff832cad1fba6acaffebf313ec615a279533f9065c161` del candidato
   `sha256:e1d614ade4da0d357909cf0847c3a267b002cf92d79e12947ed4e7aa4c00be2c`).
@@ -3558,7 +3525,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: cierre del slice L1 del trabajo «localhost», 2026-09-23._
 
-- [ ] **Advisory de la revisión nativa del slice D2 del bloque D (2026-09-23)** — cerró **`approved`** con la
+- ✅ **Advisory de la revisión nativa del slice D2 del bloque D (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:6ea50eb32373453dddcec23138b43f67337bdd5dd28df9cb9c73b2a07718c6cc` del candidato
   `sha256:783426ed187ec0c3512d82c67e6b2415d0fdbd03839ce136cbe779eed2f4f97d`).
@@ -3577,7 +3544,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: cierre del slice D2 del bloque D (2026-09-23)._
 
-- [ ] **Advisory de la revisión nativa del slice D1 del bloque D (2026-09-23)** — cerró **`approved`** con la
+- ✅ **Advisory de la revisión nativa del slice D1 del bloque D (2026-09-23)** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:6ac8045df9096a350f2c78f763d63412398d877a9c0e6a735f89a9368015882b` del candidato
   `sha256:ce6e259644ae284869e63c3c9264755c27df0d95ff5008d3dabfd0bc666c85e0`).
@@ -3602,7 +3569,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: cierre del slice D1 del bloque D (2026-09-23)._
 
-- [x] **El commit de documentación posterior al recibo de D1 — revisado aparte, sin hallazgos.** El cierre del
+- ✅ **El commit de documentación posterior al recibo de D1 — revisado aparte, sin hallazgos.** El cierre del
   bloque D dejó un commit de sólo-documentación (`3e03798`, `BACKLOG.md` + `odd/tasks/block-d-data-preview.md`,
   2 archivos / 109 líneas) que quedó como **candidato sin revisar** frente a la compuerta de RDD. Se revisó
   acotado a ese delta con `baseRef` explícito (`ce8670a..HEAD`), no a la rama acumulada: `review-3d4f52fb03dd4885`
@@ -3616,7 +3583,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   **no lo anote acá otra vez**.
   _Origen: compuerta de RDD sobre el commit de cierre de D1, 2026-09-23._
 
-- [ ] **Advisory de la revisión nativa de la política de existencia (2026-09-20)** — cerró **`approved`** con
+- ✅ **Advisory de la revisión nativa de la política de existencia (2026-09-20)** — cerró **`approved`** con
   la authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:cd80727f19f480cd99be4134de44c23c168b75267ae222f152d09b32c8a50478` del candidato
   `sha256:2345b5e956b071ff93b35195f9eeac555d217b487726e4c80e8c619d90e44e5a`).
@@ -3636,7 +3603,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: revisión de la política de existencia, 2026-09-20._
 
-- [ ] **Advisory de la revisión nativa del slice C de `v0-portal-honesty`** — cerró **`approved`** con la
+- ✅ **Advisory de la revisión nativa del slice C de `v0-portal-honesty`** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión
   `sha256:81bdb2362fef8260a068d381078c24340aa19976f0fa13d3c4220c0a836a877f` del candidato
   `sha256:4e0aa7f34d5bd2faec3b4389be314a2298ac866d2199c830f62c9b2b7776f974`).
@@ -3659,7 +3626,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     árbol de la revisión; lo posterior es este apunte de ids y ubicaciones, no una decisión.
   _Origen: cierre del slice C de `v0-portal-honesty` (2026-09-20)._
 
-- [ ] **Advisory de la revisión nativa del slice B de `v0-portal-honesty`** — cerró **`approved`** con la
+- ✅ **Advisory de la revisión nativa del slice B de `v0-portal-honesty`** — cerró **`approved`** con la
   authority quemada (evidencia `gentle-ai.review-acknowledged/v1`, revisión `sha256:b589c2b2…` del
   candidato `sha256:6198424b…`). **Además de los avisos, encontró un hallazgo CRÍTICO propio del slice,
   ya corregido** (`f7214f6`): la sonda de sesión trataba **cualquier** 404 de `user_show` como sesión
@@ -3680,7 +3647,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     > ubicaciones, no una decisión.
   _Origen: cierre del slice B de `v0-portal-honesty` (2026-09-20)._
 
-- [ ] **Advisory de las dos revisiones de unidades de trabajo de `v0-portal-honesty`** — ambas
+- ✅ **Advisory de las dos revisiones de unidades de trabajo de `v0-portal-honesty`** — ambas
   cerraron **`approved`** con la authority quemada, y el único hallazgo de cada una es un advisory
   informativo. Es trabajo posterior, **nunca motivo para re-correr la revisión sobre ese candidato**:
   - `review-56075851faccfca4` (unidad de trabajo 1 — el listado que respeta los permisos, más la
@@ -3712,7 +3679,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   y pedir la revisión en esa sesión. Nada más: el agente corre el preflight y el resto del ciclo ahí.
   _Origen: pusheo del PR 1 (`odp-docker` `86f130b`) + reconciliación del modelo del PRD (2026-09-14)._
 
-- [ ] **[v1] Advisory de las dos revisiones de la evidencia de sondas del ciclo de vida** — ambas
+- ✅ **[v1] Advisory de las dos revisiones de la evidencia de sondas del ciclo de vida** — ambas
   cerraron **`approved`**; los 6 hallazgos son informativos, **ninguno abrió corrección**. Trabajo
   posterior, nunca motivo para re-correr la revisión sobre esos candidatos.
   - `review-61dcee84f2290d65` (evidencia P0–P9 en `design.md` + `preproposal.md` + `BACKLOG.md`):
@@ -3733,7 +3700,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
     > revisión cerrara. El candidato aprobado es el árbol de 5 archivos; esta lista es el único delta
     > posterior a la aprobación, y es un apunte de ids y ubicaciones, no una decisión.
 
-- [ ] **[v0] Hallazgos advisory de las revisiones del track dashboard + publicación** —
+- ✅ **[v0] Hallazgos advisory de las revisiones del track dashboard + publicación** —
   informativos, no bloqueantes, sin corrección abierta. Verlos como trabajo posterior, nunca como
   motivo para re-correr la revisión sobre esos candidatos:
   - `review-c9dee8d0f9b7ef4a` (PR3 wizard): `R3-001`, `R3-002`, `R3-003`.
@@ -3741,7 +3708,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   - `review-656da6beeca5d9e9` (PR5 enlaces): `R3-link-remove-during-submit` (`+page.svelte:789`),
     `R3-link-validation-coverage` (`+page.svelte:218`).
 
-- [ ] **[v1] Hallazgos advisory de la revisión de la fundación del Plan C** — línea
+- ✅ **[v1] Hallazgos advisory de la revisión de la fundación del Plan C** — línea
   `review-521de49bd20a934a` (tier high, 4 lentes, 38 archivos, 1 477 líneas). Cerró **`approved`**;
   los 8 hallazgos son `WARNING` informativos, **ninguno abrió corrección**. Son trabajo posterior:
   nunca motivo para re-correr la revisión sobre ese candidato.
@@ -3759,7 +3726,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   - `R4-markdown-parse-then-truncate` (resilience, `dataset-summary.ts:24`) — se parsea el markdown
     antes de truncar, en vez de truncar el texto plano.
 
-- [ ] **[v1] Hallazgos advisory de la promoción del wizard** — dos líneas más, ambas cerradas en
+- ✅ **[v1] Hallazgos advisory de la promoción del wizard** — dos líneas más, ambas cerradas en
   **`approved`** con hallazgos `WARNING`/`SUGGESTION` informativos. Ninguno abrió corrección. Son
   trabajo posterior, nunca motivo para re-correr esas revisiones:
   - `review-cc9f270fe3b13523` (slice 1 — layout + metadatos): `R3-001` (`TagsInput.svelte:104`) y
@@ -3775,7 +3742,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   menos lentes**. Si se quiere más cobertura en un candidato así, hay que partirlo en candidatos que sí
   disparen señales, no pedir más lentes al mismo.
 
-- [ ] **[v1] Hallazgos advisory del arreglo de autenticación** — línea `review-f4c32c431240dd20`
+- ✅ **[v1] Hallazgos advisory del arreglo de autenticación** — línea `review-f4c32c431240dd20`
   (tier high, 4 lentes, 66 líneas). Cerró **`approved`**; los cuatro hallazgos son informativos y
   ninguno abrió corrección. Los dos que importan:
   - `R4-ttl-drift` (`ckan-auth.ts:29`) — **el acoplamiento que ya documenta el propio comentario**: el
@@ -3834,11 +3801,10 @@ después del cierre que describe el encabezado de esta sección; medición compl
   no es alcanzable con CKAN: las "solicitudes de publicación" del PRD son el caso conocido).
   _Origen: pedido explícito del usuario (2026-09-12)._
 
-- [ ] **[v0] `describeCreateError` sobre-dispara** — el regex `/already in use|url/i` del wizard
+- [x] **[v0] `describeCreateError` sobre-dispara** — el regex `/already in use|url/i` del wizard
   etiqueta como conflicto de slug cualquier error cuyo mensaje contenga "url". Acotarlo al mensaje
   real de CKAN. _Origen: verificación de `dataset-publishing`._
-  **Estado medido (2026-09-30): VIVO, byte por byte.** `new/+page.svelte:499` sigue con `/already in use|url/i.test(message)`.
-  Libre para implementar: acotar el regex al mensaje real de CKAN.
+  **CERRADO (2026-10-06): DONE** — el chequeo es ahora `/that url is already in use/i`.
 
 - [ ] **[v1] Verificación estática pendiente del wizard** — "sin scroll horizontal a 360 px" quedó
   verificado solo por inspección de código, sin test automatizado.
