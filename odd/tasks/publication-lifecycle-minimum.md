@@ -878,7 +878,32 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   `_as_bool` era «espejo fiel de `boolean_validator`», y el espejo se escribió contra la versión que **ya no
   corre** — la que lanza. Por eso era verde y publicaba: el espejo era fiel a 2.12.0a0 y la realidad es
   2.12.0. Es exactamente el modo de falla que la ley del día nombra, y por eso la corrección se hizo
-  **ejecutando** los doce casos en vez de citarlos. **Por eso `A5` suma los valores límite de `private`
+  **ejecutando** los doce casos en vez de citarlos.
+
+- **2026-10-07 (noche) — Un hueco de contrato, medido **antes** de cablear la page.** Al preparar la page de
+  solicitudes medí la forma real de la fila en `origin/master`
+  (`logic/action/publication.py:119-131`) en vez de confiar en la tabla resumida del contrato: `_row_dict`
+  devuelve las **columnas de la tabla** más los dos nombres, y esas columnas son `id`, `dataset_id`,
+  `requested_visibility`, `status`, `requested_by`, `approved_by`, `comments`, `motive`, `created_at`,
+  `decided_at`, `consumed_at`. **No hay `dataset_title` ni `organization_title`**, y la fila de la cola **se lee
+  por el título del dataset** —es su línea principal— y por la organización, que es lo que dice de dónde viene
+  cada solicitud cuando quien mira administra varias.
+  **La asimetría que lo vuelve un pedido y no una queja:** el contrato ya resuelve los **nombres** de las
+  personas en una consulta batcheada por llamada, con el argumento correcto («que la cola no resuelva N por
+  página»). El título del dataset es el mismo problema un campo más abajo, del lado que ya tiene el
+  `dataset_id` en la mano: un `_titles_for(dataset_ids)` análogo.
+  **Y el momento importa:** el contrato dice que **la forma no cambia una vez que un consumidor está
+  cableado**. No lo estaba, así que **se pidió ahora**, con las tres alternativas que evalué y descarté:
+  N `package_show` (justo lo que la regla 3 existe para evitar), un `package_search` con los ids (otra
+  semántica de permisos metida en el camino de la cola) y mostrar el `dataset_id` (el identificador no es para
+  el usuario).
+  **Lo que sí se hizo en el acto, sin esperar a nadie:** el **tipo** del portal se completó con las columnas
+  que **sí** existen (`requested_visibility`, `decided_at`, `consumed_at`) y su comentario declara el hueco y el
+  pedido. **La page no se cablea contra campos que no existen**: una lista con la línea principal vacía **se ve
+  terminada y no lo está**.
+  *(Y un dato del mismo paso que sirve para la bajada: `requested_visibility` **sí** está en la tabla aunque
+  `RF-41`/`RF-42` estén en `[v1]`, así que el día que se construya la degradación el portal puede mostrar la
+  dirección pedida sin inventar nada.)* **Por eso `A5` suma los valores límite de `private`
   (`0`, `"false"`, `"banana"`, `""`, `null`, omitida) como filas a medir, no a suponer**: ahí es donde un
   espejo y su original se separan en silencio.
 

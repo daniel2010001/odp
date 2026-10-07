@@ -36,6 +36,11 @@ export type PublicationRequestStatus =
 /**
  * Una fila de `publication_requests`, tal como la devuelven las acciones.
  *
+ * **La forma medida es ésta, y se midió antes de cablear:** `_row_dict` devuelve las **columnas de la
+tabla** más los dos nombres de presentación, así que una fila trae `id`, `dataset_id`,
+ * `requested_visibility`, `status`, `requested_by`, `approved_by`, `comments`, `motive`, `created_at`,
+ * `decided_at`, `consumed_at`, `requested_by_name` y `approved_by_name`.
+ *
  * `requested_by` y `approved_by` son **ids de usuario**; los nombres visibles viajan aparte
  * (`requested_by_name` / `approved_by_name`), resueltos en una consulta batcheada por llamada. Las dos
  * formas de vacío son distintas y el consumidor no debe colapsarlas: un id **sin asignar** llega como
@@ -43,10 +48,21 @@ export type PublicationRequestStatus =
  *
  * `motive` es un token estable de por qué se anuló (`dataset_deleted`, `published_by_another_path`), no
  * prosa: el portal lo puede leer para decir *por qué* en vez de mostrar un texto ajeno.
+ *
+ * `requested_visibility` es la **dirección pedida** y hoy existe en la tabla aunque la degradación esté
+ * en `[v1]`: el portal puede mostrarla sin inventar nada el día que la bajada se construya.
+ *
+ * **Sin `dataset_title` ni `organization_title` (todavía).** La fila de la cola se lee por el título del
+ * dataset y por su organización, y esos dos campos **no** están en la tabla: se pidieron al otro
+ * repositorio **antes de cablear la page**, que es el único momento en que la forma puede cambiar. Hasta
+ * que lleguen, la page no se cablea contra suposiciones: una lista con la línea principal vacía se ve
+ * terminada y no lo está.
  */
 export interface PublicationRequest {
 	id: string;
 	dataset_id: string;
+	/** La dirección pedida. Existe en la tabla aunque la bajada esté en `[v1]`. */
+	requested_visibility?: string | null;
 	status: PublicationRequestStatus;
 	/** Id de usuario de quien pidió. Sólo alimenta la comparación de cuatro ojos. */
 	requested_by?: string | null;
@@ -60,6 +76,8 @@ export interface PublicationRequest {
 	/** Por qué se anuló, como token del contrato. */
 	motive?: string | null;
 	created_at?: string | null;
+	decided_at?: string | null;
+	consumed_at?: string | null;
 }
 
 export function createPublicationApi(client: CkanClient) {
