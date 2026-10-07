@@ -189,19 +189,33 @@ describe("PublicationQueue — qué carga y qué muestra", () => {
 		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
 	});
 
-	it("un fallo al cargar: error explícito y reintento que vuelve a pedirlas", async () => {
+	it("un fallo al cargar: la frase entendible encabeza, y el dato técnico la sigue", async () => {
 		const list = vi
 			.fn<QueueProps["list"]>()
 			.mockRejectedValueOnce(new Error("502 Bad Gateway"))
 			.mockResolvedValueOnce(ITEMS);
 		renderQueue({ list });
 
-		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("502 Bad Gateway"));
+		const alerta = await screen.findByRole("alert");
+		// El foco es la frase; el texto crudo queda como **dato secundario**, no como el mensaje.
+		expect(alerta).toHaveTextContent(/^No se pudieron cargar las solicitudes\./);
+		expect(alerta).toHaveTextContent("502 Bad Gateway");
 
 		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
 
 		await waitFor(() => expect(screen.getByText("Matrícula 2026")).toBeInTheDocument());
 		expect(list).toHaveBeenCalledTimes(2);
+	});
+
+	it("un fallo al cargar con respuesta del catálogo: el código, no la prosa del servidor", async () => {
+		const list = vi
+			.fn<QueueProps["list"]>()
+			.mockRejectedValueOnce(new CkanApiError("Service Unavailable", 503));
+		renderQueue({ list });
+
+		const alerta = await screen.findByRole("alert");
+		expect(alerta).toHaveTextContent(/^No se pudieron cargar las solicitudes\./);
+		expect(alerta).toHaveTextContent("error 503");
 	});
 
 	it("cada fila dice de qué dataset y de quién es la solicitud", async () => {
@@ -565,7 +579,9 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
 
 		await waitFor(() =>
-			expect(within(fila).getByRole("alert")).toHaveTextContent("503 Service Unavailable"),
+			expect(within(fila).getByRole("alert")).toHaveTextContent(
+				/^No se pudo registrar la decisión\./,
+			),
 		);
 		expect(decide).toHaveBeenCalledTimes(1);
 

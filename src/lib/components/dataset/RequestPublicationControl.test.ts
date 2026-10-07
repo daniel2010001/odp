@@ -207,7 +207,10 @@ describe("RequestPublicationControl — qué reporta después del click", () => 
 
 		await fireEvent.click(screen.getByRole("button", { name: REQUEST_LABEL }));
 
-		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("502 Bad Gateway"));
+		const alerta = await screen.findByRole("alert");
+		// La frase humana **encabeza**; el dato técnico la sigue, como dato secundario.
+		expect(alerta).toHaveTextContent(/^No se pudo enviar la solicitud\./);
+		expect(alerta).toHaveTextContent("502 Bad Gateway");
 		expect(request).toHaveBeenCalledTimes(1);
 
 		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));

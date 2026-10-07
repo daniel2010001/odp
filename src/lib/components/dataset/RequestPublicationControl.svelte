@@ -45,6 +45,7 @@ import {
 	ShieldAlert,
 } from "@lucide/svelte";
 import Button from "$lib/components/ui/button/button.svelte";
+import { technicalDetail } from "$lib/api/failure";
 import { CkanApiError } from "$lib/types/api";
 import { cn } from "$lib/utils";
 
@@ -56,6 +57,11 @@ export type CancelPublicationRequest = (requestId: string) => Promise<Publicatio
 const REQUEST_LABEL = "Solicitar publicación";
 const REQUEST_AGAIN_LABEL = "Volver a solicitar";
 const CONSEQUENCE = "Un administrador de la organización revisará su solicitud.";
+// Las dos frases que el usuario lee cuando el fallo no es de autorización. Son **nuestras**, en su
+// idioma: el dato técnico va detrás, como dato secundario, porque un mensaje crudo del servidor no es
+// un mensaje para una persona.
+const REQUEST_FAILED = "No se pudo enviar la solicitud.";
+const CANCEL_FAILED = "No se pudo cancelar la solicitud.";
 
 // La forma de las acciones del hero de la ficha (`src/routes/dataset/[id]/+page.svelte:436-451`): las
 // mismas clases que usan «Copiar enlace» y «Editar», para que el control no se vea más grande que sus
@@ -114,7 +120,12 @@ let {
 // dos veces— no pueden compartir el `id` de la descripción.
 const uid = $props.id();
 
-type Outcome = { kind: "refused" | "unconfirmed" | "error"; message: string };
+type Outcome = {
+	kind: "refused" | "unconfirmed" | "error";
+	message: string;
+	/** El dato técnico que sigue a la frase; `null` cuando no hay ninguno que citar. */
+	technical?: string | null;
+};
 
 let pending = $state<"request" | "cancel" | null>(null);
 let outcome = $state<Outcome | null>(null);
@@ -146,9 +157,8 @@ async function handleRequest() {
 				? { kind: "refused", message: REFUSED_REQUEST }
 				: {
 						kind: "error",
-						message: `No se pudo enviar la solicitud: ${
-							err instanceof Error ? err.message : "error desconocido"
-						}`,
+						message: REQUEST_FAILED,
+						technical: technicalDetail(err),
 					};
 	} finally {
 		pending = null;
@@ -177,9 +187,8 @@ async function handleCancel() {
 				? { kind: "refused", message: REFUSED_CANCEL }
 				: {
 						kind: "error",
-						message: `No se pudo cancelar la solicitud: ${
-							err instanceof Error ? err.message : "error desconocido"
-						}`,
+						message: CANCEL_FAILED,
+						technical: technicalDetail(err),
 					};
 	} finally {
 		pending = null;
@@ -210,6 +219,9 @@ function retry() {
 					<CircleAlert class="size-4 shrink-0" />
 				{/if}
 				<span>{outcome.message}</span>
+				{#if outcome.technical}
+					<span class="font-mono text-xs">{outcome.technical}</span>
+				{/if}
 				{#if outcome.kind === "error"}
 					<Button variant="outline" size="sm" onclick={retry}>
 						<RefreshCw class="size-4" />

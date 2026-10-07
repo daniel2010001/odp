@@ -24,6 +24,7 @@ import {
 	failureActions,
 	isDefinitive,
 	statusFor,
+	technicalDetail,
 } from "./failure";
 
 const SUBJECTS: ApiSubject[] = ["dataset", "resource"];
@@ -325,5 +326,37 @@ describe("statusFor — el código que le toca a cada clase de fallo", () => {
 		// siendo un número, y el mismo que `classifyFailure` le da a todo lo desconocido.
 		const fueraDeLaUnion = "clase-inexistente" as unknown as ApiFailureKind;
 		expect(statusFor(fueraDeLaUnion)).toBe(503);
+	});
+});
+
+// El dato técnico que acompaña a un mensaje: lo que el usuario cita cuando consulta con soporte. Dos
+// reglas: **no se inventa** un estado que nadie observó, y **no se tira** el único dato técnico que
+// existe —cuando el error no trae estado, su propio texto lo es—, porque perderlo dejaría al usuario
+// con menos de lo que ya tenía.
+describe("technicalDetail — el dato técnico que acompaña al mensaje", () => {
+	it("nombra el estado que el catálogo respondió", () => {
+		expect(technicalDetail(new CkanApiError("Authorization Error", 403))).toBe("error 403");
+		expect(technicalDetail(new CkanApiError("Not Found", 404))).toBe("error 404");
+		expect(technicalDetail(new CkanApiError("Bad Gateway", 502))).toBe("error 502");
+	});
+
+	it("un estado `0` se nombra como lo que es: no hubo respuesta", () => {
+		// No es un código que el catálogo haya dado; es un hecho que el portal sí observó.
+		expect(technicalDetail(new CkanApiError("Sin respuesta del catálogo", 0))).toBe(
+			"sin respuesta del catálogo",
+		);
+	});
+
+	it("sin estado, el dato técnico es el texto del error: es lo único que hay", () => {
+		expect(technicalDetail(new Error("503 Service Unavailable"))).toBe("503 Service Unavailable");
+		// Un error del portal **sin** estado no es la excepción a la regla: su texto sigue siendo el
+		// único dato que existe, y tirarlo dejaría al usuario con menos de lo que ya tenía.
+		expect(technicalDetail(new CkanApiError("sin estado"))).toBe("sin estado");
+	});
+
+	it("y sin nada que citar, no hay dato: no se inventa un código", () => {
+		expect(technicalDetail("texto suelto")).toBeNull();
+		expect(technicalDetail(undefined)).toBeNull();
+		expect(technicalDetail(new Error("   "))).toBeNull();
 	});
 });

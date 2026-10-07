@@ -151,6 +151,28 @@ function messageFor(kind: ApiFailureKind, subject: ApiSubject, access: AccessCon
 }
 
 /**
+ * El **dato técnico** que acompaña a un mensaje de fallo: lo que el usuario cita cuando consulta con
+ * soporte («me salió error 404»).
+ *
+ * Dos reglas, y las dos importan:
+ *  · **No se inventa un estado.** Un `throw` cualquiera no observó ninguna respuesta del catálogo, así
+ *    que no hay código que citar.
+ *  · **No se tira el único dato técnico que existe.** Cuando el error trae estado, se nombra el estado
+ *    —y un estado `0` se nombra como lo que es: no hubo respuesta, no un código que el catálogo haya
+ *    dado—; cuando no lo trae, su propio texto es el dato.
+ *
+ * El mensaje que el usuario lee **no** sale de acá: sale de la tabla de textos de este módulo. Esto es
+ * el dato secundario que va detrás de la frase, no en su lugar.
+ */
+export function technicalDetail(err: unknown): string | null {
+	if (err instanceof CkanApiError && typeof err.status === "number") {
+		return err.status === 0 ? "sin respuesta del catálogo" : `error ${err.status}`;
+	}
+	if (err instanceof Error && err.message.trim() !== "") return err.message.trim();
+	return null;
+}
+
+/**
  * Convierte un valor lanzado, el sujeto y el contexto de sesión en el texto que la página renderiza.
  *
  * El texto de un fallo de autorización cambia según el contexto de acceso. Un ítem inexistente sólo
