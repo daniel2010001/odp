@@ -120,11 +120,15 @@ portal, re-measuring per unit as it lands, and retire 2.20 as a backend default.
 about the rule itself: **a rule derived from two samples is a hypothesis, and this one was written as a
 rule.** It took a third and fourth sample to see it.
 
-**And one consequence that is not a forecast matter:** the additive return contract (`dataset` on the two
-flipping actions) is **decided but not yet in the code** — it lands in A2's follow-up unit with its own
-gate. The portal now requires `result.dataset.private === false`, so against the deployed action it would
-read **every successful publication as a failure**. The wiring unit (B1) therefore waits for that key, not
-merely for A2.
+**And one consequence that is not a forecast matter:** the return contract is now **uniform** — every action
+returns only its row, and the portal **re-reads the dataset** to confirm the stored value (spec, `Return
+shape`; `design.md` D4/D5). Two earlier states of this paragraph were true and are not any more, which is
+worth naming: the additive `dataset` key was **decided and then dropped**, and while the portal assumed it
+the mismatch was real — with that shape, against the deployed action, **every successful publication would
+have read as a failure**. Under the uniform shape the portal and the delivered action **agree on the
+return**, so what still keeps **B1** waiting is not the return but the **authorization**: the delivered code
+predates the governance amendment — `publication_publish` still authorizes the organization `admin` and
+`decide` still carries no four-eyes check (`odp-docker` `PUBLICATION-ACTIONS.md`, status banner).
 
 ### `review_material_lines` — declared, does not compete with the budget
 
