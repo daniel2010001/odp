@@ -903,7 +903,32 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   terminada y no lo está**.
   *(Y un dato del mismo paso que sirve para la bajada: `requested_visibility` **sí** está en la tabla aunque
   `RF-41`/`RF-42` estén en `[v1]`, así que el día que se construya la degradación el portal puede mostrar la
-  dirección pedida sin inventar nada.)* **Por eso `A5` suma los valores límite de `private`
+  dirección pedida sin inventar nada.)*
+
+- **2026-10-07 (noche) — Un literal de interfaz cambia **antes** de que lo hardcodee, y eso es el sistema
+  funcionando como se diseñó.** La compuerta de `A3` dejó un aviso (`R2-approver-message-names-wrong-action`): el
+  mensaje del muro decía «…not **`package_patch`**», y el muro también niega por `package_create` (público),
+  por `package_update` completo y por `bulk_update_public` — a **tres de los cuatro** caminos les decía que no
+  usaran una acción que **no usaron**.
+  **Valor nuevo, exacto** (`PUBLISH_VIA_FLOW_MSG`):
+  `Publication goes through the publication flow, not a direct dataset write`.
+  **Lo que respondí como consumidor:** del lado del portal ese literal es un **discriminador, no un mensaje**
+  —la oración que el usuario lee la escribe el portal en español—, así que sólo necesita ser **único y
+  estable** entre los cinco, y lo es. No pedí más precisión.
+  **Y el cambio mejora una propiedad que el aviso no nombra:** el literal viejo **nombraba una acción**, y un
+  literal que nombra una acción le enseña al consumidor que el rechazo **describe el intento**. El nuevo
+  describe **la regla**, que es lo correcto para un rechazo que cubre cuatro caminos distintos.
+  **Regla operativa que deja, y es del día:** **no hardcodear un literal declarado como interfaz hasta que
+  aterrice la unidad que lo cambia**; y el momento de pedir precisión es **antes** de la compuerta, no después.
+  **Estado de la par:** `A3` está en **PR #3** de `odp-docker`, CI verde y compuerta aprobada
+  (`review-5180621e3e08ad50`, tier high, **4/4 lentes**, autoridad quemada), con el **inventario de escritores
+  nativos** (18 acciones, transcript literal con su veredicto de cobertura) en el cuerpo del PR — es donde
+  quedó resuelto `P8` y donde están nombrados los huecos (`package_create` sin `owner_org`, `package_delete`
+  como excepción intencional). **Cuando mergee, `A5` corre contra ese muro**, y el inventario pasa a ser el
+  **mapa de sus filas**: en vez de inventar cobertura, medir cada acción que ellos ya identificaron, más los
+  límites de `private` y la fila de `'false'`. **Y ese PR cierra además el agujero del espejo de
+  `boolean_validator` que estaba vivo en `master`** —`private: 0` publicaba, para un **editor**—, lo que
+  convierte a `private: 0` de observación interesante en **regresión a pin**ear desde el lado del consumidor. **Por eso `A5` suma los valores límite de `private`
   (`0`, `"false"`, `"banana"`, `""`, `null`, omitida) como filas a medir, no a suponer**: ahí es donde un
   espejo y su original se separan en silencio.
 
