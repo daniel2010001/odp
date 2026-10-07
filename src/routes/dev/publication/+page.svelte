@@ -298,9 +298,7 @@ const usuarioActual = $derived(caso === "propia" ? SOLICITANTE_ID : ADMINISTRADO
 
 // El contador de la navegación refleja lo que falta decidir; con la cola caída no hay dato (`null`).
 // Las colas resuelta y vacía no tienen pendientes: el contador es `0`, no una incógnita.
-const pendientes = $derived(
-	cola === "con-solicitudes" ? COLA.length : cola === "error" ? null : 0,
-);
+const pendientes = $derived(cola === "con-solicitudes" ? COLA.length : cola === "error" ? null : 0);
 const contadorTexto = $derived(pendientes === null ? "—" : String(pendientes));
 
 // El aviso de la ficha sólo aparece si hay una solicitud pendiente que quien mira no creó.

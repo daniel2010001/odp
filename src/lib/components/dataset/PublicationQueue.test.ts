@@ -288,9 +288,7 @@ describe("PublicationQueue — quién decidió la solicitud", () => {
 
 		const fila = await rowFor("Presupuesto 2026");
 		// Mutación que lo rompe: mapear el decisor sólo para `approved` dejaría el rechazo sin frase.
-		expect(
-			within(fila).getByText(new RegExp(`Rechazada por ${DECISOR_NAME}`)),
-		).toBeInTheDocument();
+		expect(within(fila).getByText(new RegExp(`Rechazada por ${DECISOR_NAME}`))).toBeInTheDocument();
 	});
 
 	it("una fila decidida sin nombre usa la etiqueta neutral y nunca un id crudo", async () => {
