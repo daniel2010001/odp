@@ -138,7 +138,7 @@ Chain strategy: one unit at a time, each with its own native gate, in the order
 | A1 | Store + migration + model | `odp-docker` | `pytest … tests/test_publication_store.py` | — | drop the table; `ckan db downgrade` |
 | A2 | Five actions + their auth | `odp-docker` | `pytest … tests/test_publication_actions.py` | — | remove `IActions`; actions disappear |
 | A3 | The wall (D1/D6) + wire inventory + probe rewrite | `odp-docker` + `odp` | `pytest … tests/test_auth.py` | `probe.sh` | revert `auth.py`; patch path reopens |
-| B1 | Portal controls + API wrappers (admin publish control repointed; editor request/cancel control new) | `odp` | `pnpm vitest run src/lib/components/dataset/PublishControl.test.ts src/lib/components/dataset/RequestPublicationControl.test.ts` | `/dev/dataset-publish` | revert components + wrappers; CKAN rule keeps working |
+| B1 | Portal controls + API wrappers (sysadmin direct publish control repointed; editor request/cancel control new) | `odp` | `pnpm vitest run src/lib/components/dataset/PublishControl.test.ts src/lib/components/dataset/RequestPublicationControl.test.ts` | `/dev/dataset-publish` | revert components + wrappers; CKAN rule keeps working |
 | B2 | Approval queue + dataset-page wiring (both gates) + copy | `odp` | `pnpm vitest run <queue test>` | queue playground | revert route + controls + copy |
 
 ---
@@ -251,10 +251,13 @@ Hazard 1; it is abbreviated as `pytest … <path>`.
   (new) whose first test fails because the actions are not registered. Cover, in `odp-docker`:
   `publication_request_create` writes exactly one `pending` row with `requested_by`/`comments` and is
   **idempotent**; `publication_request_cancel` (`pending`→`cancelled`, no flip);
-  `publication_request_decide {approve: false}` → `rejected` + comments, `private` unchanged;
+  `publication_request_decide {approve: false, comments}` → `rejected` + comments, `private` unchanged;
+  `publication_request_decide {approve: false}` with **no** comment → refused, row stays `pending`;
   `publication_request_decide {approve: true}` → `approved` with `decided_at`/`consumed_at` **and**
-  `private: false`; `publication_publish` writes and consumes the row in the act; `publication_request_list`
-  filters by status. Repo/paths: `odp-docker`, `…/tests/test_publication_actions.py` (new). Proof:
+  `private: false`; the **four-eyes** refusal (a caller whose identity equals `requested_by` is refused
+  and the row stays `pending`); `publication_publish` writes and consumes the row in the act **only for
+  a `sysadmin`**, while an organization `admin` gets `403`; `publication_request_list` filters by status.
+  Repo/paths: `odp-docker`, `…/tests/test_publication_actions.py` (new). Proof:
   `pytest … tests/test_publication_actions.py` → collection/import failure. TDD: RED for A2.2.
 
 - [ ] **A2.2 GREEN: implement the five actions.** Produce:
@@ -262,20 +265,26 @@ Hazard 1; it is abbreviated as `pytest … <path>`.
   flips through a **server-side** call carrying `ignore_auth`
   (`logic.get_action('package_patch')(context={…, 'ignore_auth': True}, data_dict={'id': …, 'private': False})`;
   the production entry point is `logic.get_action`, not `helpers.call_action` — `design.md` D5) so the
-  record and the flip travel one session (`ckan/logic/__init__.py:313`). Repo/paths: `odp-docker`,
+  record and the flip travel one session (`ckan/logic/__init__.py:313`). `publication_publish` is
+  **`sysadmin`-only** and writes and consumes its row; `publication_request_decide` refuses a
+  self-approval (four eyes) and requires a comment to reject. Repo/paths: `odp-docker`,
   `…/logic/action/publication.py` (new). Proof: `pytest … tests/test_publication_actions.py` → green.
   TDD: A2.1 first.
 
 - [ ] **A2.3 RED: failing tests for the actions' authorization.** Produce: tests covering — an `editor`
   cannot decide (`403`); a stranger cannot cancel someone else's request (`403`); the requester can
-  cancel their own; an `admin` (and a parent-org `admin`) can decide/publish; `publication_request_list`
-  returns the caller's org requests plus their own and **not** requests the caller has no capacity to
-  see. Repo/paths: `odp-docker`, `…/tests/test_publication_actions.py`. Proof:
+  cancel their own; an `admin` (and a parent-org `admin`) can decide, but **never a request they
+  created** (`403`, four eyes); an organization `admin` cannot `publication_publish` (`403`); a
+  `sysadmin` can decide and can `publication_publish`; `publication_request_list` returns the caller's
+  org requests plus their own and **not** requests the caller has no capacity to see. Repo/paths:
+  `odp-docker`, `…/tests/test_publication_actions.py`. Proof:
   `pytest … tests/test_publication_actions.py` → the new assertions fail. TDD: RED for A2.4.
 
 - [ ] **A2.4 GREEN: implement the actions' authorization.** Produce:
-  `…/ckanext-umss/ckanext/umss/logic/auth/publication.py` (new) authorizing the five actions per D4
-  (the `admin` predicate is the stock capacity, reused — no extension-defined permission). Repo/paths:
+  `…/ckanext-umss/ckanext/umss/logic/auth/publication.py` (new) authorizing the five actions per D4:
+  `publication_publish` authorizes only a `sysadmin`; `publication_request_decide` authorizes an org
+  `admin` (owning or parent) or a `sysadmin`, but **never the requester** (the `admin` predicate is the
+  stock capacity, reused — no extension-defined permission). Repo/paths:
   `odp-docker`, `…/logic/auth/publication.py` (new). Proof: `pytest … tests/test_publication_actions.py`
   → green. TDD: A2.3 first.
 
@@ -284,6 +293,21 @@ Hazard 1; it is abbreviated as `pytest … <path>`.
   `design.md` §Not measured). Repo/paths: `odp-docker`, `…/tests/test_publication_actions.py`. Proof:
   `pytest … tests/test_publication_actions.py` → green. TDD: the asserted-not-measured point becomes a
   measured test.
+
+- [ ] **A2.6 TRIANGULATE: the decision re-checks the current state.** Produce: a test that changes the
+  dataset's owning organization, or revokes the requester's capacity, **after** the request was created,
+  and asserts `publication_request_decide` evaluates the dataset's **current** owner and the requester's
+  **current** capacity — not the state captured at request time — and refuses an approver whose admin
+  reach no longer covers the current owner. Repo/paths: `odp-docker`,
+  `…/tests/test_publication_actions.py`. Proof: `pytest … tests/test_publication_actions.py` → green.
+  TDD: negative/alternate cases that protect the four-eyes and approver-capacity contract.
+
+- [ ] **A2.7 TRIANGULATE: a pending request is annulled when its object disappears.** Produce: tests
+  that delete the dataset under a `pending` request, and that publish it through another path (the
+  `sysadmin`'s `publication_publish`), and assert the request's outcome is `annulled` with the `motive`
+  column recorded and no second publication written. Repo/paths: `odp-docker`,
+  `…/tests/test_publication_actions.py`. Proof: `pytest … tests/test_publication_actions.py` → green.
+  TDD: the annulment transition this cut now writes (`Publication Request Store`).
 
 ### Phase A3 — The wall (D1, D6)
 
@@ -312,10 +336,11 @@ Hazard 1; it is abbreviated as `pytest … <path>`.
 - [ ] **A3.3 TRIANGULATE: preserved refusals, allowed edits, and the sysadmin.** Produce: tests that the
   `member`, cross-org `editor` and anonymous callers stay refused; metadata edits, `package_delete`,
   `resource_create` and a full `package_update` omitting `private` stay `200`; create-time `state` is
-  not refused; the two refusal messages are distinguishable; and a `sysadmin` still publishes with
-  stock `package_patch` (`200`, no row required — the declared bypass, `design.md` D6.4). Repo/paths:
-  `odp-docker`, `…/tests/test_auth.py`. Proof: `pytest … tests/test_auth.py` → green. TDD: alternate
-  and negative cases that protect D1/D6.
+  not refused; the two refusal messages are distinguishable; the guard does **not** set
+  `auth_sysadmins_check`; and a `sysadmin` still publishes with stock `package_patch` (`200`, no row
+  required — the declared bypass, `design.md` D6.4) while the sysadmin's **recorded** door
+  `publication_publish` writes its row. Repo/paths: `odp-docker`, `…/tests/test_auth.py`. Proof:
+  `pytest … tests/test_auth.py` → green. TDD: alternate and negative cases that protect D1/D6.
 
 - [ ] **A3.4 Inventory the other native writers (review trigger).** Produce: a written inventory probe
   of the actions reachable through the API that write `private`/`state`, beyond the measured
@@ -342,19 +367,27 @@ row `P10` (parent-org admin → `200`) are now `403`; row `P8`'s refusal must no
 not CKAN's. **The previously-measured 25/25 assumed the old contract and is therefore partly false.**
 
 - [ ] **A5.1 Rewrite the `Approver Capacity` rows.** Produce: `P6` and `P10` flipped from `200` to `403`
-  (through `package_patch`) and paired with their action equivalents (`publication_publish` → `200`).
+  (through `package_patch`) and paired with their action equivalents: the org `admin` now approves
+  through `publication_request_decide` (`200`) and has **no** direct publish path, while the direct
+  `publication_publish` is `sysadmin`-only (`200` for a `sysadmin`, `403` for the org `admin`).
   Repo/paths: `odp`, `openspec/changes/2026-09-13-publication-lifecycle/probe.sh`. Proof: run the script
-  against the running stack → `P6`/`P10` report `403`, the action rows report `200`. TDD: not
-  applicable — a measurement harness.
+  against the running stack → `P6`/`P10` report `403`, the approval rows report `200`, and the org
+  admin's `publication_publish` reports `403`. TDD: not applicable — a measurement harness.
 
 - [ ] **A5.2 Add the door's paths.** Produce: probe rows for `publication_request_create` (editor →
-  `200`, one `pending` row), `publication_request_decide {approve: true}` (admin → `200`, `private`
-  flips, row consumed), `publication_request_decide {approve: false}` (→ `rejected`, `private` intact),
-  `publication_request_cancel`, and `publication_request_list` scoping. Repo/paths: `odp`, `probe.sh`.
-  Proof: the run prints each status and, for the create, the row's `status`/`requested_by`. TDD: n/a.
+  `200`, one `pending` row), `publication_request_decide {approve: true}` (an admin approving another
+  caller's request → `200`, `private` flips, row consumed), `publication_request_decide {approve:
+  false}` (→ `rejected`, `private` intact), `publication_request_decide {approve: false}` with **no**
+  comment (→ refused), the **four-eyes** refusal (the requester deciding their own request → `403`),
+  the sysadmin's recorded `publication_publish` (`200`, a row written), the org admin's
+  `publication_publish` (`403`), `publication_request_cancel`, `publication_request_list` scoping, and
+  the annulment of a `pending` request whose dataset is published by the sysadmin path. Repo/paths:
+  `odp`, `probe.sh`. Proof: the run prints each status and, for the create, the row's
+  `status`/`requested_by`. TDD: n/a.
 
 - [ ] **A5.3 Add the wall's refusals.** Produce: probe rows for the **admin** refused by `package_patch`
-  (message names the flow), the **admin** refused a public `package_create`, and `bulk_update_public`
+  (message names the flow), the **admin** refused a public `package_create`, the **admin** refused
+  `publication_publish` (`403`, no direct path), and `bulk_update_public`
   refused by our rule (assert the plugin message, not a generic CKAN refusal). Repo/paths: `odp`,
   `probe.sh`. Proof: the run's bodies carry the distinguishable messages. TDD: n/a.
 
@@ -389,11 +422,12 @@ not CKAN's. **The previously-measured 25/25 assumed the old contract and is ther
 Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), single file
 `pnpm vitest run <path>`. The portal has **no integration runner and no E2E runner**.
 
-- [ ] **B1.1 RED: failing tests for the API wrappers.** Produce: tests asserting the admin control posts
-  `publication_publish` with exactly `{id}` (no `state`, no `package_patch`), and that the queue's
-  `listRequests`/`decideRequest` call their named actions with the expected payloads. The cut's portal
-  affordances are the **admin's** publication control, the **editor's** request/cancel control, and
-  the **admin's** queue, so the request/cancel wrappers are added too. Repo/paths: `odp`,
+- [ ] **B1.1 RED: failing tests for the API wrappers.** Produce: tests asserting the **sysadmin's**
+  direct publish control posts `publication_publish` with exactly `{id}` (no `state`, no
+  `package_patch`), and that the queue's `listRequests`/`decideRequest` call their named actions with
+  the expected payloads (the decide payload carrying `comments` for a rejection). The cut's portal
+  affordances are the **sysadmin's** direct publish control, the **editor's** request/cancel control,
+  and the **admin's** queue, so the request/cancel wrappers are added too. Repo/paths: `odp`,
   `src/lib/api/publication.test.ts` (new). Proof: `pnpm vitest run src/lib/api/publication.test.ts` →
   fails, wrappers absent. TDD: RED for B1.2.
 
@@ -406,8 +440,10 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
 
 - [ ] **B1.3 RED: failing component tests for the control.** Produce: `src/lib/components/dataset/PublishControl.test.ts`
   covering the spec's `Portal Publication Affordance` and `No Fabricated Publication` scenarios:
-  private + approver → control with the consequence sentence; private + non-approver → no control plus
-  "Solo un administrador de la organización puede publicar este dataset."; check failed → no control
+  private + **sysadmin** → control with the consequence sentence; private + **organization `admin` who
+  is not a sysadmin** → no direct publish control plus the copy "Solo un administrador de la
+  organización puede aprobar esta publicación."; the gate is the `sysadmin` flag, not an organization
+  list (a `capacity: "admin"`, `sysadmin: false` user gets no control); flag read failed → no control
   plus "No se pudo verificar su permiso para publicar." with retry; already public → no control and no
   reverse control; click → `403` → inline alert + control offered again; `200` with `private: true` →
   "El catálogo no confirmó la publicación." and no success; `200` with `private: false` → the page's
@@ -417,16 +453,17 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
 
 - [ ] **B1.4 GREEN: repoint the parked `PublishControl`.** Produce: `PublishControl.svelte` imported
   from `wip/pr2-directo-publicacion` (`6b53c64`) and repointed from `package_patch` to
-  `publication_publish`; the capacity logic, the honest `403` handling and the two state machines
-  survive unchanged; existing tokens and Lucide icons only. The `publish()` call to
-  `package_patch {private: false}` does **not** survive — under the wall it is refused.
-  Repo/paths: `odp`, `src/lib/components/dataset/PublishControl.svelte` (new on this branch).
+  `publication_publish`; its honest `403` handling and its two state machines survive; its gate changes
+  from the admin organization list to the portal's existing `isSuperAdmin` flag
+  (`src/lib/stores/auth.ts:96` — **no new plumbing**); existing tokens and Lucide icons only. The
+  `publish()` call to `package_patch {private: false}` does **not** survive — under the wall it is
+  refused. Repo/paths: `odp`, `src/lib/components/dataset/PublishControl.svelte` (new on this branch).
   Proof: `pnpm vitest run src/lib/components/dataset/PublishControl.test.ts` → green. TDD: B1.3 first.
 
 - [ ] **B1.5 RED: failing component tests for the editor's request control.** Produce:
   `src/lib/components/dataset/RequestPublicationControl.test.ts` covering the spec's editor scenarios:
-  a caller who can `update_dataset` in the owning organization and is not an `admin` → the request
-  control is offered and the publish control is not; activating it posts
+  a caller who can `update_dataset` in the owning organization and is not a `sysadmin` → the request
+  control is offered and the direct publish control is not; activating it posts
   `publication_request_create {dataset_id}`; a caller with an own `pending` request → a cancel control
   posts `publication_request_cancel {request_id}`; a caller who cannot edit → no request control; the
   `update_dataset` check failing → no control plus an explicit state with retry; a `403` → the honest
@@ -441,7 +478,7 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
   `publication_request_create` demands (`src/lib/api/organizations.ts:99-110`;
   `src/routes/dataset/[id]/+page.svelte:297-300`) — calling `requestCreate`/`requestCancel` and never
   `publication_publish`. It reuses the parked component's shape, workspace check and state machines,
-  not its admin gate. Repo/paths: `odp`,
+  not its direct-publish gate. Repo/paths: `odp`,
   `src/lib/components/dataset/RequestPublicationControl.svelte` (new). Proof:
   `pnpm vitest run src/lib/components/dataset/RequestPublicationControl.test.ts` → green. TDD: B1.5
   first.
@@ -450,29 +487,34 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
   the queue route's test) covering the spec's `Portal Approval Queue` scenarios: renders pending
   requests from `publication_request_list`; approving posts `publication_request_decide {request_id,
   approve: true}` and the row leaves the queue on confirmation; rejecting posts `approve: false` with
-  the comment; a `403` keeps the row and is reported as an authorization condition; an unavailable
-  queue shows an explicit error with retry and **no** fabricated empty queue. Repo/paths: `odp`, the
+  the comment; a request whose `requested_by` is the caller is shown with "No puede aprobar su propia
+  solicitud." and offers no action; a rejection without a comment is not submitted; a `403` keeps the
+  row and is reported as an authorization condition; an unavailable queue shows an explicit error
+  with retry and **no** fabricated empty queue. Repo/paths: `odp`, the
   queue route's test file (new). Proof: `pnpm vitest run <queue test>` → fails. TDD: RED for B2.2.
 
 - [ ] **B2.2 GREEN: implement the approval queue.** Produce: the queue route hosted on the
   authenticated dashboard (the design choice of `design.md` D7; the route is reviewed per `AGENTS.md`
   rule 8), reading `publication_request_list` and deciding via `publication_request_decide`. The queue
-  is **admin-only**: the action layer authorizes both calls to the org `admin`. Repo/paths: `odp`,
+  is **admin-only** and enforces **four eyes**: the action layer authorizes both calls to the org
+  `admin`, the queue does not offer a decision on the caller's own request, and it requires a comment
+  to reject. Repo/paths: `odp`,
   `src/routes/dashboard/**`. Proof: `pnpm vitest run <queue test>` → green. TDD: B2.1 first.
 
 - [ ] **B2.3 RED: failing tests for the dataset-page wiring and the copy.** Produce: tests asserting the
-  approver check uses `organization_list_for_user {permission: "admin"}` cross-checked against the
-  dataset's organization (an unfiltered list is not proof), that the request gate uses
+  direct publish gate uses the portal's `isSuperAdmin` flag (no organization list, filtered or not, is
+  proof), that the request gate uses
   `organization_list_for_user {permission: "update_dataset"}` (the `puedeEditarDataset` check) and is
-  distinct from the approver check, that a failed check on either gate yields the unavailable state,
-  and that the wizard copy names the organization administrator without introducing
+  distinct from the direct publish gate, that a failed read on either gate yields the unavailable
+  state, that the queue's self-approval state and reject-comment requirement are wired, and that the
+  wizard copy names the organization administrator as the approver without introducing
   `draft`/`review`/`approved`. Repo/paths: `odp`, `src/routes/dataset/[id]/+page.test.ts`,
   `src/routes/dashboard/datasets/new/+page.test.ts`. Proof: `pnpm vitest run <those files>` → fails.
   TDD: RED for B2.4.
 
 - [ ] **B2.4 GREEN: wire both checks and correct the copy.** Produce: each hint call only when
-  `dataset.private`; the request control offered off `puedeEditarDataset` and the publish control off
-  the admin-filtered check, both rendered in the existing hero badges region
+  `dataset.private`; the request control offered off `puedeEditarDataset` and the direct publish
+  control off the `isSuperAdmin` flag, both rendered in the existing hero badges region
   (`src/routes/dataset/[id]/+page.svelte:157,:381`) with the result wired back so the badge flips only
   on CKAN's `200` with `private: false`; the `DatasetForm.svelte` copy edited only to name who
   publishes (`:770,:796,:1429-1430`). The two controls never share a gate. Repo/paths: `odp`,
@@ -480,7 +522,7 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
   `pnpm vitest run <those files>` → green. TDD: B2.3 first.
 
 - [ ] **B2.5 Playground and human review (rule 8).** Produce: `src/routes/dev/dataset-publish/**`
-  rendering the request control, the publish control **and** the queue in all their states from
+  rendering the request control, the direct publish control **and** the queue in all their states from
   fixtures. Repo/paths: `odp`,
   `src/routes/dev/dataset-publish/**` (new, temporary). Proof: the user reviews every state at
   `http://localhost:8082/dev/dataset-publish` and says it is ready to promote. This is a human review
@@ -496,7 +538,8 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
 
 - [ ] **B2.8 Honest end-to-end note.** Produce: a statement in the PR that the portal's happy path is
   only end-to-end verifiable against the running CKAN with PR A deployed, plus either a manual pass at
-  `http://localhost:8082` (org-admin publishes → badge flips; editor → inline alert, dataset still
+  `http://localhost:8082` (sysadmin publishes → badge flips; an org admin approves an editor's request
+  → badge flips; editor → inline alert, dataset still
   private) or an honest **"not measured"**. Repo/paths: `odp`, the PR description. Proof: the manual
   pass transcript, or the explicit words "not measured" — this is **not** covered by `pnpm test`.
   TDD: n/a.
@@ -505,7 +548,7 @@ Repo root: `/home/danielblc/projects/odp`. Test runner: Vitest (`pnpm test`), si
 
 ## Coverage map — the specs' requirements to tests and probes
 
-Each requirement of `specs/publication-lifecycle/spec.md` (13 requirements, 73 scenarios) and the
+Each requirement of `specs/publication-lifecycle/spec.md` (13 requirements, 81 scenarios) and the
 three modified requirements of `specs/dataset-publishing/spec.md` is listed. A `—` in a runner column
 means the runner does not cover it; the right column says who does, or that nobody can.
 
@@ -514,16 +557,16 @@ means the runner does not cover it; the right column says who does, or that nobo
 | Requirement | Automated test | Live probe | No runner can cover |
 |---|---|---|---|
 | Publication Authorization | `test_auth.py` (patch/update/create refusals, omitted key, `state`) | `P3`, `P4a`, `P4d`, `P4e`, `P5`, `P5b`, plus the admin-refused rows | — |
-| Approver Capacity | `test_auth.py` + `test_publication_actions.py` (action auth) | `P6`/`P10` flipped to `403` by patch; `publication_publish` `200` | — |
+| Approver Capacity | `test_auth.py` + `test_publication_actions.py` (approval auth + four eyes) | `P6`/`P10` flipped to `403` by patch; an org admin approves via `publication_request_decide`; the direct `publication_publish` is `sysadmin`-only | — |
 | Distinguishable Authorization Errors | `test_auth.py` (two messages; `banana`/`''` are attempts) | message/body assertions on the refusal rows | — |
 | No Other Visibility Path | `test_auth.py` (`bulk_update_public` chained refusal) | `P8` now refused by our rule; A3.4 inventory | the full native-action inventory is a review trigger, not a measured claim |
 | Publication Request Store | `test_publication_store.py` | door rows: a `pending` row exists; one-pending index | — |
-| Publication Request Actions | `test_publication_actions.py` | door paths: create/decide/publish/cancel/list + `P-ATOMIC` | — |
+| Publication Request Actions | `test_publication_actions.py` | door paths: create/decide(reject-comment, self-approval refusal, current-state re-check)/publish(sysadmin-only)/cancel/list + annulment + `P-ATOMIC` | — |
 | Preserved Refusals | `test_auth.py` | `P6.2a`, `P6.2b`, `P6.3` | — |
 | Sysadmin Bypass | `test_auth.py` | `P6.1` and the sysadmin action path | — |
 | Published Datasets Reach The Catalogue | none in-repo | `P7` (anonymous count) | **only the live probe** — Solr behaviour; no Python unit or portal runner |
-| Portal Publication Affordance | Vitest `PublishControl.test.ts`, `RequestPublicationControl.test.ts` + dataset-page test (both gates) | — | the real CKAN calls end-to-end: the repo has no integration/E2E runner → manual (B2.8) |
-| Portal Approval Queue | Vitest queue test | — | the real CKAN call end-to-end → manual (B2.8) |
+| Portal Publication Affordance | Vitest `PublishControl.test.ts` (sysadmin-flag gate), `RequestPublicationControl.test.ts` + dataset-page test (both gates) | — | the real CKAN calls end-to-end: the repo has no integration/E2E runner → manual (B2.8) |
+| Portal Approval Queue | Vitest queue test (required reject reason, self-approval state) | — | the real CKAN call end-to-end → manual (B2.8) |
 | No Fabricated Publication | Vitest `PublishControl.test.ts` | — | — |
 | Honest Lifecycle Copy | Vitest copy tests | — | the global "no shipped string promises a deferred step" sweep is a **manual read** |
 

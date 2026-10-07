@@ -35,23 +35,32 @@ removes. It is the **base that changes**, not the finished rule.
 ### In Scope
 
 - **A single authorized publication transition.** A dataset's stored `private` value changes to `false`
-  through exactly one carrier: a dedicated CKAN action, authorized to the organization `admin`, that
-  writes a durable `publication_requests` row and flips `private` **in the same transaction**.
-  `package_update`, `package_patch` and `package_create` no longer publish — **for anyone, including the
-  org admin**. The guard in `ckanext-umss` becomes a **wall**; the action is the **single door**.
+  through exactly one carrier: a dedicated CKAN action that writes a durable `publication_requests` row
+  and flips `private` **in the same transaction**. The action has two authorized paths: the
+  **approval path** (`publication_request_decide`), an organization `admin` (of the owning or a parent
+  organization) and a `sysadmin`, under **four eyes** — nobody approves a request they created — and,
+  for the **direct path** (`publication_publish`), a `sysadmin` only. An organization `admin` has
+  **no** direct publish path. `package_update`, `package_patch` and `package_create` no longer
+  publish — **for anyone, including the org admin**. The guard in `ckanext-umss` becomes a **wall**;
+  the action is the **single door**, and its two keys are the approval path and the sysadmin's
+  recorded path.
 - **A durable request store.** The `publication_requests` table (the PRD schema plus the `annulled`
   outcome and `motive` column the downgrade will need), with a partial unique index enforcing one
   `pending` request per dataset, in `ckanext-umss` (`odp-docker`), delivered by a CKAN migration.
 - **The request flow and its approval queue.** Five actions: request, cancel, decide, publish (the
-  admin's own path) and list (the queue). An `editor` may request; an organization `admin` decides; the
-  admin may also publish in one act, which `RF-15` step 5 already grants.
-- **The portal affordances — two controls with two gates.** An **editor's request control** (and the
+  `sysadmin`'s recorded direct path) and list (the queue). An `editor` may request; an organization
+  `admin` decides, but never a request they created (**four eyes**). The direct path is
+  `sysadmin`-only; an organization `admin` has no direct publish path. The approver's comment is
+  required to reject and optional to approve.
+- **The portal affordances — controls with distinct gates.** An **editor's request control** (and the
   cancel of the caller's own pending request) on the dataset page, offered on the same `update_dataset`
-  capacity the request action demands; an **admin's publish control**, offered on the `admin` capacity
-  its action demands; and an **admin-only approval queue**. All of them call the publication actions
-  and report CKAN's answer honestly (`403` is an authorization condition, a `200` that does not grant
-  publication is not a success). The two controls never share a gate: without the editor's request
-  control the portal has no path by which an editor without admin capacity can request anything.
+  capacity the request action demands; a **sysadmin's direct publish control**, offered on the portal's
+  existing sysadmin flag (`isSuperAdmin`, `src/lib/stores/auth.ts:96` — no new plumbing); and an
+  **admin-only approval queue** that enforces four eyes and requires a reject comment. All of them call
+  the publication actions and report CKAN's answer honestly (`403` is an authorization condition, a
+  `200` that does not grant publication is not a success). The two controls never share a gate: without
+  the editor's request control the portal has no path by which an editor without admin capacity can
+  request anything.
 - **The canonical specs.** A new `publication-lifecycle` capability and the `dataset-publishing`
   `Visibility` requirement rewritten so the wizard creates private and publication is a separate
   authorized transition.
@@ -75,7 +84,7 @@ removes. It is the **base that changes**, not the finished rule.
 
 - `publication-lifecycle`: the contract of the **visibility transition itself** — the wall, the
   `publication_requests` store, the request flow and its five actions, and the portal's editor request
-  control, admin publish control and approval queue. It is specified separately from `dataset-publishing` because the guarantee lives
+  control, sysadmin direct publish control and approval queue. It is specified separately from `dataset-publishing` because the guarantee lives
   in CKAN's authorization layer in `ckanext-umss` (`odp-docker`), while the portal only offers an
   affordance and reports CKAN's answer.
 
@@ -169,15 +178,17 @@ and this section is rewritten as the old proposal required:
 | **The queue's portal route is a design choice, not a measurement** | Low | The author reviews it per `AGENTS.md` rule 8. |
 | **Cross-repository change: Python + CKAN plugin work is not part of `pnpm test`** | High | The live probe is the only evidence that covers the running image; the portal suite proves honesty, not enforcement. |
 | **No approver available: an organization with editors but no admin cannot publish** | Med | Explicit: such a dataset requires a `sysadmin`. The copy says so; no portal role or override grants it. |
+| **Four eyes removes the self-approval shortcut.** An organization whose only admin is the requester needs a `sysadmin` to publish, and an `admin` no longer has a direct publish path | Accepted | The store is a **gate, not a log** (`design.md` D4); the PRD already accepts the analogous "editors but no admin" case, and the `sysadmin` remains the emergency path. |
 
 ## Success Criteria
 
 - [ ] An org **editor**, with its own token, cannot set `private: false` or change `state` on a dataset
       it can edit. Measured API result: `403`. Today this returns `200`.
 - [ ] An editor without admin capacity can request publication from the portal and cancel their own
-      pending request; the request control and the publish control are offered on distinct capacities.
-- [ ] An org **admin** is refused through `package_patch` too, and publishes through the publication
-      action instead.
+      pending request; the request control and the direct publish control are offered on distinct gates
+      (`update_dataset` capacity versus the sysadmin flag).
+- [ ] An org **admin** is refused through `package_patch` too, has **no** direct publish path
+      (`publication_publish` is `sysadmin`-only), and approves only requests they did not create.
 - [ ] Cross-organization, read-only-`member` and anonymous attempts remain denied (no regression).
 - [ ] `bulk_update_public` is refused by this capability's own rule, not by CKAN's own authorization.
 - [ ] A `publication_requests` row is written by the door, and the record and the `private` flip commit

@@ -90,9 +90,25 @@ Una sola puerta para publicar, y la cola alrededor. Todas se registran por `IAct
 |---|---|---|
 | `publication_request_create(dataset_id, comments?)` | Quien puede `update_dataset` en la organización, y el dataset está privado | Crea la fila `pending`. **Idempotente**: si ya hay una pendiente para ese dataset, la devuelve |
 | `publication_request_cancel(request_id)` | Quien la pidió, o un `admin` | `pending` → `cancelled` |
-| `publication_request_decide(request_id, approve, comments?)` | `admin` de la organización (+ sysadmin) | Rechaza (`rejected`) o **aprueba**: marca `approved` + `consumed_at` y **pliega `private` en la misma transacción** |
-| `publication_publish(dataset_id, comments?)` | `admin` de la organización (+ sysadmin) | El camino directo: **crea la fila y la aprueba/consume en el acto**. Es lo que `RF-15` ya permite (el `admin` puede pedir y aprobar él mismo) |
-| `publication_request_list(status?)` | Quien administra o edita en la organización | La cola. Devuelve las solicitudes de las organizaciones donde el invocante tiene capacidad, y las propias |
+| `publication_request_decide(request_id, approve, comments?)` | `admin` de la organización (de la propia o de una padre) o `sysadmin` — **nunca quien la pidió** | Rechaza (`rejected`, con `comments` **obligatorio**) o **aprueba**: marca `approved` + `consumed_at` y **pliega `private` en la misma transacción**; revalida el dueño actual del dataset y la capacidad actual del solicitante |
+| `publication_publish(dataset_id, comments?)` | **solo `sysadmin`** | El camino directo **registrado** del sysadmin: **crea la fila y la aprueba/consume en el acto**, por encima del bypass sin flag que CKAN le da gratis |
+| `publication_request_list(status?)` | Quien administra o edita en la organización | La cola. Devuelve las solicitudes de las organizaciones donde el invocante tiene capacidad, y las propias (las propias se listan, pero no las puede decidir) |
+
+**Cuatro ojos: nadie aprueba su propia solicitud.** El store es una **puerta, no un registro**, y una puerta
+exige un aprobador distinto del solicitante. Con la autopublicación, el alcance entero degenera en un
+registro — y el repositorio ya había escrito el principio: en `BACKLOG.md:1705`, al aparcar el PR 2, dice
+«en el modelo del PRD **el que pide no es el que aprueba**», que fue la razón declarada del aparcamiento.
+Publicar decide sobre el dataset de **otro**: el camino directo del `admin` dejaba a un administrador
+publicar un borrador que su autor todavía estaba trabajando, con datos provisionales o sensibles. La
+negativa debe ser distinguible y nunca un no-op silencioso. **Costo aceptado y declarado:** una
+organización cuyo único `admin` es el solicitante ahora necesita un `sysadmin` para publicar; el PRD ya
+acepta el caso análogo («una organización con editores pero sin `admin` no puede publicar»). El `sysadmin`
+sigue siendo la salida de emergencia — inevitable y no nueva, porque CKAN ya cortocircuita su autorización.
+
+`publication_publish` es **solo `sysadmin`**: un `admin` de organización **no** tiene camino directo. El
+`sysadmin` conserva y gana una puerta **registrada**: la acción escribe la fila, por encima del bypass de
+`authz.py:224-228` (que cortocircuita salvo `auth_sysadmins_check`, flag que este diseño deliberadamente no
+pone). El `comments` del aprobador es **obligatorio al rechazar** y opcional al aprobar.
 
 **Cómo pliega la acción.** `helpers.call_action('package_patch', context={..., 'ignore_auth': True},
 data_dict={'id':…, 'private': False})`. Dos hechos medidos lo sostienen:
@@ -124,27 +140,35 @@ Cambios en `ckan-docker/src/ckanext-umss/ckanext/umss/auth.py`:
    (la cadena pierde el flag de core: medido en `apply-progress.md:402-407`).
 5. **El bypass del sysadmin queda, declarado.** `authz.py:224-228`: un sysadmin pasa por delante de toda
    función de auth salvo que lleve `auth_sysadmins_check`. No se le pone el flag: es la salida de emergencia
-   real del sistema y ya estaba aceptada (`design.md:129-131`).
+   real del sistema y ya estaba aceptada (`design.md:129-131`). Su puerta **registrada** es
+   `publication_publish` (3.3), que escribe la fila; el `package_patch` sin flag sigue como escape de
+   emergencia.
 
 ### 3.5 La cola en el portal (sólo si entra el alcance con cola)
 
 - **Sin ruta nueva para el pedido**: el control vive en la página del dataset, junto a las acciones del hero
   (`src/routes/dataset/[id]/+page.svelte:436-449`), con la capacidad leída por
-  `listForUser("admin")` — que **ya está soportado** (`src/lib/api/organizations.ts:128`; lo usa el
-  `PublishControl` aparcado).
+  `puedeEditarDataset`/`listUpdatableOrganizationIds` (`organization_list_for_user {permission:
+  "update_dataset"}`), que ya existe. El control de **publicación directa** es solo para el `sysadmin` y
+  usa el flag que el portal ya calcula (`isSuperAdmin`, `src/lib/stores/auth.ts:96`) — sin plomería nueva;
+  la capacidad `admin` de organización **no** habilita ese control, porque el camino directo es del
+  `sysadmin`.
 - **Ruta nueva para la cola del aprobador**: no existe ninguna candidata natural. El dashboard
   (`src/routes/dashboard/+page.svelte`, 743 líneas) es el anfitrión más barato; su sección «Mis datasets»
   (`:442-451`) es el vecindario.
-- **El `PublishControl` aparcado no se tira**: su lógica de capacidad, su manejo honesto del `403` y sus dos
-  máquinas de estado se conservan; lo que cambia es a qué acción llama (`package_patch` → `publication_*`).
+- **El `PublishControl` aparcado no se tira**: su manejo honesto del `403` y sus dos
+  máquinas de estado se conservan; su compuerta cambia de la lista de organizaciones `admin` al flag
+  `isSuperAdmin` que el portal ya calcula, y la acción a la que llama (`package_patch` →
+  `publication_*`).
 
 ## 4. Lo que este diseño obliga a enmendar
 
 Si la pared se adopta, **el contrato vigente deja de ser cierto en dos sitios, y hay que escribirlo**:
 
 - `specs/publication-lifecycle/spec.md` → `Requirement: Approver Capacity`: hoy dice que un `admin` **sí**
-  puede pliegar `private`. Con la pared, la capacidad del `admin` pasa a ejercerse **por la acción**, no por
-  `package_patch`. Los escenarios cambian de forma, no de intención.
+  puede pliegar `private`. Con la pared y la regla de cuatro ojos, la capacidad del `admin` se ejerce por
+  `publication_request_decide` — nunca sobre su propia solicitud — y `publication_publish` pasa a ser solo
+  del `sysadmin`. Los escenarios cambian de forma, no de intención.
 - La **sonda** (`probe.sh`, 25/25 hoy) afirma que un `admin` publica con `package_patch` → **pasa a 403**;
   hay que agregar los casos de la puerta. La sonda es material de revisión, no presupuesto de código.
 
@@ -166,7 +190,7 @@ Con este diseño, **el alcance «mínimo» gana una opción que antes no existí
 
 | | **A plano** — no tocar el guard | **A′ — puerta única sin cola** | **B — con cola** |
 |---|---|---|---|
-| Quién publica | El `admin`, con `package_patch`, directo | El `admin`, por `publication_publish` | El `editor` pide; el `admin` aprueba |
+| Quién publica | El `admin`, con `package_patch`, directo | El `sysadmin`, por `publication_publish` | El `editor` pide; un `admin` distinto del solicitante aprueba (o el `sysadmin` publica directo) |
 | Backend | **0 líneas** | ~50 líneas (pared + 1 acción) + sonda | ~600 líneas (tabla, migración, 5 acciones, pared) + tests |
 | Portal | **491+363 ya construidos**, sin tocar | Los mismos, con `publish()` apuntado a la acción nueva | + control de pedido y pantalla de cola (~350 / ~500 estimadas) |
 | Salida de emergencia | Sí (`package_patch` por API; y el sysadmin) | **Sólo el sysadmin** | Sólo el sysadmin |
