@@ -402,8 +402,10 @@ tenga su UI.
   1,0–1,7 × código** y **retirar el 2,20 como default del backend**.
   **La lección de fondo es sobre la regla, no sobre el número:** **una regla derivada de dos muestras es una
   hipótesis, y ésta quedó escrita como regla.** Hicieron falta la tercera y la cuarta para verlo.
-- **2026-10-07 — Aviso operativo: `dataset` todavía NO está en el código.** El contrato aditivo está
-  **decidido** (y el portal ya lo consume), pero la clave `dataset` llega en la unidad de seguimiento de A2
+- **2026-10-07 — Aviso operativo: `dataset` todavía NO está en el código.** **[SUPERADO: el contrato terminó
+  siendo **uniforme** —nadie devuelve `dataset` y el portal re-lee—; ver la entrada de la cuarta y última
+  decisión, más abajo. Se conserva porque describe un estado que fue cierto.]** El contrato aditivo estaba
+  **decidido** (y el portal lo consumía entonces), y la clave `dataset` llega en la unidad de seguimiento de A2
   con su propia compuerta. **Contra la acción desplegada, el portal leería cada publicación exitosa como
   fallo.** Por eso **B1 espera esa clave, no sólo a A2** — y el doble inyectado de la hoja es, por ahora,
   la única forma de ejercitar la regla.
@@ -472,7 +474,8 @@ tenga su UI.
   y re-leer). **La diferencia no es de corrección sino de dónde se verifica; lo que no conviene es cambiar de
   forma después de cablear B1.**
 - **2026-10-07 — Confirmaciones de la par, y una corrección de criterio mía que acepto.**
-  1. **El contrato aditivo queda CONFIRMADO**: `publication_publish` y `decide {approve: true}` devuelven la
+  1. ~~**El contrato aditivo queda CONFIRMADO**~~ **[SUPERADO: el autor lo pasó a uniforme en la cuarta
+     decisión; ver la entrada de más abajo.]** `publication_publish` y `decide {approve: true}` devolvían la
      fila **más** `dataset`, y **no hay que volver atrás nada** de lo ya commiteado. El portal estaba en lo
      correcto y su doble también.
   2. **Los campos de presentación entran**: `requested_by_name` y `approved_by_name` (username de CKAN),

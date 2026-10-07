@@ -1296,7 +1296,9 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > **Unidad de seguimiento, definida por la sesión par (2026-10-07): `unit/a2-governance`, una sola compuerta.**
 > Lleva: las **cuatro deltas de gobernanza** (`publish` sólo `sysadmin`; `decide` nunca el solicitante y
 > comparando **ids**; motivo **obligatorio al rechazar**; re-verificación del estado actual y anulación de la
-> `pending` huérfana), la clave **`dataset`** en las dos acciones que pliegan, los campos de presentación
+> `pending` huérfana), el **retorno uniforme** —las cinco devuelven **sólo la fila**; `publish` y
+> `decide{approve:true}`, que en un momento se esperó que añadieran `dataset`, **no** lo llevan: el portal
+> **re-lee** el dataset—, los campos de presentación
 > **batcheados en una consulta por llamada**, y **el archivo *tracked* con el contrato de las cinco acciones**
 > — que es donde se lee la firma, no en un mensaje. Los **ocho *advisory* de A2 van aparte**
 > (`unit/a2-advisories`, `57fb1a6`), con su **propia** compuerta, **para no mezclar conformidad con calidad**.
