@@ -66,24 +66,6 @@ const EXCEPCIONES: { archivo: string; fragmento: string; motivo: string }[] = [
 		fragmento: "$lib/api/datastore",
 		motivo: "Ruta de módulo de un `import`, no copy visible.",
 	},
-	{
-		archivo: "src/routes/dashboard/datasets/new/+page.svelte",
-		fragmento: "slug «",
-		motivo:
-			"La oración del nombre ya tomado la fija `wizard.test.ts` con el término `slug`, y el commit de copy dejó ese término como decisión pendiente del autor. La entrada del denylist ahora sí lo marca; la excepción queda explícita para que reescribirla sea una decisión, no un hueco silencioso.",
-	},
-	{
-		archivo: "src/lib/components/datasets/DatasetForm.svelte",
-		fragmento: "El slug identifica",
-		motivo:
-			"La etiqueta y la ayuda del campo usan el término que el autor eligió para el valor, decisión pendiente registrada en el commit de copy; `DatasetForm.svelte` queda fuera de las superficies de este cambio.",
-	},
-	{
-		archivo: "src/lib/schemas/dataset.ts",
-		fragmento: "El slug debe tener al menos 2 caracteres",
-		motivo:
-			"El mensaje de validación del nombre usa el mismo término; `src/lib/schemas/dataset.ts` queda fuera de las superficies de este cambio. La excepción es explícita y revisable, no un hueco: el escáner de regexs destapó este string al arreglar el escáner de literales.",
-	},
 ];
 
 /** Los nombres que no deben aparecer en el copy visible, con la etiqueta del hallazgo. */
@@ -121,19 +103,82 @@ function recortarComentarios(fuente: string): string {
 		.replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
+/** ¿El `/` en la posición `i` inicia un literal de regex? Mira el último carácter no blanco previo. */
+function iniciaLiteralRegex(fuente: string, i: number): boolean {
+	let j = i - 1;
+	while (j >= 0 && /\s/.test(fuente[j])) j--;
+	if (j < 0) return true;
+	return "(,=:[!&|?{};".includes(fuente[j]);
+}
+
+/** Índice posterior al literal de regex que empieza en `i`, o `null` si el `/` no cierra uno. */
+function finDeLiteralRegex(fuente: string, i: number): number | null {
+	let j = i + 1;
+	if (fuente[j] === "/" || fuente[j] === "*") return null;
+	let enClase = false;
+	while (j < fuente.length) {
+		const c = fuente[j];
+		if (c === "\\") {
+			j += 2;
+			continue;
+		}
+		if (c === "\n") return null;
+		if (c === "[") enClase = true;
+		else if (c === "]") enClase = false;
+		else if (c === "/" && !enClase) {
+			j++;
+			while (j < fuente.length && /[a-z]/.test(fuente[j])) j++;
+			return j;
+		}
+		j++;
+	}
+	return null;
+}
+
 /**
- * Saca los literales de regex (`/…/flags`). Un literal de regex **no es copy**, pero puede contener
- * comillas o backticks (el patrón de email de `schemas/dataset.ts` trae los dos) y desalinear al
- * escáner de cadenas: medido, una racha de strings de ese archivo quedaba dentro de un falso
- * template y `quitarLlaves` la borraba, así que un mensaje visible como «El slug debe tener al menos
- * 2 caracteres» no se veía. El lookbehind exige un contexto donde JS sólo admite un literal
- * (tras `=`, `(`, `,`, `:`, `[`, `{`, `;`, …), que es donde el repo los escribe.
+ * Saca los literales de regex (`/…/flags`) **sólo fuera de las cadenas**. Un literal de regex no es
+ * copy, pero puede contener comillas o backticks (el patrón de email de `schemas/dataset.ts` trae los
+ * dos) y desalinear al escáner de cadenas; por eso se recorta. Hacerlo sin distinguir cadenas era un
+ * agujero: un copy visible con forma de `/palabra/` veía su interior reemplazado por `(regex)` y el
+ * token prohibido desaparecía antes del escaneo. El escáner recorre una vez: copia la cadena entera
+ * tal cual y, fuera de ella, reemplaza los literales de regex.
  */
 function recortarLiteralesRegex(fuente: string): string {
-	return fuente.replace(
-		/(?<=[(,=:[!&|?{};]\s*)\/(?![/*])(?:[^/\\\n[]|\\.|\[(?:[^\]\\]|\\.)*\])+\/[a-z]*/g,
-		"(regex)",
-	);
+	let salida = "";
+	let i = 0;
+	const n = fuente.length;
+	while (i < n) {
+		const c = fuente[i];
+		if (c === '"' || c === "'" || c === "`") {
+			salida += c;
+			i++;
+			while (i < n) {
+				if (fuente[i] === "\\") {
+					salida += fuente[i] + (fuente[i + 1] ?? "");
+					i += 2;
+					continue;
+				}
+				salida += fuente[i];
+				if (fuente[i] === c) {
+					i++;
+					break;
+				}
+				i++;
+			}
+			continue;
+		}
+		if (c === "/" && iniciaLiteralRegex(fuente, i)) {
+			const fin = finDeLiteralRegex(fuente, i);
+			if (fin !== null) {
+				salida += "(regex)";
+				i = fin;
+				continue;
+			}
+		}
+		salida += c;
+		i++;
+	}
+	return salida;
 }
 
 /** Saca las expresiones `{...}` (incluye `{#if}`, `{/if}` y `${...}`). */
@@ -262,6 +307,15 @@ describe("El detector de palabras prohibidas está afilado", () => {
 			'const obj = { a: "El valor del slug ya existe." };',
 			"const otro = `x`;",
 		].join("\n");
+		expect(auditar("sintetico.svelte", fuente)).toHaveLength(1);
+	});
+
+	it("marca una palabra prohibida dentro de una cadena aunque se parezca a un literal de regex", () => {
+		// El recorte de literales de regex corría **antes** de leer las cadenas, así que un copy
+		// visible con algo con forma de `/CKAN/` veía su interior reemplazado por `(regex)` y el token
+		// desaparecía antes del escaneo. El orden correcto lee primero la cadena y recorta regex sólo
+		// fuera de ella: el hallazgo tiene que seguir viéndose.
+		const fuente = 'const mensaje = "Revise el formato: /CKAN/ del catálogo";';
 		expect(auditar("sintetico.svelte", fuente)).toHaveLength(1);
 	});
 

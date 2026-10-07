@@ -608,13 +608,13 @@ const hayTitulo = $derived(title.trim().length > 0);
 
 			<div class="space-y-1.5 [&>label]:pl-[var(--label-offset)] [&>p]:pl-[var(--label-offset)]">
 				<span class="block pl-[var(--label-offset)] text-sm font-medium text-foreground">
-					Slug <span class="text-destructive" aria-hidden="true">*</span>
+					Dirección web <span class="text-destructive" aria-hidden="true">*</span>
 				</span>
 				{#if slugEditable}
 					<div class="flex gap-2">
 						<input
 							id="slug"
-							aria-label="Slug"
+							aria-label="Dirección web"
 							type="text"
 							bind:value={slug}
 							onblur={() => markTouched("name")}
@@ -660,15 +660,15 @@ const hayTitulo = $derived(title.trim().length > 0);
 				<p id="slug-hint" class="text-xs text-muted-foreground">
 					{#if mode === "edit"}
 						{#if slugUnlocked}
-							Cambiarlo rompe todos los enlaces existentes al dataset. Desbloquéelo sólo si
+							Cambiarla rompe todos los enlaces existentes al dataset. Desbloquéela sólo si
 							sabe que el enlace anterior debe dejar de funcionar.
 						{:else}
-							El slug identifica al dataset en su dirección web y se presenta fijo:
-							cambiarlo rompería todos los enlaces existentes.
+							La dirección web identifica al dataset y se presenta fija: cambiarla
+							rompería todos los enlaces existentes.
 						{/if}
 					{:else}
-						Se genera automáticamente a partir del título. Desbloquéelo sólo si necesita
-						cambiarlo.
+						Se genera automáticamente a partir del título. Desbloquéela sólo si necesita
+						cambiarla.
 					{/if}
 				</p>
 				{#if fieldErrors.name}

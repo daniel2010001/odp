@@ -478,7 +478,9 @@ describe("Wizard de creación", () => {
 			target: { value: "Matrícula 2026" },
 		});
 		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-		await fireEvent.input(screen.getByLabelText(/slug/i), { target: { value: "Matrícula 2026" } });
+		await fireEvent.input(screen.getByLabelText(/dirección web/i), {
+			target: { value: "Matrícula 2026" },
+		});
 
 		await fireEvent.submit(getForm(container));
 
@@ -499,7 +501,7 @@ describe("Wizard de creación", () => {
 			target: { value: "Matrícula 2026" },
 		});
 		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-		await fireEvent.input(screen.getByLabelText(/slug/i), {
+		await fireEvent.input(screen.getByLabelText(/dirección web/i), {
 			target: { value: "matricula-estudiantil-2026" },
 		});
 
@@ -511,7 +513,7 @@ describe("Wizard de creación", () => {
 
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent(
-				/slug «matricula-estudiantil-2026» ya está en uso/i,
+				/dirección web «matricula-estudiantil-2026» ya está en uso/i,
 			),
 		);
 	});
@@ -525,7 +527,7 @@ describe("Wizard de creación", () => {
 			target: { value: "Matrícula 2026" },
 		});
 		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-		await fireEvent.input(screen.getByLabelText(/slug/i), {
+		await fireEvent.input(screen.getByLabelText(/dirección web/i), {
 			target: { value: "matricula-estudiantil-2026" },
 		});
 
@@ -543,6 +545,53 @@ describe("Wizard de creación", () => {
 		expect(screen.getByRole("alert")).toHaveTextContent(/No se pudo crear el dataset/i);
 	});
 
+	it("explica el 403 de permisos sin filtrar el texto crudo del servidor", async () => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula 2026" },
+		});
+
+		mocks.create.mockRejectedValueOnce(
+			new CkanApiError("Access denied: detalle crudo del servidor", 403),
+		);
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() =>
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				/no está autorizada para publicar en esta organización/i,
+			),
+		);
+		// El texto crudo del servidor va a la consola, nunca a la oración visible.
+		expect(screen.getByRole("alert")).not.toHaveTextContent(/detalle crudo del servidor/i);
+	});
+
+	it.each([
+		400, 409, 422,
+	])("explica el rechazo definitivo %s del catálogo sin filtrar el texto crudo", async (status) => {
+		auth.login("tok-123", baseUser);
+
+		const { container } = render(Wizard);
+
+		await fireEvent.input(await screen.findByLabelText(/título/i), {
+			target: { value: "Matrícula 2026" },
+		});
+
+		mocks.create.mockRejectedValueOnce(
+			new CkanApiError("Bad request: detalle crudo del servidor", status),
+		);
+
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() =>
+			expect(screen.getByRole("alert")).toHaveTextContent(/el catálogo rechazó los datos/i),
+		);
+		expect(screen.getByRole("alert")).not.toHaveTextContent(/detalle crudo del servidor/i);
+	});
+
 	it("lleva el foco al primer campo inválido en orden de formulario al intentar enviar", async () => {
 		auth.login("tok-123", baseUser);
 
@@ -552,7 +601,9 @@ describe("Wizard de creación", () => {
 			target: { value: "Matrícula 2026" },
 		});
 		await fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-		await fireEvent.input(screen.getByLabelText(/slug/i), { target: { value: "Matrícula 2026" } });
+		await fireEvent.input(screen.getByLabelText(/dirección web/i), {
+			target: { value: "Matrícula 2026" },
+		});
 
 		await fireEvent.submit(getForm(container));
 

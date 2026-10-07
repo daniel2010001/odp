@@ -68,7 +68,13 @@ describe("datasetCreateSchema — contrato del slug", () => {
 	});
 
 	it("rechaza un slug de un solo carácter", () => {
-		expect(datasetCreateSchema.safeParse({ ...base, name: "a" }).success).toBe(false);
+		const result = datasetCreateSchema.safeParse({ ...base, name: "a" });
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues[0].message).toBe(
+				"La dirección web debe tener al menos 2 caracteres",
+			);
+		}
 	});
 });
 

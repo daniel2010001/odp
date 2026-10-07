@@ -129,7 +129,7 @@ const tagString = z
 export const datasetCreateSchema = z.object({
 	name: z
 		.string()
-		.min(2, "El slug debe tener al menos 2 caracteres")
+		.min(2, "La dirección web debe tener al menos 2 caracteres")
 		.max(100)
 		.regex(/^[a-z0-9_-]+$/, "Solo minúsculas, números, guiones y guión bajo"),
 	title: z

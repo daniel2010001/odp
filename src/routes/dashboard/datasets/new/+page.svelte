@@ -155,7 +155,7 @@ function describeCreateError(err: unknown, name: string): string {
 	// marcaba como conflicto cualquier error que nombrara una URL —el de un recurso, por ejemplo—, así que
 	// al usuario se le pedía cambiar el slug cuando el problema estaba en otro campo.
 	if (/that url is already in use/i.test(message)) {
-		return `El slug «${name}» ya está en uso. Elija otro slug e intente nuevamente.`;
+		return `La dirección web «${name}» ya está en uso. Elija otra dirección web e intente nuevamente.`;
 	}
 	if (err instanceof CkanApiError) {
 		if (err.status === 403) {
