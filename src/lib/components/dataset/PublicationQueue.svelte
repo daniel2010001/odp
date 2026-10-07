@@ -19,7 +19,15 @@ export interface PublicationQueueItem {
 
 <script lang="ts">
 // La cola del **administrador de la organización**: las solicitudes pendientes de las organizaciones
-// donde administra, con aprobar, rechazar y un comentario opcional.
+// donde administra, con aprobar, rechazar y un comentario.
+//
+// Dos reglas de la cola:
+//  · **Cuatro ojos**: nadie aprueba una solicitud que creó. Una fila cuyo `requested_by` es quien
+//    mira se muestra como **no decidible** — sin aprobar ni rechazar — en vez de ofrecer un botón que
+//    el catálogo va a rechazar.
+//  · **Rechazar exige un motivo**: el control se niega a enviar un rechazo sin comentario y lo
+//    explica, en vez de dejar que el catálogo lo rechace. Aprobar con comentario sigue siendo
+//    opcional.
 //
 // Las dos llamadas entran **inyectadas** (`list`, `decide`): las acciones del catálogo todavía no
 // existen en la capa de API del portal. Quién puede decidir lo decide el catálogo; acá sólo se lee su
@@ -28,8 +36,16 @@ export interface PublicationQueueItem {
 // Regla de honestidad: la fila sale de la cola **sólo** cuando el catálogo devolvió la solicitud con
 // el estado de la decisión pedida. Un `200` cuya solicitud sigue pendiente no es una decisión, y un
 // `403` se explica como capacidad faltante, no como error de red.
-import { CheckCircle2, CircleAlert, LoaderCircle, RefreshCw, XCircle } from "@lucide/svelte";
+import {
+	CheckCircle2,
+	CircleAlert,
+	LoaderCircle,
+	RefreshCw,
+	ShieldAlert,
+	XCircle,
+} from "@lucide/svelte";
 import Button from "$lib/components/ui/button/button.svelte";
+import { currentUser as currentUserStore } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import { cn, formatDate } from "$lib/utils";
 
@@ -47,10 +63,12 @@ export type DecidePublicationRequest = (
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
-const COMMENT_LABEL = "Comentario (opcional)";
-const COMMENT_PLACEHOLDER = "Puede explicar la decisión. Es opcional.";
+const COMMENT_LABEL = "Comentario (obligatorio para rechazar)";
+const COMMENT_PLACEHOLDER = "Escriba el motivo del rechazo. Es opcional al aprobar.";
 const APPROVE_LABEL = "Aprobar";
 const REJECT_LABEL = "Rechazar";
+const SELF_APPROVAL = "No puede aprobar su propia solicitud.";
+const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
 const REFUSED_DECIDE =
 	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
@@ -60,16 +78,19 @@ const REJECTED_NOTE = "La solicitud fue rechazada.";
 let {
 	list,
 	decide,
+	currentUser,
 	ondecided,
 	class: className = "",
 }: {
 	list: ListPublicationRequests;
 	decide: DecidePublicationRequest;
+	/** Quién está mirando la cola; su propia solicitud no es decidible por él. Default: la sesión. */
+	currentUser?: string | null;
 	ondecided?: (item: PublicationQueueItem) => void;
 	class?: string;
 } = $props();
 
-type Outcome = { kind: "refused" | "unconfirmed" | "error"; message: string };
+type Outcome = { kind: "refused" | "unconfirmed" | "error" | "reason-required"; message: string };
 
 let items = $state<PublicationQueueItem[]>([]);
 let loading = $state(true);
@@ -79,6 +100,13 @@ let deciding = $state<{ id: string; approve: boolean } | null>(null);
 let outcomes = $state<Record<string, Outcome | undefined>>({});
 let comments = $state<Record<string, string>>({});
 let announcement = $state<string | null>(null);
+
+// La identidad de quien mira: la inyectada, o la de la sesión. Con `null` ninguna fila se bloquea.
+const viewer = $derived(currentUser === undefined ? ($currentUserStore?.name ?? null) : currentUser);
+
+function isOwn(item: PublicationQueueItem): boolean {
+	return viewer !== null && item.requested_by === viewer;
+}
 
 async function load() {
 	loading = true;
@@ -100,14 +128,21 @@ $effect(() => {
 });
 
 async function decideOn(item: PublicationQueueItem, approve: boolean) {
-	if (deciding) return;
+	// Cuatro ojos: la propia solicitud no se decide, ni siquiera si el botón llegara a existir.
+	if (deciding || isOwn(item)) return;
+
+	const comentario = comments[item.id]?.trim();
+	if (!approve && !comentario) {
+		// Rechazar exige un motivo: se dice acá y no se envía la decisión al catálogo.
+		outcomes[item.id] = { kind: "reason-required", message: REASON_REQUIRED };
+		return;
+	}
 
 	deciding = { id: item.id, approve };
 	outcomes[item.id] = undefined;
 	announcement = null;
 
 	try {
-		const comentario = comments[item.id]?.trim();
 		const respuesta = await decide(item.id, approve, comentario || undefined);
 		const esperado: PublicationRequestStatus = approve ? "approved" : "rejected";
 
@@ -189,61 +224,75 @@ function setComment(id: string, value: string) {
 						</p>
 					{/if}
 
-					<label
-						for={`comentario-${item.id}`}
-						class="mt-3 block text-xs font-medium text-muted-foreground"
-					>
-						{COMMENT_LABEL}
-					</label>
-					<textarea
-						id={`comentario-${item.id}`}
-						rows="2"
-						placeholder={COMMENT_PLACEHOLDER}
-						value={comments[item.id] ?? ""}
-						oninput={(event) => setComment(item.id, event.currentTarget.value)}
-						class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					></textarea>
-
-					{#if outcomes[item.id]}
+					{#if isOwn(item)}
 						<div
-							role="alert"
-							class={cn(
-								"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
-								outcomes[item.id]?.kind === "refused"
-									? "border-destructive/20 bg-destructive/10 text-destructive"
-									: "border-border bg-muted/40 text-muted-foreground",
-							)}
+							role="note"
+							class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
 						>
-							<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-							<span>{outcomes[item.id]?.message}</span>
+							<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
+							<span>{SELF_APPROVAL}</span>
+						</div>
+					{:else}
+						<label
+							for={`comentario-${item.id}`}
+							class="mt-3 block text-xs font-medium text-muted-foreground"
+						>
+							{COMMENT_LABEL}
+						</label>
+						<textarea
+							id={`comentario-${item.id}`}
+							rows="2"
+							placeholder={COMMENT_PLACEHOLDER}
+							value={comments[item.id] ?? ""}
+							oninput={(event) => setComment(item.id, event.currentTarget.value)}
+							class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						></textarea>
+
+						{#if outcomes[item.id]}
+							<div
+								role="alert"
+								class={cn(
+									"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
+									outcomes[item.id]?.kind === "refused"
+										? "border-destructive/20 bg-destructive/10 text-destructive"
+										: "border-border bg-muted/40 text-muted-foreground",
+								)}
+							>
+								<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
+								<span>{outcomes[item.id]?.message}</span>
+							</div>
+						{/if}
+
+						<div class="mt-3 flex flex-wrap gap-2">
+							<Button
+								size="sm"
+								onclick={() => void decideOn(item, true)}
+								disabled={deciding !== null}
+							>
+								{#if deciding?.id === item.id && deciding.approve}
+									<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+									Aprobando…
+								{:else}
+									<CheckCircle2 class="size-4" aria-hidden="true" />
+									{APPROVE_LABEL}
+								{/if}
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => void decideOn(item, false)}
+								disabled={deciding !== null}
+							>
+								{#if deciding?.id === item.id && !deciding.approve}
+									<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+									Rechazando…
+								{:else}
+									<XCircle class="size-4" aria-hidden="true" />
+									{REJECT_LABEL}
+								{/if}
+							</Button>
 						</div>
 					{/if}
-
-					<div class="mt-3 flex flex-wrap gap-2">
-						<Button size="sm" onclick={() => void decideOn(item, true)} disabled={deciding !== null}>
-							{#if deciding?.id === item.id && deciding.approve}
-								<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-								Aprobando…
-							{:else}
-								<CheckCircle2 class="size-4" aria-hidden="true" />
-								{APPROVE_LABEL}
-							{/if}
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onclick={() => void decideOn(item, false)}
-							disabled={deciding !== null}
-						>
-							{#if deciding?.id === item.id && !deciding.approve}
-								<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-								Rechazando…
-							{:else}
-								<XCircle class="size-4" aria-hidden="true" />
-								{REJECT_LABEL}
-							{/if}
-						</Button>
-					</div>
 				</li>
 			{/each}
 		</ul>

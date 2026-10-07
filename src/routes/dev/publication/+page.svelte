@@ -1,25 +1,27 @@
 <!--
 	Hoja de revisión de la publicación — superficie sólo para desarrollo (`/dev/publication`).
 
-	Duplica las **dos superficies reales** que la publicación toca y las renderiza con los
-	**componentes reales** (`PublishControl`, `RequestPublicationControl`, `PublicationQueue`):
+	Duplica las superficies reales que la publicación toca y las renderiza con los **componentes
+	reales** (`PublishControl`, `RequestPublicationControl`, `PublicationQueue`):
 
 	· la **zona de acciones del hero** de la ficha del dataset (`src/routes/dataset/[id]/+page.svelte`),
-	  vista como editor y como administrador de la organización, lado a lado, para que las dos
+	  vista como editor, como administrador de la organización y como superadministración, para que las
 	  compuertas se comparen sin derivar una de la otra;
 	· la **cola del panel** del administrador, en el lugar donde el diseño la hospeda
 	  (`src/routes/dashboard/+page.svelte`).
 
-	Los estados que la hoja tiene que dejar mirar: sin solicitud / pendiente con cancelar / rechazada
-	con su motivo; y los dos fallos que no se pueden provocar a mano: un `403` rechazado con nombre
-	propio y un `200` que no concede. También la verificación de capacidad del control de publicación
-	(encontrada / de otra organización / caída).
+	Las reglas que la hoja deja mirar: el **camino directo de publicación** sólo se ofrece a la
+	superadministración (un administrador de organización no lo ve); la **cola** no decide la solicitud
+	que creó quien mira y **exige un motivo para rechazar**; y una solicitud **anulada** dice que dejó
+	de estar vigente. También los estados que no se pueden provocar a mano: un `403` rechazado con
+	nombre propio, un `200` que no concede, una solicitud rechazada con su motivo y una cola que no
+	carga.
 
 	Todas las llamadas —`publish`, `request`, `cancel`, `list`, `decide`— entran por **dobles**: las
 	acciones del catálogo todavía no existen en la capa de API del portal, así que la hoja no puede
 	cablearlas de verdad. El panel de control es de la hoja, no del producto: es fijo y colapsable,
-	guarda su estado en la URL (`?vista=&caso=&fallo=&verificacion=&cola=&panel=`) y `?clic=1` aprieta
-	el primer control disponible, para poder enlazar un estado que sólo aparece después del clic.
+	guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&panel=`) y `?clic=1` aprieta el primer
+	control disponible, para poder enlazar un estado que sólo aparece después del clic.
 
 	La hoja es material de revisión: se borra sin tocar los componentes. La compuerta de producción
 	está en `+page.ts`.
@@ -37,45 +39,43 @@ import RequestPublicationControl, {
 } from "$lib/components/dataset/RequestPublicationControl.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CkanApiError } from "$lib/types/api";
-import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import {
+	ADMINISTRADOR,
 	COLA,
 	DATASET,
 	DATASET_PUBLICADO,
 	MOTIVO_RECHAZO,
 	makeRequest,
-	ORGANIZACION,
-	OTRA_ORGANIZACION,
+	SOLICITANTE,
 } from "./fixtures";
 
 // ─── Dimensiones del panel ────────────────────────────────────────────
-type Vista = "ambas" | "editor" | "administrador";
-type Caso = "sin-solicitud" | "pendiente" | "rechazada";
+type Vista = "ambas" | "editor" | "administrador" | "sysadmin";
+type Caso = "sin-solicitud" | "pendiente" | "rechazada" | "propia" | "sin-motivo" | "annulada";
 type Fallo = "ninguno" | "403" | "sin-confirmar" | "red";
-type Verificacion = "encontrada" | "ajena" | "falla";
 type Cola = "con-solicitudes" | "vacia" | "error";
 
 const VISTAS: { id: Vista; label: string }[] = [
-	{ id: "ambas", label: "Las dos, lado a lado" },
+	{ id: "ambas", label: "Editor y superadministración" },
 	{ id: "editor", label: "Sólo el editor" },
 	{ id: "administrador", label: "Sólo el administrador" },
+	{ id: "sysadmin", label: "Sólo la superadministración" },
 ];
 const CASOS: { id: Caso; label: string }[] = [
 	{ id: "sin-solicitud", label: "Sin solicitud" },
 	{ id: "pendiente", label: "Pendiente (con cancelar)" },
 	{ id: "rechazada", label: "Rechazada (con motivo)" },
+	{ id: "propia", label: "Solicitud propia (no decidible)" },
+	{ id: "sin-motivo", label: "Rechazo sin motivo" },
+	{ id: "annulada", label: "Solicitud anulada" },
 ];
 const FALLOS: { id: Fallo; label: string }[] = [
 	{ id: "ninguno", label: "Concede" },
 	{ id: "403", label: "403: rechazo honesto" },
 	{ id: "sin-confirmar", label: "200 que no concede" },
 	{ id: "red", label: "Falla de red o 5xx" },
-];
-const VERIFICACIONES: { id: Verificacion; label: string }[] = [
-	{ id: "encontrada", label: "Administra la organización" },
-	{ id: "ajena", label: "Administra otra organización" },
-	{ id: "falla", label: "La verificación cae" },
 ];
 const COLAS: { id: Cola; label: string }[] = [
 	{ id: "con-solicitudes", label: "Con solicitudes" },
@@ -90,7 +90,6 @@ interface Preset {
 	vista: Vista;
 	caso: Caso;
 	fallo: Fallo;
-	verificacion: Verificacion;
 	cola: Cola;
 }
 
@@ -98,11 +97,11 @@ const PRESETS: Preset[] = [
 	{
 		id: "sin-solicitud",
 		label: "1 · Sin solicitud",
-		detalle: "El editor puede pedir la publicación; el administrador puede publicar en el acto.",
+		detalle:
+			"El editor y el administrador ven la solicitud; sólo la superadministración publica en directo.",
 		vista: "ambas",
 		caso: "sin-solicitud",
 		fallo: "ninguno",
-		verificacion: "encontrada",
 		cola: "con-solicitudes",
 	},
 	{
@@ -112,7 +111,6 @@ const PRESETS: Preset[] = [
 		vista: "ambas",
 		caso: "pendiente",
 		fallo: "ninguno",
-		verificacion: "encontrada",
 		cola: "con-solicitudes",
 	},
 	{
@@ -122,59 +120,83 @@ const PRESETS: Preset[] = [
 		vista: "ambas",
 		caso: "rechazada",
 		fallo: "ninguno",
-		verificacion: "encontrada",
+		cola: "con-solicitudes",
+	},
+	{
+		id: "propia",
+		label: "4 · Solicitud propia",
+		detalle:
+			"La cola marca la solicitud que creó quien mira: no puede aprobarla ni decidirla. Agregue ?clic=1 si quiere verlo tras un clic.",
+		vista: "administrador",
+		caso: "propia",
+		fallo: "ninguno",
+		cola: "con-solicitudes",
+	},
+	{
+		id: "sin-motivo",
+		label: "5 · Rechazo sin motivo",
+		detalle:
+			"Apriete Rechazar sin escribir un motivo: la cola lo exige, lo dice y no envía la decisión. Enlace con ?clic=1.",
+		vista: "administrador",
+		caso: "sin-motivo",
+		fallo: "ninguno",
+		cola: "con-solicitudes",
+	},
+	{
+		id: "annulada",
+		label: "6 · Solicitud anulada",
+		detalle:
+			"La solicitud perdió su objeto (el dataset se eliminó o ya se publicó por otra vía) y deja de ofrecerse.",
+		vista: "editor",
+		caso: "annulada",
+		fallo: "ninguno",
+		cola: "con-solicitudes",
+	},
+	{
+		id: "sysadmin",
+		label: "7 · Superadministración publica",
+		detalle: "El camino directo, ofrecido sólo con el flag `sysadmin`.",
+		vista: "sysadmin",
+		caso: "sin-solicitud",
+		fallo: "ninguno",
 		cola: "con-solicitudes",
 	},
 	{
 		id: "rechazo-403",
-		label: "4 · 403",
+		label: "8 · 403 en el camino directo",
 		detalle:
-			"Apriete un control: el catálogo niega la capacidad y la hoja lo dice con nombre propio.",
-		vista: "ambas",
+			"Apriete Publicar: el catálogo niega la capacidad y la hoja lo dice con nombre propio. Enlace con ?clic=1.",
+		vista: "sysadmin",
 		caso: "sin-solicitud",
 		fallo: "403",
-		verificacion: "encontrada",
 		cola: "con-solicitudes",
 	},
 	{
 		id: "sin-conceder",
-		label: "5 · 200 que no concede",
+		label: "9 · 200 que no concede",
 		detalle:
-			"Apriete un control: el catálogo contesta 200 y no concede; no hay ningún estado de éxito.",
-		vista: "ambas",
+			"Apriete Publicar: el catálogo contesta 200 y no concede; no hay ningún estado de éxito. Enlace con ?clic=1.",
+		vista: "sysadmin",
 		caso: "sin-solicitud",
 		fallo: "sin-confirmar",
-		verificacion: "encontrada",
-		cola: "con-solicitudes",
-	},
-	{
-		id: "capacidad-ajena",
-		label: "6 · Administra otra organización",
-		detalle: "La lista de organizaciones llega con otro id: no alcanza con que no esté vacía.",
-		vista: "ambas",
-		caso: "sin-solicitud",
-		fallo: "ninguno",
-		verificacion: "ajena",
 		cola: "con-solicitudes",
 	},
 	{
 		id: "cola-vacia",
-		label: "7 · Cola sin solicitudes",
+		label: "10 · Cola sin solicitudes",
 		detalle: "El estado vacío de la cola, sin filas inventadas.",
 		vista: "administrador",
 		caso: "sin-solicitud",
 		fallo: "ninguno",
-		verificacion: "encontrada",
 		cola: "vacia",
 	},
 	{
 		id: "cola-error",
-		label: "8 · Cola que no carga",
+		label: "11 · Cola que no carga",
 		detalle: "La cola no cargada no se disfraza de cola vacía: error explícito con reintento.",
 		vista: "administrador",
 		caso: "sin-solicitud",
 		fallo: "ninguno",
-		verificacion: "encontrada",
 		cola: "error",
 	},
 ];
@@ -197,14 +219,12 @@ function values<T extends string>(items: readonly { id: T; label: string }[]): r
 const VISTA_VALUES = values(VISTAS);
 const CASO_VALUES = values(CASOS);
 const FALLO_VALUES = values(FALLOS);
-const VERIFICACION_VALUES = values(VERIFICACIONES);
 const COLA_VALUES = values(COLAS);
 
 // ─── Estado del panel, preseleccionable por URL ───────────────────────
 let vista = $state<Vista>(paramOr("vista", VISTA_VALUES, "ambas"));
 let caso = $state<Caso>(paramOr("caso", CASO_VALUES, "sin-solicitud"));
 let fallo = $state<Fallo>(paramOr("fallo", FALLO_VALUES, "ninguno"));
-let verificacion = $state<Verificacion>(paramOr("verificacion", VERIFICACION_VALUES, "encontrada"));
 let cola = $state<Cola>(paramOr("cola", COLA_VALUES, "con-solicitudes"));
 let panelAbierto = $state(paramOr("panel", PANEL_VALUES, "abierto") === "abierto");
 
@@ -218,10 +238,14 @@ let llamadas = $state<string[]>([]);
 
 const solicitudVigente = $derived.by(() => {
 	if (solicitud) return solicitud.value;
-	if (caso === "pendiente") return makeRequest();
+	if (caso === "pendiente" || caso === "sin-motivo") return makeRequest();
 	if (caso === "rechazada") return makeRequest({ status: "rejected", comments: MOTIVO_RECHAZO });
+	if (caso === "annulada") return makeRequest({ status: "annulled" });
 	return null;
 });
+
+// Quién mira la cola: en el caso «propia» es la misma persona que creó la solicitud `req-1`.
+const usuarioActual = $derived(caso === "propia" ? SOLICITANTE : ADMINISTRADOR);
 
 function registrar(texto: string): void {
 	llamadas = [texto, ...llamadas].slice(0, 6);
@@ -240,7 +264,6 @@ function syncUrl(): void {
 		vista,
 		caso,
 		fallo,
-		verificacion,
 		cola,
 		panel: panelAbierto ? "abierto" : "cerrado",
 	});
@@ -262,11 +285,6 @@ function setFallo(id: string): void {
 	reset();
 	syncUrl();
 }
-function setVerificacion(id: string): void {
-	verificacion = id as Verificacion;
-	reset();
-	syncUrl();
-}
 function setCola(id: string): void {
 	cola = id as Cola;
 	reset();
@@ -280,7 +298,6 @@ function aplicarPreset(preset: Preset): void {
 	vista = preset.vista;
 	caso = preset.caso;
 	fallo = preset.fallo;
-	verificacion = preset.verificacion;
 	cola = preset.cola;
 	reset();
 	syncUrl();
@@ -296,22 +313,6 @@ function fallaDeAutorizacion(): CkanApiError {
 
 function fallaDeRed(): CkanApiError {
 	return new CkanApiError("502 Bad Gateway", 502, "Bad Gateway");
-}
-
-/** El editor no administra la organización: la lista llega vacía (o cae, si el panel lo pide). */
-function verificarComoEditor(): Promise<CkanOrganization[]> {
-	if (verificacion === "falla") {
-		return Promise.reject(new Error("La verificación respondió 500"));
-	}
-	return Promise.resolve([]);
-}
-
-/** El administrador administra esta organización, otra, o la verificación cae. */
-function verificarComoAdministrador(): Promise<CkanOrganization[]> {
-	if (verificacion === "falla") {
-		return Promise.reject(new Error("La verificación respondió 500"));
-	}
-	return Promise.resolve(verificacion === "ajena" ? [OTRA_ORGANIZACION] : [ORGANIZACION]);
 }
 
 async function publicar(id: string): Promise<CkanPackage> {
@@ -367,10 +368,17 @@ async function decidirCola(
 }
 
 // `?clic=1` aprieta el primer control disponible: los estados de fallo sólo existen después del
-// clic, y así cada uno se puede enlazar por URL en vez de obligar a apretar a mano.
+// clic, y así cada uno se puede enlazar por URL en vez de obligar a apretar a mano. El objetivo
+// depende del caso: el rechazo sin motivo apunta al botón de la cola, el resto al control de la ficha.
 $effect(() => {
 	if (montaje < 0) return; // Sólo lee `montaje`: al remontar hay que volver a apretar.
 	if ($page.url.searchParams.get("clic") !== "1") return;
+	const objetivo =
+		caso === "sin-motivo"
+			? /^Rechazar$/
+			: vista === "sysadmin"
+				? /^Publicar dataset$/
+				: /^Solicitar publicación$/;
 	// El intervalo se rinde después de ~6 s: si ningún control aparece (por ejemplo con la
 	// verificación caída), no queda un temporizador vivo para siempre.
 	let intentos = 0;
@@ -378,8 +386,7 @@ $effect(() => {
 		intentos += 1;
 		const boton = [...document.querySelectorAll("button")].find(
 			(candidato) =>
-				/Publicar dataset|Solicitar publicación/.test(candidato.textContent ?? "") &&
-				!candidato.disabled,
+				objetivo.test((candidato.textContent ?? "").trim()) && !candidato.disabled,
 		);
 		if (boton) {
 			clearInterval(intervalo);
@@ -424,7 +431,7 @@ $effect(() => {
 	</div>
 {/snippet}
 
-{#snippet fichaDataset(item: CkanPackage, vistaPanel: "editor" | "administrador")}
+{#snippet fichaDataset(item: CkanPackage, canPublish: boolean)}
 	<Card class="space-y-4 p-5">
 		<div class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
 			<span class="font-heading text-xl font-bold text-primary">{item.title}</span>
@@ -452,21 +459,12 @@ $effect(() => {
 				oncancelled={(reportada) => (solicitud = { value: reportada })}
 			/>
 
-			{#if vistaPanel === "editor"}
-				<PublishControl
-					dataset={item}
-					publish={publicar}
-					listAdminOrganizations={verificarComoEditor}
-					onpublished={(publicado) => (dataset = publicado)}
-				/>
-			{:else}
-				<PublishControl
-					dataset={item}
-					publish={publicar}
-					listAdminOrganizations={verificarComoAdministrador}
-					onpublished={(publicado) => (dataset = publicado)}
-				/>
-			{/if}
+			<PublishControl
+				dataset={item}
+				publish={publicar}
+				canPublish={canPublish}
+				onpublished={(publicado) => (dataset = publicado)}
+			/>
 		</div>
 	</Card>
 {/snippet}
@@ -481,9 +479,9 @@ $effect(() => {
 				La publicación de un dataset
 			</h1>
 			<p class="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				Las dos compuertas —la del editor y la del administrador de la organización— sobre el
-				mismo dataset, lado a lado, y la cola donde el administrador decide. Los tres controles
-				son los componentes reales (<code class="font-mono text-xs">PublishControl.svelte</code>,
+				La solicitud del editor, el camino directo de la superadministración y la cola donde el
+				administrador decide, sobre el mismo dataset. Los tres controles son los componentes
+				reales (<code class="font-mono text-xs">PublishControl.svelte</code>,
 				<code class="font-mono text-xs">RequestPublicationControl.svelte</code>,
 				<code class="font-mono text-xs">PublicationQueue.svelte</code>): la hoja no reescribe ni
 				el copy ni el comportamiento. Todas las llamadas salen de dobles de la hoja, porque las
@@ -508,29 +506,37 @@ $effect(() => {
 				La ficha del dataset: la zona de acciones del hero
 			</h2>
 			<p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				Las dos compuertas son independientes y ninguna se deriva de la otra: el editor puede
-				editar (así que puede <strong class="font-semibold">solicitar</strong>), y el administrador
-				administra la organización (así que además puede <strong class="font-semibold">publicar</strong>).
-				Un administrador también pasa la compuerta de edición, así que en su columna aparece
-				también el control de solicitud: es el comportamiento real del componente, no un invento
-				de la hoja.
+				Las compuertas son independientes y ninguna se deriva de la otra: el editor y el
+				administrador pueden editar (así que pueden
+				<strong class="font-semibold">solicitar</strong>), y la superadministración
+				(<strong class="font-semibold">sysadmin</strong>) es la única que publica en directo. Un
+				administrador de organización <strong class="font-semibold">no</strong> recibe el control
+				directo: su camino es decidir solicitudes en la cola.
 			</p>
 
 			<div class={cn("mt-4 grid gap-6", vista === "ambas" ? "lg:grid-cols-2" : "grid-cols-1")}>
-				{#if vista !== "administrador"}
+				{#if vista === "ambas" || vista === "editor"}
 					<div data-testid="vista-editor">
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como editor de la organización
 						</p>
-						{#key montaje}{@render fichaDataset(dataset, "editor")}{/key}
+						{#key montaje}{@render fichaDataset(dataset, false)}{/key}
 					</div>
 				{/if}
-				{#if vista !== "editor"}
+				{#if vista === "ambas" || vista === "sysadmin"}
+					<div data-testid="vista-sysadmin">
+						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Como superadministración de la plataforma
+						</p>
+						{#key montaje}{@render fichaDataset(dataset, true)}{/key}
+					</div>
+				{/if}
+				{#if vista === "administrador"}
 					<div data-testid="vista-administrador">
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como administrador de la organización
 						</p>
-						{#key montaje}{@render fichaDataset(dataset, "administrador")}{/key}
+						{#key montaje}{@render fichaDataset(dataset, false)}{/key}
 					</div>
 				{/if}
 			</div>
@@ -541,14 +547,14 @@ $effect(() => {
 				El panel: la cola del administrador
 			</h2>
 			<p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				Las solicitudes pendientes de las organizaciones donde el usuario administra, con aprobar,
-				rechazar y un comentario opcional. Es el único lugar donde se decide: sólo un
-				administrador llega.
+				Las solicitudes pendientes de las organizaciones donde el usuario administra. Nadie
+				aprueba una solicitud que creó, y rechazar exige un motivo; aprobar puede llevar uno
+				opcional. Es el único lugar donde se decide: sólo un administrador llega.
 			</p>
 
 			<Card class="mt-4 p-5">
 				{#key montaje}
-					<PublicationQueue list={listarCola} decide={decidirCola} />
+					<PublicationQueue list={listarCola} decide={decidirCola} currentUser={usuarioActual} />
 				{/key}
 			</Card>
 		</section>
@@ -591,9 +597,7 @@ $effect(() => {
 					<SlidersHorizontal class="size-4" aria-hidden="true" />
 					Panel de la hoja (no es UI de producto)
 				</button>
-				<p class="text-xs text-muted-foreground">
-					{vista} · {caso} · {fallo} · {verificacion} · {cola}
-				</p>
+				<p class="text-xs text-muted-foreground">{vista} · {caso} · {fallo} · {cola}</p>
 			</div>
 
 			{#if panelAbierto}
@@ -619,7 +623,6 @@ $effect(() => {
 						{@render grupo("Vista", vista, VISTAS, setVista)}
 						{@render grupo("Solicitud vigente", caso, CASOS, setCaso)}
 						{@render grupo("Resultado de las llamadas", fallo, FALLOS, setFallo)}
-						{@render grupo("Verificación de capacidad (administrador)", verificacion, VERIFICACIONES, setVerificacion)}
 						{@render grupo("Estado de la cola", cola, COLAS, setCola)}
 						<div class="flex items-end">
 							<button

@@ -2268,6 +2268,18 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## v1 — producto usable en producción
 
+- [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
+  dedicada sobre la superficie del portal y su frontera con CKAN — **no** un ítem por síntoma. Es un
+  **paraguas**: los agujeros ya conocidos tienen su propia entrada y **no se repiten acá** — el **token de
+  sesión en el navegador** y la cookie `httpOnly` pendiente, el **CSRF** (el truco de nginx no lo cubre: el
+  navegador manda la cookie sola), el **XSS** del contenido que viene de CKAN, y el hardening ya trabajado
+  en la rama `feat/token-hardening`. Lo que falta es la **mirada de conjunto**: qué puede hacer un
+  anónimo, un usuario logueado, un editor, un `admin` de organización y un `sysadmin` contra la API del
+  portal **y contra CKAN directo**, y qué se filtra por el camino.
+  **Cuándo: después de que cierre el ciclo de publicación.** No es dilación: la **pared** y el **store**
+  cambian la superficie de autorización, así que una revisión hecha antes mide un sistema que ya no existe.
+  _Origen: pedido del autor, 2026-10-07 («algo así como un `cyber-check`»), como TODO explícito._
+
 - [x] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).**
   **CERRADO (2026-10-06): NO se adopta**, decisión del autor mirando la hoja y sintiendo el scroll. **La razón,
   medida:** con las cards a una brecha de 225 px, `proximity` y `mandatory` **se comportan igual dentro de la

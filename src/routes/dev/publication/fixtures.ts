@@ -50,6 +50,12 @@ export const DATASET_PUBLICADO = makeDataset({
 /** Motivo de rechazo que la hoja usa para el estado «rechazada con su motivo». */
 export const MOTIVO_RECHAZO = "Los datos personales de los estudiantes aún deben anonimizarse.";
 
+/** Quien decide en la cola: no es el autor de las solicitudes de la fixture. */
+export const ADMINISTRADOR = "admin.tecnologia";
+
+/** Quien creó la solicitud `req-1`: su propia solicitud no la puede decidir. */
+export const SOLICITANTE = "editor.tecnologia";
+
 export function makeRequest(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
 	return {
 		id: "req-1",
@@ -67,7 +73,7 @@ export const COLA: PublicationQueueItem[] = [
 		id: "req-1",
 		dataset_title: "Matrícula 2026",
 		organization_title: ORGANIZACION.title,
-		requested_by: "editor.tecnologia",
+		requested_by: SOLICITANTE,
 		created_at: "2026-10-01T00:00:00.000000",
 		status: "pending",
 		comments: null,

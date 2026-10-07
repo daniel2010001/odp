@@ -53,7 +53,7 @@ exactamente el trabajo `proposal → spec → design → tasks` que el plan dej�
   que el alcance «con cola» no sea sólo más código, sino **infraestructura que hoy no existe**.
 - **El alance del modelo mínimo ya está construido para el actor correcto**: el PR 2 aparcado es «botón de
   publicación directa para el aprobador», que es el `admin` de la organización — el mismo actor que el guard
-  ya autoriza. La etiqueta «actor equivocado» del `BACKLOG:1653-1656` aplica al modelo del PRD (donde el que
+  ya autoriza. La etiqueta «actor equivocado» del `BACKLOG:1705` aplica al modelo del PRD (donde el que
   pide no es el que aprueba), no al modelo mínimo.
 
 ## Los dos alcances del primer corte
@@ -250,3 +250,59 @@ tenga su UI.
     y **no** se aplica a boilerplate ni a modelo declarativo, cuyo ratio medido es ~1,0.
   - **Nada pendiente del lado de la par hasta A2** (las cinco acciones). Faltan los **identificadores de
     linaje** de las cinco compuertas para el registro del repo (la convención los anota).
+- **2026-10-07 — GOBIERNO: el autor corrige el diseño, y el defecto era mío.** Reportó que **un `org_admin`
+  NO debe poder publicar directo** («rompe la gobernanza al sobrepasar los deseos de los que crean los
+  datasets») y pidió justificación si yo creía lo contrario. **No te la pude dar**, y el análisis la
+  desmiente en tres pasos:
+  1. `design.md:189` justificaba `publication_publish` para el `admin` con «what `RF-15` step 5 already
+     grants» — convertí una permisión del PRD en un atajo.
+  2. **El repo ya tenía escrita la frase que lo condena**: `BACKLOG.md:1705`, al aparcar el PR 2 viejo:
+     «en el modelo del PRD **el que pide no es el que aprueba**». Esa frase fue **la razón** de aparcar
+     aquella rama, y mi diseño permitía exactamente la auto-aprobación que descarta.
+  3. La consecuencia que faltaba ver: **con auto-aprobación el store es un registro, no una compuerta.**
+     Gastamos pared + store + cinco acciones por una propiedad de gobernanza que devolvíamos por la puerta
+     de atrás. Y el camino directo permite **publicar un dataset que el admin no creó** — un borrador con
+     datos provisorios o sensibles que su autor estaba trabajando.
+  **Decisión del autor (2026-10-07), en dos parámetros:**
+  - **Cuatro ojos**: nadie aprueba su propia solicitud. Aprueba otro `admin` de la organización dueña, un
+    `admin` de una organización **padre**, o un `sysadmin`. Costo aceptado: una organización con un solo
+    `admin` necesita a un `sysadmin` (precedente en el propio PRD: «una organización con editores pero sin
+    admin no puede publicar» ya está aceptado).
+  - **`publication_publish` (publicación directa) queda sólo para el `sysadmin`** — que ya la tiene de
+    hecho, porque CKAN le cortocircuita toda autorización salvo que la función pida `auth_sysadmins_check`
+    (y el diseño deliberadamente no lo pide). La diferencia es que pasa a ser una **puerta que registra**
+    (deja fila), en vez de un bypass silencioso.
+  - **El comentario del aprobador: obligatorio al RECHAZAR, opcional al aprobar** (antes era «(opcional)»
+    en las dos). Un rechazo sin motivo deja al solicitante sin saber qué corregir y a la auditoría sin nada
+    que leer. Entra **ahora**, con A2 todavía sin escribir: sale gratis como contrato.
+  **Casos nuevos que abre la regla** (anotados para la hoja): el **único admin es el solicitante** → la
+  pantalla debe decir «no podés aprobar tu propia solicitud» en vez de ofrecer un `403`; y la **solicitud
+  anulada**, que es el desenlace que el esquema del PRD no tiene.
+  **Medido, y mejor de lo que había escrito:** el portal **ya conoce el flag de `sysadmin`** —
+  `src/lib/stores/auth.ts:93` exporta `isSuperAdmin = derived(auth, ($auth) => $auth.user?.sysadmin === true)`,
+  y `src/lib/server/ckan-auth.ts:120` lo parsea de la respuesta de login. Y `src/lib/stores/auth.test.ts:58-63`
+  **ya prueba la distinción que esta regla necesita**: es `false` aunque `capacity === 'admin'` — exactamente
+  el par que separa «administra la organización» de «publica directo». **La regla no necesita plumbing nuevo.**
+  *Corrección de un error propio:* en el bloque de arriba escribí que el portal **no** conocía el flag, **en el
+  mismo bloque en que corría la medición que lo desmiente**. Es la cuarta vez en esta sesión que afirmo antes
+  de medir, así que la regla pasa a ser operativa: **la medición y la afirmación no van en el mismo bloque.**
+- **2026-10-07 — Añadido el TODO del `cyber-check`** al `BACKLOG.md` (`[v1]`), como **paraguas** y sin
+  duplicar los agujeros ya anotados, con el momento recomendado **después** de que cierre el ciclo de
+  publicación: la pared y el store **cambian la superficie de autorización**, así que una revisión hecha
+  antes mide un sistema que ya no existe.
+- **2026-10-07 — El escritor corrigió dos cosas de las mías, y las dos eran ciertas.** (1) Mi cita
+  **`BACKLOG.md:1653-1656` estaba vencida**: la frase vive en **`:1705`**, verificado contra
+  `git show HEAD:BACKLOG.md`. La había propagado desde el reporte de un explorador **sin medirla**, y ya la
+  había usado en dos mensajes y en este documento. **Quinta vez en la sesión que afirmo antes de medir**,
+  y la primera en que el error entra en un artefacto por herencia y no por lectura propia: la regla crece —
+  **una cita que se propaga se verifica, no se hereda.** (2) Dio por falsa una afirmación de
+  `specs/dataset-publishing/spec.md` («el administrador publica después por la acción de publicación») que la
+  regla nueva volvía mentira, y la corrigió.
+- **2026-10-07 — `annulled` tiene dos disparadores, y solo uno se difiere.** El PRD define el desenlace en
+  `PRD.md:164` (RF-42): *«Si existía una solicitud pendiente sobre ese dataset, queda **anulada** y no puede
+  aplicarse después»* — atado a la **degradación directa**, que es `[v1]`. Pero el store necesita el **mismo
+  desenlace por otra razón y en este corte**: si el dataset se **borra** o ya quedó **público** por otra vía
+  (el `sysadmin`), una fila `pending` colgada **bloquea para siempre** el índice «una sola pendiente por
+  dataset» y miente en la cola. **Confirmado: la anulación por pérdida de objeto entra en este corte; la
+  degradación de un dataset publicado (RF-42) sigue `[v1]`.** Comparten el nombre del desenlace, no el
+  disparador — y el artefacto tiene que decirlo así para que nadie lea la segunda como reabierta.

@@ -35,6 +35,7 @@ export interface PublicationRequest {
 // del control de publicación: sólo cuenta como éxito lo que el catálogo confirmó con el estado
 // pedido; un `200` que no deja la solicitud donde se pidió no es un éxito.
 import {
+	Ban,
 	CircleAlert,
 	CircleX,
 	Clock,
@@ -60,6 +61,9 @@ const PENDING_BODY = "Su solicitud está a la espera de que un administrador de 
 const CANCEL_LABEL = "Cancelar solicitud";
 const REJECTED_HEADING = "Solicitud rechazada";
 const NO_REASON = "No se indicó un motivo.";
+const ANNULLED_HEADING = "Solicitud anulada";
+const ANNULLED_BODY =
+	"La solicitud ya no está vigente porque el conjunto de datos cambió de estado o dejó de existir.";
 const REFUSED_REQUEST = "Solo quien puede editar este dataset puede solicitar su publicación.";
 const REFUSED_CANCEL =
 	"Solo quien la solicitó o un administrador de la organización puede cancelarla.";
@@ -216,6 +220,16 @@ function retry() {
 						{CANCEL_LABEL}
 					{/if}
 				</Button>
+			</div>
+		{:else if active?.status === "annulled"}
+			<!-- La solicitud perdió su objeto: el dataset se eliminó o ya se publicó por otra vía. No
+			     se ofrece volver a pedirla, porque el estado que la justificaba ya no está. -->
+			<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
+				<p class="flex items-center gap-2 text-sm font-medium text-foreground">
+					<Ban class="size-4 shrink-0" aria-hidden="true" />
+					{ANNULLED_HEADING}
+				</p>
+				<p class="mt-1 text-xs text-muted-foreground">{ANNULLED_BODY}</p>
 			</div>
 		{:else}
 			{#if active?.status === "rejected"}

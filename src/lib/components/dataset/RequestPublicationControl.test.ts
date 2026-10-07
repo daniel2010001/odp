@@ -20,6 +20,9 @@ const PENDING_HEADING = "Solicitud pendiente de revisión";
 const CANCEL_LABEL = "Cancelar solicitud";
 const REJECTED_HEADING = "Solicitud rechazada";
 const NO_REASON = "No se indicó un motivo.";
+const ANNULLED_HEADING = "Solicitud anulada";
+const ANNULLED_BODY =
+	"La solicitud ya no está vigente porque el conjunto de datos cambió de estado o dejó de existir.";
 const REFUSED_REQUEST = "Solo quien puede editar este dataset puede solicitar su publicación.";
 const REFUSED_CANCEL =
 	"Solo quien la solicitó o un administrador de la organización puede cancelarla.";
@@ -130,6 +133,17 @@ describe("RequestPublicationControl — qué se ofrece según la capacidad", () 
 
 		expect(screen.getByRole("button", { name: REQUEST_LABEL })).toBeInTheDocument();
 		expect(screen.queryByText(PENDING_HEADING)).toBeNull();
+	});
+
+	it("solicitud anulada: dice que dejó de estar vigente y no ofrece volver a pedirla", () => {
+		// La anulación llega cuando la solicitud perdió su objeto (el dataset se eliminó o ya se
+		// publicó por otra vía). Si la rama desapareciera, el control volvería a ofrecer el botón de
+		// solicitud y la aserción fallaría.
+		renderControl({ currentRequest: makeRequest({ status: "annulled" }) });
+
+		expect(screen.getByText(ANNULLED_HEADING)).toBeInTheDocument();
+		expect(screen.getByText(ANNULLED_BODY)).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: REQUEST_LABEL })).toBeNull();
 	});
 
 	it("una solicitud aprobada no ofrece nada: el dataset ya es público", () => {

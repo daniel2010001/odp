@@ -1,10 +1,17 @@
 // Pruebas de `PublicationQueue`: la cola del **administrador de la organización** — las solicitudes
-// pendientes de las organizaciones donde administra, con aprobar, rechazar y un comentario opcional.
+// pendientes de las organizaciones donde administra, con aprobar, rechazar y un comentario.
+//
+// Dos reglas de esta cola se prueban acá:
+//  1. **Cuatro ojos**: una solicitud que la propia persona creó se muestra como no decidible, sin
+//     ofrecer aprobar ni rechazar. Si la comprobación desapareciera, la fila volvería a ofrecer los
+//     botones y la aserción fallaría.
+//  2. **Rechazar exige un motivo**: sin comentario la decisión no se envía y se explica por qué. Si
+//     la comprobación desapareciera, `decide` se llamaría sin comentario y la aserción fallaría.
 //
 // Las dos llamadas entran inyectadas (`list` y `decide`): las acciones del catálogo todavía no
-// existen en la capa de API del portal. Lo que se prueba es la honestidad: la fila sólo sale de la
-// cola cuando el catálogo confirmó la decisión con el estado correspondiente, y un `403` se explica
-// como capacidad faltante, no como error de red.
+// existen en la capa de API del portal. Lo que se prueba además es la honestidad: la fila sólo sale
+// de la cola cuando el catálogo confirmó la decisión con el estado correspondiente, y un `403` se
+// explica como capacidad faltante, no como error de red.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
@@ -13,9 +20,11 @@ import PublicationQueue, { type PublicationQueueItem } from "./PublicationQueue.
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
-const COMMENT_LABEL = "Comentario (opcional)";
+const COMMENT_LABEL = "Comentario (obligatorio para rechazar)";
 const APPROVE_LABEL = "Aprobar";
 const REJECT_LABEL = "Rechazar";
+const SELF_APPROVAL = "No puede aprobar su propia solicitud.";
+const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
 const REFUSED_DECIDE =
 	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
 // Mensaje crudo del catálogo, distinto de la frase amable: si el `403` cayera en la rama
@@ -30,6 +39,8 @@ type QueueProps = {
 	list: (status?: PublicationQueueItem["status"]) => Promise<PublicationQueueItem[]>;
 	decide: (requestId: string, approve: boolean, comments?: string) => Promise<PublicationQueueItem>;
 	ondecided?: (item: PublicationQueueItem) => void;
+	/** Quién está mirando la cola; su propia solicitud no es decidible por él. */
+	currentUser?: string | null;
 };
 
 function makeItem(overrides: Partial<PublicationQueueItem> = {}): PublicationQueueItem {
@@ -61,7 +72,7 @@ function renderQueue(overrides: Partial<QueueProps> = {}) {
 	const ondecided = vi.fn();
 
 	const resultado = render(PublicationQueue, {
-		props: { list, decide, ondecided, ...overrides } satisfies QueueProps,
+		props: { list, decide, ondecided, currentUser: null, ...overrides } satisfies QueueProps,
 	});
 
 	return { list, decide, ondecided, ...resultado };
@@ -125,24 +136,37 @@ describe("PublicationQueue — qué carga y qué muestra", () => {
 	});
 });
 
-describe("PublicationQueue — qué reporta después de decidir", () => {
-	it("aprobar: decide sin comentario y la fila sale de la cola", async () => {
+describe("PublicationQueue — cuatro ojos", () => {
+	it("una solicitud creada por quien mira se muestra como no decidible, sin ofrecer decidirla", async () => {
+		// La persona que mira es la misma que creó la solicitud `req-1`; `req-2` es de otra persona.
+		renderQueue({ currentUser: "editor.tecnologia" });
+
+		const propia = await rowFor("Matrícula 2026");
+		expect(within(propia).getByText(SELF_APPROVAL)).toBeInTheDocument();
+		expect(within(propia).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(within(propia).queryByRole("button", { name: REJECT_LABEL })).toBeNull();
+		expect(within(propia).queryByLabelText(COMMENT_LABEL)).toBeNull();
+
+		// La solicitud de otra persona sigue siendo decidible: el bloqueo es por solicitud, no global.
+		const ajena = await rowFor("Presupuesto 2026");
+		expect(within(ajena).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+	});
+});
+
+describe("PublicationQueue — rechazar exige un motivo", () => {
+	it("rechazar sin comentario no envía la decisión y pide el motivo", async () => {
 		const { decide, ondecided } = renderQueue();
-		const aprobada = makeItem({ status: "approved" });
-		decide.mockResolvedValue(aprobada);
 
 		const fila = await rowFor("Matrícula 2026");
-		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+		await fireEvent.click(within(fila).getByRole("button", { name: REJECT_LABEL }));
 
-		await waitFor(() => expect(ondecided).toHaveBeenCalledWith(aprobada));
-		expect(decide).toHaveBeenCalledWith("req-1", true, undefined);
-		expect(screen.getByText(APPROVED_NOTE)).toBeInTheDocument();
-		expect(screen.queryByText("Matrícula 2026")).toBeNull();
-		// La otra solicitud sigue en la cola: sólo salió la decidida.
-		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
+		await waitFor(() => expect(within(fila).getByRole("alert")).toHaveTextContent(REASON_REQUIRED));
+		expect(decide).not.toHaveBeenCalled();
+		expect(ondecided).not.toHaveBeenCalled();
+		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
 	});
 
-	it("rechazar con comentario: decide con el motivo escrito y la fila sale de la cola", async () => {
+	it("rechazar con el motivo escrito sí envía la decisión con ese comentario", async () => {
 		const { decide } = renderQueue();
 		const rechazada = makeItem({ status: "rejected" });
 		decide.mockResolvedValue(rechazada);
@@ -158,6 +182,24 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		);
 		expect(screen.getByText(REJECTED_NOTE)).toBeInTheDocument();
 		expect(screen.queryByText("Matrícula 2026")).toBeNull();
+	});
+});
+
+describe("PublicationQueue — qué reporta después de decidir", () => {
+	it("aprobar: decide sin comentario y la fila sale de la cola", async () => {
+		const { decide, ondecided } = renderQueue();
+		const aprobada = makeItem({ status: "approved" });
+		decide.mockResolvedValue(aprobada);
+
+		const fila = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(fila).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() => expect(ondecided).toHaveBeenCalledWith(aprobada));
+		expect(decide).toHaveBeenCalledWith("req-1", true, undefined);
+		expect(screen.getByText(APPROVED_NOTE)).toBeInTheDocument();
+		expect(screen.queryByText("Matrícula 2026")).toBeNull();
+		// La otra solicitud sigue en la cola: sólo salió la decidida.
+		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
 	});
 
 	it("403: rechazo honesto con la capacidad que falta y la fila sigue pendiente", async () => {

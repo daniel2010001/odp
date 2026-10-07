@@ -1,55 +1,32 @@
-// Pruebas de `PublishControl`: lo que se prueba acá es la **honestidad del portal**, no la
-// aplicación de la regla. Quién puede publicar lo decide el catálogo (la acción de publicación está
-// autorizada al administrador de la organización); el portal sólo ofrece el control cuando el
-// catálogo dice que el usuario administra esa organización, y muestra únicamente lo que el catálogo
-// confirmó.
+// Pruebas de `PublishControl`: el **camino directo de publicación**, reservado a la
+// superadministración de la plataforma. Lo que se prueba acá es la compuerta y la honestidad del
+// portal: un administrador de organización **no** recibe el control directo (su camino es aprobar
+// solicitudes), y sólo cuenta como publicación lo que el catálogo confirmó.
 //
 // La llamada que publica es **inyectada** (`publish`): la acción no existe todavía del lado del
-// catálogo, así que el componente no la cablea por defecto. Lo único con default es la verificación
-// de capacidad, que usa una consulta que ya existe (`organization_list_for_user`).
+// catálogo, así que el componente no la cablea por defecto. La capacidad también es inyectable
+// (`canPublish`) para que la hoja de revisión y la página real la conduzcan; sin ella, el default es
+// el flag `sysadmin` que el portal ya mantiene (`isSuperAdmin`), sin ninguna llamada nueva.
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
-import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import type { CkanPackage, CkanUser } from "$lib/types/ckan";
 import PublishControl from "./PublishControl.svelte";
 
-const REFUSAL = "Solo un administrador de la organización puede publicar este dataset.";
-// Mensaje crudo del catálogo, distinto de la frase amable. Si el `403` cayera en la rama
-// genérica, la alerta mostraría este texto y las aserciones de abajo fallarían.
+// La frase que ve un administrador de organización: nombra quién aprueba y no le promete el camino
+// directo, que no existe para él.
+const NOT_OFFERED = "Solo un administrador de la organización puede aprobar esta publicación.";
+// La negativa honesta de un `403` sobre el camino directo: nombra la capacidad que falta.
+const REFUSAL = "Solo la superadministración de la plataforma puede publicar este dataset.";
+// Mensaje crudo del catálogo, distinto de la frase amable: si el `403` cayera en la rama genérica,
+// la alerta mostraría este texto y las aserciones de abajo fallarían.
 const SERVER_403_PUBLISH =
-	"Authorization Error: la acción 'package_update' requiere el rol admin de la organización.";
+	"Authorization Error: la acción 'publication_publish' requiere el flag sysadmin.";
 const UNCONFIRMED = "El catálogo no confirmó la publicación.";
-const UNAVAILABLE = "No se pudo verificar su permiso para publicar.";
 const CONSEQUENCE = "Será visible en el catálogo público.";
 const PUBLISH_LABEL = "Publicar dataset";
-
-// El wiring por defecto de la verificación se comprueba contra la fábrica real mockeada en el borde
-// de módulo: es la única forma de afirmar que el portal pide `permission: "admin"`.
-const mocks = vi.hoisted(() => ({
-	createCkanClient: vi.fn(() => ({})),
-	listForUser: vi.fn(),
-}));
-
-vi.mock("$lib/env", () => ({
-	env: { CKAN_URL: "http://localhost:5000", APP_URL: "http://localhost:5173" },
-}));
-vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
-vi.mock("$lib/api/organizations", () => ({
-	createOrganizationApi: () => ({ listForUser: mocks.listForUser }),
-}));
-
-function makeOrg(overrides: Partial<CkanOrganization> = {}): CkanOrganization {
-	return {
-		id: "org-1",
-		name: "facultad-tecnologia",
-		title: "Facultad de Tecnología",
-		description: "Datos de ingeniería",
-		created: "2026-01-01T00:00:00.000000",
-		state: "active",
-		...overrides,
-	};
-}
 
 function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 	return {
@@ -58,7 +35,6 @@ function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 		title: "Matrícula 2026",
 		private: true,
 		state: "active",
-		organization: makeOrg(),
 		resources: [],
 		tags: [],
 		groups: [],
@@ -69,16 +45,26 @@ function makeDataset(overrides: Partial<CkanPackage> = {}): CkanPackage {
 	};
 }
 
+function makeUser(overrides: Partial<CkanUser> = {}): CkanUser {
+	return {
+		id: "user-1",
+		name: "admin.tecnologia",
+		display_name: "Administración de Tecnología",
+		created: "2026-01-01T00:00:00.000000",
+		state: "active",
+		...overrides,
+	};
+}
+
 type ControlProps = {
 	dataset: CkanPackage;
 	publish: (id: string) => Promise<CkanPackage>;
-	listAdminOrganizations?: () => Promise<CkanOrganization[]>;
+	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
 };
 
-/** Renderiza un dataset privado con el hint resuelto a "es administrador" por defecto. */
-async function renderPrivate(overrides: Partial<ControlProps> = {}) {
-	const hint = vi.fn<() => Promise<CkanOrganization[]>>().mockResolvedValue([makeOrg()]);
+/** Renderiza un dataset privado con la capacidad de publicar ya concedida. */
+function renderPrivate(overrides: Partial<ControlProps> = {}) {
 	const publish = vi.fn<(id: string) => Promise<CkanPackage>>();
 	const onpublished = vi.fn();
 
@@ -86,29 +72,28 @@ async function renderPrivate(overrides: Partial<ControlProps> = {}) {
 		props: {
 			dataset: makeDataset(),
 			publish,
-			listAdminOrganizations: hint,
+			canPublish: true,
 			onpublished,
 			...overrides,
 		} satisfies ControlProps,
 	});
 
-	// El control sólo se ofrece **después** de que la verificación confirma el permiso.
-	await waitFor(() =>
-		expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument(),
-	);
-
-	return { hint, publish, onpublished, ...resultado };
+	return { publish, onpublished, ...resultado };
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mocks.listForUser.mockResolvedValue([makeOrg()]);
+	auth.reset();
 });
 
 describe("PublishControl — qué se ofrece", () => {
 	it("un dataset ya público no renderiza nada: ni publicar ni volver a privado", () => {
 		const { container } = render(PublishControl, {
-			props: { dataset: makeDataset({ private: false }), publish: vi.fn() } satisfies ControlProps,
+			props: {
+				dataset: makeDataset({ private: false }),
+				publish: vi.fn(),
+				canPublish: true,
+			} satisfies ControlProps,
 		});
 
 		expect(container.textContent?.trim()).toBe("");
@@ -116,118 +101,56 @@ describe("PublishControl — qué se ofrece", () => {
 		expect(screen.queryByText(/despublicar|privado|público/i)).toBeNull();
 	});
 
-	it("privado + administrador: ofrece el control y enuncia la consecuencia", async () => {
-		const { hint } = await renderPrivate();
+	it("privado + capacidad inyectada: ofrece el control y enuncia la consecuencia", () => {
+		renderPrivate();
 
 		expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument();
 		expect(screen.getByText(CONSEQUENCE)).toBeInTheDocument();
-		expect(hint).toHaveBeenCalledTimes(1);
 	});
 
-	it("privado + no administrador: no ofrece el control y dice quién puede publicar", async () => {
+	it("privado + sin capacidad: no ofrece el control directo y dice quién aprueba", () => {
 		render(PublishControl, {
 			props: {
 				dataset: makeDataset(),
 				publish: vi.fn(),
-				listAdminOrganizations: vi.fn().mockResolvedValue([makeOrg({ id: "org-otra" })]),
-			} satisfies ControlProps,
-		});
-
-		await waitFor(() => expect(screen.getByText(REFUSAL)).toBeInTheDocument());
-		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
-	});
-
-	it("una lista de organizaciones de otro id no es prueba de aprobación", async () => {
-		// El hint es una lista **filtrada por `permission: "admin"`**, y aun así se comprueba la
-		// pertenencia contra el id de la organización del dataset, no contra "la lista no está vacía".
-		const hint = vi
-			.fn()
-			.mockResolvedValue([
-				makeOrg({ id: "org-2", name: "otra-facultad" }),
-				makeOrg({ id: "org-3", name: "tercera-facultad" }),
-			]);
-
-		render(PublishControl, {
-			props: {
-				dataset: makeDataset(),
-				publish: vi.fn(),
-				listAdminOrganizations: hint,
-			} satisfies ControlProps,
-		});
-
-		await waitFor(() => expect(screen.getByText(REFUSAL)).toBeInTheDocument());
-		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
-	});
-
-	it("sin organización en el dataset la verificación falla cerrada", async () => {
-		const hint = vi.fn().mockResolvedValue([makeOrg()]);
-
-		render(PublishControl, {
-			props: {
-				dataset: makeDataset({ organization: undefined }),
-				publish: vi.fn(),
-				listAdminOrganizations: hint,
-			} satisfies ControlProps,
-		});
-
-		await waitFor(() => expect(screen.getByText(UNAVAILABLE)).toBeInTheDocument());
-		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
-		expect(hint).not.toHaveBeenCalled();
-	});
-
-	it("privado + verificación fallida: estado explícito con reintento, sin ofrecer el control", async () => {
-		const hint = vi
-			.fn()
-			.mockRejectedValueOnce(new Error("organization_list_for_user: 500"))
-			.mockResolvedValueOnce([makeOrg()]);
-
-		render(PublishControl, {
-			props: {
-				dataset: makeDataset(),
-				publish: vi.fn(),
-				listAdminOrganizations: hint,
-			} satisfies ControlProps,
-		});
-
-		await waitFor(() => expect(screen.getByText(UNAVAILABLE)).toBeInTheDocument());
-		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
-
-		await fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
-
-		await waitFor(() =>
-			expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument(),
-		);
-		expect(screen.queryByText(UNAVAILABLE)).toBeNull();
-		expect(hint).toHaveBeenCalledTimes(2);
-	});
-
-	it("mientras la verificación está en curso no ofrece el control", () => {
-		render(PublishControl, {
-			props: {
-				dataset: makeDataset(),
-				publish: vi.fn(),
-				listAdminOrganizations: vi.fn().mockReturnValue(new Promise(() => {})),
+				canPublish: false,
 			} satisfies ControlProps,
 		});
 
 		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
-		expect(screen.getByText(/verificando/i)).toBeInTheDocument();
+		expect(screen.getByText(NOT_OFFERED)).toBeInTheDocument();
 	});
 
-	it('el wiring por defecto de la verificación pide las organizaciones con `permission: "admin"`', async () => {
+	it("sin capacidad inyectada, la compuerta por defecto es el flag `sysadmin`", async () => {
+		auth.login("tok", makeUser({ sysadmin: true }));
+
 		render(PublishControl, {
 			props: { dataset: makeDataset(), publish: vi.fn() } satisfies ControlProps,
 		});
 
-		await waitFor(() => expect(mocks.listForUser).toHaveBeenCalledWith("admin"));
-		expect(mocks.listForUser).toHaveBeenCalledTimes(1);
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: PUBLISH_LABEL })).toBeInTheDocument(),
+		);
+	});
+
+	it("sin capacidad inyectada, un administrador de organización sin el flag no publica en directo", () => {
+		// La distinción que la regla necesita: `capacity: "admin"` no es `sysadmin`. Si la compuerta
+		// volviera a mirar la capacidad de organización, este caso ofrecería el control y fallaría.
+		auth.login("tok", makeUser({ capacity: "admin", sysadmin: false }));
+
+		render(PublishControl, {
+			props: { dataset: makeDataset(), publish: vi.fn() } satisfies ControlProps,
+		});
+
+		expect(screen.queryByRole("button", { name: PUBLISH_LABEL })).toBeNull();
+		expect(screen.getByText(NOT_OFFERED)).toBeInTheDocument();
 	});
 });
 
 describe("PublishControl — qué reporta después del click", () => {
 	it("llama a publish con el id del dataset y muestra el resultado como éxito sólo si el catálogo confirmó", async () => {
 		const respuesta = makeDataset({ private: false });
-		const { publish, onpublished } = await renderPrivate();
+		const { publish, onpublished } = renderPrivate();
 		publish.mockResolvedValue(respuesta);
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
@@ -240,7 +163,7 @@ describe("PublishControl — qué reporta después del click", () => {
 	});
 
 	it("403: alerta de rechazo, control disponible otra vez y el dataset sigue privado", async () => {
-		const { publish, onpublished } = await renderPrivate();
+		const { publish, onpublished } = renderPrivate();
 		publish.mockRejectedValue(new CkanApiError(SERVER_403_PUBLISH, 403, "Authorization Error"));
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
@@ -257,7 +180,7 @@ describe("PublishControl — qué reporta después del click", () => {
 	});
 
 	it("200 sin confirmar: dice que el catálogo no confirmó y no muestra ningún estado de éxito", async () => {
-		const { publish, onpublished } = await renderPrivate();
+		const { publish, onpublished } = renderPrivate();
 		// El catálogo contestó 200 pero la respuesta sigue reportando `private: true`.
 		publish.mockResolvedValue(makeDataset({ private: true }));
 
@@ -271,7 +194,7 @@ describe("PublishControl — qué reporta después del click", () => {
 
 	it("otro fallo: error explícito con reintento que vuelve a intentar", async () => {
 		const respuesta = makeDataset({ private: false });
-		const { publish, onpublished } = await renderPrivate();
+		const { publish, onpublished } = renderPrivate();
 		publish.mockRejectedValueOnce(new Error("502 Bad Gateway")).mockResolvedValueOnce(respuesta);
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));
@@ -287,7 +210,7 @@ describe("PublishControl — qué reporta después del click", () => {
 	});
 
 	it("en vuelo: el control reporta ocupado y no anuncia éxito", async () => {
-		const { publish, onpublished } = await renderPrivate();
+		const { publish, onpublished } = renderPrivate();
 		publish.mockReturnValue(new Promise(() => {}));
 
 		await fireEvent.click(screen.getByRole("button", { name: PUBLISH_LABEL }));

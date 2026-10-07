@@ -1,70 +1,55 @@
 <script lang="ts">
-// Publicar un dataset privado — el camino del **administrador de la organización**.
+// Publicar un dataset privado — el camino **directo** de la superadministración de la plataforma.
 //
-// La llamada que publica es una acción del catálogo que todavía no existe en la capa de API del
-// portal, así que entra **inyectada** (`publish`) y no tiene default. Lo único que se resuelve acá
-// es la capacidad, con una pregunta que sí existe hoy: `organization_list_for_user` filtrada por
-// `permission: "admin"`, que devuelve sólo las organizaciones donde el usuario administra (con
-// cascada a las organizaciones padre, y todas para un sysadmin). La lista se cruza contra el id de
-// la organización del dataset; una lista sin filtrar no es prueba de nada.
+// La regla: el camino directo es `sysadmin`-only. Un administrador de organización **no** publica en
+// directo — su camino es decidir solicitudes en la cola —, así que la compuerta ya no es la
+// capacidad de organización sino el flag `sysadmin` que el portal ya mantiene (`isSuperAdmin`). La
+// capacidad es **inyectable** (`canPublish`) para que la hoja de revisión y la página real la
+// conduzcan; sin ella, el default es el flag, sin ninguna llamada nueva.
 //
-// La regla de honestidad: se reporta como publicación **sólo** lo que el catálogo confirmó. Un
-// `200` cuya respuesta sigue diciendo `private: true` no es un éxito, y un `403` no se disfraza de
-// error genérico.
-import {
-	CircleAlert,
-	Globe,
-	LoaderCircle,
-	RefreshCw,
-	ShieldAlert,
-	TriangleAlert,
-} from "@lucide/svelte";
-import { get } from "svelte/store";
-import { createCkanClient } from "$lib/api/client";
-import { createOrganizationApi } from "$lib/api/organizations";
+// La llamada que publica entra **inyectada** (`publish`): la acción `publication_publish` todavía no
+// está en la capa de API del portal.
+//
+// La regla de honestidad: se reporta como publicación **sólo** lo que el catálogo confirmó. Un `200`
+// cuya respuesta sigue diciendo `private: true` no es un éxito, y un `403` no se disfraza de error
+// genérico.
+import { CircleAlert, Globe, LoaderCircle, RefreshCw, ShieldAlert } from "@lucide/svelte";
 import Button from "$lib/components/ui/button/button.svelte";
-import { env } from "$lib/env";
-import { auth } from "$lib/stores/auth";
+import { isSuperAdmin } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
-import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 
 /**
  * Publica el dataset y devuelve su estado tal como quedó en el catálogo.
  *
- * Es la acción de publicación (`publication_publish`), autorizada al administrador de la
- * organización. La inyecta quien monta el control: la capa de API del portal todavía no la expone.
+ * Es la acción de publicación directa (`publication_publish`), autorizada a la superadministración
+ * de la plataforma. La inyecta quien monta el control: la capa de API del portal todavía no la
+ * expone.
  */
 export type PublishDataset = (id: string) => Promise<CkanPackage>;
 
 let {
 	dataset,
 	publish,
-	listAdminOrganizations = listAdminOrganizationsViaApi,
+	canPublish,
 	onpublished,
 	class: className = "",
 }: {
 	dataset: CkanPackage;
 	publish: PublishDataset;
-	listAdminOrganizations?: () => Promise<CkanOrganization[]>;
+	/** Capacidad ya resuelta por quien monta el control; por defecto, el flag `sysadmin`. */
+	canPublish?: boolean;
 	onpublished?: (dataset: CkanPackage) => void;
 	class?: string;
 } = $props();
 
-/** El cliente lleva el token de la sesión: sin él la pregunta de capacidad responde 403. */
-function makeClient() {
-	return createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
-}
+// La compuerta es el flag `sysadmin`, no la capacidad de organización. Si no se inyecta, se lee del
+// store que el portal ya mantiene: no hay ninguna llamada nueva que inventar.
+const offered = $derived(canPublish ?? $isSuperAdmin);
 
-/** La misma pregunta que hace la acción de publicación: ¿administra el usuario esta organización? */
-function listAdminOrganizationsViaApi() {
-	return createOrganizationApi(makeClient()).listForUser("admin");
-}
-
-type ApproverHint = "checking" | "approver" | "not-approver" | "unavailable";
 type Outcome = { kind: "refused" | "unconfirmed" | "error"; message: string };
 
-let approver = $state<ApproverHint>("checking");
 let pending = $state(false);
 let outcome = $state<Outcome | null>(null);
 // Sólo la respuesta confirmada del catálogo reemplaza al dataset. No hay estado optimista: si el
@@ -72,38 +57,6 @@ let outcome = $state<Outcome | null>(null);
 let published = $state<CkanPackage | null>(null);
 
 const current = $derived(published ?? dataset);
-
-/** Descarta las respuestas de una verificación vieja cuando se reintenta. */
-let hintRun = 0;
-
-async function checkApprover() {
-	const orgId = current.organization?.id;
-	if (!orgId) {
-		// Sin organización no hay predicado que evaluar: se falla cerrado, no se adivina.
-		approver = "unavailable";
-		return;
-	}
-
-	const run = ++hintRun;
-	approver = "checking";
-
-	try {
-		const adminOrganizations = await listAdminOrganizations();
-		if (run !== hintRun) return;
-		approver = adminOrganizations.some((organization) => organization.id === orgId)
-			? "approver"
-			: "not-approver";
-	} catch {
-		// La verificación no se pudo completar: sin control antes que con un control que miente.
-		if (run !== hintRun) return;
-		approver = "unavailable";
-	}
-}
-
-$effect(() => {
-	if (!current.private) return;
-	void checkApprover();
-});
 
 async function handlePublish() {
 	if (pending) return;
@@ -122,12 +75,13 @@ async function handlePublish() {
 		}
 	} catch (err) {
 		// Un 403 es una negativa de autorización (distinguible de un 409 de validación): se
-		// explica quién puede publicar y se vuelve a ofrecer el control.
+		// explica qué capacidad falta y se vuelve a ofrecer el control.
 		outcome =
 			err instanceof CkanApiError && err.status === 403
 				? {
 						kind: "refused",
-						message: "Solo un administrador de la organización puede publicar este dataset.",
+						message:
+							"Solo la superadministración de la plataforma puede publicar este dataset.",
 					}
 				: {
 						kind: "error",
@@ -168,7 +122,7 @@ async function handlePublish() {
 			</div>
 		{/if}
 
-		{#if approver === "approver"}
+		{#if offered}
 			<div class="flex flex-col items-start gap-1.5">
 				<Button onclick={handlePublish} disabled={pending}>
 					{#if pending}
@@ -181,25 +135,9 @@ async function handlePublish() {
 				</Button>
 				<p class="text-xs text-muted-foreground">Será visible en el catálogo público.</p>
 			</div>
-		{:else if approver === "not-approver"}
-			<p class="text-sm text-muted-foreground">
-				Solo un administrador de la organización puede publicar este dataset.
-			</p>
-		{:else if approver === "unavailable"}
-			<div class="flex flex-col items-start gap-2">
-				<p class="flex items-center gap-2 text-sm text-muted-foreground">
-					<TriangleAlert class="size-4 shrink-0" />
-					No se pudo verificar su permiso para publicar.
-				</p>
-				<Button variant="outline" size="sm" onclick={checkApprover}>
-					<RefreshCw class="size-4" />
-					Reintentar
-				</Button>
-			</div>
 		{:else}
-			<p class="flex items-center gap-2 text-sm text-muted-foreground" aria-busy="true">
-				<LoaderCircle class="size-4 animate-spin" />
-				Verificando su permiso…
+			<p class="text-sm text-muted-foreground">
+				Solo un administrador de la organización puede aprobar esta publicación.
 			</p>
 		{/if}
 	</div>
