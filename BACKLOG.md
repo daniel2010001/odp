@@ -1740,12 +1740,15 @@ completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: 
 >   mostraban texto crudo del catálogo. Ahora: `technicalDetail` en `failure.ts` —no inventa un estado y no tira
 >   el único dato que existe— y las frases son nuestras. Suite **989/989**, `check` 0 errores, verificado en la
 >   hoja en el navegador. Expediente: `odd/tasks/error-surfaces.md`.
-> - **DECISIÓN ABIERTA, encontrada al implementar lo anterior:** el rótulo `ERROR {status}` de la página de
->   error muestra el estado **observado**, así que a un espectador **anónimo** le distingue `403` de `404`
->   mientras el texto —por la política de indistinguibilidad del 2026-09-20— se lo oculta. Hoy **el rótulo
->   deshace lo que el texto hace**. La recomendación es que el código siga la misma regla del texto: resuelto
->   con sesión identificada, **fusionado** sin sesión. Es una decisión del autor porque cambia una política
->   vigente; **no se tocó**.
+> - **EL RÓTULO DEL CÓDIGO: DECIDIDO Y ENTREGADO (2026-10-07).** El autor fue con la recomendación: el código
+>   que la página rotula **sigue la misma política que su texto**. Lo que se encontró al implementar lo anterior
+>   era que el rótulo `ERROR {status}` mostraba el estado **observado**, así que a un espectador **anónimo** le
+>   distinguía `403` de `404` mientras el texto —por la política del 2026-09-20— se lo ocultaba: **el rótulo
+>   deshacía lo que el texto hacía**. Ahora dice `ERROR 403 o 404` sin sesión y el número observado con sesión
+>   identificada; una caída del catálogo no se funde con nada. Lo mejor de la unidad: la prueba de
+>   indistinguibilidad anónima compara las dos presentaciones con **igualdad profunda** y ya decía que
+>   *cualquier campo nuevo que delate la existencia del recurso* la haría fallar, así que la política no hubo que
+>   recordarla — estaba escrita como aserción. Expediente: `odd/tasks/error-surfaces.md`.
 > - **El tooltip de los tres botones del hero.** Propuesta: el `Tooltip` vendorizado (alcanza el teclado) **sólo
 >   donde la etiqueta no alcanza** —el botón de copiar enlace y la consecuencia de publicar—, y **no** en
 >   «Editar», que ya dice lo que hace. Va con `B1`.
