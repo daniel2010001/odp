@@ -405,6 +405,7 @@ async function handleCopyLink() {
 	{:else if invalidParams || failure}
 		<ErrorPage
 			status={failureStatus}
+			code={failure ? failure.presentation.code : null}
 			variant={failureVariant}
 			copy={{ title: pageTitle, heading: errorTitle, body: errorMessage }}
 			primaryAction={{ href: "/search", label: "Volver al catálogo" }}

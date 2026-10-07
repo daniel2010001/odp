@@ -243,6 +243,32 @@ con `error 502` detrás, y **cero** ocurrencias de `502 Bad Gateway` y de la for
 estado devolviera `null`, cuando su texto sigue siendo el único dato que existe. La prueba ahora afirma la
 regla —fallback al texto— y reserva el `null` para lo que de verdad no tiene nada que citar.
 
+### El rótulo sigue la misma política que el texto (2026-10-07, decidido y entregado)
+
+**La tensión que la unidad anterior destapó, decidida por el autor** —«voy con tu recomendación»—: el código
+que la página rotula **sigue la misma política que su texto**. Con la sesión identificada dice el número
+observado (`ERROR 403`, `ERROR 404`), porque ahí no filtra nada y es el dato que el usuario cita cuando consulta
+con soporte; sin sesión, frente al par `403`/`404`, dice **`ERROR 403 o 404`**, porque la oración funde las dos
+lecturas —no puede confirmar cuál de las dos respuestas recibió, y distinguirlas filtraría la existencia de un
+recurso privado— y **un rótulo que las distinga deshace lo que la oración hace**. Una caída del catálogo no se
+funde con nada: no delata la existencia de ningún recurso.
+
+**Cómo se implementó, en tres piezas:** `codeFor(kind, access)` en `failure.ts`, que es el mismo juicio de
+`messageFor` aplicado al número; el campo `code` en `FailurePresentation`, que reemplaza al estado observado en
+el rótulo; y un prop opcional `code` en `ErrorPage` —sin él rotula el `status` de la ruta, que es lo correcto
+para una dirección que no existe—, que las dos fichas pasan desde `failure.presentation.code`.
+
+**Lo mejor de esta unidad fue una prueba que ya existía.** El bloque de indistinguibilidad anónima compara las
+dos presentaciones con una **igualdad profunda** —`{...forbidden, kind: null}` contra `{...missing, kind:
+null}`— y su comentario decía: *«cualquier campo nuevo que delate la existencia del recurso hace fallar esto»*.
+Al agregar `code`, esa prueba **obligó** a que el campo fuera policy-aware: la regla no hubo que recordarla,
+porque estaba escrita como una aserción. Es la mejor forma que encontramos de fijar una política.
+
+**Y se ve donde el autor mira:** la nota del caso `404` en `/dev/error` explica que en la ficha del dataset ese
+rótulo puede decir «ERROR 403 o 404». Verificación: RED observado (5 fallas: los códigos y el rótulo del
+llamador), después GREEN; suite **993/993 en 61 archivos**, `pnpm check` 0 errores, `pnpm build` OK, Biome
+limpio.
+
 ### Los avisos de la compuerta del delta (2026-10-07)
 
 Los dos se arreglaron, y el primero era un **defecto que introdujo esta misma unidad**:
