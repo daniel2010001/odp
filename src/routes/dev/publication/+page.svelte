@@ -45,10 +45,10 @@ import PublicationQueue, {
 	type PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
 import PublishControl from "$lib/components/dataset/PublishControl.svelte";
-import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import RequestPublicationControl, {
 	type PublicationRequest,
 } from "$lib/components/dataset/RequestPublicationControl.svelte";
+import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
