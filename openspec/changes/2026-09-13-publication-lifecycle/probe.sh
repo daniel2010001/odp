@@ -296,9 +296,17 @@ done
 
 hr
 say "P8 — bulk actions are not a publication path"
+# CORREGIDO el 2026-10-07, y le toca a esta sonda: la negativa **no** viene de la auth propia de CKAN
+# (ese decía el rótulo viejo) sino de **nuestra regla encadenada** sobre la auth de `bulk_update_public`.
+# Y el camino interno **sí** existe: `_bulk_update_dataset` recorre `package_patch` — medido en el
+# contenedor vivo (2.12.0, `0058b2eb`), no en el checkout 2.12.0a0 del disco, que hace un `UPDATE`
+# directo. **Razón por la que A5 tiene que apretar acá:** la aserción de abajo pide `403` y el cuerpo
+# del error de CKAN contiene «Authorization Error» **en los dos casos**, así que hoy no puede distinguir
+# quién negó. Cuando `A5` reescriba esta fila, tiene que afirmar **el mensaje del plugin**, no sólo el
+# código: una aserción que pasa por la razón equivocada es la que ya nos costó dos rondas.
 row P8 "$EDITOR_TOKEN" bulk_update_public \
     "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D1\"]}" 403 \
-    "editor bulk_update_public — refused by CKAN's own auth, not by the guard" 'Authorization Error'
+    "editor bulk_update_public — refused by this capability's chained rule, before the action body runs" 'Authorization Error'
 
 # ---------------------------------------------------------------------------
 hr

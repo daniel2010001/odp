@@ -293,6 +293,13 @@ P7.d2 PASS want=1 got=1  anonymous search …-d2 (published-by-the-sysadmin-and-
 P7.d3 PASS want=0 got=0  anonymous search …-d3 (private-and-must-stay-absent)
 P7.d7 PASS want=0 got=0  anonymous search …-d7 (private-and-never-published)
 P8    PASS want=403 got=403  editor bulk_update_public — refused by CKAN's own auth, not by the guard
+
+> **Corrección (2026-10-07):** la línea de arriba es el transcript de una corrida real y se conserva como
+> tal, pero **su rótulo es falso**: el `403` lo niega **nuestra regla encadenada** sobre la auth propia de
+> `bulk_update_public`, no la de CKAN — y el camino interno **sí** llega a `package_update`
+> (`_bulk_update_dataset` recorre `package_patch`, medido en el contenedor vivo 2.12.0 en `0058b2eb`; el
+> checkout **2.12.0a0** de este disco hace un `UPDATE` directo y es de donde salió la frase vieja). El
+> **resultado** de la fila no cambia; el **motivo** sí. Ver `design.md` §Measured baseline.
 P9.2  PASS want=0 got=0  probe datasets still resolvable after the purge
 P9.3  PASS want=0 got=0  probe organizations still resolvable after the purge
 P9.4  PASS want=0 got=0  probe users whose minted token survived revocation

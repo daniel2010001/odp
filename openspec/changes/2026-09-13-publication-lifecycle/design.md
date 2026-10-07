@@ -65,6 +65,17 @@ file is `ckan/logic/schema/__init__.py`. This is a re-measurement trigger, not a
 
 ## Measured baseline
 
+> **Corrección del 2026-10-07 — una medición tomada contra un checkout viejo.** La fila `P8` y la
+> afirmación sobre `bulk_update_public` venían de un CKAN **2.12.0a0** de este disco
+> (`/home/danielblc/backup-windows/universidad/c4/ckan`), **no del stack que corre**. Medido de nuevo
+> contra el contenedor vivo (**2.12.0**, `/srv/app/src/ckan` detached en `0058b2eb`),
+> `_bulk_update_dataset` **recorre `package_patch`** (`ckan/logic/action/update.py:1212-1216`): el camino
+> interno **sí** existe. Lo que no cambia es el **resultado** — un editor recibe `403` — sino **quién** lo
+> niega: nuestra regla encadenada sobre la auth propia de `bulk_update_public`, no la auth de CKAN. Lo
+> encontró la **sesión par**; el `explore.md` de este cambio ya declaraba haber leído ese checkout, así
+> que la procedencia estaba escrita y aun así la frase se propagó a tres artefactos. **Regla: no derivar
+> comportamiento de CKAN de ese backup.**
+
 Only measured claims, each with its path:line. Every row is `[MEASURED]` unless the cell says
 `[SOURCE]` or `[INFERRED]`. Read the right column as **what the platform does**, not as the target.
 
@@ -79,7 +90,7 @@ Only measured claims, each with its path:line. Every row is `[MEASURED]` unless 
 | P4d / P4e | editor `package_patch {private: "banana"}` and `{private: ""}` → `200`, stored **public** — `boolean_validator` is a *total* function, it coerces, it never rejects | `apply-progress.md:255-256`, `:363-399`; validator at `ckan/logic/validators.py:160-173` `[SOURCE]` |
 | P6 | org `admin` `package_patch {id, private: false}` → `200`, stored `false` (**this is the row D1 removes**) | `apply-progress.md:282` |
 | P6.1 / P6.2 / P6.3 | `sysadmin` → `200`; org `member` → `403`; editor of another org → `403`; anonymous → `403` | `apply-progress.md:284-287` |
-| P8 | editor `bulk_update_public` → `403` from CKAN's own auth, not from the guard | `apply-progress.md:295` |
+| P8 | editor `bulk_update_public` → `403` **de nuestra regla encadenada**, antes de que corra el cuerpo de la acción — **no** de la auth propia de CKAN (corregido 2026-10-07) | `apply-progress.md:295` |
 | P10 | `admin` of a **parent** org publishes a **child** org's dataset → `200`, stored `false` | `apply-progress.md:288` |
 
 Two more measured behaviours the door depends on:
@@ -106,11 +117,16 @@ destroyed the dev database (hazard 1 below).
 - `package_patch` authorizes through `package_update` (`ckan/logic/auth/patch.py:8` `[SOURCE]`);
   `package_change_state` too (`ckan/logic/auth/update.py:109-117` `[SOURCE]`); `package_delete` too
   (`ckan/logic/auth/delete.py:17` `[SOURCE]`). One chained rule covers all four.
-- **`bulk_update_public` does NOT.** Its action calls `_check_access('bulk_update_public', …)` and
-  then `_bulk_update_dataset(context, data_dict, {'private': False})` directly
-  (`ckan/logic/action/update.py:1232-1243` `[SOURCE]`). Its own auth requires
+- **`bulk_update_public` needs its own chain.** Its action calls `_check_access('bulk_update_public', …)`
+  and then `_bulk_update_dataset(context, data_dict, {'private': False})`, which **loops
+  `_get_action('package_patch')`** — so it *does* reach `package_update`
+  (`ckan/logic/action/update.py:1212-1216`, `[MEASURED]` el 2026-10-07 en el contenedor vivo). Su
+  **propia** función de auth es otra y exige
   `has_user_permission_for_group_or_org(org_id, user, 'update')`
-  (`ckan/logic/auth/update.py:262-269` `[SOURCE]`). The wall alone does not cover it.
+  (`ckan/logic/auth/update.py:262-269` `[SOURCE]`), así que la regla encadenada tiene que ir encadenada
+  **a esa función**, no sólo a `package_update`.
+  *(Acá decía que la acción escribía «directly» y que **no** delegaba en `package_update`. **Era falso**,
+  y venía del checkout viejo nombrado en la corrección de arriba — ver esa nota.)*
 
 ### The mechanisms the store and the door rest on
 
@@ -261,9 +277,11 @@ should use the non-test call.)
 1. `package_update`: refuse every flip and every `state` change, **no capacity exception**.
 2. `package_create`: refuse public creation **for everyone**, including the org admin; an omitted key
    and `false` are the same attempt (D1's evidence). Create is always private; publication is D4.
-3. `bulk_update_public`: a **new chained refusal**. Measurement shows it does not delegate to
-   `package_update`, so the wall does not cover it alone. `bulk_update_private` is the downgrade
-   direction → D8 (`[v1]`).
+3. `bulk_update_public`: a **new chained refusal**, encadenada a **su propia** auth. **Sí** llega a
+   `package_update` por dentro (a través de `package_patch`), así que la razón no es que la pared no
+   pueda verlo: la acción se niega en `_check_access('bulk_update_public', …)` **antes** de que corra su
+   cuerpo, y por eso la regla va encadenada ahí y la negativa lleva el mensaje del plugin.
+   `bulk_update_private` is the downgrade direction → D8 (`[v1]`).
 4. **Not touched**: `_as_bool` stays a faithful mirror of `boolean_validator` (`'banana'` is a
    publication attempt, not a validation error — the apply-progress override; the old spec's
    "unrecognized value defers" clause is false and must be amended), and

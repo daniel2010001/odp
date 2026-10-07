@@ -765,6 +765,30 @@ distinguirla de otras; y **la tabla del store en la base de dev**, que hoy no es
   con `git rev-list --left-right --count`); no rompe nada mientras nadie lea ese ref, pero es la misma clase de
   referencia vieja que este expediente acaba de corregir.
 
+- **2026-10-07 (noche, segunda vuelta) — La par corrigió una medición nuestra, y venía de un checkout viejo.**
+  `bulk_update_public` **no** escribe directo: en el CKAN que corre (2.12.0, contenedor vivo,
+  `/srv/app/src/ckan` detached en `0058b2eb`) `_bulk_update_dataset` **recorre `package_patch`**
+  (`ckan/logic/action/update.py:1212-1216`), así que **sí** llega a `package_update`. La frase vieja —«escribe
+  `private: false` directamente y no pasa por `package_update`»— venía de un **checkout 2.12.0a0 de este
+  disco** (`/home/danielblc/backup-windows/universidad/c4/ckan`), cuya versión sí hace un `UPDATE` directo.
+  **Lo verifiqué yo en el contenedor antes de corregir nada.**
+  **Corregido en cuatro artefactos**: `design.md` (la bala, la fila `P8` del baseline, el punto 3 del muro, y
+  una **nota de procedencia** al inicio del baseline), `spec.md` (el requisito), `probe.sh` (el rótulo y un
+  comentario), y `apply-progress.md` (una nota junto al transcript, que se conserva). **`tasks.md` ya decía lo
+  correcto** —es el artefacto más nuevo— y ése es el hallazgo de forma: dos copias de la misma decisión, una
+  al día y tres atrás. El `explore.md` **ya declaraba** haber leído ese checkout, así que la procedencia estaba
+  escrita y la frase se propagó igual. La regla queda en el baseline: **no derivar comportamiento de CKAN de
+  ese backup.**
+  **Lo que cambia para `A5` no es el resultado —un editor recibe `403`— sino el motivo:** la negativa es
+  **nuestra** (encadenada a la auth propia de `bulk_update_public`, antes de que corra el cuerpo), no de CKAN.
+  Y la aserción actual **no puede distinguirlas**: pide `403` y el cuerpo del error contiene «Authorization
+  Error» en los dos casos. Cuando `A5` reescriba esa fila tiene que afirmar **el mensaje del plugin**. Es la
+  misma forma de la «prueba verde que no prueba lo que dice», y era justo lo que la sonda debía cazar.
+  **Dos huecos del inventario que la par declaró fuera de su alcance** y que entran en nuestro mapa para `B1`:
+  `package_create` **sin `owner_org`** —hoy inalcanzable sólo porque `create_unowned_dataset = false` está
+  apagado en `ckan.ini`— y `package_delete`, que escribe `state='deleted'` a nivel modelo y es una **excepción
+  intencional** (el spec pide que el borrado siga funcionando).
+
 - **2026-10-07 — WU-7.2: las decisiones del autor sobre los diseños, y lo que no le gustó.**
   **Decisiones cerradas:** (1) **las opciones en su sección se adoptan como diseño de la hoja en adelante**
   («me gusta más este tipo de opciones… prefiero que sea de este diseño de aquí en adelante»); ya está como
