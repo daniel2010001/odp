@@ -43,6 +43,12 @@ export interface FailurePresentation {
 	kind: ApiFailureKind;
 	title: string;
 	message: string;
+	/**
+	 * El código que la página **rotula**. No siempre es el observado: sigue la misma política que el
+	 * texto, porque un rótulo con el número observado puede distinguir justo lo que la oración no
+	 * confirma (ver `codeFor`).
+	 */
+	code: string;
 	definitive: boolean;
 }
 
@@ -173,6 +179,25 @@ export function technicalDetail(err: unknown): string | null {
 }
 
 /**
+ * El código que se **rotula**, no el que se observó: es el mismo juicio que `messageFor`, aplicado al
+ * número.
+ *
+ * Un espectador sin sesión no puede distinguir un recurso privado de uno inexistente, y `messageFor` lo
+ * dice con una oración que nombra las dos lecturas y no confirma ninguna. Un rótulo con el número
+ * observado —`ERROR 403` contra `ERROR 404`— distinguiría exactamente eso: **el rótulo deshace lo que la
+ * oración hace**. Con la sesión identificada no hay nada que esconder —el espectador ya sabe qué pidió y
+ * qué le respondieron— y ocultarle el número le quita el dato que cita cuando consulta con soporte.
+ *
+ * Una caída del catálogo no se funde con nada: no delata la existencia de ningún recurso.
+ */
+function codeFor(kind: ApiFailureKind, access: AccessContext): string {
+	if (access === "anonymous" && (kind === "unauthorized" || kind === "not-found")) {
+		return `${statusFor("unauthorized")} o ${statusFor("not-found")}`;
+	}
+	return String(statusFor(kind));
+}
+
+/**
  * Convierte un valor lanzado, el sujeto y el contexto de sesión en el texto que la página renderiza.
  *
  * El texto de un fallo de autorización cambia según el contexto de acceso. Un ítem inexistente sólo
@@ -189,6 +214,7 @@ export function describeFailure(
 		kind,
 		title: titleFor(kind, subject, access),
 		message: messageFor(kind, subject, access),
+		code: codeFor(kind, access),
 		definitive: isDefinitive(kind),
 	};
 }

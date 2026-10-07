@@ -59,7 +59,10 @@ function normalize(value: string | null | undefined): string {
  * estados de la misma familia —nombra el estado y la ruta—, así que se excluye: acá se compara la
  * presentación, no el andamiaje de desarrollo.
  */
-function capture(status: number, props: { message?: string; path?: string } = {}): CapturedState {
+function capture(
+	status: number,
+	props: { message?: string; path?: string; code?: string } = {},
+): CapturedState {
 	const { container, unmount } = render(ErrorPage, { props: { status, ...props } });
 	const clone = container.cloneNode(true) as HTMLElement;
 	for (const diagnostic of clone.querySelectorAll(".font-mono")) diagnostic.remove();
@@ -100,6 +103,13 @@ describe("ErrorPage — la familia 4xx es un solo estado", () => {
 			expect(captured.heading).toBe(FROZEN_CLIENT.heading);
 			expect(captured.body).toBe(FROZEN_CLIENT.body);
 		}
+	});
+
+	it("un código del llamador reemplaza al de la ruta: es el que respeta la política del texto", () => {
+		// La política de indistinguibilidad anónima funde `403` y `404` en la oración; si el rótulo
+		// dijera `ERROR 403` o `ERROR 404` según lo observado, distinguiría justo lo que la oración
+		// no confirma. El llamador pasa el código que corresponde a esa política.
+		expect(capture(404, { code: "403 o 404" }).eyebrow).toBe("ERROR 403 o 404");
 	});
 
 	it("no expone ninguna variante con sabor a permiso en el encabezado", () => {

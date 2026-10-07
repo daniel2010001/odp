@@ -91,6 +91,7 @@ const SECONDARY_ACTION =
 	let {
 		status,
 		message,
+		code = null,
 		path,
 		copy: copyOverride = null,
 		primaryAction = null,
@@ -99,6 +100,16 @@ const SECONDARY_ACTION =
 	}: {
 		status: number;
 		message?: string;
+		/**
+		 * El código que se **rotula**, cuando el llamador sabe más que el estado de la ruta.
+		 *
+		 * La política de indistinguibilidad anónima funde `403` y `404` en el texto —un espectador sin
+		 * sesión no puede saber cuál de las dos respuestas recibió, porque distinguirlas filtraría la
+		 * existencia de un recurso privado—, y el rótulo tiene que fundirlas también: con el número
+		 * observado, el rótulo deshace lo que la oración hace. Sin esto se rotula el `status`, que es lo
+		 * correcto para una ruta que no existe y para todo lo que no viene de una respuesta del catálogo.
+		 */
+		code?: string | null;
 		path?: string;
 		/**
 		 * Copy del llamador, para las superficies que ya saben qué pasó mejor que un código HTTP.
@@ -178,7 +189,9 @@ const SECONDARY_ACTION =
 
 <div class="mx-auto flex max-w-xl flex-col items-center px-4 py-16 text-center">
 	<div class="w-full rounded-xl border border-border bg-card p-6 text-center shadow-md sm:p-8">
-		<p class="text-xs font-semibold uppercase tracking-wider text-destructive">ERROR {status}</p>
+		<p class="text-xs font-semibold uppercase tracking-wider text-destructive">
+			ERROR {code ?? status}
+		</p>
 
 		<div
 			class="mx-auto mt-10 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}"

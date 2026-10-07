@@ -58,7 +58,7 @@ const VARIANTS: Variant[] = [
 		status: 404,
 		path: "/no-existe",
 		message: "Not Found",
-		note: "Ruta inexistente. Es el que sí se puede provocar a mano escribiendo cualquier dirección desconocida.",
+		note: "Ruta inexistente. Es el que sí se puede provocar a mano escribiendo cualquier dirección desconocida. En la **ficha del dataset** —y en la del recurso— este rótulo **no** dice el número observado cuando el espectador no tiene sesión: dice «ERROR 403 o 404», porque la oración funde las dos lecturas y un rótulo que las distinga deshace lo que la oración hace. Acá se ve el caso de una ruta, que sí puede decir su número.",
 	},
 	{
 		status: 500,

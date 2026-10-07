@@ -246,6 +246,20 @@ describe("describeFailure — el texto que ve el espectador", () => {
 // Sin sesión, el estado de error no puede filtrar si el recurso existe. Es el corazón de la
 // decisión del autor, así que vive como test: si alguien reintroduce un texto propio del 403
 // anónimo, o un campo nuevo en la presentación que dependa de la clase, esto se cae.
+describe("el código que se rotula sigue la misma política que el texto", () => {
+	it("con la sesión identificada el código es el que se observó: ahí no filtra nada", () => {
+		// El espectador ya sabe qué pidió y qué le respondieron; ocultarle el número le quita el dato
+		// que cita cuando consulta con soporte.
+		expect(describeFailure(ERR_UNAUTHORIZED, "dataset", "session-alive").code).toBe("403");
+		expect(describeFailure(ERR_NOT_FOUND, "dataset", "session-alive").code).toBe("404");
+	});
+
+	it("una caída del catálogo no se funde con nada: no delata la existencia de un recurso", () => {
+		expect(describeFailure(ERR_UNAVAILABLE, "dataset", "anonymous").code).toBe("503");
+		expect(describeFailure(ERR_UNAVAILABLE, "resource", "session-alive").code).toBe("503");
+	});
+});
+
 describe("indistinguibilidad anónima — un 403 y un 404 son el mismo estado sin sesión", () => {
 	for (const subject of SUBJECTS) {
 		it(`presenta el mismo estado ante un 403 y un 404 para el sujeto «${subject}»`, () => {
@@ -259,6 +273,11 @@ describe("indistinguibilidad anónima — un 403 y un 404 son el mismo estado si
 			expect(forbidden.title).toBe(missing.title);
 			expect(forbidden.message).toBe(missing.message);
 			expect(forbidden.definitive).toBe(missing.definitive);
+			// **El código también**, y es el campo que más fácil se olvida: el rótulo que la página
+			// dibuja decía `ERROR 403` o `ERROR 404` según lo observado, así que distinguía las dos
+			// lecturas mientras la oración las fundía. El rótulo sigue la misma política que el texto.
+			expect(forbidden.code).toBe("403 o 404");
+			expect(missing.code).toBe("403 o 404");
 			// Las acciones también: en ninguna de las dos respuestas hay algo que hacer.
 			expect(failureActions(forbidden, "anonymous")).toEqual(failureActions(missing, "anonymous"));
 			expect(failureActions(forbidden, "anonymous")).toEqual({ retry: false });
