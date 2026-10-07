@@ -317,3 +317,20 @@ tenga su UI.
   *La lección, que es la de esta sesión otra vez:* **un reparto y una regla de frontera escritos en el mismo
   bloque se leen juntos o no sirven** — y el error lo encontró la parte que no lo escribió. Un registro que
   se contradice a sí mismo no se detecta releyéndolo con la misma cabeza que lo escribió.
+- **2026-10-07 — WU-6c cerrado: la hoja muestra dónde vive la cola.** Dimensión nueva **`colocacion`**
+  (se compone con `vista`/`caso`/`fallo`/`cola`/`panel`, y todo sigue en la URL): **sección en el
+  dashboard** (con el ritmo de «Mis datasets»), **ruta propia** alcanzable desde una entrada de navegación,
+  **contador de pendientes** —incluido el **caso cero**, porque una navegación sin insignia no debe verse
+  rota— y **aviso en la página del dataset** para quien puede actuar. Las cuatro renderizan la
+  `PublicationQueue` **real** dentro de una miniatura fiel de su contexto, y las anclas de la navegación y
+  del aviso son **anclas reales** hacia la propia hoja, así que la **alcanzabilidad es demostrable** en vez
+  de afirmada. **+387 / −22 en un solo archivo**; `pnpm check` 0 errores / 4 warnings preexistentes; suite
+  **61/951** sin moverse; las cuatro URLs responden **200**.
+  **Por qué no es acabado:** si la cola no se descubre, el editor pide y **nada pasa** porque el `admin`
+  nunca ve la solicitud — la pared se vuelve un **bloqueo silencioso**. La descubribilidad de la cola es
+  **parte de la correctitud del gate**, no del pulido.
+  **Verificado acá, no heredado:** ningún componente de `src/lib/components/**` **importa** de
+  `src/routes/dev/**` — sólo hay **dos menciones en comentarios** preexistentes en `components/error/**`, que
+  explican su propia hoja —, así que borrar la hoja **no toca el producto**.
+  **Pendiente de la revisión del autor:** la pregunta que quedó abierta de la iteración anterior —si un
+  `admin` debe ver **las dos** affordances o sólo la cola— y el `err.message` crudo en las alertas.

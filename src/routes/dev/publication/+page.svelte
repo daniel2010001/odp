@@ -7,8 +7,10 @@
 	· la **zona de acciones del hero** de la ficha del dataset (`src/routes/dataset/[id]/+page.svelte`),
 	  vista como editor, como administrador de la organización y como superadministración, para que las
 	  compuertas se comparen sin derivar una de la otra;
-	· la **cola del panel** del administrador, en el lugar donde el diseño la hospeda
-	  (`src/routes/dashboard/+page.svelte`).
+	· la **cola del panel** del administrador, en cada una de las colocaciones donde el diseño podría
+	  hospedarla: una sección del panel, una ruta propia, un contador en la navegación y un aviso en la
+	  ficha del dataset. La hoja cambia de colocación sin perder los demás interruptores: descubrir la
+	  cola es parte de que la compuerta funcione, porque una solicitud que nadie ve es un bloqueo mudo.
 
 	Las reglas que la hoja deja mirar: el **camino directo de publicación** sólo se ofrece a la
 	superadministración (un administrador de organización no lo ve); la **cola** no decide la solicitud
@@ -20,27 +22,37 @@
 	Todas las llamadas —`publish`, `request`, `cancel`, `list`, `decide`— entran por **dobles**: las
 	acciones del catálogo todavía no existen en la capa de API del portal, así que la hoja no puede
 	cablearlas de verdad. El panel de control es de la hoja, no del producto: es fijo y colapsable,
-	guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&panel=`) y `?clic=1` aprieta el primer
-	control disponible, para poder enlazar un estado que sólo aparece después del clic.
+	guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&colocacion=&panel=`) y `?clic=1` aprieta el
+	primer control disponible, para poder enlazar un estado que sólo aparece después del clic.
 
 	La hoja es material de revisión: se borra sin tocar los componentes. La compuerta de producción
 	está en `+page.ts`.
 -->
 <script lang="ts">
-import { Info, RotateCcw, SlidersHorizontal } from "@lucide/svelte";
+import {
+	Bell,
+	Building2,
+	Database,
+	Inbox,
+	Info,
+	Lock,
+	RotateCcw,
+	SlidersHorizontal,
+} from "@lucide/svelte";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import PublicationQueue, {
 	type PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
 import PublishControl from "$lib/components/dataset/PublishControl.svelte";
+import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import RequestPublicationControl, {
 	type PublicationRequest,
 } from "$lib/components/dataset/RequestPublicationControl.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
-import { cn } from "$lib/utils";
+import { cn, formatDate } from "$lib/utils";
 import {
 	ADMINISTRADOR,
 	COLA,
@@ -56,6 +68,8 @@ type Vista = "ambas" | "editor" | "administrador" | "sysadmin";
 type Caso = "sin-solicitud" | "pendiente" | "rechazada" | "propia" | "sin-motivo" | "annulada";
 type Fallo = "ninguno" | "403" | "sin-confirmar" | "red";
 type Cola = "con-solicitudes" | "vacia" | "error";
+/** Dónde vive la cola: el eje que el autor quiere decidir. */
+type Colocacion = "dashboard" | "ruta" | "contador" | "aviso";
 
 const VISTAS: { id: Vista; label: string }[] = [
 	{ id: "ambas", label: "Editor y superadministración" },
@@ -81,6 +95,12 @@ const COLAS: { id: Cola; label: string }[] = [
 	{ id: "con-solicitudes", label: "Con solicitudes" },
 	{ id: "vacia", label: "Sin solicitudes" },
 	{ id: "error", label: "No carga" },
+];
+const COLOCACIONES: { id: Colocacion; label: string }[] = [
+	{ id: "dashboard", label: "Sección del panel" },
+	{ id: "ruta", label: "Ruta propia" },
+	{ id: "contador", label: "Contador en la navegación" },
+	{ id: "aviso", label: "Aviso en la ficha" },
 ];
 
 interface Preset {
@@ -220,12 +240,14 @@ const VISTA_VALUES = values(VISTAS);
 const CASO_VALUES = values(CASOS);
 const FALLO_VALUES = values(FALLOS);
 const COLA_VALUES = values(COLAS);
+const COLOCACION_VALUES = values(COLOCACIONES);
 
 // ─── Estado del panel, preseleccionable por URL ───────────────────────
 let vista = $state<Vista>(paramOr("vista", VISTA_VALUES, "ambas"));
 let caso = $state<Caso>(paramOr("caso", CASO_VALUES, "sin-solicitud"));
 let fallo = $state<Fallo>(paramOr("fallo", FALLO_VALUES, "ninguno"));
 let cola = $state<Cola>(paramOr("cola", COLA_VALUES, "con-solicitudes"));
+let colocacion = $state<Colocacion>(paramOr("colocacion", COLOCACION_VALUES, "dashboard"));
 let panelAbierto = $state(paramOr("panel", PANEL_VALUES, "abierto") === "abierto");
 
 // ─── Estado de las superficies ────────────────────────────────────────
@@ -247,6 +269,17 @@ const solicitudVigente = $derived.by(() => {
 // Quién mira la cola: en el caso «propia» es la misma persona que creó la solicitud `req-1`.
 const usuarioActual = $derived(caso === "propia" ? SOLICITANTE : ADMINISTRADOR);
 
+// El contador de la navegación refleja lo que falta decidir; con la cola caída no hay dato (`null`).
+const pendientes = $derived(cola === "con-solicitudes" ? COLA.length : cola === "vacia" ? 0 : null);
+const contadorTexto = $derived(pendientes === null ? "—" : String(pendientes));
+
+// El aviso de la ficha sólo aparece si hay una solicitud pendiente que quien mira no creó.
+const avisoVisible = $derived(
+	solicitudVigente !== null &&
+		solicitudVigente.status === "pending" &&
+		solicitudVigente.requested_by !== usuarioActual,
+);
+
 function registrar(texto: string): void {
 	llamadas = [texto, ...llamadas].slice(0, 6);
 }
@@ -258,16 +291,28 @@ function reset(): void {
 	montaje += 1;
 }
 
-/** Refleja el estado del panel en la URL con `replaceState` (segundo argumento: estado plano). */
-function syncUrl(): void {
-	const params = new URLSearchParams({
+/** Todos los interruptores vigentes, en un solo lugar: la barra de la URL los escribe una vez. */
+function paramsActuales(): URLSearchParams {
+	return new URLSearchParams({
 		vista,
 		caso,
 		fallo,
 		cola,
+		colocacion,
 		panel: panelAbierto ? "abierto" : "cerrado",
 	});
-	replaceState(`/dev/publication?${params.toString()}`, {});
+}
+
+/** Refleja el estado del panel en la URL con `replaceState` (segundo argumento: estado plano). */
+function syncUrl(): void {
+	replaceState(`/dev/publication?${paramsActuales().toString()}`, {});
+}
+
+/** Enlace que conserva el estado y cambia sólo la colocación: lo usan la navegación y el aviso. */
+function urlFor(destino: Colocacion): string {
+	const params = paramsActuales();
+	params.set("colocacion", destino);
+	return `/dev/publication?${params.toString()}`;
 }
 
 function setVista(id: string): void {
@@ -287,6 +332,11 @@ function setFallo(id: string): void {
 }
 function setCola(id: string): void {
 	cola = id as Cola;
+	reset();
+	syncUrl();
+}
+function setColocacion(id: string): void {
+	colocacion = id as Colocacion;
 	reset();
 	syncUrl();
 }
@@ -468,6 +518,52 @@ $effect(() => {
 	</Card>
 {/snippet}
 
+{#snippet colaDeSolicitudes()}
+	{#key montaje}
+		<PublicationQueue list={listarCola} decide={decidirCola} currentUser={usuarioActual} />
+	{/key}
+{/snippet}
+
+{#snippet navDeSolicitudes(pendientes: number | null, activo: boolean)}
+	<div class="rounded-xl border border-border bg-card shadow-sm">
+		<nav
+			class="mx-auto flex h-[var(--header-h)] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
+			aria-label="Navegación simulada"
+		>
+			<span class="flex flex-col justify-center leading-tight">
+				<span class="font-heading text-xl font-bold tracking-tight text-primary">Datos UMSS</span>
+				<span class="text-[11px] text-muted-foreground">Plataforma de Datos Abiertos</span>
+			</span>
+			<div class="flex items-center gap-1">
+				<span class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground">Catálogo</span>
+				<span class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground">
+					Organizaciones
+				</span>
+				<a
+					href={urlFor("ruta")}
+					data-sveltekit-reload
+					aria-current={activo ? "page" : undefined}
+					class={cn(
+						"inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+						activo
+							? "bg-accent font-semibold text-primary"
+							: "font-medium text-foreground hover:bg-accent hover:text-primary",
+					)}
+				>
+					Solicitudes
+					{#if pendientes !== null && pendientes > 0}
+						<span
+							class="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground"
+						>
+							{pendientes}
+						</span>
+					{/if}
+				</a>
+			</div>
+		</nav>
+	</div>
+{/snippet}
+
 <div class="min-h-screen bg-background font-sans text-foreground">
 	<div class={cn("mx-auto max-w-6xl px-4 py-10 sm:px-6", panelAbierto ? "pb-80" : "pb-24")}>
 		<header class="space-y-2">
@@ -541,21 +637,287 @@ $effect(() => {
 			</div>
 		</section>
 
-		<section class="mt-12" aria-labelledby="cola-heading">
-			<h2 id="cola-heading" class="font-heading text-xl font-semibold text-foreground">
-				El panel: la cola del administrador
+		<section class="mt-12" aria-labelledby="colocacion-heading">
+			<h2 id="colocacion-heading" class="font-heading text-xl font-semibold text-foreground">
+				Dónde vive la cola
 			</h2>
 			<p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				Las solicitudes pendientes de las organizaciones donde el usuario administra. Nadie
-				aprueba una solicitud que creó, y rechazar exige un motivo; aprobar puede llevar uno
-				opcional. Es el único lugar donde se decide: sólo un administrador llega.
+				La misma cola, dentro del contexto real donde el administrador la encontraría. La cola
+				decide, pero si nadie la ve el editor pide y no pasa nada: por eso cada colocación se mira
+				con el contexto que la hace —o no— descubrible. Nadie aprueba una solicitud que creó, y
+				rechazar exige un motivo; aprobar puede llevar uno opcional.
 			</p>
 
-			<Card class="mt-4 p-5">
-				{#key montaje}
-					<PublicationQueue list={listarCola} decide={decidirCola} currentUser={usuarioActual} />
-				{/key}
-			</Card>
+			<div class="mt-6" data-testid="colocacion-actual" data-colocacion={colocacion}>
+				{#if colocacion === "dashboard"}
+					<!-- 1 · Una sección dentro del panel, con el ritmo de «Mis datasets». -->
+					<div class="rounded-xl border border-border bg-muted/20 p-4 sm:p-6">
+						<header>
+							<h3 class="font-heading text-2xl font-bold text-primary">Hola, {ADMINISTRADOR}</h3>
+							<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+								Este es su panel personal. Desde aquí crea datasets y revisa las organizaciones
+								a las que pertenece.
+							</p>
+						</header>
+
+						<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+							<section aria-labelledby="sim-datasets-heading" class="min-w-0">
+								<div class="flex items-center gap-3">
+									<span
+										class="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
+									>
+										<Database class="size-4" aria-hidden="true" />
+									</span>
+									<h4
+										id="sim-datasets-heading"
+										class="font-heading text-lg font-semibold text-primary"
+									>
+										Mis datasets
+									</h4>
+									<span
+										class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+									>
+										2
+									</span>
+								</div>
+								<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
+									Los datasets que usted creó.
+								</p>
+								<Card class="mt-4 p-2">
+									<ul class="space-y-1">
+										{#each [DATASET, DATASET_PUBLICADO] as item, indice (indice)}
+											<li>
+												<span class="flex min-w-0 items-center gap-3 rounded-lg px-3 py-4">
+													<span
+														class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+													>
+														<Database class="size-4" aria-hidden="true" />
+													</span>
+													<span class="min-w-0 flex-1">
+														<span
+															class="line-clamp-2 break-words text-sm font-medium text-foreground"
+														>
+															{item.title}
+														</span>
+														<span
+															class="mt-1.5 block text-xs leading-relaxed text-muted-foreground"
+														>
+															{item.resources.length} recursos · Actualizado el {formatDate(
+																item.metadata_modified,
+															)}
+														</span>
+													</span>
+													{#if item.private}
+														<span
+															class="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+														>
+															<Lock class="size-3" aria-hidden="true" />
+															Privado
+														</span>
+													{/if}
+												</span>
+											</li>
+										{/each}
+									</ul>
+								</Card>
+							</section>
+
+							<section aria-labelledby="sim-orgs-heading" class="min-w-0">
+								<div class="flex items-center gap-3">
+									<span
+										class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+									>
+										<Building2 class="size-4" aria-hidden="true" />
+									</span>
+									<h4 id="sim-orgs-heading" class="font-heading text-lg font-semibold text-primary">
+										Mis organizaciones
+									</h4>
+									<span
+										class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+									>
+										1
+									</span>
+								</div>
+								<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
+									Organizaciones de las que forma parte y el rol que tiene en cada una.
+								</p>
+								<Card class="mt-4 p-2">
+									<ul class="space-y-1">
+										<li>
+											<span class="flex items-start gap-3 rounded-lg px-3 py-4">
+												<span
+													class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+												>
+													<Building2 class="size-4" aria-hidden="true" />
+												</span>
+												<span class="min-w-0 flex-1">
+													<span
+														class="line-clamp-2 break-words text-sm font-medium text-foreground"
+													>
+														{DATASET.organization?.title}
+													</span>
+													<span
+														class="mt-1.5 inline-flex rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+													>
+														Administrador
+													</span>
+												</span>
+											</span>
+										</li>
+									</ul>
+								</Card>
+							</section>
+						</div>
+
+						<!-- La colocación: una sección propia, con el mismo ritmo de «Mis datasets». -->
+						<section aria-labelledby="sim-cola-heading" class="mt-8">
+							<div class="flex items-center gap-3">
+								<span
+									class="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
+								>
+									<Inbox class="size-4" aria-hidden="true" />
+								</span>
+								<h4
+									id="sim-cola-heading"
+									class="font-heading text-lg font-semibold text-primary"
+								>
+									Solicitudes de publicación
+								</h4>
+								<span
+									class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+								>
+									{contadorTexto}
+								</span>
+							</div>
+							<p class="mt-1.5 text-pretty text-xs leading-relaxed text-muted-foreground">
+								Las solicitudes pendientes de las organizaciones donde usted administra.
+							</p>
+							<Card class="mt-4 p-5">
+								{@render colaDeSolicitudes()}
+							</Card>
+						</section>
+					</div>
+				{:else if colocacion === "ruta"}
+					<!-- 2 · Su propia ruta, con la entrada en la navegación que la hace alcanzable. -->
+					<div class="space-y-4">
+						{@render navDeSolicitudes(pendientes, true)}
+						<div class="rounded-xl border border-border bg-background p-4 sm:p-6">
+							<Breadcrumb
+								items={[
+									{ label: "Panel", href: "/dashboard" },
+									{ label: "Solicitudes de publicación" },
+								]}
+								icon={Inbox}
+							/>
+							<div class="mt-5">
+								<h3 class="font-heading text-3xl font-bold text-primary sm:text-4xl">
+									Solicitudes de publicación
+								</h3>
+								<p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+									Las solicitudes pendientes de las organizaciones donde usted administra.
+									Revise cada una para aprobarla, o para rechazarla con un motivo.
+								</p>
+							</div>
+							<Card class="mt-6 p-5">
+								{@render colaDeSolicitudes()}
+							</Card>
+						</div>
+					</div>
+				{:else if colocacion === "contador"}
+					<!-- 3 · Un contador en la navegación, con y sin insignia. -->
+					<div class="space-y-5">
+						<div class="space-y-2">
+							<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								Con solicitudes pendientes
+							</p>
+							{@render navDeSolicitudes(pendientes, true)}
+						</div>
+						<div class="space-y-2">
+							<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								Sin solicitudes pendientes: el contador no aparece
+							</p>
+							{@render navDeSolicitudes(0, true)}
+						</div>
+						<p class="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+							El contador cuenta lo que falta decidir. Cuando no hay nada pendiente el enlace queda
+							sin insignia, y la navegación no cambia de alto ni se ve rota. Elija
+							<code class="font-mono text-xs">cola=vacia</code>
+							en el panel para verlo sobre la cola real.
+						</p>
+						<Card class="p-5">
+							{@render colaDeSolicitudes()}
+						</Card>
+					</div>
+				{:else}
+					<!-- 4 · El aviso en la ficha del dataset, para quien puede decidirla. -->
+					<div class="overflow-hidden rounded-xl border border-border">
+						<section class="border-b border-border bg-card">
+							<div class="px-4 py-8 sm:px-6">
+								<h3 class="font-heading text-3xl font-bold leading-tight text-foreground">
+									{DATASET.title}
+								</h3>
+								<p class="mt-3 text-sm text-muted-foreground">
+									Actualizado {formatDate(DATASET.metadata_modified)}
+								</p>
+								<div class="mt-4 flex flex-wrap items-center gap-2">
+									<span
+										class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
+									>
+										{DATASET.organization?.title}
+									</span>
+									<span
+										class="inline-flex items-center rounded-md border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive"
+									>
+										Privado
+									</span>
+								</div>
+							</div>
+						</section>
+
+						<div class="space-y-5 bg-background p-4 sm:p-6">
+							{#if avisoVisible}
+								<div
+									role="status"
+									class="flex flex-wrap items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4"
+								>
+									<span
+										class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+									>
+										<Bell class="size-4" aria-hidden="true" />
+									</span>
+									<div class="min-w-0 flex-1">
+										<p class="font-heading text-sm font-semibold text-foreground">
+											Este dataset tiene una solicitud de publicación pendiente.
+										</p>
+										<p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+											Un editor de la organización pidió publicarlo. Revise la solicitud para
+											aprobarla, o para rechazarla con un motivo.
+										</p>
+									</div>
+									<a
+										href={urlFor("dashboard")}
+										data-sveltekit-reload
+										class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+									>
+										Revisar la solicitud
+									</a>
+								</div>
+							{:else}
+								<p
+									class="rounded-xl border border-border bg-muted/40 p-4 text-sm leading-relaxed text-muted-foreground"
+								>
+									Este dataset no tiene una solicitud pendiente, así que la ficha no muestra
+									ningún aviso. Elija el caso «Pendiente» en el panel para verlo.
+								</p>
+							{/if}
+
+							<Card class="p-5">
+								{@render colaDeSolicitudes()}
+							</Card>
+						</div>
+					</div>
+				{/if}
+			</div>
 		</section>
 
 		{#if llamadas.length > 0}
@@ -596,7 +958,9 @@ $effect(() => {
 					<SlidersHorizontal class="size-4" aria-hidden="true" />
 					Panel de la hoja (no es UI de producto)
 				</button>
-				<p class="text-xs text-muted-foreground">{vista} · {caso} · {fallo} · {cola}</p>
+				<p class="text-xs text-muted-foreground">
+					{vista} · {caso} · {fallo} · {cola} · {colocacion}
+				</p>
 			</div>
 
 			{#if panelAbierto}
@@ -623,6 +987,7 @@ $effect(() => {
 						{@render grupo("Solicitud vigente", caso, CASOS, setCaso)}
 						{@render grupo("Resultado de las llamadas", fallo, FALLOS, setFallo)}
 						{@render grupo("Estado de la cola", cola, COLAS, setCola)}
+						{@render grupo("Dónde vive la cola", colocacion, COLOCACIONES, setColocacion)}
 						<div class="flex items-end">
 							<button
 								type="button"
