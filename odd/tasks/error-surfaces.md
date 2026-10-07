@@ -243,6 +243,24 @@ con `error 502` detrás, y **cero** ocurrencias de `502 Bad Gateway` y de la for
 estado devolviera `null`, cuando su texto sigue siendo el único dato que existe. La prueba ahora afirma la
 regla —fallback al texto— y reserva el `null` para lo que de verdad no tiene nada que citar.
 
+### Los avisos de la compuerta del delta (2026-10-07)
+
+Los dos se arreglaron, y el primero era un **defecto que introdujo esta misma unidad**:
+
+- **`R3-list-error-falsy` (WARNING) — arreglado.** Al guardar el fallo **tal como se lanzó** —en vez de su
+  texto— el estado quedó dependiendo de la verdad del valor: un `throw ""` (o `0`, o `null`) es falsy, así que
+  la cola caída **caía a «no hay solicitudes»**. Es exactamente la deshonestidad que el componente dice no
+  cometer —«la cola no cargada no se disfraza de cola vacía»—, reintroducida por un cambio de tipo. El fallo se
+  guarda **envuelto en un objeto**, que es siempre truthy, y una prueba con un `throw ""` lo fija en RED
+  primero.
+- **`R3-decide-datum-unasserted` (SUGGESTION) — arreglado.** La prueba del fallo al decidir afirmaba la frase
+  pero **no** el dato técnico. Ahora usa un `CkanApiError` con estado y afirma el código (`error 503`), que es
+  el caso real de producción; el caso sin estado queda cubierto por las pruebas de `technicalDetail`.
+
+**Lección**: cambiar el **tipo** de un estado cambió su **semántica de verdad**. Un `string | null` usado como
+bandera funciona mientras todo lo que se guarde sea no vacío; al pasar a `unknown` la bandera dejó de ser una
+bandera. La compuerta lo cazó porque miró el tipo nuevo y preguntó qué valores puede tomar.
+
 ### Desviaciones declaradas
 
 1. **Sin RED propio para `statusFor`**: el helper se extrajo de la necesidad de las páginas y su RED fue el de

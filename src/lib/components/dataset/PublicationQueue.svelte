@@ -171,9 +171,11 @@ type Outcome = {
 
 let items = $state<PublicationQueueItem[]>([]);
 let loading = $state(true);
-// El fallo tal como se observó, no su texto: el dato técnico que se muestra sale de
-// `technicalDetail`, que decide qué se puede citar.
-let listError = $state<unknown>(null);
+// El fallo tal como se observó, **envuelto en un objeto**: el estado de fallo no puede depender de la
+// verdad del valor lanzado, porque un `throw ""` —o `0`, o `null`— es falsy y la cola caída se
+// disfrazaría de cola vacía, que es exactamente lo que este componente no hace. El dato técnico que se
+// muestra sale de `technicalDetail`, que decide qué se puede citar.
+let listError = $state<{ cause: unknown } | null>(null);
 /** La decisión en vuelo, con su fila y su sentido; mientras haya una, ninguna fila acepta otra. */
 let deciding = $state<{ id: string; approve: boolean } | null>(null);
 let outcomes = $state<Record<string, Outcome | undefined>>({});
@@ -245,7 +247,7 @@ async function load() {
 	} catch (err) {
 		// La cola no cargada no se disfraza de cola vacía: son estados distintos. Se guarda el fallo
 		// —no su texto— porque el mensaje que el usuario lee es nuestro y el dato técnico se deriva.
-		listError = err;
+		listError = { cause: err };
 		items = [];
 	} finally {
 		loading = false;
@@ -510,7 +512,7 @@ function setComment(id: string, value: string) {
 			{LOADING}
 		</p>
 	{:else if listError}
-		{@const detalle = technicalDetail(listError)}
+		{@const detalle = technicalDetail(listError.cause)}
 		<div
 			role="alert"
 			class="flex w-full flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
