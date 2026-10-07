@@ -368,3 +368,17 @@ tenga su UI.
   y eso es legítimo. **Me adapto yo**: el portal **re-lee el dataset** después de la acción, lo que hace la
   regla «un `200` que no concede no es un éxito» **más fuerte** (verifica el efecto, no la respuesta).
   **Pendiente de la par:** los 8 *advisory* de su ronda (`wip/a2-advisories`), y después A3/A5/A6.
+- **2026-10-07 — Lección de método, mía, y me la corrigió la par: un ref remoto local es una medición cacheada.**
+  Afirmé «`27b8ab8` no está pusheado» **repitiendo el «sin push todavía» de la par**, sin medirlo y **sin
+  fecharlo**: era cierto cuando ellos lo dijeron y ya no lo era cuando yo lo escribí. Medido con
+  `git fetch` + `git merge-base --is-ancestor`: **sí es ancestro de `origin/master`**, y el `FETCH_HEAD`
+  tenía ~2,5 h. Regla operativa: **una afirmación heredada se fecha y se re-mide antes de repetirla sin
+  atribución**, y **para afirmar estado de push hay que fetchear primero**. Segundo error propio de la misma
+  ronda: inferí «probablemente A2 en curso» sobre dos archivos modificados, y era **A1.5** — la conjetura
+  sobraba, lo correcto era decir que no sabía qué unidad era.
+  **Y la precisión que el episodio deja, para no confundir dos cosas:** *el estado del push no es el
+  contenido del código.* El hallazgo de gobernanza se re-verificó **leyendo `origin/master` directamente**
+  (`git show origin/master:…/logic/auth/publication.py`): `publication_request_decide` (114-121) **sin
+  comprobación de cuatro ojos** —la única condición es la capacidad `admin`— y `publication_publish`
+  (124-131) **autorizando al `admin` de organización**, con el docstring «on their own authority». El
+  hallazgo no dependía del push: depende de las líneas del archivo publicado.
