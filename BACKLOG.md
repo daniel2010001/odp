@@ -1721,6 +1721,59 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 alcance B (el modelo del PRD) y el gate de presupuesto cerrado como **cadena de unidades**. El estado
 completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: la unidad A1.**
 >
+> **Deuda de diseño anotada el 2026-10-07, tras la revisión del autor de `/dev/publication`.** Lo **decidido**:
+> la cola de varias organizaciones va **con filtro por organización** —y el filtro **no se muestra cuando hay
+> una sola**—; la cola se lee **pendientes y después resueltas**; **sólo la primera** solicitud decidible
+> queda desplegada; y las **opciones de cada sección viven en su sección** (regla 8 de `AGENTS.md`).
+> **Pendientes, para después:**
+> - **El diseño del grupo «Resueltas» se mejora DESPUÉS de promover.** El autor invirtió la prioridad:
+>   «por ahora promover tiene más prioridad». (Promover es `B1`, y está bloqueado del lado de `odp-docker`.)
+> - **«Detalles» (derecha) contra «Información técnica» (izquierda)** en `/dataset/[id]`: marco adoptado —
+>   **detalles = resumen, información técnica = completo**, y manda la izquierda. Con la precisión de que el
+>   resumen es **otra pregunta** («¿me sirve esto?»: quién lo mantiene, cada cuánto se actualiza, cuándo fue la
+>   última vez, con qué licencia), no una lista más corta de la misma información; y que la izquierda tiene que
+>   estar **completa** —hoy se pierden datos que el dataset tiene—. TODO para una sesión de diseño.
+> - **La parte técnica en los mensajes de error: la próxima unidad.** Decisión del autor: los mensajes
+>   **pueden** llevar el código (para consultarlo con soporte), pero **el foco no es la técnica**: frase
+>   entendible primero, código como dato secundario («El dataset no existe, error 404»). Toca `failure.ts` y las
+>   superficies que muestran fallos, y de paso cierra que un `404` se lea como «no se pudo».
+> - **El tooltip de los tres botones del hero.** Propuesta: el `Tooltip` vendorizado (alcanza el teclado) **sólo
+>   donde la etiqueta no alcanza** —el botón de copiar enlace y la consecuencia de publicar—, y **no** en
+>   «Editar», que ya dice lo que hace. Va con `B1`.
+>
+> **Segunda ronda de decisiones (mismo día, tras la segunda revisión de la hoja).**
+> - **La sección del panel se quita como bloque y entra como acción.** Palabras del autor: «quitar del panel
+>   como lo muestras ahora mismo, pero agregarlo como una “acción”, como el de “crear datasets”». O sea: el
+>   panel no hospeda un bloque de cola ni una card de referencia; lleva una **acción** que lleva a la page.
+> - **El aviso de `/dataset/[id]` pasa a ser una card**, después de la información textual del dataset: «no
+>   termina de gustarme esa vista, mejor agregar una vista estilo card luego de “información textual”». Sigue
+>   **sin** el formulario de aprobar, que es de la page propia.
+> - **El botón se queda en el hero**, con el diseño de sus hermanos: sin el texto de ayuda debajo y con la
+>   explicación **como tooltip**, del mismo alto que «Copiar enlace» y «Editar». Decisión textual: «por mi lo
+>   dejamos en el hero, pero… respetando el diseño de sus “hermanos” botones, solo eso».
+> **Pendientes que suma esta ronda:**
+> - **«Detalles» de la derecha contra «Información técnica» de la izquierda** en `/dataset/[id]`: al autor «no
+>   le termina de gustar cómo se ven ambos». TODO suyo, para una sesión de diseño: son los dos bloques de
+>   información de la ficha, y hoy compiten sin jerarquía clara.
+> - **Unificar el mecanismo de tooltip de las acciones del hero.** Hoy «Copiar enlace» usa el `title` nativo,
+>   y el control de publicación hace lo mismo para parecerse; el `Tooltip` vendorizado (bits-ui, ya presente
+>   en `DatasetCard`) alcanza también el **foco del teclado**, que el `title` no. Los tres deberían usarlo.
+>
+> **Deuda de revisión: los avisos de las compuertas nativas de la hoja (2026-10-07).** El tercero queda
+> **sin reinterpretar**: el recibo entrega identificador y ubicación, no el texto del hallazgo, así que
+> deducirlo sería inventarlo y el arreglo se decide mirándolo.
+> - `R3-empty-queue-filter-chips` (WARNING, `src/routes/dev/publication/+page.svelte`) — **arreglado**: el
+>   filtro leía el fixture en vez de lo cargado y ofrecía organizaciones **sobre una cola vacía**.
+> - `R3-tooltip-only-consequence` (SUGGESTION, `PublishControl.svelte`) — **arreglado**: la consecuencia de
+>   publicar queda asociada al botón también con `aria-describedby` (con `id` único por instancia), porque el
+>   `title` solo alcanza al puntero. Mismo arreglo en `RequestPublicationControl`.
+> - `R3-group-membership-unproved` (SUGGESTION, `PublicationQueue.test.ts`) — **arreglado**: la prueba de las
+>   secciones ahora prueba **pertenencia** de cada fila a su grupo, no sólo el orden de los títulos.
+> - `R3-trigger-name-collision` (WARNING, `PublicationQueue.svelte`) — **arreglado**: el disparador del
+>   plegado tiene ahora **un nombre estable** («Detalles de {dataset}») y el estado lo lleva `aria-expanded`
+>   con el chevron. Un control, un nombre, dos estados — y las pruebas dejaron de buscar dos nombres distintos
+>   para el mismo botón.
+>
 > **Estado (2026-09-14, tarde) — histórico, ya no describe el estado:** `init` ✅ · `explore` ✅ · `preproposal` ✅ · `proposal` ✅ · `design` ✅ ·
 > `spec` ✅ · `tasks` ✅ · **`apply` del PR 1 ✅ (pusheado: `86f130b` en `odp-docker`)** · **PR 2
 > APARCADO**. · El **modelo de producto fue revertido** el 2026-09-14: manda el PRD, no las decisiones
