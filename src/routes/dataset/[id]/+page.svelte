@@ -6,6 +6,7 @@ import {
 	Clock,
 	Copy,
 	Database,
+	Inbox,
 	Link2,
 	Pencil,
 	Shield,
@@ -25,6 +26,9 @@ import {
 	statusFor,
 } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
+import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
+import PublishControl from "$lib/components/dataset/PublishControl.svelte";
+import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
@@ -33,7 +37,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
-import { auth } from "$lib/stores/auth";
+import { auth, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
@@ -49,6 +53,14 @@ type DatasetFailure = {
 };
 
 let dataset = $state<CkanPackage | null>(null);
+/**
+ * La solicitud vigente de **este** dataset, para la tarjeta del estado.
+ *
+ * `null` quiere decir «no hay ninguna que mostrar» y también «no se pudo averiguar»: la tarjeta no
+ * distingue esos dos casos porque en los dos la ficha no tiene nada que decir. Lo que **no** hace es
+ * conservar una solicitud vieja cuando la consulta falla.
+ */
+let solicitudVigente = $state<PublicationRequest | null>(null);
 let loading = $state(true);
 let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
@@ -71,6 +83,105 @@ let orgsEditables = $state<string[]>([]);
 const datasetId = $derived($page.params.id);
 
 // ─── Data fetching ───────────────────────────────────────────────
+// ─── API de publicación ─────────────────────────────────────────
+// Un solo cliente para las acciones de publicación: los controles reciben **funciones estables**, y el
+// token se lee en cada llamada (`apiKey` es una función), así que construir un cliente por llamada no
+// compraría nada. Las cinco acciones existen en la capa de API desde `B1`; hasta antes de eso entraban
+// inyectadas justamente porque no existían del lado del portal.
+const publicationApi = createPublicationApi(
+	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
+);
+
+/** El camino del editor: pedir la publicación de un dataset privado, y retirar la propia solicitud. */
+const solicitar = (datasetId: string, comments?: string) =>
+	publicationApi.request(datasetId, comments);
+const cancelar = (requestId: string) => publicationApi.cancel(requestId);
+
+/** El camino directo, reservado a la superadministración de la plataforma. */
+const publicar = (datasetId: string, comments?: string) =>
+	publicationApi.publish(datasetId, comments);
+
+/**
+ * La **relectura** que confirma una publicación: la acción devuelve sólo su fila, así que el portal
+ * mide el valor almacenado en vez de creerle a quien lo escribió. Por eso es una llamada aparte y no
+ * una clave de la respuesta.
+ */
+function leerDataset(id: string): Promise<CkanPackage> {
+	return createDatasetApi(
+		createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
+	).show(id);
+}
+
+// La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título; dos o
+// más van en la fila de las insignias. Acá copiar enlace siempre existe, «Editar» sólo con permiso y el
+// control de publicación cuando le corresponde, así que el conteo —y el reparto— dependen de esas dos
+// respuestas.
+//
+// La condición del control **espeja** la de los dos componentes, y es el único lugar donde eso pasa:
+// `PublishControl` dibuja su acción si la capacidad está concedida, y `RequestPublicationControl` si el
+// dataset es privado, quien mira puede pedir y no hay una solicitud aprobada. Si una de las dos cambia,
+// **este conteo queda viejo** y el hero reserva una fila de más o de menos. Es el precio de que el
+// reparto lo decida la página y el dibujo lo decidan los componentes, y queda declarado a propósito.
+const publicacionEnElHero = $derived.by(() => {
+	if (!dataset) return false;
+	if ($isSuperAdmin) return true;
+	if (!dataset.private || !puedeEditarDataset) return false;
+	return solicitudVigente?.status !== "approved";
+});
+
+/**
+ * La solicitud de este dataset, en su **propia** llamada y con su **propio** catch: un fallo acá no
+ * puede tumbar la ficha que sí cargó, y una lista vacía es una respuesta, no un error. La acción acota
+ * por organización y por solicitudes propias; **este dataset es el filtro que falta**.
+ */
+async function loadCurrentRequest() {
+	try {
+		const filas = await publicationApi.list();
+		// El filtro compara contra el **id** del dataset cargado, no contra el parámetro de la ruta: la
+		// tabla guarda ids, y la dirección puede traer el **nombre** (`/dataset/matricula-2026`), así que
+		// comparar el parámetro contra `dataset_id` no coincidiría nunca — es la misma trampa que la
+		// comparación de cuatro ojos, que comparaba un nombre contra un id y quedaba inerte y verde.
+		const propias = filas.filter((fila) => fila.dataset_id === dataset?.id);
+		solicitudVigente = propias.find((fila) => fila.status === "pending") ?? propias[0] ?? null;
+	} catch {
+		solicitudVigente = null;
+	}
+}
+
+/**
+ * La oración que resume el estado de la solicitud, para la tarjeta de la ficha.
+ *
+ * El vocabulario es el de la tabla, no el de esta página, y por eso la frase se arma con un `switch`
+ * **exhaustivo**: si la tabla gana un estado, esto no compila hasta que se lo nombre. Es la misma forma
+ * que usa el módulo de fallos, y evita que un estado nuevo se muestre como «desconocido» sin que nadie
+ * se entere.
+ */
+function estadoDeLaSolicitud(solicitud: PublicationRequest): string {
+	switch (solicitud.status) {
+		case "pending":
+			return solicitud.requested_by_name
+				? `Pendiente de revisión, pedida por ${solicitud.requested_by_name}.`
+				: "Pendiente de revisión.";
+		case "approved":
+			return solicitud.approved_by_name
+				? `Publicada, aprobada por ${solicitud.approved_by_name}.`
+				: "Publicada.";
+		case "rejected":
+			return solicitud.approved_by_name
+				? `Rechazada por ${solicitud.approved_by_name}.`
+				: "Rechazada.";
+		case "cancelled":
+			return "Retirada por quien la pidió.";
+		case "annulled":
+			return "Anulada: la solicitud dejó de estar vigente.";
+		default: {
+			const exhaustivo: never = solicitud.status;
+			void exhaustivo;
+			return "Estado desconocido.";
+		}
+	}
+}
+
 async function loadDataset() {
 	if (!datasetId) {
 		// URL incompleta: estado propio, no un fallo del catálogo (ver el comentario de `invalidParams`).
@@ -139,9 +250,11 @@ async function loadDataset() {
 		loading = false;
 	}
 
-	// Permiso en su propia llamada: un fallo de la pregunta no puede tumbar el dataset que sí cargó.
+	// Permiso y solicitud vigente en sus **propias** llamadas: un fallo de cualquiera de las dos no puede
+	// tumbar el dataset que sí cargó, y por eso ninguna de las dos propaga.
 	if (dataset) {
 		await loadEditPermission();
+		await loadCurrentRequest();
 	}
 }
 
@@ -302,7 +415,7 @@ const puedeEditarDataset = $derived.by(() => {
 // La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título;
 // dos o más van en la fila de las insignias. Acá copiar enlace siempre existe y «Editar» sólo con
 // permiso, así que el conteo —y por lo tanto el reparto— depende de la respuesta de permiso.
-const heroActionCount = $derived(puedeEditarDataset ? 2 : 1);
+const heroActionCount = $derived(1 + (puedeEditarDataset ? 1 : 0) + (publicacionEnElHero ? 1 : 0));
 
 // ─── Technical metadata table ───────────────────────────────────
 // La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
@@ -448,6 +561,32 @@ async function handleCopyLink() {
 						Editar
 					</a>
 				{/if}
+				{#if publicacionEnElHero}
+					<!-- El control de publicación **en la fila de sus hermanos**: mismo alto y misma forma que
+					     «Copiar enlace» y «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
+					     no debajo. La compuerta la decide cada componente: el camino directo es de la
+					     superadministración, y el editor ve ahí su solicitud. -->
+					{#if $isSuperAdmin}
+						<PublishControl
+							dataset={item}
+							publish={publicar}
+							readDataset={leerDataset}
+							apariencia="accion"
+							onpublished={(publicado) => (dataset = publicado)}
+						/>
+					{:else}
+						<RequestPublicationControl
+							dataset={{ id: item.id, private: item.private }}
+							canRequest={puedeEditarDataset}
+							currentRequest={solicitudVigente}
+							request={solicitar}
+							cancel={cancelar}
+							apariencia="accion"
+							onrequested={(reportada) => (solicitudVigente = reportada)}
+							oncancelled={(reportada) => (solicitudVigente = reportada)}
+						/>
+					{/if}
+				{/if}
 			</div>
 		{/snippet}
 
@@ -569,6 +708,25 @@ async function handleCopyLink() {
 							</div>
 						{/if}
 					</Card>
+
+					<!-- La tarjeta del estado de la solicitud, **después de la información textual**.
+					     Muestra en qué está y **no** trae el formulario de decidir: decidir es el trabajo de la
+					     page de solicitudes, no un accesorio de la ficha. La acción, cuando le corresponde a
+					     quien mira, vive en el hero junto a sus hermanas. -->
+					{#if solicitudVigente}
+						<Card class="p-6 sm:p-8">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+								Solicitud de publicación
+							</p>
+							<p
+								class="mt-2 flex items-center gap-2 text-sm leading-relaxed text-foreground"
+								data-testid="estado-solicitud"
+							>
+								<Inbox class="size-4 shrink-0 text-primary" aria-hidden="true" />
+								{estadoDeLaSolicitud(solicitudVigente)}
+							</p>
+						</Card>
+					{/if}
 
 					<!-- Resources -->
 					<Card class="p-6 sm:p-8">

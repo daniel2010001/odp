@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/sve
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
+import type { PublicationRequest } from "$lib/api/publication";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
 import { type ApiClientConfig, CkanApiError } from "$lib/types/api";
@@ -21,6 +22,12 @@ const mocks = vi.hoisted(() => ({
 	listUpdatableOrganizationIds: vi.fn(),
 	check: vi.fn(),
 	copyToClipboard: vi.fn(),
+	// Las cinco acciones de publicación, que la ficha consume desde `B1`: la lista alimenta la tarjeta
+	// del estado y las otras cuatro son las que los controles llaman.
+	listRequests: vi.fn(),
+	requestPublication: vi.fn(),
+	cancelRequest: vi.fn(),
+	publishDataset: vi.fn(),
 }));
 
 // Se mockea en el borde de módulo para que `package_show` nunca dispare HTTP real. `$lib/mock/data`
@@ -34,6 +41,14 @@ vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.sho
 vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({
 		listUpdatableOrganizationIds: mocks.listUpdatableOrganizationIds,
+	}),
+}));
+vi.mock("$lib/api/publication", () => ({
+	createPublicationApi: () => ({
+		list: mocks.listRequests,
+		request: mocks.requestPublication,
+		cancel: mocks.cancelRequest,
+		publish: mocks.publishDataset,
 	}),
 }));
 vi.mock("$lib/mock/data", () => ({ getMockDatasetById: mocks.getMockDatasetById }));
@@ -108,6 +123,9 @@ beforeEach(() => {
 	setParams({ id: "matricula-2026" });
 	mocks.createCkanClient.mockReturnValue({});
 	mocks.showDataset.mockResolvedValue(makeDataset());
+	// Sin solicitudes, la tarjeta del estado no aparece y el hero no gana la acción de publicación: es
+	// el estado por defecto de las pruebas que no hablan de publicación.
+	mocks.listRequests.mockResolvedValue([]);
 	mocks.getMockDatasetById.mockReturnValue(
 		makeDataset({ id: "mock-0", name: "mock-0", title: MOCK_TITLE }),
 	);
@@ -768,5 +786,117 @@ describe("Página de dataset — el acuse de «Copiar enlace»", () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+// El cableado de `B1`: la ficha muestra **el estado** de la solicitud y ofrece **la acción** en el hero.
+// Las dos cosas salen de la misma respuesta (la lista acotada por organización), así que lo que se prueba
+// acá es el **filtro**, el lugar donde el estado vive, y que un fallo de esta consulta no se lleve puesta
+// la ficha que sí cargó.
+describe("Página de dataset — la solicitud de publicación", () => {
+	/** Una fila con la forma del contrato, para no depender de campos que la tabla no devuelve. */
+	function makeRow(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
+		return {
+			id: "req-1",
+			dataset_id: "pkg-1",
+			status: "pending",
+			requested_by: "user-editor",
+			requested_by_name: "editor.tecnologia",
+			approved_by: null,
+			approved_by_name: null,
+			comments: null,
+			motive: null,
+			created_at: "2026-10-01T00:00:00.000000",
+			...overrides,
+		};
+	}
+
+	it("muestra el estado de la solicitud **después** de la información textual", async () => {
+		// La dirección trae el **nombre** del dataset y la fila trae su **id**: el filtro tiene que cruzar
+		// esos dos mundos, y por eso esta prueba sirve aunque los dos valores sean distintos a propósito.
+		setParams({ id: "matricula-2026" });
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		const estado = await screen.findByTestId("estado-solicitud");
+		expect(estado).toHaveTextContent("Pendiente de revisión, pedida por editor.tecnologia.");
+		// El pedido del autor, como aserción: la tarjeta va **después** de «Sobre este dataset».
+		expect(
+			screen.getByRole("heading", { name: "Sobre este dataset" }).compareDocumentPosition(estado) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("no muestra la solicitud de **otro** dataset: el filtro es por id, no «alguna fila»", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-999" })]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listRequests).toHaveBeenCalled());
+		expect(screen.queryByTestId("estado-solicitud")).not.toBeInTheDocument();
+	});
+
+	it("si la consulta de solicitudes falla, la ficha se muestra igual", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockRejectedValue(new CkanApiError("Service Unavailable", 503));
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		// El dataset cargó y se ve; la consulta que falló no deja tarjeta ni rompe la página. La espera va
+		// **antes** de mirar el DOM: la ficha se dibuja cuando las tres llamadas se asentaron, y con la
+		// tercera rechazada eso ocurre un tic más tarde.
+		await waitFor(() => expect(mocks.listRequests).toHaveBeenCalled());
+		expect(
+			await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" }),
+		).toBeInTheDocument();
+		expect(screen.queryByTestId("estado-solicitud")).not.toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("quien puede editar y no pidió nada recibe la acción en el hero", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		expect(
+			await screen.findByRole("button", { name: "Solicitar publicación" }),
+		).toBeInTheDocument();
+	});
+
+	it("quien no puede editar no recibe la acción, pero sí ve el estado", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-999"] });
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		expect(await screen.findByTestId("estado-solicitud")).toHaveTextContent(
+			"Pendiente de revisión",
+		);
+		expect(screen.queryByRole("button", { name: "Solicitar publicación" })).not.toBeInTheDocument();
 	});
 });
