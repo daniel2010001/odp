@@ -412,10 +412,19 @@ tenga su UI.
   marcan es concreto y es el **espejo** del de `dataset`: **`publication_publish` pasa a ser sólo `sysadmin`,
   así que un `admin` de organización recibe `403`** — un control del portal cableado contra A2 **haría fallar
   cada publicación de un `admin`**.
-  **La unidad de seguimiento de A2 lleva siete cosas, con una sola compuerta**, antes de que yo cablee:
-  (1) `publish` sólo `sysadmin`; (2) `decide` cuatro ojos con `403` distinguible; (3) motivo obligatorio al
-  rechazar; (4) el **campo de presentación** en `list`; (5) **A2.6** la re-verificación del estado actual;
-  (6) **A2.7** la anulación; (7) el **retorno aditivo** (fila + `dataset`).
+  **La unidad de seguimiento quedó DEFINIDA por la par (2026-10-07), y la agrupación es suya, no mía**:
+  **`unit/a2-governance`, una sola compuerta**, con (1) **las cuatro deltas de gobernanza** —`publish` sólo
+  `sysadmin`; `decide` nunca el solicitante y **comparando ids, no nombres**; `comments` obligatorio al
+  rechazar; la re-verificación del estado actual (**A2.6**) y la anulación de la `pending` huérfana
+  (**A2.7**)—; (2) la clave **`dataset`** en `publish` y en `decide{approve:true}`; (3) los campos
+  **`requested_by_name`/`approved_by_name`**, batcheados en **una consulta por llamada**; y (4) **el archivo
+  *tracked* con el contrato de las cinco acciones** — que es donde voy a leer la firma, **no en un mensaje**.
+  Los **8 *advisory* van aparte**, en `unit/a2-advisories` (`57fb1a6`), con su **propia** compuerta:
+  **conformidad y calidad no se mezclan**, que es lo que el autor pidió.
+  *(Mi registro anterior agrupaba esto como «siete cosas»: era **mi** lectura, no la suya. La agrupación
+  autoritativa es la de arriba, y la dejé corregida.)*
+  Y **`dataset` entra en esa unidad en lugar de diferirse**, precisamente porque **B1 lo espera**: el motivo lo
+  confirmó la par — no es una comodidad del consumidor, es lo que impide cablear contra una forma incompleta.
   **`A5` queda mío, y ellos lo verificaron**: revisaron que `probe.sh` es de **este** repo y que el registro
   está corregido, y no lo pueden reescribir porque **corre contra el stack que construyen**. Su trabajo
   abierto: esa unidad, A3 y A6.

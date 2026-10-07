@@ -1293,6 +1293,16 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > las cinco acciones (`publication_request_create` / `_cancel` / `_decide` / `publication_publish` /
 > `publication_request_list`).
 >
+> **Unidad de seguimiento, definida por la sesión par (2026-10-07): `unit/a2-governance`, una sola compuerta.**
+> Lleva: las **cuatro deltas de gobernanza** (`publish` sólo `sysadmin`; `decide` nunca el solicitante y
+> comparando **ids**; motivo **obligatorio al rechazar**; re-verificación del estado actual y anulación de la
+> `pending` huérfana), la clave **`dataset`** en las dos acciones que pliegan, los campos de presentación
+> **batcheados en una consulta por llamada**, y **el archivo *tracked* con el contrato de las cinco acciones**
+> — que es donde se lee la firma, no en un mensaje. Los **ocho *advisory* de A2 van aparte**
+> (`unit/a2-advisories`, `57fb1a6`), con su **propia** compuerta, **para no mezclar conformidad con calidad**.
+> **`B1` y `A5` esperan a esa unidad** — y `dataset` entra ahí en vez de diferirse justamente porque `B1` lo
+> espera.
+>
 > **¿Sos la sesión que trabaja en `odp-docker` para hacer publicable un dataset, y preguntaste si había
 > que tocar ese repo? Tu respuesta está acá, no en el chat:** el alcance es **B** (el corte A se evaluó y
 > se descartó), y tus unidades son **A1/A2/A3**. Las `A5` (la sonda) y `B1`/`B2` son del repo del portal.
