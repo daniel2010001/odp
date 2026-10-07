@@ -1275,9 +1275,16 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 > **Reparto declarado (2026-10-07), por la regla de alcance escrito de `AGENTS.md`** — dos sesiones, dos
 > repos, **cero archivos compartidos**:
 > - **Sesión par → `odp-docker`**: las unidades **A1** (modelo + migración + registro), **A2** (las cinco
->   acciones), **A3** (la pared + inventario de escritores nativos) y **A5** (la sonda reescrita).
-> - **Esta sesión → `odp`**: las unidades **B1** (API + los dos controles del portal) y **B2** (la cola +
->   cableado + copy).
+>   acciones) y **A3** (la pared + inventario de escritores nativos).
+> - **Esta sesión → `odp`**: **A5** (la sonda reescrita) y **B1** (API + los dos controles del portal) y
+>   **B2** (la cola + cableado + copy).
+>   **`A5` es de acá, no de `odp-docker`:** el artefacto es
+>   `openspec/changes/2026-09-13-publication-lifecycle/probe.sh` — 373 líneas, y `git ls-files` confirma que
+>   vive en **este** repo —, y la regla de frontera de este mismo bloque prohíbe que la otra sesión toque el
+>   `openspec/**` ajeno. **La sonda corre contra el stack que A2/A3 construyen**, así que depende de ellos
+>   aunque el archivo sea mío: por eso `A5` va después de `A3` en la cadena.
+>   *(Corrección del 2026-10-07: la primera versión de este bloque le asignaba `A5` a `odp-docker`, y con eso
+>   se contradecía con su propia regla de frontera. **Lo encontró la sesión par**, no yo.)*
 >
 > La frontera es el repositorio, y es lo único que sostiene el reparto: `orchestrator_send_message`
 > devuelve «accepted for delivery», **no** acuse de lectura, y no hay bloqueo entre sesiones (medido el
@@ -1288,8 +1295,8 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
 >
 > **¿Sos la sesión que trabaja en `odp-docker` para hacer publicable un dataset, y preguntaste si había
 > que tocar ese repo? Tu respuesta está acá, no en el chat:** el alcance es **B** (el corte A se evaluó y
-> se descartó), y tus unidades son **A1/A2/A3/A5**. `B1`/`B2` son de la sesión del portal. Buscá por
-> «Reparto declarado».
+> se descartó), y tus unidades son **A1/A2/A3**. Las `A5` (la sonda) y `B1`/`B2` son del repo del portal.
+> Buscá por «Reparto declarado».
 >
 > **Siguiente: la unidad A1** — modelo + migración + registro en `ckanext-umss` (`odp-docker`).
 > Expedientes: `odd/tasks/publication-lifecycle-minimum.md` y `odd/tasks/publication-guard-design.md`.

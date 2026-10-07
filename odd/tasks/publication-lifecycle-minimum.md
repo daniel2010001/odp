@@ -202,7 +202,7 @@ tenga su UI.
   (creía que el corte podía ser A, 0 líneas). Se le confirmó el **alcance B** con los punteros a los
   artefactos y los hechos ya medidos (registro de la migración por nombre de plugin, `MANIFEST.in`,
   `bulk_update_public` sin delegar, los dos hazards, la deriva 2.11.6 → 2.12.0), y el autor confirmó el
-  reparto: **la par hace `odp-docker` (A1/A2/A3/A5); esta sesión hace `odp` (B1/B2)**. Está escrito en
+  reparto: **la par hace `odp-docker` (A1/A2/A3); esta sesión hace `odp` (A5 la sonda + B1/B2)**. Está escrito en
   `BACKLOG.md` → «Replanificación HECHA», porque **los mensajes entre sesiones son notificaciones, no
   registros** — y `orchestrator_send_message` devuelve «accepted for delivery», no acuse de lectura.
   **Dependencia declarada: B1 queda esperando a que A2 fije las firmas de las cinco acciones.**
@@ -306,3 +306,14 @@ tenga su UI.
   dataset» y miente en la cola. **Confirmado: la anulación por pérdida de objeto entra en este corte; la
   degradación de un dataset publicado (RF-42) sigue `[v1]`.** Comparten el nombre del desenlace, no el
   disparador — y el artefacto tiene que decirlo así para que nadie lea la segunda como reabierta.
+- **2026-10-07 — La par corrigió una contradicción interna de mi registro**, y tenía razón: el bloque del
+  reparto le asignaba **`A5` (la sonda reescrita)** a la columna de `odp-docker` **y en el mismo bloque**
+  prohibía que esa sesión toque el `openspec/**` ajeno — donde vive el artefacto. Medido acá:
+  `openspec/changes/2026-09-13-publication-lifecycle/probe.sh` son **373 líneas**, y `git ls-files` confirma
+  que está **en este repo**. Corregido en los tres lugares donde estaba (los dos bullets de `BACKLOG.md`, la
+  línea «magnet» que le escribí a la par, y este expediente), con la corrección declarada en el propio texto
+  y el crédito a quien la encontró. **La dependencia sigue en pie y es real:** la sonda corre contra el stack
+  que A2/A3 construyen, así que va después de `A3` en la cadena aunque el archivo sea mío.
+  *La lección, que es la de esta sesión otra vez:* **un reparto y una regla de frontera escritos en el mismo
+  bloque se leen juntos o no sirven** — y el error lo encontró la parte que no lo escribió. Un registro que
+  se contradice a sí mismo no se detecta releyéndolo con la misma cabeza que lo escribió.
