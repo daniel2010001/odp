@@ -587,3 +587,11 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   atado al idioma— **son la misma falla**: **leer un *snapshot* —un commit, un ref, una lista, un mensaje, una
   redacción— como si fuera el estado vivo.** Y los seis se corrigieron con el mismo movimiento: **contrastar la
   afirmación contra su fuente.** Ninguno se corrigió releyendo lo propio con más atención.
+  **Y la par unificó el día con una ley que cubre más que esos seis**: *lo que se verifica es el
+  **significado**, no la forma en que uno lo escribió.* Es la misma ley detrás de las cuatro instancias de
+  «prueba verde que no prueba lo que dice» —mi `grep` atado al inglés, la regla de cuatro ojos comparando un
+  nombre contra un id, y las aserciones de `403` que no podían fallar— **y la registraron como cuarta regla
+  operativa del cambio**. Con un corolario que le agregué, porque es la mitad accionable: **el significado no se
+  puede verificar desde adentro.** Las cuatro se encontraron **cruzando un borde** — el otro repositorio, la
+  mutación, el otro artefacto, el otro idioma—, y ninguna se encontró mirando mejor lo propio. **La ley dice
+  qué está mal; el borde dice dónde se ve.**
