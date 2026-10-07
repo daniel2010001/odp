@@ -8,10 +8,9 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
+import type { PublicationRequest } from "$lib/api/publication";
 import { CkanApiError } from "$lib/types/api";
-import RequestPublicationControl, {
-	type PublicationRequest,
-} from "./RequestPublicationControl.svelte";
+import RequestPublicationControl from "./RequestPublicationControl.svelte";
 
 const REQUEST_LABEL = "Solicitar publicación";
 const REQUEST_AGAIN_LABEL = "Volver a solicitar";

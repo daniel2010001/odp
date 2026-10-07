@@ -57,14 +57,13 @@ import {
 } from "@lucide/svelte";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
+import type { PublicationRequest } from "$lib/api/publication";
 import PublicationQueue, {
 	type PublicationDecisionResult,
 	type PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
 import PublishControl, { type PublishResult } from "$lib/components/dataset/PublishControl.svelte";
-import RequestPublicationControl, {
-	type PublicationRequest,
-} from "$lib/components/dataset/RequestPublicationControl.svelte";
+import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CkanApiError } from "$lib/types/api";

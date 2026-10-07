@@ -1,28 +1,3 @@
-<script module lang="ts">
-// ─── Tipos de la solicitud de publicación ─────────────────────────────
-// El vocabulario de una solicitud vive acá —este control es su dueño— y se exporta para que la cola
-// del administrador y las hojas de revisión no lo dupliquen. Los estados son los que la tabla D4 del
-// diseño declara para el registro: `pending` mientras espera, y los tres desenlaces más el `annulled`
-// reservado para `RF-42`.
-export type PublicationRequestStatus =
-	| "pending"
-	| "approved"
-	| "rejected"
-	| "cancelled"
-	| "annulled";
-
-/** Una solicitud de publicación tal como el portal necesita leerla para decidir qué ofrecer. */
-export interface PublicationRequest {
-	id: string;
-	dataset_id: string;
-	status: PublicationRequestStatus;
-	requested_by?: string;
-	/** Motivo de la decisión, cuando el administrador lo escribió. */
-	comments?: string | null;
-	created_at?: string;
-}
-</script>
-
 <script lang="ts">
 // Solicitar la publicación de un dataset privado — el camino del **editor**.
 //
@@ -44,8 +19,15 @@ import {
 	Send,
 	ShieldAlert,
 } from "@lucide/svelte";
-import Button from "$lib/components/ui/button/button.svelte";
 import { technicalDetail } from "$lib/api/failure";
+// El tipo de la fila lo define **la capa de API** (`$lib/api/publication`), que es la dueña de la forma
+// que el catálogo devuelve y de los nombres de sus claves. Antes se definía acá y se exportaba para que
+// la cola y las hojas no lo duplicaran: la intención —un solo dueño— era correcta, la **dirección** no.
+// Un componente que define el tipo de la respuesta que consume la API mira hacia arriba, y el día que la
+// fila gane un campo hay dos lugares donde escribirlo — de hecho la fila ya trae `requested_by_name`,
+// `approved_by_name` y `motive`, y este archivo no los tenía.
+import type { PublicationRequest } from "$lib/api/publication";
+import Button from "$lib/components/ui/button/button.svelte";
 import { CkanApiError } from "$lib/types/api";
 import { cn } from "$lib/utils";
 
@@ -71,7 +53,8 @@ const CANCEL_FAILED = "No se pudo cancelar la solicitud.";
 const ACCION_CLASS =
 	"inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
 const PENDING_HEADING = "Solicitud pendiente de revisión";
-const PENDING_BODY = "Su solicitud está a la espera de que un administrador de la organización la revise.";
+const PENDING_BODY =
+	"Su solicitud está a la espera de que un administrador de la organización la revise.";
 const CANCEL_LABEL = "Cancelar solicitud";
 const REJECTED_HEADING = "Solicitud rechazada";
 const NO_REASON = "No se indicó un motivo.";

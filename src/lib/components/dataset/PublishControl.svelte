@@ -27,12 +27,12 @@ import {
 	ShieldAlert,
 } from "@lucide/svelte";
 import { technicalDetail } from "$lib/api/failure";
+import type { PublicationRequest } from "$lib/api/publication";
 import Button from "$lib/components/ui/button/button.svelte";
 import { isSuperAdmin } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
-import type { PublicationRequest } from "./RequestPublicationControl.svelte";
 
 /**
  * Publica el dataset y devuelve **sólo** su fila `publication_requests`: el contrato uniforme de las

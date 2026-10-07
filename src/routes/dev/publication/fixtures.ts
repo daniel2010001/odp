@@ -2,11 +2,11 @@
 // producto vive acá. Los tipos salen de los componentes reales, así que si el vocabulario de una
 // solicitud cambia, estas fixtures dejan de compilar.
 
+import type { PublicationRequest } from "$lib/api/publication";
 import type {
 	PublicationDecisionResult,
 	PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
-import type { PublicationRequest } from "$lib/components/dataset/RequestPublicationControl.svelte";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 
 export const ORGANIZACION: CkanOrganization = {

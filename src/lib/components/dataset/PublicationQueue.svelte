@@ -1,6 +1,6 @@
 <script module lang="ts">
+import type { PublicationRequestStatus } from "$lib/api/publication";
 import type { CkanPackage } from "$lib/types/ckan";
-import type { PublicationRequestStatus } from "./RequestPublicationControl.svelte";
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
 // Lo que el portal necesita mostrar de una solicitud: de qué dataset es, quién la pidió y cuándo.

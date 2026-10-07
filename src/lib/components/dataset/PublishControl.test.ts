@@ -16,11 +16,11 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { PublicationRequest } from "$lib/api/publication";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanUser } from "$lib/types/ckan";
 import PublishControl from "./PublishControl.svelte";
-import type { PublicationRequest } from "./RequestPublicationControl.svelte";
 
 // La frase que ve un administrador de organización: nombra quién aprueba y no le promete el camino
 // directo, que no existe para él.
