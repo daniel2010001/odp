@@ -5,8 +5,16 @@
 # WHAT THIS IS. A measurement harness, not a test suite. It is the only evidence
 # that covers the *running* CKAN image; `pytest` in `ckanext-umss` proves the
 # predicate in-process and cannot prove that the deployment runs this code. The
-# expectations below are the post-guard target of design.md's truth table (D3);
-# every `403` row answered `200` before the guard existed.
+# expectations below are the post-A3 target of design.md's truth table (D3) **and of the wall**:
+# every `403` row answered `200` before the guard and before the wall.
+#
+# LOS RÓTULOS, PENDIENTES (2026-10-07, noche). El autor decidió que cada negativa sea
+# `<rótulo congelado>: <prosa libre>` —`Four eyes:`, `Requester capacity:`, `Not an approver:`,
+# `Already public:`, `Publication flow:`, `Publish denied:`— y que lo declarado como **interfaz sean los
+# rótulos, no las oraciones**. Cuando esa unidad aterrice, **cada fila de negativa tiene que afirmar su
+# rótulo** y no sólo el estado: hoy afirma `Authorization Error`, que dice que hubo negativa pero **no de
+# quién**, y ése es el hueco que `P8` dejó abierto ayer. La etiqueta congelada es también la razón por la que
+# ese cambio no va a romper nada acá: la prosa de atrás queda libre.
 #
 # WHERE IT LIVES AND WHY. The script sits in the change directory of the `odp`
 # repository because that is the path a reviewer of PR 1 already reads, even
@@ -254,11 +262,15 @@ done
 say "P5    of p2/p5/p5b, datasets that exist: $_created (p2 expected, p5 and p5b expected 0)"
 
 hr
-say "P6 — the approvers, and the preserved refusals"
-row P6 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": false}" 200 \
-    "org admin package_patch {id, private: false}"
+say "P6 — the approvers, and the wall that now refuses them"
+# A3: el admin de la organización **ya no** publica por la vía nativa. La fila esperaba `200` (el mundo
+# anterior a la pared) y ahora mide `403` con el mensaje del muro; y la parte que de verdad importa es
+# `P6.stored`: el dataset **sigue privado**. Antes de A3 esa fila afirmaba `false` —el valor publicado—, así
+# que el cambio de expectativa es el cambio de mundo, no un ajuste cosmético.
+row P6 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": false}" 403 \
+    "org admin package_patch {id, private: false} — refused by the wall, not by the guard" 'Authorization Error'
 raw package_show "{\"id\": \"$D1\"}" "$SYS_TOKEN"
-value P6.stored "$(jq_get '.result.private')" false "stored private after the admin's call"
+value P6.stored "$(jq_get '.result.private')" true "stored private **unchanged** after the admin's refused call"
 row P6.1 "$SYS_TOKEN" package_patch "{\"id\": \"$D2\", \"private\": false}" 200 \
     "sysadmin package_patch {id, private: false}"
 row P6.2a "$MEMBER_TOKEN" package_patch "{\"id\": \"$D3\", \"private\": false}" 403 \
@@ -267,8 +279,8 @@ row P6.2b "$OUTSIDER_TOKEN" package_patch "{\"id\": \"$D3\", \"private\": false}
     "editor of another org package_patch {id, private: false}" 'Authorization Error'
 row P6.3 - package_patch "{\"id\": \"$D3\", \"private\": false}" 403 \
     "anonymous package_patch {id, private: false}" 'Authorization Error'
-row P10 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D6\", \"private\": false}" 200 \
-    "admin of the parent org publishes the child org's dataset"
+row P10 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D6\", \"private\": false}" 403 \
+    "admin of the parent org publishes the child org's dataset — refused by the wall too" 'Authorization Error'
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"
