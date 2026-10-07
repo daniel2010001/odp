@@ -521,3 +521,25 @@ el solicitante. Es completar el contrato de presentación, no una funcionalidad 
   por el estado de la fila **sin** re-lectura; los dobles de la hoja devuelven filas y tienen un caso nuevo de
   **re-lectura que falla**, para que el estado del medio sea revisable mirándolo. REDs de comportamiento
   (ocho fallos contra los componentes sin cambiar); suite **971 → 973**.
+- **2026-10-07 — Primera re-sincronización bajo la regla de propiedad, y sirvió.** La par cortó el bucle y
+  escribió el contrato entero en un archivo *tracked*: `ckan-docker/src/ckanext-umss/PUBLICATION-ACTIONS.md` en
+  `odp-docker` `master`, commit `f78f66a`, con un **banner de estado** que dice que el código entregado
+  (`1a2d6c2`) es **anterior** a la enmienda `41de6c2` y que **no se cablea hasta que la unidad cierre**. Lo leí
+  **de ahí** —y no de sus mensajes, que cruzaron cinco veces— y **re-sincronicé mi `spec.md` contra él**, que es
+  la obligación que yo mismo me había escrito en el `BACKLOG`.
+  **Tres divergencias reales, las tres cerradas:**
+  1. **La regla de existencia no estaba en mi espejo**: un `request_id`/`dataset_id` irresoluble responde
+     **`NotFound` (404), nunca `403`** — reportar algo que no existe como capacidad faltante es falso, y es lo
+     que impide que una fila sobreviva a su dataset. Con el mecanismo: **las funciones de auth responden
+     `success` a propósito** ante un id irresoluble (una búsqueda fallida no contesta la pregunta de
+     autorización) y **las acciones** son donde se comprueba existencia. Es además un **defecto latente del
+     portal**: mis componentes mandan cualquier error no-403 a la rama genérica, así que un `404` se leería
+     como «no se pudo».
+  2. **La cascada de `publication_request_list`** (la capacidad `update_dataset` de la org, que cascadea por la
+     jerarquía) no estaba dicha.
+  3. **`publication_request_list` es de lectura** (`side_effect_free`) y tampoco estaba — y eso es contrato, no
+     detalle: una lectura no muta.
+  **El resto del espejo ya coincidía**: el uniforme con sus tres estados, cuatro ojos por id, los nombres
+  batcheados con respaldo neutral, el motivo obligatorio al rechazar, y `annulled` ≠ `cancelled`.
+  **La regla de propiedad funcionó, y ésa es la noticia:** leer el archivo autoritativo en vez de los mensajes
+  convirtió «¿quién dijo qué y cuándo?» en **una lista concreta de tres cosas que faltaban**.

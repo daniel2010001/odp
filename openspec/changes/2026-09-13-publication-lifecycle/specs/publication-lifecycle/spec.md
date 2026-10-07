@@ -189,6 +189,16 @@ The **approval** transition MUST be granted to a caller that holds the `admin` c
 
 Denials produced by the wall or by the publication actions MUST be authorization failures: HTTP `403` with `error.__type = "Authorization Error"` and a message that names the missing capacity. The wall MUST carry **two distinguishable messages**: the message for a caller who does not administer the organization states that only an organization administrator can publish (`Only an organization administrator can publish a dataset`), and the message for a caller who does administer it states that publication goes through the publication flow and not `package_patch`.
 
+**A missing thing is not a missing capacity.** An unresolvable `request_id` or `dataset_id` MUST answer `NotFound` (HTTP `404`) and never `403`: reporting that something does not exist as a capacity the caller lacks is a false statement, and it is also what keeps a row from outliving its dataset. The authorization functions MUST therefore answer `success` for an unresolvable id **deliberately** — a lookup that failed does not answer the authorization question — and the **actions** MUST be where existence is checked.
+
+#### Scenario: An unresolvable id is not an authorization failure
+
+- GIVEN a caller who may decide publication requests in their organization
+- WHEN the caller invokes `publication_request_decide` with a `request_id` that resolves to no row, or `publication_publish` with a `dataset_id` that resolves to no dataset
+- THEN the answer is `NotFound` (`404`), not `403`
+- AND the authorization layer answered success, so the refusal did not come from a capacity check
+- AND no row is written for a dataset that does not exist
+
 A `private` value the wall cannot interpret as a boolean MUST be treated as a publish attempt and MUST NOT be deferred: CKAN's `boolean_validator` is total and coerces every value outside `true`/`yes`/`t`/`y`/`1` to `False`, so `private: "banana"` would **store the dataset public** instead of failing validation (`apply-progress.md:363-399`). Packages the rule cannot resolve MUST still defer to core CKAN, which MUST answer with its own outcome, and MUST NOT be converted into a `403`.
 
 #### Scenario: A refusal is not a validation error
@@ -284,7 +294,7 @@ Five actions MUST be registered through `IActions`:
 | `publication_request_cancel(request_id)` | the requester, or an organization `admin` | `pending` → `cancelled` |
 | `publication_request_decide(request_id, approve, comments?)` | an organization `admin` of the owning or a parent organization, or a `sysadmin` — **never the requester** | `rejected` (a comment is **required**), or `approved` **and flips `private` in the same transaction** |
 | `publication_publish(dataset_id, comments?)` | **`sysadmin` only** | the sysadmin's **recorded** direct path: writes the row and approves/consumes it in the act |
-| `publication_request_list(status?)` | anyone who administers or edits in the organization | the queue: requests of the orgs where the caller has capacity, plus the caller's own (their own are listed but not decidable by them) |
+| `publication_request_list(status?)` | anyone who administers or edits in the organization, through the stock `update_dataset` capacity **which cascades down the organization hierarchy** | a **read-only** (`side_effect_free`) list: the queue — requests of the orgs where the caller has capacity, plus the caller's own (their own are listed but not decidable by them) |
 
 **Return shape.** Each action returns **only** its `publication_requests` row at the top level, carrying the derived display names `requested_by_name` and `approved_by_name` (resolved in one batched lookup per call, uniform across all five actions). **No action returns the dataset.** A portal MUST therefore **re-read the dataset** after `publication_publish` or an approving `publication_request_decide`, and MUST confirm from the **stored** `private` value: a `200` from the action is not a grant, and a response that does not carry a dataset is not a failure. The portal MUST keep three states apart and MUST NOT collapse them: the action **failed**; the action succeeded and the confirmation **could not be established** (the re-read reports the value still private, or the re-read itself fails); and **confirmed**. Presenting the second as a failure is a false statement.
 
