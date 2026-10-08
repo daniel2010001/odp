@@ -23,6 +23,20 @@
 # Hoy las filas afirman `error.__type`, que es `Authorization Error` en **las nueve** y por lo tanto **no dice
 # de quién** es la negativa: el hueco que `P8` dejó abierto, y la razón por la que la capa 1 existe.
 #
+# Y UNA MEDICIÓN QUE ACOTA EL GUARDIÁN (2026-10-07/08). Se quiso que este script fuera el guardián **externo**
+# de que los rótulos no vuelvan adentro de `_()`: una fila que afirme la forma con un `Accept-Language`
+# no-inglés se pondría roja el día que alguien agregue la traducción. **Medido: no sirve, porque la API no
+# negocia el idioma.** Con `Accept-Language: es`, `package_create` anónimo devolvió «User  not authorized to
+# create packages» **en inglés**, aunque el catálogo español **sí** traduce esa cadena («El usuario %s no está
+# autorizado para crear paquetes»), y la config dice `ckan.locale_default = en` con `locales_offered` vacío.
+# Dato del mismo pase: el envoltorio `"Access denied: %s"` tiene **`msgstr ""`** en el catálogo español, así que
+# se queda en inglés aun habiendo traducción, y lo que se traduce es el mensaje **interno**.
+# **Consecuencia, declarada en vez de prometida: el poder de este script sobre ESE agujero es cero.** Lo que sí
+# afirma es la **forma** —`Access denied: <Rótulo>: …`—, que rompe si alguien cambia el envoltorio, el rótulo o
+# reescribe la negativa: es el guardián de la **forma**, no el de la **no-traducción**. El cierre estructural lo
+# hace el otro repositorio (la etiqueta **fuera** de `_()`, con su test), y un guardián externo de esa propiedad
+# exigiría una **fuente de locale en el camino de la API**, que hoy no existe.
+#
 # WHERE IT LIVES AND WHY. The script sits in the change directory of the `odp`
 # repository because that is the path a reviewer of PR 1 already reads, even
 # though the enforcement it measures lives in `odp-docker`. Without PR 1 its
