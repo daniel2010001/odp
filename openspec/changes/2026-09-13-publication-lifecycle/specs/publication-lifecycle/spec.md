@@ -254,6 +254,15 @@ A `private` value the wall cannot interpret as a boolean MUST be treated as a pu
 
 Besides the publication actions ~~and the declared `sysadmin` bypass~~, no CKAN action reachable through the API may change a dataset's stored `private` to public or change its `state` (**amended 2026-10-08**: the `sysadmin` bypass is no longer declared; the guard sets `auth_sysadmins_check`, so the wall runs for a `sysadmin` too, while `state` administration is deliberately preserved for the `sysadmin` — see `Sysadmin Bypass` and `Publication Authorization`). `bulk_update_public` MUST be refused by a chain of this capability: measurement (2026-10-07, against the running CKAN 2.12.0) shows its body **does** reach `package_update` internally — `_bulk_update_dataset` loops `package_patch` (`ckan/logic/action/update.py:1212-1216`) — but its **own** authorization function runs first, requires the `update` capacity on the organization (`ckan/logic/auth/update.py:262-269`) and is **not** the one the `Publication Authorization` chain covers, so the refusal has to be chained on `bulk_update_public`'s own authorization. `bulk_update_private` is the degradation direction and is `[v1]` (`RF-42`; see Out of scope). The full inventory of native actions that write `private`/`state` remains a review trigger, not a measured claim (`design.md` §Not measured / not re-verified).
 
+**And one path this wall does not cover, declared instead of assumed away** (2026-10-08, from the peer repository's own
+inventory of doors). A `package_create` **without `owner_org`** is gated by configuration —
+`ckan.auth.create_unowned_dataset` — and when `owner_org` is absent the wall **defers to core before evaluating its own
+rules**: that path produces **no refusal of this capability and therefore no label**, and the guard's
+`auth_sysadmins_check` does not close it either, because the delegation happens earlier. With the stock `false` it is
+refused by core — which is why every scenario above passes — and with it flipped a dataset could be created public
+outside this flow. It is named here because a requirement titled **No Other Visibility Path** must not read as a
+completeness claim it cannot support.
+
 #### Scenario: The bulk action is not a publication path
 
 - GIVEN an organization `editor` and a private dataset

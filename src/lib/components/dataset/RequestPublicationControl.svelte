@@ -30,6 +30,7 @@ import type { PublicationRequest } from "$lib/api/publication";
 import Button from "$lib/components/ui/button/button.svelte";
 import { CkanApiError } from "$lib/types/api";
 import { cn } from "$lib/utils";
+import { ACCION_BASE } from "./action-class";
 
 /** Pide la publicación del dataset y devuelve la solicitud tal como quedó en el catálogo. */
 export type RequestPublication = (datasetId: string) => Promise<PublicationRequest>;
@@ -45,13 +46,12 @@ const CONSEQUENCE = "Un administrador de la organización revisará su solicitud
 const REQUEST_FAILED = "No se pudo enviar la solicitud.";
 const CANCEL_FAILED = "No se pudo cancelar la solicitud.";
 
-// La forma de las acciones del hero de la ficha (`src/routes/dataset/[id]/+page.svelte:436-451`): las
-// mismas clases que usan «Copiar enlace» y «Editar», para que el control no se vea más grande que sus
-// hermanos. La clase está **duplicada a propósito y por ahora**: cuando el cableado real monte estos
-// controles en la ficha, sale a un módulo compartido — la misma deuda que la regla del conteo de
-// acciones del hero.
-const ACCION_CLASS =
-	"inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";
+// La forma de las acciones del hero vive en **un solo lugar** (`action-class.ts`): la base la comparten el
+// enlace «Editar» de la ficha y este control, y cada uno agrega lo suyo. Hasta el 2026-10-08 estaba duplicada
+// entera acá y allá, con la diferencia del `disabled:` —que sólo un `<button>` puede usar— repetida en vez de
+// nombrada. La deuda (`R3-hero-action-class-drift`) se cierra acá: no unificando las dos copias —**no eran
+// idénticas**— sino extrayendo lo compartido y dejando la diferencia explícita.
+const ACCION_CLASS = `${ACCION_BASE} disabled:opacity-60`;
 const PENDING_HEADING = "Solicitud pendiente de revisión";
 const PENDING_BODY =
 	"Su solicitud está a la espera de que un administrador de la organización la revise.";
