@@ -322,20 +322,41 @@ describe("RequestPublicationControl — la presentación de acción", () => {
 		expect(copia).toHaveClass("sr-only");
 	});
 
-	it("en `accion` el estado pendiente es una fila compacta, sin el bloque", async () => {
+	it("en `accion` el estado pendiente sólo ofrece la cancelación: el estado es una insignia del hero", async () => {
 		const { container } = renderControl({
 			apariencia: "accion",
 			currentRequest: makeRequest({ status: "pending" }),
 		});
 
-		const titular = await screen.findByText(PENDING_HEADING);
-		// El distintivo y la cancelación comparten la forma de las acciones del hero…
-		expect(titular.closest("span")?.className).toContain("h-9");
-		expect(screen.getByRole("button", { name: CANCEL_LABEL }).className).toContain("h-9");
-		// …y **nada** lleva el ancho completo: era exactamente lo que rompía el reparto del hero.
+		// La acción que sí hace algo…
+		expect(await screen.findByRole("button", { name: CANCEL_LABEL })).toBeInTheDocument();
+		// …y **nada** más: el titular del estado vive en la insignia del hero y la explicación en la tarjeta.
+		expect(screen.queryByText(PENDING_HEADING)).toBeNull();
+		expect(screen.queryByText(PENDING_BODY)).toBeNull();
 		expect(container.querySelector(".w-full")).toBeNull();
-		// La explicación no ocupa lugar acá: la tarjeta del estado, más abajo, dice lo mismo.
-		expect(screen.queryByText(PENDING_BODY, { selector: "p" })).toBeNull();
+	});
+
+	it("en `accion` un rechazo no dibuja el estado: ofrece volver a pedir, y el motivo vive en la tarjeta", async () => {
+		const { container } = renderControl({
+			apariencia: "accion",
+			currentRequest: makeRequest({ status: "rejected", comments: "Falta el resumen." }),
+		});
+
+		// La única acción que tiene sentido tras un rechazo…
+		expect(await screen.findByRole("button", { name: REQUEST_AGAIN_LABEL })).toBeInTheDocument();
+		// …y ni el titular del estado ni el motivo: los dos son la insignia y la tarjeta.
+		expect(screen.queryByText(REJECTED_HEADING)).toBeNull();
+		expect(screen.queryByText(/Falta el resumen/)).toBeNull();
+		expect(container.querySelector(".w-full")).toBeNull();
+	});
+
+	it("en `accion` una anulación no dibuja nada: no hay acción que ofrecer", async () => {
+		const { container } = renderControl({
+			apariencia: "accion",
+			currentRequest: makeRequest({ status: "annulled" }),
+		});
+
+		expect(container.textContent?.trim()).toBe("");
 	});
 
 	it("en `bloque` el estado pendiente sigue siendo el bloque completo, con su explicación", async () => {

@@ -228,10 +228,10 @@ function retry() {
 					: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
 			>
 				{#if apariencia === "accion"}
-					<span class={ACCION_CLASS}>
-						<Clock class="size-4 shrink-0" aria-hidden="true" />
-						{PENDING_HEADING}
-					</span>
+					<!-- En el hero el estado **no** se dibuja acá: es una **insignia** en la fila de insignias
+					     (decisión del autor, 2026-10-08). Un distintivo con forma de botón que no hace nada
+					     —lo que había— se lee como una acción y no lo es. De este lado quedan **sólo las
+					     acciones**: cancelar la solicitud propia. -->
 					<button
 						type="button"
 						class={ACCION_CLASS}
@@ -278,11 +278,8 @@ function retry() {
 					: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
 			>
 				{#if apariencia === "accion"}
-					<span class={ACCION_CLASS}>
-						<Ban class="size-4 shrink-0" aria-hidden="true" />
-						{ANNULLED_HEADING}
-					</span>
-					<span class="text-xs text-muted-foreground">{ANNULLED_BODY}</span>
+					<!-- Nada: el estado anulado es una insignia en la fila de insignias, y su explicación vive en
+					     la tarjeta del estado. Acá sólo van las acciones. -->
 				{:else}
 					<p class="flex items-center gap-2 text-sm font-medium text-foreground">
 						<Ban class="size-4 shrink-0" aria-hidden="true" />
@@ -299,17 +296,7 @@ function retry() {
 						: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
 				>
 					{#if apariencia === "accion"}
-						<span class={ACCION_CLASS}>
-							<CircleX class="size-4 shrink-0" aria-hidden="true" />
-							{REJECTED_HEADING}
-						</span>
-						<span class="text-xs text-muted-foreground">
-							{#if active.comments?.trim()}
-								Motivo: {active.comments.trim()}
-							{:else}
-								{NO_REASON}
-							{/if}
-						</span>
+						<!-- Nada: el estado rechazado es una insignia, y el motivo vive en la tarjeta del estado. -->
 					{:else}
 						<p class="flex items-center gap-2 text-sm font-medium text-foreground">
 							<CircleX class="size-4 shrink-0" aria-hidden="true" />
