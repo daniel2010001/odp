@@ -46,7 +46,8 @@
 #
 #     sh openspec/changes/2026-09-13-publication-lifecycle/probe.sh
 #
-# Override the endpoint or the container with PROBE_API / PROBE_CKAN_CONTAINER.
+# Override the endpoint, the CKAN container or the database with PROBE_API /
+# PROBE_CKAN_CONTAINER / PROBE_DB_CONTAINER (and PROBE_DB for the database name).
 # Needs: curl, jq, python3, and `docker exec` access to the CKAN container.
 #
 # WHAT IT TOUCHES. A `probe-lc-<timestamp>` organization, a second organization,
@@ -81,11 +82,20 @@
 #     The other direction answers `200` and registers nothing the cascade reads.
 #   * `expire_api_token` makes `expires_in` and `unit` mandatory.
 #
+# DOS TRAMPAS DEL RESIDUO, MEDIDAS EL 2026-10-08 — las dos hacen que un cero mienta:
+#   * `dataset_purge` **no** dispara `after_dataset_delete`, el hook que anula las solicitudes de un dataset.
+#     Una sonda que confíe en ese hook deja filas vivas en `publication_requests` mientras su catálogo reporta
+#     cero: **los dos conteos miran tablas distintas**, y por eso el del catálogo no las ve.
+#   * en el contenedor de la base, `$POSTGRES_DB` vale `postgres` —**no** es la base de CKAN (`ckandb`)—, así
+#     que una consulta contra ella devuelve **vacío en vez de fallar**. Ese vacío produjo una medición falsa.
+#
 set -u
 
 API="${PROBE_API:-http://localhost:8082/api/3/action}"
 CONTAINER="${PROBE_CKAN_CONTAINER:-odp-dev-ckan-dev-1}"
 INI="${PROBE_CKAN_INI:-/srv/app/ckan.ini}"
+DB_CONTAINER="${PROBE_DB_CONTAINER:-odp-dev-db-1}"
+DB_NAME="${PROBE_DB:-ckandb}"
 STAMP="$(date +%Y%m%d%H%M%S)"
 PREFIX="probe-lc-$STAMP"
 
@@ -119,6 +129,14 @@ jwt_jti() {
 p=sys.argv[1].split(".")[1]
 p+="="*(-len(p)%4)
 print(json.loads(base64.urlsafe_b64decode(p))["jti"])' "$1"
+}
+
+# store_count — filas de `publication_requests` cuyos solicitantes son los usuarios de **esta** corrida.
+# Acotar a `$PREFIX` (único por corrida) es el punto: nunca toca filas de otra sonda de la familia `probe-`.
+store_count() {
+    docker exec "$DB_CONTAINER" psql -U postgres -d "$DB_NAME" -tAc \
+        "select count(*) from publication_requests where requested_by in (select id from \"user\" where name like '$PREFIX-%')" \
+        | tr -d '[:space:]'
 }
 
 # check <row-id> <expected-status> <description> [expected error.__type]
@@ -647,6 +665,17 @@ for _pair in "$EDITOR $EDITOR_ID" "$MEMBER $MEMBER_ID" "$ADMIN $ADMIN_ID" "$OUTS
     [ "$_left" = 0 ] || LEFTOVER_TOKENS=$((LEFTOVER_TOKENS + 1))
 done
 
+# El residuo que el catálogo no ve (ver «DOS TRAMPAS DEL RESIDUO», en el header): las filas que esta corrida
+# escribió en `publication_requests` no las borra el purge, así que se borran **antes** de purgar los datasets,
+# acotadas a los usuarios de ESTA corrida (`$PREFIX-%`) y jamás con un patrón ancho `probe-%`: **el mismo
+# prefijo puede venir de dos manos** —otra sesión corre sondas de la misma familia y sus filas no se tocan—.
+_store_before="$(store_count)"
+docker exec "$DB_CONTAINER" psql -U postgres -d "$DB_NAME" -tAc \
+    "delete from publication_requests where requested_by in (select id from \"user\" where name like '$PREFIX-%')" \
+    >/dev/null
+_store_after="$(store_count)"
+say "P9.0  store rows for this run: before=$_store_before after=$_store_after"
+
 for _name in $DATASETS; do
     raw package_show "{\"id\": \"$_name\"}" "$SYS_TOKEN"
     if [ "$STATUS" = 200 ]; then
@@ -692,6 +721,7 @@ done
 value P9.2 "$LEFTOVER_DATASETS" 0 "probe datasets still resolvable after the purge"
 value P9.3 "$LEFTOVER_ORGS" 0 "probe organizations still resolvable after the purge"
 value P9.4 "$LEFTOVER_TOKENS" 0 "probe users whose minted token survived revocation"
+value P9.5 "$(store_count)" 0 "publication_requests rows for this run's users after the purge"
 
 # The sysadmin token goes last: every privileged call above used it.
 raw api_token_revoke "{\"jti\": \"$(jwt_jti "$SYS_TOKEN")\"}" "$SYS_TOKEN"
