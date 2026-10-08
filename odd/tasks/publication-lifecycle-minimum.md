@@ -1266,6 +1266,34 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   rama —abrir salida para los dos casos bloqueados—, la sesión par avisó que **cambiaría `Approver Capacity` otra vez**, así
   que la spec no se toca hasta que decida.
 
+  **Cierre de `A5` (2026-10-08, madrugada): la sonda re-cortada, `81/81`, y el mapa de rótulos COMPLETO.**
+  La sonda pasó de **`52/56`** con las expectativas viejas a **`81/81`** con las nuevas, y el delta tiene cuatro piezas:
+  (1) las filas de `publication_publish` **repuestas** a `400` por nombre no registrado; (2) `P6.1` **invertida** —el
+  `package_patch {private: false}` del `sysadmin` esperaba `200` y publicaba de verdad y ahora espera `403`—; (3) **el
+  fixture público dejó de fabricarse por el bypass**: el editor pide y un admin decide, que es la única puerta que queda
+  (y sus filas dependientes —`P7.d2`, `P14.create.public`— caían en cascada por eso, lo que mide cuánto sostenía esa
+  puerta: **la usaba mi propio andamiaje**); y (4) **la capa de rótulos que el encabezado prometía desde el 2026-10-07 y
+  nunca se había implementado**, con dos helpers: `label()` afirma la forma `Access denied: <Rótulo>: …` y el rótulo
+  propio, y `notwall()` afirma lo inverso donde la negativa es de CKAN.
+
+  **El mapa de los ocho, con invocante medido (nada razonado):** `Publication flow` → admin de la dueña, admin de una
+  **padre** y `sysadmin`; `Publish denied` → el **editor** por `package_patch` y **también un `member` por
+  `bulk_update_public`** (la única puerta donde el muro no delega en `next_auth`, así que alcanza a todo invocante
+  autenticado); `Not an approver` → un editor decidiendo su propia solicitud; `Four eyes` → un admin decidiendo la suya;
+  `Already public`, `Cannot request`, `Cannot cancel` → sus filas; y **`Requester capacity` → un `sysadmin` que decide una
+  solicitud cuyo solicitante perdió la membresía**, donde se midió el **orden** que la sesión par razonó: ese chequeo corre
+  **antes** de cuatro ojos y antes de la rama del `sysadmin`. Y una fila que afirma **el inverso**: para un `member`, un
+  ajeno y un anónimo en `package_patch` la negativa es **de CKAN**, sin rótulo del muro, porque corta antes.
+
+  Dos correcciones mías que la corrida impuso y quedaron escritas en el archivo: `Publish denied` **no** es «el resto»
+  (es del editor, y de un member por la puerta en bloque), y un editor decidiendo su propia solicitud lee **`Not an
+  approver`**, no `Requester capacity`.
+
+  Y un defecto propio que la corrida destapó: **la higiene se tragaba el motivo** de una purga fallida
+  (`>/dev/null 2>&1` más una nota a mano), así que un fallo era indistinguible de un misterio — así quedó un dataset
+  atrás. Ahora imprime el motivo. La invariante de la base compartida se sostiene: **`0` datasets, `0` organizaciones,
+  `0` tokens**, y el conteo anónimo de vuelta en `19 → 19`.
+
   **Y el autor firmó el mismo día: acepta la limitación declarada y sigue.** Lo que eso significa, dicho sin adorno: la
   escalada **queda como registro**, no como obstáculo —no se reintenta la compuerta sobre `b63b00c`, y el push y merge de
   esa unidad son política ordinaria—, y **no hay corrección de código pendiente**, porque el hallazgo describe la
