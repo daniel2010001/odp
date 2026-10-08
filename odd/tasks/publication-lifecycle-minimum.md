@@ -1294,6 +1294,17 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   atrás. Ahora imprime el motivo. La invariante de la base compartida se sostiene: **`0` datasets, `0` organizaciones,
   `0` tokens**, y el conteo anónimo de vuelta en `19 → 19`.
 
+  **Dos correcciones de la sesión par sobre cómo leer esas corridas, aceptadas y anotadas acá:** (1) **los totales NO
+  son comparables** —`52/56`, `81/81` y `77/85` no miden el mismo conjunto, porque las filas se agregaron entre corridas—,
+  así que lo que sostiene la afirmación es la **lista fila por fila** de los rojos, nunca la diferencia de totales: quien
+  lea sólo los números creería que se midió dos veces el mismo conjunto; y (2) la asimetría que el protocolo dejó a la
+  vista: si la corrida del tercer cuadrante hubiera caído **al otro lado** de la ventana, las filas nuevas habrían salido
+  **todas verdes** y yo habría concluido que el re-corte **no discrimina** — el control `404`/`400` evitó el falso verde
+  **dos veces**, la segunda incluso con la suerte de mi lado. Regla de método: **el control no es trámite, es lo que
+  convierte la corrida en prueba**, y verificar el estado **después** es el orden frágil. La atribución de build no se
+  hace por creencia: se hace por **las respuestas de las propias filas** (`200` en el `package_patch` del `sysadmin`,
+  `404` en el id irresoluble, `403` en el chequeo de capacidad son del build viejo) más el discriminador.
+
   **Y el autor firmó el mismo día: acepta la limitación declarada y sigue.** Lo que eso significa, dicho sin adorno: la
   escalada **queda como registro**, no como obstáculo —no se reintenta la compuerta sobre `b63b00c`, y el push y merge de
   esa unidad son política ordinaria—, y **no hay corrección de código pendiente**, porque el hallazgo describe la
