@@ -607,14 +607,27 @@ say "P15 — la capacidad del solicitante: el rótulo que faltaba, y el orden qu
 raw publication_request_create "{\"dataset_id\": \"$D7\"}" "$EDITOR_TOKEN"
 value P15.req "$STATUS" 200 "the editor requests the publication of the d7 fixture — it can, at this moment"
 REQ_CAP="$(jq_get '.result.id')"
+# **Dos solicitudes ANTES de degradar al solicitante**, porque después ya no podría crear ninguna (el `create`
+# exige `update_dataset`, y sin membresía eso da `Cannot request`). La segunda fija que el rótulo **no depende de
+# quién decide**: el `sysadmin` es el que discrimina el orden (su rama pierde contra la re-verificación), y un
+# `admin` de la dueña tiene que leer lo mismo.
+raw publication_request_create "{\"dataset_id\": \"$D3\"}" "$EDITOR_TOKEN"
+value P15.req2 "$STATUS" 200 "a second one, on another fixture, while the requester still has the capacity"
+REQ_CAP2="$(jq_get '.result.id')"
 raw member_delete "{\"id\": \"$ORG_A_ID\", \"object\": \"$EDITOR_ID\", \"object_type\": \"user\"}" "$SYS_TOKEN"
 say "P15    member_delete of the requester in ORG_A -> $STATUS"
 row P15.capacity "$SYS_TOKEN" publication_request_decide \
     "{\"request_id\": \"$REQ_CAP\", \"approve\": true}" 403 \
     "a SYSADMIN decides a request whose requester lost capacity — the re-check runs BEFORE four eyes and before the sysadmin branch" 'Authorization Error'
 label P15.capacity.lbl "Requester capacity" "…and that is why the label is Requester capacity and not Four eyes"
+row P15.capacity.admin "$ADMIN_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_CAP2\", \"approve\": true}" 403 \
+    "an org ADMIN decides the other one — the same refusal, so the label does not depend on who decides" 'Authorization Error'
+label P15.capacity.admin.lbl "Requester capacity" "…the same label from the other approver role"
 row P15.cancel "$EDITOR_TOKEN" publication_request_cancel "{\"request_id\": \"$REQ_CAP\"}" 200 \
     "the requester cancels it — the exit the contract now names, and the hygiene this probe needs"
+row P15.cancel2 "$EDITOR_TOKEN" publication_request_cancel "{\"request_id\": \"$REQ_CAP2\"}" 200 \
+    "…and the other, so neither stays pending: in this state a request is undecidable by construction"
 
 # ---------------------------------------------------------------------------
 hr
