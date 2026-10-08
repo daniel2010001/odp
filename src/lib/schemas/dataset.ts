@@ -7,7 +7,9 @@ import { unsafeUrlReason } from "$lib/utils/external-url";
 // ─── Reglas espejadas de CKAN ────────────────────────────────────────────
 // Validar en el cliente reglas *distintas* a las del servidor produce errores peores que no
 // validar: el usuario corrige lo que le pedimos y CKAN lo rechaza igual. Estas constantes están
-// medidas sobre los validadores del CKAN que corre (2.10), no inventadas:
+// medidas sobre los validadores de CKAN —**2.10 cuando se midieron; el stack corre 2.12.0 hoy**—, no
+// inventadas. La diferencia importa: si esos validadores cambiaron en el salto, estas constantes del
+// cliente quedaron viejas **sin que nada las cace**, porque una guarda no lee prosa.
 //   `tag_length_validator`      → MIN_TAG_LENGTH=2, MAX_TAG_LENGTH=100 (`ckan.model`)
 //   `tag_name_validator`        → charset `[\w \-.]` con `re.UNICODE` en Python: letras, números,
 //                                 espacio, guion, guión bajo y punto. **Ojo**: el `\w` de JavaScript
