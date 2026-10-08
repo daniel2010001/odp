@@ -141,6 +141,37 @@ value() {
     printf '%-5s %-4s want=%s got=%s  %s\n' "$1" "$_verdict" "$3" "$2" "$4"
 }
 
+# label <row-id> <expected-label> <description> — asserte las DOS capas de una negativa en un solo chequeo:
+# la FORMA (`Access denied: <Rótulo>: …`, el invariante que el otro repositorio garantiza por test) y el
+# **rótulo propio**, que es lo único que dice **de quién** es la negativa. La prosa detrás del rótulo es de
+# ellos: acá no se afirma, porque mejorar la redacción no puede romper a este consumidor.
+label() {
+    CHECKS=$((CHECKS + 1)); _verdict=PASS
+    _msg="$(jq_get '.error.message')"
+    case "$_msg" in
+        "Access denied: $2: "*) ;;
+        *) _verdict=FAIL; FAILURES=$((FAILURES + 1)) ;;
+    esac
+    printf '%-6s %-4s want=%s got=%s  %s\n' "$1" "$_verdict" "Access denied: $2: …" \
+        "$(printf '%s' "$_msg" | cut -c1-88)" "$3"
+}
+
+# notwall <row-id> <description> — asserte que la negativa **no** es la del muro. Para quien no tiene capacidad
+# de edición, CKAN corta **antes** de que la función del muro corra, así que el mensaje es el suyo («User …
+# not authorized to edit package …»). **Medido el 2026-10-08**, y es la razón por la que el rótulo
+# `Publish denied` no lo lee un member, un ajeno ni un anónimo: lo lee el **editor**, que sí pasa el corte de
+# CKAN y llega al muro. La lista se copia una vez acá y es el inventario congelado del otro lado.
+notwall() {
+    CHECKS=$((CHECKS + 1)); _verdict=PASS
+    _msg="$(jq_get '.error.message')"
+    case "$_msg" in
+        "Access denied: Four eyes: "*|"Access denied: Requester capacity: "*|"Access denied: Not an approver: "*|"Access denied: Already public: "*|"Access denied: Cannot request: "*|"Access denied: Cannot cancel: "*|"Access denied: Publication flow: "*|"Access denied: Publish denied: "*)
+            _verdict=FAIL; FAILURES=$((FAILURES + 1)) ;;
+    esac
+    printf '%-11s %-4s want=%s got=%s  %s\n' "$1" "$_verdict" "una negativa de CKAN, sin rótulo del muro" \
+        "$(printf '%s' "$_msg" | cut -c1-60)" "$2"
+}
+
 # row <row-id> <token|-> <action> <json> <expected-status> <description> [type]
 row() {
     _row_id="$1"; shift
@@ -270,6 +301,7 @@ row P3 "$EDITOR_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": false}" 403
     "editor package_patch {id, private: false}" 'Authorization Error'
 row P4a "$EDITOR_TOKEN" package_patch "{\"id\": \"$D1\", \"state\": \"draft\"}" 403 \
     "editor package_patch {id, state: draft}" 'Authorization Error'
+label P4a.lbl "Publish denied" "the editor DOES pass CKAN's own cut and reaches the wall — this is who reads 'Publish denied'"
 row P4b "$EDITOR_TOKEN" package_patch "{\"id\": \"$D1\", \"title\": \"probe metadata edit\"}" 200 \
     "editor package_patch {id, title} — a metadata edit must stay allowed"
 
@@ -313,20 +345,44 @@ say "P6 — the approvers, and the wall that now refuses them"
 # anterior a la pared) y ahora mide `403` con el mensaje del muro; y la parte que de verdad importa es
 # `P6.stored`: el dataset **sigue privado**. Antes de A3 esa fila afirmaba `false` —el valor publicado—, así
 # que el cambio de expectativa es el cambio de mundo, no un ajuste cosmético.
+#
+# **2026-10-08 — capa 2: el rótulo propio, elegido por HECHO y no por rol.** Cada negativa de la pared
+# afirma ahora su **rótulo**: quien puede actuar por el flujo —un `admin` de la organización dueña **o** un
+# `sysadmin`— recibe `Publication flow`, y el resto `Publish denied`. No dice «de quién» por el rol que el
+# invocante tiene, sino por el hecho de si el flujo le sirve o no.
 row P6 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D1\", \"private\": false}" 403 \
     "org admin package_patch {id, private: false} — refused by the wall, not by the guard" 'Authorization Error'
+label P6.lbl "Publication flow" "the org admin's refusal names the flow: it is the door that serves them"
 raw package_show "{\"id\": \"$D1\"}" "$SYS_TOKEN"
 value P6.stored "$(jq_get '.result.private')" true "stored private **unchanged** after the admin's refused call"
-row P6.1 "$SYS_TOKEN" package_patch "{\"id\": \"$D2\", \"private\": false}" 200 \
-    "sysadmin package_patch {id, private: false}"
+# **El fixture público, ahora por el flujo sancionado.** Hasta el 2026-10-08 `D2` se publicaba con el bypass
+# del `sysadmin` (una fila que esperaba `200`), y esa puerta ya no existe: el editor **pide** y un `admin` de
+# la organización **decide**. Es la única forma de fabricar un dataset público en esta corrida.
+raw publication_request_create "{\"dataset_id\": \"$D2\"}" "$EDITOR_TOKEN"
+value P6.1.req "$STATUS" 200 "the editor requests the d2 fixture — the sanctioned way in, replacing the bypass"
+REQ_D2="$(jq_get '.result.id')"
+row P6.1.dec "$ADMIN_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_D2\", \"approve\": true}" 200 \
+    "an org admin decides it — the door that remains, and the one that publishes"
+raw package_show "{\"id\": \"$D2\"}" "$SYS_TOKEN"
+value P6.1.pub "$(jq_get '.result.private')" false "the fixture is public now, published through the flow"
+# Y la pared sobre el `sysadmin`, que es lo que cambió esta unidad: la MISMA llamada que antes publicaba
+# (`200`) es ahora una negativa, con su rótulo propio.
+row P6.1 "$SYS_TOKEN" package_patch "{\"id\": \"$D_FE\", \"private\": false}" 403 \
+    "sysadmin package_patch {id, private: false} — la pared CORRE para él (2026-10-08); antes esta fila esperaba 200 y publicaba de verdad" 'Authorization Error'
+label P6.1.lbl "Publication flow" "the sysadmin's refusal names the flow too: they can act through it, so it is not 'Publish denied'"
 row P6.2a "$MEMBER_TOKEN" package_patch "{\"id\": \"$D3\", \"private\": false}" 403 \
     "org member package_patch {id, private: false}" 'Authorization Error'
+notwall P6.2a.lbl "a member cannot act through the flow, and CKAN refuses them before the wall runs: no frozen label here"
 row P6.2b "$OUTSIDER_TOKEN" package_patch "{\"id\": \"$D3\", \"private\": false}" 403 \
     "editor of another org package_patch {id, private: false}" 'Authorization Error'
+notwall P6.2b.lbl "an editor of another organization: CKAN's own refusal, no frozen label"
 row P6.3 - package_patch "{\"id\": \"$D3\", \"private\": false}" 403 \
     "anonymous package_patch {id, private: false}" 'Authorization Error'
+notwall P6.3.lbl "anonymous: CKAN's own refusal, no frozen label"
 row P10 "$ADMIN_TOKEN" package_patch "{\"id\": \"$D6\", \"private\": false}" 403 \
     "admin of the parent org publishes the child org's dataset — refused by the wall too" 'Authorization Error'
+label P10.lbl "Publication flow" "a parent-org admin's capacity cascades, so the flow serves them: the flow label, not the generic one"
 
 say "P6.b — los valores límite de \`private\`: todos son intento, ninguno es una excepción"
 # Por qué estas filas existen. Medido en el CKAN que corre (2.12.0): `boolean_validator` es **total** —`0`,
@@ -382,7 +438,7 @@ row P6c.del.admin "$ADMIN_TOKEN" bulk_update_delete \
     "admin bulk_update_delete — core admits it; what refuses is the wall" 'Authorization Error'
 
 hr
-say "P11 — el contrato de las cinco acciones: existencia y alcance de la cola"
+say "P11 — el contrato de las cuatro acciones: existencia y alcance de la cola"
 # **`NotFound`, no `403`** (regla 7 del contrato): un `request_id` o un `dataset_id` irresoluble **no** puede
 # reportarse como capacidad faltante — eso diría que falta un permiso cuando lo que falta es la cosa. Las dos
 # filas son la misma regla por las dos puertas.
@@ -390,8 +446,8 @@ row P11.nf.request "$ADMIN_TOKEN" publication_request_decide \
     "{\"request_id\": \"no-such-request-xyz\", \"approve\": true}" 404 \
     "decide with an unresolvable request_id — NotFound, not 403" 'Not Found Error'
 row P11.nf.dataset "$SYS_TOKEN" publication_publish \
-    "{\"dataset_id\": \"no-such-dataset-xyz\"}" 404 \
-    "publish with an unresolvable dataset_id — NotFound, not 403" 'Not Found Error'
+    "{\"dataset_id\": \"no-such-dataset-xyz\"}" 400 \
+    "the action is REMOVED (2026-10-08): an unregistered name answers 400 and the id is never resolved, so this is not NotFound either"
 # Y la cola: la acción **no** tiene autorización forzada, la acota el **propio cuerpo**, así que un anónimo
 # recibe una lista **vacía** y no un `403`. Es la fila que confirma desde afuera la corrección que el contrato
 # hizo midiendo: hace dos unidades decía «un anónimo es rechazado por CKAN antes», y era falso.
@@ -438,22 +494,25 @@ REQ_FE="$(jq_get '.result.id')"
 row P13.editor.decide "$EDITOR_TOKEN" publication_request_decide \
     "{\"request_id\": \"$REQ_FE\", \"approve\": true}" 403 \
     "the editor decides their own request — the CAPACITY refusal, never four eyes" 'Authorization Error'
+label P13.editor.decide.lbl "Not an approver" "measured 2026-10-08, and it corrects my first reading: for an EDITOR the first thing that fails is being an approver at all, so the label is Not an approver — `Requester capacity` belongs to the OTHER capacity refusal (the decision-time re-check), which this probe does not exercise yet"
 row P13.admin.req "$ADMIN_TOKEN" publication_request_create "{\"dataset_id\": \"$D_FE2\"}" 200 \
     "the admin requests the publication of another private dataset"
 REQ_FE2="$(jq_get '.result.id')"
 row P13.admin.decide "$ADMIN_TOKEN" publication_request_decide \
     "{\"request_id\": \"$REQ_FE2\", \"approve\": true}" 403 \
     "the admin decides their OWN request — THIS is four eyes, and the row stays pending" 'Authorization Error'
+label P13.admin.decide.lbl "Four eyes" "the same caller WITH capacity: the label changes to the rule that actually stops them"
 raw publication_request_list "{\"status\": \"pending\"}" "$ADMIN_TOKEN"
 value P13.still.pending "$(jq_get "[.result[] | select(.id == \"$REQ_FE2\")] | length")" 1 \
     "the four-eyes refusal leaves the request pending — a refusal is not a cancellation"
-# Y el par del dataset **ya público**, que también se lee al revés de lo que parece: la capacidad se evalúa
-# **antes** que el estado, así que un no-sysadmin recibe la negativa del sysadmin (no filtra la visibilidad)
-# y **sólo** el sysadmin recibe la de «ya es público».
-row P13.pub.sysadmin "$SYS_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 403 \
-    "a sysadmin publishing an ALREADY PUBLIC dataset — refused, not a second approved row" 'Authorization Error'
-row P13.pub.editor "$EDITOR_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 403 \
-    "a non-sysadmin on the same dataset — the SYSADMIN denial, because capability is checked before state" 'Authorization Error'
+# El par del dataset **ya público** ya no se puede medir por esta puerta: la acción se retiró el **2026-10-08**,
+# así que el orden «capacidad antes que estado» —que era el hallazgo que estas dos filas fijaban— dejó de tener
+# puerta. Lo que las dos filas miden ahora es la **negativa por nombre no registrado**, que es la única que esa
+# acción puede dar: `400`, ni `403` ni `404`, y sin importar quién llama ni el estado del dataset.
+row P13.pub.sysadmin "$SYS_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 400 \
+    "a sysadmin calling the REMOVED action (2026-10-08) — 400 by unregistered name, whatever the dataset's state"
+row P13.pub.editor "$EDITOR_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 400 \
+    "a non-sysadmin on the same dataset — the same 400: with the action gone there is no capability check to run"
 
 hr
 say "P14 — los desenlaces que no son una decisión: motivo obligatorio y anulación"
@@ -477,6 +536,14 @@ value P14.motive "$(jq_get "[.result[] | select(.id == \"$REQ_RJ\")][0].motive")
 # Y `create` sobre un dataset **ya público**: la misma compuerta que `publish`, para no acumular una segunda fila.
 row P14.create.public "$ADMIN_TOKEN" publication_request_create "{\"dataset_id\": \"$D2\"}" 403 \
     "request the publication of an ALREADY PUBLIC dataset — refused by the same guard as publish" 'Authorization Error'
+label P14.create.public.lbl "Already public" "the third condition, named: not a capacity failure and not a missing thing"
+# Los dos rótulos que faltaban para cerrar el inventario de ocho: quien **no puede pedir**, y quien **no puede anular**.
+row P14.create.member "$MEMBER_TOKEN" publication_request_create "{\"dataset_id\": \"$D1\"}" 403 \
+    "an org member requests a publication — refused by the capacity the action demands" 'Authorization Error'
+label P14.create.member.lbl "Cannot request" "…and the label names the capability that is missing, not the thing"
+row P14.cancel.outsider "$OUTSIDER_TOKEN" publication_request_cancel "{\"request_id\": \"$REQ_FE2\"}" 403 \
+    "an outsider cancels a request that is not theirs — refused while it stays pending" 'Authorization Error'
+label P14.cancel.outsider.lbl "Cannot cancel" "…and the label names who may cancel: the requester or an org admin"
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"
@@ -540,8 +607,14 @@ for _name in $DATASETS; do
         raw package_delete "{\"id\": \"$_name\"}" "$SYS_TOKEN"
         say "P9    package_delete $_name -> $STATUS"
     fi
-    docker exec "$CONTAINER" ckan -c "$INI" dataset purge "$_name" >/dev/null 2>&1 \
-        || say "P9    purge $_name FALLÓ — el nombre queda tomado y la próxima corrida dará 409 en su fixture"
+    _purge_out="$(docker exec "$CONTAINER" ckan -c "$INI" dataset purge "$_name" 2>&1)"
+        case "$_purge_out" in
+            *purged*) say "P9    purge $_name -> ok" ;;
+            *) say "P9    purge $_name FALLÓ — el nombre queda tomado y la próxima corrida dará 409 en su fixture"
+               # El motivo se imprime: antes esta rama lo tiraba con `>/dev/null 2>&1` y escribía una nota a
+               # mano, así que una purga fallida era indistinguible de un misterio (medido 2026-10-08).
+               say "P9      motivo: $(printf '%s' "$_purge_out" | tail -3 | tr '\n' ' ')" ;;
+        esac
 done
 for _org in "$ORG_A" "$ORG_B" "$ORG_PARENT" "$ORG_CHILD"; do
     raw organization_show "{\"id\": \"$_org\"}" "$SYS_TOKEN"
