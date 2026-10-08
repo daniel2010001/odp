@@ -53,7 +53,7 @@ export function createDatasetApi(client: CkanClient) {
 
 		/** Obtener detalle de un dataset por ID o slug */
 		async show(id: string): Promise<CkanPackage> {
-			return client.post<CkanPackage>("package_show", { id });
+			return normalizeTitle(await client.post<CkanPackage>("package_show", { id }));
 		},
 
 		/** Crear un nuevo dataset */
@@ -158,6 +158,26 @@ export function createDatasetApi(client: CkanClient) {
 }
 
 export type DatasetApi = ReturnType<typeof createDatasetApi>;
+
+/**
+ * Normaliza el `title` de un dataset en el borde de la API.
+ *
+ * CKAN **acepta y persiste** un `title` que no es texto: medido el 2026-10-08 contra la 2.12.0,
+ * `package_patch {title: {"x": 1}}` responde `200` y guarda el diccionario, y la ficha del dataset
+ * pinta `[object Object]` en su `<h1>` (medido en jsdom con un `package_show` simulado). El tipo
+ * `CkanPackage.title` dice `string`, así que la mentira está en el borde: se corrige acá.
+ *
+ * Sólo se toca **`title`** —es el campo medido—: si no es un string con contenido se cae al `name`,
+ * que es la dirección legible del dataset, y si el `name` tampoco es usable, al literal `"Dataset"`,
+ * para que el `<h1>` nunca muestre un valor que no es texto.
+ */
+function normalizeTitle(pkg: CkanPackage): CkanPackage {
+	const usable = (value: unknown): value is string =>
+		typeof value === "string" && value.trim() !== "";
+	const name = usable(pkg.name) ? pkg.name : "Dataset";
+	const title = usable(pkg.title) ? pkg.title : name;
+	return { ...pkg, title };
+}
 
 /** `package_revise` anida el paquete en `result.package`; sin él `revise` falla, en vez de
  * devolver `undefined` y dejar que un llamador navegue a `/dataset/undefined`. */
