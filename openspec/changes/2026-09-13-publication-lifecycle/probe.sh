@@ -211,22 +211,33 @@ if [ -z "$EDITOR_TOKEN" ] || [ -z "$MEMBER_TOKEN" ] \
 fi
 say "P1.2  4 per-user tokens minted with api_token_create {user: ...}"
 
-# --- fixtures: five private datasets, created by the sysadmin ---------------
-make_dataset() {  # make_dataset <name> <owner-org>
+# --- fixtures: private datasets, created by the sysadmin --------------------
+# `make_dataset` **no imprime** el id: lo deja en `DATASET_ID`. La razón es un defecto real de este script
+# (2026-10-07): cuando el id se capturaba con `$(make_dataset …)`, el `exit 2` del fallo **sólo mataba la
+# subshell** de la sustitución, así que la corrida seguía con el texto del FATAL dentro de la variable y el
+# error aparecía **tres pasos después** como un `400` de JSON ilegible. Sin sustitución el `exit 2` detiene la
+# corrida donde corresponde, y el diagnóstico sale por **stderr** para que nadie lo confunda con un dato.
+make_dataset() {  # make_dataset <name> <owner-org> ; leaves the id in DATASET_ID
     raw package_create \
         "{\"name\": \"$1\", \"owner_org\": \"$2\", \"private\": true, \"title\": \"$1\"}" "$SYS_TOKEN"
-    [ "$STATUS" = 200 ] || { say "FATAL: fixture $1 -> $STATUS $BODY"; exit 2; }
-    jq_get '.result.id'
+    if [ "$STATUS" != 200 ]; then
+        say "FATAL: fixture $1 -> $STATUS $BODY" >&2
+        [ "$STATUS" = 409 ] && say "       (409: el nombre ya existe — una corrida anterior dejó ese dataset sin purgar; P9 reporta si el purge falla)" >&2
+        exit 2
+    fi
+    DATASET_ID="$(jq_get '.result.id')"
 }
-D1="$(make_dataset "$PREFIX-d1" "$ORG_A")"        # P3, P4*, P6, P8
-D2="$(make_dataset "$PREFIX-d2" "$ORG_A")"        # P6.1
-D3="$(make_dataset "$PREFIX-d3" "$ORG_A")"        # P6.2, P6.3 — y **debe quedar privado** (P7.d3)
-D_GOV="$(make_dataset "$PREFIX-gov" "$ORG_A")"    # P12: el único que la puerta **publica**
-D6="$(make_dataset "$PREFIX-d6" "$ORG_CHILD")"    # P10
-D7="$(make_dataset "$PREFIX-d7" "$ORG_A")"        # P7: never targeted by a publish row
+make_dataset "$PREFIX-d1" "$ORG_A"; D1="$DATASET_ID"          # P3, P4*, P6, P8
+make_dataset "$PREFIX-d2" "$ORG_A"; D2="$DATASET_ID"          # P6.1
+make_dataset "$PREFIX-d3" "$ORG_A"; D3="$DATASET_ID"          # P6.2, P6.3 — y **debe quedar privado** (P7.d3)
+make_dataset "$PREFIX-gov" "$ORG_A"; D_GOV="$DATASET_ID"      # P12: el único que la puerta **publica**
+make_dataset "$PREFIX-fe" "$ORG_A"; D_FE="$DATASET_ID"        # P13: el editor pide; su rechazo es el de capacidad
+make_dataset "$PREFIX-fe2" "$ORG_A"; D_FE2="$DATASET_ID"      # P13: el admin pide; el de cuatro ojos es suyo
+make_dataset "$PREFIX-d6" "$ORG_CHILD"; D6="$DATASET_ID"      # P10
+make_dataset "$PREFIX-d7" "$ORG_A"; D7="$DATASET_ID"          # P7: never targeted by a publish row
 # Every dataset name this run may create, including the ones only a *refused*
 # call could create. P7 and P9 are complete only against this list.
-DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk $PREFIX-gov"
+DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk $PREFIX-gov $PREFIX-fe $PREFIX-fe2"
 say "P1.3  private datasets seeded (d1,d2,d3,d7,blk in $ORG_A, gov too; d6 in $ORG_CHILD)"
 
 hr
@@ -341,7 +352,7 @@ say "P6.c — las acciones en bloque que van al revés: dos actores, dos motivos
 #    Dos actores, dos motivos, y los dos `403`.
 #  · `bulk_update_private` va al revés: **permitido al admin** (angostar visibilidad es intencional) y
 #    **rechazado al editor por core**. Una sola frase para los dos mediría dos cosas distintas.
-D_BLK="$(make_dataset "$PREFIX-blk" "$ORG_A")"
+D_BLK=""; make_dataset "$PREFIX-blk" "$ORG_A"; D_BLK="$DATASET_ID"
 row P6c.priv.admin "$ADMIN_TOKEN" bulk_update_private \
     "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D_BLK\"]}" 200 \
     "admin bulk_update_private — narrowing visibility is intentional, so it passes"
@@ -394,6 +405,40 @@ value P12.published "$(jq_get '.result.private')" false \
 row P12.decide.second "$SYS_TOKEN" publication_request_decide \
     "{\"request_id\": \"$REQ_GOV\", \"approve\": true}" 409 \
     "a second decision on the same request — validation, keyed by field, not the authorization shape" 'Validation Error'
+
+hr
+say "P13 — cuatro ojos, y la precedencia que hace que dos filas parezcan la misma"
+# La precedencia medida por la par manda **qué rechazo recibe cada solicitante**, y estas dos filas existen
+# para separarlos: la auth evalúa **capacidad primero y cuatro ojos después**, así que
+#  · un **editor** solicitante **nunca** llega al rechazo de cuatro ojos —le toca el de capacidad, y es
+#    correcto: no puede decidir **ninguna** solicitud, no sólo la suya—, y
+#  · el rechazo de cuatro ojos lo ve **sólo un solicitante con capacidad de admin**.
+# Las dos son `403`. Afirmar las dos con la misma frase mediría dos hechos distintos con una sola.
+# Las dos direcciones salen del **bloque de fixtures** (arriba): crear acá otra vez fue el defecto que dejó
+# este bloque en `400` toda una corrida, porque el `409` del nombre repetido quedó invisible dentro de una
+# sustitución de comando. El id viene en `$D_FE` / `$D_FE2`.
+row P13.editor.req "$EDITOR_TOKEN" publication_request_create "{\"dataset_id\": \"$D_FE\"}" 200 \
+    "the editor requests the publication of a private dataset"
+REQ_FE="$(jq_get '.result.id')"
+row P13.editor.decide "$EDITOR_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_FE\", \"approve\": true}" 403 \
+    "the editor decides their own request — the CAPACITY refusal, never four eyes" 'Authorization Error'
+row P13.admin.req "$ADMIN_TOKEN" publication_request_create "{\"dataset_id\": \"$D_FE2\"}" 200 \
+    "the admin requests the publication of another private dataset"
+REQ_FE2="$(jq_get '.result.id')"
+row P13.admin.decide "$ADMIN_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_FE2\", \"approve\": true}" 403 \
+    "the admin decides their OWN request — THIS is four eyes, and the row stays pending" 'Authorization Error'
+raw publication_request_list "{\"status\": \"pending\"}" "$ADMIN_TOKEN"
+value P13.still.pending "$(jq_get "[.result[] | select(.id == \"$REQ_FE2\")] | length")" 1 \
+    "the four-eyes refusal leaves the request pending — a refusal is not a cancellation"
+# Y el par del dataset **ya público**, que también se lee al revés de lo que parece: la capacidad se evalúa
+# **antes** que el estado, así que un no-sysadmin recibe la negativa del sysadmin (no filtra la visibilidad)
+# y **sólo** el sysadmin recibe la de «ya es público».
+row P13.pub.sysadmin "$SYS_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 403 \
+    "a sysadmin publishing an ALREADY PUBLIC dataset — refused, not a second approved row" 'Authorization Error'
+row P13.pub.editor "$EDITOR_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 403 \
+    "a non-sysadmin on the same dataset — the SYSADMIN denial, because capability is checked before state" 'Authorization Error'
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"
@@ -457,7 +502,8 @@ for _name in $DATASETS; do
         raw package_delete "{\"id\": \"$_name\"}" "$SYS_TOKEN"
         say "P9    package_delete $_name -> $STATUS"
     fi
-    docker exec "$CONTAINER" ckan -c "$INI" dataset purge "$_name" >/dev/null 2>&1 || true
+    docker exec "$CONTAINER" ckan -c "$INI" dataset purge "$_name" >/dev/null 2>&1 \
+        || say "P9    purge $_name FALLÓ — el nombre queda tomado y la próxima corrida dará 409 en su fixture"
 done
 for _org in "$ORG_A" "$ORG_B" "$ORG_PARENT" "$ORG_CHILD"; do
     raw organization_show "{\"id\": \"$_org\"}" "$SYS_TOKEN"
