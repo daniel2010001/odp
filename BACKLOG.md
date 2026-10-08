@@ -2247,6 +2247,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): VIVO.** `resource/[resourceId]/+page.svelte:358` sigue con `downloadUrl =
   safeExternalUrl(resource?.url)` y `:544` con `href={downloadUrl}`; no hay ruta que proxee (los únicos `+server.ts` son
   los dos de `auth`). **Frena en la decisión del autor:** servirlo por el portal, o aceptar el acoplamiento de forma deliberada.
+  **Decisión del autor (2026-10-08): para después, y antes de entregar `v1`.** Hoy **funciona** —el stack sirve su URL
+  de CKAN por `https` en un dominio propio, análogo al de `api.odp`—, así que no bloquea `v0`. Se retoma antes de
+  entregar `v1`, y queda anotado como **RECOMENDACIÓN con opciones**, no como decisión tomada:
+  (a) **proxear la descarga por el portal** (una ruta `+server.ts` que resuelva el recurso y sirva el archivo): el
+      enlace deja de depender del origen y de la configuración de CKAN, al costo de una ruta nueva, su caché y su
+      manejo de rangos;
+  (b) **aceptar el acoplamiento de forma deliberada** y documentarlo (es lo que pasa hoy): cero código, y el precio es
+      que el portal hereda la disponibilidad y la configuración pública del backend;
+  (c) el intermedio: **mantener la URL de CKAN detrás de un alias del mismo origen del portal** (nginx), que cambia una
+      dependencia de configuración por una de despliegue.
+  **Para retomarlo**: la verificación viva del 2026-09-20 y el estado medido del 2026-09-30 (`+page.svelte:358` y `:544`).
+
+- [ ] **[v1] Con el catálogo caído, el portal le muestra al usuario el error del parser, no una frase suya.**
+  Observado por el autor (2026-10-08): con CKAN caído, el aviso que se lee es «No se pudieron cargar sus
+  organizaciones. **JSON.parse: unexpected character at line 1 column 1 of the JSON data**». La primera mitad es
+  nuestra y está bien; **la segunda es del intérprete**, y contradice la política de copy del resto del portal (frase
+  humana primero, el código técnico como dato secundario y **nunca la prosa cruda**) — la misma familia que las cinco
+  alertas que `technicalDetail` vino a arreglar.
+  **Hipótesis a verificar antes de tocar** (declarada, **no medida**): con el catálogo caído la respuesta del proxy no
+  es JSON, así que `res.json()` falla **antes** de que exista un `CkanApiError` y lo que llega es el mensaje del parser.
+  Si es eso, el arreglo vive en el cliente (`src/lib/api/client.ts`: un fallo de parseo es un fallo de **transporte**,
+  no un texto para el usuario) y no en cada página.
+  **No bloquea `v0`** (decisión del autor).
 
 - [x] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
