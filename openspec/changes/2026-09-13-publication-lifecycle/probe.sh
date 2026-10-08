@@ -582,6 +582,39 @@ say "P8 — bulk actions are not a publication path"
 row P8 "$EDITOR_TOKEN" bulk_update_public \
     "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D1\"]}" 403 \
     "editor bulk_update_public — refused by this capability's chained rule, before the action body runs" 'Authorization Error'
+# La fila de arriba pedía exactamente esto desde el 2026-10-07: «cuando `A5` reescriba esta fila, tiene que
+# afirmar **el mensaje del plugin**, no sólo el código». Ésta es esa capa.
+label P8.lbl "Publish denied" "the editor, on the bulk route: the same label as on the patch route, by a different door"
+# **La ruta del `member`, razonada por la sesión par desde la cadena y medida acá.** `bulk_update_public` es la
+# única puerta donde el muro **no** delega en `next_auth` —la refusa él—, así que alcanza a todo invocante
+# autenticado y un `member` llega al mismo rótulo que el editor. Estaba marcada como *aún no medida* en su
+# contrato; esto la mide. Y no muta: la negativa ocurre en la auth, antes del cuerpo.
+row P8.member "$MEMBER_TOKEN" bulk_update_public \
+    "{\"org_id\": \"$ORG_A_ID\", \"datasets\": [\"$D1\"]}" 403 \
+    "member bulk_update_public — the one door where the wall does NOT defer to CKAN's own auth" 'Authorization Error'
+label P8.member.lbl "Publish denied" "…and the member reads the same label the editor reads: selected by fact, not by role"
+raw package_show "{\"id\": \"$D1\"}" "$SYS_TOKEN"
+value P8.member.stored "$(jq_get '.result.private')" true "and nothing was written: the refusal happens in auth, before the body"
+
+hr
+say "P15 — la capacidad del solicitante: el rótulo que faltaba, y el orden que sorprende"
+# Receta medida (la razonó la sesión par desde el código y sus tests; acá se mide por HTTP): (a) una fila
+# `pending` creada por alguien que **sí** podía `update_dataset` en ese momento; (b) **después** se le quita la
+# membresía; (c) cualquier aprobador decide → `403` con `Requester capacity`. **El orden importa**: ese chequeo
+# corre **antes** de cuatro ojos y antes de la rama del `sysadmin`, así que hasta un `sysadmin` que decide
+# recibe `Requester capacity` y no `Four eyes`. Y la secuela que hay que limpiar: en ese estado la solicitud es
+# **indecidible por construcción** —es la limitación declarada—, así que se cancela para que no quede `pending`.
+raw publication_request_create "{\"dataset_id\": \"$D7\"}" "$EDITOR_TOKEN"
+value P15.req "$STATUS" 200 "the editor requests the publication of the d7 fixture — it can, at this moment"
+REQ_CAP="$(jq_get '.result.id')"
+raw member_delete "{\"id\": \"$ORG_A_ID\", \"object\": \"$EDITOR_ID\", \"object_type\": \"user\"}" "$SYS_TOKEN"
+say "P15    member_delete of the requester in ORG_A -> $STATUS"
+row P15.capacity "$SYS_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_CAP\", \"approve\": true}" 403 \
+    "a SYSADMIN decides a request whose requester lost capacity — the re-check runs BEFORE four eyes and before the sysadmin branch" 'Authorization Error'
+label P15.capacity.lbl "Requester capacity" "…and that is why the label is Requester capacity and not Four eyes"
+row P15.cancel "$EDITOR_TOKEN" publication_request_cancel "{\"request_id\": \"$REQ_CAP\"}" 200 \
+    "the requester cancels it — the exit the contract now names, and the hygiene this probe needs"
 
 # ---------------------------------------------------------------------------
 hr
