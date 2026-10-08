@@ -27,6 +27,7 @@ import {
 } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
+import { ACCION_BASE } from "$lib/components/dataset/action-class";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
@@ -85,8 +86,8 @@ const datasetId = $derived($page.params.id);
 // ─── API de publicación ─────────────────────────────────────────
 // Un solo cliente para las acciones de publicación: los controles reciben **funciones estables**, y el
 // token se lee en cada llamada (`apiKey` es una función), así que construir un cliente por llamada no
-// compraría nada. Las cinco acciones existen en la capa de API desde `B1`; hasta antes de eso entraban
-// inyectadas justamente porque no existían del lado del portal.
+// compraría nada. Las cuatro acciones existen en la capa de API desde `B1`; los controles las reciben
+// inyectadas porque no importan la API —la página las cablea—, no porque falten del lado del portal.
 const publicationApi = createPublicationApi(
 	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
 );
@@ -540,7 +541,7 @@ async function handleCopyLink() {
 				{#if puedeEditarDataset}
 					<a
 						href={`/dashboard/datasets/${item.name}/edit`}
-						class="inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						class={ACCION_BASE}
 					>
 						<Pencil class="size-4" aria-hidden="true" />
 						Editar

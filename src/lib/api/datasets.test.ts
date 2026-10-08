@@ -119,6 +119,68 @@ describe("createDatasetApi", () => {
 		expect(params.include_private).toBe(true);
 	});
 
+	// --- El `title` del dataset, normalizado en el borde (medido 2026-10-08) ---------
+	//
+	// CKAN **acepta y persiste** un `title` que no es texto: medido contra la 2.12.0,
+	// `package_patch {title: {"x": 1}}` responde `200` y guarda el diccionario, y la ficha del
+	// dataset pinta `[object Object]` en su `<h1>` (medido en jsdom con un `package_show`
+	// simulado). El tipo `CkanPackage.title` dice `string`, así que la mentira está en el borde.
+
+	it("show cae al `name` si CKAN devuelve un `title` que no es texto", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ id: "ds-1", name: "matricula-2026", title: { x: 1 } });
+		const api = createDatasetApi(client);
+
+		const result = await api.show("ds-1");
+
+		expect(result.title).toBe("matricula-2026");
+	});
+
+	it("show conserva un `title` que sí es texto", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ id: "ds-1", name: "matricula-2026", title: "Matrícula 2026" });
+		const api = createDatasetApi(client);
+
+		const result = await api.show("ds-1");
+
+		expect(result.title).toBe("Matrícula 2026");
+	});
+
+	it("show cae al `name` cuando el `title` viene vacío", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ id: "ds-1", name: "matricula-2026", title: "" });
+		const api = createDatasetApi(client);
+
+		const result = await api.show("ds-1");
+
+		expect(result.title).toBe("matricula-2026");
+	});
+
+	it("show cae al literal `Dataset` cuando ni el `title` ni el `name` sirven", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({ id: "ds-1", name: "", title: { x: 1 } });
+		const api = createDatasetApi(client);
+
+		const result = await api.show("ds-1");
+
+		expect(result.title).toBe("Dataset");
+	});
+
+	it("show sólo toca `title`: el resto del paquete pasa intacto", async () => {
+		const { client, post } = makeClient();
+		post.mockResolvedValueOnce({
+			id: "ds-1",
+			name: "matricula-2026",
+			title: { x: 1 },
+			private: true,
+		});
+		const api = createDatasetApi(client);
+
+		const result = await api.show("ds-1");
+
+		expect(result).toMatchObject({ id: "ds-1", name: "matricula-2026", private: true });
+	});
+
 	// --- «Mis datasets» — contrato medido el 2026-09-17 -------------------------
 	//
 	// `current_package_list_with_resources` fija `include_private = is_sysadmin(user)`

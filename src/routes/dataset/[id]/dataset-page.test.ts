@@ -22,8 +22,8 @@ const mocks = vi.hoisted(() => ({
 	listUpdatableOrganizationIds: vi.fn(),
 	check: vi.fn(),
 	copyToClipboard: vi.fn(),
-	// Las cinco acciones de publicación, que la ficha consume desde `B1`: la lista alimenta la tarjeta
-	// del estado y las otras cuatro son las que los controles llaman.
+	// Las tres acciones de publicación, que la ficha consume desde `B1`: la lista alimenta la tarjeta
+	// del estado y las otras dos son las que los controles llaman.
 	listRequests: vi.fn(),
 	requestPublication: vi.fn(),
 	cancelRequest: vi.fn(),
