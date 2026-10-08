@@ -1,7 +1,7 @@
-// API: las cinco acciones de publicación.
+// API: las cuatro acciones de publicación que el portal consume.
 //
 // ─── Por qué este módulo existe aparte ───────────────────────────────
-// Las cinco acciones viven en el otro repositorio (`odp-docker`, `ckanext-umss`) y **la referencia de
+// Las acciones viven en el otro repositorio (`odp-docker`, `ckanext-umss`) y **la referencia de
 // interfaz es su `PUBLICATION-ACTIONS.md` en `master`**, no un mensaje entre sesiones: ahí están las
 // firmas, los argumentos y lo que cada acción devuelve. Si una firma cambia allí, cambia acá.
 //
@@ -13,7 +13,7 @@
 // reescrito acá sería información perdida en el único lugar donde todavía era exacta.
 //
 // ─── El retorno es uniforme ─────────────────────────────────────────
-// Las cuatro acciones de escritura devuelven **sólo su fila**, sin el dataset. No es un detalle de
+// Las tres acciones de escritura devuelven **sólo su fila**, sin el dataset. No es un detalle de
 // estilo: la confirmación de una publicación sale de **releer el valor almacenado**, porque medir el
 // valor guardado es más fuerte que creerle al escritor. Por eso el tipo de retorno es la fila y nada
 // más — y por eso este módulo no ofrece ningún atajo que devuelva el dataset.
@@ -133,13 +133,6 @@ export function createPublicationApi(client: CkanClient) {
 			const data: Record<string, unknown> = { request_id: requestId, approve };
 			if (comments) data.comments = comments;
 			return client.post<PublicationRequest>("publication_request_decide", data);
-		},
-
-		/** El camino directo, reservado a la superadministración de la plataforma. */
-		async publish(datasetId: string, comments?: string): Promise<PublicationRequest> {
-			const data: Record<string, unknown> = { dataset_id: datasetId };
-			if (comments) data.comments = comments;
-			return client.post<PublicationRequest>("publication_publish", data);
 		},
 
 		/**

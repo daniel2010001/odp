@@ -27,7 +27,6 @@ const mocks = vi.hoisted(() => ({
 	listRequests: vi.fn(),
 	requestPublication: vi.fn(),
 	cancelRequest: vi.fn(),
-	publishDataset: vi.fn(),
 }));
 
 // Se mockea en el borde de módulo para que `package_show` nunca dispare HTTP real. `$lib/mock/data`
@@ -48,7 +47,6 @@ vi.mock("$lib/api/publication", () => ({
 		list: mocks.listRequests,
 		request: mocks.requestPublication,
 		cancel: mocks.cancelRequest,
-		publish: mocks.publishDataset,
 	}),
 }));
 vi.mock("$lib/mock/data", () => ({ getMockDatasetById: mocks.getMockDatasetById }));
@@ -70,13 +68,14 @@ const NOT_FOUND_TITLE = "Dataset no encontrado";
 const AMBIGUOUS_MESSAGE = "No se encontró el dataset solicitado, o no tiene permiso para verlo.";
 const MOCK_TITLE = "Dataset Mock De Desarrollo";
 
-function makeUser(): CkanUser {
+function makeUser(overrides: Partial<CkanUser> = {}): CkanUser {
 	return {
 		id: "user-1",
 		name: "dueno",
 		display_name: "Dueño",
 		created: "2026-01-01T00:00:00.000000",
 		state: "active",
+		...overrides,
 	};
 }
 
@@ -898,5 +897,44 @@ describe("Página de dataset — la solicitud de publicación", () => {
 			"Pendiente de revisión",
 		);
 		expect(screen.queryByRole("button", { name: "Solicitar publicación" })).not.toBeInTheDocument();
+	});
+});
+
+// El flujo de publicación tiene **una sola** compuerta: no hay camino directo, ni siquiera para la
+// superadministración. Publicar es siempre pedir, y la decisión se toma en la cola. Estas dos pruebas
+// fijan ese contrato para los dos actores que antes se repartían los controles.
+describe("Página de dataset — el camino directo ya no se ofrece", () => {
+	it("la superadministración tampoco publica en directo: sólo ve la solicitud", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([]);
+		auth.login("tok-123", makeUser({ sysadmin: true }));
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		expect(screen.queryByRole("button", { name: "Publicar dataset" })).not.toBeInTheDocument();
+		expect(
+			await screen.findByRole("button", { name: "Solicitar publicación" }),
+		).toBeInTheDocument();
+	});
+
+	it("un editor no superadministrador tampoco publica en directo: ve la misma solicitud", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([]);
+		auth.login("tok-123", makeUser({ sysadmin: false }));
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		expect(screen.queryByRole("button", { name: "Publicar dataset" })).not.toBeInTheDocument();
+		expect(
+			await screen.findByRole("button", { name: "Solicitar publicación" }),
+		).toBeInTheDocument();
 	});
 });

@@ -131,7 +131,7 @@ async function comprobarSesion() {
 	if (check.state === "dead") {
 		// Limpiar **antes** de navegar, igual que el panel: el guard de `/auth/login` reenvía a quien todavía
 		// tiene un token guardado, y navegar primero produciría un bucle de redirección.
-		await endInvalidSession("/dashboard/solicitudes");
+		await endInvalidSession("/dashboard/requests");
 		return;
 	}
 	comprobando = false;
