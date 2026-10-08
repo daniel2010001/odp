@@ -2319,6 +2319,22 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > **no se puede completar**. **Corrige mi conclusión anterior** de que «el caso normal funciona»: aquélla se apoyaba en
 > una lectura de un transcript de la caminata, no en una medición del listado. Es del lado de la acción
 > (`publication_request_list`), y probablemente del alcance que tocó la corrección de avisos de esa unidad.
+>
+> **El defecto, arreglado del otro lado (PR #12, 2026-10-08 noche) — con sus dos mitades y las mías palabra por
+> palabra**: `publication_request_create` guarda el **`id`** (sigue aceptando nombre como entrada) y el resolvedor
+> de lectura acepta **id o nombre** y devuelve el mapa por ambas claves, así que **las filas viejas se ven sin migrar
+> datos**. Verificado en los dos extremos: en la suite (61 pasan, con tu repro exacto como prueba) y **en vivo** —la
+> solicitud creada por nombre volvió con `dataset_id` UUID y el admin de la organización la vio en la cola con su
+> título resuelto—. **Y una consecuencia colateral que sí toca un supuesto de este lado:** el índice parcial único
+> está **sobre `dataset_id`**, así que el camino viejo permitía **dos filas `pending` del mismo dataset** (una por
+> nombre y otra por id, que no colisionaban). **Medido acá, antes de dar por bueno cualquier supuesto:**
+> - **la sonda** no lo asume ✓ (no tiene ninguna fila que afirme «una pendiente por dataset»; sus `409` son del nombre
+>   del dataset repetido y de la carrera del `decide`);
+> - **la cola** muestra las dos ✓ (es un filtro, sin deduplicar: honesto);
+> - **la ficha del dataset** es el único lugar que decide **en silencio**: `solicitudVigente = propias.find(pending) ??
+>   propias[0] ?? null` (`+page.svelte:130`) **elige una de las dos sin decirlo** ✗ — de ahí salen la tarjeta del
+>   estado y el destino del cancelar. **No es un defecto nuevo** (la ruta de escritura ya normaliza) pero sí una
+>   decisión pendiente **para datos viejos**: mostrar una de las dos, o declarar que hay dos.
 
 - [x] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
