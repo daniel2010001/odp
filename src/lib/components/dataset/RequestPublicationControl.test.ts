@@ -16,6 +16,8 @@ const REQUEST_LABEL = "Solicitar publicación";
 const REQUEST_AGAIN_LABEL = "Volver a solicitar";
 const CONSEQUENCE = "Un administrador de la organización revisará su solicitud.";
 const PENDING_HEADING = "Solicitud pendiente de revisión";
+const PENDING_BODY =
+	"Su solicitud está a la espera de que un administrador de la organización la revise.";
 const CANCEL_LABEL = "Cancelar solicitud";
 const REJECTED_HEADING = "Solicitud rechazada";
 const NO_REASON = "No se indicó un motivo.";
@@ -293,7 +295,11 @@ describe("RequestPublicationControl — qué reporta después del click", () => 
 
 // La presentación de **acción**: el control en la fila del hero. Se dibuja como sus hermanos y la
 // explicación pasa al `title`. Los **estados** no cambian: una solicitud pendiente o anulada es
-// información, no la acción, y sigue ocupando su bloque.
+// El estado de la solicitud **también** es una acción del hero (2026-10-08). Hasta ese día, con una
+// solicitud pendiente el componente dibujaba el bloque entero —borde, titular, explicación y botón— con
+// `w-full`, así que el hero crecía y desplazaba el título, las insignias y los otros botones: el defecto que
+// el autor reportó como «rompe completamente el hero». En la presentación de acción el estado ocupa **una
+// fila compacta de la altura de sus hermanos**, y el bloque completo queda para la tarjeta, que es su lugar.
 describe("RequestPublicationControl — la presentación de acción", () => {
 	it("en `accion` dibuja sólo el botón, con la forma de las acciones del hero y la explicación en el tooltip", async () => {
 		renderControl({ apariencia: "accion" });
@@ -316,11 +322,30 @@ describe("RequestPublicationControl — la presentación de acción", () => {
 		expect(copia).toHaveClass("sr-only");
 	});
 
-	it("en `accion` el estado pendiente sigue siendo información, con su cancelar", async () => {
-		renderControl({ apariencia: "accion", currentRequest: makeRequest({ status: "pending" }) });
+	it("en `accion` el estado pendiente es una fila compacta, sin el bloque", async () => {
+		const { container } = renderControl({
+			apariencia: "accion",
+			currentRequest: makeRequest({ status: "pending" }),
+		});
+
+		const titular = await screen.findByText(PENDING_HEADING);
+		// El distintivo y la cancelación comparten la forma de las acciones del hero…
+		expect(titular.closest("span")?.className).toContain("h-9");
+		expect(screen.getByRole("button", { name: CANCEL_LABEL }).className).toContain("h-9");
+		// …y **nada** lleva el ancho completo: era exactamente lo que rompía el reparto del hero.
+		expect(container.querySelector(".w-full")).toBeNull();
+		// La explicación no ocupa lugar acá: la tarjeta del estado, más abajo, dice lo mismo.
+		expect(screen.queryByText(PENDING_BODY, { selector: "p" })).toBeNull();
+	});
+
+	it("en `bloque` el estado pendiente sigue siendo el bloque completo, con su explicación", async () => {
+		const { container } = renderControl({
+			currentRequest: makeRequest({ status: "pending" }),
+		});
 
 		expect(await screen.findByText(PENDING_HEADING)).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: CANCEL_LABEL })).toBeInTheDocument();
+		expect(screen.getByText(PENDING_BODY)).toBeInTheDocument();
+		expect(container.querySelector(".w-full")).not.toBeNull();
 	});
 
 	it("en `bloque` la explicación sigue debajo del botón, y sin tooltip", async () => {
