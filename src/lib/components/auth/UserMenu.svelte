@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ChevronDown, LayoutDashboard, LogOut } from "@lucide/svelte";
+import { ChevronDown, Inbox, LayoutDashboard, LogOut } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
 import { logout } from "$lib/api/auth";
@@ -73,6 +73,15 @@ async function handleLogout() {
 			>
 				<LayoutDashboard class="size-4" aria-hidden="true" />
 				Panel
+			</a>
+			<a
+				href="/dashboard/solicitudes"
+				role="menuitem"
+				onclick={close}
+				class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+			>
+				<Inbox class="size-4" aria-hidden="true" />
+				Solicitudes
 			</a>
 			<button
 				type="button"

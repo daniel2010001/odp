@@ -68,22 +68,20 @@ tabla** más los dos nombres de presentación, así que una fila trae `id`, `dat
  * **«esta solicitud ya fue decidida»** y no como «no se pudo registrar la decisión». La diferencia es si el
  * usuario recarga la lista o reintenta algo que no va a funcionar nunca.
  *
- * **Sin `dataset_title` ni `organization_title` (todavía).** La fila de la cola se lee por el título del
- * dataset y por su organización, y esos dos campos **no** están en la tabla: se pidieron al otro
- * repositorio **antes de cablear la page**, que es el único momento en que la forma puede cambiar. Hasta
- * que lleguen, la page no se cablea contra suposiciones: una lista con la línea principal vacía se ve
- * terminada y no lo está.
- *
- * **Los dos campos ya fueron concedidos** (2026-10-07) y viajan en la **misma** consulta por llamada —la
- * que ya resuelve la organización dueña—, así que no agregan una llamada. Cuando aterricen traen, con la
- * **misma** semántica que los nombres (dos fallbacks distintos en una fila sería una trampa):
- * **campo vacío → `None`**, **seteado pero irresoluble → el token `"unknown"`**, y **nunca el id crudo**
- * — un campo `..._title` no puede contener un `dataset_id`, igual que un `..._name` no puede contener un
- * id de usuario. Se cablea contra eso cuando la par avise que aterrizó.
+ * **`dataset_title` y `organization_title` (ya en `master`).** La fila de la cola se lee por el título del
+ * dataset y por su organización, y los dos campos **están** en la fila desde el PR #4 del otro repositorio,
+ * resueltos en la **misma** consulta por llamada que resuelve la organización dueña. Traen la **misma**
+ * semántica que los nombres, porque dos fallbacks distintos en una fila serían una trampa: **campo vacío →
+ * `None`**, **seteado pero irresoluble → el token `"unknown"`**, y **nunca el id crudo** — un campo
+ * `..._title` no puede contener un `dataset_id`, igual que un `..._name` no puede contener un id de usuario.
  */
 export interface PublicationRequest {
 	id: string;
 	dataset_id: string;
+	/** Título del dataset. Vacío → `null`; irresoluble → el token `"unknown"`; nunca el id. */
+	dataset_title?: string | null;
+	/** Título de la organización dueña, con la misma semántica que `dataset_title`. */
+	organization_title?: string | null;
 	/** La dirección pedida. Existe en la tabla aunque la bajada esté en `[v1]`. */
 	requested_visibility?: string | null;
 	status: PublicationRequestStatus;
