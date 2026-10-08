@@ -235,9 +235,10 @@ make_dataset "$PREFIX-fe" "$ORG_A"; D_FE="$DATASET_ID"        # P13: el editor p
 make_dataset "$PREFIX-fe2" "$ORG_A"; D_FE2="$DATASET_ID"      # P13: el admin pide; el de cuatro ojos es suyo
 make_dataset "$PREFIX-d6" "$ORG_CHILD"; D6="$DATASET_ID"      # P10
 make_dataset "$PREFIX-d7" "$ORG_A"; D7="$DATASET_ID"          # P7: never targeted by a publish row
+make_dataset "$PREFIX-rj" "$ORG_A"; D_RJ="$DATASET_ID"        # P14: rechazo sin motivo, y anulación
 # Every dataset name this run may create, including the ones only a *refused*
 # call could create. P7 and P9 are complete only against this list.
-DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk $PREFIX-gov $PREFIX-fe $PREFIX-fe2"
+DATASETS="$PREFIX-p2 $PREFIX-p5 $PREFIX-p5b $PREFIX-d1 $PREFIX-d2 $PREFIX-d3 $PREFIX-d6 $PREFIX-d7 $PREFIX-blk $PREFIX-gov $PREFIX-fe $PREFIX-fe2 $PREFIX-rj"
 say "P1.3  private datasets seeded (d1,d2,d3,d7,blk in $ORG_A, gov too; d6 in $ORG_CHILD)"
 
 hr
@@ -439,6 +440,29 @@ row P13.pub.sysadmin "$SYS_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}
     "a sysadmin publishing an ALREADY PUBLIC dataset — refused, not a second approved row" 'Authorization Error'
 row P13.pub.editor "$EDITOR_TOKEN" publication_publish "{\"dataset_id\": \"$D2\"}" 403 \
     "a non-sysadmin on the same dataset — the SYSADMIN denial, because capability is checked before state" 'Authorization Error'
+
+hr
+say "P14 — los desenlaces que no son una decisión: motivo obligatorio y anulación"
+row P14.req "$ADMIN_TOKEN" publication_request_create "{\"dataset_id\": \"$D_RJ\"}" 200 \
+    "the admin requests the publication of a private dataset"
+REQ_RJ="$(jq_get '.result.id')"
+# **Rechazar sin motivo** es un `409` con la clave `comments`, **no** un fallo de autorización: es el respaldo
+# del servidor a una regla que el formulario ya exige antes de mandar. La **clave** es lo que el portal tiene
+# que leer para decir «falta el motivo» en vez de «no se pudo».
+row P14.reject.noreason "$SYS_TOKEN" publication_request_decide \
+    "{\"request_id\": \"$REQ_RJ\", \"approve\": false}" 409 \
+    "reject without a reason — ValidationError keyed by `comments`, never an authorization failure" 'Validation Error'
+# Y la **anulación**: el objeto desaparece —el dataset se borra— y la `pending` se anula **con su motivo**, que
+# es un **token estable** y no prosa, para que el portal pueda decir *por qué* sin mostrar texto ajeno.
+raw package_delete "{\"id\": \"$D_RJ\"}" "$SYS_TOKEN"
+raw publication_request_list "{\"status\": \"annulled\"}" "$ADMIN_TOKEN"
+value P14.annulled "$(jq_get "[.result[] | select(.id == \"$REQ_RJ\")] | length")" 1 \
+    "a pending request whose dataset is gone is annulled — not left decidible"
+value P14.motive "$(jq_get "[.result[] | select(.id == \"$REQ_RJ\")][0].motive")" "dataset_deleted" \
+    "and the annulment names its trigger as a stable token, not prose"
+# Y `create` sobre un dataset **ya público**: la misma compuerta que `publish`, para no acumular una segunda fila.
+row P14.create.public "$ADMIN_TOKEN" publication_request_create "{\"dataset_id\": \"$D2\"}" 403 \
+    "request the publication of an ALREADY PUBLIC dataset — refused by the same guard as publish" 'Authorization Error'
 
 hr
 say "P7 — the catalogue follows private, with no portal query change"
