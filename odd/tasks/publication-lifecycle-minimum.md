@@ -1221,3 +1221,56 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   `P13.pub.sysadmin`, `P13.pub.editor`) que mueren o invierten —la negativa pasa a ser `400` por nombre no registrado— y
   el bypass de stock del `sysadmin` invierte su resultado esperado. Se corre **después** del merge de la sesión par,
   contra el stack, como unidad propia.
+
+- **2026-10-08 (noche) — La unidad de la API aterriza, y su compuerta ESCALA sobre la limitación declarada.**
+
+  **La unidad:** rama `unit/no-direct-publish`, commit **`b63b00c`** (8 archivos, +437/−552), **sin pushear** (el push y el
+  merge son del autor). Suite **168 passed / 0 failed** (venía de 171: se retiraron 14 tests y se agregaron 11), medida por
+  un **verificador independiente** con `ckan-docker/bin/test-umss`. Y verificación independiente del registro: **cuatro**
+  acciones, siete funciones de auth, **`publication_publish` ausente de las dos listas**, y `auth_sysadmins_check`
+  **True/True/True** en `package_update`, `package_create` y `bulk_update_public`.
+
+  **Los ocho rótulos congelados** (valores, verificados con `grep` sobre las constantes `*_LABEL`): `Four eyes`,
+  `Requester capacity`, `Not an approver`, `Already public`, `Cannot request`, `Cannot cancel` —los seis de
+  `logic/auth/publication.py`— más `Publication flow` y `Publish denied` —los dos de `auth.py`—. Se retiró **`Not a
+  sysadmin`** con la acción. La **oración** de `Publish denied` es ahora `only an organization administrator can decide a
+  publication request`: exactamente el texto que mi spec hizo normativo.
+
+  **Los insumos medidos para el re-corte de `A5`** (todo contra `b63b00c`, medido o ejecutado, nada leído): (a)
+  `publication_publish` → **`400 "Bad request: Action name not known"`**, ni 403 ni 404; (b) `package_patch
+  {private: false}` del `sysadmin` → **403**, `private` intacto y sin fila; (c) el `sysadmin` conserva **200** en un patch
+  **sólo de metadatos** y en un cambio de **`state`** (`bulk_update_delete`), la capacidad preservada a propósito; (d) el
+  `sysadmin` que intenta publicar directo ahora lee **`Publication flow`**, no `Publish denied`; (e) un **admin de
+  organización** en `bulk_update_public` sigue leyendo `Publication flow` — la sesión par tuvo que **corregir su propia
+  instrucción al escritor** ahí, que lo había degradado a `Publish denied` (frase falsa para él); lo detectó **releyendo el
+  diff contra el original**, no con un test—.
+
+  **Y la compuerta nativa del otro lado ESCALÓ, no aprobó.** Linaje `review-67e5ce17ce2b4bcb` sobre `02893f7..b63b00c`
+  (tier high, 4 lentes): estado **`escalated`**, transición **terminal** `native_stop_required`, causa `unknown_causality`,
+  atada a **`R4-001`** (lente **resilience**, `severity: CRITICAL`, `evidence_class: deterministic`), ubicación
+  `ckanext/umss/logic/auth/publication.py:121-123`. Su texto, verbatim: *«Removing publication_publish and the sysadmin
+  escape hatch leaves publication requests permanently undecidable when the requester loses capacity or is the only
+  approver; the changed comment states the request stays pending with no escape hatch, so the dataset can never be
+  published.»*
+
+  **Cómo se lee eso, y es lo importante:** el revisor independiente leyó **el comentario que declara la limitación** y lo
+  levantó como CRITICAL. **No es un defecto accidental: es la consecuencia que el autor aceptó** al elegir cerrar todo, y
+  es **exactamente la limitación que mi spec declara** desde la primera enmienda. O sea: el código hace lo que el
+  requisito pide y el desacuerdo es de **política**, no de hecho — el proveedor degradó el hallazgo por
+  `unverified_location` y la sesión par **verificó que la ubicación es real** (el comentario existe y dice eso).
+  Proceduralmente la escalada es correcta (causalidad `unknown` sobre un CRITICAL escala, y es terminal) y **la herramienta
+  no firma sola una consecuencia de política: la firma es del mantenedor**. No corresponde reintentar la compuerta sobre
+  ese candidato.
+
+  **Consecuencia para esta casa:** el re-corte de `A5` espera esa firma, **no más código**. Y si el autor elige la otra
+  rama —abrir salida para los dos casos bloqueados—, la sesión par avisó que **cambiaría `Approver Capacity` otra vez**, así
+  que la spec no se toca hasta que decida.
+
+  **Y el autor firmó el mismo día: acepta la limitación declarada y sigue.** Lo que eso significa, dicho sin adorno: la
+  escalada **queda como registro**, no como obstáculo —no se reintenta la compuerta sobre `b63b00c`, y el push y merge de
+  esa unidad son política ordinaria—, y **no hay corrección de código pendiente**, porque el hallazgo describe la
+  consecuencia aceptada y no un defecto. Lo que sí queda anotado como costo: en una instalación cuyo único aprobador es el
+  solicitante, **ese dataset no se publica**, y la mitigación es operativa (otro aprobador, u otra organización
+  administradora en el camino), no de código. Y mi re-corte de `A5` deja de esperar una decisión y pasa a esperar **un
+  hecho**: que el stack corra el código nuevo (el contenedor no recarga en caliente, así que hoy el servidor tiene el muro
+  viejo en memoria), que es del lado de la sesión par.
