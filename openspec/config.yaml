@@ -12,7 +12,7 @@ context: |
   ("Plataforma de Datos Abiertos UMSS"). TypeScript is strict and the package manager is
   pnpm 10.12.1 (lockfile committed). Biome 2 is the linter and formatter.
 
-  The backend is CKAN 2.11 running HEADLESS: only its REST action API is used, through the
+  The backend is CKAN **2.12.0** running HEADLESS: only its REST action API is used, through the
   same-origin /api/ proxy. The portal owns all UI, including administration. CKAN's native
   web UI is accepted only as an operational crutch during v0 (PRD §3, §7, §10).
 
