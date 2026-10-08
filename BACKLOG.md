@@ -55,9 +55,23 @@
 > el **diccionario** (lo midió la sesión par buscando un discriminador que no publicara; el título original de ese dataset
 > quedó **irrecuperable** —no está en ningún archivo de ninguno de los dos repos, y sin `package_revision` no hay historia—
 > y el dataset volvió a privado). El portal tipa `title` como `string`, así que un dataset con ese valor **puede** llegar a
-> pintar `[object Object]` para una sesión con permiso: **no medido**, porque el dataset está privado y anónimo no lo ve.
-> Es una puerta de **integridad del catálogo**, no de gobernanza: va con el inventario de acciones nativas y con el oráculo
-> de la API (bloque G), no con este cambio.
+> pintar `[object Object]` para una sesión con permiso: **medido ahora en jsdom, sin tocar la base**: con un `package_show` simulado que devuelve el diccionario, la ficha real
+> pinta **`[object Object]`** en su `<h1>` (medición temporal, borrada después de correr). O sea: el agujero es de los **dos
+> lados** —CKAN lo persiste y el portal lo pinta crudo, porque tipa `title` como `string` y **no valida la frontera**—.
+> Propuesta del lado del portal: normalizar en el borde (si `title` no es texto, caer al `name`), como unidad propia.
+> Va con el inventario de acciones nativas y con el oráculo de la API (bloque G), no con este cambio.
+>
+> **Y una corrección de un incidente de sesión (2026-10-08), que yo mismo agrandé:** un `awk` mal elegido sobre
+> `ckan user token list` —el formato es **`[id] nombre - últimoAcceso`**— volcó al transcript **7 identificadores** de
+> `ckan_admin`, con su nombre y su fecha de último acceso. **Lo escribí como «7 tokens vivos» y recomendé rotar el del
+> `datapusher` y el del portal: eso era falso, y la recomendación se retira.** Medido por la sesión par **con el control
+> negativo que faltaba** (sin credencial → `403`; el campo `[..]` del listado como credencial → `403`; el valor real del
+> token → `200`): **ese campo no autentica** —es el id— y el valor del token **nunca** se imprime. Lo único que habilita un
+> id es **revocar** ese token (`user token revoke <id>`). Revocados los dos que ya no servían (`probe-origen3`,
+> `sesion-prueba`); el resto **no se toca**: no hay credencial expuesta. Las dos reglas que quedan: **nunca recortar un
+> listado cuyo formato no se vio antes** (primero se enmascara con `sed -E 's/\[[^]]*\]/[OCULTO]/g'` y se mira la forma) y
+> **una sonda sin control negativo no es una sonda** — si no se sabe qué devuelve el negativo, tampoco se sabe qué significa
+> el positivo.
 >
 > **Y una medición que respalda lo ya anotado arriba:** la tabla del store **está** en la base de dev —`ckandb`,
 > `publication_requests`, **14 filas, 1 en `pending`** (medido el 2026-10-08)—. La primera consulta de las dos sesiones dio
