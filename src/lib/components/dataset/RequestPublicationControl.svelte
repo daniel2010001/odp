@@ -215,49 +215,111 @@ function retry() {
 		{/if}
 
 		{#if active?.status === "pending"}
-			<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
-				<p class="flex items-center gap-2 text-sm font-medium text-foreground">
-					<Clock class="size-4 shrink-0" aria-hidden="true" />
-					{PENDING_HEADING}
-				</p>
-				<p class="mt-1 text-xs text-muted-foreground">{PENDING_BODY}</p>
-				<Button
-					variant="outline"
-					size="sm"
-					class="mt-2"
-					onclick={handleCancel}
-					disabled={pending !== null}
-				>
-					{#if pending === "cancel"}
-						<LoaderCircle class="size-4 animate-spin" />
-						Cancelando…
-					{:else}
-						<CircleX class="size-4" />
-						{CANCEL_LABEL}
-					{/if}
-				</Button>
+			<!-- El estado **también** es una acción del hero, y hasta el 2026-10-08 no lo era: con una
+			     solicitud pendiente se dibujaba el bloque entero —borde, titular, explicación y botón— con
+			     `w-full`, así que el hero crecía, el título y las insignias se desplazaban y la fila de
+			     acciones dejaba de leerse. En la presentación de acción el estado es **una fila compacta**
+			     de la altura de sus hermanos: el distintivo con el ícono y el reloj, y la cancelación con
+			     la misma forma. La explicación no se pierde: la tarjeta del estado, más abajo, dice
+			     «Pendiente de revisión, pedida por …». -->
+			<div
+				class={apariencia === "accion"
+					? "flex flex-wrap items-center gap-2"
+					: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
+			>
+				{#if apariencia === "accion"}
+					<span class={ACCION_CLASS}>
+						<Clock class="size-4 shrink-0" aria-hidden="true" />
+						{PENDING_HEADING}
+					</span>
+					<button
+						type="button"
+						class={ACCION_CLASS}
+						onclick={handleCancel}
+						disabled={pending !== null}
+					>
+						{#if pending === "cancel"}
+							<LoaderCircle class="size-4 animate-spin" />
+							Cancelando…
+						{:else}
+							<CircleX class="size-4" />
+							{CANCEL_LABEL}
+						{/if}
+					</button>
+				{:else}
+					<p class="flex items-center gap-2 text-sm font-medium text-foreground">
+						<Clock class="size-4 shrink-0" aria-hidden="true" />
+						{PENDING_HEADING}
+					</p>
+					<p class="mt-1 text-xs text-muted-foreground">{PENDING_BODY}</p>
+					<Button
+						variant="outline"
+						size="sm"
+						class="mt-2"
+						onclick={handleCancel}
+						disabled={pending !== null}
+					>
+						{#if pending === "cancel"}
+							<LoaderCircle class="size-4 animate-spin" />
+							Cancelando…
+						{:else}
+							<CircleX class="size-4" />
+							{CANCEL_LABEL}
+						{/if}
+					</Button>
+				{/if}
 			</div>
 		{:else if active?.status === "annulled"}
 			<!-- La solicitud perdió su objeto: el dataset se eliminó o ya se publicó por otra vía. No
 			     se ofrece volver a pedirla, porque el estado que la justificaba ya no está. -->
-			<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
-				<p class="flex items-center gap-2 text-sm font-medium text-foreground">
-					<Ban class="size-4 shrink-0" aria-hidden="true" />
-					{ANNULLED_HEADING}
-				</p>
-				<p class="mt-1 text-xs text-muted-foreground">{ANNULLED_BODY}</p>
+			<div
+				class={apariencia === "accion"
+					? "flex flex-wrap items-baseline gap-2"
+					: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
+			>
+				{#if apariencia === "accion"}
+					<span class={ACCION_CLASS}>
+						<Ban class="size-4 shrink-0" aria-hidden="true" />
+						{ANNULLED_HEADING}
+					</span>
+					<span class="text-xs text-muted-foreground">{ANNULLED_BODY}</span>
+				{:else}
+					<p class="flex items-center gap-2 text-sm font-medium text-foreground">
+						<Ban class="size-4 shrink-0" aria-hidden="true" />
+						{ANNULLED_HEADING}
+					</p>
+					<p class="mt-1 text-xs text-muted-foreground">{ANNULLED_BODY}</p>
+				{/if}
 			</div>
 		{:else}
 			{#if active?.status === "rejected"}
-				<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
-					<p class="flex items-center gap-2 text-sm font-medium text-foreground">
-						<CircleX class="size-4 shrink-0" aria-hidden="true" />
-						{REJECTED_HEADING}
-					</p>
-					{#if active.comments?.trim()}
-						<p class="mt-1 text-xs text-muted-foreground">Motivo: {active.comments.trim()}</p>
+				<div
+					class={apariencia === "accion"
+						? "flex flex-wrap items-baseline gap-2"
+						: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
+				>
+					{#if apariencia === "accion"}
+						<span class={ACCION_CLASS}>
+							<CircleX class="size-4 shrink-0" aria-hidden="true" />
+							{REJECTED_HEADING}
+						</span>
+						<span class="text-xs text-muted-foreground">
+							{#if active.comments?.trim()}
+								Motivo: {active.comments.trim()}
+							{:else}
+								{NO_REASON}
+							{/if}
+						</span>
 					{:else}
-						<p class="mt-1 text-xs text-muted-foreground">{NO_REASON}</p>
+						<p class="flex items-center gap-2 text-sm font-medium text-foreground">
+							<CircleX class="size-4 shrink-0" aria-hidden="true" />
+							{REJECTED_HEADING}
+						</p>
+						{#if active.comments?.trim()}
+							<p class="mt-1 text-xs text-muted-foreground">Motivo: {active.comments.trim()}</p>
+						{:else}
+							<p class="mt-1 text-xs text-muted-foreground">{NO_REASON}</p>
+						{/if}
 					{/if}
 				</div>
 			{/if}

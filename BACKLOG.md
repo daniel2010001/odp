@@ -2271,6 +2271,27 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   no un texto para el usuario) y no en cada página.
   **No bloquea `v0`** (decisión del autor).
 
+> **Decisión del autor (2026-10-08, tarde): el hero con una solicitud pendiente rompía la ficha.** Con una solicitud
+> enviada, el control dibujaba el **bloque entero** —borde, titular, explicación y botón— con `w-full` dentro de la fila
+> de acciones: el hero crecía, el título y las insignias se desplazaban y la fila dejaba de leerse. **Corregido**: en la
+> presentación de acción el estado es **una fila compacta** de la altura de sus hermanos (distintivo + cancelar), y el
+> bloque completo queda en la tarjeta del estado, que es su lugar. **Medido antes y después en el navegador: el contenido
+> del hero mide `281 px` en los dos casos y la sección siguiente no se mueve** — el defecto era el desplazamiento, y ya
+> no ocurre.
+>
+> **Y tres apuntes del mismo día, para la próxima sesión:**
+> - **[v0] El despliegue para presentar `v0`** (pedido del autor): con **datos de prueba**, **fuera del modo dev**, con un
+>   «lo que tenemos y lo que faltaría» escrito, y **funcional en otras infraestructuras** — considera un VPN o algún
+>   servicio para el despliegue. Es el trabajo de presentación, no una decisión tomada.
+> - **[v1] Alinear el runtime de Node.** Medido: las imágenes (`Dockerfile`, `Dockerfile.dev`) y el contenedor que corre
+>   son **node 20** (`v20.20.2`) y el **CI corre con 22** — o sea, **el verde del CI no cubre el runtime que se
+>   entrega**. El autor dice subirlo y anota que la recomendada **podría ser la 24**: **verificar cuál es la LTS vigente
+>   al hacerlo** antes de elegir el número.
+> - **El bloque F, medido, para no volver a medirlo:** lo que hay «debajo» de los colaboradores **no es `v0` en ninguna
+>   de sus partes** — **gestión de organizaciones** (CRUD) es `[v1]`, **gestión de usuarios y roles** (`RF-03`) es
+>   `[v1+]`, **colaboradores por dataset y equipos** y su **UI** son `[v1+]`. Nada de eso entra en un `v0` presentable:
+>   el criterio de salida es publicar un dataset con recursos y verlo en el portal, y quedó verificado de punta a punta.
+
 - [x] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
   por roles con capacidad de pasar a permisos, y **es exactamente esto**: `RF-01` define roles **a nivel de
