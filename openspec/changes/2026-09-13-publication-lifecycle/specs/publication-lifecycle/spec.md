@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define what makes a private dataset public, who may do it, what the platform guarantees about that permission, and what a caller sees when it is refused. This capability is the contract of the **transition itself**: the wall, the `publication_requests` store, the request flow and its five actions, and the portal's request and approval affordances.
+Define what makes a private dataset public, who may do it, what the platform guarantees about that permission, and what a caller sees when it is refused. This capability is the contract of the **transition itself**: the wall, the `publication_requests` store, the request flow and its ~~five~~ **four** actions (**amended 2026-10-08**: `publication_publish` was removed, so the standing contract is four actions), and the portal's request and approval affordances.
 
 This capability is specified separately from `dataset-publishing` because it is not a property of the creation wizard. The guarantee lives in CKAN's authorization layer, in the `umss` extension (`ckanext-umss`, repository `odp-docker`), while the portal only offers an affordance and reports CKAN's answer. `dataset-publishing` remains the contract of the portal's creation wizard; this capability is the contract of the visibility change.
 
@@ -22,7 +22,7 @@ This capability is specified separately from `dataset-publishing` because it is 
 
 **Evidence (non-normative).** Enforcement is implemented in the `umss` extension in a different repository from the portal, so the portal's `pnpm test` cannot establish the CKAN-side requirements below. Every CKAN-side scenario is stated as observable CKAN behavior that the extension's `pytest` suite or the live probe `probe.sh` against the running CKAN can establish (`openspec/changes/2026-09-13-publication-lifecycle/probe.sh`). Portal-side scenarios are observable in Vitest component and API tests against a CKAN response. The portal has **no integration runner and no E2E runner** (`openspec/config.yaml`): no scenario below claims one.
 
-**Measured baseline** (`design.md` §Measured baseline; `apply-progress.md`). The running stack answers CKAN `2.12.0` (`status_show`, measured 2026-10-07); the pre-guard measurements below were taken on `2.11.6` on 2026-09-14, and D1's base is proven on that version (`design.md` §Not measured / not re-verified). Before the guard (`apply-progress.md`): an organization `editor` published its own organization's dataset with `package_patch {private: false}` and got `200` stored `private: false` (`:253`); `package_create {private: false}` and `package_create` with `private` omitted both answered `200` with a stored public dataset (`:257-258`); a `package_patch {private: "banana"}` and `{private: ""}` also answered `200` stored public, because `boolean_validator` is total and coerces every other value to `False` (`:255-256`, `:363-399`); a full `package_update` that omitted `private` left `private: true` (`:275-276`); an `admin` of a **parent** organization publishing a dataset owned by a **child** organization answered `200` with `private=false` (`:288`), so the approver cascade in `Approver Capacity` is measured, not inferred; an organization `member`, an editor of another organization and an anonymous caller were already refused with `403` (`:284-287`); `bulk_update_public` by an editor was refused with `403` by CKAN's own authorization, not by the guard (`:295`). A published dataset reaches the anonymous catalogue and a private one stays absent: the anonymous `*:*` count rose by exactly the number of datasets published in the run and returned to its pre-run value after cleanup (`:289-299`, `P7`). After the guard was applied (2026-09-14, `2.11.6`) the probe reported `25/25` (`:300`), including `P6`: an org `admin` `package_patch {private: false}` → `200` stored public — **the row this capability removes**: under the wall the admin is refused through `package_patch`, and the publishing path moves to the approval flow (an admin approves a request they did not create) or to the `sysadmin`'s recorded direct publish.
+**Measured baseline** (`design.md` §Measured baseline; `apply-progress.md`). The running stack answers CKAN `2.12.0` (`status_show`, measured 2026-10-07); the pre-guard measurements below were taken on `2.11.6` on 2026-09-14, and D1's base is proven on that version (`design.md` §Not measured / not re-verified). Before the guard (`apply-progress.md`): an organization `editor` published its own organization's dataset with `package_patch {private: false}` and got `200` stored `private: false` (`:253`); `package_create {private: false}` and `package_create` with `private` omitted both answered `200` with a stored public dataset (`:257-258`); a `package_patch {private: "banana"}` and `{private: ""}` also answered `200` stored public, because `boolean_validator` is total and coerces every other value to `False` (`:255-256`, `:363-399`); a full `package_update` that omitted `private` left `private: true` (`:275-276`); an `admin` of a **parent** organization publishing a dataset owned by a **child** organization answered `200` with `private=false` (`:288`), so the approver cascade in `Approver Capacity` is measured, not inferred; an organization `member`, an editor of another organization and an anonymous caller were already refused with `403` (`:284-287`); `bulk_update_public` by an editor was refused with `403` by CKAN's own authorization, not by the guard (`:295`). A published dataset reaches the anonymous catalogue and a private one stays absent: the anonymous `*:*` count rose by exactly the number of datasets published in the run and returned to its pre-run value after cleanup (`:289-299`, `P7`). After the guard was applied (2026-09-14, `2.11.6`) the probe reported `25/25` (`:300`), including `P6`: an org `admin` `package_patch {private: false}` → `200` stored public — **the row this capability removes**: under the wall the admin is refused through `package_patch`, and the publishing path moves to the approval flow (an admin approves a request they did not create) — **amended 2026-10-08: and that approval is the only path, for every caller, the `sysadmin` included; the action `publication_publish` grants nothing.**
 
 **Asserted, not measured.** Atomicity of "record + flip" is deduced from the shared session (`design.md` D5; `ckan/logic/__init__.py:313`), not measured. It is a required behavior with the scenario that closes it below. Native actions beyond `bulk_update_public` that write `private`/`state` are not inventoried (`design.md` §Not measured / not re-verified); `No Other Visibility Path` is normative while that inventory remains a review trigger.
 
@@ -30,9 +30,9 @@ This capability is specified separately from `dataset-publishing` because it is 
 
 ### Requirement: Publication Authorization
 
-A dataset's stored `private` value MUST change to `false` only through a publication action defined by this capability (see `Publication Request Actions`). No update path may publish. `package_update` and `package_patch` MUST refuse every attempt to set `private` to a public value and every change to `state`, with **no capacity exception**: the refusal applies to a caller holding only the dataset's ordinary edit capacity **and** to a caller holding the `admin` capacity in the owning organization. `package_create` MUST refuse every creation whose `private` value is not explicitly private — an omitted `private` key is the same publish attempt as `private: false`, because CKAN resolves the omission to its public column default (`ckan/logic/schema/__init__.py:160-161`; `ckan/model/package.py:75`) — for that same set of callers.
+A dataset's stored `private` value MUST change to `false` only through a publication action defined by this capability (see `Publication Request Actions`). No update path may publish. `package_update` and `package_patch` MUST refuse every attempt to set `private` to a public value, with **no capacity exception**: the refusal applies to a caller holding only the dataset's ordinary edit capacity **and** to a caller holding the `admin` capacity in the owning organization. They MUST refuse every change to `state` for those same callers. **Amended 2026-10-08 — the `state` rule keeps a declared `sysadmin` carve-out:** the no-capacity-exception rule binds the **visibility** transition (setting `private` to a public value, and a `package_create` whose `private` is not explicitly private); `state` administration is deliberately preserved for a `sysadmin` — deleting a dataset through `bulk_update_delete` is not publishing — so the wall does **not** refuse `state` writes for a `sysadmin`. The two `package_update` rules are split on purpose (see `Sysadmin Bypass`). `package_create` MUST refuse every creation whose `private` value is not explicitly private — an omitted `private` key is the same publish attempt as `private: false`, because CKAN resolves the omission to its public column default (`ckan/logic/schema/__init__.py:160-161`; `ckan/model/package.py:75`) — for that same set of callers.
 
-A refusal MUST be an authorization failure (see `Distinguishable Authorization Errors`) produced before validation or persistence, and MUST leave every stored value of the dataset unchanged: nothing of a refused request may be written. The `sysadmin` bypass is the one declared exception (`ckan/authz.py:224-228`; see `Sysadmin Bypass`). The create-time `state` drop is deliberately not re-guarded: `package_create` with a `state` CKAN was not going to honor is not refused by this capability.
+A refusal MUST be an authorization failure (see `Distinguishable Authorization Errors`) produced before validation or persistence, and MUST leave every stored value of the dataset unchanged: nothing of a refused request may be written. The `sysadmin` bypass is **no longer** an exception for visibility writes: the guard declares `auth_sysadmins_check`, so the wall runs for a `sysadmin` too (`Sysadmin Bypass`, amended 2026-10-08). CKAN's general sysadmin short-circuit remains for every other action. The create-time `state` drop is deliberately not re-guarded: `package_create` with a `state` CKAN was not going to honor is not refused by this capability.
 
 #### Scenario: Organization editor attempts publication
 
@@ -129,7 +129,9 @@ A refusal MUST be an authorization failure (see `Distinguishable Authorization E
 
 The **approval** transition MUST be granted to a caller that holds the `admin` capacity in the dataset's owning organization, including an administrator of a parent organization in the organization hierarchy, and to a `sysadmin`. The capacity MUST be exercised **through the publication actions** (`publication_request_decide`): the same caller publishing with stock `package_patch {id, private: false}` MUST be refused (see `Publication Authorization`). No extension-defined permission beyond the stock organization `admin` capacity may be required to decide. The same predicate MUST be the only source of approver identity; the portal MUST NOT maintain its own role table.
 
-**Four eyes — nobody approves a request they created.** An approver MUST NOT be the `requested_by` of the request it decides, and the refusal MUST be distinguishable and MUST NOT be a silent no-op: the request stays `pending`. The approval path MUST re-check, at decision time, the dataset's current owning organization and the requester's current capacity, not the state captured when the request was created. The `sysadmin`'s **direct** path is separate: `publication_publish` MUST be a `sysadmin`-only action that writes and consumes the `publication_requests` row it records, and an organization `admin` MUST NOT have a direct publish path.
+**Four eyes — nobody approves a request they created.** An approver MUST NOT be the `requested_by` of the request it decides, and the refusal MUST be distinguishable and MUST NOT be a silent no-op: the request stays `pending`. The approval path MUST re-check, at decision time, the dataset's current owning organization and the requester's current capacity, not the state captured when the request was created. **No caller has a direct publish path** (**amended 2026-10-08**, author's decision — *«la regla vale también en la API: se retira el camino directo»*; it supersedes the 2026-10-07 position that reserved it for a `sysadmin`). `publication_publish` MUST NOT grant publication to anyone, a `sysadmin` included, and MUST NOT write or consume a `publication_requests` row. A `sysadmin` publishes the way every other approver does — `publication_request_decide {approve: true}` — which puts them under the same four eyes and the same decision-time re-checks as anyone else.
+
+**The two dead ends this creates, stated rather than implied** (**2026-10-08**). With the direct path retired and four eyes absolute: (i) a `sysadmin` who created a request MUST NOT decide it — the `sysadmin` has **no** exception — so that request needs a **different** approver (another `sysadmin`, or an `admin` of the owning or of a parent organization); and (ii) the decision-time re-check of the requester's current capacity applies **without** a `sysadmin` exemption, so a requester who lost that capacity leaves a request **nobody** may approve. The only sanctioned exit from either state is the one every other caller has: **cancel the request and request again** from a caller who holds the capacity at that moment, with an approver other than the new requester. An installation whose only approver is the requester therefore **cannot publish that dataset**: it stays private, nothing is corrupted, and the limitation is **declared here** — it replaces the retired «the `sysadmin` remains the emergency path» escape. **And there is no residual API path behind either dead end**: `Sysadmin Bypass` (amended 2026-10-08) retires the stock bypass for visibility writes, so the limitation is real rather than nominal.
 
 #### Scenario: An organization administrator approves a request they did not create
 
@@ -149,17 +151,25 @@ The **approval** transition MUST be granted to a caller that holds the `admin` c
 
 - GIVEN a dataset stored with `private: true` and a caller holding the `admin` capacity in its owning organization
 - WHEN the caller invokes `publication_publish {id}`
-- THEN CKAN answers `403` with `error.__type = "Authorization Error"`
+- THEN CKAN answers `HTTP 400 "Bad request: Action name not known: publication_publish"` (**amended 2026-10-08**: the action is removed, so the refusal is a missing action rather than an authorization failure)
 - AND the stored `private` remains `true`
-- AND the direct path is reserved for a `sysadmin`
+- AND no caller has a direct path: the same call by a `sysadmin` fails the same way (**amended 2026-10-08**)
 
-#### Scenario: The sysadmin's recorded direct publish
+#### Scenario: The sysadmin's direct publish is refused
 
-- GIVEN a `sysadmin` caller and a dataset of any organization
+- GIVEN a `sysadmin` caller and a dataset stored with `private: true`
 - WHEN the caller invokes `publication_publish {id}`
+- THEN CKAN answers `HTTP 400 "Bad request: Action name not known: publication_publish"` (**amended 2026-10-08**: `publication_publish` is removed, not merely refused, so an unregistered name answers `400` and never `403`, `500` or `404`)
+- AND the stored `private` remains `true`
+- AND no `publication_requests` row is written or consumed by that call
+
+#### Scenario: The sysadmin publishes by deciding a request
+
+- GIVEN a `pending` request the `sysadmin` did not create
+- WHEN the caller invokes `publication_request_decide {request_id, approve: true}`
 - THEN CKAN answers `200` and the stored `private` is `false`
-- AND a `publication_requests` row is written and consumed with outcome `approved` in the same act
-- AND the sysadmin's unflagged stock bypass remains available as well (see `Sysadmin Bypass`)
+- AND the row is `approved` with `decided_at` and `consumed_at` set
+- AND this is the only publication path a `sysadmin` has
 
 #### Scenario: An administrator of a parent organization approves
 
@@ -183,18 +193,18 @@ The **approval** transition MUST be granted to a caller that holds the `admin` c
 - WHEN any of them attempts the transition
 - THEN CKAN answers `403` for all of them
 - AND no portal-side role, setting or override grants it
-- AND publishing such a dataset requires a `sysadmin`
+- AND publishing such a dataset requires an approver that is **not** the requester: an `admin` of the owning or of a parent organization, or a `sysadmin` who did not create the request (**amended 2026-10-08** — with the direct path retired, a `sysadmin` who *is* the requester cannot decide it either, and the request must be cancelled and requested again by someone else)
 
 ### Requirement: Distinguishable Authorization Errors
 
-Denials produced by the wall or by the publication actions MUST be authorization failures: HTTP `403` with `error.__type = "Authorization Error"` and a message that names the missing capacity. The wall MUST carry **two distinguishable messages**: the message for a caller who does not administer the organization states that only an organization administrator can publish (`Only an organization administrator can publish a dataset`), and the message for a caller who does administer it states that publication goes through the publication flow and not `package_patch`.
+Denials produced by the wall or by the publication actions MUST be authorization failures: HTTP `403` with `error.__type = "Authorization Error"` and a message that names the missing capacity. The wall MUST carry **two distinguishable messages**: the message for a caller who does not administer the organization ~~states that only an organization administrator can publish (`Only an organization administrator can publish a dataset`)~~ — **amended 2026-10-08: the sentence became false, because nobody publishes directly; the message must state that only an organization administrator can decide a publication request (`Only an organization administrator can decide a publication request`)** — and the message for a caller who does administer it, or who is a `sysadmin`, states that publication goes through the publication flow and not `package_patch`.
 
 **A missing thing is not a missing capacity.** An unresolvable `request_id` or `dataset_id` MUST answer `NotFound` (HTTP `404`) and never `403`: reporting that something does not exist as a capacity the caller lacks is a false statement, and it is also what keeps a row from outliving its dataset. The authorization functions MUST therefore answer `success` for an unresolvable id **deliberately** — a lookup that failed does not answer the authorization question — and the **actions** MUST be where existence is checked.
 
 #### Scenario: An unresolvable id is not an authorization failure
 
-- GIVEN a caller who may decide publication requests in their organization
-- WHEN the caller invokes `publication_request_decide` with a `request_id` that resolves to no row, or `publication_publish` with a `dataset_id` that resolves to no dataset
+- GIVEN a caller who may decide or create publication requests in their organization
+- WHEN the caller invokes `publication_request_decide` with a `request_id` that resolves to no row, or `publication_request_create` with a `dataset_id` that resolves to no dataset (**amended 2026-10-08**: `publication_publish` was removed, so the `dataset_id` case moves to the action that still takes one)
 - THEN the answer is `NotFound` (`404`), not `403`
 - AND the authorization layer answered success, so the refusal did not come from a capacity check
 - AND no row is written for a dataset that does not exist
@@ -212,7 +222,7 @@ A `private` value the wall cannot interpret as a boolean MUST be treated as a pu
 
 - GIVEN the same refusal
 - WHEN the response body is read
-- THEN the message states that only an organization administrator can publish a dataset
+- THEN the message states that only an organization administrator can decide a publication request (**amended 2026-10-08**: the old sentence, "only an organization administrator can publish a dataset", named a direct publish that no longer exists)
 - AND it is not a generic "not authorized to edit package" message
 
 #### Scenario: An administrator's refusal names the flow
@@ -242,7 +252,7 @@ A `private` value the wall cannot interpret as a boolean MUST be treated as a pu
 
 ### Requirement: No Other Visibility Path
 
-Besides the publication actions and the declared `sysadmin` bypass, no CKAN action reachable through the API may change a dataset's stored `private` to public or change its `state`. `bulk_update_public` MUST be refused by a chain of this capability: measurement (2026-10-07, against the running CKAN 2.12.0) shows its body **does** reach `package_update` internally — `_bulk_update_dataset` loops `package_patch` (`ckan/logic/action/update.py:1212-1216`) — but its **own** authorization function runs first, requires the `update` capacity on the organization (`ckan/logic/auth/update.py:262-269`) and is **not** the one the `Publication Authorization` chain covers, so the refusal has to be chained on `bulk_update_public`'s own authorization. `bulk_update_private` is the degradation direction and is `[v1]` (`RF-42`; see Out of scope). The full inventory of native actions that write `private`/`state` remains a review trigger, not a measured claim (`design.md` §Not measured / not re-verified).
+Besides the publication actions ~~and the declared `sysadmin` bypass~~, no CKAN action reachable through the API may change a dataset's stored `private` to public or change its `state` (**amended 2026-10-08**: the `sysadmin` bypass is no longer declared; the guard sets `auth_sysadmins_check`, so the wall runs for a `sysadmin` too, while `state` administration is deliberately preserved for the `sysadmin` — see `Sysadmin Bypass` and `Publication Authorization`). `bulk_update_public` MUST be refused by a chain of this capability: measurement (2026-10-07, against the running CKAN 2.12.0) shows its body **does** reach `package_update` internally — `_bulk_update_dataset` loops `package_patch` (`ckan/logic/action/update.py:1212-1216`) — but its **own** authorization function runs first, requires the `update` capacity on the organization (`ckan/logic/auth/update.py:262-269`) and is **not** the one the `Publication Authorization` chain covers, so the refusal has to be chained on `bulk_update_public`'s own authorization. `bulk_update_private` is the degradation direction and is `[v1]` (`RF-42`; see Out of scope). The full inventory of native actions that write `private`/`state` remains a review trigger, not a measured claim (`design.md` §Not measured / not re-verified).
 
 #### Scenario: The bulk action is not a publication path
 
@@ -286,23 +296,23 @@ Besides the publication actions and the declared `sysadmin` bypass, no CKAN acti
 
 ### Requirement: Publication Request Actions
 
-Five actions MUST be registered through `IActions`:
+Four actions MUST be registered through `IActions` (**amended 2026-10-08**: the fifth, `publication_publish`, was removed and MUST NOT be registered):
 
 | Action | Authorized to | Does |
 |---|---|---|
 | `publication_request_create(dataset_id, comments?)` | a caller who can `update_dataset` in the owning organization, dataset is private | writes one `pending` row; **idempotent** (returns the existing pending one) |
 | `publication_request_cancel(request_id)` | the requester, or an organization `admin` | `pending` → `cancelled` |
 | `publication_request_decide(request_id, approve, comments?)` | an organization `admin` of the owning or a parent organization, or a `sysadmin` — **never the requester** | `rejected` (a comment is **required**), or `approved` **and flips `private` in the same transaction** |
-| `publication_publish(dataset_id, comments?)` | **`sysadmin` only** | the sysadmin's **recorded** direct path: writes the row and approves/consumes it in the act |
+| ~~`publication_publish(dataset_id, comments?)`~~ | **removed 2026-10-08** (was: no longer grants to anyone) | **Removed from the registry, not merely refused.** The action, its auth function and both `plugin.py` registrations are gone, and the action MUST NOT be registered. A call to that name answers `HTTP 400 "Bad request: Action name not known: publication_publish"` (measured by the peer session) — never `500` and never `404` — and MUST NOT write or consume a `publication_requests` row. |
 | `publication_request_list(status?)` | anyone who administers or edits in the organization, through the stock `update_dataset` capacity **which cascades down the organization hierarchy** | a **read-only** (`side_effect_free`) list: the queue — requests of the orgs where the caller has capacity, plus the caller's own (their own are listed but not decidable by them) |
 
-**Return shape.** Each action returns **only** its `publication_requests` row at the top level, carrying the derived display names `requested_by_name` and `approved_by_name` (resolved in one batched lookup per call, uniform across all five actions). **No action returns the dataset.** A portal MUST therefore **re-read the dataset** after `publication_publish` or an approving `publication_request_decide`, and MUST confirm from the **stored** `private` value: a `200` from the action is not a grant, and a response that does not carry a dataset is not a failure. The portal MUST keep three states apart and MUST NOT collapse them: the action **failed**; the action succeeded and the confirmation **could not be established** (the re-read reports the value still private, or the re-read itself fails); and **confirmed**. Presenting the second as a failure is a false statement.
+**Return shape.** Each action returns **only** its `publication_requests` row at the top level, carrying the derived display names `requested_by_name` and `approved_by_name` (resolved in one batched lookup per call, uniform across all ~~five~~ four actions — **amended 2026-10-08**: `publication_publish` was removed). **No action returns the dataset.** A portal MUST therefore **re-read the dataset** after an approving `publication_request_decide`, and MUST confirm from the **stored** `private` value: a `200` from the action is not a grant, and a response that does not carry a dataset is not a failure. The portal MUST keep three states apart and MUST NOT collapse them: the action **failed**; the action succeeded and the confirmation **could not be established** (the re-read reports the value still private, or the re-read itself fails); and **confirmed**. Presenting the second as a failure is a false statement.
 
 *This replaces the earlier additive wording (a `dataset` key on the two flipping actions): the confirmation is the re-read of the stored value, not a field on the response.*
 
-**Four eyes — nobody approves a request they created.** `publication_request_decide` MUST refuse a caller whose identity equals the request's `requested_by`, and the refusal MUST be an authorization failure, not a silent no-op: the row stays `pending`. An organization `admin` has **no** direct publish path; `publication_publish` is `sysadmin`-only and MUST write and consume a `publication_requests` row rather than flipping through the stock bypass alone. The approver's `comments` is **required when rejecting** and **optional when approving**.
+**Four eyes — nobody approves a request they created.** `publication_request_decide` MUST refuse a caller whose identity equals the request's `requested_by`, and the refusal MUST be an authorization failure, not a silent no-op: the row stays `pending`. **No caller** has a direct publish path (**amended 2026-10-08**): `publication_publish` MUST NOT grant publication to anyone, a `sysadmin` included, and MUST NOT write or consume a `publication_requests` row. The approver's `comments` is **required when rejecting** and **optional when approving**.
 
-The decision MUST re-check, at decision time, the dataset's **current** owning organization and the requester's **current** capacity, not the state captured when the request was created. A `pending` request whose dataset is deleted, or is published by another path (the sysadmin's direct publish), MUST become `annulled`.
+The decision MUST re-check, at decision time, the dataset's **current** owning organization and the requester's **current** capacity, not the state captured when the request was created. A `pending` request whose dataset is deleted ~~, or is published by another path (the sysadmin's direct publish),~~ MUST become `annulled` (**amended 2026-10-08**: `publication_publish` was removed, so a request can no longer be published by another path; the only publication path left is the decision that consumes the request itself).
 
 `publication_request_decide` with `approve` MUST write the `approved` outcome and the `consumed_at` timestamp and flip the dataset's stored `private` to `false` **in the same transaction**: the record and the flip travel one session (`ckan/logic/__init__.py:313`), so either both writes commit or neither does. The door MUST perform the flip through a server-side call that carries `ignore_auth` (`helpers.call_action('package_patch', context={..., 'ignore_auth': True}, ...)`; the production entry point is `logic.get_action('package_patch')` with the same context, `design.md` D5), and `ignore_auth` MUST NOT be reachable from a client (`ckan/views/api.py:244-249,280`).
 
@@ -371,18 +381,20 @@ The decision MUST re-check, at decision time, the dataset's **current** owning o
 - THEN CKAN refuses the call and no `rejected` outcome is written
 - AND the row remains `pending` and the stored `private` remains `true`
 
-#### Scenario: The sysadmin publishes directly and records the row
+#### Scenario: ~~The sysadmin publishes directly and records the row~~ The sysadmin has no direct publish action (**amended 2026-10-08**)
 
 - GIVEN a private dataset and a `sysadmin` caller
 - WHEN the caller invokes `publication_publish {dataset_id, comments}`
-- THEN a `publication_requests` row is written and consumed in the act with outcome `approved`
-- AND the stored `private` is `false`
+- THEN CKAN answers `HTTP 400 "Bad request: Action name not known: publication_publish"`, because the action is removed from the registry
+- AND no `publication_requests` row is written or consumed by that call
+- AND the stored `private` remains `true`
+- AND the current form of this scenario is `The sysadmin's direct publish is refused` above (`publication_publish` is removed, amended 2026-10-08)
 
 #### Scenario: An administrator is refused the direct publish path
 
 - GIVEN a private dataset and a caller holding the `admin` capacity but not the `sysadmin` flag
 - WHEN the caller invokes `publication_publish {dataset_id}`
-- THEN CKAN answers `403` with `error.__type = "Authorization Error"`
+- THEN CKAN answers `HTTP 400 "Bad request: Action name not known: publication_publish"` (**amended 2026-10-08**: the action is removed)
 - AND the stored `private` remains `true`
 
 #### Scenario: The decision re-checks the current state
@@ -392,10 +404,10 @@ The decision MUST re-check, at decision time, the dataset's **current** owning o
 - THEN it re-checks the dataset's **current** owning organization and the requester's **current** capacity, not the state captured at request time
 - AND an approver whose admin capacity no longer covers the current owning organization is refused
 
-#### Scenario: A pending request is annulled when its dataset disappears or is published elsewhere
+#### Scenario: A pending request is annulled when its dataset disappears ~~or is published elsewhere~~ (**amended 2026-10-08**: the "published elsewhere" path was `publication_publish`, now removed)
 
 - GIVEN a `pending` request for a private dataset
-- WHEN the dataset is deleted, or is published by another path (the sysadmin's `publication_publish`)
+- WHEN the dataset is deleted ~~, or is published by another path (the sysadmin's `publication_publish`)~~
 - THEN the request's outcome is `annulled`
 - AND no second publication is written for that dataset
 
@@ -451,19 +463,26 @@ Refusals that already held before this change MUST keep holding, and MUST NOT be
 - GIVEN an action executed inside CKAN with `ignore_auth` (the publication door, a CLI command or a seed script)
 - WHEN it publishes a dataset
 - THEN it succeeds
-- AND this escape hatch is intentional: it is the door's own mechanism and the operational recovery path, and it does not weaken the refusals above
+- AND this escape hatch is intentional: it is the door's own mechanism and the operational recovery path, and it does not weaken the refusals above (**clarified 2026-10-08**: this is the door's internal `ignore_auth` fold — the action writing the record and flipping `private` in one transaction, `design.md` D5 — and it is **not** the retired `sysadmin` bypass, which was the client-facing `package_patch` path and is now closed by `Sysadmin Bypass`)
 
 ### Requirement: Sysadmin Bypass
 
-The guard MUST NOT set `auth_sysadmins_check`, so a `sysadmin` remains the system's real escape hatch: CKAN's `is_authorized` returns success for a sysadmin before calling any auth function (`ckan/authz.py:224-228`), and `context['ignore_auth']` short-circuits earlier still (`ckan/authz.py:212`). The bypass stays declared and unflagged. It is the one publication path that does not write a `publication_requests` row through the door's action when the sysadmin uses stock `package_patch`, and it is the only remaining API emergency path once the wall is in place.
+**Amended 2026-10-08 — the visibility bypass is retired: the guard MUST set `auth_sysadmins_check` on its three functions** (author's decision, taken after the tension with *«la regla vale también en la API»* was raised: **«la pared corre para el `sysadmin` también»**). CKAN's `is_authorized` returns success for a `sysadmin` **before** calling any auth function that does not declare that flag (`ckan/authz.py:224-228`), and that short-circuit is exactly what left the stock `package_patch {private: false}` as an **unrecorded** direct publish path — the one the action's retirement could not close. With the flag declared, the wall **runs for a `sysadmin` too** and refuses a visibility write the same way it refuses it for every other caller. `context['ignore_auth']` still short-circuits earlier still (`ckan/authz.py:212`) and a client cannot inject it (second scenario below).
 
-#### Scenario: The sysadmin bypass is declared
+Three consequences, stated rather than left implicit:
+
+- **The refusal is scoped to the transition, not to the caller.** ~~The wall refuses `private`/`state` writes for a `sysadmin` exactly as it does for an organization `admin`~~ (**corrected 2026-10-08**: that over-claimed). The wall refuses the **publication transition** for a `sysadmin` too — setting `private` to a public value, and a `package_create` whose `private` is not explicitly private (creation is private for everyone) — while **`state` administration is deliberately preserved for the `sysadmin`**: deleting a dataset through `bulk_update_delete` is not publishing, so the wall does **not** refuse `state` writes for a `sysadmin`. The body of `package_update` refuses the visibility and `state` rules together, and the flag change **separates** them. Every other write they make (metadata, resources, any dataset field that is not visibility) MUST keep working.
+- **A `sysadmin` has no API emergency path left.** Every visibility change in the installation goes through a **decided request**. This is what makes the limitation declared in `Approver Capacity` real rather than nominal: the two dead ends it describes (a requester who is the only approver, and a requester who lost capacity) have **no** bypass behind them.
+- **The `sysadmin` bypass is untouched outside this capability.** CKAN's sysadmin short-circuit still applies to every other action and auth function; this requirement changes only the guard's own three functions.
+
+#### Scenario: The sysadmin's stock publication bypass is refused
 
 - GIVEN a `sysadmin` caller and a private dataset
 - WHEN the caller sends `package_patch {id, private: false}`
-- THEN CKAN answers `200` and the stored `private` is `false`
-- AND no `publication_requests` row is required by the door for this call
-- AND this is the intentional, documented escape hatch, not a hole in the wall
+- THEN CKAN answers `403` with `error.__type = "Authorization Error"`
+- AND the stored `private` remains `true` and no `publication_requests` row is written by that call
+- AND a metadata-only `package_patch` by the same caller still answers `200`: the wall refuses the transition, not the caller
+- AND this is the amended position — the bypass was declared intentional until 2026-10-08 and is now **retired** for visibility writes
 
 #### Scenario: A client cannot inject the bypass
 
@@ -506,11 +525,11 @@ After an approver publishes a dataset, the dataset MUST be findable by an anonym
 
 ### Requirement: Portal Publication Affordance
 
-The dataset page MUST offer **distinct controls with distinct gates**: a **request control** for a caller who can edit the dataset's owning organization, and a **direct publish control** for a `sysadmin`. Neither gate may stand in for the other, and an organization `admin` MUST NOT be offered the direct publish control: the direct path is `sysadmin`-only, and an `admin` decides pending requests through the approval queue.
+The dataset page MUST offer exactly **one** publication affordance: a **request control** — with the cancel of the caller's own `pending` request — for a caller who can edit the dataset's owning organization. The portal MUST NOT offer a **direct publish control** to anyone: not to an organization `admin`, and **not to a `sysadmin` either** (author's decision, 2026-10-08). Publication happens only by deciding a request in the approval queue, and no caller may publish a dataset without one. **Amended on 2026-10-08**: this requirement previously demanded *distinct controls with distinct gates* and a `sysadmin`-only direct publish control; that position is superseded, and the parked `PublishControl` is not reused.
 
 The **request control** — and the **cancel** of the caller's own `pending` request — MUST be offered only when CKAN reports the caller as able to `update_dataset` in the dataset's owning organization, the capacity `publication_request_create` demands, determined by `organization_list_for_user {permission: "update_dataset"}` cross-checked against the dataset's organization. It MUST call `publication_request_create`, and `publication_request_cancel` for the caller's own `pending` request, and MUST NOT call `publication_publish`. The portal MUST NOT re-derive organization roles from any other source, and MUST fail closed when the check cannot be completed.
 
-The **direct publish control** MUST be offered only to a caller the portal holds as a `sysadmin`, determined by the portal's existing sysadmin flag (`isSuperAdmin`, `src/lib/stores/auth.ts:96`; the `sysadmin` field is parsed from CKAN's login response at `src/lib/server/ckan-auth.ts:120`). The portal already computes this flag and already distinguishes it from the organization `admin` capacity (`src/lib/stores/auth.test.ts:58-63`), so **no new plumbing is required**. The portal MUST NOT treat an organization list, filtered or not, as proof for the direct publish control, and MUST NOT offer the control when the flag is not confirmed. It MUST call `publication_publish`, never `package_patch`. A caller who can edit, or who administers the dataset's organization but is not a `sysadmin`, MUST NOT be offered the direct publish control.
+The portal MUST NOT call `publication_publish` at all, and MUST NOT render any control whose action is that one. A caller the portal holds as a `sysadmin` is offered the **same** request control under the **same** gate as every other caller: CKAN's `organization_list_for_user {permission: "update_dataset"}` returns every active organization for a `sysadmin` (`sysadmin = authz.is_sysadmin(user)`; on that branch the permission filter is not evaluated — measured on the running CKAN 2.12.0, `ckan/logic/action/get.py`), so no sysadmin-specific branch is needed and none may be added.
 
 No control to reverse a publication may be offered, because retraction is `[v1]`; the cancel control reverses a `pending` request, not a publication.
 
@@ -535,12 +554,12 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 - THEN the browser sends `POST /api/3/action/publication_request_cancel` with exactly the request id
 - AND the cancel control is offered only for the caller's own `pending` request, never another caller's
 
-#### Scenario: The request gate is not the publish gate
+#### Scenario: The request gate is the only gate
 
-- GIVEN a dataset whose stored `private` is `true`, and a user who can `update_dataset` in its owning organization but is not an administrator of it
-- WHEN the portal decides which control to offer
-- THEN the request control is offered and the direct publish control is not
-- AND the request gate is the `update_dataset` check, not the sysadmin flag the direct publish control uses
+- GIVEN a dataset whose stored `private` is `true`, and a user who can `update_dataset` in its owning organization
+- WHEN the portal decides whether to offer the affordance
+- THEN the request control is offered and no direct publish control exists to be offered or withheld
+- AND the only gate is the `update_dataset` check, for every caller
 
 #### Scenario: The request gate fails closed
 
@@ -555,8 +574,8 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 
 - GIVEN a dataset whose stored `private` is `true`, and a user whose `sysadmin` flag is `true`
 - WHEN the dataset page renders
-- THEN the direct publish control is offered
-- AND it states the consequence: "Será visible en el catálogo público."
+- THEN the request control is offered, with its consequence: "Será visible en el catálogo público si la solicitud es aprobada."
+- AND no direct publish control is offered to that user
 
 #### Scenario: A private dataset and an organization administrator
 
@@ -565,15 +584,6 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 - THEN no direct publish control is offered
 - AND the page states who can approve: "Solo un administrador de la organización puede aprobar esta publicación."
 
-#### Scenario: The sysadmin check fails
-
-- GIVEN a dataset whose stored `private` is `true`
-- WHEN the sysadmin flag cannot be read
-- THEN no direct publish control is offered
-- AND an explicit state is shown: "No se pudo verificar su permiso para publicar."
-- AND that state offers a retry action
-- AND the affordance fails closed rather than showing a control that may be wrong
-
 #### Scenario: An already-published dataset
 
 - GIVEN a dataset whose stored `private` is `false`
@@ -581,24 +591,24 @@ No control to reverse a publication may be offered, because retraction is `[v1]`
 - THEN no publication control is offered
 - AND no unpublish or make-private control is offered either
 
-#### Scenario: The control performs the publication action
+#### Scenario: No control publishes directly
 
-- GIVEN a rendered publication control
-- WHEN the user activates it
-- THEN the browser sends `POST /api/3/action/publication_publish` with exactly `{id}`
-- AND the request carries no `state` key
-- AND the request does not call `package_patch`
+- GIVEN any rendered dataset page, for any caller
+- WHEN the user activates every publication control the page offers
+- THEN no request to `/api/3/action/publication_publish` is sent
+- AND the only publication requests the page can send are `publication_request_create` and `publication_request_cancel`
 
-#### Scenario: The direct publish gate is the sysadmin flag
+#### Scenario: A sysadmin is offered the request control, not a direct one
 
-- GIVEN a user who is an `admin` of the dataset's organization but whose `sysadmin` flag is `false`
-- WHEN the portal decides whether to offer the direct publish control
-- THEN no organization list, filtered or not, is accepted as proof
-- AND the control is offered only when the `sysadmin` flag itself is `true`
+- GIVEN a user whose `sysadmin` flag is `true`
+- WHEN the portal decides whether to offer the affordance
+- THEN no direct publish control exists to be offered
+- AND the request control is offered because CKAN reports a `sysadmin` as able to `update_dataset` in the dataset's owning organization
+- AND no sysadmin-specific branch decides the affordance
 
 ### Requirement: Portal Approval Queue
 
-The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name for each party** — the requester **and**, when the row has been decided, whoever decided it — and the row MUST show those names rather than the raw `requested_by`/`approved_by` **ids**. The names MUST be resolved by the action in **a single batched lookup per call**, not one lookup per row, and MUST be present uniformly across all five actions. When the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The portal MUST confirm an **approval** only by **re-reading the dataset** and seeing the **stored** `private` is `false`; a `200` from `publication_request_decide` is not the confirmation, and a response that does not carry a dataset is not a failure. A **rejection** does not touch visibility and MUST be confirmed from the status on the returned row, with no re-read. A re-read that fails is the confirmation that could not be established, not a failure of the action, and MUST NOT be presented as one. The row MUST also show **how long** the request has been pending, alongside its absolute date, and MUST make a **stale** request noticeable; the threshold is a presentation choice and MUST NOT be read as an expiry rule, because nothing expires. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
+The portal MUST host an approval queue for the pending publication requests an administrator can decide. The queue MUST read its rows from `publication_request_list` and MUST decide a row by calling `publication_request_decide` with the request id and the decision; it MUST NOT derive approval from any local role table. The queue MUST enforce **four eyes** by **user id**: a request whose `requested_by` —the **id** of the caller, the value `publication_request_list` returns— equals the current session user's `id` MUST be shown as **not decidable by them** ("No puede aprobar su propia solicitud."), with no approve or reject action offered for it. The comparison MUST use the user id and MUST NOT fall back to the username or display name. The list row MUST carry a **display name for each party** — the requester **and**, when the row has been decided, whoever decided it — and the row MUST show those names rather than the raw `requested_by`/`approved_by` **ids**. The names MUST be resolved by the action in **a single batched lookup per call**, not one lookup per row, and MUST be present uniformly across all ~~five~~ four actions (**amended 2026-10-08**: `publication_publish` was removed). When the response provides no name, the row MUST show a neutral label and MUST NOT render the id. The queue MUST require a comment before submitting a rejection. The portal MUST confirm an **approval** only by **re-reading the dataset** and seeing the **stored** `private` is `false`; a `200` from `publication_request_decide` is not the confirmation, and a response that does not carry a dataset is not a failure. A **rejection** does not touch visibility and MUST be confirmed from the status on the returned row, with no re-read. A re-read that fails is the confirmation that could not be established, not a failure of the action, and MUST NOT be presented as one. The row MUST also show **how long** the request has been pending, alongside its absolute date, and MUST make a **stale** request noticeable; the threshold is a presentation choice and MUST NOT be read as an expiry rule, because nothing expires. The queue host is a design choice (`design.md` D7 proposes the authenticated dashboard), and the route is reviewed per `AGENTS.md` rule 8. All queue scenarios below are observable in Vitest component or API tests against a stubbed CKAN response; the portal has no integration or E2E runner.
 
 #### Scenario: A decided row names who decided, and only when someone did
 
@@ -734,7 +744,7 @@ The portal MUST render only what CKAN confirmed, and MUST NOT present a publicat
 
 ### Requirement: Honest Lifecycle Copy
 
-No user-facing string MUST promise a lifecycle step this cut does not implement. Shipped copy MUST NOT introduce the editorial `draft`/`review`/`approved` vocabulary, a publication-status marker, a review request for the editorial machine, or a versioning promise. Copy about who publishes MUST name the organization administrator as the role that decides and MUST NOT promise an organization administrator a direct publish path (the direct path is `sysadmin`-only). Copy about what private means MUST state that the dataset is readable by the members of its owning organization. The copy that promises "the publication flow decides visibility" is now true: the flow exists (`design.md` D7), and it is edited only to name who publishes.
+No user-facing string MUST promise a lifecycle step this cut does not implement. Shipped copy MUST NOT introduce the editorial `draft`/`review`/`approved` vocabulary, a publication-status marker, a review request for the editorial machine, or a versioning promise. Copy about who publishes MUST name the organization administrator ~~as the role that decides~~ — and a `sysadmin` when relevant — as the role that **decides a request**, and MUST NOT promise anyone a direct publish path (~~the direct path is `sysadmin`-only~~ **amended 2026-10-08**: no direct publish path exists for anyone). Copy about what private means MUST state that the dataset is readable by the members of its owning organization. The copy that promises "the publication flow decides visibility" is now true: the flow exists (`design.md` D7), and it is edited only to name who publishes.
 
 #### Scenario: No deferred vocabulary is shipped
 
@@ -755,5 +765,5 @@ No user-facing string MUST promise a lifecycle step this cut does not implement.
 
 - GIVEN a publication refusal surfaced to the user
 - WHEN it is read
-- THEN it names the role the refused path requires — an administrator of the organization when approval is what is missing, or a `sysadmin` when the direct publish path is what is missing
+- THEN it names the role the refused path requires — an administrator of the organization, or a `sysadmin`, when a decision is what is missing (**amended 2026-10-08**: the "direct publish path" clause is removed; no direct path exists)
 - AND it is not a generic permission or network error message

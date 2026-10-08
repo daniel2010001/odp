@@ -19,6 +19,91 @@
 
 ## Estado al cierre (2026-10-08, madrugada) — **`B1` cerrado**: el ciclo de publicación, cableado al catálogo
 
+> **Actualización (2026-10-08, día) — dos decisiones del autor, y una unidad en curso sobre ellas.**
+>
+> 1. **Sin publicación directa, para nadie.** Un `admin` de organización ve **sólo** el botón de solicitar; el
+>    botón de publicar **no lo ve nadie, incluido el `sysadmin`**, y el único camino es **solicitud → decisión en
+>    la cola**. Palabras del autor: «no importa que el camino sea largo (request-resolver), así es el flujo.
+>    SIN publicar directo». **Reemplaza** la decisión del 2026-10-07 («la publicación directa pasa a ser sólo del
+>    `sysadmin`»). En implementación: `PublishControl` sale de la ficha y de la hoja de revisión, el wrapper del
+>    portal hacia `publication_publish` se retira, y el cambio SDD se enmienda.
+>    **Riesgo vivo, del otro repo — RESUELTO EN LA DECISIÓN Y ABIERTO EN EL ALCANCE (2026-10-08).** El contrato de
+>    `odp-docker` describía `publication_publish` como el camino directo **registrado** del `sysadmin`. La sesión par
+>    lo **confirmó con evidencia**: su auth lleva `auth_sysadmins_check` (corre hasta para el `sysadmin` y le concede), y
+>    la acción anula cualquier `pending` del dataset, crea la fila ya `approved` **y** `consumed`, y voltea el valor. El
+>    autor **decidió que la regla vale también en la API**: «se retira el camino directo», y el `sysadmin` resuelve por
+>    `publication_request_decide {approve: true}` **como cualquiera**. La unidad es de la sesión par (su repo, su
+>    compuerta) y **todavía no arrancó**.
+>    **Y hay un agujero que esa unidad, tal como estaba planteada, NO cierra:** retirar la *concesión de la acción*
+>    deja intacto el **bypass de stock del `sysadmin`** (`package_patch {private: false}`, `ckan/authz.py:224-228`), un
+>    camino directo **no registrado** que el requisito `Sysadmin Bypass` de la spec declara a propósito y cuyo
+>    escenario lo fija. Cerrarlo exige que la pared **corra también para el `sysadmin`** (`auth_sysadmins_check` en sus
+>    tres funciones) — **y el autor lo decidió el mismo día: «la pared corre para el `sysadmin` también»**. La spec ya lo
+>    enmienda (`Sysadmin Bypass`: la guarda declara el flag, y la negativa queda **acotada a la transición, no al
+>    invocante** — los metadatos siguen funcionando), con su consecuencia declarada: **un `sysadmin` se queda sin camino
+>    de emergencia por API**, lo que vuelve **reales** y no nominales los dos callejones sin salida de abajo.
+>    **El cierre es total, y el alcance creció (misma tarde):** `publication_publish` **deja de existir** (un nombre no
+>    registrado responde `400`), quedan **cuatro** acciones, y el `sysadmin` **conserva** la administración de `state` —que
+>    no es publicar—: las dos reglas de `package_update` se separan a propósito. Los rótulos congelados pasan de **nueve a
+>    ocho** (se retira `Not a sysadmin`) y la selección pasa a ser **por hecho, no por rol**, con la oración de
+>    `Publish denied` corregida porque «only an organization administrator can publish a dataset» ya es falsa. **Pendiente
+>    mío:** re-cortar la sonda `A5`, cuyas tres filas de `publication_publish` mueren o invierten su resultado esperado — va
+>    después del merge del otro lado y contra el stack.
+>
+> **Hallazgo nuevo (2026-10-08), del lado del catálogo, y queda abierto:** CKAN **acepta y escribe** un `title` que no sea
+> texto. `package_patch {private: false, title: {"x": 1}}` sobre un dataset de prueba devolvió `200 success: true` y guardó
+> el **diccionario** (lo midió la sesión par buscando un discriminador que no publicara; el título original de ese dataset
+> quedó **irrecuperable** —no está en ningún archivo de ninguno de los dos repos, y sin `package_revision` no hay historia—
+> y el dataset volvió a privado). El portal tipa `title` como `string`, así que un dataset con ese valor **puede** llegar a
+> pintar `[object Object]` para una sesión con permiso: **medido ahora en jsdom, sin tocar la base**: con un `package_show` simulado que devuelve el diccionario, la ficha real
+> pinta **`[object Object]`** en su `<h1>` (medición temporal, borrada después de correr). O sea: el agujero es de los **dos
+> lados** —CKAN lo persiste y el portal lo pinta crudo, porque tipa `title` como `string` y **no valida la frontera**—.
+> Propuesta del lado del portal: normalizar en el borde (si `title` no es texto, caer al `name`), como unidad propia.
+> Va con el inventario de acciones nativas y con el oráculo de la API (bloque G), no con este cambio.
+>
+> **Y una corrección de un incidente de sesión (2026-10-08), que yo mismo agrandé:** un `awk` mal elegido sobre
+> `ckan user token list` —el formato es **`[id] nombre - últimoAcceso`**— volcó al transcript **7 identificadores** de
+> `ckan_admin`, con su nombre y su fecha de último acceso. **Lo escribí como «7 tokens vivos» y recomendé rotar el del
+> `datapusher` y el del portal: eso era falso, y la recomendación se retira.** Medido por la sesión par **con el control
+> negativo que faltaba** (sin credencial → `403`; el campo `[..]` del listado como credencial → `403`; el valor real del
+> token → `200`): **ese campo no autentica** —es el id— y el valor del token **nunca** se imprime. Lo único que habilita un
+> id es **revocar** ese token (`user token revoke <id>`). Revocados los dos que ya no servían (`probe-origen3`,
+> `sesion-prueba`); el resto **no se toca**: no hay credencial expuesta. Las dos reglas que quedan: **nunca recortar un
+> listado cuyo formato no se vio antes** (primero se enmascara con `sed -E 's/\[[^]]*\]/[OCULTO]/g'` y se mira la forma) y
+> **una sonda sin control negativo no es una sonda** — si no se sabe qué devuelve el negativo, tampoco se sabe qué significa
+> el positivo.
+>
+> **Y una medición que respalda lo ya anotado arriba:** la tabla del store **está** en la base de dev —`ckandb`,
+> `publication_requests`, **14 filas, 1 en `pending`** (medido el 2026-10-08)—. La primera consulta de las dos sesiones dio
+> **Las dos consultas que dieron «vacío» fallaron por motivos DISTINTOS**, y eso hace la lección más filosa: la mía usó
+> `$POSTGRES_DB` del contenedor de la base, que vale `postgres` —**la base equivocada**—; la de la sesión par usó `-d ckandb`
+> bien y **el nombre singular** de la tabla (`publication_request`), que no existe. **No compartimos el error y los dos
+> vacíos coincidieron igual**: la coincidencia no valida nada y **ni siquiera implica una causa común** — dos mediciones
+> mal hechas pueden converger por casualidad. Reglas operativas: nombrar la base de CKAN (`-d ckandb`), y **verificar el
+> nombre antes de leer un vacío como ausencia** — una consulta de existencia por nombre supuesto no mide nada.
+>    **Y dos consecuencias de gobernanza que la sesión par midió en el código y que la spec ya declara:** un `sysadmin`
+>    que **es el solicitante** no puede decidir su propia solicitud (cuatro ojos, sin excepción), y un solicitante que
+>    **perdió capacidad** deja una solicitud que nadie puede aprobar. La salida sancionada en los dos casos es cancelar
+>    y volver a solicitar; en una instalación cuyo único aprobador es el solicitante, **ese dataset no se publica** —
+>    limitación **declarada**, no implícita.
+> 2. **La ruta del portal estaba en español, y era la única.** `/dashboard/solicitudes` pasa a
+>    **`/dashboard/requests`**: era el **único** directorio de ruta no inglés de `src/routes/` (medido). El
+>    **copy visible** sigue en español; la **ruta** no. Queda una prueba de guarda en `UserMenu.test.ts`, porque
+>    nada fijaba esa ruta.
+>
+> **Decisiones del autor que quedan abiertas** (listadas para que no se pierdan ni se vuelvan a preguntar):
+> - **«Detalles» contra «Información técnica»** en `/dataset/[id]` — su TODO de diseño; el marco acordado está
+>   en el bloque de `2026-09-13-publication-lifecycle`, más abajo.
+> - **El mecanismo de tooltip de las acciones del hero** — los tres deberían usar el `Tooltip` vendorizado (que
+>   alcanza el foco del teclado), no el `title` nativo.
+> - **El diseño del grupo «Resueltas»** de la cola, que el autor puso **después de promover**.
+> - **Su revisión en el navegador de la hoja `/dev/publication`**.
+> - ~~**Si un `admin` ve las dos affordances o sólo la cola.**~~ **CERRADA (2026-10-08):** nadie ve el control
+>   directo, el `sysadmin` incluido (punto 1 de arriba). El ítem se cierra acá **en vez de agregarse la
+>   respuesta al lado**: la pregunta se le hizo al autor cuatro veces justamente por haber quedado abierta en
+>   esta lista mientras la respuesta vivía en otro archivo. La lección, escrita como regla: **cuando el autor
+>   responde una decisión abierta, se cierra el ítem abierto en el mismo movimiento**.
+>
 > **`main` = `7aeef02`, árbol limpio, CI verde en cada push.** Suite **1013**. `pnpm check` 0 errores.
 >
 > **Lo entregado hoy (unidades, cada una con su compuerta nativa o su razón declarada):**
@@ -27,15 +112,16 @@
 >   **nombre estable** y el estado lo lleva `aria-expanded`.
 > - **Los dos controles de publicación** ganaron una **presentación de acción** (`apariencia="accion"`) para
 >   vivir en el hero con la forma de sus hermanos, con la explicación en tooltip **y** asociada por
->   `aria-describedby`, porque un `title` no lo alcanza el teclado.
+>   `aria-describedby`, porque un `title` no lo alcanza el teclado. **[Superado el 2026-10-08: queda un solo
+>   control, el de solicitar — ver la actualización de arriba.]**
 > - **Los mensajes de error**: frase humana primero y **el código técnico como dato secundario**, nunca la prosa
 >   cruda del catálogo. Cinco sitios en tres componentes, más `technicalDetail` en el módulo de fallos.
 > - **El rótulo del error sigue la misma política que su texto**: sin sesión, `403` y `404` se **fusionan**
 >   también en el rótulo, porque distinguirlos filtra la existencia de un dataset privado.
 > - **`B1`**: la **capa de API** de las cinco acciones, el tipo de fila en su dueño, **la ficha del dataset**
 >   (el botón en el hero, la tarjeta del estado después de la información textual, la re-lectura) y **la page de
->   solicitudes** (`/dashboard/solicitudes`) con el filtro por organización, su entrada en el menú de usuario y
->   el mapeo de presentación en un solo lugar.
+>   solicitudes** (`/dashboard/solicitudes` — **hoy `/dashboard/requests`**) con el filtro por organización, su
+>   entrada en el menú de usuario y el mapeo de presentación en un solo lugar.
 > - **`A5` (la sonda)**, contra el stack: **56/56**, con las filas del muro, los valores límite de `private`
 >   (incluido `'false'`, el contraintuitivo), las dos acciones en bloque con dos actores cada una, `NotFound`
 >   por las dos puertas, la cola acotada por el cuerpo, la puerta publicando de verdad y la carrera del `409`.
@@ -1783,6 +1869,30 @@ real en **dos slices**, cada uno pasado por revisión nativa con su propia líne
 > **Estado (2026-10-07):** la replanificación está **HECHA** — los cinco artefactos reconciliados al
 alcance B (el modelo del PRD) y el gate de presupuesto cerrado como **cadena de unidades**. El estado
 completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: la unidad A1.**
+> **[Superado: `A1`–`B1` están entregadas y `A5` corrida; y el 2026-10-08 el autor cambió la affordance del
+> portal — ver la enmienda de abajo.]**
+>
+> **Enmienda del 2026-10-08 — una sola affordance, y una ruta que estaba en español.**
+> - **La decisión del autor** (arriba, en el bloque de cierre): **sin publicación directa**, para nadie,
+>   `sysadmin` incluido. El portal tiene **una** affordance —el control de solicitar— y **una** compuerta.
+> - **Los artefactos de este cambio se enmiendan**, no se copian: el requisito `Portal Publication Affordance`
+>   de `specs/publication-lifecycle/spec.md` decía «**distinct controls with distinct gates**… a **direct publish
+>   control** for a `sysadmin`» y ahora dice que **no hay control directo para nadie**; sus escenarios sobre el
+>   control directo (el que posteaba `publication_publish`, el de la compuerta `sysadmin`, el del fallo de esa
+>   compuerta) se **retiran**; y `design.md` **D7** deja de ser «dos affordances con dos gates».
+> - **La pieza que muere con la decisión:** la viñeta de `D7` «el `PublishControl` aparcado se reusa, no se
+>   tira» y las tareas `B1.3`/`B1.4` que construyeron el control directo: **se entregaron y después se
+>   retiraron**. En el portal **no queda** `PublishControl` ni su test, ni el wrapper `publish` de
+>   `$lib/api/publication.ts`.
+> - **La duda que la unidad tenía, medida:** ¿el `sysadmin` conserva el botón de **solicitar**, ahora que la
+>   compuerta es `organization_list_for_user {permission: "update_dataset"}`? **Sí.** Medido en el CKAN
+>   **2.12.0 que corre** (`/srv/app/src/ckan/.../get.py`): `if sysadmin: orgs_and_capacities = [(org, 'admin')
+>   for org in orgs_q.all()]` — el filtro por permiso **no se evalúa** para un `sysadmin`, así que recibe todas
+>   las organizaciones y `puedeEditarDataset` es `true`.
+> - **La ruta:** `/dashboard/solicitudes` → **`/dashboard/requests`** (era el único directorio de ruta no
+>   inglés de `src/routes/`), con prueba de guarda en `UserMenu.test.ts`. El expediente es
+>   `odd/tasks/publication-lifecycle-minimum.md`, entrada del 2026-10-08.
+>
 >
 > **Deuda de diseño anotada el 2026-10-07, tras la revisión del autor de `/dev/publication`.** Lo **decidido**:
 > la cola de varias organizaciones va **con filtro por organización** —y el filtro **no se muestra cuando hay

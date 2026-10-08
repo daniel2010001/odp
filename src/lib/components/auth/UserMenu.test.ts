@@ -45,6 +45,18 @@ describe("UserMenu", () => {
 		expect(screen.getByText("jdoe")).toBeInTheDocument();
 	});
 
+	it("la entrada de solicitudes apunta a la ruta inglesa del portal", async () => {
+		auth.login("tok-123", baseUser);
+
+		render(UserMenu);
+		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
+
+		// La ruta del portal va en inglés, como el resto de `src/routes/`; el copy visible sigue en español.
+		// Esta prueba existe porque la ruta nació en español y nada la fijaba.
+		const entrada = screen.getByRole("menuitem", { name: /solicitudes/i });
+		expect(entrada).toHaveAttribute("href", "/dashboard/requests");
+	});
+
 	it("abre el dropdown y muestra Panel y Cerrar sesión", async () => {
 		auth.login("tok-123", baseUser);
 

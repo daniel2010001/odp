@@ -1,4 +1,4 @@
-// API de publicación: las cinco acciones del contrato, del lado del consumidor.
+// API de publicación: las cuatro acciones del contrato, del lado del consumidor.
 //
 // Lo que se prueba acá es la **forma del llamado**, porque la forma es el contrato: qué acción, con qué
 // claves y por qué verbo. La fuente autoritativa es `PUBLICATION-ACTIONS.md` del otro repositorio
@@ -117,15 +117,7 @@ describe("createPublicationApi — decidir", () => {
 	});
 });
 
-describe("createPublicationApi — publicar y listar", () => {
-	it("publicar: llama `publication_publish` con `dataset_id`", async () => {
-		const { client, post } = makeClient({ publication_publish: makeRow({ status: "approved" }) });
-
-		await createPublicationApi(client).publish("pkg-1");
-
-		expect(post).toHaveBeenCalledWith("publication_publish", { dataset_id: "pkg-1" });
-	});
-
+describe("createPublicationApi — listar", () => {
 	it("listar: es un **GET** — la acción es `side_effect_free` — y el filtro va como `status`", async () => {
 		const filas = [makeRow(), makeRow({ id: "req-2" })];
 		const { client, get, post } = makeClient({ publication_request_list: filas });

@@ -2,13 +2,11 @@
 	Hoja de revisión de la publicación — superficie sólo para desarrollo (`/dev/publication`).
 
 	Duplica las superficies reales que la publicación toca y las renderiza con los **componentes
-	reales** (`PublishControl`, `RequestPublicationControl`, `PublicationQueue`):
+	reales** (`RequestPublicationControl`, `PublicationQueue`):
 
 	· la **zona de acciones del hero** de la ficha del dataset (`src/routes/dataset/[id]/+page.svelte`),
-	  vista como editor, como administrador de la organización y como superadministración, para que las
-	  compuertas se comparen sin derivar una de la otra — y, para el control de publicación, sus **dos
-	  colocaciones**: la fila de acciones del hero y el panel bajo la card de organización, con el conteo
-	  de acciones del hero a la vista (`?boton=`);
+	  vista como editor, como administrador de la organización y como superadministración, para que la
+	  solicitud se mire desde los tres roles;
 	· la **cola del panel** del administrador, en cada una de las colocaciones donde el diseño podría
 	  hospedarla: una sección del panel —que ahora sólo **referencia** la page, porque la cola entera
 	  vive en la suya—, una ruta propia, un contador en la navegación y en el menú de usuario, y un aviso
@@ -20,18 +18,17 @@
 	  **decidible** (`?expansion=`). El plegado es presentación, no política: la fila plegada sigue
 	  diciendo qué dataset es, de qué organización y quién la pidió.
 
-	Las reglas que la hoja deja mirar: el **camino directo de publicación** sólo se ofrece a la
-	superadministración (un administrador de organización no lo ve); la **cola** no decide la solicitud
-	que creó quien mira y **exige un motivo para rechazar**; y una solicitud **anulada** dice que dejó
-	de estar vigente. Una solicitud ya resuelta dice quién la decidió, y la cancelada o la anulada no
-	se atribuyen un decisor. También los estados que no se pueden provocar a mano: un `403` rechazado
-	con nombre propio, un `200` que no concede, una solicitud rechazada con su motivo y una cola que no
-	carga.
+	La regla que la hoja deja mirar: publicar es siempre **pedir** y decidir en la cola. No hay camino
+	directo, ni siquiera para la superadministración. La **cola** no decide la solicitud que creó quien
+	mira y **exige un motivo para rechazar**; y una solicitud **anulada** dice que dejó de estar vigente.
+	Una solicitud ya resuelta dice quién la decidió, y la cancelada o la anulada no se atribuyen un
+	decisor. También los estados que no se pueden provocar a mano: un `403` rechazado con nombre propio,
+	un `200` que no concede, una solicitud rechazada con su motivo y una cola que no carga.
 
-	Todas las llamadas —`publish`, `readDataset`, `request`, `cancel`, `list`, `decide`— entran por
-	**dobles**: las acciones del catálogo todavía no existen en la capa de API del portal, así que la
-	hoja no puede cablearlas de verdad. El panel de control es de la hoja, no del producto: es fijo y
-	colapsable, guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&colocacion=&boton=&orgs=`
+	Todas las llamadas —`readDataset`, `request`, `cancel`, `list`, `decide`— entran por **dobles**: las
+	acciones del catálogo todavía no existen en la capa de API del portal, así que la hoja no puede
+	cablearlas de verdad. El panel de control es de la hoja, no del producto: es fijo y colapsable,
+	guarda su estado en la URL (`?vista=&caso=&fallo=&cola=&colocacion=&orgs=`
 	`&secciones=&expansion=&panel=`) y `?clic=1`
 	aprieta el primer control disponible, para poder enlazar un estado que sólo aparece después del
 	clic.
@@ -48,12 +45,10 @@ import {
 	Inbox,
 	Info,
 	LayoutDashboard,
-	Link2,
 	Lock,
 	LogOut,
 	RotateCcw,
 	SlidersHorizontal,
-	SquarePen,
 } from "@lucide/svelte";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
@@ -62,7 +57,6 @@ import PublicationQueue, {
 	type PublicationDecisionResult,
 	type PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
-import PublishControl, { type PublishResult } from "$lib/components/dataset/PublishControl.svelte";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -91,8 +85,6 @@ type Fallo = "ninguno" | "403" | "sin-confirmar" | "relectura" | "red";
 type Cola = "con-solicitudes" | "vacia" | "error" | "resueltas" | "una-organizacion";
 /** Dónde vive la cola: el eje que el autor quiere decidir. */
 type Colocacion = "dashboard" | "ruta" | "contador" | "aviso";
-/** Dónde vive el control de publicar en la ficha: en el hero, en el panel, o los dos para comparar. */
-type Boton = "hero" | "aside" | "ambos";
 /** Cómo se ve, en su propia page, una cola que trae solicitudes de varias organizaciones. */
 type Orgs = "plana" | "agrupada" | "filtro";
 /** Si la cola se lee en dos grupos —pendientes y resueltas— o corrida. */
@@ -134,11 +126,6 @@ const COLOCACIONES: { id: Colocacion; label: string }[] = [
 	{ id: "contador", label: "Contador en la navegación" },
 	{ id: "aviso", label: "Aviso en /dataset/[id]" },
 ];
-const BOTONES: { id: Boton; label: string }[] = [
-	{ id: "hero", label: "En el hero, junto a «Editar»" },
-	{ id: "aside", label: "En el panel, bajo la organización" },
-	{ id: "ambos", label: "Los dos, lado a lado" },
-];
 const ORGS: { id: Orgs; label: string }[] = [
 	{ id: "plana", label: "Lista plana, con la organización" },
 	{ id: "agrupada", label: "Agrupada: una lista por organización" },
@@ -168,7 +155,7 @@ const PRESETS: Preset[] = [
 		id: "sin-solicitud",
 		label: "1 · Sin solicitud",
 		detalle:
-			"El editor y el administrador ven la solicitud; sólo la superadministración publica en directo.",
+			"El editor, el administrador y la superadministración ven la solicitud; publicar es siempre pedir y decidir en la cola.",
 		vista: "ambas",
 		caso: "sin-solicitud",
 		fallo: "ninguno",
@@ -223,47 +210,8 @@ const PRESETS: Preset[] = [
 		cola: "con-solicitudes",
 	},
 	{
-		id: "sysadmin",
-		label: "7 · Superadministración publica",
-		detalle: "El camino directo, ofrecido sólo con el flag `sysadmin`.",
-		vista: "sysadmin",
-		caso: "sin-solicitud",
-		fallo: "ninguno",
-		cola: "con-solicitudes",
-	},
-	{
-		id: "rechazo-403",
-		label: "8 · 403 en el camino directo",
-		detalle:
-			"Apriete Publicar: el catálogo niega la capacidad y la hoja lo dice con nombre propio. Enlace con ?clic=1.",
-		vista: "sysadmin",
-		caso: "sin-solicitud",
-		fallo: "403",
-		cola: "con-solicitudes",
-	},
-	{
-		id: "sin-conceder",
-		label: "9 · La relectura sigue privada",
-		detalle:
-			"Apriete Publicar: el catálogo contesta 200 con su fila, pero la relectura del valor almacenado sigue privada. No hay ningún estado de éxito. Enlace con ?clic=1.",
-		vista: "sysadmin",
-		caso: "sin-solicitud",
-		fallo: "sin-confirmar",
-		cola: "con-solicitudes",
-	},
-	{
-		id: "relectura-falla",
-		label: "10 · La confirmación no se puede leer",
-		detalle:
-			"Apriete Publicar: la acción concede y devuelve su fila, pero la relectura del valor almacenado falla. La hoja lo reporta como confirmación no establecida, no como un fallo de la acción. Enlace con ?clic=1.",
-		vista: "sysadmin",
-		caso: "sin-solicitud",
-		fallo: "relectura",
-		cola: "con-solicitudes",
-	},
-	{
 		id: "cola-vacia",
-		label: "11 · Cola sin solicitudes",
+		label: "7 · Cola sin solicitudes",
 		detalle: "El estado vacío de la cola, sin filas inventadas.",
 		vista: "administrador",
 		caso: "sin-solicitud",
@@ -272,7 +220,7 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "cola-error",
-		label: "12 · Cola que no carga",
+		label: "8 · Cola que no carga",
 		detalle: "La cola no cargada no se disfraza de cola vacía: error explícito con reintento.",
 		vista: "administrador",
 		caso: "sin-solicitud",
@@ -281,7 +229,7 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "solicitud-antigua",
-		label: "13 · Solicitud antigua",
+		label: "9 · Solicitud antigua",
 		detalle:
 			"Una solicitud pendiente desde hace meses: la cola muestra su antigüedad con énfasis para que una solicitud estancada se note al mirar.",
 		vista: "administrador",
@@ -291,7 +239,7 @@ const PRESETS: Preset[] = [
 	},
 	{
 		id: "resueltas",
-		label: "14 · Solicitudes resueltas",
+		label: "10 · Solicitudes resueltas",
 		detalle:
 			"La cola con desenlaces: la decidida muestra quién la aprobó o rechazó, y la cancelada o anulada no se atribuye un decisor. Una aprobada llega sin nombre para ver la etiqueta neutral.",
 		vista: "administrador",
@@ -321,7 +269,6 @@ const CASO_VALUES = values(CASOS);
 const FALLO_VALUES = values(FALLOS);
 const COLA_VALUES = values(COLAS);
 const COLOCACION_VALUES = values(COLOCACIONES);
-const BOTON_VALUES = values(BOTONES);
 const ORGS_VALUES = values(ORGS);
 const SECCION_VALUES = values(SECCIONES);
 const EXPANSION_VALUES = values(EXPANSIONES);
@@ -332,7 +279,6 @@ let caso = $state<Caso>(paramOr("caso", CASO_VALUES, "sin-solicitud"));
 let fallo = $state<Fallo>(paramOr("fallo", FALLO_VALUES, "ninguno"));
 let cola = $state<Cola>(paramOr("cola", COLA_VALUES, "con-solicitudes"));
 let colocacion = $state<Colocacion>(paramOr("colocacion", COLOCACION_VALUES, "dashboard"));
-let boton = $state<Boton>(paramOr("boton", BOTON_VALUES, "ambos"));
 let orgs = $state<Orgs>(paramOr("orgs", ORGS_VALUES, "filtro"));
 let secciones = $state<Secciones>(paramOr("secciones", SECCION_VALUES, "con"));
 let expansion = $state<Expansion>(paramOr("expansion", EXPANSION_VALUES, "primera"));
@@ -403,15 +349,6 @@ const organizacionesDeLaCola = $derived([
 	),
 ]);
 
-// Quién mira decide **qué** hay en el lugar del control: el camino directo es de la plataforma
-// —superadministración— y el editor o administrador de organización ve ahí su solicitud. Con «ambas»
-// se muestra el llenado del botón, que es el que se está comparando.
-const canPublishDelSlot = $derived(vista === "sysadmin" || vista === "ambas");
-
-// El reparto del hero: «Copiar enlace» y «Editar» más el control de publicación si se lo coloca ahí.
-// El conteo —y por lo tanto la fila— sale de la regla de `dataset/[id]/+page.svelte:302-305`.
-const accionesEnElHero = $derived(boton === "aside" ? 2 : 3);
-
 function registrar(texto: string): void {
 	llamadas = [texto, ...llamadas].slice(0, 6);
 }
@@ -432,7 +369,6 @@ function paramsActuales(): URLSearchParams {
 		fallo,
 		cola,
 		colocacion,
-		boton,
 		orgs,
 		secciones,
 		expansion,
@@ -477,11 +413,6 @@ function setColocacion(id: string): void {
 	reset();
 	syncUrl();
 }
-function setBoton(id: string): void {
-	boton = id as Boton;
-	reset();
-	syncUrl();
-}
 function setOrgs(id: string): void {
 	orgs = id as Orgs;
 	reset();
@@ -511,8 +442,8 @@ function aplicarPreset(preset: Preset): void {
 }
 
 // ─── Dobles de las llamadas inyectadas ────────────────────────────────
-// No hay ninguna llamada real: la acción de publicar, las de solicitar/cancelar y las de la cola
-// todavía no existen en la capa de API del portal. Cada doble obedece al interruptor de fallo.
+// No hay ninguna llamada real: las de solicitar/cancelar y las de la cola todavía no existen en la
+// capa de API del portal. Cada doble obedece al interruptor de fallo.
 
 function fallaDeAutorizacion(): CkanApiError {
 	return new CkanApiError("Authorization Error", 403, "Authorization Error");
@@ -522,19 +453,10 @@ function fallaDeRed(): CkanApiError {
 	return new CkanApiError("502 Bad Gateway", 502, "Bad Gateway");
 }
 
-async function publicar(id: string): Promise<PublishResult> {
-	registrar(`Publicar «${id}»`);
-	if (fallo === "403") throw fallaDeAutorizacion();
-	if (fallo === "red") throw fallaDeRed();
-	// La acción devuelve SÓLO su fila `publication_requests`: no trae el dataset. La confirmación
-	// sale de `leerDataset`, que relee el valor almacenado.
-	return makeRequest({ dataset_id: id, id: "publicacion-nueva", status: "approved" });
-}
-
 async function leerDataset(id: string): Promise<CkanPackage> {
 	registrar(`Leer el dataset «${id}»`);
-	// La relectura es la confirmación: puede fallar, y entonces la confirmación no se establece —no es
-	// un fallo de la acción, que ya concedió.
+	// La relectura es la confirmación de una aprobación: puede fallar, y entonces la confirmación no se
+	// establece —no es un fallo de la decisión, que ya concedió.
 	if (fallo === "relectura") throw fallaDeRed();
 	// Con `sin-confirmar` el valor almacenado sigue privado: la acción resolvió, pero no concedió.
 	return makeDataset({ id, private: fallo === "sin-confirmar" });
@@ -613,12 +535,7 @@ async function decidirCola(
 $effect(() => {
 	if (montaje < 0) return; // Sólo lee `montaje`: al remontar hay que volver a apretar.
 	if ($page.url.searchParams.get("clic") !== "1") return;
-	const objetivo =
-		caso === "sin-motivo"
-			? /^Rechazar$/
-			: vista === "sysadmin"
-				? /^Publicar dataset$/
-				: /^Solicitar publicación$/;
+	const objetivo = caso === "sin-motivo" ? /^Rechazar$/ : /^Solicitar publicación$/;
 	// El intervalo se rinde después de ~6 s: si ningún control aparece (por ejemplo con la
 	// verificación caída), no queda un temporizador vivo para siempre.
 	let intentos = 0;
@@ -670,7 +587,7 @@ $effect(() => {
 	</div>
 {/snippet}
 
-{#snippet fichaDataset(item: CkanPackage, canPublish: boolean)}
+{#snippet fichaDataset(item: CkanPackage)}
 	<Card class="space-y-4 p-5">
 		<div class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
 			<span class="font-heading text-xl font-bold text-primary">{item.title}</span>
@@ -696,14 +613,6 @@ $effect(() => {
 				cancel={cancelar}
 				onrequested={(reportada) => (solicitud = { value: reportada })}
 				oncancelled={(reportada) => (solicitud = { value: reportada })}
-			/>
-
-			<PublishControl
-				dataset={item}
-				publish={publicar}
-				readDataset={leerDataset}
-				canPublish={canPublish}
-				onpublished={(publicado) => (dataset = publicado)}
 			/>
 		</div>
 	</Card>
@@ -805,106 +714,6 @@ $effect(() => {
 	</div>
 {/snippet}
 
-{#snippet controlDeLaFicha()}
-	{#if canPublishDelSlot}
-		<PublishControl
-			dataset={dataset}
-			publish={publicar}
-			readDataset={leerDataset}
-			canPublish
-			apariencia="accion"
-			onpublished={(publicado) => (dataset = publicado)}
-		/>
-	{:else}
-		<RequestPublicationControl
-			dataset={{ id: dataset.id, private: dataset.private }}
-			canRequest
-			currentRequest={solicitudVigente}
-			request={solicitar}
-			cancel={cancelar}
-			apariencia="accion"
-			onrequested={(reportada) => (solicitud = { value: reportada })}
-			oncancelled={(reportada) => (solicitud = { value: reportada })}
-		/>
-	{/if}
-{/snippet}
-
-{#snippet fichaConBoton(ubicacion: "hero" | "aside")}
-	<div class="overflow-hidden rounded-xl border border-border">
-		<div class="border-b border-border bg-card px-4 py-8 sm:px-6">
-			<h3 class="font-heading text-3xl font-bold leading-tight text-foreground">
-				{dataset.title}
-			</h3>
-			<p class="mt-3 text-sm text-muted-foreground">
-				Actualizado {formatDate(dataset.metadata_modified)}
-			</p>
-			<div class="mt-4 flex flex-wrap items-center gap-2">
-				<span
-					class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
-				>
-					{dataset.organization?.title}
-				</span>
-				<span
-					class="inline-flex items-center rounded-md border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground"
-				>
-					{dataset.private ? "Privado" : "Público"}
-				</span>
-				<span
-					class="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground"
-				>
-					<Link2 class="size-4" aria-hidden="true" />
-					Copiar enlace
-				</span>
-				<a
-					href="/dashboard"
-					data-sveltekit-reload
-					class="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground"
-				>
-					<SquarePen class="size-4" aria-hidden="true" />
-					Editar
-				</a>
-				{#if ubicacion === "hero"}
-					{@render controlDeLaFicha()}
-				{/if}
-			</div>
-		</div>
-
-		<div class="grid gap-8 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-			<div class="space-y-3">
-				<p class="text-sm leading-relaxed text-muted-foreground">
-					Los datos abiertos de matrícula estudiantil, por gestión y por carrera. El portal los publica
-					con su resumen y sus recursos.
-				</p>
-			</div>
-			<aside class="space-y-4">
-				<Card class="p-5">
-					<p class="font-heading text-sm font-semibold text-card-foreground">Metadatos</p>
-					<dl class="mt-2 space-y-1 text-xs text-muted-foreground">
-						<div class="flex justify-between gap-2"><dt>Frecuencia</dt><dd>Anual</dd></div>
-						<div class="flex justify-between gap-2"><dt>Licencia</dt><dd>CC BY 4.0</dd></div>
-					</dl>
-				</Card>
-				<Card class="p-5">
-					<div class="flex items-start gap-3">
-						<span
-							class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-						>
-							<Building2 class="size-5" aria-hidden="true" />
-						</span>
-						<div class="min-w-0">
-							<p class="font-heading text-sm font-semibold text-card-foreground">Organización</p>
-							<p class="mt-1 text-xs text-muted-foreground">{dataset.organization?.title}</p>
-						</div>
-					</div>
-				</Card>
-				{#if ubicacion === "aside"}
-					{@render controlDeLaFicha()}
-				{/if}
-			</aside>
-		</div>
-	</div>
-{/snippet}
-
 <div class="min-h-screen bg-background font-sans text-foreground">
 	<div class={cn("mx-auto max-w-6xl px-4 py-10 sm:px-6", panelAbierto ? "pb-80" : "pb-24")}>
 		<header class="space-y-2">
@@ -915,13 +724,14 @@ $effect(() => {
 				La publicación de un dataset
 			</h1>
 			<p class="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				La solicitud del editor, el camino directo de la superadministración y la cola donde el
-				administrador decide, sobre el mismo dataset. Los tres controles son los componentes
-				reales (<code class="font-mono text-xs">PublishControl.svelte</code>,
-				<code class="font-mono text-xs">RequestPublicationControl.svelte</code>,
-				<code class="font-mono text-xs">PublicationQueue.svelte</code>): la hoja no reescribe ni
-				el copy ni el comportamiento. Todas las llamadas salen de dobles de la hoja, porque las
-				acciones del catálogo todavía no tienen capa de API en el portal.
+				La solicitud del editor, el administrador de la organización y la superadministración, y la
+				cola donde se decide, sobre el mismo dataset. Publicar es siempre <strong
+					class="font-semibold">pedir</strong
+				> y decidir en la cola: no hay camino directo. Los dos componentes reales
+				(<code class="font-mono text-xs">RequestPublicationControl.svelte</code>,
+				<code class="font-mono text-xs">PublicationQueue.svelte</code>) son los que la hoja renderiza: no
+				reescribe ni el copy ni el comportamiento. Todas las llamadas salen de dobles de la hoja, porque
+				las acciones del catálogo todavía no tienen capa de API en el portal.
 			</p>
 		</header>
 
@@ -942,12 +752,10 @@ $effect(() => {
 				La ficha del dataset: la zona de acciones del hero
 			</h2>
 			<p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				Las compuertas son independientes y ninguna se deriva de la otra: el editor y el
-				administrador pueden editar (así que pueden
-				<strong class="font-semibold">solicitar</strong>), y la superadministración
-				(<strong class="font-semibold">sysadmin</strong>) es la única que publica en directo. Un
-				administrador de organización <strong class="font-semibold">no</strong> recibe el control
-				directo: su camino es decidir solicitudes en la cola.
+				No hay dos compuertas: publicar es siempre
+				<strong class="font-semibold">solicitar</strong>. Quien puede editar el dataset ve la solicitud
+				en el hero, y la decisión se toma en la cola. La superadministración pasa por el mismo camino:
+				no publica en directo. La vista sólo cambia el rol con el que se mira.
 			</p>
 
 			<div class="mt-4 rounded-xl border border-border bg-muted/30 p-4">
@@ -965,7 +773,7 @@ $effect(() => {
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como editor de la organización
 						</p>
-						{#key montaje}{@render fichaDataset(dataset, false)}{/key}
+						{#key montaje}{@render fichaDataset(dataset)}{/key}
 					</div>
 				{/if}
 				{#if vista === "ambas" || vista === "sysadmin"}
@@ -973,7 +781,7 @@ $effect(() => {
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como superadministración de la plataforma
 						</p>
-						{#key montaje}{@render fichaDataset(dataset, true)}{/key}
+						{#key montaje}{@render fichaDataset(dataset)}{/key}
 					</div>
 				{/if}
 				{#if vista === "administrador"}
@@ -981,7 +789,7 @@ $effect(() => {
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como administrador de la organización
 						</p>
-						{#key montaje}{@render fichaDataset(dataset, false)}{/key}
+						{#key montaje}{@render fichaDataset(dataset)}{/key}
 					</div>
 				{/if}
 			</div>
@@ -1440,70 +1248,6 @@ $effect(() => {
 								</Card>
 							</aside>
 						</div>
-					</div>
-				{/if}
-			</div>
-		</section>
-
-		<section class="mt-12" aria-labelledby="boton-heading">
-			<h2 id="boton-heading" class="font-heading text-xl font-semibold text-foreground">
-				Dónde vive el botón de publicar
-			</h2>
-			<p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				El mismo control en los dos lugares propuestos: la fila de acciones del hero, junto a
-				«Editar», y el panel, debajo de la card de organización. Lo que se compara es <strong
-					>el lugar</strong
-				>, no el botón: el lugar se llena según quién mira — la superadministración ve «Publicar
-				dataset», y el editor o el administrador de organización ven «Solicitar publicación» en el mismo
-				hueco. Con <code class="font-mono text-xs">?vista=editor</code> se ve el otro llenado.
-			</p>
-
-			<div class="mt-4 rounded-xl border border-border bg-muted/30 p-4">
-				<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-					Opciones de esta sección
-				</p>
-				<div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{@render grupo("Dónde vive el botón", boton, BOTONES, setBoton)}
-				</div>
-			</div>
-
-			<p
-				data-testid="instrumento-hero"
-				class="mt-4 max-w-3xl rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground"
-			>
-				Con el control en el hero:
-				<strong class="font-semibold text-foreground">{accionesEnElHero} acciones</strong>
-				→ {accionesEnElHero > 1 ? "la fila de las insignias" : "la fila del título"}. Con el control en el
-				panel: <strong class="font-semibold text-foreground">2 acciones</strong> → la fila de las insignias,
-				que es donde el hero ya está hoy. La regla vive en
-				<code class="font-mono text-xs">src/routes/dataset/[id]/+page.svelte:302-305</code>: una acción en la
-				fila del título, dos o más en la de las insignias.
-			</p>
-
-			<p class="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-				En el panel el control va <strong class="font-semibold">como botón y sin card</strong>: una card
-				adentro de otra card repite el marco y se ve redundante. Y en los dos lugares va con la
-				<strong class="font-semibold">presentación de acción</strong> que los componentes ya tienen
-				(<code class="font-mono text-xs">apariencia="accion"</code>): el mismo alto y la misma forma que
-				«Copiar enlace» y «Editar», sin el texto de ayuda debajo —la explicación pasa al tooltip—. Lo que
-				falta es el cableado de la ficha real, que es el trabajo de `B1`.
-			</p>
-
-			<div class={cn("mt-6 grid gap-6", boton === "ambos" && "lg:grid-cols-2")}>
-				{#if boton === "hero" || boton === "ambos"}
-					<div>
-						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-							1 · En el hero, junto a «Editar»
-						</p>
-						<div class="mt-2">{@render fichaConBoton("hero")}</div>
-					</div>
-				{/if}
-				{#if boton === "aside" || boton === "ambos"}
-					<div>
-						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-							2 · En el panel, debajo de la card de organización
-						</p>
-						<div class="mt-2">{@render fichaConBoton("aside")}</div>
 					</div>
 				{/if}
 			</div>

@@ -27,7 +27,6 @@ import {
 } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
-import PublishControl from "$lib/components/dataset/PublishControl.svelte";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
@@ -37,7 +36,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
-import { auth, isSuperAdmin } from "$lib/stores/auth";
+import { auth } from "$lib/stores/auth";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
@@ -97,34 +96,19 @@ const solicitar = (datasetId: string, comments?: string) =>
 	publicationApi.request(datasetId, comments);
 const cancelar = (requestId: string) => publicationApi.cancel(requestId);
 
-/** El camino directo, reservado a la superadministración de la plataforma. */
-const publicar = (datasetId: string, comments?: string) =>
-	publicationApi.publish(datasetId, comments);
-
-/**
- * La **relectura** que confirma una publicación: la acción devuelve sólo su fila, así que el portal
- * mide el valor almacenado en vez de creerle a quien lo escribió. Por eso es una llamada aparte y no
- * una clave de la respuesta.
- */
-function leerDataset(id: string): Promise<CkanPackage> {
-	return createDatasetApi(
-		createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
-	).show(id);
-}
-
 // La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título; dos o
-// más van en la fila de las insignias. Acá copiar enlace siempre existe, «Editar» sólo con permiso y el
-// control de publicación cuando le corresponde, así que el conteo —y el reparto— dependen de esas dos
-// respuestas.
+// más van en la fila de las insignias. El reparto depende de cuántas acciones hay.
 //
-// La condición del control **espeja** la de los dos componentes, y es el único lugar donde eso pasa:
-// `PublishControl` dibuja su acción si la capacidad está concedida, y `RequestPublicationControl` si el
-// dataset es privado, quien mira puede pedir y no hay una solicitud aprobada. Si una de las dos cambia,
-// **este conteo queda viejo** y el hero reserva una fila de más o de menos. Es el precio de que el
-// reparto lo decida la página y el dibujo lo decidan los componentes, y queda declarado a propósito.
+// La condición de la solicitud **espeja** la de `RequestPublicationControl`, y es el único lugar donde
+// eso pasa: el componente dibuja su acción si el dataset es privado, quien mira puede pedir y no hay
+// una solicitud aprobada. Si esa condición cambia, **este conteo queda viejo** y el hero reserva una
+// fila de más o de menos. Es el precio de que el reparto lo decida la página y el dibujo lo decida el
+// componente, y queda declarado a propósito.
+//
+// No hay un segundo control: publicar en directo dejó de existir y la única vía es pedir y decidir en
+// la cola, así que la compuerta es **una sola**, para todos los roles.
 const publicacionEnElHero = $derived.by(() => {
 	if (!dataset) return false;
-	if ($isSuperAdmin) return true;
 	if (!dataset.private || !puedeEditarDataset) return false;
 	return solicitudVigente?.status !== "approved";
 });
@@ -413,8 +397,9 @@ const puedeEditarDataset = $derived.by(() => {
 });
 
 // La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título;
-// dos o más van en la fila de las insignias. Acá copiar enlace siempre existe y «Editar» sólo con
-// permiso, así que el conteo —y por lo tanto el reparto— depende de la respuesta de permiso.
+// dos o más van en la fila de las insignias. Acá copiar enlace siempre existe, «Editar» sólo con
+// permiso y la solicitud de publicación cuando le corresponde, así que el conteo —y el reparto—
+// dependen de esas dos respuestas.
 const heroActionCount = $derived(1 + (puedeEditarDataset ? 1 : 0) + (publicacionEnElHero ? 1 : 0));
 
 // ─── Technical metadata table ───────────────────────────────────
@@ -564,28 +549,19 @@ async function handleCopyLink() {
 				{#if publicacionEnElHero}
 					<!-- El control de publicación **en la fila de sus hermanos**: mismo alto y misma forma que
 					     «Copiar enlace» y «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
-					     no debajo. La compuerta la decide cada componente: el camino directo es de la
-					     superadministración, y el editor ve ahí su solicitud. -->
-					{#if $isSuperAdmin}
-						<PublishControl
-							dataset={item}
-							publish={publicar}
-							readDataset={leerDataset}
-							apariencia="accion"
-							onpublished={(publicado) => (dataset = publicado)}
-						/>
-					{:else}
-						<RequestPublicationControl
-							dataset={{ id: item.id, private: item.private }}
-							canRequest={puedeEditarDataset}
-							currentRequest={solicitudVigente}
-							request={solicitar}
-							cancel={cancelar}
-							apariencia="accion"
-							onrequested={(reportada) => (solicitudVigente = reportada)}
-							oncancelled={(reportada) => (solicitudVigente = reportada)}
-						/>
-					{/if}
+					     no debajo. La compuerta la decide el componente: el editor ve ahí su solicitud. No hay
+					     camino directo —publicar en directo dejó de existir—, así que la única vía es pedir y
+					     decidir en la cola. -->
+					<RequestPublicationControl
+						dataset={{ id: item.id, private: item.private }}
+						canRequest={puedeEditarDataset}
+						currentRequest={solicitudVigente}
+						request={solicitar}
+						cancel={cancelar}
+						apariencia="accion"
+						onrequested={(reportada) => (solicitudVigente = reportada)}
+						oncancelled={(reportada) => (solicitudVigente = reportada)}
+					/>
 				{/if}
 			</div>
 		{/snippet}

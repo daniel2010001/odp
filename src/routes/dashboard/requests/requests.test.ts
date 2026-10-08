@@ -12,7 +12,7 @@ import type { PublicationRequest } from "$lib/api/publication";
 import { auth } from "$lib/stores/auth";
 import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanUser } from "$lib/types/ckan";
-import SolicitudesPage from "./+page.svelte";
+import RequestsPage from "./+page.svelte";
 
 const mocks = vi.hoisted(() => ({
 	createCkanClient: vi.fn<(config: ApiClientConfig) => object>(),
@@ -69,7 +69,7 @@ function makeRow(overrides: Partial<PublicationRequest> = {}): PublicationReques
 }
 
 function renderPage() {
-	return render(SolicitudesPage);
+	return render(RequestsPage);
 }
 
 beforeEach(() => {
