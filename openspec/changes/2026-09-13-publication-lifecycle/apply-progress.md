@@ -3,6 +3,10 @@
 **Scope of this pass:** PR 1 — the CKAN-side enforcement guard in `ckanext-umss` (`odp-docker`),
 plus its reviewer-runnable live-probe harness in `odp`. Tasks 1.1.1 → 1.5.1.
 PR 2 (the portal affordance, `odp`) is **not started** and must not be.
+**[Superado: PR 2 se entregó (el control de solicitar y la cola) y el **2026-10-08** el autor retiró la
+publicación directa — la única affordance es el control de solicitar, `sysadmin` incluido. Requisito
+vigente: `specs/publication-lifecycle/spec.md`, requisito `Portal Publication Affordance`, enmendado.]**
+Este archivo es el registro de **PR 1**; su alcance no se amplía.
 
 **Task state:** all ten PR-1 tasks produced their deliverable and their evidence. Four tasks carry a
 documented defect in their own text (their stated expectation is impossible or wrong); those are

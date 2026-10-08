@@ -1116,3 +1116,108 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   que es exactamente lo contrario de lo que afirmaba mi medición contra el checkout `2.12.0a0`. La fila de
   `'false'` quedó como propia, por ser la contraintuitiva: no está en la lista de verdaderos, así que se guarda
   como **público**.
+
+- **2026-10-08 (madrugada) — Decisión del autor: no hay publicación directa en el portal. Y la ruta del portal era la única en español.**
+
+  **(1) Sin publicación directa, para nadie.** Un `admin` de organización ve **sólo el botón de solicitar**; el botón de
+  publicar **no lo ve nadie, incluido el `sysadmin`**; y el único camino es **solicitud → decisión en la cola**. Palabras
+  suyas: «no importa que el camino sea largo (request-resolver), así es el flujo. SIN publicar directo». **Reemplaza** la
+  decisión del 2026-10-07 («la publicación directa pasa a ser sólo del `sysadmin`», anotada arriba), y con ella cae el par
+  de affordances con dos gates del `D7` del diseño: el portal queda con **una** affordance y **una** compuerta.
+
+  **Consecuencia de borde, declarada y NO resuelta acá:** el contrato tracked de `odp-docker` describe
+  `publication_publish` como «el camino directo **registrado** del `sysadmin`: crea la fila y la aprueba/consume en el acto»,
+  así que **la decisión queda cumplida en el portal y no en la API**: un `curl` con token de `sysadmin` sigue publicando
+  sin solicitud. Se le pasó a la sesión par como pregunta abierta (**su** repo, **su** compuerta) y queda anotado como
+  riesgo vivo, con la lectura propuesta: si «sin publicar directo» es una regla del **flujo**, la acción debe dejar de
+  conceder y el `sysadmin` resolver con `publication_request_decide {approve: true}`.
+
+  **(2) La ruta del portal estaba en español, y era la única.** `/dashboard/solicitudes` pasa a `/dashboard/requests`.
+  Era el **único** directorio de ruta no inglés de `src/routes/` (medido), en un repo cuya convención es que los
+  identificadores y los artefactos técnicos van en inglés: el **copy visible** sigue en español, la **ruta** no. Defecto
+  mío, introducido con la page en `B1`.
+
+  **El mecanismo del error, que es lo que más importa de esta entrada.** Al autor se le preguntó «¿un `admin` ve las dos
+  affordances o sólo la cola?» **cuatro veces**. La causa no fue falta de respuesta: fue que **la respuesta no reemplazaba
+  la pregunta** —quedaba anotada en el registro de la sesión, mientras el ítem seguía **abierto** en la lista de pendientes
+  del `BACKLOG.md`, que es donde se lee—. Regla que se adopta: **cuando el autor responde una decisión abierta, se cierra
+  el ítem abierto en el mismo movimiento**; anotar la respuesta no alcanza si la pregunta sigue listada. Un registro que
+  sólo agrega obliga a cada sesión siguiente a volver a preguntar lo mismo.
+
+  **La duda que esta unidad traía, medida y cerrada en el mismo paso** (la pregunta heredada era: al caer la rama del
+  `sysadmin`, el botón de solicitar queda detrás de `puedeEditarDataset`, que sale de
+  `organization_list_for_user {permission: "update_dataset"}` — ¿incluye esa pregunta a un `sysadmin`?). **Sí, y por una
+  rama explícita.** Medido en el CKAN **2.12.0 que corre** (`/srv/app/src/ckan/ckan/logic/action/get.py:678-683`), no en un
+  checkout viejo:
+  `sysadmin = authz.is_sysadmin(user)` y `if sysadmin: orgs_and_capacities = [(org, 'admin') for org in orgs_q.all()]` —
+  el filtro por permiso **no se evalúa** para un `sysadmin`: recibe **todas** las organizaciones activas. Por lo tanto
+  `listUpdatableOrganizationIds()` lo incluye, `puedeEditarDataset` da `true` y el `sysadmin` **recibe el botón de
+  solicitar** en cualquier dataset privado, que es exactamente lo que el autor decidió. Queda anotado que la medición es
+  **lectura del artefacto vivo** y no una ejecución contra la API: lo que la cierra del todo es verlo en el navegador con
+  sesión de `sysadmin` (paso de verificación de la unidad).
+
+- **2026-10-08 (tarde) — El autor decide que la regla vale también en la API. Y aparece el agujero que retirar la acción NO cierra.**
+
+  **La confirmación, con evidencia, de la sesión par:** `publication_publish` es una **puerta viva** de la API. Su auth
+  (`logic/auth/publication.py`) lleva `auth_sysadmins_check`, así que **corre hasta para el `sysadmin`** y le devuelve
+  `success` sobre un dataset privado; la acción anula cualquier `pending` del dataset, crea la fila ya `approved` **y**
+  `consumed`, y voltea el valor. El muro no la intercepta porque **ninguna** de sus tres funciones lleva ese flag: CKAN
+  cortocircuita al `sysadmin` antes de que corran. Conclusión de la sesión par, textual: **la decisión del 2026-10-07
+  quedaba cumplida en la UI y no en la API.**
+
+  **La decisión del autor:** *«La regla vale también en la API: se retira el camino directo»*. `publication_publish` deja
+  de conceder **para todos, incluido el `sysadmin`**, y el `sysadmin` resuelve con `publication_request_decide {approve:
+  true}` **como cualquiera**. **Reemplaza** la decisión del 2026-10-07 («`publish` sólo `sysadmin`»). La unidad de
+  implementación es de la sesión par (su repo, su compuerta) y **todavía no arrancó**.
+
+  **Lo que se enmendó acá:** el requisito `Approver Capacity` (no hay camino directo para nadie; el `sysadmin` decide como
+  cualquiera), los escenarios (el del camino directo del `sysadmin` se invierte a `403`, y se agrega el que describe su
+  camino real), la fila de la tabla de acciones, `Publication Request Actions` (misma frase, más el `Return shape` sin esa
+  acción) y la referencia del `Measured baseline`. **Y se declaran, en vez de dejarlas implícitas, las dos consecuencias**
+  que la sesión par midió en el código: (i) un `sysadmin` **que es el solicitante** no puede decidir su propia solicitud
+  (cuatro ojos, sin excepción) y (ii) un solicitante **que perdió capacidad** deja una solicitud que **nadie** puede
+  aprobar. En los dos casos la salida sancionada es **cancelar y volver a solicitar**, y una instalación cuyo único
+  aprobador es el solicitante **no publica ese dataset**: limitación **declarada**, que ocupa el lugar de la salida que se
+  retira («el `sysadmin` sigue siendo el camino de emergencia»).
+
+  **El agujero que la unidad, tal como está planteada, NO cierra — y es decisión abierta del autor.** Retirar la
+  *concesión de la acción* deja intacto el **bypass de stock del `sysadmin`**: `package_patch {private: false}` responde
+  `200` y publica, porque el muro **no corre** para un `sysadmin`. Hay entonces un **segundo** camino directo, **no
+  registrado**, que la regla «sin publicar directo» también alcanza si se la lee entera. Cerrarlo exige que la pared
+  **corra también para el `sysadmin`** (`auth_sysadmins_check` en sus tres funciones), y su costo es explícito: el
+  `sysadmin` pierde su camino de emergencia por API. El requisito `Sysadmin Bypass` hoy **declara** ese bypass como
+  intencional, así que las dos posiciones están escritas y en tensión: quedó marcado **como decisión abierta** dentro del
+  propio requisito —no lo reescribí por mi cuenta— y **se le preguntó al autor**.
+
+  **Y la respuesta del autor, el mismo día:** *«La pared corre para el `sysadmin` también.»* La spec quedó enmendada en
+  consecuencia —`Sysadmin Bypass` invierte su signo: la guarda **declara** `auth_sysadmins_check`, la pared **corre**
+  para el `sysadmin` y le refusa la escritura de visibilidad; la negativa queda **acotada a la transición, no al
+  invocante** (un `package_patch` sólo de metadatos del mismo `sysadmin` sigue dando `200`); y `package_create` con
+  `private` no explícitamente privado también se refusa para él—. Consecuencia declarada, y es la que vuelve **real** la
+  limitación de arriba: **el `sysadmin` no tiene ningún camino de emergencia por API**; toda publicación pasa por una
+  solicitud decidida, así que los dos callejones sin salida **no tienen bypass detrás**. El cortocircuito de CKAN fuera
+  de esta capacidad no se toca: cambian las tres funciones de la guarda, nada más. La sesión par ya tiene la posición y
+  su unidad suma el flag, el inventario de puertas del muro, el contrato y las filas de `A5` con el resultado esperado
+  **invertido** (`200` → `403`).
+
+  **Learned (lo transferible).** Retirar una puerta **sancionada** no retira la que el sistema deja abierta: la que se
+  borra y la que CKAN mantiene son objetos distintos, y confundirlos produce un «ya está cerrado» falso. El chequeo que
+  lo detecta es preguntar **por qué esa puerta funcionaba**: si su razón de ser era otra puerta ausente y esa otra sigue
+  ahí, retirarla no cambia el resultado — sólo cambia **quién queda registrado**. Y en la spec, la consecuencia de una
+  regla nueva se **escribe**: dejarla implícita es lo que hizo que la misma pregunta volviera cuatro veces.
+
+  **Actualización de alcance (misma tarde, la sesión par).** El cierre es **total** y el alcance creció: `publication_publish`
+  **deja de existir** —se retiran la acción, su auth y sus dos registros en `plugin.py`; un nombre no registrado responde
+  `400 "Action name not known"`, medido—; el muro pasa a **cuatro** acciones, no cinco; las tres funciones llevan
+  `auth_sysadmins_check`, y el `sysadmin` **conserva** la administración de `state` (`bulk_update_delete`), que **no** es
+  publicar: las dos reglas de `package_update` se separan a propósito; la selección de rótulo pasa a ser **por hecho y no
+  por rol** (`Publication flow: …` para quien puede actuar por el flujo, `Publish denied: …` para el resto) y los rótulos
+  congelados pasan de **nueve a ocho** (se retira `Not a sysadmin`), con la oración de `Publish denied` cambiada porque
+  «only an organization administrator can publish a dataset» pasó a ser falsa. El test que **afirmaba el bypass como
+  diseño** (`test_auth.py`, A3.3) queda en rojo por decisión, que es lo que se busca. **De mi lado**: la spec del cambio ya
+  lo refleja (acción **removida**, cuatro acciones, corte de `state` escrito como deliberado, y los dos callejones con su
+  «sin red»), los rótulos **no** están pinneados en mi spec (verificado con `grep` sobre todo el directorio del cambio), y
+  queda pendiente **re-cortar la sonda**: `probe.sh` tiene tres toques a `publication_publish` (`P11.nf.dataset`,
+  `P13.pub.sysadmin`, `P13.pub.editor`) que mueren o invierten —la negativa pasa a ser `400` por nombre no registrado— y
+  el bypass de stock del `sysadmin` invierte su resultado esperado. Se corre **después** del merge de la sesión par,
+  contra el stack, como unidad propia.
