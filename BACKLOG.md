@@ -17,6 +17,55 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Estado al cierre (2026-10-08, madrugada) — **`B1` cerrado**: el ciclo de publicación, cableado al catálogo
+
+> **`main` = `7aeef02`, árbol limpio, CI verde en cada push.** Suite **1013**. `pnpm check` 0 errores.
+>
+> **Lo entregado hoy (unidades, cada una con su compuerta nativa o su razón declarada):**
+> - **La cola se lee en secciones** (pendientes y después resueltas, con conteo y sin titular grupos vacíos) y
+>   **pliega todo menos la primera solicitud decidible** —nunca una propia: cuatro ojos—. El disparador tiene
+>   **nombre estable** y el estado lo lleva `aria-expanded`.
+> - **Los dos controles de publicación** ganaron una **presentación de acción** (`apariencia="accion"`) para
+>   vivir en el hero con la forma de sus hermanos, con la explicación en tooltip **y** asociada por
+>   `aria-describedby`, porque un `title` no lo alcanza el teclado.
+> - **Los mensajes de error**: frase humana primero y **el código técnico como dato secundario**, nunca la prosa
+>   cruda del catálogo. Cinco sitios en tres componentes, más `technicalDetail` en el módulo de fallos.
+> - **El rótulo del error sigue la misma política que su texto**: sin sesión, `403` y `404` se **fusionan**
+>   también en el rótulo, porque distinguirlos filtra la existencia de un dataset privado.
+> - **`B1`**: la **capa de API** de las cinco acciones, el tipo de fila en su dueño, **la ficha del dataset**
+>   (el botón en el hero, la tarjeta del estado después de la información textual, la re-lectura) y **la page de
+>   solicitudes** (`/dashboard/solicitudes`) con el filtro por organización, su entrada en el menú de usuario y
+>   el mapeo de presentación en un solo lugar.
+> - **`A5` (la sonda)**, contra el stack: **56/56**, con las filas del muro, los valores límite de `private`
+>   (incluido `'false'`, el contraintuitivo), las dos acciones en bloque con dos actores cada una, `NotFound`
+>   por las dos puertas, la cola acotada por el cuerpo, la puerta publicando de verdad y la carrera del `409`.
+> - **Lo del otro repositorio está mergeado**: `A3` (la pared) y **`titles-and-labels`** (PR #4) con los **dos
+>   títulos** de presentación y los **nueve rótulos congelados**.
+>
+> **Pendientes, en orden:**
+> 1. **Las dos capas de la sonda**: la **forma** (`Access denied: <Rótulo>: …`) en toda fila de negativa y el
+>    **rótulo propio** donde la fila existe para distinguir, más la capa del `409` **claveado por campo**
+>    (`comments`, `request_id`, `approve`). Los nueve valores ya están mergeados: nada espera.
+> 2. **El inventario de las 18 acciones** del PR #3 como mapa de filas de la sonda, separando lo que el muro
+>    cierra de lo que no.
+> 3. **El diseño de «Detalles» contra «Información técnica»** en `/dataset/[id]` — pendiente del autor, con su
+>    marco ya acordado (detalles = resumen; información técnica = completo, y manda la izquierda) y una
+>    precisión mía: el resumen responde **otra pregunta**, no es la misma lista más corta.
+> 4. **El tooltip de los tres botones del hero** (el `Tooltip` vendorizado alcanza el teclado) y el **diseño del
+>    grupo «Resueltas»**, que el autor puso **después de promover**.
+> 5. **Del otro lado, pendiente:** la **etiqueta todavía es traducible** (unidad chica con compuerta propia; los
+>    valores no cambian) y **`A6`** — registrar `ckan db upgrade` en el despliegue con **`-p umss` sin
+>    `--skip-core`** y **verificando la tabla**, porque el `SUCCESS` de ese CLI es **incondicional**.
+> 6. **La traducción del rótulo no tiene guardián externo, y está medido**: la API **no** negocia el locale por
+>    `Accept-Language` (`locale_default = en`, `locales_offered` vacío, y una cadena **con** traducción cargada
+>    volvió en inglés), así que la sonda afirma la **forma** y **no** la no-traducción. La propiedad se guarda
+>    **donde vive la constante**, con un test **estructural** (recargar el módulo con `toolkit._` reemplazado por
+>    un centinela y afirmar que el mensaje sigue empezando con su rótulo).
+>
+> **El registro que viaja:** `HANDOFF-2026-10-07.md` (tracked, raíz de `odp-docker`) y
+> `ckan-docker/src/ckanext-umss/PUBLICATION-ACTIONS.md` — la **referencia de interfaz** de las cinco acciones.
+> Este repo **sí** trackea `odd/`, así que acá el expediente es `odd/tasks/publication-lifecycle-minimum.md`.
+
 ## Estado al cierre (2026-10-05, noche) — handoff: la interfaz revisada en vivo, dos diseños promovidos, y **nada a medias**
 
 > **`main` = `22a3fa4` = `origin/main`, árbol limpio, 0 sin pushear, CI verde** (run `37380003988`: lint,
