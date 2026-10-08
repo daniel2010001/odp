@@ -27,8 +27,8 @@ import {
 } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
-import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import { ACCION_BASE } from "$lib/components/dataset/action-class";
+import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";

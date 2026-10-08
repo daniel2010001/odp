@@ -28,9 +28,9 @@ import { technicalDetail } from "$lib/api/failure";
 // `approved_by_name` y `motive`, y este archivo no los tenía.
 import type { PublicationRequest } from "$lib/api/publication";
 import Button from "$lib/components/ui/button/button.svelte";
-import { ACCION_BASE } from "./action-class";
 import { CkanApiError } from "$lib/types/api";
 import { cn } from "$lib/utils";
+import { ACCION_BASE } from "./action-class";
 
 /** Pide la publicación del dataset y devuelve la solicitud tal como quedó en el catálogo. */
 export type RequestPublication = (datasetId: string) => Promise<PublicationRequest>;
