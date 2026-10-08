@@ -73,6 +73,16 @@
 > **una sonda sin control negativo no es una sonda** — si no se sabe qué devuelve el negativo, tampoco se sabe qué significa
 > el positivo.
 >
+> **Resuelta (2026-10-08, noche): el autor aceptó la limitación declarada.** La unidad `no-direct-publish` de `odp-docker`
+> aterrizó en el commit **`b63b00c`** (sin pushear) con la suite en **168 passed**, y su compuerta nativa sobre
+> `02893f7..b63b00c` **ESCALÓ**: linaje `review-67e5ce17ce2b4bcb`, terminal `native_stop_required`, causa
+> `unknown_causality`, por un hallazgo **CRITICAL** de la lente resilience (`R4-001`). El texto del hallazgo es **la
+> limitación declarada** —el `sysadmin` que es el solicitante, y el solicitante que perdió capacidad, quedan sin salida—,
+> o sea la consecuencia que el autor aceptó al cerrar todo, escrita además como comentario en el código. **No es un
+> defecto del código: es una objeción de política**, y la firma es del mantenedor. **Mi re-corte de `A5` espera eso** (los
+> insumos ya están medidos y anotados en el expediente), y si el autor elige abrir una salida para esos dos casos, la
+> sesión par avisó que cambiaría `Approver Capacity` otra vez.
+>
 > **Y una medición que respalda lo ya anotado arriba:** la tabla del store **está** en la base de dev —`ckandb`,
 > `publication_requests`, **14 filas, 1 en `pending`** (medido el 2026-10-08)—. La primera consulta de las dos sesiones dio
 > **Las dos consultas que dieron «vacío» fallaron por motivos DISTINTOS**, y eso hace la lección más filosa: la mía usó
