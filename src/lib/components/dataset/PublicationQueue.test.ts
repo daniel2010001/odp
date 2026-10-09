@@ -770,6 +770,10 @@ describe("PublicationQueue — el enlace al dataset", () => {
 		const row = await rowFor("Matrícula 2026");
 		const link = within(row).getByRole("link", { name: /Matrícula 2026/ });
 
+		// El nombre accesible **conserva el título visible** y además anuncia la pestaña nueva: la aserción
+		// es sobre el nombre completo, no un `match` que pasaría igual sin el aviso `sr-only`.
+		expect(link).toHaveAccessibleName("Matrícula 2026 (se abre en una pestaña nueva)");
+
 		// El `href` codifica el id del dataset: es el destino que el revisor no tiene de otra forma.
 		expect(link).toHaveAttribute("href", "/dataset/pkg-1");
 		expect(link).toHaveAttribute("target", "_blank");
