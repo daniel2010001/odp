@@ -835,6 +835,31 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		).toBeTruthy();
 	});
 
+	it("un estado rechazado explica el motivo en la tarjeta: dejó de vivir en la fila de acciones", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([
+			makeRow({
+				dataset_id: "pkg-1",
+				status: "rejected",
+				approved_by_name: "coordinacion",
+				comments: "Faltan metadatos de contacto.",
+			}),
+		]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		// Desde el 2026-10-08 el hero ya no dibuja el motivo (la solicitud es una insignia); la tarjeta
+		// es la única superficie que lo explica, y por eso se afirma acá y con la frase completa.
+		const estado = await screen.findByTestId("estado-solicitud");
+		expect(estado).toHaveTextContent(
+			"Rechazada por coordinacion. Motivo: Faltan metadatos de contacto.",
+		);
+	});
+
 	it("no muestra la solicitud de **otro** dataset: el filtro es por id, no «alguna fila»", async () => {
 		mocks.showDataset.mockResolvedValue(
 			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),

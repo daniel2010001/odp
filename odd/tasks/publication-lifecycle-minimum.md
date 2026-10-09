@@ -102,6 +102,7 @@ como **medida** o **estimada**, y no se mezclan.
 | WU-4 | **Forecast y gate de presupuesto** | `tasks.md` con `code_lines`, `test_lines`, `review_material_lines` separadas y la proporción medida que se usó | Gate **antes** de aplicar (`openspec/config.yaml`) |
 | WU-5 | **Cierre** | Handoff en `BACKLOG.md` y este expediente completo | `pnpm check` + `pnpm test` en verde si se tocó código del portal |
 | WU-6 | **Playground `/dev/publication` + los dos controles y la cola** (no bloqueado por A2) | La hoja de revisión con el control del pedido (`editor`), el de publicación (`admin`) y la cola de aprobación, contra **llamadas inyectadas** | Se revisa **mirando** la hoja en vivo (regla 8); el cableado a las acciones reales es B1 y espera a A2 |
+| WU-8 | **Los dos avisos de la compuerta del badge** (linaje `review-24164b1645f385df`, 2026-10-09) | (a) el derivado de la insignia pierde el `default: return null;` que **anulaba su propia garantía**: se enumeran `undefined`, `approved` y `cancelled`, y cualquier estado no nombrado cae en un `never` que **no compila**; (b) la prueba que fija que **el motivo del rechazo se lee en la tarjeta**, única superficie que lo muestra desde el 2026-10-08 | La mutación de la concatenación **tiene que poner la prueba en rojo** (si no, no prueba nada); `pnpm test` focalizado + `pnpm check` en verde; compuerta nativa propia sobre el rango commiteado |
 | WU-7 | **Iteración de la hoja `/dev/publication`** (feedback del autor, 2026-10-07, tras la primera revisión visual) | (a) el botón de publicar en sus **dos colocaciones** —hero y `aside`— con el conteo de acciones del hero a la vista; (b) la cola con **pendientes y resueltas**, el primer ítem **decidible** abierto y el resto **plegado**; (c) la cola como **page propia** con las formas multi-org para comparar; (d) la entrada en el menú de usuario **con y sin contador**; (e) el bloque de referencia en el panel | Se revisa **mirando** la hoja en vivo (regla 8); `pnpm test` + `pnpm check` + `pnpm build` en verde; **sólo UI del portal: la API no se toca** |
 
 ## WU-2 · Brief de decisión (2026-10-07)
@@ -1313,3 +1314,41 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   administradora en el camino), no de código. Y mi re-corte de `A5` deja de esperar una decisión y pasa a esperar **un
   hecho**: que el stack corra el código nuevo (el contenedor no recarga en caliente, así que hoy el servidor tiene el muro
   viejo en memoria), que es del lado de la sesión par.
+
+## WU-8 · Los dos avisos de la compuerta del badge (2026-10-09)
+
+**Por qué existe esta unidad.** El arreglo del badge (commit `8fef9bf`, PR #58) **se mergeó sin compuerta**: el linaje no
+existía y se descubrió al reconstruir el estado, no al revisar. La compuerta corrió **después**, sobre el **rango
+commiteado** `f9224aa..a4b2124` —idéntico al merge `fc62cb8` de `origin/main`, verificado con `git diff --stat` de los dos
+rangos, no asumido—, con `committedOnly: true`.
+
+**El resultado**: linaje **`review-24164b1645f385df`**, tier **medium**, lente única `review-reliability`, 6 archivos,
+**165 líneas**, presupuesto de corrección 83. Estado **`approved`** con **2 avisos** no bloqueantes, y autoridad **quemada**
+(`review-24164b1645f385df` → `gentle-ai.review-acknowledged/v1`).
+
+**Los dos avisos, con su texto rescatado del `review-state.json` ANTES del acuse** (el recibo sólo conserva id, severidad
+y ubicación; el texto se pierde con el linaje):
+
+1. **`R3-001`** (SUGGESTION, determinístico, `src/routes/dataset/[id]/+page.svelte:198`): el derivado de la insignia
+   termina en `default: return null;`, así que **el JSDoc de arriba miente**: promete que un estado nuevo de
+   `publication_requests` no compila hasta nombrarlo, y con el `default` presente **sí compila** y el hero se queda sin
+   insignia. Es la degradación silenciosa que el comentario declaraba cerrada. **El hermano `estadoDeLaSolicitud` sí
+   tiene la forma buena** (`const exhaustivo: never = …`), así que el arreglo copia la forma que ya estaba en el archivo.
+2. **`R3-002`** (WARNING, determinístico, `src/routes/dataset/[id]/+page.svelte:161`): el motivo del rechazo llega al
+   usuario **sólo** por esa concatenación en la tarjeta —la fila de acciones dejó de mostrarlo el 2026-10-08— y **ninguna
+   aserción lo prueba**: la prueba de la página sumó únicamente la insignia pendiente, y la del componente afirma la
+   **ausencia** del motivo en la acción. Si esa concatenación regresa, el motivo desaparece de la página sin que falle
+   nada.
+
+**Decisión del autor (2026-10-09):** arreglar los dos en una unidad corta con su compuerta, y **no** dejarlos como nota.
+
+**Lo que esta unidad exige para cerrarse:** (a) el `never` de verdad en el derivado, con `undefined`, `approved` y
+`cancelled` enumerados explícitamente —para que agregar un estado **rompa la compilación**—; (b) la aserción que fija el
+motivo en la tarjeta, **con su mutación medida**: quitar la concatenación tiene que poner la prueba en rojo (si no, la
+prueba no prueba); (c) `pnpm test` focalizado y `pnpm check` en verde; (d) compuerta nativa propia sobre el rango
+commiteado.
+
+**Lección de método, registrada acá porque costó trabajo:** **mergear antes de revisar no ahorra tiempo, lo agrega** —el
+candidato deja de ser un diff vivo y pasa a ser un rango sobre el que ya se movió `main`, y hay que **demostrar** la
+equivalencia con el merge en vez de suponerla—. Y un aviso informativo **no es «nada»**: los dos de esta ronda son deuda
+accionable, encontrada por una lente que leyó el JSDoc contra el código.
