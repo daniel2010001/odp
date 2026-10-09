@@ -30,7 +30,9 @@
 > **El barrido puede esperar hasta `v1`** (decisión del autor). El número está para dimensionarlo.
 >
 > **Nada de diseño se resuelve hasta terminar `v0`, salvo orden explícita del autor en el momento** (como pasó con la
-> insignia del hero el 2026-10-08). Quedan postergados, sin más trámite: el **tooltip vendorizado** de las acciones del
+> insignia del hero el 2026-10-08). **Precisión del autor (misma sesión, 2026-10-09): estas prioridades son
+> sugerencias, no una regla** — si el agente recomienda resolver algo ahora, el autor lo evalúa. El default sigue
+> siendo que el diseño espera. Quedan postergados, sin más trámite: el **tooltip vendorizado** de las acciones del
 > hero, **«Detalles» contra «Información técnica»**, el diseño del grupo **«Resueltas»**, la **card de metadatos**, la
 > **página de la organización**, el **responsive del salto** y el **aire de los pegados**. Los cuatro últimos ya estaban
 > en la lista de `[v0]` abiertos: **la etiqueta no los promueve**, el orden del autor manda.
@@ -47,6 +49,21 @@
 > **La carga de datos de prueba del autor ya está en el repo y anotada:** `scripts/seed-ckan.mjs` (16.5K; la nota del
 > 2026-09-28 registra 16 datasets creados, 0 preexistentes, y el token del seed revocado al terminar, verificado
 > listando). El autor contará el método cuando llegue el despliegue.
+
+### Barrido del `BACKLOG` y del `PRD` — **AUTORIZADO (2026-10-09)**
+
+> **GO del autor**, con una precisión que amplía el alcance y es la parte que más importa: el PRD **no es la fuente de
+> verdad de lo construido**. Donde el PRD declara un módulo «con las features Y y Z completas» y `v0` tomó **sólo Y**,
+> **Z parcial**, o **Z con cambios hechos durante el desarrollo**, hay que **registrar la divergencia en el propio PRD**
+> —con fecha y motivo— en vez de dejar que el lector la deduzca.
+>
+> Los cuatro pasos: (1) **censo de los `[v0]` abiertos** con medición por ítem y cierre de los stale; (2) **cruce
+> PRD ↔ BACKLOG ↔ código** requerimiento por requerimiento (hecho / parcial / ausente / sin equivalente en CKAN);
+> (3) **re-tiering explícito de `v1`**, y el destino puede ser `v1+` **o `v0`** —el autor precisó que no sólo se recorta
+> hacia arriba, también se puede **traer a `v0`** lo que hoy está mal ubicado—; (4) una **carilla «qué es `v0` y qué no
+> es»** que sirva de guion de presentación, provisión de una instalación vacía incluida.
+>
+> **Expediente: `odd/tasks/backlog-prd-reconciliation.md`** (creado con este charter; primera pasada **no iniciada**).
 
 ### Caso de gobernanza — el aprobador decide a ciegas (planteado por el autor, 2026-10-09)
 
@@ -69,6 +86,11 @@
 > mismo lugar; **(c)** una **vista de revisión** propia en la cola (más cara). **Decisión del autor, pendiente.**
 > *Propuesta del agente, a confirmar: es candidato a `[v0]`, porque es lo que le da sentido a la compuerta; el tier lo
 > define el autor.*
+>
+> **Decisión del autor (2026-10-09): va la (a) ahora, y quiere VER la (b).** La (a) se implementa: el título de la fila de
+> la cola **enlaza** a `/dataset/<id>` en **pestaña nueva**. La (b) —los controles de decidir en la ficha— **se lleva a un
+> playground `/dev/…`** para que la revise (regla 8: el agente propone algo concreto y verificable, el autor lo mira en
+> vivo): **no se promueve hasta que la apruebe**, y si no le gusta, el camino queda en la (a).
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
@@ -91,6 +113,9 @@
 > reciente** por `created_at` en vez de «la primera»—; **(b)** quitar la resolución por nombre y **limpiar** las filas
 > viejas con una migración: es «sólo por id» en sentido estricto, al precio de una migración y de una ventana de filas
 > invisibles; **(c)** no hacer nada y documentarlo. **Decisión del autor, pendiente**, con la información de arriba.
+> **DECISIÓN (2026-10-09): (a) ahora, (b) para `v1`.** Se implementa la elección **determinista** —la pendiente **más
+> reciente** por `created_at`, no «la primera»— **y** que la ficha **diga** que hay más de una; quitar la resolución por
+> nombre y migrar las filas viejas queda **anotado para `v1`** (es trabajo del otro repo), no «en el aire».
 
 ## Estado al cierre (2026-10-08, madrugada) — **`B1` cerrado**: el ciclo de publicación, cableado al catálogo
 

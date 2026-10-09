@@ -102,6 +102,7 @@ como **medida** o **estimada**, y no se mezclan.
 | WU-4 | **Forecast y gate de presupuesto** | `tasks.md` con `code_lines`, `test_lines`, `review_material_lines` separadas y la proporción medida que se usó | Gate **antes** de aplicar (`openspec/config.yaml`) |
 | WU-5 | **Cierre** | Handoff en `BACKLOG.md` y este expediente completo | `pnpm check` + `pnpm test` en verde si se tocó código del portal |
 | WU-6 | **Playground `/dev/publication` + los dos controles y la cola** (no bloqueado por A2) | La hoja de revisión con el control del pedido (`editor`), el de publicación (`admin`) y la cola de aprobación, contra **llamadas inyectadas** | Se revisa **mirando** la hoja en vivo (regla 8); el cableado a las acciones reales es B1 y espera a A2 |
+| WU-9 | **Gobernanza: el aprobador revisa antes de decidir** (decisión del autor, 2026-10-09) | (a) el título de la fila de la cola **enlaza** a `/dataset/<id>` en **pestaña nueva** — hoy el aprobador puede leer el dataset pero no tiene ningún camino hasta él, y está privado, así que no aparece en el catálogo; (b) la ficha elige la pendiente **más reciente** por `created_at` (no «la primera») y **dice** que hay más de una | (a) y (b) con su prueba; la **variante de diseño** —controles de decidir en la ficha— va a **playground `/dev/…`** y **no se promueve** sin la revisión del autor (regla 8) |
 | WU-8 | **Los dos avisos de la compuerta del badge** (linaje `review-24164b1645f385df`, 2026-10-09) | (a) el derivado de la insignia pierde el `default: return null;` que **anulaba su propia garantía**: se enumeran `undefined`, `approved` y `cancelled`, y cualquier estado no nombrado cae en un `never` que **no compila**; (b) la prueba que fija que **el motivo del rechazo se lee en la tarjeta**, única superficie que lo muestra desde el 2026-10-08 | La mutación de la concatenación **tiene que poner la prueba en rojo** (si no, no prueba nada); `pnpm test` focalizado + `pnpm check` en verde; compuerta nativa propia sobre el rango commiteado |
 | WU-7 | **Iteración de la hoja `/dev/publication`** (feedback del autor, 2026-10-07, tras la primera revisión visual) | (a) el botón de publicar en sus **dos colocaciones** —hero y `aside`— con el conteo de acciones del hero a la vista; (b) la cola con **pendientes y resueltas**, el primer ítem **decidible** abierto y el resto **plegado**; (c) la cola como **page propia** con las formas multi-org para comparar; (d) la entrada en el menú de usuario **con y sin contador**; (e) el bloque de referencia en el panel | Se revisa **mirando** la hoja en vivo (regla 8); `pnpm test` + `pnpm check` + `pnpm build` en verde; **sólo UI del portal: la API no se toca** |
 
@@ -1371,3 +1372,22 @@ discriminante queda sin agotar y el `never` deja de ser alcanzable—, o sea que
 lo que detendría un arreglo equivocado**. El aviso queda como registro; no se reintenta la compuerta sobre un candidato
 ya aprobado. Regla de método que se lleva la sesión: **un aviso de una revisión aprobada se verifica contra el código
 antes de tratarlo como deuda** —uno de esta ronda era real; éste no.
+
+## WU-9 · Gobernanza: el aprobador revisa antes de decidir (2026-10-09)
+
+**El caso, planteado por el autor.** La aprobación **no es un trámite**: antes de aceptar la solicitud hay que
+**revisar** el dataset, porque la gobernanza exige comprobar que la información es correcta para ser pública.
+
+**Lo medido el 2026-10-09, y son tres hechos distintos:** (1) el aprobador **sí puede leer** el dataset —admin de la
+organización dueña que no es el solicitante: `package_show` → `200`, `private=true`, con recursos, medido el
+2026-10-08—; (2) **no tiene cómo llegar a él**: `PublicationQueue.svelte` muestra el **título como texto** y el
+componente **no tiene un solo `href`** (verificado), y el dataset está **privado**, así que **no está en el catálogo**;
+(3) los controles de decidir viven **sólo en la cola**; la ficha tiene el control del solicitante y una tarjeta de
+estado de sólo lectura. La caminata de punta a punta del criterio de `v0` se hizo, por lo tanto, **aprobando a ciegas**.
+
+**Decisión del autor (2026-10-09):** va la **(a)** —el título enlaza al dataset en pestaña nueva— y quiere **ver la
+(b)**, los controles de decidir en la ficha, para juzgar si le gusta: por eso la (b) **va a un playground** y **no se
+promueve** hasta que la revise. Y en el mismo movimiento, la decisión de `dataset_id`: **(a) ahora** —elección
+determinista por la pendiente más reciente, y la ficha dice que hay más de una—, **(b) para `v1`** (quitar la
+resolución por nombre y migrar las filas viejas es trabajo del otro repo). El detalle de las dos decisiones quedó en
+`BACKLOG.md`, sección «Decisiones del autor (2026-10-09)».
