@@ -1414,3 +1414,16 @@ dos avisos que la propia compuerta devolvió. Suite **1016**, `pnpm check` 0 err
 verificaron **antes** de aceptarlos como deuda—, pero **cada arreglo crea un candidato nuevo y por lo tanto otra
 compuerta**. El bucle no se agota por insistencia: se corta cuando el aviso es falso, cuando el arreglo es caro, o
 cuando el rango vuelve limpio — como acá.
+
+**Estado de la sonda `A5` tras la respuesta de la sesión par (2026-10-09).** La **pared quedó medida con
+credenciales** por ellos: `ckan_admin` + `package_patch {private: false}` sobre `test-pdf` → **`403 Access denied:
+Publication flow: …`**, con **paridad antes/después** (`private` True→True y el store **6→6** filas) y el token
+**revocado** al terminar. Mi medición anónima (`publication_publish` → `400`) probaba **qué build** corre, no que la
+pared **actúe**: las dos juntas cierran la pregunta, y la de ellos es la fuerte. Además: el contenedor sirve el **árbol
+de trabajo en disco**, no un commit — hoy ese árbol es **`master`**.
+
+**Y no hay desbloqueo pendiente de este lado:** pidieron explícitamente **no correr el re-corte por ellos** —el muro
+está mergeado (su PR #6) y no tienen ningún pendiente que ese hecho desbloquee—. Si la sonda se corre, su valor hoy es
+**medir el delta del PR #12** (el store guarda el **id canónico** y la cola resuelve por **id o nombre**; una solicitud
+creada **por nombre** pasó de **0** a **1** fila visible para el aprobador), y ese delta mueve **las filas de creación y
+listado**, que hay que revisar **antes** de correr. La corrida sigue donde estaba: **después de `v0`**.

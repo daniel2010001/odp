@@ -43,6 +43,23 @@
 > **Las dos capas de la sonda (`A5`) son prioridad DESPUÉS de `v0`**, con el `PRD.md` y este archivo sobre la mesa, en
 > una o más sesiones. **El inventario de las 18 acciones queda postergado.**
 >
+> **Y el re-corte de la sonda deja de ser urgente (2026-10-09, respuesta de la sesión par).** Ellos midieron **lo que
+> mi control anónimo no podía dar: la PARED con credenciales** — `ckan_admin` + `package_patch {private: false}`
+> sobre `test-pdf` → **`403 Access denied: Publication flow: …`**, con **paridad antes/después** (`private` True→True y
+> el store **6→6** filas) y el token efímero **revocado**. O sea: el muro está **vivo y funcionando** en lo que sirve el
+> contenedor. Mi medición (`publication_publish` → `400 Action name not known`) probaba **qué build** corre, no que la
+> pared **actúe**; las dos juntas cierran la pregunta.
+> **Atribución, de ellos**: el contenedor sirve el **árbol de trabajo en disco**, no un commit — hoy ese árbol es
+> **`master`** (su rama `unit/a2-5-second-window` = `b3965de` = master + sólo docstring/test de A2.5, **sin cambio de
+> conducta**, probado por AST).
+> **Y pidieron, textual en la intención: no correr el re-corte por ellos.** El muro está mergeado (su PR #6) y **no
+> tienen ningún pendiente que ese hecho desbloquee**. Si la sonda se corre, su valor hoy es **medir el delta del
+> PR #12**, no desbloquearlos — y ese delta hay que absorberlo **antes**: el #12 hizo que el store guarde el **id
+> canónico** y que la cola resuelva por **id o nombre**, lo que mueve **justo las filas de creación y listado**
+> (medición de ellos: una solicitud creada **por nombre** daba **0 filas** al aprobador y ahora da **1**). Conclusión:
+> **la corrida queda donde ya estaba —después de `v0`— y con las expectativas de esas filas revisadas antes de correr**,
+> en vez de como un desbloqueo pendiente.
+>
 > **Los puntos de la presentación ya están anotados** (el bloque `[v0] El despliegue para presentar v0`, más arriba) y
 > **no se empieza de cero**: se suman ahí cuando el autor dé el método de carga.
 >
