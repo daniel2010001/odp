@@ -2299,6 +2299,35 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > acciones** —cancelar, o volver a solicitar tras un rechazo—, y **el motivo del rechazo se mudó a la tarjeta**, que
 > es donde la página explica el estado (si no, borrar el bloque del hero lo habría hecho desaparecer).
 >
+> **Cerrado (2026-10-09): los dos avisos de la compuerta del badge, en una unidad corta.** La compuerta del badge —que
+> se había **mergeado sin linaje**, y cuyo linaje se abrió **después**, sobre el rango commiteado `f9224aa..a4b2124`
+> (idéntico al merge `fc62cb8`, verificado con `git diff --stat` de los dos, no supuesto)— salió **aprobada** con **dos
+> avisos no bloqueantes** y autoridad quemada (linaje `review-24164b1645f385df`, tier medium, lente
+> `review-reliability`, 6 archivos, 165 líneas). Los dos avisos eran **deuda real, no ruido**: `R3-001`, el derivado de
+> la insignia terminaba en un `default: return null;` que **anulaba su propia garantía** —el JSDoc prometía que un estado
+> nuevo de `publication_requests` no compila hasta nombrarlo, y el `default` lo hacía compilar con el hero vacío de
+> insignia—, y `R3-002`, el motivo del rechazo pasó a leerse **sólo** en la tarjeta sin que **ninguna aserción** lo
+> fijara (la prueba del componente afirma su **ausencia** en la fila de acciones; nadie afirmaba su presencia).
+> Corregidos en `fix/hero-badge-advisories`: el discriminante se ata a una `const` antes del `switch` —sobre
+> `solicitudVigente?.status` TypeScript no angosta el `default`— y los estados sin insignia (`approved`, `cancelled`) y
+> la **ausencia** de solicitud se nombran para que el `never` sea alcanzable, **medido** con un miembro falso en la unión
+> que hace fallar `pnpm check` en las **dos** funciones; y la prueba que afirma la **frase completa** en la tarjeta
+> (`data-testid="estado-solicitud"`), con su **mutación observada en rojo** (quitar «Motivo:» la pone en falla) y
+> restaurada byte a byte. Verificación: suite **1011**, `pnpm check` 0 errores / 4 avisos (baseline intacta), Biome
+> limpio sobre 185 archivos. **Lección de método:** mergear antes de revisar **no ahorra tiempo, lo agrega** —el
+> candidato deja de ser un diff vivo y pasa a ser un rango sobre el que ya se movió `main`—; y un aviso informativo de
+> una revisión **aprobada** sigue siendo trabajo.
+>
+> **Y la compuerta de esa misma unidad (2026-10-09, linaje `review-fc19b705503a55a7`: 4 archivos, 100 líneas, tier
+> medium, lente `review-reliability`) salió aprobada con un aviso que resultó **FALSO POSITIVO**, y conviene que quede
+> escrito para que nadie lo «arregle» después: la lente leyó el `case "cancelled":` nuevo (retirada → **sin
+> insignia**) como duplicado de un arm anterior que devuelve la insignia **«Solicitud anulada»**, y ese arm es
+> `case "annulled":` — **dos miembros distintos de la unión**. La ubicación que el recibo cita (`+page.svelte:206`) es
+> `case undefined:`, no el arm que dice. Nada se toca: obedecerlo haría **fallar la compilación** (borrar
+> `case "cancelled":` deja el discriminante sin agotar y el `never` deja de ser alcanzable), que es exactamente el
+> guardián que esta unidad vino a poner en serio. Regla: **un aviso de una revisión aprobada se verifica contra el
+> código antes de tratarlo como deuda** — el de la ronda anterior era real y este no.
+>
 > **TODO anotado a pedido del autor — el estado `draft` («borrador»).** Lo encontró al presionar por error «unpublish»
 > en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
 > de CKAN para «todavía no publicado»**, y es justamente el que usaría la **máquina editorial** de `RF-15` pasos 1–3

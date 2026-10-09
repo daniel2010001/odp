@@ -180,7 +180,11 @@ function estadoDeLaSolicitud(solicitud: PublicationRequest): string {
  * el dataset publicado, y `cancelled` vuelve a ofrecer el control).
  */
 const estadoDeLaSolicitudBadge = $derived.by((): { label: string; tone: string } | null => {
-	switch (solicitudVigente?.status) {
+	// El discriminante se fija en una `const` antes del `switch`: sobre `solicitudVigente?.status`
+	// (una cadena opcional sobre un `let` capturado) TypeScript **no** angosta el `default`, y la
+	// exhaustividad quedaría de adorno.
+	const estado = solicitudVigente?.status;
+	switch (estado) {
 		case "pending":
 			return {
 				label: "Solicitud pendiente",
@@ -196,8 +200,17 @@ const estadoDeLaSolicitudBadge = $derived.by((): { label: string; tone: string }
 				label: "Solicitud anulada",
 				tone: "border-border bg-muted text-muted-foreground",
 			};
-		default:
+		// Los estados que legítimamente no son una insignia (y la **ausencia** de solicitud) se nombran
+		// para que la exhaustividad sea real: sin enumerarlos, el `default` taparía un estado nuevo.
+		case "approved":
+		case "cancelled":
+		case undefined:
 			return null;
+		default: {
+			const exhaustivo: never = estado;
+			void exhaustivo;
+			return null;
+		}
 	}
 });
 
