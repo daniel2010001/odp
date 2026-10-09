@@ -2318,6 +2318,16 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > candidato deja de ser un diff vivo y pasa a ser un rango sobre el que ya se movió `main`—; y un aviso informativo de
 > una revisión **aprobada** sigue siendo trabajo.
 >
+> **Y la compuerta de esa misma unidad (2026-10-09, linaje `review-fc19b705503a55a7`: 4 archivos, 100 líneas, tier
+> medium, lente `review-reliability`) salió aprobada con un aviso que resultó **FALSO POSITIVO**, y conviene que quede
+> escrito para que nadie lo «arregle» después: la lente leyó el `case "cancelled":` nuevo (retirada → **sin
+> insignia**) como duplicado de un arm anterior que devuelve la insignia **«Solicitud anulada»**, y ese arm es
+> `case "annulled":` — **dos miembros distintos de la unión**. La ubicación que el recibo cita (`+page.svelte:206`) es
+> `case undefined:`, no el arm que dice. Nada se toca: obedecerlo haría **fallar la compilación** (borrar
+> `case "cancelled":` deja el discriminante sin agotar y el `never` deja de ser alcanzable), que es exactamente el
+> guardián que esta unidad vino a poner en serio. Regla: **un aviso de una revisión aprobada se verifica contra el
+> código antes de tratarlo como deuda** — el de la ronda anterior era real y este no.
+>
 > **TODO anotado a pedido del autor — el estado `draft` («borrador»).** Lo encontró al presionar por error «unpublish»
 > en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
 > de CKAN para «todavía no publicado»**, y es justamente el que usaría la **máquina editorial** de `RF-15` pasos 1–3

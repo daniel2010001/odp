@@ -1352,3 +1352,22 @@ commiteado.
 candidato deja de ser un diff vivo y pasa a ser un rango sobre el que ya se movió `main`, y hay que **demostrar** la
 equivalencia con el merge en vez de suponerla—. Y un aviso informativo **no es «nada»**: los dos de esta ronda son deuda
 accionable, encontrada por una lente que leyó el JSDoc contra el código.
+
+**Cierre de WU-8 (2026-10-09, rama `fix/hero-badge-advisories`).** El commit `4d6c1ed` cierra los dos avisos: el
+discriminante de la insignia se ata a una `const` antes del `switch` —sobre `solicitudVigente?.status` TypeScript no
+angosta el `default`— y los estados sin insignia (`approved`, `cancelled`) y la **ausencia** de solicitud se nombran
+para que el `never` sea alcanzable, medido con un miembro falso en la unión que hace fallar `pnpm check` en **las dos**
+funciones; y la prueba que afirma la frase completa del motivo en la tarjeta, con su **mutación observada en rojo**
+(quitar «Motivo:») y restaurada byte a byte. Verificación independiente: suite **1011**, `pnpm check` 0 errores / 4
+avisos (baseline intacta), Biome limpio sobre 185 archivos.
+
+**La compuerta de esa unidad (linaje `review-fc19b705503a55a7`: 4 archivos, 100 líneas, tier medium, lente
+`review-reliability`) salió aprobada, y su único aviso es un FALSO POSITIVO, verificado contra el código.** La lente
+leyó el `case "cancelled":` nuevo (retirada → sin insignia) como duplicado del arm anterior que devuelve la insignia
+**«Solicitud anulada»**, y ese arm es `case "annulled":` — **dos miembros distintos** de la unión
+(`"pending" | "approved" | "rejected" | "cancelled" | "annulled"`). La ubicación citada (`+page.svelte:206`) es
+`case undefined:`. **No se toca nada**, y hay una razón medida: quitarlo haría **fallar la compilación** —el
+discriminante queda sin agotar y el `never` deja de ser alcanzable—, o sea que **el guardián que esta unidad puso es
+lo que detendría un arreglo equivocado**. El aviso queda como registro; no se reintenta la compuerta sobre un candidato
+ya aprobado. Regla de método que se lleva la sesión: **un aviso de una revisión aprobada se verifica contra el código
+antes de tratarlo como deuda** —uno de esta ronda era real; éste no.
