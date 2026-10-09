@@ -35,6 +35,14 @@ silenciosamente a favor del PRD**. Se mide qué existe y se escribe la diferenci
 
 ## Reglas de trabajo
 
+- **Las citas de código del **otro** repo van por **ancla** (función, símbolo, escenario), no por número de línea.** Una
+  ruta ajena **envejece sin que su dueño se entere**, y el número de línea es lo primero que se corre: es la misma
+  lección que este repo ya pagó con las citas del PRD, aplicada al otro repo. Lo mismo vale para el path cuando el
+  ancla alcanza; el path se conserva sólo como procedencia de la medición. **Las tres citas con número de línea del
+  otro repo que había el 2026-10-09 se corrigieron en el mismo movimiento** —el paso 2 no debería encontrar ninguna.
+  *Origen (2026-10-09): la sesión par se negó a citar rutas nuestras en su contrato por esta misma razón (una ruta de
+  otro repo envejece y su doc quedaría mintiendo por algo que no es suyo), y el criterio se aplicó de vuelta acá.*
+
 - **Un archivo canónico por tema.** Los cambios al PRD van **al PRD**; los de pendientes, al `BACKLOG`. No se crea un
   archivo nuevo por sesión ni por decisión.
 - **Ninguna afirmación de «hecho» sin medición.** Un `path:line`, un comando o una URL por afirmación.

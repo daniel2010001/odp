@@ -389,7 +389,7 @@ tenga su UI.
   sobraba, lo correcto era decir que no sabía qué unidad era.
   **Y la precisión que el episodio deja, para no confundir dos cosas:** *el estado del push no es el
   contenido del código.* El hallazgo de gobernanza se re-verificó **leyendo `origin/master` directamente**
-  (`git show origin/master:…/logic/auth/publication.py`): `publication_request_decide` (114-121) **sin
+  (`git show origin/master:…/logic/auth/publication.py`): `publication_request_decide` **sin
   comprobación de cuatro ojos** —la única condición es la capacidad `admin`— y `publication_publish`
   (124-131) **autorizando al `admin` de organización**, con el docstring «on their own authority». El
   hallazgo no dependía del push: depende de las líneas del archivo publicado.
@@ -884,7 +884,7 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
 
 - **2026-10-07 (noche) — Un hueco de contrato, medido **antes** de cablear la page.** Al preparar la page de
   solicitudes medí la forma real de la fila en `origin/master`
-  (`logic/action/publication.py:119-131`) en vez de confiar en la tabla resumida del contrato: `_row_dict`
+  (leyendo `logic/action/publication.py`, la función `_row_dict`) en vez de confiar en la tabla resumida del contrato: `_row_dict`
   devuelve las **columnas de la tabla** más los dos nombres, y esas columnas son `id`, `dataset_id`,
   `requested_visibility`, `status`, `requested_by`, `approved_by`, `comments`, `motive`, `created_at`,
   `decided_at`, `consumed_at`. **No hay `dataset_title` ni `organization_title`**, y la fila de la cola **se lee
@@ -1250,7 +1250,7 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   **Y la compuerta nativa del otro lado ESCALÓ, no aprobó.** Linaje `review-67e5ce17ce2b4bcb` sobre `02893f7..b63b00c`
   (tier high, 4 lentes): estado **`escalated`**, transición **terminal** `native_stop_required`, causa `unknown_causality`,
   atada a **`R4-001`** (lente **resilience**, `severity: CRITICAL`, `evidence_class: deterministic`), ubicación
-  `ckanext/umss/logic/auth/publication.py:121-123`. Su texto, verbatim: *«Removing publication_publish and the sysadmin
+  `ckanext/umss/logic/auth/publication.py` —la rama del `sysadmin` en la guarda—. Su texto, verbatim: *«Removing publication_publish and the sysadmin
   escape hatch leaves publication requests permanently undecidable when the requester loses capacity or is the only
   approver; the changed comment states the request stays pending with no escape hatch, so the dataset can never be
   published.»*

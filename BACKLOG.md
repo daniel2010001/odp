@@ -2278,7 +2278,7 @@ falta el fallback), no hay hook de veto previo en `IPackageController`, y las do
 colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
-`ckanext/umss/tests/test_plugin.py:57`: baseline **`1 failed`** por
+`ckanext/umss/tests/test_plugin.py` —el test del hook de carga del plugin—: baseline **`1 failed`** por
 **`NameError: name 'plugin_loaded' is not defined`**. Redacción **restaurada del `preproposal.md` §2.4**, que ya
 la tenía correcta; la versión anterior de esta línea («sin declararlo como fixture») era una **derivada
 corrompida** de un registro que estaba bien, y mandaba a buscar una fixture que nunca faltó.
