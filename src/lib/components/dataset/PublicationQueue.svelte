@@ -115,6 +115,10 @@ const REJECTED_NOTE = "La solicitud fue rechazada.";
 // Etiqueta neutral cuando el catálogo no entrega el nombre visible: la fila nunca cae al id crudo.
 // La misma regla sirve para quien solicitó y para quien decidió.
 const CATALOG_NAME_FALLBACK = "un usuario del catálogo";
+// Se anuncia la pestaña nueva **dentro** del enlace y con texto `sr-only`: el nombre accesible del
+// enlace conserva el título visible (label in name) y la apertura se anuncia sin reemplazarlo. El
+// dataset está privado, así que este enlace es el único camino del revisor hasta él.
+const OPENS_IN_NEW_TAB = "(se abre en una pestaña nueva)";
 const APPROVED_BY_LABEL = "Aprobada por";
 const REJECTED_BY_LABEL = "Rechazada por";
 // Desenlaces sin decisor: la retiró quien la solicitó, y la anulada perdió su objeto.
@@ -435,7 +439,15 @@ function setComment(id: string, value: string) {
 	<li class="rounded-lg border border-border bg-card p-4" data-request-id={item.id}>
 		<div class="flex flex-wrap items-baseline justify-between gap-2">
 			<p class="font-heading text-sm font-semibold text-card-foreground">
-				{item.dataset_title}
+				<a
+					href={`/dataset/${encodeURIComponent(item.dataset_id)}`}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="rounded-sm underline-offset-2 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					{item.dataset_title}
+					<span class="sr-only"> {OPENS_IN_NEW_TAB}</span>
+				</a>
 			</p>
 			{#if item.organization_title}
 				<span class="text-xs text-muted-foreground">{item.organization_title}</span>
