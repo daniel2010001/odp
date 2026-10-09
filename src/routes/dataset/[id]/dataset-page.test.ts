@@ -954,6 +954,60 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		expect(statusCard).toHaveTextContent("Pendiente de revisión, pedida por editor.reciente.");
 	});
 
+	// El desempate: dos pendientes con el **mismo** `created_at`. Una comparación estricta deja que las
+	// decida el orden del arreglo — justo la dependencia que esta selección dice haber quitado.
+	it("con dos pendientes empatadas en `created_at` gana la de id mayor, no la primera", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		// La de id **mayor** va segunda: si el empate lo decidiera el arreglo, ganaría `editor.a`.
+		mocks.listRequests.mockResolvedValue([
+			makeRow({
+				id: "req-a",
+				requested_by_name: "editor.a",
+				created_at: "2026-10-05T00:00:00.000000",
+			}),
+			makeRow({
+				id: "req-b",
+				requested_by_name: "editor.b",
+				created_at: "2026-10-05T00:00:00.000000",
+			}),
+		]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		const statusCard = await screen.findByTestId("estado-solicitud");
+		expect(statusCard).toHaveTextContent("Pendiente de revisión, pedida por editor.b.");
+	});
+
+	it("el desempate no depende del orden del arreglo", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		// Las **mismas** dos filas, en el orden inverso: el resultado tiene que ser el mismo.
+		mocks.listRequests.mockResolvedValue([
+			makeRow({
+				id: "req-b",
+				requested_by_name: "editor.b",
+				created_at: "2026-10-05T00:00:00.000000",
+			}),
+			makeRow({
+				id: "req-a",
+				requested_by_name: "editor.a",
+				created_at: "2026-10-05T00:00:00.000000",
+			}),
+		]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		const statusCard = await screen.findByTestId("estado-solicitud");
+		expect(statusCard).toHaveTextContent("Pendiente de revisión, pedida por editor.b.");
+	});
+
 	it("con más de una pendiente lo dice, en vez de elegir en silencio", async () => {
 		mocks.showDataset.mockResolvedValue(
 			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),

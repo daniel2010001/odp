@@ -133,15 +133,19 @@ async function loadCurrentRequest() {
 		// comparar el parámetro contra `dataset_id` no coincidiría nunca — es la misma trampa que la
 		// comparación de cuatro ojos, que comparaba un nombre contra un id y quedaba inerte y verde.
 		const propias = filas.filter((fila) => fila.dataset_id === dataset?.id);
-		// Determinista: entre las pendientes, la **más reciente** por `created_at` es la vigente. Todas las
-		// filas usan `YYYY-MM-DDTHH:MM:SS.ffffff`, así que el orden lexicográfico es el cronológico y no
-		// depende del orden del arreglo. La más vieja puede venir primero: no se toma «la primera».
+		// Determinista y **total**: entre las pendientes gana la **más reciente** por `created_at` y, ante un
+		// empate exacto (dos filas con el mismo instante), la de **`id` mayor**. Todas las filas usan
+		// `YYYY-MM-DDTHH:MM:SS.ffffff`, así que el orden lexicográfico es el cronológico y no depende del
+		// arreglo; con la comparación estricta sola, el empate lo decidía el orden de entrada — la dependencia
+		// que esta selección viene a quitar. La más vieja puede venir primero: no se toma «la primera».
 		const pendingRows = propias.filter((fila) => fila.status === "pending");
-		const mostRecent = pendingRows.reduce<PublicationRequest | null>(
-			(latest, row) =>
-				!latest || (row.created_at ?? "") > (latest.created_at ?? "") ? row : latest,
-			null,
-		);
+		const mostRecent = pendingRows.reduce<PublicationRequest | null>((latest, row) => {
+			if (!latest) return row;
+			const rowAt = row.created_at ?? "";
+			const latestAt = latest.created_at ?? "";
+			if (rowAt !== latestAt) return rowAt > latestAt ? row : latest;
+			return row.id > latest.id ? row : latest;
+		}, null);
 		solicitudVigente = mostRecent ?? propias[0] ?? null;
 		pendingRequestCount = pendingRows.length;
 	} catch {
