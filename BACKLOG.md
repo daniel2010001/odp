@@ -133,6 +133,19 @@
 > **DECISIÓN (2026-10-09): (a) ahora, (b) para `v1`.** Se implementa la elección **determinista** —la pendiente **más
 > reciente** por `created_at`, no «la primera»— **y** que la ficha **diga** que hay más de una; quitar la resolución por
 > nombre y migrar las filas viejas queda **anotado para `v1`** (es trabajo del otro repo), no «en el aire».
+>
+> **CORRECCIÓN (2026-10-09, misma jornada): «el portal compara sólo ids y no se toca» era incompleto.** La sesión par
+> avisó del **riesgo de forma**: tras el #12 una fila creada por nombre vuelve con el **id canónico**, así que un
+> consumidor que clave por el nombre deja de encontrar las **nuevas**. Medido acá, leyendo su código: `_row_dict` arma el
+> diccionario con las **columnas crudas**, así que las filas **legadas** vuelven con el **nombre** guardado. O sea que el
+> síntoma real estaba **invertido**: el portal comparaba contra el **id** del dataset cargado, y entonces las filas
+> **legadas guardadas por nombre** quedaban **invisibles en la ficha** —sin tarjeta de estado, como si no existieran—
+> mientras la cola sí las mostraba. **Corregido en `c2ed16b`** (rama `fix/approval-review-path`, PR #61): el filtro acepta
+> las **dos formas**, `dataset.id` o `dataset.name`, que es lo que significa «dejar la compatibilidad» de este lado.
+> Prueba nueva, con **RED observado**: con una fila cuyo `dataset_id` es el **nombre**, la ficha no renderizaba nada.
+> **Los otros dos consumidores están bien y se verificaron**: el enlace de la cola (`/dataset/<valor>`) y la relectura
+> tras decidir (`package_show`) aceptan id **o** nombre; y el pedido del portal siempre manda `dataset.id`, así que
+> **nunca escribe un nombre**.
 
 ## Estado al cierre (2026-10-08, madrugada) — **`B1` cerrado**: el ciclo de publicación, cableado al catálogo
 
