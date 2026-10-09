@@ -759,3 +759,37 @@ describe("PublicationQueue — la presentación: secciones y plegado", () => {
 		expect(screen.getByRole("heading", { name: "Resueltas 1" })).toBeInTheDocument();
 	});
 });
+
+// El enlace al dataset: la cola es la **única** superficie por la que un administrador que no es el
+// solicitante puede llegar al dataset. El dataset está privado —no aparece en el catálogo—, así que
+// sin este enlace revisar antes de decidir exige escribir la URL a mano.
+describe("PublicationQueue — el enlace al dataset", () => {
+	it("el título enlaza al dataset en una pestaña nueva", async () => {
+		renderQueue();
+
+		const row = await rowFor("Matrícula 2026");
+		const link = within(row).getByRole("link", { name: /Matrícula 2026/ });
+
+		// El `href` codifica el id del dataset: es el destino que el revisor no tiene de otra forma.
+		expect(link).toHaveAttribute("href", "/dataset/pkg-1");
+		expect(link).toHaveAttribute("target", "_blank");
+		expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+
+		// El id nunca se renderiza como texto visible: la fila muestra el título.
+		expect(within(row).queryByText(/pkg-1/)).toBeNull();
+	});
+
+	it("el enlace no anida dentro del disparador: el botón conserva su nombre y su estado", async () => {
+		renderQueue({ expansion: "primera" });
+
+		const row = await rowFor("Matrícula 2026");
+		const link = within(row).getByRole("link", { name: /Matrícula 2026/ });
+
+		// Un interactivo dentro de otro es inválido: el enlace vive en el encabezado, no en el botón.
+		expect(link.closest("button")).toBeNull();
+		expect(within(row).getByRole("button", { name: "Detalles de Matrícula 2026" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+});
