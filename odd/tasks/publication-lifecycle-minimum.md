@@ -1391,3 +1391,26 @@ promueve** hasta que la revise. Y en el mismo movimiento, la decisión de `datas
 determinista por la pendiente más reciente, y la ficha dice que hay más de una—, **(b) para `v1`** (quitar la
 resolución por nombre y migrar las filas viejas es trabajo del otro repo). El detalle de las dos decisiones quedó en
 `BACKLOG.md`, sección «Decisiones del autor (2026-10-09)».
+
+**Entregado y con compuerta cerrada (2026-10-09): rama `fix/approval-review-path`, PR #61, cuatro commits.**
+`6633ba5` (el título de la fila enlaza al dataset en pestaña nueva, con el aviso `sr-only` y el enlace **hermano** del
+disparador), `abb423e` (la ficha elige la pendiente más reciente y dice cuántas hay), y dos commits que cerraron los
+dos avisos que la propia compuerta devolvió. Suite **1016**, `pnpm check` 0 errores / 4 avisos, Biome limpio.
+
+**Los dos avisos, los dos verificados contra el código antes de tratarlos como deuda, y los dos verdaderos.**
+1. Linaje `review-0be0a83062f8b75f` (medium, `review-reliability`, 4 archivos, 133 líneas) → **aprobado**, con un
+   aviso: la selección comparaba `created_at` con un `>` **estricto**, así que dos pendientes con el mismo instante
+   las decidía el **orden del arreglo** — exactamente la dependencia que el comentario vecino decía haber quitado, y
+   sin prueba. Cerrado en `1474120` con un desempate **total** por `id`, con **RED observado**: con los ids en orden
+   `req-a`/`req-b` y timestamps iguales, la tarjeta mostraba `req-a` (la primera del arreglo).
+2. Linaje `review-dc933c4c6ddb7cdc` → **aprobado**, con otro aviso verdadero: la prueba del enlace lo buscaba con
+   `name: /Matrícula 2026/`, un `match` que pasa **con o sin** el aviso de pestaña nueva, así que el aviso `sr-only`
+   no lo probaba nada. Cerrado en `749ad99` afirmando el **nombre accesible completo**, con la **falsificación
+   medida**: borrar el `sr-only` la pone en rojo y restaurarlo la vuelve a verde.
+3. Linaje `review-1e13581e93d61147` (sobre el rango final) → **aprobado SIN hallazgos**.
+
+**Lección de método que dejó esta unidad, y es la que acota el bucle:** los avisos informativos de una compuerta
+**aprobada** se cierran uno por uno mientras el arreglo sea chico y verdadero —los dos de acá eran ciertos y se
+verificaron **antes** de aceptarlos como deuda—, pero **cada arreglo crea un candidato nuevo y por lo tanto otra
+compuerta**. El bucle no se agota por insistencia: se corta cuando el aviso es falso, cuando el arreglo es caro, o
+cuando el rango vuelve limpio — como acá.
