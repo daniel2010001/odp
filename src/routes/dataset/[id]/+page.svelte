@@ -151,10 +151,16 @@ function estadoDeLaSolicitud(solicitud: PublicationRequest): string {
 			return solicitud.approved_by_name
 				? `Publicada, aprobada por ${solicitud.approved_by_name}.`
 				: "Publicada.";
-		case "rejected":
-			return solicitud.approved_by_name
+		case "rejected": {
+			const quien = solicitud.approved_by_name
 				? `Rechazada por ${solicitud.approved_by_name}.`
 				: "Rechazada.";
+			// El **motivo** vive acá desde el 2026-10-08: el hero dejó de dibujar el estado (es una insignia)
+			// y la tarjeta es el lugar donde se explica. Sin esto, el motivo que el aprobador escribió no
+			// aparecería en ninguna parte de la página.
+			const motivo = solicitud.comments?.trim();
+			return motivo ? `${quien} Motivo: ${motivo}` : quien;
+		}
 		case "cancelled":
 			return "Retirada por quien la pidió.";
 		case "annulled":
@@ -166,6 +172,34 @@ function estadoDeLaSolicitud(solicitud: PublicationRequest): string {
 		}
 	}
 }
+
+/**
+ * La insignia del estado de la solicitud, para la fila de insignias del hero: **una** por estado y
+ * **exhaustiva** igual que `estadoDeLaSolicitud` — si la tabla gana un estado, esto no compila hasta
+ * nombrarlo. `null` para los estados que no son un estado visible en el hero (`approved` ya se lee como
+ * el dataset publicado, y `cancelled` vuelve a ofrecer el control).
+ */
+const estadoDeLaSolicitudBadge = $derived.by((): { label: string; tone: string } | null => {
+	switch (solicitudVigente?.status) {
+		case "pending":
+			return {
+				label: "Solicitud pendiente",
+				tone: "border-primary/20 bg-primary/10 text-primary",
+			};
+		case "rejected":
+			return {
+				label: "Solicitud rechazada",
+				tone: "border-destructive/20 bg-destructive/10 text-destructive",
+			};
+		case "annulled":
+			return {
+				label: "Solicitud anulada",
+				tone: "border-border bg-muted text-muted-foreground",
+			};
+		default:
+			return null;
+	}
+});
 
 async function loadDataset() {
 	if (!datasetId) {
@@ -598,6 +632,20 @@ async function handleCopyLink() {
 				>
 					<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
 					{stateLabel}
+				</span>
+			{/if}
+
+			{#if estadoDeLaSolicitudBadge}
+				<!-- La solicitud es **estado**, no acción: va acá, con las otras insignias, y no en la fila de
+				     acciones. Hasta el 2026-10-08 se dibujaba ahí con forma de botón, y el autor lo cortó: «no me
+				     gusta ese botón que no hace nada». Lo que sí hace algo —cancelar— queda en las acciones. -->
+				<span
+					class={cn(
+						"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
+						estadoDeLaSolicitudBadge.tone,
+					)}
+				>
+					{estadoDeLaSolicitudBadge.label}
 				</span>
 			{/if}
 

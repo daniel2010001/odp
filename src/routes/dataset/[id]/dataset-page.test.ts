@@ -825,6 +825,9 @@ describe("Página de dataset — la solicitud de publicación", () => {
 
 		const estado = await screen.findByTestId("estado-solicitud");
 		expect(estado).toHaveTextContent("Pendiente de revisión, pedida por editor.tecnologia.");
+		// **Y la insignia en el hero**, que es donde el autor pidió que viva el estado (2026-10-08): una
+		// insignia con las otras, y no un distintivo con forma de botón en la fila de acciones.
+		expect(screen.getByText("Solicitud pendiente")).toBeInTheDocument();
 		// El pedido del autor, como aserción: la tarjeta va **después** de «Sobre este dataset».
 		expect(
 			screen.getByRole("heading", { name: "Sobre este dataset" }).compareDocumentPosition(estado) &

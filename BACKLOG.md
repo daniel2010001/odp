@@ -2291,6 +2291,50 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 >   de sus partes** — **gestión de organizaciones** (CRUD) es `[v1]`, **gestión de usuarios y roles** (`RF-03`) es
 >   `[v1+]`, **colaboradores por dataset y equipos** y su **UI** son `[v1+]`. Nada de eso entra en un `v0` presentable:
 >   el criterio de salida es publicar un dataset con recursos y verlo en el portal, y quedó verificado de punta a punta.
+>
+> **Revisión del autor sobre el arreglo del hero (2026-10-08, noche): el estado es una insignia.** Textual: «no me
+> gusta ese botón que no hace nada, mejor cambiarlo por un badge al lado izquierdo, junto a los otros badges». Tenía
+> razón sobre la causa: un estado **no interactivo** dibujado con la forma de un botón se lee como una acción rota.
+> Ahora el estado vive con las otras insignias (pendiente, rechazada, anulada), en la fila de acciones quedan **sólo
+> acciones** —cancelar, o volver a solicitar tras un rechazo—, y **el motivo del rechazo se mudó a la tarjeta**, que
+> es donde la página explica el estado (si no, borrar el bloque del hero lo habría hecho desaparecer).
+>
+> **TODO anotado a pedido del autor — el estado `draft` («borrador»).** Lo encontró al presionar por error «unpublish»
+> en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
+> de CKAN para «todavía no publicado»**, y es justamente el que usaría la **máquina editorial** de `RF-15` pasos 1–3
+> que este corte declara **fuera de alcance** y difiere a `[v1]`. Que su clic funcionara es coherente: la pared refusa
+> los cambios de `state` para todo invocante **menos el `sysadmin`**, que conserva esa administración a propósito.
+> **Lo que queda por medir antes de decidir nada** (declarado, no supuesto): qué hace **hoy** el portal con un dataset
+> en `draft` —si lo dibuja, si aparece en el catálogo, qué dice su ficha—, y si conviene adoptar ese estado para la
+> máquina editorial o ignorarlo. **No bloquea `v0`.**
+>
+> **Y un defecto del flujo, medido y reproducible, del lado de `odp-docker` (2026-10-08, noche).** La pregunta del
+> autor era cómo revisa el aprobador un dataset que no es suyo. Medido con dos tokens reales sobre un fixture propio:
+> `editor1` pide (fila `pending` ✓), y un **admin de la organización dueña que no es el solicitante**…
+> - **no la ve en la cola**: `publication_request_list {"status":"pending"}` → **0 filas** (y sin filtro tampoco
+>   aparece la pendiente; las `approved` sí ✓),
+> - **pero sí lee el dataset**: `package_show` → `200`, `private=true`, con sus recursos ✓.
+> El **solicitante** sí ve la suya (1 fila ✓). Y el portal pide exactamente eso —`PublicationQueue.svelte` llama
+> `list("pending")`—, así que **la cola le queda vacía al aprobador** y el caso estándar (user1 pide, user2 aprueba)
+> **no se puede completar**. **Corrige mi conclusión anterior** de que «el caso normal funciona»: aquélla se apoyaba en
+> una lectura de un transcript de la caminata, no en una medición del listado. Es del lado de la acción
+> (`publication_request_list`), y probablemente del alcance que tocó la corrección de avisos de esa unidad.
+>
+> **El defecto, arreglado del otro lado (PR #12, 2026-10-08 noche) — con sus dos mitades y las mías palabra por
+> palabra**: `publication_request_create` guarda el **`id`** (sigue aceptando nombre como entrada) y el resolvedor
+> de lectura acepta **id o nombre** y devuelve el mapa por ambas claves, así que **las filas viejas se ven sin migrar
+> datos**. Verificado en los dos extremos: en la suite (61 pasan, con tu repro exacto como prueba) y **en vivo** —la
+> solicitud creada por nombre volvió con `dataset_id` UUID y el admin de la organización la vio en la cola con su
+> título resuelto—. **Y una consecuencia colateral que sí toca un supuesto de este lado:** el índice parcial único
+> está **sobre `dataset_id`**, así que el camino viejo permitía **dos filas `pending` del mismo dataset** (una por
+> nombre y otra por id, que no colisionaban). **Medido acá, antes de dar por bueno cualquier supuesto:**
+> - **la sonda** no lo asume ✓ (no tiene ninguna fila que afirme «una pendiente por dataset»; sus `409` son del nombre
+>   del dataset repetido y de la carrera del `decide`);
+> - **la cola** muestra las dos ✓ (es un filtro, sin deduplicar: honesto);
+> - **la ficha del dataset** es el único lugar que decide **en silencio**: `solicitudVigente = propias.find(pending) ??
+>   propias[0] ?? null` (`+page.svelte:130`) **elige una de las dos sin decirlo** ✗ — de ahí salen la tarjeta del
+>   estado y el destino del cancelar. **No es un defecto nuevo** (la ruta de escritura ya normaliza) pero sí una
+>   decisión pendiente **para datos viejos**: mostrar una de las dos, o declarar que hay dos.
 
 - [x] **TODO (respuesta a una duda del autor): la oración «Para crear el primero, necesita rol de editor o administrador en una organización.» es la regla
   de HOY, y el PRD apunta a roles **más** permisos.** El autor recordaba que el PRD habla de manejar primero
