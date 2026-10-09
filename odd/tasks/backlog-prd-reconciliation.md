@@ -51,5 +51,119 @@ silenciosamente a favor del PRD**. Se mide qué existe y se escribe la diferenci
 
 ## Estado
 
-**Primera pasada NO INICIADA** al 2026-10-09. Los pasos se ejecutan en orden y cada uno se cierra con su commit de
-documentación.
+**Pasos 1 y 2 HECHOS (2026-10-09).** Los pasos 3 (re-tiering y enmiendas) y 4 (la carilla) siguen pendientes. La
+medición la hizo **exploración delegada** ese día, celda por celda con su `path:line`; **dos de los trece ítems del
+paso 1 los re-verifiqué yo** y coinciden (la página de recurso renderiza `ErrorPage`; la sonda vive en
+`src/lib/session-guard.ts` y la corren las pantallas que pintan datos). Ninguna fila se re-verificó una por una.
+
+---
+
+## Paso 1 · Censo de los `[v0]` abiertos (2026-10-09)
+
+Los **13** ítems que el `BACKLOG` tiene abiertos con etiqueta `[v0]`, medidos **contra el código de hoy** —no contra su
+danotación del 2026-09-30, que ya estaba vieja—.
+
+| # | Ítem (corto) | Estado hoy | Evidencia | Lectura |
+|---|---|---|---|---|
+| 1 | Sin organizaciones, no ofrecer crear | **STALE** | `dashboard/+page.svelte:214,513` · `api/organizations.ts:49` | El CTA se dibuja sólo con `puedeOfrecerCreacion`; sin org, `puedeCrear` es falso. **Se cierra.** |
+| 2 | Sesión muerta degrada a anónimo en silencio | **STALE** | `api/session.ts:63` · `lib/session-guard.ts:31` | La sonda expulsa al login en las pantallas que pintan datos. Lo que queda es el ítem 13. **Se cierra.** |
+| 3 | Recurso privado → «no encontrado» | **STALE** | `resource/[resourceId]/+page.svelte:141` · `api/failure.ts:124,137` | El mock ya no enmascara un 403/404 definitivo, y la **fusión para el anónimo es política declarada**. **Se cierra como política.** |
+| 4 | Normalizar la card de metadatos | **PARCIAL — decisión del autor** | `dataset/[id]/+page.svelte:744` vs `:921-922` | La del cuerpo ya cumple; la del sidebar no, y cuál sobrevive no está decidido. |
+| 5 | Descarga apunta a la URL de CKAN | **VIVO — diferido por decisión** | `resource/[resourceId]/+page.svelte:385,550` | Decisión del 2026-10-08: funciona, no bloquea `v0`, se retoma **antes de `v1`**. |
+| 6 | Colaboradores por dataset | **VIVO — y la etiqueta no coincide** | `api/organizations.ts:77` (bandera en `false`) | Está taggeado `[v0]` y lo medido es `[v1+]`. **Es un descuadre de etiqueta**, no un pendiente de `v0`. |
+| 7 | Página de la organización | **VIVO — decisión del autor** | `organization/[id]/+page.svelte:172-223` | Encabezado + grilla; frena en el alcance que sólo el autor define. |
+| 8 | Responsive del salto secuencial | **NO MEDIDO** | `resource/[resourceId]/+page.svelte:546` | Falta **el síntoma concreto y la anchura**: sin eso no hay nada que medir. |
+| 9 | Los pegados no comparten el aire | **VIVO — diseño** | `search/+page.svelte:521,624` · `app.css` (sin `--sticky-air`) | Los aires siguen distintos; frena en «tarjeta flotante o barra a ras». |
+| 10 | Rotar credenciales de la base | **NO MEDIDO — operación** | `ckan-docker/.env.example:12,17-19` | El template conserva los valores expuestos; el `.env` vivo no es legible desde acá. |
+| 11 | Higiene de versión (`CKAN_VERSION`) | **PARCIAL** | cuatro `Dockerfile` con `FROM …2.12` | La variable ya no aparece en archivos versionados, pero el `FROM` sigue flotando en el minor. |
+| 12 | Las vistas previas son chicas | **VIVO — criterio del autor** | `ResourcePreview.svelte:131,138,151` | Topes fijos (`520px`, `360px`) sin medición del alto libre; el criterio es del autor. |
+| 13 | El encabezado miente con sesión muerta | **VIVO — defecto real y barato** | `+layout.svelte:132-133` · `UserMenu.svelte:59` | El encabezado monta `UserMenu` según el store y éste imprime el nombre **sin sondear**. **El único de los trece que es un defecto puro y de arreglo chico.** |
+
+**Lo que el censo deja:** **3 cerrados** (1, 2, 3 — dos por trabajo hecho, uno por política), **2 parciales** (4 y 11),
+**6 vivos** (5, 6, 7, 9, 12, 13 — de los cuales **cuatro son decisiones del autor** y **uno es un descuadre de
+etiqueta**), **2 sin medir** (8 necesita el síntoma del autor, 10 es operación). Queda **un solo defecto de `v0`** que
+no depende de una decisión: **el 13**.
+
+---
+
+## Paso 2 · Cruce `PRD` ↔ `BACKLOG` ↔ código (2026-10-09)
+
+Los **42 requerimientos** de `PRD.md` §5 (`RF-01`…`RF-42`), cruzados con el tier que el PRD declara, el ítem del
+`BACKLOG` que los registra y el código que los implementa —o no—.
+
+| RF | Módulo | Qué exige | Tier según el PRD | Registro en el BACKLOG | Evidencia en el código | Nota |
+|---|---|---|---|---|---|---|
+| RF-01 | Usuarios | Roles de org **y** por dataset | v1 (§3, §9) | `[x]` roles L2368 | `types/ckan.ts:49` | Sólo capacidad de org; los roles por dataset no existen |
+| RF-02 | Usuarios | Usuario pertenece a una org principal | v1 | **sin registro** | `api/organizations.ts:124` | Multi-org vía `member` de CKAN |
+| RF-03 | Usuarios | Creación de usuarios por `superadmin`/`org_admin` | v1 (§3) | `[v1+]` gestión de usuarios L2950 | `ausente` | **PRD dice v1; el BACKLOG dice v1+** |
+| RF-04 | Usuarios | Email + contraseña, sesión **JWT** | v1 | **sin registro** | `api/auth.ts:24` + `auth/login/+server.ts` | **El PRD dice JWT; corre con tokens/sesiones de CKAN** |
+| RF-05 | Usuarios | Login desacoplado para SSO futuro | v1 (SSO → v2) | **sin registro** | `api/auth.ts:3` | Cumple |
+| RF-06 | Organizaciones | Org: nombre, slug, descripción, jerarquía, metadatos | v1 (§3) | `[v1]` orgs L2863 | `api/organizations.ts:27` | `parent_id` no es nativo |
+| RF-07 | Organizaciones | Toda org tiene al menos un `org_admin` | v1 | `[v1]` orgs L2863 | `ausente` | — |
+| RF-08 | Organizaciones | Dataset de una única org | v1 | `[v1]` orgs L2863 | `schemas/dataset.ts:150` | Mapea a `owner_org` |
+| RF-09 | Datasets | Estado editorial `draft/review/approved/published` + **3 niveles** de visibilidad | v1; el «privado — solo autor» → v1+ (§3) | **sin registro** | `schemas/dataset.ts:131` | **2 de 3 niveles; sin ciclo editorial** |
+| RF-10 | Datasets | Metadatos en JSONB | v1 | **sin registro** | `utils/dataset-payload.ts:95` | Mapea a `extras` |
+| RF-11 | Datasets | Recursos con nombre, tipo, tamaño, **hash**, URL | v1 | `[x]` RF-11/13 L1664 | `api/resources.ts:14` | El hash lo calcula el portal |
+| RF-12 | Datasets | Tope de 50 MB por recurso | v1 | `[x]` techos L3166 | `utils/dataset-payload.ts:12` | CKAN permite 100 MB |
+| RF-13 | Datasets | Recurso = archivo **o** enlace | v1 | `[x]` RF-11/13 L1664 | `schemas/resource.ts:51` | Se infiere de `url_type` |
+| RF-14 | Versionado | Versiones explícitas con estado y visibilidad propias | v1+ (§7: sin API nativa) | `[v1+]` versionado L2958 | `ausente` | `activity` no alcanza |
+| RF-15 | Versionado | `draft→review→approved` + solicitud de visibilidad | v1 (§3) | cambio `2026-09-13-publication-lifecycle` L1877; RF-41/42 `[v1]` L1403 | `api/publication.ts:113` | **La máquina editorial (pasos 1–3) quedó fuera de alcance** |
+| RF-16 | Versionado | Aprobación genera versión para auditoría | v1+ (§7) | `[v1+]` versionado L2958 | `ausente` | — |
+| RF-17 | Versionado | Cambios menores: sólo auditoría | v1+ (§7) | **sin registro** | `ausente` | — |
+| RF-18 | Colaboradores | Colaboradores por dataset (`view/edit/admin`) | v1 (§3) | **`[v0]`** colaboradores L2452 | `api/organizations.ts:77` | **Etiqueta `[v0]` contra un tier `v1`; bandera apagada** |
+| RF-19 | Colaboradores | Permisos por usuario **o** por equipos | v1+ (§7) | `[v1+]` colaboradores L2912 | `ausente` | `teams` sin equivalente |
+| RF-20 | Colaboradores | Equipos con org y miembros | v1 (§3) | `[v1+]` L2912/L2979 | `ausente` | §7 sólo difiere RF-19 |
+| RF-21 | Colecciones | Colección con nombre, descripción, visibilidad | v1 (§3) | `[v1+]` colecciones L2947 | `ausente` | Mapea a `group` |
+| RF-22 | Colecciones | Colección con datasets de varias orgs | v1 (§3) | `[v1+]` colecciones L2947 | `ausente` | — |
+| RF-23 | Colecciones | Pública exige aprobación de cada `org_admin` | v1+ (§7) | `[v1+]` colecciones L2947 | `ausente` | No es nativo |
+| RF-24 | Análisis | CSV: tipos, tabla, frecuencias y gráficos | v1 (§3) | `[v1+]` análisis L2939 | `utils/csv.ts:38` (sin llamadores) | **PRD dice v1; el BACKLOG dice v1+** |
+| RF-25 | Análisis | Mapas (lat/long, geocodificación) | v2 (§3) | **sin registro** | `ausente` | — |
+| RF-26 | Análisis | IA para sugerencias | v2 (§3) | **sin registro** | `ausente` | — |
+| RF-27 | Catálogo | Todo se indexa en Solr | v1 (§3) | **sin registro** | `api/datasets.ts:12` | CKAN indexa |
+| RF-28 | Catálogo | Filtros por org, tags, visibilidad, fechas, tipo | v1 (§3) | **sin registro** | `search/+page.svelte:22` | La visibilidad depende del backend |
+| RF-29 | Catálogo | Facetas por filtro | v1 (§3) | **sin registro** | `api/datasets.ts:19` + `FacetFilter.svelte` | — |
+| RF-30 | Preview | PDF, imagen, TXT y JSON en el navegador | **el PRD no lo declara** | `[v0]` vistas previas L2646 | `resources/preview.ts:26` | Requerimiento **sin tier** |
+| RF-31 | Preview | CSV: tabla con las primeras 20 filas | **el PRD no lo declara** | `[v0]` vistas previas L2646 | `api/datastore.ts:32` | Decidido por `datastore_active` |
+| RF-32 | Preview | Gráficos exportables y datos a CSV | **el PRD no lo declara** | **sin registro** | `ausente` | Sólo «Descargar recurso» |
+| RF-33 | Auditoría | Auditar CUD, visibilidad, aprobaciones, logins | v1 (§3) **y** v1+ (§7) | `[v1]` auditoría L2867 | `ausente` | **Contradicción dentro del PRD** |
+| RF-34 | Auditoría | `audit_logs` propio con triggers | v1+ (§7) | `[v1]` auditoría L2867 | `ausente` | Idem |
+| RF-35 | Auditoría | Soft-delete con `deleted_at` | v1+ (§7) | **sin registro** | `api/datasets.ts:108` | Nativo (`state='deleted'`) |
+| RF-36 | Auditoría | Bloqueo `access_status` reversible | v1+ (§7) | **sin registro** | `ausente` (sólo el tipo) | Sin equivalente |
+| RF-37 | API pública | API REST propia para consultar | v1 (§3) | **sin registro** | `api/client.ts:15` | El portal **no** expone API propia |
+| RF-38 | API pública | Acceso con **API Key** | v1 (§3) | **sin registro** | `api/client.ts:23` | Usa token de sesión |
+| RF-39 | Datasets | Markdown sin HTML crudo, con vista previa | v1 | `[x]` markdown L1760 | `utils/markdown.ts:22` | Decisión: markdown, no HTML |
+| RF-40 | Datasets | Resumen corto para las cards | **el PRD no lo declara** | `[x]` summary L1828 | `utils/dataset-summary.ts:11` | Extra propio |
+| RF-41 | Versionado | Degradación **solicitada** | v1 (§3) | RF-41/42 `[v1]` L1403 | `api/publication.ts:52` | Sin UI de bajada |
+| RF-42 | Versionado | Degradación **directa** con motivo | v1 (§3) | RF-41/42 `[v1]` L1403 | `ausente` | La única excepción al flujo |
+
+### Lecturas del cruce
+
+- **El PRD no asigna NADA a `v0`: cero de 42.** El tier `v0` no existe en la lista de requerimientos —existe como
+  **criterio de salida** en §3 y como **etiquetas en el `BACKLOG`**—. Es la contradicción de forma que el autor
+  intuía, y es la primera que hay que resolver: **el PRD y el BACKLOG no hablan del mismo `v0`.**
+- **Conteo por tier según el PRD**: `v0` **0** · `v1` **27** · `v1+` **9** · `v2` **2** · **sin declarar 4** (RF-30/31/32/40).
+- **Ausentes en el código** (sin una línea en `src/`): RF-03, 07, 14, 16, 17, 19, 20, 21, 22, 23, 25, 26, 32, 33, 34,
+  36, 42. Las pesadas: versionado/editorial, equipos, colecciones, auditoría y degradación directa.
+- **Parciales**: RF-09 (3 niveles → 2), RF-11 (hash del portal), RF-15 (sólo el flujo de solicitud), RF-18 (bandera
+  apagada), RF-24 (`parseCsv` sin cablear), RF-41 (`requested_visibility` sin UI), RF-35 (soft-delete nativo).
+- **Sin equivalente en CKAN** (§7): RF-14/16/17, RF-19/20, RF-23, RF-33/34, RF-36; `publication_requests` es custom.
+- **Desajustes `PRD` ↔ `BACKLOG`**: RF-03 y RF-24 (el PRD los pone en `v1`, el BACKLOG en `v1+`); RF-33/34 (el PRD se
+  contradice entre §3 y §7); **RF-18** (etiqueta `[v0]` con tier real `v1`); RF-15 (sin tag de tier).
+- **15 de 42 sin registro en el `BACKLOG`** (RF-02, 04, 05, 09, 10, 17, 25, 26, 27, 28, 29, 32, 35, 36, 37, 38): la
+  mayoría ya implementados o fuera del alcance del PRD. **Un requerimiento cumplido sin registro es deuda de registro**,
+  no un logro: no se puede auditar lo que no está anotado.
+
+---
+
+## Paso 3 · Re-tiering y enmiendas al `PRD` — PENDIENTE
+
+El material está medido; **las decisiones son del autor**. Lo que el paso 3 tiene que cerrar, con lo de arriba a la
+vista: (a) cómo se declaran los `v0` **dentro del PRD** (hoy no existen); (b) RF-03 y RF-24, `v1` contra `v1+`;
+(c) la contradicción interna de RF-33/34; (d) RF-04 (JWT contra tokens de CKAN); (e) RF-18, la etiqueta `[v0]` que no
+corresponde; (f) las cuatro sin tier (RF-30/31/32/40); y (g) el registro de los quince que no están en el `BACKLOG`.
+
+## Paso 4 · La carilla «qué es `v0` y qué no es» — PENDIENTE
+
+Se escribe **después** del paso 3, porque su contenido depende de cómo se resuelva (a). Su insumo ya está: el censo del
+paso 1 (un solo defecto puro de `v0`, el 13; tres cerrados; cuatro decisiones del autor) y el cruce del paso 2.
+
