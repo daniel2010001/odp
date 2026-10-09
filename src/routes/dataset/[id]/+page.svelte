@@ -61,6 +61,12 @@ let dataset = $state<CkanPackage | null>(null);
  * conservar una solicitud vieja cuando la consulta falla.
  */
 let solicitudVigente = $state<PublicationRequest | null>(null);
+/**
+ * Cuántas solicitudes **pendientes** hay para este dataset. La tarjeta muestra la vigente y, cuando
+ * hay más de una, lo dice: la página no elige entre dos filas en silencio. Con una sola no agrega la
+ * línea, que sería ruido.
+ */
+let pendingRequestCount = $state(0);
 let loading = $state(true);
 let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
@@ -127,9 +133,20 @@ async function loadCurrentRequest() {
 		// comparar el parámetro contra `dataset_id` no coincidiría nunca — es la misma trampa que la
 		// comparación de cuatro ojos, que comparaba un nombre contra un id y quedaba inerte y verde.
 		const propias = filas.filter((fila) => fila.dataset_id === dataset?.id);
-		solicitudVigente = propias.find((fila) => fila.status === "pending") ?? propias[0] ?? null;
+		// Determinista: entre las pendientes, la **más reciente** por `created_at` es la vigente. Todas las
+		// filas usan `YYYY-MM-DDTHH:MM:SS.ffffff`, así que el orden lexicográfico es el cronológico y no
+		// depende del orden del arreglo. La más vieja puede venir primero: no se toma «la primera».
+		const pendingRows = propias.filter((fila) => fila.status === "pending");
+		const mostRecent = pendingRows.reduce<PublicationRequest | null>(
+			(latest, row) =>
+				!latest || (row.created_at ?? "") > (latest.created_at ?? "") ? row : latest,
+			null,
+		);
+		solicitudVigente = mostRecent ?? propias[0] ?? null;
+		pendingRequestCount = pendingRows.length;
 	} catch {
 		solicitudVigente = null;
+		pendingRequestCount = 0;
 	}
 }
 
@@ -763,6 +780,14 @@ async function handleCopyLink() {
 								<Inbox class="size-4 shrink-0 text-primary" aria-hidden="true" />
 								{estadoDeLaSolicitud(solicitudVigente)}
 							</p>
+							{#if pendingRequestCount > 1}
+								<p
+									class="mt-1 text-xs text-muted-foreground"
+									data-testid="pending-requests-count"
+								>
+									Hay {pendingRequestCount} solicitudes pendientes para este dataset.
+								</p>
+							{/if}
 						</Card>
 					{/if}
 

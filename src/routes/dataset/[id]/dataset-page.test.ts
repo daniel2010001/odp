@@ -926,6 +926,64 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		expect(screen.queryByRole("button", { name: "Solicitar publicación" })).not.toBeInTheDocument();
 	});
+
+	it("con dos pendientes elige la más reciente por `created_at`, no la primera del arreglo", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		// La más vieja va **primero** a propósito: una página que toma «la primera pendiente» mostraría a
+		// `editor.antiguo`, y esta aserción falla.
+		mocks.listRequests.mockResolvedValue([
+			makeRow({
+				id: "req-old",
+				requested_by_name: "editor.antiguo",
+				created_at: "2026-10-01T00:00:00.000000",
+			}),
+			makeRow({
+				id: "req-new",
+				requested_by_name: "editor.reciente",
+				created_at: "2026-10-05T00:00:00.000000",
+			}),
+		]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		const statusCard = await screen.findByTestId("estado-solicitud");
+		expect(statusCard).toHaveTextContent("Pendiente de revisión, pedida por editor.reciente.");
+	});
+
+	it("con más de una pendiente lo dice, en vez de elegir en silencio", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ id: "req-old", created_at: "2026-10-01T00:00:00.000000" }),
+			makeRow({ id: "req-new", created_at: "2026-10-05T00:00:00.000000" }),
+		]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		const pendingCount = await screen.findByTestId("pending-requests-count");
+		expect(pendingCount).toHaveTextContent("Hay 2 solicitudes pendientes para este dataset.");
+	});
+
+	it("con una sola pendiente no agrega la línea de conteo", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		await screen.findByTestId("estado-solicitud");
+		expect(screen.queryByTestId("pending-requests-count")).toBeNull();
+	});
 });
 
 // El flujo de publicación tiene **una sola** compuerta: no hay camino directo, ni siquiera para la
