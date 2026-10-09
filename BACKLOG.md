@@ -17,6 +17,81 @@
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
 
+## Decisiones del autor (2026-10-09) — qué se posterga, qué se prioriza, y dos casos abiertos
+
+> **Nomenclatura del código: TODO, y una regla desde ahora.** Los **identificadores** van en **inglés**; los
+> **comentarios pueden seguir en español** (aclaración explícita del autor). El caso que lo disparó:
+> `estadoDeLaSolicitudBadge` (`dataset/[id]/+page.svelte`), introducido el 2026-10-08 y mergeado en el PR #58.
+> **Medido hoy (read-only, `src/` sin tests): 31 declaraciones con token en español en 9 archivos**
+> (`estadoDeLaSolicitud`, `estadoDeLaSolicitudBadge`, `solicitudVigente`, `puedeCrear`, `puedeOfrecerCreacion`,
+> `listarCola`, `organizacionesDeLaCola`, `cargarLicencias`, `cargarEtiquetas`, `estadoContador`…). La cuenta es un
+> **piso**, no el total: sólo cubre `function|const|let|var`, así que **no** cuenta props, tipos exportados ni el estado
+> interno de los tres componentes de publicación (`PublicationQueue`, `RequestPublicationControl`, `DatasetForm`).
+> **El barrido puede esperar hasta `v1`** (decisión del autor). El número está para dimensionarlo.
+>
+> **Nada de diseño se resuelve hasta terminar `v0`, salvo orden explícita del autor en el momento** (como pasó con la
+> insignia del hero el 2026-10-08). Quedan postergados, sin más trámite: el **tooltip vendorizado** de las acciones del
+> hero, **«Detalles» contra «Información técnica»**, el diseño del grupo **«Resueltas»**, la **card de metadatos**, la
+> **página de la organización**, el **responsive del salto** y el **aire de los pegados**. Los cuatro últimos ya estaban
+> en la lista de `[v0]` abiertos: **la etiqueta no los promueve**, el orden del autor manda.
+>
+> **El estado `draft` queda para la máquina editorial** (`RF-15`, fuera de este corte, `[v1]`): **no se mide ahora** y se
+> retoma cuando se toque esa máquina.
+>
+> **Las dos capas de la sonda (`A5`) son prioridad DESPUÉS de `v0`**, con el `PRD.md` y este archivo sobre la mesa, en
+> una o más sesiones. **El inventario de las 18 acciones queda postergado.**
+>
+> **Los puntos de la presentación ya están anotados** (el bloque `[v0] El despliegue para presentar v0`, más arriba) y
+> **no se empieza de cero**: se suman ahí cuando el autor dé el método de carga.
+>
+> **La carga de datos de prueba del autor ya está en el repo y anotada:** `scripts/seed-ckan.mjs` (16.5K; la nota del
+> 2026-09-28 registra 16 datasets creados, 0 preexistentes, y el token del seed revocado al terminar, verificado
+> listando). El autor contará el método cuando llegue el despliegue.
+
+### Caso de gobernanza — el aprobador decide a ciegas (planteado por el autor, 2026-10-09)
+
+> **El requisito del autor:** la aprobación **no es un trámite**: antes de aceptar la solicitud hay que **revisar** el
+> dataset, porque la gobernanza exige comprobar que la información es correcta para ser pública.
+>
+> **Lo medido hoy, y son tres hechos distintos:**
+> 1. **El aprobador SÍ puede leer el dataset.** Medido el 2026-10-08: un admin de la organización dueña que **no** es el
+>    solicitante obtiene `package_show` → **`200`, `private=true`, con sus recursos**. La accesibilidad **no** es el
+>    problema.
+> 2. **Y no tiene cómo llegar a él.** `PublicationQueue.svelte` muestra el **título** del dataset como **texto**: el
+>    componente **no tiene un solo `href`** (verificado hoy). Y el dataset está **privado**, así que **no aparece en el
+>    catálogo**. El único camino hoy es escribir la URL a mano.
+> 3. **Los controles de decidir viven sólo en la cola** (`aprobar` / `rechazar` con motivo). En la ficha del dataset
+>    están el control del **solicitante** y una tarjeta de estado **de sólo lectura**.
+>
+> O sea: el flujo **funciona** y el criterio de salida se verificó de punta a punta el 2026-10-08, pero esa caminata
+> aprobó **a ciegas**. Las salidas posibles, sin decidir: **(a)** el título de la fila **enlaza** a `/dataset/<id>` en
+> pestaña nueva; **(b)** los controles de decidir **también** viven en la ficha, para que revisar y decidir ocurran en el
+> mismo lugar; **(c)** una **vista de revisión** propia en la cola (más cara). **Decisión del autor, pendiente.**
+> *Propuesta del agente, a confirmar: es candidato a `[v0]`, porque es lo que le da sentido a la compuerta; el tier lo
+> define el autor.*
+
+### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
+
+> **Son tres lugares y no hacen lo mismo** — y la confusión es razonable, porque el arreglo del otro repo los tocó a
+> los tres:
+> 1. **La escritura** (acción del otro repo): **acepta un nombre como entrada** y **guarda el id**. Antes guardaba lo que
+>    le llegara, y de ahí nació el defecto.
+> 2. **La lectura de la tabla** (misma acción, según el arreglo del PR #12 de `odp-docker` — **no medido desde acá**):
+>    resuelve **id o nombre** al decidir si una fila es visible. Eso **no es un criterio nuevo**: es **compatibilidad
+>    con las filas viejas**, porque sin eso las guardadas por nombre quedan invisibles **para siempre** y haría falta una
+>    migración de datos. Al resolverlas, las devuelve **clavadas por el id**.
+> 3. **El portal** (`dataset/[id]/+page.svelte`): **compara sólo ids** — `fila.dataset_id === dataset.id`, contra el id
+>    del dataset **cargado**, nunca contra el parámetro de la ruta (que puede traer el nombre). Eso ya está bien y **no
+>    se toca**.
+>
+> **Lo que queda, y es sólo de datos viejos:** un dataset con **dos** filas pendientes (una por nombre, una por id) hace
+> que la ficha tenga **dos candidatas** y `solicitudVigente` tome **la primera** sin decir nada; la cola las muestra a
+> las dos (filtra, no deduplica). Con la escritura ya normalizada, **eso no se puede volver a producir**.
+> Las salidas: **(a)** dejar la compatibilidad y que la ficha **diga** que hay más de una pendiente —o elegir la **más
+> reciente** por `created_at` en vez de «la primera»—; **(b)** quitar la resolución por nombre y **limpiar** las filas
+> viejas con una migración: es «sólo por id» en sentido estricto, al precio de una migración y de una ventana de filas
+> invisibles; **(c)** no hacer nada y documentarlo. **Decisión del autor, pendiente**, con la información de arriba.
+
 ## Estado al cierre (2026-10-08, madrugada) — **`B1` cerrado**: el ciclo de publicación, cableado al catálogo
 
 > **Actualización (2026-10-08, día) — dos decisiones del autor, y una unidad en curso sobre ellas.**
