@@ -48,6 +48,28 @@ alcance para `v1` **no se borra ni se diluye**: se mueve a **`v2` con su motivo 
 42 requerimientos —tier, registro en `BACKLOG.md`, evidencia en el código y divergencias— está medido en
 `odd/tasks/backlog-prd-reconciliation.md`.
 
+**Qué es este documento** (precisión del autor, 2026-10-09): el PRD es un **documento inicial** —la base y el
+**concepto** del proyecto, escrito antes de desarrollarlo—, así que puede cambiar. **No es la fuente de la verdad**
+(lo que son el código y lo que se mide) pero **se acerca bastante**. Cuando el desarrollo lo contradice, la divergencia
+**se anota con su motivo** —las anotaciones *Estado medido*—, en vez de dejar que el documento y el producto se
+contradigan en silencio.
+
+### Dentro del alcance (`v0`) — la demo
+
+**`v0` es la demo que se presenta para decidir si el proyecto va.** Incluye el recorrido mínimo que hoy está construido
+y verificado, y **si entran más cosas, mejor** (decisión del autor, 2026-10-09):
+
+- **El catálogo**: la home, la búsqueda con facetas y las páginas de organización.
+- **La ficha de un dataset y la de un recurso**, con su **vista previa** (PDF, imagen, TXT, JSON y tabla de CSV) y sus
+  superficies de error.
+- **El inicio de sesión** y el menú de usuario, con la sonda que no deja que el encabezado afirme una sesión muerta.
+- **La creación de un dataset con recursos** (archivos y enlaces) y su edición.
+- **El flujo de publicación completo**: solicitar → **revisar el dataset** (el enlace desde la cola) → decidir →
+  **verlo público en el catálogo**, con la cola de solicitudes y su filtro por organización.
+
+Lo que **no** entra en `v0`: la **administración** (usuarios, organizaciones y permisos), que se hace por CKAN o por su
+CLI —la «muleta operativa» que esta misma sección declara—, y todo lo que la tabla de tiers manda a `v1` o más allá.
+
 **Arquitectura adoptada** (decisión registrada 2026-09-11): CKAN se usa como **backend headless**
 (sólo su API REST). El portal SvelteKit es dueño del **100% de la interfaz**, incluida la
 administración. El UI web nativo de CKAN se acepta únicamente como **muleta operativa durante `v0`**;
