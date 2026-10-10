@@ -1,10 +1,14 @@
 <script lang="ts">
 import "../app.css";
 import { Menu, Monitor, Moon, Sun, X } from "@lucide/svelte";
-import { onDestroy } from "svelte";
+import { onDestroy, onMount } from "svelte";
+import { get } from "svelte/store";
+import { createCkanClient } from "$lib/api/client";
 import UserMenu from "$lib/components/auth/UserMenu.svelte";
 import ThemePlayground from "$lib/components/ThemePlayground.svelte";
-import { isAuthenticated } from "$lib/stores/auth";
+import { env } from "$lib/env";
+import { validateStoredSession } from "$lib/session-guard";
+import { auth, isAuthenticated } from "$lib/stores/auth";
 import { theme } from "$lib/stores/theme";
 
 let { children } = $props();
@@ -16,6 +20,19 @@ const unsub = theme.subscribe((v) => {
 	currentTheme = v;
 });
 onDestroy(unsub);
+
+// ─── La sesión guardada se sondea una vez por carga ───────────────────
+// `$isAuthenticated` sólo dice «hay un token en el almacenamiento»: tras una limpieza de la base de
+// CKAN el token queda muerto pero el estado sigue pareciendo autenticado, y el encabezado mostraría
+// una sesión que ya no existe. Se sondea al montar —una sola vez, porque el layout raíz vive durante
+// toda la navegación cliente y `onMount` corre una vez por instancia— y, si está muerta, se termina
+// localmente (sin navegar): en una página pública rebotar al login es peor que mostrar el encabezado
+// anónimo. Las pantallas que sí necesitan los datos del usuario conservan su `endInvalidSession`
+// con redirección.
+onMount(() => {
+	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	void validateStoredSession(client);
+});
 
 // Resolve what icon to show based on effective dark state
 let isDark = $state(false);

@@ -14,10 +14,11 @@
 // al dashboard y el ciclo se repite sin fin. El orden es carga estructural: primero `logout()`,
 // después `goto(...)`. `src/lib/session-guard.test.ts` lo fija midiendo el store dentro del `goto`.
 
+import { get } from "svelte/store";
 import { goto } from "$app/navigation";
 import type { CkanClient } from "./api/client";
 import { classifyFailure } from "./api/failure";
-import { createSessionApi } from "./api/session";
+import { createSessionApi, type SessionCheck } from "./api/session";
 import { sessionExpiredLoginUrl } from "./session";
 import { auth } from "./stores/auth";
 
@@ -31,6 +32,23 @@ import { auth } from "./stores/auth";
 export async function endInvalidSession(returnTo: string): Promise<void> {
 	auth.logout();
 	await goto(sessionExpiredLoginUrl(returnTo));
+}
+
+/**
+ * Sondea la sesión guardada y, si está muerta, la termina **localmente** —sin navegar—, para que
+ * una superficie que no debe expulsar a nadie (el encabezado en una página pública) deje de
+ * mostrar una sesión que ya no existe.
+ *
+ * Devuelve `null` cuando no hay token guardado: en ese caso no se llama a la API. La decisión de
+ * qué es una sesión muerta (`dead`) vive en la sonda, no acá; esta función sólo la consume, igual
+ * que `resolveUnauthorized`.
+ */
+export async function validateStoredSession(client: CkanClient): Promise<SessionCheck | null> {
+	if (!get(auth).token) return null;
+
+	const check = await createSessionApi(client).check();
+	if (check.state === "dead") auth.logout();
+	return check;
 }
 
 /** Resultado de decidir qué significa un fallo de autorización para el espectador actual. */

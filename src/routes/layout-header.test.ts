@@ -1,12 +1,25 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { render, screen } from "@testing-library/svelte";
+import { render, screen, waitFor } from "@testing-library/svelte";
 import { createRawSnippet, tick } from "svelte";
+import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { goto } from "$app/navigation";
 import { auth } from "$lib/stores/auth";
 import type { CkanUser } from "$lib/types/ckan";
 import Layout from "./+layout.svelte";
+
+// La sonda de sesión vive en `$lib/api/session`; acá se la reemplaza por un doble controlable para
+// decidir «viva», «muerta» o «no llamada» sin red. `$lib/env` también se reemplaza: el layout lo
+// importa para armar el cliente, y `$env/static/public` no resuelve en Vitest.
+const sessionMock = vi.hoisted(() => ({ check: vi.fn() }));
+
+vi.mock("$lib/api/session", () => ({
+	createSessionApi: () => ({ check: sessionMock.check }),
+}));
+
+vi.mock("$lib/env", () => ({ env: { CKAN_URL: "" } }));
 
 // Esta suite es el ancla anti-deriva del alto del encabezado. La propiedad no se puede verificar en
 // jsdom —no hay layout, `getBoundingClientRect` da 0 y tampoco hay media queries—, así que la
@@ -30,6 +43,9 @@ const children = createRawSnippet(() => ({ render: () => "Contenido" }));
 beforeEach(() => {
 	auth.reset();
 	vi.clearAllMocks();
+	// Por defecto la sonda confirma una sesión viva: los tests del alto del encabezado renderizan
+	// anónimos (no sondean) y los autenticados no deben perder su nombre por accidente.
+	sessionMock.check.mockResolvedValue({ state: "alive", user: baseUser });
 });
 
 describe("Header (layout)", () => {
@@ -52,6 +68,57 @@ describe("Header (layout)", () => {
 	afterEach(() => {
 		document.documentElement.removeAttribute("data-header-shrunk");
 		vi.unstubAllGlobals();
+	});
+});
+
+describe("El encabezado sondea la sesión guardada", () => {
+	it("una sesión muerta se termina localmente: pasa a anónimo y no navega", async () => {
+		auth.login("tok-muerto", baseUser);
+		sessionMock.check.mockResolvedValue({ state: "dead" });
+
+		render(Layout, { children });
+
+		await waitFor(() => expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument());
+		expect(screen.getByRole("link", { name: "Iniciar Sesión" })).toHaveAttribute(
+			"href",
+			"/auth/login",
+		);
+		expect(get(auth).token).toBeNull();
+		// El encabezado termina la sesión, no expulsa: en una página pública nadie debe rebotar al login.
+		expect(goto).not.toHaveBeenCalled();
+	});
+
+	it("una sesión viva conserva el nombre en el encabezado", async () => {
+		auth.login("tok-vivo", baseUser);
+		sessionMock.check.mockResolvedValue({ state: "alive", user: baseUser });
+
+		render(Layout, { children });
+
+		await waitFor(() => expect(sessionMock.check).toHaveBeenCalledTimes(1));
+		expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+		expect(get(auth).token).toBe("tok-vivo");
+	});
+
+	it("sin sesión guardada no llama a la API de sesión", async () => {
+		render(Layout, { children });
+		await tick();
+
+		expect(sessionMock.check).not.toHaveBeenCalled();
+		expect(screen.getByRole("link", { name: "Iniciar Sesión" })).toBeInTheDocument();
+	});
+
+	it("sondea una sola vez aunque el estado de la sesión cambie", async () => {
+		auth.login("tok-vivo", baseUser);
+
+		render(Layout, { children });
+		await waitFor(() => expect(sessionMock.check).toHaveBeenCalledTimes(1));
+
+		// Otra escritura en la tienda (p. ej. un `login` de otra pantalla) no vuelve a sondear: la
+		// sonda cuelga del montaje del layout raíz, no de la suscripción reactiva.
+		auth.setLoading(true);
+		await tick();
+
+		expect(sessionMock.check).toHaveBeenCalledTimes(1);
 	});
 });
 
