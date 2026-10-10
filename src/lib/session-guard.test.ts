@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import type { CkanClient } from "./api/client";
 import { sessionExpiredLoginUrl } from "./session";
-import { endInvalidSession, resolveUnauthorized } from "./session-guard";
+import { endInvalidSession, resolveUnauthorized, validateStoredSession } from "./session-guard";
 import { auth, isAuthenticated } from "./stores/auth";
 import { CkanApiError } from "./types/api";
 import type { CkanUser } from "./types/ckan";
@@ -180,6 +180,35 @@ describe("resolveUnauthorized — la rama compartida del 403", () => {
 		).resolves.toBe("inconclusive");
 
 		expect(goto).not.toHaveBeenCalled();
+		expect(get(isAuthenticated)).toBe(true);
+	});
+});
+
+describe("validateStoredSession — el veredicto vale para el token que se sondeó", () => {
+	it("un `dead` de un token ya reemplazado no cierra la sesión que se acaba de abrir", async () => {
+		auth.login("tok-viejo", baseUser);
+
+		// La sonda queda **en vuelo** hasta que el test la libera, que es la única forma de que el
+		// veredicto llegue tarde: si se resolviera al instante, no habría nada que competir.
+		let liberar: () => void = () => {};
+		const enVuelo = new Promise<void>((resolve) => {
+			liberar = resolve;
+		});
+		const { client } = stubClient(async (action: string) => {
+			await enVuelo;
+			if (action === "user_show") throw new CkanApiError("Not Found", 404);
+			return { success: true, result: {} };
+		});
+
+		const sonda = validateStoredSession(client);
+
+		// Mientras la sonda del token viejo viaja, el usuario entra con una sesión nueva.
+		auth.login("tok-nuevo", baseUser);
+		liberar();
+		await sonda;
+
+		// El veredicto era del token **viejo**: la sesión nueva no se tira por él.
+		expect(get(auth).token).toBe("tok-nuevo");
 		expect(get(isAuthenticated)).toBe(true);
 	});
 });

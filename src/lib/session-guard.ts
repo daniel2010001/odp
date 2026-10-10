@@ -44,10 +44,14 @@ export async function endInvalidSession(returnTo: string): Promise<void> {
  * que `resolveUnauthorized`.
  */
 export async function validateStoredSession(client: CkanClient): Promise<SessionCheck | null> {
-	if (!get(auth).token) return null;
+	const token = get(auth).token;
+	if (!token) return null;
 
 	const check = await createSessionApi(client).check();
-	if (check.state === "dead") auth.logout();
+	// El veredicto vale para **el token que se sondeó**: si mientras la sonda viajaba el usuario entró
+	// o cambió de sesión, el token guardado ya es otro y una sesión nueva no se tira por un veredicto
+	// viejo. Sin esta comparación, un `dead` de la sesión anterior cierra la que se acaba de abrir.
+	if (check.state === "dead" && get(auth).token === token) auth.logout();
 	return check;
 }
 
