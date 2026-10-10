@@ -194,18 +194,21 @@ cinco pasos del flujo se construyeron el 4 y el 5; los pasos 1–3 son la máqui
 
 ### Pendiente del paso 3 (decisiones del autor)
 
-1. **`RF-18` (colaboradores por dataset): requiere el análisis que el autor pidió.** El equivalente es
-   `package_collaborator` de CKAN —**nativo desde 2.9** detrás de `ckan.auth.allow_dataset_collaborators`, hoy en
-   **`false`**—, **no** los `group` (que son las colecciones, `RF-21`/`RF-22`). Encender la bandera es barato; lo que falta
-   es la **UI en el portal** y el mapeo de permisos (`view`/`edit`/`admin` del PRD contra los `read`/`edit` que da CKAN).
-   Con el modelo precisado es un **requerimiento de este documento que hoy no existe en el portal**: `v1` si entra, `v2`
-   con su motivo si no.
-2. **La metodología, para la documentación y la defensa** (ver abajo): hay que **declararla**, porque hoy está en la
-   práctica y no en un documento.
+1. **`RF-18` (colaboradores por dataset): el autor lo deja para `v1`** —«por mí podemos hacerlo en `v1`, pero lo podemos
+   decidir luego de revisarlo a fondo»—, así que **el análisis y la decisión se toman en `v1`**, no ahora. El equivalente
+   es `package_collaborator` de CKAN —**nativo desde 2.9** detrás de `ckan.auth.allow_dataset_collaborators`, hoy en
+   **`false`**—, **no** los `group` (que son las colecciones, `RF-21`/`RF-22`). Encender la bandera es barato; lo que
+   falta es la **UI en el portal** y el mapeo de permisos (`view`/`edit`/`admin` del PRD contra los `read`/`edit` de
+   CKAN). Con el modelo precisado es un **requerimiento de este documento que hoy no existe en el portal**: `v1` si
+   entra, `v2` con su motivo si no.
+2. **La metodología: la base está escrita** en `METODOLOGIA.md` (2026-10-10), con la recomendación y lo que se corre de
+   verdad; **completarla para la documentación de `v1`** sigue pendiente, y depende también del formato que exija la
+   defensa.
 
 **Ya resueltos** (no volver a preguntar): cómo se declara `v0` → **opción (b)**, la sección «Dentro del alcance (`v0`)»
 que ya está en `PRD.md` §3; las cuatro sin tier → **`v1+`**; `RF-03` → **`v1`**; la auditoría → **`[v2]`**; `RF-37`/`RF-38`
-→ **`v1+` con la explicación de abajo**; los siete objetivos → **mapeados abajo**.
+→ **`v1+` con la explicación de abajo**; los siete objetivos → **mapeados abajo**; la bitácora → **hecha**
+(`BITACORA.md`, 2026-10-10).
 
 ### Los siete objetivos específicos, mapeados a una entrega (2026-10-09)
 
@@ -263,10 +266,51 @@ registro de pendientes.
 **Pendiente para `v1`:** declarar la metodología en la documentación (con su nombre y sus artefactos), que es lo que el
 autor pide para presentar y defender el proyecto.
 
-## Paso 4 · La carilla «qué es `v0` y qué no es» — DESBLOQUEADO (2026-10-09)
+## Paso 4 · La carilla «qué es `v0` y qué no es» — HECHA (2026-10-10)
 
-El insumo que faltaba ya está: **la declaración de `v0`** se resolvió con la opción **(b)** —la sección «Dentro del
-alcance (`v0`)» de `PRD.md` §3, con el recorrido de la demo— y los siete objetivos están mapeados arriba. La carilla sale
-de juntar: (1) esa sección nueva, (2) el censo del paso 1 —un solo defecto puro de `v0`, ya corregido; tres ítems
-cerrados; cuatro decisiones del autor—, y (3) el mapeo de los objetivos. **No se escribió todavía.**
+### Qué es `v0`
+
+La **demo**: el recorrido mínimo que se presenta para decidir si el proyecto va. Está declarado en `PRD.md` §3
+(«Dentro del alcance (`v0`)») y hoy **construido y verificado**:
+
+| Pieza | Estado |
+|---|---|
+| Catálogo: home, búsqueda con facetas, páginas de organización | ✅ |
+| Ficha de dataset y de recurso, con vistas previas (PDF, imagen, TXT, JSON, tabla de CSV) | ✅ |
+| Login, menú de usuario y la sonda que impide afirmar una sesión muerta | ✅ |
+| Creación de dataset con recursos (archivos y enlaces) y edición | ✅ |
+| **Flujo de publicación completo**: solicitar → **revisar** → decidir → verlo público | ✅ **verificado de punta a punta el 2026-10-08** |
+| Cola de solicitudes con filtro por organización, y el enlace al dataset desde la fila | ✅ |
+| Superficies de error con copy honesto (la frase humana primero) | ✅ |
+
+### Qué **no** es `v0`
+
+- **No es la entrega del proyecto**: eso es `v1`, con documentación, manuales y defensa.
+- **No incluye la administración** (usuarios, organizaciones y permisos): se hace por CKAN o por su CLI, la «muleta
+  operativa» que §3 declara. Consecuencia práctica: **en una instalación vacía nada se puede crear desde el portal
+  hasta que exista una organización**, y por eso la provisión se hace con `scripts/seed-ckan.mjs` o por CKAN.
+- **No incluye** lo que la tabla de tiers manda a `v1` o más allá: el módulo de análisis de datos, los equipos y las
+  colecciones, la auditoría, el versionado editorial y la degradación directa.
+
+### Los pendientes que sí tocan a `v0` (censo del paso 1, medido el 2026-10-09)
+
+De los **13 ítems `[v0]` abiertos**: **3 cerrados** (dos por trabajo hecho, uno por política declarada), **2 parciales**
+—uno de ellos es una decisión del autor—, **6 vivos** —cuatro son decisiones del autor y uno está mal etiquetado— y
+**2 sin medir** (uno necesita el síntoma concreto del autor y el otro es tarea de operación). **El único defecto puro de
+`v0` era el encabezado que afirmaba una sesión muerta, y ya está corregido.**
+
+### El guion de la presentación, en orden
+
+1. **El catálogo**: buscar, filtrar por organización, entrar a un dataset y a un recurso, ver la vista previa.
+2. **Iniciar sesión** y mostrar el menú de usuario.
+3. **Crear un dataset con un recurso** (un archivo y un enlace).
+4. **Pedir la publicación** como editor y mostrar el estado en la ficha.
+5. **Entrar como el administrador de la organización**: ver la cola, **abrir el dataset desde la fila** (el enlace
+   nuevo) y decidir.
+6. **Volver sin sesión**: el dataset está **público en el catálogo** y no ofrece ningún control de publicación.
+7. *(Opcional, y es un buen cierre)* mostrar que **el camino directo no existe**: `package_patch {private: false}` por
+   API responde `403` con el rótulo del flujo.
+
+**Antes de presentar:** la instalación tiene que estar **provisionada** —organización, usuarios y sus capacidades—, que
+es el paso que no se ve en la demo y que la arruina si falta.
 

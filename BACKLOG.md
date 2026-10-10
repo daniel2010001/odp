@@ -20,6 +20,10 @@
 > **Arquitectura vigente:** CKAN como backend **headless** (sólo su API REST). El portal
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
+>
+> **Dónde vive cada cosa:** la **metodología** que se aplica está en `METODOLOGIA.md`; el **índice cronológico** de lo
+> que se hizo, en `BITACORA.md`; los **requisitos y el alcance**, en `PRD.md`; los **contratos de comportamiento**, en
+> `openspec/specs/`; la narrativa de cada unidad, en `odd/tasks/`.
 
 ## Límites: de dónde salen los números (2026-10-09)
 
@@ -157,6 +161,11 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > la cola **enlaza** a `/dataset/<id>` en **pestaña nueva**. La (b) —los controles de decidir en la ficha— **se lleva a un
 > playground `/dev/…`** para que la revise (regla 8: el agente propone algo concreto y verificable, el autor lo mira en
 > vivo): **no se promueve hasta que la apruebe**, y si no le gusta, el camino queda en la (a).
+>
+> - [ ] **[v0]** **El playground de la variante (b)**: los controles de **aprobar/rechazar** en la **ficha del dataset**,
+>   para que el autor los vea en vivo y decida si le gusta. **Pendiente para la próxima sesión** (decisión del autor,
+>   2026-10-10: «hagámoslo, pero terminemos esto primero»). La (a) —el enlace desde la cola— **ya está entregada** y
+>   mergeada.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
