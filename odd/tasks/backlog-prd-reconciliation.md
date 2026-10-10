@@ -149,28 +149,63 @@ Los **42 requerimientos** de `PRD.md` §5 (`RF-01`…`RF-42`), cruzados con el t
 - **Sin equivalente en CKAN** (§7): RF-14/16/17, RF-19/20, RF-23, RF-33/34, RF-36; `publication_requests` es custom.
 - **Desajustes `PRD` ↔ `BACKLOG`**: RF-03 y RF-24 (el PRD los pone en `v1`, el BACKLOG en `v1+`); RF-33/34 (el PRD se
   contradice entre §3 y §7); **RF-18** (etiqueta `[v0]` con tier real `v1`); RF-15 (sin tag de tier).
-- **15 de 42 sin registro en el `BACKLOG`** (RF-02, 04, 05, 09, 10, 17, 25, 26, 27, 28, 29, 32, 35, 36, 37, 38): la
+- **16 de 42 sin registro en el `BACKLOG`** (RF-02, 04, 05, 09, 10, 17, 25, 26, 27, 28, 29, 32, 35, 36, 37, 38): la
   mayoría ya implementados o fuera del alcance del PRD. **Un requerimiento cumplido sin registro es deuda de registro**,
-  no un logro: no se puede auditar lo que no está anotado.
+  no un logro: no se puede auditar lo que no está anotado. **Mapeados en `BACKLOG.md` (2026-10-09)**, sección
+  «Requerimientos del PRD sin ítem propio», con su tier y su estado medido; dos de ellos (**RF-37/RF-38**, la API propia y
+  su API Key) quedaron **a decisión del autor**: hoy la API la expone CKAN, no el portal.
+  *(Corrección de conteo: este documento decía **15** y listaba **16**; el número correcto es **16**.)*
 
 ---
 
 ## Paso 3 · Re-tiering y enmiendas al `PRD` — EN CURSO (2026-10-09)
 
-**Hecho hasta ahora: las enmiendas de COHERENCIA** (la regla del autor: *no borrar especificaciones incumplidas, sino
-especificar por qué no se cumplen*), que no requieren ninguna decisión de tier y dejan el PRD hablando con un solo
-relato: **RF-03** (la creación de usuarios la hace CKAN y va en `v1+`), **RF-04 y §6** (no hay JWT: es el token de API
-de CKAN, y la exigencia de autenticarse se cumple igual), **RF-09** (de tres visibilidades existen dos; el `private`
-del PRD —permiso explícito— es el que falta, y **el `private` de CKAN no es el `private` del PRD**), **RF-15** (de los
-cinco pasos del flujo se construyeron el 4 y el 5; los pasos 1–3 son la máquina editorial, fuera de alcance),
-**RF-24** (`v1+` con motivo, con `parseCsv` medido sin llamadores), **RF-33/RF-34 + §3** (la contradicción interna se
-resuelve a `v1+`, con el motivo de §7) y la **nota de reconciliación** que encabeza §5. En el `BACKLOG`, el ítem de
-auditoría pasó a `[v1+]` para que los tres documentos digan lo mismo.
+**El modelo de versiones se precisó (2026-10-09), y eso cambia la vara.** Las definiciones del autor: **`v0`** es la
+**demo** que se presenta para decidir si el proyecto va («core plus»); **`v1`** es **la entrega del proyecto terminado**,
+lista para la infra del cliente, **con documentación, manuales y defensa ante tribunal**; **`v1+`** son **detalles que NO
+son requerimientos fuertes** (a veces ni están en el PRD) que entran en `v1`; **`v2`** son **requerimientos de este PRD
+que no pudieron completarse para `v1`**, movidos **con su justificación escrito** para informar a los futuros
+desarrolladores; **`v2+`** es lo mismo que `v2` más lo que no se tomó en `v2`. `PRD.md` §3 y la convención de
+`BACKLOG.md` se reescribieron con esto (antes `v1+` decía «requerimientos diferidos de `v1`» y `v2` decía «mejoras **no
+solicitadas**», que es lo contrario), y esa corrección **retieró la auditoría a `[v2]`** (era `[v1+]` tras la ronda
+anterior) y **devolvió `RF-03` a `v1`**.
 
-**Pendiente, y son decisiones del autor**: (a) cómo se declaran los `v0` **dentro del PRD** (hoy no existen: cero de
-42); (b) RF-18, la etiqueta `[v0]` que corresponde a `v1`; (c) las cuatro sin tier (RF-30/31/32/40); (d) el registro
-de los quince que no están en el `BACKLOG`; y (e) si RF-03/RF-24 quedan en `v1+` como quedaron anotados o vuelven a
-`v1` con su recorte.
+**Las cuatro sin tier declarado** eran `RF-30` (vista previa de PDF/imagen/TXT/JSON), `RF-31` (tabla de las primeras 20
+filas del CSV), `RF-32` (exportar gráficos y datos) y `RF-40` (resumen corto para las cards). Con el modelo precisado se
+resuelven casi solas: **30, 31 y 40 → `v1`** (las tres están construidas, con evidencia medida en el cruce) y **32 →
+`v2`** (depende del módulo de análisis, RF-24). *Propuesta del agente: falta la confirmación del autor.*
+
+**Y los siete objetivos específicos de §2** —que son la columna vertebral— **no están mapeados a ningún tier**: el PRD
+los prioriza pero no dice en qué entrega caen. Falta eso, y es lo que decide qué se puede posponer con justificación.
+*(Nota de conteo: el autor los llamó «los 8 requerimientos fuertes» y §2 tiene **siete** — hay que ver si falta uno o si
+el número es otro.)*
+
+**Hecho antes, en el mismo paso: las enmiendas de COHERENCIA** (la regla del autor: *no borrar especificaciones
+incumplidas, sino especificar por qué no se cumplen*), que no requieren ninguna decisión de tier y dejan el PRD hablando
+con un solo relato: **RF-03** (creación de usuarios: **`v1`**, hoy la hace CKAN), **RF-04 y §6** (no hay JWT: es el token
+API de CKAN, y la exigencia de autenticarse se cumple igual), **RF-09** (de tres visibilidades existen dos; el `private`
+del PRD —permiso explícito— es el que falta, y **el `private` de CKAN no es el `private` del PRD**), **RF-15** (de los
+cinco pasos del flujo se construyeron el 4 y el 5; los pasos 1–3 son la máquina editorial, fuera de alcance), **RF-24**
+(**`v1`**, con `v2` como destino justificado si no alcanza), **RF-33/RF-34 + §3** (la contradicción interna se resuelve a
+**`v2`** con el motivo de §7) y la **nota de reconciliación** que encabeza §5.
+
+### Pendiente del paso 3 (decisiones del autor)
+
+1. **Cómo se declaran los `v0` dentro del PRD.** Hoy el PRD **no le asigna ningún requerimiento a `v0`**: el tier existe
+   como criterio de salida en §3 y como etiquetas en el `BACKLOG`, y nada más. Las opciones están en el mensaje al autor:
+   una **columna de tier por requerimiento** en §5, una **sección «Dentro del alcance (v0)»** con la lista corta, o dejar
+   los tiers **sólo en el `BACKLOG`** (que es lo que el propio §3 declara hoy) y que el PRD nombre el conjunto por su
+   criterio de salida.
+2. **`RF-18` (colaboradores por dataset): la equivalencia es `package_collaborator`, no `group`.** El autor propuso
+   «con *groups* o algo así», y son **dos requerimientos distintos**: `RF-18` es el **colaborador por dataset** de CKAN
+   —**nativo desde 2.9** detrás de `ckan.auth.allow_dataset_collaborators`, hoy en **`false`**—, mientras que
+   los **`group`** de CKAN son las **colecciones** (`RF-21`/`RF-22`). Encender la bandera es barato; lo que falta es la
+   **UI en el portal** y el mapeo de permisos (`view`/`edit`/`admin` del PRD contra los `read`/`edit` que da CKAN). Con el
+   modelo precisado, es un **requerimiento del PRD que hoy no existe en el portal**: `v1` si entra, `v2` con su motivo si
+   no.
+3. **Los siete objetivos específicos de §2** no están mapeados a ninguna entrega.
+4. **`RF-37`/`RF-38`** (API propia y API Key): decidir si los cumple la API de CKAN o si el PRD pide una capa propia.
+5. **Confirmar** las cuatro sin tier (`RF-30/31/40 → v1`, `RF-32 → v2`) y el retiering de la auditoría a `[v2]`.
 
 ## Paso 4 · La carilla «qué es `v0` y qué no es» — PENDIENTE
 

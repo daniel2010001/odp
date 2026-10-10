@@ -9,13 +9,59 @@
 > puede llevar otro tag, y **un ítem con tag de tier puede vivir fuera de las secciones de tier**.
 > Convención de estado: `[ ]` abierto · `[~]` a medias · `[x]` hecho (se elimina al commitear).
 >
-> **Convención de tier:** `[v0]` core presentable · `[v1]` producto usable en producción ·
-> `[v1+]` diferido de v1 o conveniente sin ser requerimiento · `[v2+]` mejora futura no
-> solicitada. Definición completa de los tiers y su criterio de salida: `PRD.md` §3.
+> **Convención de tier** (precisada por el autor, 2026-10-09 · definición completa en `PRD.md` §3):
+> `[v0]` la **demo** que se presenta para decidir si el proyecto va · `[v1]` **la entrega del proyecto** (desplegable en
+> la infra del cliente, con documentación, manuales y defensa ante tribunal) · `[v1+]` un **detalle que NO es un
+> requerimiento fuerte** y entra en `v1` · `[v2]` un **requerimiento del PRD que no alcanzó para `v1`**, movido **con su
+> motivo escrito** para los futuros desarrolladores · `[v2+]` lo mismo que `v2` más lo que no se tomó en `v2`.
+> **Regla:** lo que no entra en `v1` **no se diluye en `v1+`**; si es un requerimiento del PRD, va a `v2` con su
+> justificación.
 >
 > **Arquitectura vigente:** CKAN como backend **headless** (sólo su API REST). El portal
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
+
+## Límites: de dónde salen los números (2026-10-09)
+
+> **El caso que lo disparó: RF-12, el tope por recurso.** El PRD dice **50 MB** y CKAN admite **100 MB** por defecto. El
+autor no lo sabía, y la conclusión es más general que el número: **se están tomando límites sin saber cuál es el techo
+real**, y si el techo lo pone CKAN, lo correcto es **tomar el de CKAN o anunciar el cambio** — con más razón cuando el
+cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (`odp-docker`).
+>
+> - [ ] **[v1]** **Revisar el tope de recursos: subirlo a los 100 MB de CKAN.** Tres partes: (1) **medir la infra**
+>   —`odp-docker` pudo haberse modificado para imponer 50 MB; si es así, **volver al estado anterior** o extenderlo, no
+>   dejarlo a medias—; (2) cambiar el guardrail del portal (`src/lib/utils/dataset-payload.ts`, `MAX_RESOURCE_BYTES`);
+>   (3) **actualizar `RF-12`** si el número cambia, porque hoy el PRD lo fija en 50. **Se ve cuando se revisen todos los
+>   TODOs** (decisión del autor, 2026-10-09).
+> - **Regla que queda:** un límite que **no** venga de CKAN se elige **a conciencia y se anota por qué**; uno que venga
+>   de CKAN **se toma de CKAN**. Vale para topes de tamaño, longitudes de campos, cantidad de ítems por página y
+>   cualquier constante con pinta de arbitraria — y `PRD.md` §7 ya tiene medidos los límites reales de CKAN.
+
+## Requerimientos del PRD sin ítem propio — registro (2026-10-09)
+
+> El cruce del `PRD.md` §5 contra este archivo (paso 2 de `odd/tasks/backlog-prd-reconciliation.md`) encontró **16 de 42**
+> requerimientos **sin ningún ítem que los registre**. Un requerimiento cumplido sin registro es **deuda de registro**:
+> no se puede auditar lo que no está anotado. Quedan **mapeados con su tier y su estado medido**, que es el registro
+> mínimo; los que ya están cumplidos no necesitan un ítem de trabajo propio.
+>
+> | RF | Qué es | Tier | Estado medido (2026-10-09) |
+> |---|---|---|---|
+> | RF-02 | El usuario pertenece a una organización principal | `[v1]` | Cumplido por CKAN: multi-org vía `member` (`src/lib/api/organizations.ts:124`); sin tabla propia |
+> | RF-04 | Email y contraseña, sesión JWT | `[v1]` | Cumplido con **otro mecanismo** (token de API de CKAN, no JWT); la exigencia queda intacta |
+> | RF-05 | Login desacoplado del SSO | `[v1]` | Cumplido: `src/lib/api/auth.ts` + el proxy de login del servidor |
+> | RF-09 | Estado editorial y **3 niveles** de visibilidad | `[v1]` | **Parcial**: 2 de 3 niveles (el `private` del PRD no existe, ver §3/§7) y la máquina editorial fuera de alcance |
+> | RF-10 | Metadatos en JSONB | `[v1]` | Cumplido vía `extras` de CKAN (`src/lib/utils/dataset-payload.ts:95`) |
+> | RF-17 | Los cambios menores no generan versión, sólo auditoría | `[v2]` | **Ausente**: depende del versionado (RF-14/16) y de la auditoría (RF-33/34), los dos en `v2` |
+> | RF-25 | Mapas (lat/long, geocodificación) | `[v2]` | Fuera del alcance de `v1` por decisión del PRD; sin equivalente en CKAN |
+> | RF-26 | IA para sugerir gráficos o preguntas | `[v2]` | Opcional y futuro; sin implementación |
+> | RF-27 | Todos los metadatos indexados en Solr | `[v1]` | Cumplido: indexa CKAN y el portal lo consume con `package_search` |
+> | RF-28 | Filtros por org, etiquetas, visibilidad, fechas y tipo de recurso | `[v1]` | **Parcial**: los filtros existen (`src/routes/search/+page.svelte`); el de visibilidad depende del backend |
+> | RF-29 | Facetas en los resultados | `[v1]` | Cumplido (`src/lib/api/datasets.ts:19` + `FacetFilter.svelte`) |
+> | RF-32 | Exportar gráficos (PNG/JPEG) y datos (CSV) | `[v2]` | **Ausente**: depende del módulo de análisis (RF-24) |
+> | RF-35 | Soft-delete con `deleted_at` | `[v2]` | Equivalente nativo en CKAN (`state='deleted'`; `dataset_purge` sólo `sysadmin`), sin `deleted_at` |
+> | RF-36 | Bloqueo con `access_status` reversible | `[v2]` | **Ausente**; sin equivalente en CKAN (sólo existe el tipo) |
+> | RF-37 | API REST propia del portal | `[v1]` | **A decidir**: hoy la expone CKAN, no el portal. ¿Cuenta como cumplido, o pide una capa propia? |
+> | RF-38 | Acceso a la API con API Key | `[v1]` | **A decidir**, igual que RF-37: CKAN ya ofrece API Key; el portal usa token de sesión |
 
 ## Decisiones del autor (2026-10-09) — qué se posterga, qué se prioriza, y dos casos abiertos
 
@@ -3006,12 +3052,14 @@ después del cierre que describe el encabezado de esta sección; medición compl
   (`organization_create` / `organization_update`) y de miembros
   (`organization_member_create`). _Referencias: PRD RF-06 a RF-08._
 
-- [ ] **[v1+] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
+- [ ] **[v2] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
   registro de logins/logouts; la `activity` nativa de CKAN es insuficiente. Evaluar
   `ckanext-event-audit`. Depende del ciclo de vida resuelto.
-  **Re-tiered a `v1+` (2026-10-09, al reconciliar el PRD):** el `PRD.md` se contradecía —§3 lo listaba en `v1` y §7
-  lo difiere por «sin equivalente»—, y la regla del propio §3 resuelve a favor de `v1+` cuando el requerimiento no es
-  alcanzable con CKAN. `PRD.md` §3, RF-33/RF-34 y §6 llevan la misma anotación: los tres documentos dicen lo mismo.
+  **Tier corregido a `[v2]` (2026-10-09, al precisar el modelo de versiones):** el `PRD.md` se contradecía —§3 lo listaba
+  en el alcance de `v1` y §7 lo difiere— y **`v1+` ya no es el lugar de un requerimiento del PRD**: `v1+` es para lo que
+  **no** es un requerimiento fuerte. Es un requerimiento de este documento que **no alcanza para `v1`** (exige una
+  extensión propia), así que va a **`v2` con su motivo escrito**, que es lo que el modelo pide para informar a los
+  futuros desarrolladores. `PRD.md` §3, RF-33/RF-34 y §6 llevan la misma anotación.
 
 - [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
   entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su
