@@ -102,6 +102,7 @@ como **medida** o **estimada**, y no se mezclan.
 | WU-4 | **Forecast y gate de presupuesto** | `tasks.md` con `code_lines`, `test_lines`, `review_material_lines` separadas y la proporción medida que se usó | Gate **antes** de aplicar (`openspec/config.yaml`) |
 | WU-5 | **Cierre** | Handoff en `BACKLOG.md` y este expediente completo | `pnpm check` + `pnpm test` en verde si se tocó código del portal |
 | WU-6 | **Playground `/dev/publication` + los dos controles y la cola** (no bloqueado por A2) | La hoja de revisión con el control del pedido (`editor`), el de publicación (`admin`) y la cola de aprobación, contra **llamadas inyectadas** | Se revisa **mirando** la hoja en vivo (regla 8); el cableado a las acciones reales es B1 y espera a A2 |
+| WU-9 | **Gobernanza: el aprobador revisa antes de decidir** (decisión del autor, 2026-10-09) | (a) el título de la fila de la cola **enlaza** a `/dataset/<id>` en **pestaña nueva** — hoy el aprobador puede leer el dataset pero no tiene ningún camino hasta él, y está privado, así que no aparece en el catálogo; (b) la ficha elige la pendiente **más reciente** por `created_at` (no «la primera») y **dice** que hay más de una | (a) y (b) con su prueba; la **variante de diseño** —controles de decidir en la ficha— va a **playground `/dev/…`** y **no se promueve** sin la revisión del autor (regla 8) |
 | WU-8 | **Los dos avisos de la compuerta del badge** (linaje `review-24164b1645f385df`, 2026-10-09) | (a) el derivado de la insignia pierde el `default: return null;` que **anulaba su propia garantía**: se enumeran `undefined`, `approved` y `cancelled`, y cualquier estado no nombrado cae en un `never` que **no compila**; (b) la prueba que fija que **el motivo del rechazo se lee en la tarjeta**, única superficie que lo muestra desde el 2026-10-08 | La mutación de la concatenación **tiene que poner la prueba en rojo** (si no, no prueba nada); `pnpm test` focalizado + `pnpm check` en verde; compuerta nativa propia sobre el rango commiteado |
 | WU-7 | **Iteración de la hoja `/dev/publication`** (feedback del autor, 2026-10-07, tras la primera revisión visual) | (a) el botón de publicar en sus **dos colocaciones** —hero y `aside`— con el conteo de acciones del hero a la vista; (b) la cola con **pendientes y resueltas**, el primer ítem **decidible** abierto y el resto **plegado**; (c) la cola como **page propia** con las formas multi-org para comparar; (d) la entrada en el menú de usuario **con y sin contador**; (e) el bloque de referencia en el panel | Se revisa **mirando** la hoja en vivo (regla 8); `pnpm test` + `pnpm check` + `pnpm build` en verde; **sólo UI del portal: la API no se toca** |
 
@@ -388,7 +389,7 @@ tenga su UI.
   sobraba, lo correcto era decir que no sabía qué unidad era.
   **Y la precisión que el episodio deja, para no confundir dos cosas:** *el estado del push no es el
   contenido del código.* El hallazgo de gobernanza se re-verificó **leyendo `origin/master` directamente**
-  (`git show origin/master:…/logic/auth/publication.py`): `publication_request_decide` (114-121) **sin
+  (`git show origin/master:…/logic/auth/publication.py`): `publication_request_decide` **sin
   comprobación de cuatro ojos** —la única condición es la capacidad `admin`— y `publication_publish`
   (124-131) **autorizando al `admin` de organización**, con el docstring «on their own authority». El
   hallazgo no dependía del push: depende de las líneas del archivo publicado.
@@ -883,7 +884,7 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
 
 - **2026-10-07 (noche) — Un hueco de contrato, medido **antes** de cablear la page.** Al preparar la page de
   solicitudes medí la forma real de la fila en `origin/master`
-  (`logic/action/publication.py:119-131`) en vez de confiar en la tabla resumida del contrato: `_row_dict`
+  (leyendo `logic/action/publication.py`, la función `_row_dict`) en vez de confiar en la tabla resumida del contrato: `_row_dict`
   devuelve las **columnas de la tabla** más los dos nombres, y esas columnas son `id`, `dataset_id`,
   `requested_visibility`, `status`, `requested_by`, `approved_by`, `comments`, `motive`, `created_at`,
   `decided_at`, `consumed_at`. **No hay `dataset_title` ni `organization_title`**, y la fila de la cola **se lee
@@ -1249,7 +1250,7 @@ extra contraintuitivo que la par marcó: **`'false'` también es intento**, porq
   **Y la compuerta nativa del otro lado ESCALÓ, no aprobó.** Linaje `review-67e5ce17ce2b4bcb` sobre `02893f7..b63b00c`
   (tier high, 4 lentes): estado **`escalated`**, transición **terminal** `native_stop_required`, causa `unknown_causality`,
   atada a **`R4-001`** (lente **resilience**, `severity: CRITICAL`, `evidence_class: deterministic`), ubicación
-  `ckanext/umss/logic/auth/publication.py:121-123`. Su texto, verbatim: *«Removing publication_publish and the sysadmin
+  `ckanext/umss/logic/auth/publication.py` —la rama del `sysadmin` en la guarda—. Su texto, verbatim: *«Removing publication_publish and the sysadmin
   escape hatch leaves publication requests permanently undecidable when the requester loses capacity or is the only
   approver; the changed comment states the request stays pending with no escape hatch, so the dataset can never be
   published.»*
@@ -1371,3 +1372,58 @@ discriminante queda sin agotar y el `never` deja de ser alcanzable—, o sea que
 lo que detendría un arreglo equivocado**. El aviso queda como registro; no se reintenta la compuerta sobre un candidato
 ya aprobado. Regla de método que se lleva la sesión: **un aviso de una revisión aprobada se verifica contra el código
 antes de tratarlo como deuda** —uno de esta ronda era real; éste no.
+
+## WU-9 · Gobernanza: el aprobador revisa antes de decidir (2026-10-09)
+
+**El caso, planteado por el autor.** La aprobación **no es un trámite**: antes de aceptar la solicitud hay que
+**revisar** el dataset, porque la gobernanza exige comprobar que la información es correcta para ser pública.
+
+**Lo medido el 2026-10-09, y son tres hechos distintos:** (1) el aprobador **sí puede leer** el dataset —admin de la
+organización dueña que no es el solicitante: `package_show` → `200`, `private=true`, con recursos, medido el
+2026-10-08—; (2) **no tiene cómo llegar a él**: `PublicationQueue.svelte` muestra el **título como texto** y el
+componente **no tiene un solo `href`** (verificado), y el dataset está **privado**, así que **no está en el catálogo**;
+(3) los controles de decidir viven **sólo en la cola**; la ficha tiene el control del solicitante y una tarjeta de
+estado de sólo lectura. La caminata de punta a punta del criterio de `v0` se hizo, por lo tanto, **aprobando a ciegas**.
+
+**Decisión del autor (2026-10-09):** va la **(a)** —el título enlaza al dataset en pestaña nueva— y quiere **ver la
+(b)**, los controles de decidir en la ficha, para juzgar si le gusta: por eso la (b) **va a un playground** y **no se
+promueve** hasta que la revise. Y en el mismo movimiento, la decisión de `dataset_id`: **(a) ahora** —elección
+determinista por la pendiente más reciente, y la ficha dice que hay más de una—, **(b) para `v1`** (quitar la
+resolución por nombre y migrar las filas viejas es trabajo del otro repo). El detalle de las dos decisiones quedó en
+`BACKLOG.md`, sección «Decisiones del autor (2026-10-09)».
+
+**Entregado y con compuerta cerrada (2026-10-09): rama `fix/approval-review-path`, PR #61, cuatro commits.**
+`6633ba5` (el título de la fila enlaza al dataset en pestaña nueva, con el aviso `sr-only` y el enlace **hermano** del
+disparador), `abb423e` (la ficha elige la pendiente más reciente y dice cuántas hay), y dos commits que cerraron los
+dos avisos que la propia compuerta devolvió. Suite **1016**, `pnpm check` 0 errores / 4 avisos, Biome limpio.
+
+**Los dos avisos, los dos verificados contra el código antes de tratarlos como deuda, y los dos verdaderos.**
+1. Linaje `review-0be0a83062f8b75f` (medium, `review-reliability`, 4 archivos, 133 líneas) → **aprobado**, con un
+   aviso: la selección comparaba `created_at` con un `>` **estricto**, así que dos pendientes con el mismo instante
+   las decidía el **orden del arreglo** — exactamente la dependencia que el comentario vecino decía haber quitado, y
+   sin prueba. Cerrado en `1474120` con un desempate **total** por `id`, con **RED observado**: con los ids en orden
+   `req-a`/`req-b` y timestamps iguales, la tarjeta mostraba `req-a` (la primera del arreglo).
+2. Linaje `review-dc933c4c6ddb7cdc` → **aprobado**, con otro aviso verdadero: la prueba del enlace lo buscaba con
+   `name: /Matrícula 2026/`, un `match` que pasa **con o sin** el aviso de pestaña nueva, así que el aviso `sr-only`
+   no lo probaba nada. Cerrado en `749ad99` afirmando el **nombre accesible completo**, con la **falsificación
+   medida**: borrar el `sr-only` la pone en rojo y restaurarlo la vuelve a verde.
+3. Linaje `review-1e13581e93d61147` (sobre el rango final) → **aprobado SIN hallazgos**.
+
+**Lección de método que dejó esta unidad, y es la que acota el bucle:** los avisos informativos de una compuerta
+**aprobada** se cierran uno por uno mientras el arreglo sea chico y verdadero —los dos de acá eran ciertos y se
+verificaron **antes** de aceptarlos como deuda—, pero **cada arreglo crea un candidato nuevo y por lo tanto otra
+compuerta**. El bucle no se agota por insistencia: se corta cuando el aviso es falso, cuando el arreglo es caro, o
+cuando el rango vuelve limpio — como acá.
+
+**Estado de la sonda `A5` tras la respuesta de la sesión par (2026-10-09).** La **pared quedó medida con
+credenciales** por ellos: `ckan_admin` + `package_patch {private: false}` sobre `test-pdf` → **`403 Access denied:
+Publication flow: …`**, con **paridad antes/después** (`private` True→True y el store **6→6** filas) y el token
+**revocado** al terminar. Mi medición anónima (`publication_publish` → `400`) probaba **qué build** corre, no que la
+pared **actúe**: las dos juntas cierran la pregunta, y la de ellos es la fuerte. Además: el contenedor sirve el **árbol
+de trabajo en disco**, no un commit — hoy ese árbol es **`master`**.
+
+**Y no hay desbloqueo pendiente de este lado:** pidieron explícitamente **no correr el re-corte por ellos** —el muro
+está mergeado (su PR #6) y no tienen ningún pendiente que ese hecho desbloquee—. Si la sonda se corre, su valor hoy es
+**medir el delta del PR #12** (el store guarda el **id canónico** y la cola resuelve por **id o nombre**; una solicitud
+creada **por nombre** pasó de **0** a **1** fila visible para el aprobador), y ese delta mueve **las filas de creación y
+listado**, que hay que revisar **antes** de correr. La corrida sigue donde estaba: **después de `v0`**.

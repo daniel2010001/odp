@@ -30,7 +30,9 @@
 > **El barrido puede esperar hasta `v1`** (decisión del autor). El número está para dimensionarlo.
 >
 > **Nada de diseño se resuelve hasta terminar `v0`, salvo orden explícita del autor en el momento** (como pasó con la
-> insignia del hero el 2026-10-08). Quedan postergados, sin más trámite: el **tooltip vendorizado** de las acciones del
+> insignia del hero el 2026-10-08). **Precisión del autor (misma sesión, 2026-10-09): estas prioridades son
+> sugerencias, no una regla** — si el agente recomienda resolver algo ahora, el autor lo evalúa. El default sigue
+> siendo que el diseño espera. Quedan postergados, sin más trámite: el **tooltip vendorizado** de las acciones del
 > hero, **«Detalles» contra «Información técnica»**, el diseño del grupo **«Resueltas»**, la **card de metadatos**, la
 > **página de la organización**, el **responsive del salto** y el **aire de los pegados**. Los cuatro últimos ya estaban
 > en la lista de `[v0]` abiertos: **la etiqueta no los promueve**, el orden del autor manda.
@@ -41,12 +43,44 @@
 > **Las dos capas de la sonda (`A5`) son prioridad DESPUÉS de `v0`**, con el `PRD.md` y este archivo sobre la mesa, en
 > una o más sesiones. **El inventario de las 18 acciones queda postergado.**
 >
+> **Y el re-corte de la sonda deja de ser urgente (2026-10-09, respuesta de la sesión par).** Ellos midieron **lo que
+> mi control anónimo no podía dar: la PARED con credenciales** — `ckan_admin` + `package_patch {private: false}`
+> sobre `test-pdf` → **`403 Access denied: Publication flow: …`**, con **paridad antes/después** (`private` True→True y
+> el store **6→6** filas) y el token efímero **revocado**. O sea: el muro está **vivo y funcionando** en lo que sirve el
+> contenedor. Mi medición (`publication_publish` → `400 Action name not known`) probaba **qué build** corre, no que la
+> pared **actúe**; las dos juntas cierran la pregunta.
+> **Atribución, de ellos**: el contenedor sirve el **árbol de trabajo en disco**, no un commit — hoy ese árbol es
+> **`master`** (su rama `unit/a2-5-second-window` = `b3965de` = master + sólo docstring/test de A2.5, **sin cambio de
+> conducta**, probado por AST).
+> **Y pidieron, textual en la intención: no correr el re-corte por ellos.** El muro está mergeado (su PR #6) y **no
+> tienen ningún pendiente que ese hecho desbloquee**. Si la sonda se corre, su valor hoy es **medir el delta del
+> PR #12**, no desbloquearlos — y ese delta hay que absorberlo **antes**: el #12 hizo que el store guarde el **id
+> canónico** y que la cola resuelva por **id o nombre**, lo que mueve **justo las filas de creación y listado**
+> (medición de ellos: una solicitud creada **por nombre** daba **0 filas** al aprobador y ahora da **1**). Conclusión:
+> **la corrida queda donde ya estaba —después de `v0`— y con las expectativas de esas filas revisadas antes de correr**,
+> en vez de como un desbloqueo pendiente.
+>
 > **Los puntos de la presentación ya están anotados** (el bloque `[v0] El despliegue para presentar v0`, más arriba) y
 > **no se empieza de cero**: se suman ahí cuando el autor dé el método de carga.
 >
 > **La carga de datos de prueba del autor ya está en el repo y anotada:** `scripts/seed-ckan.mjs` (16.5K; la nota del
 > 2026-09-28 registra 16 datasets creados, 0 preexistentes, y el token del seed revocado al terminar, verificado
 > listando). El autor contará el método cuando llegue el despliegue.
+
+### Barrido del `BACKLOG` y del `PRD` — **AUTORIZADO (2026-10-09)**
+
+> **GO del autor**, con una precisión que amplía el alcance y es la parte que más importa: el PRD **no es la fuente de
+> verdad de lo construido**. Donde el PRD declara un módulo «con las features Y y Z completas» y `v0` tomó **sólo Y**,
+> **Z parcial**, o **Z con cambios hechos durante el desarrollo**, hay que **registrar la divergencia en el propio PRD**
+> —con fecha y motivo— en vez de dejar que el lector la deduzca.
+>
+> Los cuatro pasos: (1) **censo de los `[v0]` abiertos** con medición por ítem y cierre de los stale; (2) **cruce
+> PRD ↔ BACKLOG ↔ código** requerimiento por requerimiento (hecho / parcial / ausente / sin equivalente en CKAN);
+> (3) **re-tiering explícito de `v1`**, y el destino puede ser `v1+` **o `v0`** —el autor precisó que no sólo se recorta
+> hacia arriba, también se puede **traer a `v0`** lo que hoy está mal ubicado—; (4) una **carilla «qué es `v0` y qué no
+> es»** que sirva de guion de presentación, provisión de una instalación vacía incluida.
+>
+> **Expediente: `odd/tasks/backlog-prd-reconciliation.md`** (creado con este charter; primera pasada **no iniciada**).
 
 ### Caso de gobernanza — el aprobador decide a ciegas (planteado por el autor, 2026-10-09)
 
@@ -69,6 +103,11 @@
 > mismo lugar; **(c)** una **vista de revisión** propia en la cola (más cara). **Decisión del autor, pendiente.**
 > *Propuesta del agente, a confirmar: es candidato a `[v0]`, porque es lo que le da sentido a la compuerta; el tier lo
 > define el autor.*
+>
+> **Decisión del autor (2026-10-09): va la (a) ahora, y quiere VER la (b).** La (a) se implementa: el título de la fila de
+> la cola **enlaza** a `/dataset/<id>` en **pestaña nueva**. La (b) —los controles de decidir en la ficha— **se lleva a un
+> playground `/dev/…`** para que la revise (regla 8: el agente propone algo concreto y verificable, el autor lo mira en
+> vivo): **no se promueve hasta que la apruebe**, y si no le gusta, el camino queda en la (a).
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
@@ -91,6 +130,22 @@
 > reciente** por `created_at` en vez de «la primera»—; **(b)** quitar la resolución por nombre y **limpiar** las filas
 > viejas con una migración: es «sólo por id» en sentido estricto, al precio de una migración y de una ventana de filas
 > invisibles; **(c)** no hacer nada y documentarlo. **Decisión del autor, pendiente**, con la información de arriba.
+> **DECISIÓN (2026-10-09): (a) ahora, (b) para `v1`.** Se implementa la elección **determinista** —la pendiente **más
+> reciente** por `created_at`, no «la primera»— **y** que la ficha **diga** que hay más de una; quitar la resolución por
+> nombre y migrar las filas viejas queda **anotado para `v1`** (es trabajo del otro repo), no «en el aire».
+>
+> **CORRECCIÓN (2026-10-09, misma jornada): «el portal compara sólo ids y no se toca» era incompleto.** La sesión par
+> avisó del **riesgo de forma**: tras el #12 una fila creada por nombre vuelve con el **id canónico**, así que un
+> consumidor que clave por el nombre deja de encontrar las **nuevas**. Medido acá, leyendo su código: `_row_dict` arma el
+> diccionario con las **columnas crudas**, así que las filas **legadas** vuelven con el **nombre** guardado. O sea que el
+> síntoma real estaba **invertido**: el portal comparaba contra el **id** del dataset cargado, y entonces las filas
+> **legadas guardadas por nombre** quedaban **invisibles en la ficha** —sin tarjeta de estado, como si no existieran—
+> mientras la cola sí las mostraba. **Corregido en `c2ed16b`** (rama `fix/approval-review-path`, PR #61): el filtro acepta
+> las **dos formas**, `dataset.id` o `dataset.name`, que es lo que significa «dejar la compatibilidad» de este lado.
+> Prueba nueva, con **RED observado**: con una fila cuyo `dataset_id` es el **nombre**, la ficha no renderizaba nada.
+> **Los otros dos consumidores están bien y se verificaron**: el enlace de la cola (`/dataset/<valor>`) y la relectura
+> tras decidir (`package_show`) aceptan id **o** nombre; y el pedido del portal siempre manda `dataset.id`, así que
+> **nunca escribe un nombre**.
 
 ## Estado al cierre (2026-10-08, madrugada) — **`B1` cerrado**: el ciclo de publicación, cableado al catálogo
 
@@ -2223,7 +2278,7 @@ falta el fallback), no hay hook de veto previo en `IPackageController`, y las do
 colaboradores están en `false`.
 
 **Prerrequisito roto:** el baseline de pytest de `ckanext-umss` **está en rojo** —
-`ckanext/umss/tests/test_plugin.py:57`: baseline **`1 failed`** por
+`ckanext/umss/tests/test_plugin.py` —el test del hook de carga del plugin—: baseline **`1 failed`** por
 **`NameError: name 'plugin_loaded' is not defined`**. Redacción **restaurada del `preproposal.md` §2.4**, que ya
 la tenía correcta; la versión anterior de esta línea («sin declararlo como fixture») era una **derivada
 corrompida** de un registro que estaba bien, y mandaba a buscar una fixture que nunca faltó.
@@ -2734,7 +2789,19 @@ después del cierre que describe el encabezado de esta sección; medición compl
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **[v1+]** **Una promesa descartada en el sondeo, y el límite declarado de los avisos informativos.** La compuerta del PR
+  de la sesión (linaje `review-1d91289cfb043d06`) devolvió un aviso **verdadero y verificado contra el código**:
+  `+layout.svelte` llama `void validateStoredSession(client)` y esa función espera `check()` **sin atrapar**, así que un
+  **rechazo** de la sonda queda como **rechazo de promesa sin manejar** y el encabezado se queda con el estado anterior.
+  **No se arregló a propósito: acá se declaró el límite** —esa rama ya había cerrado **dos** avisos verdaderos (el desempate
+  por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
+  medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
+  Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
 - [ ] **[v0]** `TODO:` **El encabezado dice «sesión iniciada» con una sesión muerta: la sonda corre sólo donde una pantalla la pide.**
+  **HECHO (2026-10-09), pendiente de merge** (`2916b80`, en el PR de la sesión): la sonda **única a nivel de app** existe —
+  el layout raíz sondea **una vez por carga** si hay token guardado y, con veredicto `dead`, termina la sesión
+  **localmente** (sin navegar: en una página pública rebotar al login es peor que mostrar el encabezado anónimo)—, y las
+  pantallas que necesitan los datos del usuario conservan su expulsión con motivo. El ítem se borra al mergear.
   Reportado por el autor (2026-10-02): puede seguir navegando la plataforma mientras el encabezado muestra su identidad, y el aviso de
   sesión expirada aparece **recién cuando intenta algo del usuario** (el dashboard o un privado).
   **Medido en el código:** la sonda existe y está bien diseñada —`src/lib/api/session.ts`: el 404 de `user_show {}` corroborado por
@@ -2939,9 +3006,12 @@ después del cierre que describe el encabezado de esta sección; medición compl
   (`organization_create` / `organization_update`) y de miembros
   (`organization_member_create`). _Referencias: PRD RF-06 a RF-08._
 
-- [ ] **[v1] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
+- [ ] **[v1+] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
   registro de logins/logouts; la `activity` nativa de CKAN es insuficiente. Evaluar
   `ckanext-event-audit`. Depende del ciclo de vida resuelto.
+  **Re-tiered a `v1+` (2026-10-09, al reconciliar el PRD):** el `PRD.md` se contradecía —§3 lo listaba en `v1` y §7
+  lo difiere por «sin equivalente»—, y la regla del propio §3 resuelve a favor de `v1+` cuando el requerimiento no es
+  alcanzable con CKAN. `PRD.md` §3, RF-33/RF-34 y §6 llevan la misma anotación: los tres documentos dicen lo mismo.
 
 - [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
   entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su
