@@ -927,6 +927,25 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		expect(screen.queryByRole("button", { name: "Solicitar publicación" })).not.toBeInTheDocument();
 	});
 
+	it("una fila legada guardada por **nombre** también se muestra: el filtro acepta las dos formas", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		// Las filas anteriores al PR #12 del catálogo guardaron el **nombre** del dataset, y la lectura las
+		// devuelve **tal cual** (`_row_dict` arma el diccionario con las columnas crudas): un filtro que sólo
+		// compara contra el id las deja invisibles en la ficha, aunque la cola sí las muestre.
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ dataset_id: "matricula-2026", requested_by_name: "editor.legado" }),
+		]);
+		auth.login("tok-123", makeUser());
+
+		render(DatasetPage);
+
+		const statusCard = await screen.findByTestId("estado-solicitud");
+		expect(statusCard).toHaveTextContent("Pendiente de revisión, pedida por editor.legado.");
+	});
+
 	it("con dos pendientes elige la más reciente por `created_at`, no la primera del arreglo", async () => {
 		mocks.showDataset.mockResolvedValue(
 			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),

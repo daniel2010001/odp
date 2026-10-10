@@ -128,11 +128,15 @@ const publicacionEnElHero = $derived.by(() => {
 async function loadCurrentRequest() {
 	try {
 		const filas = await publicationApi.list();
-		// El filtro compara contra el **id** del dataset cargado, no contra el parámetro de la ruta: la
-		// tabla guarda ids, y la dirección puede traer el **nombre** (`/dataset/matricula-2026`), así que
-		// comparar el parámetro contra `dataset_id` no coincidiría nunca — es la misma trampa que la
-		// comparación de cuatro ojos, que comparaba un nombre contra un id y quedaba inerte y verde.
-		const propias = filas.filter((fila) => fila.dataset_id === dataset?.id);
+		// El filtro compara contra el dataset **cargado**, no contra el parámetro de la ruta, y acepta sus
+		// **dos formas**: las filas nuevas guardan el **id** canónico (el PR #12 del otro repo) y las
+		// **legadas** guardaron el **nombre**, que la lectura devuelve tal cual (`_row_dict` arma el
+		// diccionario con las columnas crudas). Comparar sólo contra el id dejaba a las legadas invisibles en
+		// la ficha aunque la cola las muestre; y comparar contra el parámetro de la ruta no coincidiría nunca
+		// cuando la dirección trae el nombre — la misma trampa de cuatro ojos, que quedó inerte y verde.
+		const propias = filas.filter(
+			(fila) => fila.dataset_id === dataset?.id || fila.dataset_id === dataset?.name,
+		);
 		// Determinista y **total**: entre las pendientes gana la **más reciente** por `created_at` y, ante un
 		// empate exacto (dos filas con el mismo instante), la de **`id` mayor**. Todas las filas usan
 		// `YYYY-MM-DDTHH:MM:SS.ffffff`, así que el orden lexicográfico es el cronológico y no depende del
