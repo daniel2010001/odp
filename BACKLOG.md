@@ -2994,9 +2994,12 @@ después del cierre que describe el encabezado de esta sección; medición compl
   (`organization_create` / `organization_update`) y de miembros
   (`organization_member_create`). _Referencias: PRD RF-06 a RF-08._
 
-- [ ] **[v1] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
+- [ ] **[v1+] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
   registro de logins/logouts; la `activity` nativa de CKAN es insuficiente. Evaluar
   `ckanext-event-audit`. Depende del ciclo de vida resuelto.
+  **Re-tiered a `v1+` (2026-10-09, al reconciliar el PRD):** el `PRD.md` se contradecía —§3 lo listaba en `v1` y §7
+  lo difiere por «sin equivalente»—, y la regla del propio §3 resuelve a favor de `v1+` cuando el requerimiento no es
+  alcanzable con CKAN. `PRD.md` §3, RF-33/RF-34 y §6 llevan la misma anotación: los tres documentos dicen lo mismo.
 
 - [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
   entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su

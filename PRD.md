@@ -65,7 +65,8 @@ de pendientes): ahí se decide qué entra en cada versión.
 - Colaboradores con roles (viewer, editor, steward) por dataset.
 - Equipos (teams) pertenecientes a una organización, con miembros de distintas orgs.
 - Colecciones (grupos de datasets) con publicación condicionada a aprobación de orgs propietarias.
-- Auditoría completa de operaciones críticas (CUD, cambios de estado, login).
+- Auditoría completa de operaciones críticas (CUD, cambios de estado, login). **Diferida a `v1+` (2026-10-09):**
+  CKAN sólo guarda `activity`, insuficiente para el detalle y la retención que exigen RF-33/RF-34; ver §7.
 - Soft-delete y bloqueo (accesible, solo lectura, bloqueado total).
 - API REST pública (con API Key) para consulta de datasets públicos.
 - Búsqueda facetada con Solr.
@@ -100,11 +101,27 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 
 ## 5. Requerimientos Funcionales (desglosados por módulo)
 
+> **Nota de reconciliación (2026-10-09).** Las anotaciones marcadas *Estado medido (2026-10-09)* no cambian lo que
+> este documento exige: **agregan por qué un requerimiento todavía no se cumple tal como está escrito, o qué parte de
+> él se construyó distinto**. Es la regla del propio documento (§3: un requerimiento que no entra se difiere «con
+> registro del motivo»), aplicada a lo que ya se midió contra el portal y contra CKAN. El cruce completo de los 42
+> requerimientos —tier declarado, registro en `BACKLOG.md`, evidencia en el código y divergencias— vive en
+> `odd/tasks/backlog-prd-reconciliation.md`.
+
 ### Módulo de Usuarios y Autenticación
 - RF-01: El sistema tendrá roles: `superadmin`, `org_admin`, `editor`, `viewer` (a nivel de organización) y roles específicos por dataset (`viewer`, `editor`, `steward`).
 - RF-02: Los usuarios pertenecen a una organización principal (tabla `user_organizations` para soporte multi-org en el futuro).
 - RF-03: La creación de usuarios solo la realiza un `superadmin` o un `org_admin` (para su organización).
+  *Estado medido (2026-10-09):* hoy **no lo hace el portal**: la creación de usuarios ocurre en la **UI nativa de
+  CKAN** (su `create_user_via_api` está **desactivado** por defecto) y `BACKLOG.md` la registra en **`v1+`**. Es
+  coherente con la arquitectura vigente —CKAN es dueño de las identidades y de las contraseñas (RF-04)—, y significa
+  que en una instalación nueva los primeros usuarios se crean por CKAN o por su CLI, no por esta interfaz.
 - RF-04: Autenticación mediante email y contraseña (hash bcrypt), con sesión JWT.
+  *Estado medido (2026-10-09):* **no hay JWT, y no hace falta.** La autenticación la resuelve CKAN —que es quien tiene
+  los usuarios y el `password_hash`— y la sesión del portal es un **token de API de CKAN** guardado en el navegador: el
+  login pasa por un proxy del servidor (`src/routes/auth/login/+server.ts`) que **nunca** deja la contraseña en el
+  navegador y mina el token ahí. Un JWT propio sería un **segundo sistema de identidad** en paralelo, sin usuarios que
+  lo justifiquen, mientras que lo que RF-05 sí pedía —el login desacoplado del SSO— está cumplido.
 - RF-05: El login es desacoplado del SSO; se proveerán endpoints estándar para futura integración.
 
 ### Módulo de Organizaciones
@@ -114,6 +131,12 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 
 ### Módulo de Datasets
 - RF-09: Un dataset tiene: título, descripción **con formato** (markdown; ver RF-39), organización propietaria, estado de ciclo de vida (`draft`, `review`, `approved`, `published`), visibilidad (`private`, `internal`, `public`), metadatos estándar (título, descripción, publicador, fecha de emisión, fecha de modificación, idioma, licencia, palabras clave).
+  *Estado medido (2026-10-09):* de las tres visibilidades **hoy existen dos** —público, y «lo lee toda la organización
+  dueña»— porque así las ofrece CKAN con su booleano `private`; el nivel **`private` del PRD (visible sólo por permiso
+  explícito, «solo el autor») no existe** y está **diferido a `v1+`** con su dirección técnica en §7. **Cuidado con la
+  palabra:** el `private` de CKAN **no** es el `private` del PRD —son dos niveles distintos que comparten el nombre, y
+  confundirlos invierte la conclusión—. Del ciclo de vida, hoy el `state` de CKAN sólo admite `active`/`deleted`: los
+  cuatro estados editoriales quedaron fuera de alcance (ver RF-15).
 - RF-10: Los metadatos se almacenan en formato JSONB para flexibilidad.
 - RF-11: Cada dataset puede tener múltiples **recursos** (archivos o enlaces). Cada recurso tiene: nombre, descripción, tipo (archivo/enlace), tamaño, **hash** del archivo, URL (para enlaces), y metadatos de subida.
   *Corrección (2026-10-02, medido):* el campo `hash` existe (`ckan/model/resource.py:43`) pero es
@@ -151,6 +174,12 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
      degradación directa de un `org_admin` (RF-42). En particular, un administrador de la organización
      que quiera **subir** la visibilidad también pasa por una solicitud: puede solicitarla y aprobarla
      él mismo, según la matriz de §9.
+  *Estado medido (2026-10-09):* de los cinco pasos, el corte actual construyó **el 4 y el 5** —la solicitud de
+  visibilidad con su decisión y su obligatoriedad—, **verificados de punta a punta el 2026-10-08** (pedir → decidir →
+  verlo publicado). **Los pasos 1 a 3 quedaron fuera de alcance**: la máquina editorial `draft → review → approved`
+  exige un ciclo de vida que CKAN no tiene (§7, `lifecycle_status` *sin equivalente*) y su vocabulario es el mismo que
+  la tabla propia de solicitudes usa para **otra** cosa, así que mezclarlos sería peor que diferirlos. El `draft` de
+  CKAN —el que deja la UI nativa al despublgar— se retoma cuando se toque esa máquina (decisión del autor, 2026-10-09).
 - RF-16: Cada vez que se aprueba o rechaza una revisión, se genera una nueva versión (con su estado) para auditoría.
 - RF-17: Cambios menores (edición de título, descripción, metadatos) no generan nueva versión, solo se registran en auditoría.
 - RF-41: **Degradación solicitada por el usuario.** Un editor, steward o admin de la organización puede
@@ -180,6 +209,11 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   - Crea una tabla temporal en la base de datos (con estructura dinámica) asociada al recurso.
   - Genera estadísticas de frecuencia de valores (para detectar calidad de datos).
   - Permite al usuario crear gráficos configurando eje X, eje Y y tipo (barras, líneas, pastel).
+  *Estado medido (2026-10-09):* **diferido a `v1+`**, y no por falta de interés: es un **módulo entero** —tabla
+  normalizada con estructura dinámica, estadísticas, gráficos y su exportación (RF-32)— **sin equivalente en CKAN**
+  (§7), y no entra en el corte de `v1`. Existe `src/lib/utils/csv.ts` (`parseCsv`), **medido sin llamadores**: la
+  utilidad está escrita y no está cableada a ninguna vista. Lo que **sí** está construido de este módulo es la vista
+  previa de CSV (RF-31), que es otra cosa (ver «Modelo de vistas»).
 - RF-25: Para mapas, se requiere columnas con latitud/longitud o geocodificación (pospuesto a v2).
 - RF-26: La IA para sugerencias es opcional y se implementará en versiones posteriores.
 
@@ -211,6 +245,12 @@ procesamiento* aparte (v1+), no un "tipo de vista".
 ### Módulo de Auditoría y Seguridad
 - RF-33: Se auditan todas las operaciones CUD sobre datasets, recursos, colaboradores, equipos, colecciones, cambios de visibilidad, aprobaciones, logins y logouts. Los **cambios de visibilidad se registran en los dos sentidos**, con quién los solicitó, quién los aprobó o quién los ejecutó directamente, y el motivo cuando la degradación fue directa (RF-42).
 - RF-34: La auditoría se registra en una tabla `audit_logs` desde el backend, complementada con triggers en la base de datos para mayor seguridad.
+  *Estado medido (2026-10-09):* **RF-33 y RF-34 no están implementados, y su tier estaba en contradicción dentro de
+  este documento** —§3 los listaba en `v1` y §7 los difiere—. Quedan en **`v1+`**, con el motivo de §7: CKAN sólo
+  ofrece `activity`, que **no** registra logins ni cambios de visibilidad con el detalle que RF-33 exige (quién
+  solicitó, quién aprobó, o quién ejecutó la degradación directa y con qué motivo), y una tabla `audit_logs` con
+  triggers retenidos 5 años **no tiene dónde vivir** en su esquema. `BACKLOG.md` ya los registraba en `v1`; queda
+  alineado a `v1+`.
 - RF-35: Soft-delete: las entidades tienen `deleted_at` (ocultas para todos, excepto superadmin). La eliminación permanente solo la realiza un superadmin bajo instrucción explícita y queda registrada.
 - RF-36: Bloqueo: las entidades tienen un estado `access_status` con valores: `accessible`, `readonly` (solo lectura), `locked` (inaccesible). Reversible por usuarios con permisos de administración.
 
@@ -224,7 +264,10 @@ procesamiento* aparte (v1+), no un "tipo de vista".
 
 - **Rendimiento**: Tiempo de carga de páginas < 2 segundos. Búsqueda facetada con respuesta < 1 segundo para hasta 100k datasets.
 - **Escalabilidad**: Arquitectura basada en microservicios (separando el módulo de análisis). Base de datos PostgreSQL con replicación para consultas.
-- **Seguridad**: Todos los endpoints (excepto login y API pública) requieren autenticación JWT. Cifrado de datos sensibles (no aplica). Política de contraseñas robusta.
+- **Seguridad**: Todos los endpoints (excepto login y API pública) requieren autenticación.
+  *Estado medido (2026-10-09):* el mecanismo es el **token de API de CKAN** (ver RF-04), **no JWT**. La exigencia se
+  cumple —cada llamada del portal va autenticada y CKAN autoriza—; lo que cambió es el **formato de la credencial**,
+  no la política. Las contraseñas las hashea CKAN (`bcrypt`) y nunca pasan por el navegador del portal.
 - **Disponibilidad**: 99.5% de uptime en horario académico.
 - **Auditoría**: Logs retenidos por 5 años (política de la universidad).
 - **Usabilidad**: Interfaz responsive (Bootstrap/Tailwind), accesible (WCAG 2.1 AA).

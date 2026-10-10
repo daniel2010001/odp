@@ -155,12 +155,22 @@ Los **42 requerimientos** de `PRD.md` §5 (`RF-01`…`RF-42`), cruzados con el t
 
 ---
 
-## Paso 3 · Re-tiering y enmiendas al `PRD` — PENDIENTE
+## Paso 3 · Re-tiering y enmiendas al `PRD` — EN CURSO (2026-10-09)
 
-El material está medido; **las decisiones son del autor**. Lo que el paso 3 tiene que cerrar, con lo de arriba a la
-vista: (a) cómo se declaran los `v0` **dentro del PRD** (hoy no existen); (b) RF-03 y RF-24, `v1` contra `v1+`;
-(c) la contradicción interna de RF-33/34; (d) RF-04 (JWT contra tokens de CKAN); (e) RF-18, la etiqueta `[v0]` que no
-corresponde; (f) las cuatro sin tier (RF-30/31/32/40); y (g) el registro de los quince que no están en el `BACKLOG`.
+**Hecho hasta ahora: las enmiendas de COHERENCIA** (la regla del autor: *no borrar especificaciones incumplidas, sino
+especificar por qué no se cumplen*), que no requieren ninguna decisión de tier y dejan el PRD hablando con un solo
+relato: **RF-03** (la creación de usuarios la hace CKAN y va en `v1+`), **RF-04 y §6** (no hay JWT: es el token de API
+de CKAN, y la exigencia de autenticarse se cumple igual), **RF-09** (de tres visibilidades existen dos; el `private`
+del PRD —permiso explícito— es el que falta, y **el `private` de CKAN no es el `private` del PRD**), **RF-15** (de los
+cinco pasos del flujo se construyeron el 4 y el 5; los pasos 1–3 son la máquina editorial, fuera de alcance),
+**RF-24** (`v1+` con motivo, con `parseCsv` medido sin llamadores), **RF-33/RF-34 + §3** (la contradicción interna se
+resuelve a `v1+`, con el motivo de §7) y la **nota de reconciliación** que encabeza §5. En el `BACKLOG`, el ítem de
+auditoría pasó a `[v1+]` para que los tres documentos digan lo mismo.
+
+**Pendiente, y son decisiones del autor**: (a) cómo se declaran los `v0` **dentro del PRD** (hoy no existen: cero de
+42); (b) RF-18, la etiqueta `[v0]` que corresponde a `v1`; (c) las cuatro sin tier (RF-30/31/32/40); (d) el registro
+de los quince que no están en el `BACKLOG`; y (e) si RF-03/RF-24 quedan en `v1+` como quedaron anotados o vuelven a
+`v1` con su recorte.
 
 ## Paso 4 · La carilla «qué es `v0` y qué no es» — PENDIENTE
 
