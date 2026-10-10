@@ -2789,7 +2789,19 @@ después del cierre que describe el encabezado de esta sección; medición compl
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **[v1+]** **Una promesa descartada en el sondeo, y el límite declarado de los avisos informativos.** La compuerta del PR
+  de la sesión (linaje `review-1d91289cfb043d06`) devolvió un aviso **verdadero y verificado contra el código**:
+  `+layout.svelte` llama `void validateStoredSession(client)` y esa función espera `check()` **sin atrapar**, así que un
+  **rechazo** de la sonda queda como **rechazo de promesa sin manejar** y el encabezado se queda con el estado anterior.
+  **No se arregló a propósito: acá se declaró el límite** —esa rama ya había cerrado **dos** avisos verdaderos (el desempate
+  por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
+  medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
+  Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
 - [ ] **[v0]** `TODO:` **El encabezado dice «sesión iniciada» con una sesión muerta: la sonda corre sólo donde una pantalla la pide.**
+  **HECHO (2026-10-09), pendiente de merge** (`2916b80`, en el PR de la sesión): la sonda **única a nivel de app** existe —
+  el layout raíz sondea **una vez por carga** si hay token guardado y, con veredicto `dead`, termina la sesión
+  **localmente** (sin navegar: en una página pública rebotar al login es peor que mostrar el encabezado anónimo)—, y las
+  pantallas que necesitan los datos del usuario conservan su expulsión con motivo. El ítem se borra al mergear.
   Reportado por el autor (2026-10-02): puede seguir navegando la plataforma mientras el encabezado muestra su identidad, y el aviso de
   sesión expirada aparece **recién cuando intenta algo del usuario** (el dashboard o un privado).
   **Medido en el código:** la sonda existe y está bien diseñada —`src/lib/api/session.ts`: el 404 de `user_show {}` corroborado por
