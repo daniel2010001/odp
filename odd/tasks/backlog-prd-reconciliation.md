@@ -51,10 +51,19 @@ silenciosamente a favor del PRD**. Se mide qué existe y se escribe la diferenci
 
 ## Estado
 
-**Pasos 1 y 2 HECHOS (2026-10-09).** Los pasos 3 (re-tiering y enmiendas) y 4 (la carilla) siguen pendientes. La
-medición la hizo **exploración delegada** ese día, celda por celda con su `path:line`; **dos de los trece ítems del
-paso 1 los re-verifiqué yo** y coinciden (la página de recurso renderiza `ErrorPage`; la sonda vive en
-`src/lib/session-guard.ts` y la corren las pantallas que pintan datos). Ninguna fila se re-verificó una por una.
+**Cerrado el 2026-10-10** —el autor mergeó el PR #65, que traía los pasos 3 y 4—, con esto en cada paso:
+
+- **Paso 1 — HECHO** (2026-10-09): censo de los 13 ítems `[v0]`, re-medidos contra el código de ese día. La medición la
+  hizo **exploración delegada**, celda por celda con su `path:line`; **dos de los trece los re-verifiqué yo** y coinciden
+  (la página de recurso renderiza `ErrorPage`; la sonda vive en `src/lib/session-guard.ts` y la corren las pantallas que
+  pintan datos). Ninguna fila se re-verificó una por una.
+- **Paso 2 — HECHO** (2026-10-09): los 42 requerimientos cruzados con su tier, su registro y su evidencia.
+- **Paso 3 — CERRADO** (2026-10-10): las enmiendas de coherencia al `PRD` y **todas las decisiones del autor**, listadas
+  arriba en «Ya resueltos». **Lo único que queda es lo que el autor difirió a `v1`**: `RF-18` (decidir si entra o cae a
+  `v2`) y **completar la metodología** para la documentación de la entrega.
+- **Paso 4 — HECHO** (2026-10-10): la carilla «qué es `v0` y qué no es», con el guion de la presentación en siete pasos.
+
+**Este expediente no tiene más trabajo propio.** Lo que siga vive en `BACKLOG.md`.
 
 ---
 
