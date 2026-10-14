@@ -171,14 +171,17 @@ solicitadas**», que es lo contrario), y esa corrección **retieró la auditorí
 anterior) y **devolvió `RF-03` a `v1`**.
 
 **Las cuatro sin tier declarado** eran `RF-30` (vista previa de PDF/imagen/TXT/JSON), `RF-31` (tabla de las primeras 20
-filas del CSV), `RF-32` (exportar gráficos y datos) y `RF-40` (resumen corto para las cards). Con el modelo precisado se
-resuelven casi solas: **30, 31 y 40 → `v1`** (las tres están construidas, con evidencia medida en el cruce) y **32 →
-`v2`** (depende del módulo de análisis, RF-24). *Propuesta del agente: falta la confirmación del autor.*
+filas del CSV), `RF-32` (exportar gráficos y datos) y `RF-40` (resumen corto para las cards). **Decisión del autor
+(2026-10-09): las cuatro van a `v1+`** —son un plus: «no era lo que pedí, pero es mejor»—, y su aclaración de concepto
+queda escrita porque corrige la mía: **no es que esos requerimientos «no estén en un tier», es que no se tomaron en
+cuenta durante la planificación inicial**, que es otra cosa. **Bandera medida:** de las cuatro, **`RF-32` (exportar
+gráficos y datos) NO existe** —depende del módulo de análisis (RF-24)—, así que su `v1+` significa «plus pendiente» y cae
+con `RF-24` si ese se va a `v2`. Las otras tres están construidas y medidas.
 
-**Y los siete objetivos específicos de §2** —que son la columna vertebral— **no están mapeados a ningún tier**: el PRD
-los prioriza pero no dice en qué entrega caen. Falta eso, y es lo que decide qué se puede posponer con justificación.
-*(Nota de conteo: el autor los llamó «los 8 requerimientos fuertes» y §2 tiene **siete** — hay que ver si falta uno o si
-el número es otro.)*
+**Los siete objetivos específicos de §2** están **mapeados abajo**, con la decisión del autor de que el mapeo lo haga yo
+y lo revise él.
+*(Nota de conteo, resuelta: el autor los llamó «los 8 requerimientos fuertes» porque **eran ocho y unió dos en uno**;
+§2 tiene **siete**, y son siete.)*
 
 **Hecho antes, en el mismo paso: las enmiendas de COHERENCIA** (la regla del autor: *no borrar especificaciones
 incumplidas, sino especificar por qué no se cumplen*), que no requieren ninguna decisión de tier y dejan el PRD hablando
@@ -191,24 +194,123 @@ cinco pasos del flujo se construyeron el 4 y el 5; los pasos 1–3 son la máqui
 
 ### Pendiente del paso 3 (decisiones del autor)
 
-1. **Cómo se declaran los `v0` dentro del PRD.** Hoy el PRD **no le asigna ningún requerimiento a `v0`**: el tier existe
-   como criterio de salida en §3 y como etiquetas en el `BACKLOG`, y nada más. Las opciones están en el mensaje al autor:
-   una **columna de tier por requerimiento** en §5, una **sección «Dentro del alcance (v0)»** con la lista corta, o dejar
-   los tiers **sólo en el `BACKLOG`** (que es lo que el propio §3 declara hoy) y que el PRD nombre el conjunto por su
-   criterio de salida.
-2. **`RF-18` (colaboradores por dataset): la equivalencia es `package_collaborator`, no `group`.** El autor propuso
-   «con *groups* o algo así», y son **dos requerimientos distintos**: `RF-18` es el **colaborador por dataset** de CKAN
-   —**nativo desde 2.9** detrás de `ckan.auth.allow_dataset_collaborators`, hoy en **`false`**—, mientras que
-   los **`group`** de CKAN son las **colecciones** (`RF-21`/`RF-22`). Encender la bandera es barato; lo que falta es la
-   **UI en el portal** y el mapeo de permisos (`view`/`edit`/`admin` del PRD contra los `read`/`edit` que da CKAN). Con el
-   modelo precisado, es un **requerimiento del PRD que hoy no existe en el portal**: `v1` si entra, `v2` con su motivo si
-   no.
-3. **Los siete objetivos específicos de §2** no están mapeados a ninguna entrega.
-4. **`RF-37`/`RF-38`** (API propia y API Key): decidir si los cumple la API de CKAN o si el PRD pide una capa propia.
-5. **Confirmar** las cuatro sin tier (`RF-30/31/40 → v1`, `RF-32 → v2`) y el retiering de la auditoría a `[v2]`.
+1. **`RF-18` (colaboradores por dataset): el autor lo deja para `v1`** —«por mí podemos hacerlo en `v1`, pero lo podemos
+   decidir luego de revisarlo a fondo»—, así que **el análisis y la decisión se toman en `v1`**, no ahora. El equivalente
+   es `package_collaborator` de CKAN —**nativo desde 2.9** detrás de `ckan.auth.allow_dataset_collaborators`, hoy en
+   **`false`**—, **no** los `group` (que son las colecciones, `RF-21`/`RF-22`). Encender la bandera es barato; lo que
+   falta es la **UI en el portal** y el mapeo de permisos (`view`/`edit`/`admin` del PRD contra los `read`/`edit` de
+   CKAN). Con el modelo precisado es un **requerimiento de este documento que hoy no existe en el portal**: `v1` si
+   entra, `v2` con su motivo si no.
+2. **La metodología: la base está escrita** en `METODOLOGIA.md` (2026-10-10), con la recomendación y lo que se corre de
+   verdad; **completarla para la documentación de `v1`** sigue pendiente, y depende también del formato que exija la
+   defensa.
 
-## Paso 4 · La carilla «qué es `v0` y qué no es» — PENDIENTE
+**Ya resueltos** (no volver a preguntar): cómo se declara `v0` → **opción (b)**, la sección «Dentro del alcance (`v0`)»
+que ya está en `PRD.md` §3; las cuatro sin tier → **`v1+`**; `RF-03` → **`v1`**; la auditoría → **`[v2]`**; `RF-37`/`RF-38`
+→ **`v1+` con la explicación de abajo**; los siete objetivos → **mapeados abajo**; la bitácora → **hecha**
+(`BITACORA.md`, 2026-10-10).
 
-Se escribe **después** del paso 3, porque su contenido depende de cómo se resuelva (a). Su insumo ya está: el censo del
-paso 1 (un solo defecto puro de `v0`, el 13; tres cerrados; cuatro decisiones del autor) y el cruce del paso 2.
+### Los siete objetivos específicos, mapeados a una entrega (2026-10-09)
+
+El autor pidió el mapeo y lo revisa él. Así queda:
+
+| # | Objetivo (§2) | Tier | Estado medido |
+|---|---|---|---|
+| 1 | **Módulo de Organizaciones** (entidades, permisos, datasets) | `v1` | **Parcial**: la **lectura** está (lista y ficha de organización); la administración (CRUD, permisos, jerarquía) no existe en el portal y la jerarquía no es nativa de CKAN. **Fuerte: si no entra en `v1`, va a `v2` con su motivo** |
+| 2 | **Carga de recursos** (PDF, CSV, imágenes, JSON, TXT y enlaces) | `v0` | **Hecho**: el wizard sube archivos y enlaces, valida y calcula el hash en el navegador |
+| 3 | **Gestión de metadatos** (editor con esquema extensible, historial y aprobación) | `v1` | **Parcial**: el editor existe (crear y editar); el **historial de versiones y la aprobación por metadatos** no (RF-14/16/17 → `v2`) |
+| 4 | **Análisis de datos** (CSV → visualizaciones) | `v1` con reserva | **Ausente**: `parseCsv` sin cablear. Decisión del autor: queda en `v1`, y si no alcanza su destino justificado es `v2` |
+| 5 | **Catálogo con búsqueda facetada** | `v0` | **Hecho**: Solr por CKAN, facetas y filtros |
+| 6 | **Previsualización y exportación** | `v0` (previsualizar) · `v1+` (exportar) | **Parcial**: la vista previa está; la **exportación** (PNG/JPEG/CSV) no existe y es `v1+` |
+| 7 | **Grupos y colaboración** (colecciones y equipos) | `v1` | **Ausente**: los `group` de CKAN cubren las colecciones (RF-21/22); los **equipos** no tienen equivalente (RF-19/20) y los colaboradores por dataset están con la bandera en `false`. **Fuerte: `v2` con justificación si no entra en `v1`** |
+
+**Lectura del mapeo:** dos de los siete ya están en la demo (**2** y **5**), tres dependen de `v1` con trabajo real (1, 3,
+7) y dos son módulos que hoy no existen o existen a medias (4, y la mitad de 6). Los que **no** alcancen para `v1` son los
+candidatos naturales a `v2` **con su motivo escrito**, que es lo que el modelo pide.
+
+### `RF-37`/`RF-38`: qué significan, aclarado por el autor (2026-10-09)
+
+Se referían al **apartado para consumir los datasets por API** que tienen los portales del estilo (`data.gov.sg`):
+**ejemplos listos para copiar en Python, JS, cURL**. La precisión técnica, medida: en CKAN hay **dos** APIs y responden a
+cosas distintas.
+
+- La **API de acciones** (`/api/3/action/…`) responde **metadatos** (`package_show`) y **ya existe** —la usa el portal
+  entero—; su **API Key** también es nativa de CKAN.
+- El **DataStore** (`datastore_search`, `datastore_search_sql`) responde **las filas** de un recurso tabular, que es lo que
+  hace posible el apartado de consumo con consultas. **El portal ya lo consume** para la tabla de 20 filas del CSV
+  (`src/lib/api/datastore.ts`).
+
+**Alcance real del DataStore:** sólo lo que esté cargado en él —los recursos tabulares que pasan por el datapusher (CSV, y
+XLSX si está configurado) o lo que se empuje por API—; **no** aplica a PDF, imágenes ni JSON. O sea: el autor **no se
+equivoca** al recordar que era «sólo para los datos de CSV», con el matiz del XLSX procesado.
+
+**¿Es implementable? Sí, y es sobre todo UI**: detectar `datastore_active` en el recurso, mostrar el endpoint y **ejemplos
+copiables por lenguaje** con filtros, campos y paginación. Como no estaba en la planificación y es un plus: **`v1+`**.
+Queda registrado así, con esta explicación, y ya no es un ítem «a decidir».
+
+### El modelo de tiers no viene del autor, y la metodología hay que declararla (2026-10-09)
+
+**Medido en el historial:** el modelo `v0 / v1 / v1+ / v2 / v2+` **no estaba en el PRD original** —entró el
+**2026-09-11** en el commit `304726d` («define version tiers and reconcile PRD with CKAN»), en una sesión que reconcilió el
+PRD con CKAN—. El autor lo aclara: **su forma de ordenar era por `Sprints`**, con los ítems/HUs ordenados por importancia
+—lo que llamaba *Backlog*—, y **la palabra «sprint» no aparece hoy en ningún documento del repo** (grep vacío sobre
+`PRD.md`, `BACKLOG.md`, `odd/` y `openspec/`).
+
+**Qué hay en la práctica**, y no está declarado en ningún lado, que es el problema para la entrega: **OpenSpec**
+(`openspec/specs/` con cinco capacidades en GIVEN/WHEN/THEN y `openspec/changes/` para los cambios en curso) es
+**desarrollo guiado por especificaciones**; las **compuertas de revisión** por unidad de trabajo, con su linaje y su
+autoridad quemada, son **control de calidad por unidad**; la **regla del playground** de `AGENTS.md` es la **iteración de UI
+revisada por el autor**; y **los tiers y el `BACKLOG` no son la metodología**: son la **agrupación por entrega** y el
+registro de pendientes.
+
+**Pendiente para `v1`:** declarar la metodología en la documentación (con su nombre y sus artefactos), que es lo que el
+autor pide para presentar y defender el proyecto.
+
+## Paso 4 · La carilla «qué es `v0` y qué no es» — HECHA (2026-10-10)
+
+### Qué es `v0`
+
+La **demo**: el recorrido mínimo que se presenta para decidir si el proyecto va. Está declarado en `PRD.md` §3
+(«Dentro del alcance (`v0`)») y hoy **construido y verificado**:
+
+| Pieza | Estado |
+|---|---|
+| Catálogo: home, búsqueda con facetas, páginas de organización | ✅ |
+| Ficha de dataset y de recurso, con vistas previas (PDF, imagen, TXT, JSON, tabla de CSV) | ✅ |
+| Login, menú de usuario y la sonda que impide afirmar una sesión muerta | ✅ |
+| Creación de dataset con recursos (archivos y enlaces) y edición | ✅ |
+| **Flujo de publicación completo**: solicitar → **revisar** → decidir → verlo público | ✅ **verificado de punta a punta el 2026-10-08** |
+| Cola de solicitudes con filtro por organización, y el enlace al dataset desde la fila | ✅ |
+| Superficies de error con copy honesto (la frase humana primero) | ✅ |
+
+### Qué **no** es `v0`
+
+- **No es la entrega del proyecto**: eso es `v1`, con documentación, manuales y defensa.
+- **No incluye la administración** (usuarios, organizaciones y permisos): se hace por CKAN o por su CLI, la «muleta
+  operativa» que §3 declara. Consecuencia práctica: **en una instalación vacía nada se puede crear desde el portal
+  hasta que exista una organización**, y por eso la provisión se hace con `scripts/seed-ckan.mjs` o por CKAN.
+- **No incluye** lo que la tabla de tiers manda a `v1` o más allá: el módulo de análisis de datos, los equipos y las
+  colecciones, la auditoría, el versionado editorial y la degradación directa.
+
+### Los pendientes que sí tocan a `v0` (censo del paso 1, medido el 2026-10-09)
+
+De los **13 ítems `[v0]` abiertos**: **3 cerrados** (dos por trabajo hecho, uno por política declarada), **2 parciales**
+—uno de ellos es una decisión del autor—, **6 vivos** —cuatro son decisiones del autor y uno está mal etiquetado— y
+**2 sin medir** (uno necesita el síntoma concreto del autor y el otro es tarea de operación). **El único defecto puro de
+`v0` era el encabezado que afirmaba una sesión muerta, y ya está corregido.**
+
+### El guion de la presentación, en orden
+
+1. **El catálogo**: buscar, filtrar por organización, entrar a un dataset y a un recurso, ver la vista previa.
+2. **Iniciar sesión** y mostrar el menú de usuario.
+3. **Crear un dataset con un recurso** (un archivo y un enlace).
+4. **Pedir la publicación** como editor y mostrar el estado en la ficha.
+5. **Entrar como el administrador de la organización**: ver la cola, **abrir el dataset desde la fila** (el enlace
+   nuevo) y decidir.
+6. **Volver sin sesión**: el dataset está **público en el catálogo** y no ofrece ningún control de publicación.
+7. *(Opcional, y es un buen cierre)* mostrar que **el camino directo no existe**: `package_patch {private: false}` por
+   API responde `403` con el rótulo del flujo.
+
+**Antes de presentar:** la instalación tiene que estar **provisionada** —organización, usuarios y sus capacidades—, que
+es el paso que no se ve en la demo y que la arruina si falta.
 

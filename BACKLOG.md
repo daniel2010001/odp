@@ -20,6 +20,10 @@
 > **Arquitectura vigente:** CKAN como backend **headless** (sólo su API REST). El portal
 > SvelteKit es dueño de toda la interfaz, incluida la administración. El UI web nativo de CKAN
 > se acepta únicamente como muleta operativa durante `v0`. Ver `PRD.md` §3, §7 y §10.
+>
+> **Dónde vive cada cosa:** la **metodología** que se aplica está en `METODOLOGIA.md`; el **índice cronológico** de lo
+> que se hizo, en `BITACORA.md`; los **requisitos y el alcance**, en `PRD.md`; los **contratos de comportamiento**, en
+> `openspec/specs/`; la narrativa de cada unidad, en `odd/tasks/`.
 
 ## Límites: de dónde salen los números (2026-10-09)
 
@@ -33,9 +37,12 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   dejarlo a medias—; (2) cambiar el guardrail del portal (`src/lib/utils/dataset-payload.ts`, `MAX_RESOURCE_BYTES`);
 >   (3) **actualizar `RF-12`** si el número cambia, porque hoy el PRD lo fija en 50. **Se ve cuando se revisen todos los
 >   TODOs** (decisión del autor, 2026-10-09).
-> - **Regla que queda:** un límite que **no** venga de CKAN se elige **a conciencia y se anota por qué**; uno que venga
->   de CKAN **se toma de CKAN**. Vale para topes de tamaño, longitudes de campos, cantidad de ítems por página y
->   cualquier constante con pinta de arbitraria — y `PRD.md` §7 ya tiene medidos los límites reales de CKAN.
+> - **Regla que queda, con la corrección del autor (2026-10-09):** el límite de CKAN es la **referencia** —dice qué es
+>   posible y hasta dónde— pero **no se acepta tal cual**: lo que el producto hace es **adaptarlo lo mejor posible**.
+>   Cuando el portal es **más estricto a propósito**, se anota el motivo —CKAN no limita `notes` y el portal sí, por
+>   guardrail de diseño—; cuando el portal es **más chico sin motivo** —el tope de 50 MB contra los 100 de CKAN— **se
+>   toma el de CKAN**. Vale para topes de tamaño, longitudes de campos, ítems por página y cualquier constante con pinta
+>   de arbitraria — y `PRD.md` §7 ya tiene medidos los límites reales de CKAN.
 
 ## Requerimientos del PRD sin ítem propio — registro (2026-10-09)
 
@@ -57,11 +64,11 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > | RF-27 | Todos los metadatos indexados en Solr | `[v1]` | Cumplido: indexa CKAN y el portal lo consume con `package_search` |
 > | RF-28 | Filtros por org, etiquetas, visibilidad, fechas y tipo de recurso | `[v1]` | **Parcial**: los filtros existen (`src/routes/search/+page.svelte`); el de visibilidad depende del backend |
 > | RF-29 | Facetas en los resultados | `[v1]` | Cumplido (`src/lib/api/datasets.ts:19` + `FacetFilter.svelte`) |
-> | RF-32 | Exportar gráficos (PNG/JPEG) y datos (CSV) | `[v2]` | **Ausente**: depende del módulo de análisis (RF-24) |
+> | RF-32 | Exportar gráficos (PNG/JPEG) y datos (CSV) | `[v1+]` | **NO existe**: depende del módulo de análisis (RF-24); si ese cae a `v2`, este cae con él |
 > | RF-35 | Soft-delete con `deleted_at` | `[v2]` | Equivalente nativo en CKAN (`state='deleted'`; `dataset_purge` sólo `sysadmin`), sin `deleted_at` |
 > | RF-36 | Bloqueo con `access_status` reversible | `[v2]` | **Ausente**; sin equivalente en CKAN (sólo existe el tipo) |
-> | RF-37 | API REST propia del portal | `[v1]` | **A decidir**: hoy la expone CKAN, no el portal. ¿Cuenta como cumplido, o pide una capa propia? |
-> | RF-38 | Acceso a la API con API Key | `[v1]` | **A decidir**, igual que RF-37: CKAN ya ofrece API Key; el portal usa token de sesión |
+> | RF-37 | API REST para consumir los datasets | `[v1+]` | **Existe, pero la del catálogo**: la de acciones de CKAN (`package_show` y compañía) responde **metadatos** y **ya la usa el portal**; su **API Key** es nativa. Lo que **no** existe es el **apartado de consumo** con ejemplos (Python/JS/cURL) que el autor señala de portales como `data.gov.sg` → `v1+` |
+> | RF-38 | Acceso a la API con API Key | `[v1+]` | **Nativa en CKAN**; el portal usa token de sesión. El apartado de consumo con ejemplos es la parte que falta → `v1+` |
 
 ## Decisiones del autor (2026-10-09) — qué se posterga, qué se prioriza, y dos casos abiertos
 
@@ -154,6 +161,11 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > la cola **enlaza** a `/dataset/<id>` en **pestaña nueva**. La (b) —los controles de decidir en la ficha— **se lleva a un
 > playground `/dev/…`** para que la revise (regla 8: el agente propone algo concreto y verificable, el autor lo mira en
 > vivo): **no se promueve hasta que la apruebe**, y si no le gusta, el camino queda en la (a).
+>
+> - [ ] **[v0]** **El playground de la variante (b)**: los controles de **aprobar/rechazar** en la **ficha del dataset**,
+>   para que el autor los vea en vivo y decida si le gusta. **Pendiente para la próxima sesión** (decisión del autor,
+>   2026-10-10: «hagámoslo, pero terminemos esto primero»). La (a) —el enlace desde la cola— **ya está entregada** y
+>   mergeada.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
