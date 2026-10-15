@@ -94,16 +94,22 @@ export function upstreamUrl(internalUrl: string, action: string): string | null 
 }
 
 /**
- * Las cabeceras del pedido al catálogo: **sólo** las dos que el portal decide.
+ * Las cabeceras del pedido al catálogo: **sólo** las que el portal decide.
+ *
+ * `token` puede ser `null`, y eso significa **anónimo**, no «sin permiso»: el portal no inventa una identidad y
+ * deja que el catálogo decida qué es público. Es el caso de un visitante sin sesión que mira un dataset público,
+ * y sin él la navegación pública se rompería al pasar por el puente.
  *
  * El parámetro `incoming` existe para dejar la regla a la vista y poder probarla: el `Authorization` del
  * navegador, su cookie y cualquier otro encabezado suyo **no se copian**. No es una lista de prohibiciones
- * —que se olvida al agregar la próxima— sino una construcción desde cero.
+ * —que se olvida al agregar la siguiente— sino una construcción desde cero.
  */
-export function upstreamHeaders(incoming: Headers, token: string): Headers {
+export function upstreamHeaders(incoming: Headers, token: string | null): Headers {
 	void incoming;
 	const headers = new Headers();
-	headers.set("Authorization", token);
+	if (token) {
+		headers.set("Authorization", token);
+	}
 	headers.set("Content-Type", "application/json");
 	return headers;
 }

@@ -36,7 +36,7 @@ function pedido(overrides: Partial<Parameters<typeof forwardToCatalog>[0]> = {})
 		action: "package_show",
 		method: "POST" as const,
 		params: { id: "pkg-1" },
-		token: TOKEN,
+		session: { token: TOKEN },
 		internalUrl: INTERNAL_URL,
 		incomingHeaders: new Headers(),
 		...overrides,
@@ -62,13 +62,28 @@ describe("el puente — la guarda va antes del reenvío", () => {
 		expect(fetcher).not.toHaveBeenCalled();
 	});
 
-	it("sin sesión devuelve 401 y **no** llama al catálogo", async () => {
+	it("una cookie que **no abre** es una sesión muerta: 401 y **no** llama al catálogo", async () => {
 		const fetcher = makeFetcher();
 
-		const resultado = await forwardToCatalog(pedido({ token: "" }), fetcher);
+		const resultado = await forwardToCatalog(pedido({ session: "dead" }), fetcher);
 
 		expect(resultado.status).toBe(401);
 		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("**sin cookie** se reenvía anónimo: sin `Authorization` y con los parámetros, porque el catálogo decide qué es público", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(
+			pedido({ session: "anonymous", method: "GET", params: { id: "pkg-1" } }),
+			fetcher,
+		);
+
+		// El reenvío **sí** ocurre: sin cookie no hay sesión que expulsar, hay un visitante.
+		const [url, init] = fetcher.mock.calls[0];
+		expect(url).toBe(`${INTERNAL_URL}/api/3/action/package_show?id=pkg-1`);
+		expect(new Headers(init?.headers).get("authorization")).toBeNull();
+		expect(resultado.status).toBe(200);
 	});
 });
 

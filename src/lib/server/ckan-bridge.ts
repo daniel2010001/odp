@@ -19,14 +19,26 @@
 
 import { upstreamHeaders, upstreamUrl } from "./ckan-proxy";
 
-/** El pedido, con la credencial **ya resuelta** por quien llama (de la cookie sellada). */
+/**
+ * La sesión **ya resuelta** por quien llama, en tres estados que no se pueden confundir:
+ *
+ *  · `{ token }` — hay sesión válida y el portal pone la credencial en la cabecera.
+ *  · `"anonymous"` — **no hay cookie**: el visitante no inició sesión. El pedido se reenvía **sin** credencial y
+ *    el catálogo decide qué es público. Sin este estado, la navegación pública se rompería al pasar por el
+ *    puente: hoy un visitante lee datasets públicos sin credencial y eso tiene que seguir funcionando.
+ *  · `"dead"` — **hay cookie y no vale** (vencida, alterada, o con otra clave). Es una sesión que murió, no un
+ *    visitante: se responde `401` para que el portal expulse por su camino único, en vez de degradar la lectura
+ *    a una vista vacía —que es justo el defecto que `v1` ya corrigió una vez—.
+ */
+export type BridgeSession = { token: string } | "anonymous" | "dead";
+
+/** El pedido, con la sesión resuelta por quien llama (de la cookie sellada). */
 export interface BridgeRequest {
 	action: string;
 	method: "GET" | "POST";
 	/** Los parámetros tal como llegaron del cliente. `undefined` no se manda. */
 	params: Record<string, unknown>;
-	/** La credencial de CKAN. Vacía = no hay sesión. */
-	token: string;
+	session: BridgeSession;
 	/** La URL interna del catálogo (`resolveCkanInternalUrl`). */
 	internalUrl: string;
 	/** Las cabeceras del pedido entrante: existen para que **nada** de ellas viaje, y para poder probarlo. */
@@ -49,8 +61,8 @@ export const UNKNOWN_ACTION_STATUS = 404;
 /** El catálogo no respondió: la falla es de la conexión, no del pedido. */
 export const UPSTREAM_FAILURE_STATUS = 502;
 
-/** Un pedido sin sesión no se reenvía. */
-export function noSession(): BridgeResult {
+/** Una sesión **muerta** (cookie presente que no abre) no se reenvía: el portal expulsa por su camino único. */
+export function deadSession(): BridgeResult {
 	return {
 		status: NO_SESSION_STATUS,
 		body: { error: "La sesión del portal no está activa." },
@@ -89,11 +101,13 @@ export async function forwardToCatalog(
 		return unknownAction();
 	}
 
-	if (!request.token || request.token.trim() === "") {
-		return noSession();
+	if (request.session === "dead") {
+		return deadSession();
 	}
 
-	const headers = upstreamHeaders(request.incomingHeaders, request.token);
+	// `null` es **anónimo**, no una falla: el catálogo decide qué se puede leer sin credencial.
+	const token = request.session === "anonymous" ? null : request.session.token;
+	const headers = upstreamHeaders(request.incomingHeaders, token);
 	const params = usableParams(request.params);
 
 	let destino = url;

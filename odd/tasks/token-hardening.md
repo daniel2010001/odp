@@ -174,7 +174,7 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
 - **L8 (implementación, 2026-10-15): el puente vivo.** `src/lib/server/ckan-bridge.ts` resuelve el camino completo
   —sesión ya salida de la cookie sellada, guarda, credencial, reenvío y respuesta normalizada— y la ruta es un
   **adaptador** que sólo lee el entorno y la cookie (los módulos virtuales que Vitest no resuelve). **Las negativas
-  devuelven sin llamar al `fetch`** —sin sesión `401`, acción fuera de la allowlist `404`, y **no** `403`, porque el
+  devuelven sin llamar al `fetch`** —sin sesión **muerta** `401`, acción fuera de la allowlist `404`, y **no** `403`, porque el
   `404` no confirma qué acciones existen—, porque un reenvío que ya salió no se puede deshacer; la credencial viaja en
   la **cabecera** y **nunca** en la URL (importa sobre todo en un `GET`, donde los parámetros sí van en la query: un
   token en una URL termina en logs, historiales y `Referer`); y un catálogo caído es `502` con cuerpo propio, nunca un
@@ -194,6 +194,17 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   **sigue** llevando el token y el store del navegador lo sigue guardando **hasta T4**. Sacarlo antes de migrar los 11
   sitios al puente rompería el portal entero: el ayuno del store es la **última** pieza de la migración, no la primera.
   4 pruebas nuevas (19 en el módulo de sesión).
+- **L10 (corrección del mismo día, 2026-10-15): el puente distingue **anónimo** de **sesión muerta**.** L8 decía
+  «sin sesión `401`», y eso **habría roto la navegación pública** el día de la migración: las páginas públicas (`/`,
+  `/search`, `/organizations`, y las fichas de dataset y de recurso cuando el dataset es público) llaman hoy al
+  catálogo **sin** credencial, así que con un `401` un visitante vería un error de sesión en vez del dataset. La regla
+  correcta tiene **tres** estados: `{ token }` pone la credencial; **`"anonymous"`** (sin cookie) reenvía **sin**
+  `Authorization` y deja que el catálogo decida qué es público; y **`"dead"`** (hay cookie y no abre) responde `401`,
+  para que el portal expulse por su camino único en vez de degradar la lectura a una vista vacía —el defecto que `v1`
+  ya corrigió una vez—. Además, la ruta y el logout resuelven `SESSION_SECRET` **sólo** si hay cookie: el camino
+  anónimo no puede depender de una variable obligatoria que no necesita, o un despliegue sin ella dejaría de servir lo
+  público. Es el primer prerrequisito que aparece **al seguir la migración por los sitios**, y no se habría visto
+  mirando el puente solo.
   **Y trae una obligación de despliegue, declarada:** `SESSION_SECRET` pasa a ser una variable **obligatoria
   fuera de desarrollo** —`resolveSessionSecret` falla en vez de tener un default, porque una clave por defecto
   sería una sesión que cualquiera fabrica—, así que el servicio `frontend` del compose **tiene que definirla** o

@@ -28,13 +28,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	// El token puede venir del cuerpo —el camino del navegador de hoy— o de la **sesión del servidor**, que es
 	// de donde saldrá cuando los sitios migren al puente. El del cuerpo va primero: es el que el navegador cree
-	// que tiene.
-	const session = openSession(
-		cookies.get(SESSION_COOKIE_NAME),
-		resolveSessionSecret(env.SESSION_SECRET, dev),
-		Date.now(),
-	);
-	const aRevocar = token ?? session?.token;
+	// que tiene. La cookie y la clave se miran **sólo** si hay cookie: el logout tiene que funcionar igual sin
+	// sesión, y resolver la clave obligatoria de producción para nada lo ataría a una variable que no necesita.
+	const cookie = cookies.get(SESSION_COOKIE_NAME);
+	const deLaSesion =
+		cookie !== undefined
+			? openSession(cookie, resolveSessionSecret(env.SESSION_SECRET, dev), Date.now())?.token
+			: undefined;
+	const aRevocar = token ?? deLaSesion;
 
 	if (aRevocar) {
 		const baseUrl = resolveCkanInternalUrl(env.CKAN_INTERNAL_URL, dev);

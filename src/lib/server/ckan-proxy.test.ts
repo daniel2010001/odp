@@ -145,6 +145,13 @@ describe("las cabeceras del pedido al catálogo — la credencial del cliente no
 		expect(cabeceras.get("content-type")).toBe("application/json");
 	});
 
+	it("sin credencial (anónimo) no se inventa una `Authorization`: el catálogo decide qué es público", () => {
+		const cabeceras = upstreamHeaders(new Headers(), null);
+
+		expect(cabeceras.get("authorization")).toBeNull();
+		expect([...cabeceras.keys()]).toEqual(["content-type"]);
+	});
+
 	it("el `Authorization` que llega del cliente NO se propaga ni sobrevive", () => {
 		const delCliente = new Headers({ authorization: "token-del-navegador" });
 

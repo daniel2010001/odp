@@ -18,7 +18,7 @@
 import { json } from "@sveltejs/kit";
 import { dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
-import { forwardToCatalog } from "$lib/server/ckan-bridge";
+import { type BridgeSession, forwardToCatalog } from "$lib/server/ckan-bridge";
 import { resolveCkanInternalUrl } from "$lib/server/ckan-internal-url";
 import { openSession, resolveSessionSecret, SESSION_COOKIE_NAME } from "$lib/server/session";
 import type { RequestEvent, RequestHandler } from "./$types";
@@ -35,11 +35,19 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
 
 /** El camino compartido por los dos verbos: sólo cambia de dónde salen los parámetros. */
 async function bridge(event: RequestEvent, method: "GET" | "POST") {
-	const session = openSession(
-		event.cookies.get(SESSION_COOKIE_NAME),
-		resolveSessionSecret(env.SESSION_SECRET, dev),
-		Date.now(),
-	);
+	// Tres estados que **no** se confunden: sin cookie es **anónimo** —un visitante leyendo lo público tiene que
+	// seguir funcionando, y por eso el pedido se reenvía sin credencial—, y una cookie que no abre es una
+	// **sesión muerta**, que se responde con `401` para que el portal expulse por su camino único en vez de
+	// degradar la lectura a una vista vacía.
+	//
+	// La clave se resuelve **sólo** si hay cookie: el camino anónimo no debe depender de una variable obligatoria
+	// que no necesita, o un despliegue sin ella dejaría de servir lo público.
+	const cookie = event.cookies.get(SESSION_COOKIE_NAME);
+	let session: BridgeSession = "anonymous";
+	if (cookie !== undefined) {
+		const abierta = openSession(cookie, resolveSessionSecret(env.SESSION_SECRET, dev), Date.now());
+		session = abierta ? { token: abierta.token } : "dead";
+	}
 
 	const resultado = await forwardToCatalog({
 		action: event.params.action,
@@ -48,8 +56,7 @@ async function bridge(event: RequestEvent, method: "GET" | "POST") {
 			method === "POST"
 				? await readJsonBody(event.request)
 				: Object.fromEntries(event.url.searchParams),
-		// Sin sesión el token va vacío y el puente devuelve `401` **sin** llamar al catálogo.
-		token: session?.token ?? "",
+		session,
 		internalUrl: resolveCkanInternalUrl(env.CKAN_INTERNAL_URL, dev),
 		incomingHeaders: event.request.headers,
 	});
