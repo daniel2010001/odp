@@ -99,6 +99,11 @@ personas **no-sysadmin** con `capacity = admin` en esa organización es **0** y 
 mismo id** (`ckan_admin`) y el dataset queda **público**. Si la respuesta fuera `Four eyes`, el recuento está contando a
 un sysadmin: es **defecto del store**, y se reporta con el estado de la fila antes/después.
 
+**Antes de correrla, un reinicio:** el contenedor de CKAN tiene que estar sirviendo el **código nuevo** del store —Python
+cachea los imports al arrancar, así que un cambio en el plugin no llega al servidor vivo sin reiniciarlo—. Sin eso la
+prueba mediría el comportamiento **viejo**, y un `Four eyes` parecería un defecto del store cuando en realidad es un
+servidor sin reiniciar: verificarlo **antes** de sacar conclusiones.
+
 ## Riesgos y decisiones abiertas
 
 1. **La cascada está encendida en este stack**: `ckan.ini:99` fija `ckan.auth.roles_that_cascade_to_sub_groups = admin`
