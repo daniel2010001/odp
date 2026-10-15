@@ -235,8 +235,55 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > recomienda; **(d)** publicación directa para el admin solitario → ya rechazada el 2026-10-08. Decir «nadie
 > podrá decidirla» exige una pregunta nueva al catálogo (¿hay otro admin en la organización?) y es trabajo aparte.
 >
-> - [ ] **TODO (autor): decidir cuál de esas salidas va.** Sin decidirlo, el caso de una sola persona deja
->   solicitudes pendientes que nadie puede decidir y que la UI no explica. **Tier: lo define el autor.**
+>   **(c′) — LA ELEGIDA (autor, 2026-10-15).** La excepción **decidida por el dato**: auto-aprobación permitida **sólo si
+>   el catálogo confirma que no hay ningún otro aprobador** —ni otro admin de la **misma** organización dueña, ni otro
+>   sysadmin activo distinto del solicitante—. **La organización relacionada o «madre» NO cuenta**, y está anotado con
+>   su motivo en «La relación entre organizaciones es figurativa», más abajo. Cero configuración, cero UI y **cero
+>   palanca que se pueda dejar mal puesta**: cuatro ojos muerde **siempre que puede morder**.
+>
+>   **(c″)** la **flag de despliegue** (`ckanext.umss.allow_self_approval`, **default apagada**), por la misma vía que ya
+>   usa `expire_api_token.default_lifetime`. Exige dos cosas más: que el portal **conozca la política** (una lectura
+>   nueva; si no, con la flag encendida la ficha **miente al revés**, ocultando una acción que el catálogo concede) y que
+>   la documentación diga que con la flag encendida la regla «el que la crea no puede publicarla» **NO rige** —el flujo
+>   conserva **embudo + traza**, porque `approved_by == requested_by` queda visible en la fila, pero deja de ser una
+>   revisión—. Medido: el plugin **no lee config hoy**, así que ésta sería su primera superficie de configuración.
+>
+>   **Y lo que NO conviene hoy (2026-10-15): una flag POR ORGANIZACIÓN.** No por concepto —la organización es donde vive
+>   la política y `extras` ya se usa para la sigla—, sino por lo que crece: obliga a decidir **quién puede apagarla**, y
+>   si puede el **admin de la organización**, entonces **quien quiere auto-aprobarse habilita su propia excepción** y la
+>   regla deja de ser una regla; además suma forma de organización, tres estados y documentación. Y **no agrega capacidad
+>   sobre `c″`** para el caso real (una persona, una organización). Si algún día hace falta tratar organizaciones distinto
+>   **por decisión**, la palanca va en manos de la superadministración, nunca de la organización.
+>
+> **DECISIÓN DEL AUTOR (2026-10-15): va la (c′)** —la excepción decidida por el dato—. La **(c″)**, la flag de
+> despliegue, **también le gusta pero no entra en `v0`/la demo**: queda como recomendación de futuro en **`v2+`**, y
+> subiría a **`v1+`** si el despliegue real pidiera una palanca explícita y documentada —porque `c′` no la necesita—.
+> La flag **por organización** queda descartada con su motivo escrito arriba.
+>
+> - [ ] **Implementar `c′`** —es lo único que falta para destrabar el caso de una sola persona—: en el **store**
+>   (`odp-docker`), la excepción cuando el catálogo confirma que **no hay otro aprobador**; en el **portal**, que la
+>   ficha **no oculte** el control cuando la excepción aplica (o el copy dirá que no se puede algo que sí se puede);
+>   y tests de las dos ramas. **Ojo con la cascada de CKAN al implementarlo:** el predicado del store usa
+>   `has_user_permission_for_group_or_org`, que **casca permisos si el vínculo existe**, así que hay que asegurar que
+>   un admin de una organización relacionada **no** cuente como aprobador (ver la decisión de abajo). **Tier: `v1`**
+>   —es lo que hace usable el flujo en el despliegue real, sin tocar la gobernanza donde sí hay segunda persona—.
+>
+> ---
+>
+> ### La relación entre organizaciones es **figurativa**, no un camino de permisos (decisión del autor, 2026-10-15)
+>
+> **Para nunca olvidarlo, y textual en su intención:** la jerarquía de organizaciones **no** es un mecanismo de
+> permisos. Una organización relacionada con otra —o una «madre»— es **figurativa**: sirve para **navegar** entre
+> organizaciones y para mostrar que existen vínculos del mundo real. **No se heredan permisos, no se tienen
+> privilegios sobre organizaciones hijas, nada de eso.** Que exista un vínculo **no** da dominio sobre la otra
+> organización.
+>
+> **Las tres consecuencias que importan al código:** (a) la política de aprobación **no puede** contar a un admin de
+> una organización relacionada como aprobador —por eso `c′` cuenta sólo a los admins de la **misma** organización y a
+> los sysadmins activos—; (b) aunque el catálogo **pueda** cascar permisos por jerarquía (CKAN lo hace si el vínculo
+> existe, y una medición vieja lo menciona en este mismo archivo, §«una sonda que obtiene **403** es robusta a la
+> cascada»), **este proyecto no lo usa como camino de permisos y no debe depender de él**; (c) construir jerarquía
+> real de permisos entre organizaciones está **fuera del alcance** — y no es un pendiente: es una **decisión**.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
@@ -2484,11 +2531,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
   `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
   similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
-  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** «Detalles», la del cuerpo
+  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** la del **cuerpo**
   (`dataset/[id]/+page.svelte:527-554`), **ya cumple** lo que este ítem pide —`p-6 sm:p-8`, tabla Campo/Valor y
-  el rótulo idéntico al de recurso—; la que no cumple es la del sidebar, «Metadatos» (`:608-624`: `p-5`, filas
+  el rótulo idéntico al de recurso—; la que no cumple es la del **sidebar** (`p-5`, filas
   con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
   el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
+
+  **Corrección de los nombres (2026-10-15):** este párrafo nombraba las tarjetas **al revés** de como están hoy
+  —decía «Detalles» el cuerpo y «Metadatos» el sidebar—, y la causa está medida: el autor las **renombró el
+  2026-09-28** (`dataset/[id]/+page.svelte:966`: «Detalles», no «Metadatos»), o sea **después** de aquella
+  medición. Hoy el **cuerpo** se titula **Metadatos** (`:871`) y el **sidebar**, **Detalles** (`:969`); el párrafo
+  del 2026-09-30 de más abajo ya usaba los nombres correctos, así que el ítem se contradecía consigo mismo.
   _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
   **Estado medido (2026-09-30): VIVO.** La card del cuerpo (`dataset/[id]/+page.svelte:520`) ya es `p-6 sm:p-8` con tabla
   Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
@@ -2862,6 +2915,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   de `.env` **no es verificable** desde la sesión (ruta de entorno bloqueada), así que esa mitad va como nota y **no** como
   cierre. Y sigue pendiente la decisión de pinear o no los cuatro `FROM`.
 
+  **Actualización medida (2026-10-15): la decisión de pinear sigue abierta, y el minor ya no es 2.11.** Los cuatro
+  `FROM` de `ckan-docker/` están hoy en **`2.12`** (`Dockerfile:1`, `Dockerfile.dev:1`, `Dockerfile.umss:8`,
+  `Dockerfile.dev.umss:7`), así que el párrafo de arriba —«corre 2.11.6», «flotando en el minor 2.11»— quedó viejo:
+  **el upgrade ocurrió**. El fondo no cambia: **pinear el patch sigue siendo una decisión pendiente**, y su momento
+  natural era ese upgrade, que ya pasó. La mitad de `.env` **no es verificable desde acá** (ruta de entorno
+  bloqueada): la aplica el autor.
+
   **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
   upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
   `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
@@ -2926,24 +2986,6 @@ después del cierre que describe el encabezado de esta sección; medición compl
   por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
   medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
   Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
-- [ ] **[v0]** `TODO:` **El encabezado dice «sesión iniciada» con una sesión muerta: la sonda corre sólo donde una pantalla la pide.**
-  **HECHO (2026-10-09), pendiente de merge** (`2916b80`, en el PR de la sesión): la sonda **única a nivel de app** existe —
-  el layout raíz sondea **una vez por carga** si hay token guardado y, con veredicto `dead`, termina la sesión
-  **localmente** (sin navegar: en una página pública rebotar al login es peor que mostrar el encabezado anónimo)—, y las
-  pantallas que necesitan los datos del usuario conservan su expulsión con motivo. El ítem se borra al mergear.
-  Reportado por el autor (2026-10-02): puede seguir navegando la plataforma mientras el encabezado muestra su identidad, y el aviso de
-  sesión expirada aparece **recién cuando intenta algo del usuario** (el dashboard o un privado).
-  **Medido en el código:** la sonda existe y está bien diseñada —`src/lib/api/session.ts`: el 404 de `user_show {}` corroborado por
-  `status_show`, y `inconclusive` que **no** expulsa a nadie porque un hipo de CKAN no es una sesión muerta—, pero **sólo la llama el
-  dashboard** (`src/routes/dashboard/+page.svelte`, `iniciarPanel()`, que además no pinta identidad hasta que resuelve:
-  `sessionNotDead`). El encabezado (`src/lib/components/auth/UserMenu.svelte`) pinta `$auth.user` del almacén **sin comprobar nada**, así
-  que la identidad sobrevive a la muerte del token.
-  **Propuesta (decisión del autor):** una **sonda única a nivel de app** en el layout raíz —al montar si hay token guardado, y al
-  recuperar foco/visibilidad de la pestaña—; ante `dead`, limpiar la sesión y **reflejarlo en el encabezado sin expulsar de una página
-  pública** (navegar al login desde una página pública sería echar al usuario de lo que está leyendo); en páginas del usuario, mantener
-  el comportamiento actual (`endInvalidSession` + `expired=1`). `inconclusive` no toca nada.
-  **Costo:** una petición por carga/foco (`user_show {}`), y `status_show` sólo cuando el 404 necesita corroboración.
-  _Origen: reporte del autor el 2026-10-02. **No es pulido: es honestidad** —el encabezado miente hoy—._
 
 ## v1 — producto usable en producción
 
@@ -3061,6 +3103,35 @@ después del cierre que describe el encabezado de esta sección; medición compl
   route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
   rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
   2026-09-11._
+
+  **Costo medido de mover la credencial (2026-10-15, reconocimiento con `path:line`).** No es un
+  endurecimiento suelto: toca el camino entero del token.
+  - **Hoy el token es un concepto exclusivamente del cliente**: `localStorage["auth"]`
+    (`src/lib/stores/auth.ts:14`), hidratado al importar el módulo, **sin expiración persistida** (el TTL es
+    server-side, `src/lib/server/ckan-auth.ts:29`).
+  - **11 sitios de producción** construyen un cliente con `apiKey: () => get(auth).token`
+    (`src/routes/+layout.svelte:33`; `dataset/[id]/+page.svelte:110,270,343,354`;
+    `resource/[resourceId]/+page.svelte:49,104`; `dashboard/requests/+page.svelte:33`; `dashboard/+page.svelte:67`;
+    `dashboard/datasets/[id]/edit/+page.svelte:56`; `dashboard/datasets/new/+page.svelte:58`), más **~10 lectores
+    directos** del store (guardián, encabezado, dashboard, wizard, ficha, recurso, login).
+  - **Dos caminos asumen el token legible en el navegador**: la **subida por XHR**, que lo pone a mano
+    (`src/lib/api/upload.ts:82`) y el **logout**, que lo manda en el body (`src/lib/api/auth.ts:48-56`,
+    `UserMenu.svelte:42`).
+  - **Siete suites están ancladas al mecanismo, no a un detalle**: `auth.test.ts`, `session-guard.test.ts`,
+    `dashboard.test.ts`, `wizard.test.ts`, `login.test.ts`, `PublicationQueue.test.ts` y `layout-header.test.ts`
+    (más `client.test.ts`, `upload.test.ts` y `resource-page.test.ts`, que aseveran el header `Authorization`
+    emitido desde el navegador).
+  - **No existe `hooks.server.ts`** y ningún camino SSR usa el token hoy: el punto de inyección hay que
+    **inventarlo**, y con él decidir quién guarda la credencial del lado servidor.
+  - Siguen en pie las dos consecuencias ya escritas arriba: **descargas privadas** (streamear los bytes con
+    soporte de `Range`) y **subidas** (`+server.ts` propio, `BODY_SIZE_LIMIT` y un método multipart en el cliente).
+  - **El riesgo que decide el diseño**: con cookie, el navegador la manda sola, así que la inyección por nginx
+    autenticaría **también las peticiones mutantes** → hace falta diseño anti-CSRF (`SameSite` estricto + token de
+    sincronización), que hoy no existe porque el header manual es inmune a eso.
+
+  **Veredicto de tamaño (2026-10-15): es una feature de varias sesiones, no un endurecimiento suelto.** El autor
+  decidió dejarla para una **sesión dedicada**, con este mapa y este costo como punto de partida; no entra en
+  `v0`/la demo y sigue siendo `[v1]`.
 
 - [x] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
 
@@ -3465,6 +3536,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). **Consecuencia medida (2026-09-13):** el plugin hace **obligatorios** `expires_in` y `unit` en `api_token_create`; el login del portal no los mandaba, así que CKAN respondía **409** y **ningún login funcionaba**. Arreglado en `e4b7ed9` con `TOKEN_TTL = { expires_in: 1, unit: 86400 }`, que espeja esa política. |
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
 | **Decidir la solicitud desde la ficha del dataset (la variante (b))** | **Entregada y aprobada (2026-10-14).** El autor la revisó en la hoja `/dev/publication` y la aprobó. La tarjeta «Solicitud de publicación» de la ficha real decide cuando quien mira **administra la organización dueña**, la solicitud está pendiente y no es suya. La pregunta al catálogo es la que la decisión exige —`organization_list_for_user` con `permission: "admin"`, medida en el CKAN que corre (`ckan/authz.py:251` y `:292`) y **no** la de editar, que incluye a los editores—, con tres estados y fail closed. Las reglas de decidir tienen **un solo dueño**: `PublicationDecision.svelte`, extraído de `PublicationQueue` y montado por los dos (la suite de la cola, 36/36, prueba que la extracción no cambió comportamiento). La frase del estado se movió a `src/lib/copy/publication.ts` para que la hoja no pueda mostrar una cadena distinta de la que el portal renderiza, y el interruptor «en la cola / también en la ficha» **se eliminó**: ya no hay alternativa que elegir. Verificado: API 19/19, cola 36/36, hoja 6/6, ficha 58/58, suite completa **63 archivos / 1043 tests**, `pnpm check` **0 errores** (4 warnings preexistentes, ninguno en archivos del diff); **falsificación medida** de la compuerta de permiso (2 rojos exactos —`may_not` y `unknown`—, restauración con md5 verificado) y verificador independiente. **Sin commitear al cerrar la sesión: el commit es decisión del autor.** |
+| **Barrido del censo `[v0]` (2026-10-15)** | **11 ítems re-medidos con `path:line`: uno borrado por stale y dos textos corregidos.** El borrado: el del **encabezado con una sesión muerta** («la sonda corre sólo donde una pantalla la pide») decía «HECHO (2026-10-09), pendiente de merge (`2916b80`)… se borra al mergear» y seguía abierto — `git merge-base --is-ancestor 2916b80 main` → **es ancestro** (PR #63 mergeado), y el código lo confirma en `src/routes/+layout.svelte:34` (`void validateStoredSession(client)`) sobre `src/lib/session-guard.ts:46`. Los textos corregidos: los **nombres invertidos** de las dos cards de la ficha (el autor las renombró el 2026-09-28, **después** de la medición que el ítem citaba, así que el ítem se contradecía consigo mismo) y la **versión del minor** del ítem de higiene (`FROM` ya en `2.12`, no 2.11 — el upgrade ocurrió y la decisión de pinear sigue abierta). **Los otros 10 ítems `[v0]` siguen abiertos**, en dos clases: diseño que espera tu decisión, o la mitad de `.env`/`ckan-docker` que se aplica a mano. |
 
 ## Deuda de revisión (RDD)
 
