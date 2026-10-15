@@ -300,7 +300,11 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   `state` al sysadmin, así que **nadie por debajo puede activarlo** después. Las dos salidas, sin decidir: **¿el flujo
 >   lo activa al aprobar, o se niega a publicar un `draft`** y lo dice? **No es defecto de `c′`**: el flip es anterior
 >   (`_flip_to_public`, `61b6f1c`) y el portal no crea borradores — hoy un `draft` sólo puede entrar por la UI de CKAN.
->   Escalado por la sesión del store.
+>   **El dueño del arreglo es `odp-docker`, no este repo**: las dos salidas viven en `ckanext-umss` —(i) en
+>   `_flip_to_public`/`publication_request_decide`, (ii) en el predicado de autorización del mismo módulo—, y el
+>   portal, en todo caso, sería el que **muestra** el rechazo, como en S4. El lado del store ya lo tiene como tarea
+>   bloqueada, con la pregunta escrita y la evidencia (L10 del plan de esta feature), y ofrece anotarlo ahí cuando el
+>   autor decida la salida. Escalado por esa sesión.
 >
 > ---
 >
