@@ -3089,6 +3089,14 @@ después del cierre que describe el encabezado de esta sección; medición compl
   Decidir cuál es el canónico y alinear el facet. **El duplicado del select ya se arregló**
   (`5d0b751`); esto es la parte de fondo. _Origen: revisión de UI del 2026-09-14._
 
+- [ ] **Deuda de la revisión nativa de T3a (endurecimiento del token)** — la compuerta `review-f2582d4570d1e94f`
+  (tier `medium`, lentes `risk`/`readability`/`reliability`) **aprobó y quedó reconocida**, con **tres avisos no
+  bloqueantes**, todos informativos y **sin** transición de corrección: `R1-001` (`risk`,
+  `src/lib/server/session.ts:90-94`, SUGGESTION), `R2-001` (`readability`, `:112-117`, SUGGESTION) y `R3-001`
+  (`reliability`, `:126-135`, **WARNING**, el único con severidad mayor). El proveedor es explícito: son trabajo
+  **posterior** y **no** un motivo para repetir la revisión de ese candidato. Se pagan cuando se toque ese módulo,
+  o cuando el autor los priorice.
+
 - [ ] **[v1] El token de CKAN no debe ser legible por JavaScript (endurecimiento)** — hoy el JWT
   vive en `localStorage` y el navegador lo manda en `Authorization`. En `v0` es un trade-off
   aceptado, no un bug. El costo real es XSS: el portal renderiza contenido que viene de CKAN

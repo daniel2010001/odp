@@ -79,7 +79,8 @@
 | --- | --- | --- | --- | --- |
 | T1 | **Diseño** de la sesión del servidor y del anti-CSRF (decisión de forma, no de código) | `odd/tasks/token-hardening.md` § El diseño | parent | `890d184` |
 | T3a | **La primitiva de sesión** (sellado AEAD): la fundación de T3, y va **antes** que T2 porque el proxy y el login la necesitan | `src/lib/server/session.ts` + `session.test.ts` | parent | — |
-| T2 | El servidor del portal habla con el catálogo: `hooks.server.ts` + el proxy de acciones con **allowlist** | `src/hooks.server.ts` (nuevo), `src/routes/api/ckan/[...action]/+server.ts` | parent | — |
+| T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | — |
+| T2b | El **camino vivo**: la ruta del proxy y `hooks.server.ts`, que resuelven la sesión y llaman al núcleo | `src/routes/api/ckan/[...action]/+server.ts` (nuevo), `src/hooks.server.ts` (nuevo) | parent | — |
 | T3 | El login y la sesión: la credencial entra en la sesión del servidor y el store del navegador pasa a guardar **sólo el usuario** | `src/lib/server/ckan-auth.ts`, `src/lib/stores/auth.ts` | parent | — |
 | T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
 | T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
@@ -153,3 +154,20 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   terminated abnormally (possibly out of memory)» —de forma intermitente, y también con un solo archivo— salvo que se
   suba el heap explícitamente: con `NODE_OPTIONS=--max-old-space-size=6144` el repo entero pasa (191 archivos, sin
   correcciones). El `pre-commit` corre biome por su cuenta y sólo encontró formato.
+- **L6 (implementación, 2026-10-15): el núcleo del puente, y la allowlist atada al código.** Las acciones se
+  clasificaron por **sitio de llamada** —que es lo que un `grep` de nombres no resuelve—: **24** salen de la capa de
+  cliente (`src/lib/api`, lo único que el navegador ejecuta) y **tres** son sólo del servidor —`api_token_create`,
+  `api_token_revoke`, `api_token_list`—, y ésas quedan **declaradas como prohibidas**: con `api_token_create` en manos
+  del navegador, quien alcanzara el proxy podría **acuñar tokens** de esa cuenta, que es exactamente lo que S1
+  elimina. No hay `+page.server.ts` ni `+layout.server.ts`, y **ningún** módulo del servidor importa la capa de
+  cliente: la separación es limpia. `src/lib/server/ckan-proxy.ts` acepta la acción **por nombre exacto** —`package` no
+  es `package_show`—, devuelve `null` en vez de lanzar cuando no está permitida (la guarda vive en la misma función
+  que arma la URL, así no se puede olvidar) y `upstreamHeaders` **construye** las dos cabeceras que el portal decide
+  en vez de filtrar las del cliente: el `Authorization` del navegador no viaja **por construcción**, que es lo que
+  hace cierto el anti-CSRF del diseño. **13 pruebas**, incluida una que **escanea `src/lib/api`** y falla si el
+  navegador usa una acción que no está en la lista, o si una de tokens se colara. **Falta T2b** —la ruta y
+  `hooks.server.ts`— para que el puente esté vivo.
+- **L7 (deuda de la revisión, 2026-10-15):** la compuerta nativa de T3a (`review-f2582d4570d1e94f`, medium, lentes
+  risk/readability/reliability) **aprobó y quedó reconocida**, con **tres avisos no bloqueantes**: `R1-001` (risk,
+  `session.ts:90-94`), `R2-001` (readability, `:112-117`) y `R3-001` (reliability, `:126-135`, el único WARNING).
+  Viven como deuda en el `BACKLOG` y **no reabren la revisión**: el proveedor lo dice explícito.
