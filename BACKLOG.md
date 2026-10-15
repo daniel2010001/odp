@@ -2959,6 +2959,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
   por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
   medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
   Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
+
 ## v1 — producto usable en producción
 
 - [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
