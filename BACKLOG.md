@@ -270,14 +270,16 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   **El plan está escrito y es el punto de partida de la sesión: `odd/tasks/publication-self-approval.md`** —specs
 >   S1–S5, las tres unidades (la excepción en el store, la lectura que el portal consume y la ficha/cola reflejándola),
 >   el **caso de aceptación en vivo** (`test-pdf`) y los riesgos, incluido el de la cascada.
->   **Estado (2026-10-15): a medias.** El **portal** ya refleja la respuesta del catálogo en la ficha y en la cola
->   (T3; `PublicationDecision.svelte` dejó de decidir cuatro ojos por comparación de ids — ver
->   `odd/tasks/publication-self-approval.md` L6 y L8). El **store** tiene T1+T2 **sin commitear en el working tree** de
->   `odp-docker` —no en `unit/handoff-refresh`, que es una rama de otra unidad—, así que el campo no está en `master`,
->   y la **corrida de aceptación en vivo** (`test-pdf`) **no se hizo**: no exige reiniciar el contenedor (el reloader
->   de Werkzeug corre) y conviene hacerla **desde la ficha del dataset**, no por API, para ejercer las dos mitades.
->   El ítem **no se borra** hasta que el store esté mergeado *y* `test-pdf` quede `approved` con
->   `requested_by` = `approved_by` y el dataset público.
+>   **Estado (2026-10-15): a medias, y con una discrepancia abierta.** El **portal** ya refleja la respuesta del
+>   catálogo en la ficha y en la cola (T3; `PublicationDecision.svelte` dejó de decidir cuatro ojos por comparación de
+>   ids — ver `odd/tasks/publication-self-approval.md` L6, L8 y L9). El **store** ya está commiteado en la rama
+>   `unit/publication-self-approval` de `odp-docker` (`21b1bb7` T1, `c260d99` T2, `5250569` T3), **sin push y sin PR**:
+>   eso lo decide el autor. La **corrida de aceptación se hizo** desde la ficha el 2026-10-15 —sin reiniciar el
+>   contenedor: el reloader de Werkzeug corre— y **ahí está la discrepancia**: de las dos auto-aprobaciones del proxy,
+>   sólo `observatorio-de-movilidad-urbana-cochabamba` quedó **público**; `test-pdf` —cuya fila la sesión del store mide
+>   `approved` con el mismo id en `requested_by`/`approved_by`— **sigue privado** (`403` anónimo sobre `eb8a06b6-…`), lo
+>   que contradice el contrato del store (`approved` cambia `private` en la misma transacción) y el criterio de
+>   aceptación. El ítem **no se borra** hasta reconciliar esa discrepancia y mergear el store.
 >
 > ---
 >
