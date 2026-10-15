@@ -22,7 +22,9 @@
 
 import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
+import type { CkanUser } from "$lib/types/ckan";
 import {
+	buildSession,
 	CKAN_TOKEN_TTL_S,
 	DEV_SESSION_SECRET,
 	openSession,
@@ -54,6 +56,18 @@ function makePayload(overrides: Partial<SessionPayload> = {}): SessionPayload {
 		user: { id: "u-1", name: "ckan_admin", displayName: "Administración del catálogo" },
 		issuedAt: NOW,
 		expiresAt: NOW + CKAN_TOKEN_TTL_S * 1000,
+		...overrides,
+	};
+}
+
+/** El usuario tal como lo devuelve CKAN en el login: `display_name`, no `displayName`. */
+function makeCkanUser(overrides: Partial<CkanUser> = {}): CkanUser {
+	return {
+		id: "u-1",
+		name: "ckan_admin",
+		display_name: "Administración del catálogo",
+		created: "2026-10-01T00:00:00.000000",
+		state: "active",
 		...overrides,
 	};
 }
@@ -156,6 +170,45 @@ describe("la sesión sellada — el costo de la cookie (medido, no estimado)", (
 		// que sobra un orden de magnitud; el tope de abajo no es decorativo: falla si alguien mete el token
 		// crudo o guarda campos que nadie lee.
 		expect(sealed.length).toBeLessThan(1024);
+	});
+});
+
+describe("la sesión que arma el login", () => {
+	it("toma el token, el usuario y los dos instantes: emitida ahora y vence con el TTL del token", () => {
+		const sesion = buildSession("jwt-de-ckan", makeCkanUser(), NOW);
+
+		expect(sesion.token).toBe("jwt-de-ckan");
+		expect(sesion.issuedAt).toBe(NOW);
+		expect(sesion.expiresAt).toBe(NOW + CKAN_TOKEN_TTL_S * 1000);
+	});
+
+	it("traduce el usuario de CKAN al de la sesión: `display_name` viaja como `displayName`", () => {
+		const sesion = buildSession(
+			"jwt",
+			makeCkanUser({ display_name: "Administración del catálogo" }),
+			NOW,
+		);
+
+		expect(sesion.user).toEqual({
+			id: "u-1",
+			name: "ckan_admin",
+			displayName: "Administración del catálogo",
+		});
+	});
+
+	it("un usuario sin nombre visible no inventa uno", () => {
+		// Las dos formas de «sin nombre» que el tipo admite: ausente y vacío. Ninguna inventa un texto.
+		for (const sinNombre of [undefined, ""]) {
+			const sesion = buildSession("jwt", makeCkanUser({ display_name: sinNombre }), NOW);
+
+			expect(sesion.user.displayName).toBeUndefined();
+		}
+	});
+
+	it("lo que arma el login se puede sellar y abrir: el camino del login es el mismo del puente", () => {
+		const sellada = sealSession(buildSession("jwt-de-ckan", makeCkanUser(), NOW), SECRET);
+
+		expect(openSession(sellada, SECRET, NOW)?.token).toBe("jwt-de-ckan");
 	});
 });
 

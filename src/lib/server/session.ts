@@ -30,6 +30,7 @@
 
 import { Buffer } from "node:buffer";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import type { CkanUser } from "$lib/types/ckan";
 
 /** Nombre de la cookie de sesión del portal. */
 export const SESSION_COOKIE_NAME = "odp_session";
@@ -75,6 +76,27 @@ export interface SessionPayload {
 	issuedAt: number;
 	/** Cuándo deja de valer (ms desde epoch). */
 	expiresAt: number;
+}
+
+/**
+ * La sesión que emite el **login**: el token que CKAN acaba de acuñar, el usuario ya traducido y los dos
+ * instantes.
+ *
+ * La traducción del usuario vive acá y no en la ruta porque es donde se puede probar, y porque el nombre del
+ * campo cambia: CKAN devuelve `display_name` y la sesión guarda `displayName`. Un usuario **sin** nombre visible
+ * no inventa uno: el campo queda ausente y quien lo muestre decide su fallback.
+ */
+export function buildSession(token: string, user: CkanUser, now: number): SessionPayload {
+	return {
+		token,
+		user: {
+			id: user.id,
+			name: user.name,
+			...(user.display_name ? { displayName: user.display_name } : {}),
+		},
+		issuedAt: now,
+		expiresAt: now + CKAN_TOKEN_TTL_S * 1000,
+	};
 }
 
 /**

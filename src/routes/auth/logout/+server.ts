@@ -12,9 +12,10 @@ import { dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
 import { revokeToken } from "$lib/server/ckan-auth";
 import { resolveCkanInternalUrl } from "$lib/server/ckan-internal-url";
+import { openSession, resolveSessionSecret, SESSION_COOKIE_NAME } from "$lib/server/session";
 import type { RequestHandler } from "./$types";
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	let token: string | undefined;
 	try {
 		const body = (await request.json()) as { token?: unknown };
@@ -25,10 +26,24 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Cuerpo inválido: no hay token que revocar; se responde éxito igual.
 	}
 
-	if (token) {
+	// El token puede venir del cuerpo —el camino del navegador de hoy— o de la **sesión del servidor**, que es
+	// de donde saldrá cuando los sitios migren al puente. El del cuerpo va primero: es el que el navegador cree
+	// que tiene.
+	const session = openSession(
+		cookies.get(SESSION_COOKIE_NAME),
+		resolveSessionSecret(env.SESSION_SECRET, dev),
+		Date.now(),
+	);
+	const aRevocar = token ?? session?.token;
+
+	if (aRevocar) {
 		const baseUrl = resolveCkanInternalUrl(env.CKAN_INTERNAL_URL, dev);
-		await revokeToken(token, { baseUrl });
+		await revokeToken(aRevocar, { baseUrl });
 	}
+
+	// La sesión del portal se mata **siempre**: aunque la revocación falle —es best-effort—, el navegador no
+	// puede quedarse con una cookie que le sirve para seguir llamando al catálogo a nombre del usuario.
+	cookies.delete(SESSION_COOKIE_NAME, { path: "/" });
 
 	return json({ success: true });
 };

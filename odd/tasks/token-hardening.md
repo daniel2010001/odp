@@ -81,7 +81,7 @@
 | T3a | **La primitiva de sesión** (sellado AEAD): la fundación de T3, y va **antes** que T2 porque el proxy y el login la necesitan | `src/lib/server/session.ts` + `session.test.ts` | parent | — |
 | T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | — |
 | T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | — |
-| T3 | El login y la sesión: la credencial entra en la sesión del servidor y el store del navegador pasa a guardar **sólo el usuario** | `src/lib/server/ckan-auth.ts`, `src/lib/stores/auth.ts` | parent | — |
+| T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | — |
 | T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
 | T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
 | T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
@@ -184,3 +184,21 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   desplegado—, así que una ruta del portal ahí la intercepta el proxy antes de llegar a SvelteKit; el cambio del
   `baseUrl` del cliente es parte de T4; (b) **`hooks.server.ts` se mueve a T4**: hoy **ningún** camino consume
   `event.locals` —la ruta lee la cookie por su cuenta—, así que crearlo ahora sería una superficie sin consumidor.
+- **L9 (implementación, 2026-10-15): el login emite la sesión, y el orden que no se puede invertir.**
+  `buildSession` arma el payload del login —token, usuario ya traducido (`display_name` → `displayName`) y los dos
+  instantes, con el vencimiento espejando el TTL del token— y la ruta de login **sella y setea la cookie**
+  (`httpOnly`, `SameSite=Lax`, `Secure` salvo en desarrollo, donde el portal también se sirve por http). El logout la
+  **mata siempre**, aunque la revocación en CKAN falle —es best-effort—, porque una cookie viva después de un logout
+  seguiría llamando al catálogo a nombre del usuario; y revoca el token que venga en el cuerpo (el camino del
+  navegador de hoy) **o** el de la sesión, el que exista. **La decisión de orden, declarada:** el cuerpo del login
+  **sigue** llevando el token y el store del navegador lo sigue guardando **hasta T4**. Sacarlo antes de migrar los 11
+  sitios al puente rompería el portal entero: el ayuno del store es la **última** pieza de la migración, no la primera.
+  4 pruebas nuevas (19 en el módulo de sesión).
+  **Y trae una obligación de despliegue, declarada:** `SESSION_SECRET` pasa a ser una variable **obligatoria
+  fuera de desarrollo** —`resolveSessionSecret` falla en vez de tener un default, porque una clave por defecto
+  sería una sesión que cualquiera fabrica—, así que el servicio `frontend` del compose **tiene que definirla** o
+  el login responde `500`. **Y su declaración en `.env.example` quedó bloqueada por el arnés**: el autor la autorizó
+  explícitamente, pero la política de seguridad de la herramienta impide escribir ese archivo igual —trata los
+  archivos de entorno como sensibles—, así que la agrega el autor o una sesión sin ese bloqueo. Es una línea, **sin
+  valor**: `SESSION_SECRET=` con el comentario de por qué es obligatoria. Del lado del stack la tiene que definir el
+  servicio `frontend` del compose, en `odp-docker`: sin ella, el login responde `500`.
