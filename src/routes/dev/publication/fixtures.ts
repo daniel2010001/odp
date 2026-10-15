@@ -3,10 +3,8 @@
 // solicitud cambia, estas fixtures dejan de compilar.
 
 import type { PublicationRequest } from "$lib/api/publication";
-import type {
-	PublicationDecisionResult,
-	PublicationQueueItem,
-} from "$lib/components/dataset/PublicationQueue.svelte";
+import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
+import type { PublicationDecisionResult } from "$lib/components/dataset/publication-decision";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
 
 export const ORGANIZACION: CkanOrganization = {
@@ -69,8 +67,13 @@ export const SOLICITANTE = "editor.tecnologia";
 
 /**
  * Id de la **superadministración de la plataforma**: no es quien solicitó ni quien administra la
- * organización dueña. La ficha la mira para mostrar que, por ser superadministración, no decide estas
- * solicitudes: la autoridad la resuelve el catálogo por organización.
+ * organización dueña.
+ *
+ * La hoja lo muestra con el control de decidir **ofrecido**, y eso es fiel al producto: medido el
+ * 2026-10-14, `organization_list_for_user` con el permiso `admin` devuelve **todas** las organizaciones
+ * para un sysadmin —CKAN corta antes del filtro, `ckan/logic/action/get.py:682`—, así que la pregunta
+ * del portal no puede distinguirlo. La frontera sigue siendo el catálogo, que responde su frase propia
+ * si la decisión no correspondía.
  */
 export const SUPERADMIN_ID = "5c6d7e8f-9a0b-4c1d-8e2f-3a4b5c6d7e8f";
 

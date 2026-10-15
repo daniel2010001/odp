@@ -20,10 +20,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanUser } from "$lib/types/ckan";
-import PublicationQueue, {
-	type PublicationDecisionResult,
-	type PublicationQueueItem,
-} from "./PublicationQueue.svelte";
+import PublicationQueue, { type PublicationQueueItem } from "./PublicationQueue.svelte";
+import type { PublicationDecisionResult } from "./publication-decision";
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
@@ -629,6 +627,28 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		expect(within(fila).queryByRole("alert")).toBeNull();
 		expect(ondecided).not.toHaveBeenCalled();
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+	});
+
+	it("empezar una decisión limpia el anuncio anterior", async () => {
+		// El anuncio afirma un desenlace. Si una segunda decisión arranca, la cola **no** puede seguir
+		// afirmando el de la anterior mientras la nueva está en vuelo: es la conducta que la extracción del
+		// cuerpo de decidir perdió en silencio y que la revisión nativa del PR #67 encontró (`R3-1`). Sin
+		// esta prueba, el cableado se puede volver a romper sin que nadie se entere.
+		const { decide, readDataset } = renderQueue();
+		decide.mockResolvedValueOnce(makeItem({ status: "approved" }));
+		readDataset.mockResolvedValue(makeDataset({ private: false }));
+
+		const primera = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(primera).getByRole("button", { name: APPROVE_LABEL }));
+		expect(await screen.findByRole("status")).toHaveTextContent(APPROVED_NOTE);
+
+		// La segunda queda en vuelo: la promesa no se resuelve nunca.
+		decide.mockReturnValue(new Promise(() => {}));
+		const segunda = await rowFor("Presupuesto 2026");
+		await fireEvent.click(within(segunda).getByRole("button", { name: APPROVE_LABEL }));
+
+		expect(within(segunda).getByRole("button", { name: /aprobando/i })).toBeDisabled();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 
 	it("una fila a la vez: mientras una decide, las otras no ofrecen la suya", async () => {

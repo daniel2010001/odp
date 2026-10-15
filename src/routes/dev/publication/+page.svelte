@@ -63,9 +63,9 @@ import { page } from "$app/stores";
 import type { PublicationRequest } from "$lib/api/publication";
 import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
 import PublicationQueue, {
-	type PublicationDecisionResult,
 	type PublicationQueueItem,
 } from "$lib/components/dataset/PublicationQueue.svelte";
+import type { PublicationDecisionResult } from "$lib/components/dataset/publication-decision";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";

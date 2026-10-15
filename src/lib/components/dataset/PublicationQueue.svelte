@@ -1,6 +1,7 @@
 <script module lang="ts">
-import type { PublicationRequest, PublicationRequestStatus } from "$lib/api/publication";
+import type { PublicationRequestStatus } from "$lib/api/publication";
 import type { CkanPackage } from "$lib/types/ckan";
+import type { DecidePublicationRequest, PublicationDecisionResult } from "./publication-decision";
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
 // Lo que el portal necesita mostrar de una solicitud: de qué dataset es, quién la pidió y cuándo.
@@ -26,17 +27,10 @@ export interface PublicationQueueItem {
 }
 
 /**
- * La respuesta de `publication_request_decide`: **sólo** su fila `publication_requests`, el contrato
- * uniforme de las cinco acciones. No trae el dataset; la confirmación de una aprobación viene de
- * releer el **valor almacenado** (`readDataset`), y un rechazo confirma con el estado de su propia
- * fila.
- *
- * Es la **fila del catálogo** (`PublicationRequest`), no la vista de la cola: `PublicationQueueItem`
- * agrega los campos ya resueltos para mostrar (título del dataset y de la organización, nombres
- * visibles) que la respuesta no trae. Un llamador que hable la fila —la ficha del dataset, o la capa de
- * API— puede montar el mismo control sin fabricar los campos de la vista.
+ * La respuesta de `publication_request_decide` y el contrato de la llamada viven en
+ * `./publication-decision`, con el control que los usa: la cola es un **consumidor** de ese contrato, no
+ * su dueño. La revisión nativa del PR #67 lo señaló (`R2-type-ownership-inverted`).
  */
-export type PublicationDecisionResult = PublicationRequest;
 </script>
 
 <script lang="ts">
@@ -70,16 +64,6 @@ import PublicationDecision from "./PublicationDecision.svelte";
 export type ListPublicationRequests = (
 	status?: PublicationRequestStatus,
 ) => Promise<PublicationQueueItem[]>;
-
-/**
- * Registra la decisión sobre una solicitud y devuelve **sólo** su fila `publication_requests`. La
- * aprobación se confirma releyendo el valor almacenado; el rechazo, con el estado de la fila.
- */
-export type DecidePublicationRequest = (
-	requestId: string,
-	approve: boolean,
-	comments?: string,
-) => Promise<PublicationDecisionResult>;
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
@@ -280,9 +264,15 @@ function outcomeLine(item: PublicationQueueItem): string | null {
 		{readDataset}
 		currentUser={viewer}
 		disabled={deciding !== null && deciding.id !== item.id}
-		onpendingchange={(enVuelo) => (deciding = enVuelo)}
+		onpendingchange={(enVuelo) => {
+			deciding = enVuelo;
+			// Empezar una decisión limpia el anuncio anterior: mientras la nueva está en vuelo, la cola no
+			// sigue afirmando el desenlace de la anterior. Es lo que la cola hacía antes de que el cuerpo de
+			// decidir se mudara al componente; la revisión nativa del PR #67 lo encontró perdido (`R3-1`),
+			// porque la asignación había quedado **después** de la confirmación, donde ya no servía.
+			if (enVuelo) announcement = null;
+		}}
 		ondecided={(respuesta) => {
-			announcement = null;
 			sacarDeLaCola(
 				item,
 				respuesta,

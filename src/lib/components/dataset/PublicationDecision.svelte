@@ -20,17 +20,10 @@
 // decisión está en vuelo: eso es asunto de la cola, no de este componente.
 import type { CkanPackage } from "$lib/types/ckan";
 import type {
+	DecidableRequest,
 	DecidePublicationRequest,
 	PublicationDecisionResult,
-} from "./PublicationQueue.svelte";
-
-/**
- * Lo mínimo que este control necesita de una solicitud: **su id** —para el `for`/`id` del comentario—
- * y **quién la creó**, que es la comparación de cuatro ojos. El resto de la fila no se usa, y por eso
- * la cola (`PublicationQueueItem`) y la ficha (`PublicationRequest`, la fila cruda del catálogo)
- * pueden montar el mismo control sin que ninguno tenga que fabricar los campos del otro.
- */
-export type DecidableRequest = { id: string; requested_by?: string | null };
+} from "./publication-decision";
 </script>
 
 <script lang="ts">

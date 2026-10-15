@@ -29,7 +29,7 @@ import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import { ACCION_BASE } from "$lib/components/dataset/action-class";
 import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
-import type { PublicationDecisionResult } from "$lib/components/dataset/PublicationQueue.svelte";
+import type { PublicationDecisionResult } from "$lib/components/dataset/publication-decision";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
@@ -318,6 +318,13 @@ async function loadDataset() {
 		await loadEditPermission();
 		// La pregunta de administración va **antes** de la solicitud: cuando la tarjeta se dibuja, ya tiene
 		// respuesta, así que «no se ofrece decidir» nunca significa «todavía no se sabe».
+		//
+		// **El precio, declarado**: es una llamada por vista de dataset, incluso cuando no hay ninguna
+		// solicitud que decidir. Se paga a propósito —el orden es lo que vuelve determinista la respuesta— y
+		// es lo que señaló la revisión nativa del PR #67 (`R4-unconditional-permission-roundtrip`): una
+		// deuda **declarada**, no un descuido. Ahorrarla exige garantizar el orden por otra vía —resolver la
+		// solicitud primero y **no** dibujar la tarjeta hasta tener las dos respuestas—, y eso hay que
+		// medirlo antes de tocarlo.
 		await loadDecidePermission(ownerOrgIdOf(dataset));
 		await loadCurrentRequest();
 	}
