@@ -162,10 +162,29 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > playground `/dev/…`** para que la revise (regla 8: el agente propone algo concreto y verificable, el autor lo mira en
 > vivo): **no se promueve hasta que la apruebe**, y si no le gusta, el camino queda en la (a).
 >
-> - [ ] **[v0]** **El playground de la variante (b)**: los controles de **aprobar/rechazar** en la **ficha del dataset**,
->   para que el autor los vea en vivo y decida si le gusta. **Pendiente para la próxima sesión** (decisión del autor,
->   2026-10-10: «hagámoslo, pero terminemos esto primero»). La (a) —el enlace desde la cola— **ya está entregada** y
->   mergeada.
+> - **[x] **[v0]** **El playground de la variante (b)** — **PROMOVIDA (2026-10-14)**: el autor la revisó en la hoja,
+>   la aprobó y se llevó a la **ficha real** (ver «Historial de cierre»). El interruptor de la hoja —que comparaba
+>   «en la cola» con «también en la ficha»— se **eliminó**: ya no hay alternativa que elegir, y la hoja pasó a
+>   espejar lo promovido.
+>
+> **Y queda abierto, pedido por el autor en la misma sesión (2026-10-14):**
+>
+> - [ ] **TODO (autor): revisar la POSICIÓN de las solicitudes (localización).** Dónde viven las superficies de la
+>   solicitud dentro de la ficha. Hoy se decidió **promover en la posición actual**: la tarjeta decide donde ya
+>   estaba su estado —**segunda de cuatro** en la columna principal, entre «Sobre este dataset» y «Recursos»—, y el
+>   costo medido de esa posición es que el administrador tiene que bajar para decidir (no es nuevo: ya bajaba para
+>   *leer* el estado). Las alternativas que se descartaron por ahora, con su motivo: la **cabecera** pondría los
+>   controles del aprobador junto a los del solicitante, y contra la decisión del autor del 2026-10-08 de que la
+>   solicitud es **estado**, no acción; la **columna derecha** es de metadatos y en móvil cae al final. **Tier: lo
+>   define el autor.**
+>
+> **Medido en la misma sesión, y con consecuencia de diseño (2026-10-14):** la pregunta que el portal hace para
+> ofrecer decidir —`organization_list_for_user` con `permission: "admin"`— **no discrimina** para la
+> superadministración de la plataforma: CKAN la corta antes (`ckan/logic/action/get.py:682`, `if sysadmin`) y devuelve
+> **todas** las organizaciones con `capacity: "admin"`, así que la ficha **le ofrece decidir**. La frontera no se
+> movió —el catálogo sigue siendo quien decide, y responde su `403` con frase propia—, pero **si el autor no quiere
+> que la superadministración de la plataforma decida desde la ficha, es una decisión de producto que hay que tomar
+> explícitamente**: la pregunta del portal no puede distinguirlo.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
@@ -3393,6 +3412,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 | `ckan.auth.create_user_via_api=false` | **Aplicado** — agregado a `ckan-docker/.env` y `.env.example` (aplicado por el usuario + verificado). Nota: esto bloquea la creación de usuarios por API (ver ítem `v1+` de usuarios). |
 | Plugin `expire_api_token` | **Aplicado** — agregado a `CKAN__PLUGINS` + `expire_api_token.default_lifetime=86400` (1 día) en `.env`/`.env.example` (aplicado por el usuario + verificado). **Consecuencia medida (2026-09-13):** el plugin hace **obligatorios** `expires_in` y `unit` en `api_token_create`; el login del portal no los mandaba, así que CKAN respondía **409** y **ningún login funcionaba**. Arreglado en `e4b7ed9` con `TOKEN_TTL = { expires_in: 1, unit: 86400 }`, que espeja esa política. |
 | Versionar `ckan-docker/` | **Resuelto** — trackeado dentro de `odp-docker` (decisión "inline"); `.env` queda ignorado, se versionan `.env.example`, Dockerfiles y `ckanext-umss`. |
+| **Decidir la solicitud desde la ficha del dataset (la variante (b))** | **Entregada y aprobada (2026-10-14).** El autor la revisó en la hoja `/dev/publication` y la aprobó. La tarjeta «Solicitud de publicación» de la ficha real decide cuando quien mira **administra la organización dueña**, la solicitud está pendiente y no es suya. La pregunta al catálogo es la que la decisión exige —`organization_list_for_user` con `permission: "admin"`, medida en el CKAN que corre (`ckan/authz.py:251` y `:292`) y **no** la de editar, que incluye a los editores—, con tres estados y fail closed. Las reglas de decidir tienen **un solo dueño**: `PublicationDecision.svelte`, extraído de `PublicationQueue` y montado por los dos (la suite de la cola, 36/36, prueba que la extracción no cambió comportamiento). La frase del estado se movió a `src/lib/copy/publication.ts` para que la hoja no pueda mostrar una cadena distinta de la que el portal renderiza, y el interruptor «en la cola / también en la ficha» **se eliminó**: ya no hay alternativa que elegir. Verificado: API 19/19, cola 36/36, hoja 6/6, ficha 58/58, suite completa **63 archivos / 1043 tests**, `pnpm check` **0 errores** (4 warnings preexistentes, ninguno en archivos del diff); **falsificación medida** de la compuerta de permiso (2 rojos exactos —`may_not` y `unknown`—, restauración con md5 verificado) y verificador independiente. **Sin commitear al cerrar la sesión: el commit es decisión del autor.** |
 
 ## Deuda de revisión (RDD)
 

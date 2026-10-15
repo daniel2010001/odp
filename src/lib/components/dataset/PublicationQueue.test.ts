@@ -20,7 +20,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage, CkanUser } from "$lib/types/ckan";
-import PublicationQueue, { type PublicationQueueItem } from "./PublicationQueue.svelte";
+import PublicationQueue, {
+	type PublicationDecisionResult,
+	type PublicationQueueItem,
+} from "./PublicationQueue.svelte";
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
@@ -61,7 +64,12 @@ type QueueProps = {
 	list: (status?: PublicationQueueItem["status"]) => Promise<PublicationQueueItem[]>;
 	decide: (requestId: string, approve: boolean, comments?: string) => Promise<DecisionResult>;
 	readDataset: (id: string) => Promise<CkanPackage>;
-	ondecided?: (item: DecisionResult) => void;
+	/**
+	 * Lo que la cola reporta al confirmar una decisión: la **fila del catálogo**
+	 * (`PublicationDecisionResult`), no la vista de la lista. El parámetro es el que la prop declara, y por
+	 * eso el manejador no puede pedir el tipo más angosto (`PublicationQueueItem`) que usa la lista.
+	 */
+	ondecided?: (item: PublicationDecisionResult) => void;
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. */
 	currentUser?: string | null;
 	/** Reloj inyectable: fija la antigüedad que muestra cada fila. */
@@ -621,6 +629,25 @@ describe("PublicationQueue — qué reporta después de decidir", () => {
 		expect(within(fila).queryByRole("alert")).toBeNull();
 		expect(ondecided).not.toHaveBeenCalled();
 		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
+	});
+
+	it("una fila a la vez: mientras una decide, las otras no ofrecen la suya", async () => {
+		const { decide } = renderQueue();
+		// La decisión queda **en vuelo**: la promesa no se resuelve nunca.
+		decide.mockReturnValue(new Promise(() => {}));
+
+		const primera = await rowFor("Matrícula 2026");
+		const segunda = await rowFor("Presupuesto 2026");
+
+		await fireEvent.click(within(primera).getByRole("button", { name: APPROVE_LABEL }));
+
+		// La que decidió reporta que está ocupada…
+		expect(within(primera).getByRole("button", { name: /aprobando/i })).toBeDisabled();
+		// …y la otra tampoco acepta una segunda decisión en paralelo: es el candado de la cola, que
+		// desde el 2026-10-14 vive en el cableado del componente de decidir (`disabled`), no dentro de él.
+		expect(within(segunda).getByRole("button", { name: APPROVE_LABEL })).toBeDisabled();
+		expect(within(segunda).getByRole("button", { name: REJECT_LABEL })).toBeDisabled();
+		expect(decide).toHaveBeenCalledTimes(1);
 	});
 });
 

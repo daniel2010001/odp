@@ -1,5 +1,5 @@
 <script module lang="ts">
-import type { PublicationRequestStatus } from "$lib/api/publication";
+import type { PublicationRequest, PublicationRequestStatus } from "$lib/api/publication";
 import type { CkanPackage } from "$lib/types/ckan";
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
@@ -30,48 +30,41 @@ export interface PublicationQueueItem {
  * uniforme de las cinco acciones. No trae el dataset; la confirmación de una aprobación viene de
  * releer el **valor almacenado** (`readDataset`), y un rechazo confirma con el estado de su propia
  * fila.
+ *
+ * Es la **fila del catálogo** (`PublicationRequest`), no la vista de la cola: `PublicationQueueItem`
+ * agrega los campos ya resueltos para mostrar (título del dataset y de la organización, nombres
+ * visibles) que la respuesta no trae. Un llamador que hable la fila —la ficha del dataset, o la capa de
+ * API— puede montar el mismo control sin fabricar los campos de la vista.
  */
-export type PublicationDecisionResult = PublicationQueueItem;
+export type PublicationDecisionResult = PublicationRequest;
 </script>
 
 <script lang="ts">
 // La cola del **administrador de la organización**: las solicitudes pendientes de las organizaciones
 // donde administra, con aprobar, rechazar y un comentario.
 //
-// Dos reglas de la cola:
-//  · **Cuatro ojos**: nadie aprueba una solicitud que creó. Una fila cuyo `requested_by` —el **id**
-//    de usuario— es quien mira se muestra como **no decidible** — sin aprobar ni rechazar — en vez de
-//    ofrecer un botón que el catálogo va a rechazar. El nombre visible viaja aparte
-//    (`requested_by_name`) y es lo único que la fila muestra: el id nunca se renderiza.
-//  · **Rechazar exige un motivo**: el control se niega a enviar un rechazo sin comentario y lo
-//    explica, en vez de dejar que el catálogo lo rechace. Aprobar con comentario sigue siendo
-//    opcional.
+// Las reglas de **decidir** —cuatro ojos, motivo obligatorio para rechazar, y la confirmación contra
+// el valor **almacenado**— no viven acá: son de `PublicationDecision.svelte`, el mismo control que la
+// ficha del dataset monta cuando la variante (b) está encendida. Una sola copia, dos lugares.
 //
-// Las dos llamadas entran **inyectadas** (`list`, `decide`): las acciones del catálogo todavía no
-// existen en la capa de API del portal. Quién puede decidir lo decide el catálogo; acá sólo se lee su
-// respuesta.
-//
-// Regla de honestidad: la fila sale de la cola **sólo** cuando el catálogo confirmó la decisión, y
-// las tres situaciones se mantienen separadas. *La acción falló* (`403` o error). *La acción
-// concedió y la confirmación no se pudo establecer*: aprobar confirma contra el valor **almacenado**
-// —la fila no trae dataset—, así que una relectura que sigue privada o que falla es esa confirmación
-// que no se pudo establecer, no un fallo de la acción. *Confirmada*: una aprobación sale de la cola
-// sólo si la relectura ve el dataset ya público; un rechazo no toca la visibilidad y sale con el
-// estado que su propia fila devolvió, sin relectura.
+// Lo que sí es de la cola:
+//  · **Las llamadas entran inyectadas** (`list`, `decide`): quién puede decidir lo resuelve el
+//    catálogo; acá sólo se lee su respuesta.
+//  · **Una fila a la vez**: mientras una decisión está en vuelo, las otras filas no ofrecen la suya.
+//  · **La fila sale de la cola sólo cuando el catálogo confirmó** la decisión, y el anuncio nombra el
+//    desenlace.
 import {
 	CheckCircle2,
 	ChevronDown,
 	CircleAlert,
 	LoaderCircle,
 	RefreshCw,
-	ShieldAlert,
-	XCircle,
 } from "@lucide/svelte";
+import { technicalDetail } from "$lib/api/failure";
 import Button from "$lib/components/ui/button/button.svelte";
 import { currentUser as currentUserStore } from "$lib/stores/auth";
-import { technicalDetail } from "$lib/api/failure";
-import { CkanApiError } from "$lib/types/api";
 import { cn, formatDate, formatRelativeAge } from "$lib/utils";
+import PublicationDecision from "./PublicationDecision.svelte";
 
 /** Lee las solicitudes de la cola; sin argumento, todas las que el catálogo autorice. */
 export type ListPublicationRequests = (
@@ -90,18 +83,6 @@ export type DecidePublicationRequest = (
 
 const LOADING = "Cargando solicitudes…";
 const EMPTY = "No hay solicitudes pendientes de revisión.";
-const COMMENT_LABEL = "Comentario (obligatorio para rechazar)";
-const COMMENT_PLACEHOLDER = "Escriba el motivo del rechazo. Es opcional al aprobar.";
-const APPROVE_LABEL = "Aprobar";
-const REJECT_LABEL = "Rechazar";
-const SELF_APPROVAL = "No puede aprobar su propia solicitud.";
-const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
-const REFUSED_DECIDE =
-	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
-const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
-// La frase que el usuario lee cuando el fallo al decidir no es de autorización. Es **nuestra**: el dato
-// técnico va detrás, como dato secundario.
-const DECIDE_FAILED = "No se pudo registrar la decisión.";
 // La presentación de la cola cuando se pide plegada y por secciones. El disparador del plegado lleva
 // el título del dataset en su nombre accesible —dos filas nunca comparten nombre— y un **nombre
 // estable**: el estado lo lleva `aria-expanded` y el chevron, no el texto. Un nombre que cambia con el
@@ -145,7 +126,7 @@ let {
 	readDataset: (id: string) => Promise<CkanPackage>;
 	/** Quién está mirando la cola; su propia solicitud no es decidible por él. Default: la sesión. */
 	currentUser?: string | null;
-	ondecided?: (item: PublicationQueueItem) => void;
+	ondecided?: (item: PublicationDecisionResult) => void;
 	/**
 	 * Reloj inyectable: fija la antigüedad que muestra cada fila. Por defecto, el momento de montar la
 	 * cola; la hoja de revisión lo fija para que el ejemplo no dependa de cuándo se mire.
@@ -166,13 +147,6 @@ let {
 	expansion?: "todas" | "primera";
 } = $props();
 
-type Outcome = {
-	kind: "refused" | "unconfirmed" | "error" | "reason-required";
-	message: string;
-	/** El dato técnico que sigue a la frase; `null` cuando no hay ninguno que citar. */
-	technical?: string | null;
-};
-
 let items = $state<PublicationQueueItem[]>([]);
 let loading = $state(true);
 // El fallo tal como se observó, **envuelto en un objeto**: el estado de fallo no puede depender de la
@@ -180,10 +154,11 @@ let loading = $state(true);
 // disfrazaría de cola vacía, que es exactamente lo que este componente no hace. El dato técnico que se
 // muestra sale de `technicalDetail`, que decide qué se puede citar.
 let listError = $state<{ cause: unknown } | null>(null);
-/** La decisión en vuelo, con su fila y su sentido; mientras haya una, ninguna fila acepta otra. */
+/**
+ * La decisión en vuelo, con su fila y su sentido; mientras haya una, ninguna fila acepta otra. El
+ * control en vuelo es del componente de decidir: acá sólo se lo registra para bloquear a sus hermanas.
+ */
 let deciding = $state<{ id: string; approve: boolean } | null>(null);
-let outcomes = $state<Record<string, Outcome | undefined>>({});
-let comments = $state<Record<string, string>>({});
 let announcement = $state<string | null>(null);
 
 // La identidad de quien mira: la inyectada, o la de la sesión. La comparación de cuatro ojos es por
@@ -262,69 +237,6 @@ $effect(() => {
 	void load();
 });
 
-async function decideOn(item: PublicationQueueItem, approve: boolean) {
-	// Cuatro ojos: la propia solicitud no se decide, ni siquiera si el botón llegara a existir.
-	if (deciding || isOwn(item)) return;
-
-	const comentario = comments[item.id]?.trim();
-	if (!approve && !comentario) {
-		// Rechazar exige un motivo: se dice acá y no se envía la decisión al catálogo.
-		outcomes[item.id] = { kind: "reason-required", message: REASON_REQUIRED };
-		return;
-	}
-
-	deciding = { id: item.id, approve };
-	outcomes[item.id] = undefined;
-	announcement = null;
-
-	try {
-		const respuesta = await decide(item.id, approve, comentario || undefined);
-
-		if (!approve) {
-			// Rechazar no toca la visibilidad: su propia fila confirmada alcanza, sin relectura. Un `200`
-			// que la deja pendiente no concedió la decisión.
-			if (respuesta?.status === "rejected") {
-				sacarDeLaCola(item, respuesta, REJECTED_NOTE);
-			} else {
-				outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
-			}
-			return;
-		}
-
-		// Aprobar se confirma sólo contra el valor **almacenado**: la fila no trae el dataset, así que un
-		// `200` no es la concesión. Una relectura que falla o que sigue privada es la confirmación que no
-		// se pudo establecer, no un fallo de la acción.
-		const datasetId = respuesta?.dataset_id;
-		if (!datasetId) {
-			outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
-			return;
-		}
-		let almacenado: CkanPackage;
-		try {
-			almacenado = await readDataset(datasetId);
-		} catch {
-			outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
-			return;
-		}
-		if (almacenado.private === false) {
-			sacarDeLaCola(item, respuesta, APPROVED_NOTE);
-		} else {
-			outcomes[item.id] = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
-		}
-	} catch (err) {
-		outcomes[item.id] =
-			err instanceof CkanApiError && err.status === 403
-				? { kind: "refused", message: REFUSED_DECIDE }
-				: {
-						kind: "error",
-						message: DECIDE_FAILED,
-						technical: technicalDetail(err),
-					};
-	} finally {
-		deciding = null;
-	}
-}
-
 /** Confirma una fila: sale de la cola y el anuncio nombra el desenlace. */
 function sacarDeLaCola(
 	item: PublicationQueueItem,
@@ -356,80 +268,28 @@ function outcomeLine(item: PublicationQueueItem): string | null {
 	}
 }
 
-function setComment(id: string, value: string) {
-	comments[id] = value;
-}
 </script>
 
 {#snippet cuerpoPendiente(item: PublicationQueueItem)}
-	{#if isOwn(item)}
-		<div
-			role="note"
-			class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-		>
-			<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
-			<span>{SELF_APPROVAL}</span>
-		</div>
-	{:else}
-		<label
-			for={`comentario-${item.id}`}
-			class="mt-3 block text-xs font-medium text-muted-foreground"
-		>
-			{COMMENT_LABEL}
-		</label>
-		<textarea
-			id={`comentario-${item.id}`}
-			rows="2"
-			placeholder={COMMENT_PLACEHOLDER}
-			value={comments[item.id] ?? ""}
-			oninput={(event) => setComment(item.id, event.currentTarget.value)}
-			class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-		></textarea>
-
-		{#if outcomes[item.id]}
-			<div
-				role="alert"
-				class={cn(
-					"mt-2 flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
-					outcomes[item.id]?.kind === "refused"
-						? "border-destructive/20 bg-destructive/10 text-destructive"
-						: "border-border bg-muted/40 text-muted-foreground",
-				)}
-			>
-				<CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-				<span>{outcomes[item.id]?.message}</span>
-				{#if outcomes[item.id]?.technical}
-					<span class="font-mono text-xs">{outcomes[item.id]?.technical}</span>
-				{/if}
-			</div>
-		{/if}
-
-		<div class="mt-3 flex flex-wrap gap-2">
-			<Button size="sm" onclick={() => void decideOn(item, true)} disabled={deciding !== null}>
-				{#if deciding?.id === item.id && deciding.approve}
-					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-					Aprobando…
-				{:else}
-					<CheckCircle2 class="size-4" aria-hidden="true" />
-					{APPROVE_LABEL}
-				{/if}
-			</Button>
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => void decideOn(item, false)}
-				disabled={deciding !== null}
-			>
-				{#if deciding?.id === item.id && !deciding.approve}
-					<LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
-					Rechazando…
-				{:else}
-					<XCircle class="size-4" aria-hidden="true" />
-					{REJECT_LABEL}
-				{/if}
-			</Button>
-		</div>
-	{/if}
+	<!-- Las reglas de decidir son del componente: cuatro ojos, motivo obligatorio para rechazar y la
+	     confirmación contra el valor almacenado. La cola sólo aporta su candado —una fila a la vez— y
+	     lo que hace con una decisión confirmada: sacar la fila y anunciar el desenlace. -->
+	<PublicationDecision
+		item={item}
+		{decide}
+		{readDataset}
+		currentUser={viewer}
+		disabled={deciding !== null && deciding.id !== item.id}
+		onpendingchange={(enVuelo) => (deciding = enVuelo)}
+		ondecided={(respuesta) => {
+			announcement = null;
+			sacarDeLaCola(
+				item,
+				respuesta,
+				respuesta.status === "approved" ? APPROVED_NOTE : REJECTED_NOTE,
+			);
+		}}
+	/>
 {/snippet}
 
 {#snippet fila(item: PublicationQueueItem)}

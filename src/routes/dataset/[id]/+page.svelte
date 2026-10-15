@@ -28,12 +28,15 @@ import {
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import { ACCION_BASE } from "$lib/components/dataset/action-class";
+import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
+import type { PublicationDecisionResult } from "$lib/components/dataset/PublicationQueue.svelte";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { estadoDeLaSolicitud } from "$lib/copy/publication";
 import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -85,6 +88,14 @@ let expelled = $state(false);
 // Ids donde el usuario puede editar datasets (bulk). Fail closed: arranca vacío y sólo `known` lo llena.
 let orgsEditables = $state<string[]>([]);
 
+/**
+ * ¿Administra quien mira la organización dueña del dataset? Es la pregunta que el catálogo exige para
+ * **decidir** una solicitud —`permission: "admin"`—, distinta de la de editar, que incluye a los
+ * editores. Falla cerrado y arranca en `false`: `may_not`, `unknown` y «todavía no se preguntó» se
+ * comportan igual —la tarjeta no ofrece decidir— y la cola sigue siendo el camino de quien administra.
+ */
+let puedeDecidirSolicitud = $state(false);
+
 // ─── ID from URL ────────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
 
@@ -94,14 +105,44 @@ const datasetId = $derived($page.params.id);
 // token se lee en cada llamada (`apiKey` es una función), así que construir un cliente por llamada no
 // compraría nada. Las cuatro acciones existen en la capa de API desde `B1`; los controles las reciben
 // inyectadas porque no importan la API —la página las cablea—, no porque falten del lado del portal.
-const publicationApi = createPublicationApi(
-	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
-);
+const publicationClient = createCkanClient({
+	baseUrl: env.CKAN_URL,
+	apiKey: () => get(auth).token,
+});
+const publicationApi = createPublicationApi(publicationClient);
+
+/**
+ * La relectura con la que se **confirma** una aprobación: el mismo `package_show` con el que esta página
+ * carga el dataset, sobre el valor **almacenado** —no el que la ficha tiene en memoria—. Es lo que
+ * distingue «el catálogo concedió» de «el catálogo contestó 200».
+ */
+const readStoredDataset = (id: string) => createDatasetApi(publicationClient).show(id);
 
 /** El camino del editor: pedir la publicación de un dataset privado, y retirar la propia solicitud. */
 const solicitar = (datasetId: string, comments?: string) =>
 	publicationApi.request(datasetId, comments);
 const cancelar = (requestId: string) => publicationApi.cancel(requestId);
+
+/** Decide una solicitud: lo que llama el control de la tarjeta cuando quien administra la decide. */
+const decidir = (requestId: string, approve: boolean, comments?: string) =>
+	publicationApi.decide(requestId, approve, comments);
+
+/**
+ * Qué hace la ficha con una decisión **confirmada**: la solicitud queda en el estado que confirmó el
+ * catálogo —con quién la decidió y el motivo del rechazo, si lo hubo— y, si la aprobación concedió, el
+ * dataset ya es público. La visibilidad no se deduce de la respuesta: el control la confirmó releyendo
+ * el valor **almacenado**.
+ */
+function reflejarDecision(respuesta: PublicationDecisionResult): void {
+	if (!solicitudVigente) return;
+	solicitudVigente = {
+		...solicitudVigente,
+		status: respuesta.status,
+		comments: respuesta.comments ?? solicitudVigente.comments,
+		approved_by_name: respuesta.approved_by_name ?? solicitudVigente.approved_by_name,
+	};
+	if (respuesta.status === "approved" && dataset) dataset = { ...dataset, private: false };
+}
 
 // La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título; dos o
 // más van en la fila de las insignias. El reparto depende de cuántas acciones hay.
@@ -158,45 +199,9 @@ async function loadCurrentRequest() {
 	}
 }
 
-/**
- * La oración que resume el estado de la solicitud, para la tarjeta de la ficha.
- *
- * El vocabulario es el de la tabla, no el de esta página, y por eso la frase se arma con un `switch`
- * **exhaustivo**: si la tabla gana un estado, esto no compila hasta que se lo nombre. Es la misma forma
- * que usa el módulo de fallos, y evita que un estado nuevo se muestre como «desconocido» sin que nadie
- * se entere.
- */
-function estadoDeLaSolicitud(solicitud: PublicationRequest): string {
-	switch (solicitud.status) {
-		case "pending":
-			return solicitud.requested_by_name
-				? `Pendiente de revisión, pedida por ${solicitud.requested_by_name}.`
-				: "Pendiente de revisión.";
-		case "approved":
-			return solicitud.approved_by_name
-				? `Publicada, aprobada por ${solicitud.approved_by_name}.`
-				: "Publicada.";
-		case "rejected": {
-			const quien = solicitud.approved_by_name
-				? `Rechazada por ${solicitud.approved_by_name}.`
-				: "Rechazada.";
-			// El **motivo** vive acá desde el 2026-10-08: el hero dejó de dibujar el estado (es una insignia)
-			// y la tarjeta es el lugar donde se explica. Sin esto, el motivo que el aprobador escribió no
-			// aparecería en ninguna parte de la página.
-			const motivo = solicitud.comments?.trim();
-			return motivo ? `${quien} Motivo: ${motivo}` : quien;
-		}
-		case "cancelled":
-			return "Retirada por quien la pidió.";
-		case "annulled":
-			return "Anulada: la solicitud dejó de estar vigente.";
-		default: {
-			const exhaustivo: never = solicitud.status;
-			void exhaustivo;
-			return "Estado desconocido.";
-		}
-	}
-}
+// La oración del estado de la solicitud vive en `$lib/copy/publication.ts`: la hoja de revisión
+// `/dev/publication` muestra la misma tarjeta para decidir dónde va el control de decidir, y tiene que
+// renderizar **esta** frase, no una copia que puede quedar vieja.
 
 /**
  * La insignia del estado de la solicitud, para la fila de insignias del hero: **una** por estado y
@@ -311,7 +316,28 @@ async function loadDataset() {
 	// tumbar el dataset que sí cargó, y por eso ninguna de las dos propaga.
 	if (dataset) {
 		await loadEditPermission();
+		// La pregunta de administración va **antes** de la solicitud: cuando la tarjeta se dibuja, ya tiene
+		// respuesta, así que «no se ofrece decidir» nunca significa «todavía no se sabe».
+		await loadDecidePermission(ownerOrgIdOf(dataset));
 		await loadCurrentRequest();
+	}
+}
+
+/**
+ * La pregunta de administración, en su **propia** llamada y con su **propio** catch: un fallo acá no
+ * puede tumbar la ficha que sí cargó. `may` es la única respuesta que ofrece el control en la tarjeta.
+ */
+async function loadDecidePermission(dueno: string) {
+	if (!dueno) {
+		puedeDecidirSolicitud = false;
+		return;
+	}
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+		puedeDecidirSolicitud =
+			(await createOrganizationApi(client).canAdministerOrganization(dueno)) === "may";
+	} catch {
+		puedeDecidirSolicitud = false;
 	}
 }
 
@@ -773,9 +799,12 @@ async function handleCopyLink() {
 					</Card>
 
 					<!-- La tarjeta del estado de la solicitud, **después de la información textual**.
-					     Muestra en qué está y **no** trae el formulario de decidir: decidir es el trabajo de la
-					     page de solicitudes, no un accesorio de la ficha. La acción, cuando le corresponde a
-					     quien mira, vive en el hero junto a sus hermanas. -->
+					     Muestra en qué está y, desde el 2026-10-14, también **deja decidirla** —cuando quien mira
+					     administra la organización dueña, la solicitud está pendiente y no es suya—: la gobernanza
+					     pide revisar **y** decidir, y el dataset está privado, así que no está en el catálogo y el
+					     revisor no tiene otro camino hasta él. El control es el **mismo** de la cola
+					     (`PublicationDecision`), así que las reglas no se duplican en ningún lado. La acción de
+					     **pedir** o cancelar sigue en el hero, que es la del solicitante. -->
 					{#if solicitudVigente}
 						<Card class="p-6 sm:p-8">
 							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
@@ -795,6 +824,14 @@ async function handleCopyLink() {
 								>
 									Hay {pendingRequestCount} solicitudes pendientes para este dataset.
 								</p>
+							{/if}
+							{#if solicitudVigente.status === "pending" && puedeDecidirSolicitud}
+								<PublicationDecision
+									item={solicitudVigente}
+									decide={decidir}
+									readDataset={readStoredDataset}
+									ondecided={reflejarDecision}
+								/>
 							{/if}
 						</Card>
 					{/if}

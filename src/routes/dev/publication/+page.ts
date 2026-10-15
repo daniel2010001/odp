@@ -8,6 +8,13 @@
 // dobles de las llamadas inyectadas, que es material de revisión del autor (AGENTS.md regla 8) y se
 // borra al promover las páginas reales.
 //
+// La hoja también sostiene **la ficha que decide**: la variante (b) se revisó acá y el autor la aprobó el
+// 2026-10-14, así que la ficha real monta el **mismo** control de decidir de la cola
+// (`PublicationDecision.svelte`, un solo dueño de las reglas). La hoja lo espeja —con el mismo componente y
+// la misma frase del estado, que sale de `$lib/copy/publication.ts`— y su interruptor de rol dejó de ser un
+// rótulo: cada rol ve lo que el producto le ofrece, incluida la respuesta afirmativa que el catálogo le da a
+// la superadministración de la plataforma.
+//
 // ─── En producción no existe ─────────────────────────────────────────
 // El `load` lanza un 404 cuando `import.meta.env.DEV` es falso: la ruta responde como cualquier ruta
 // inexistente, sin exponer el andamiaje de desarrollo en un build real.

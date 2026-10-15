@@ -67,6 +67,13 @@ export const ADMINISTRADOR = "admin.tecnologia";
 /** Nombre visible de quien creó la solicitud `req-1`. */
 export const SOLICITANTE = "editor.tecnologia";
 
+/**
+ * Id de la **superadministración de la plataforma**: no es quien solicitó ni quien administra la
+ * organización dueña. La ficha la mira para mostrar que, por ser superadministración, no decide estas
+ * solicitudes: la autoridad la resuelve el catálogo por organización.
+ */
+export const SUPERADMIN_ID = "5c6d7e8f-9a0b-4c1d-8e2f-3a4b5c6d7e8f";
+
 export function makeRequest(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
 	return {
 		id: "req-1",
