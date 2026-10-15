@@ -111,8 +111,11 @@ fila de `test-pdf` está `approved` con el mismo id en `requested_by`/`approved_
 en la base—, entonces **el dataset no quedó público**, y eso contradice el contrato del store (*«`approved` … y cambia
 `private` en la misma transacción»*) y este criterio. **La aceptación NO se cierra** hasta reconciliarlo: el pedido
 concreto a la sesión del store quedó en L9. **El criterio, medido como se puede medir de verdad:** `package_show`
-**anónimo** → `200` y el dataset presente en `package_list`. El estado de la fila dice que el catálogo concedió; **no**
-dice que el dataset sea legible, y por eso la aceptación se mide sobre el valor guardado y no sobre la fila.
+**anónimo** → `200` y el dataset presente en `package_list`, y **el valor guardado tiene DOS mitades: `private` y
+`state`** — en este CKAN el label `public` exige `state == 'active'` **y** `not private` (`ckan/lib/plugins.py:602-604`),
+así que un `draft` **no es públicamente legible aunque `private` sea falso** (medido el 2026-10-15). Por eso **una
+corrida nueva usa un privado `state: 'active'`**. El estado de la fila dice que el catálogo concedió; **no** dice que el
+dataset sea legible.
 
 **Antes de correrla, un reinicio — corregido el 2026-10-15: en este stack no hace falta.** Esta sección decía que el
 contenedor de CKAN tenía que reiniciarse porque *«Python cachea los imports al arrancar»*. Medido sobre el stack vivo
@@ -228,3 +231,26 @@ dataset** —no por API—: así la corrida ejerce las dos mitades, el store y e
   sirve como caso repetible** (su solicitud está aprobada y no se vuelve a aprobar), así que una corrida nueva usa un
   dataset privado **nuevo** en una de las cuatro organizaciones de una sola persona, y se mide **anónimo**
   (`package_show` → `200` y el dataset en `package_list`), nunca por el estado de la fila.
+  **Cerrado el mismo día, con la causa medida — y no era la que ninguno de los dos sospechaba.** La sesión del store
+  midió lo que faltaba: la fila `d9947c1a-…` está `approved`, con `requested_by = approved_by = e447d9e5-…`
+  (`ckan_admin`), `dataset_id = eb8a06b6-…`, `decided_at = 2026-10-15 18:30:06.592358`; y el dataset quedó
+  **`private = false`** con **`state = 'draft'`**. Ahí está todo: **el label `public` de este CKAN exige
+  `state == 'active'` **y** `not private`** (`ckan/lib/plugins.py:602-604`, y al anónimo le toca `['public']`,
+  `:619-622`), así que **un borrador no es públicamente legible aunque `private` sea falso** — de ahí el `403` y de ahí
+  que el listado público no lo traiga. **Las dos mediciones eran mitades del mismo hecho**: la suya miraba `private` y
+  no `state`; la mía, la legibilidad. **Mi hipótesis (a) —el flip condicional— es FALSA**, y quedó refutada con el diff:
+  `_flip_to_public` sólo hace `package_patch {private: False}` (lo introduce `61b6f1c`, **anterior** a este cambio) y
+  `git diff master..HEAD` sobre ese módulo no tiene una sola línea `+`/`-` que mencione `flip`, `package_patch` ni
+  `private`; el flip vive en el cuerpo de `publication_request_decide` para todo `approve=True`, después del veredicto
+  de la autorización. El control natural: **las dos filas pasaron por el mismo flip** —`observatorio-…` quedó `active`
+  y es legible, `test-pdf` quedó `draft` y no lo es—, así que la diferencia es el **estado del dataset**, no el camino
+  de autorización. **Alcance del veredicto, entonces:** la **excepción** (auto-aprobación **y** flip escrito) está
+  probada **dos veces**; la **visibilidad pública** está probada en `observatorio-…` (`fcyt`). Lo que `test-pdf` no
+  prueba es la visibilidad, y eso es una propiedad **de ese dataset**, no del store ni del portal. **No se puede fechar
+  cuándo quedó en `draft`** —esta versión de CKAN no tiene `package_revision` ni actividad registrada para ese
+dataset—, y el flip no lo puso ahí.
+- **L10 (hallazgo escalado al autor, 2026-10-15):** el flujo **puede aprobar un `draft` que nunca se vuelve visible**, y
+  la pared de A3 le reserva el cambio de `state` al sysadmin, así que **nadie por debajo puede activarlo** después. Es
+  una **decisión de producto**, no un defecto de esta unidad (el flip es anterior a `c′` y el portal no crea
+  borradores): **¿el flujo lo activa al aprobar, o se niega a publicar un `draft` y lo dice?** Queda como ítem propio en
+  el `BACKLOG`, sin tier decidido.

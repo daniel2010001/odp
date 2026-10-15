@@ -279,7 +279,23 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   sólo `observatorio-de-movilidad-urbana-cochabamba` quedó **público**; `test-pdf` —cuya fila la sesión del store mide
 >   `approved` con el mismo id en `requested_by`/`approved_by`— **sigue privado** (`403` anónimo sobre `eb8a06b6-…`), lo
 >   que contradice el contrato del store (`approved` cambia `private` en la misma transacción) y el criterio de
->   aceptación. El ítem **no se borra** hasta reconciliar esa discrepancia y mergear el store.
+>   aceptación. **Reconciliado el mismo día, y NO era defecto del store:** el dataset quedó **`private = false`** pero en
+>   **`state = 'draft'`**, y en este CKAN el label `public` exige `state == 'active'` **y** `not private`
+>   (`ckan/lib/plugins.py:602-604`), así que un borrador **no es públicamente legible aunque `private` sea falso**. El
+>   flip **no** es condicional: las dos filas pasaron por el mismo `package_patch {private: False}` (`_flip_to_public`,
+>   de `61b6f1c`, anterior a este cambio) y la diferencia fue el `state` del dataset. **Veredicto acotado:** la
+>   **excepción** (auto-aprobación + flip escrito) está probada **dos veces**; la **visibilidad pública**, en
+>   `observatorio-…` (`fcyt`). El ítem **no se borra** hasta mergear el store; el hallazgo del `draft` es un ítem
+>   aparte (abajo).
+>
+> - [ ] **Decidir qué hace el flujo de publicación con un dataset `draft`** (tier: lo decide el autor; nace de una
+>   medición, no de una hipótesis). Medido el 2026-10-15: `publication_request_decide` con `approve=True` **aprueba** un
+>   dataset en `state = 'draft'` y le escribe `private = false`, pero el dataset **nunca se vuelve públicamente
+>   legible** —el `403` anónimo y la ausencia del listado público siguen—, y la pared de A3 le reserva el cambio de
+>   `state` al sysadmin, así que **nadie por debajo puede activarlo** después. Las dos salidas, sin decidir: **¿el flujo
+>   lo activa al aprobar, o se niega a publicar un `draft`** y lo dice? **No es defecto de `c′`**: el flip es anterior
+>   (`_flip_to_public`, `61b6f1c`) y el portal no crea borradores — hoy un `draft` sólo puede entrar por la UI de CKAN.
+>   Escalado por la sesión del store.
 >
 > ---
 >
