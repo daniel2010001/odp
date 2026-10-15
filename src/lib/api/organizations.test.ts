@@ -153,6 +153,75 @@ describe("createOrganizationApi.canUpdateDatasetIn", () => {
 	});
 });
 
+describe("createOrganizationApi.canAdministerOrganization", () => {
+	// La pregunta que **decidir una solicitud de publicación** exige: el catálogo la resuelve para
+	// `['admin']` a secas, no para `['admin','editor']`. Medido en el CKAN que corre en los contenedores
+	// (2026-10-14, `ckan/authz.py:251` y `:292`): `ROLE_PERMISSIONS['admin']` contiene `'admin'`, y
+	// `get_roles_with_permission` incluye siempre al admin, así que `permission: "admin"` devuelve las
+	// organizaciones donde el rol del usuario es admin.
+	//
+	// Los cuatro estados son los mismos que `canUpdateDatasetIn`, y por el mismo motivo: `unknown` sólo
+	// nace de un error lanzado, y quien consume trata `unknown` como «no».
+	it("devuelve 'may' cuando la organización consultada vuelve en la lista de las que administra", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: [makeOrg({ id: "org-1", capacity: "admin" })],
+		});
+
+		const permiso = await createOrganizationApi(client).canAdministerOrganization("org-1");
+
+		expect(permiso).toBe("may");
+	});
+
+	it("devuelve 'may_not' cuando la organización consultada no vuelve", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: [makeOrg({ id: "org-otra", capacity: "admin" })],
+		});
+
+		const permiso = await createOrganizationApi(client).canAdministerOrganization("org-1");
+
+		expect(permiso).toBe("may_not");
+	});
+
+	it("devuelve 'may_not' (nunca el tercer estado) cuando CKAN responde []", async () => {
+		// Un editor de la organización cae acá: `permission: "admin"` no lo incluye, y esa lista vacía es
+		// una respuesta válida, no un fallo.
+		const { client } = makeClient({ organization_list_for_user: [] });
+
+		const permiso = await createOrganizationApi(client).canAdministerOrganization("org-1");
+
+		expect(permiso).toBe("may_not");
+	});
+
+	it("devuelve 'unknown' cuando la llamada falla (transporte o 403)", async () => {
+		const { client } = makeClient({
+			organization_list_for_user: () => {
+				throw new Error("403");
+			},
+		});
+
+		const permiso = await createOrganizationApi(client).canAdministerOrganization("org-1");
+
+		expect(permiso).toBe("unknown");
+	});
+
+	it("fija el permiso literal 'admin' que se manda a la acción", async () => {
+		const { client, post } = makeClient({
+			organization_list_for_user: [makeOrg({ id: "org-1" })],
+		});
+
+		await createOrganizationApi(client).canAdministerOrganization("org-1");
+
+		// El instrumento que atrapa la equivocación que importa: `update_dataset` —o `create_dataset`—
+		// traería también a los editores, y les ofrecería decidir para que el catálogo los rechace. Medido
+		// llamando la función en el CKAN que corre (2026-10-14): `"admin"` → `['admin']`;
+		// `"update_dataset"` y `"create_dataset"` → `['admin','editor']`.
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("organization_list_for_user");
+		expect(params.permission).toBe("admin");
+		expect(params).toEqual({ permission: "admin" });
+	});
+});
+
 describe("createOrganizationApi.canCreateDataset", () => {
 	// La compuerta del panel no puede reusar la lista amplia de membresías: una con
 	// `capacity: "member"` pertenece a una organización pero no puede crear datasets. Esta consulta

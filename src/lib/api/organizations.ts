@@ -78,10 +78,47 @@ export function createOrganizationApi(client: CkanClient) {
 		 * entorno y el proceso vivo), así que la limitación declarada sobre colaboradores nativos no
 		 * aplica aquí.
 		 */
-		async canUpdateDatasetIn(orgId: string): Promise<UpdateDatasetPermission> {
+		async canUpdateDatasetIn(orgId: string): Promise<PermissionAnswer> {
 			try {
 				const result = await client.post<CkanOrganization[]>("organization_list_for_user", {
 					permission: "update_dataset",
+				});
+				return result.some((organization) => organization.id === orgId) ? "may" : "may_not";
+			} catch {
+				return "unknown";
+			}
+		},
+
+		/**
+		 * ¿Es el usuario actual **administrador** de esta organización?
+		 *
+		 * Tres estados cerrados y **fail-closed**, con la misma disciplina que `canUpdateDatasetIn`:
+		 * `unknown` significa «no se pudo preguntar» y quien consume lo trata como `may_not`.
+		 *
+		 * Es la pregunta que exige **decidir una solicitud de publicación**, y **no** es la de editar:
+		 * `update_dataset` contesta «admin **o editor**» —`get_roles_with_permission` incluye siempre al
+		 * admin y suma al editor— y un editor no puede decidir. Medido en el CKAN que corre en los
+		 * contenedores (2026-10-14), leyendo su fuente **y llamando la función**: `ROLE_PERMISSIONS`
+		 * (`ckan/authz.py:251`) da `admin → ['admin','membership']` y `editor → [… 'update_dataset' …]`, y
+		 * `get_roles_with_permission` (`ckan/authz.py:292`) devuelve `['admin']` para `"admin"` y
+		 * `['admin','editor']` para `"update_dataset"`.
+		 *
+		 * **La trampa real es el literal conocido equivocado, no el desconocido**: la función incluye al rol
+		 * admin **siempre** (`if permission in permissions or 'admin' in permissions`), así que un permiso
+		 * inventado también devuelve `['admin']` —medido: `"permiso-que-no-existe"` → `['admin']`—. Un typo
+		 * no apaga el control: deja la pregunta donde la deja `"admin"`. Lo que sí la cambiaría es un permiso
+		 * que el editor también tenga, y por eso el test fija el literal que se manda.
+		 *
+		 * Quirk que este módulo ya documenta y conviene repetir acá: para un **sysadmin** CKAN ignora el
+		 * argumento `permission` y devuelve **todas** las organizaciones con `capacity: "admin"`
+		 * (`ckan/logic/action/get.py:682`), así que la pregunta **no discrimina** para la superadministración
+		 * de la plataforma: contesta que sí. La frontera no se mueve — el catálogo es quien decide, y
+		 * responde `403` con su frase si la decisión no correspondía.
+		 */
+		async canAdministerOrganization(orgId: string): Promise<PermissionAnswer> {
+			try {
+				const result = await client.post<CkanOrganization[]>("organization_list_for_user", {
+					permission: "admin",
 				});
 				return result.some((organization) => organization.id === orgId) ? "may" : "may_not";
 			} catch {
@@ -148,7 +185,13 @@ export function createOrganizationApi(client: CkanClient) {
 	};
 }
 
-export type UpdateDatasetPermission = "may" | "may_not" | "unknown";
+/**
+ * Los tres estados de una pregunta de permiso al catálogo: **cerrados** y fail-closed.
+ *
+ * `unknown` —no se pudo preguntar— se trata como `may_not`: los dos se comportan igual (no se ofrece
+ * la acción) y sólo se distinguen para poder decir *por qué* no se ofrece cuando haga falta.
+ */
+export type PermissionAnswer = "may" | "may_not" | "unknown";
 
 /** Respuesta bulk: conjunto explícito (`known`, puede ser vacío) o `unknown` (no se pudo preguntar). */
 export type UpdatableOrganizations = { state: "known"; ids: string[] } | { state: "unknown" };

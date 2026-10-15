@@ -20,11 +20,14 @@ const mocks = vi.hoisted(() => ({
 	showDataset: vi.fn(),
 	getMockDatasetById: vi.fn(),
 	listUpdatableOrganizationIds: vi.fn(),
+	canAdministerOrganization: vi.fn(),
 	check: vi.fn(),
 	copyToClipboard: vi.fn(),
-	// Las tres acciones de publicación, que la ficha consume desde `B1`: la lista alimenta la tarjeta
-	// del estado y las otras dos son las que los controles llaman.
+	// Las acciones de publicación que la ficha consume: la lista alimenta la tarjeta del estado, `decide`
+	// es la que monta el control de decidir (2026-10-14) y las otras dos las llaman los controles del
+	// hero.
 	listRequests: vi.fn(),
+	decideRequest: vi.fn(),
 	requestPublication: vi.fn(),
 	cancelRequest: vi.fn(),
 }));
@@ -40,11 +43,13 @@ vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.sho
 vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({
 		listUpdatableOrganizationIds: mocks.listUpdatableOrganizationIds,
+		canAdministerOrganization: mocks.canAdministerOrganization,
 	}),
 }));
 vi.mock("$lib/api/publication", () => ({
 	createPublicationApi: () => ({
 		list: mocks.listRequests,
+		decide: mocks.decideRequest,
 		request: mocks.requestPublication,
 		cancel: mocks.cancelRequest,
 	}),
@@ -67,6 +72,27 @@ const DATASET_PATH = "/dataset/matricula-2026";
 const NOT_FOUND_TITLE = "Dataset no encontrado";
 const AMBIGUOUS_MESSAGE = "No se encontró el dataset solicitado, o no tiene permiso para verlo.";
 const MOCK_TITLE = "Dataset Mock De Desarrollo";
+
+/**
+ * Una fila de `publication_requests` con la forma del contrato, para no depender de campos que la tabla
+ * no devuelve. Vive en el ámbito del archivo porque la usan **dos** bloques: el de la solicitud de
+ * publicación y el de decidirla desde la ficha.
+ */
+function makeRow(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
+	return {
+		id: "req-1",
+		dataset_id: "pkg-1",
+		status: "pending",
+		requested_by: "user-editor",
+		requested_by_name: "editor.tecnologia",
+		approved_by: null,
+		approved_by_name: null,
+		comments: null,
+		motive: null,
+		created_at: "2026-10-01T00:00:00.000000",
+		...overrides,
+	};
+}
 
 function makeUser(overrides: Partial<CkanUser> = {}): CkanUser {
 	return {
@@ -130,6 +156,8 @@ beforeEach(() => {
 	);
 	// Fail closed: sin respuesta explícita, la página no ofrece editar.
 	mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
+	// Y tampoco ofrece decidir: la única respuesta que lo ofrece es `may`.
+	mocks.canAdministerOrganization.mockResolvedValue("may_not");
 	// La copia del enlace tiene éxito salvo que un test diga lo contrario.
 	mocks.copyToClipboard.mockResolvedValue(true);
 	// Sonda por defecto no concluyente: sólo los tests de sesión viva/muerta la cambian.
@@ -793,23 +821,6 @@ describe("Página de dataset — el acuse de «Copiar enlace»", () => {
 // acá es el **filtro**, el lugar donde el estado vive, y que un fallo de esta consulta no se lleve puesta
 // la ficha que sí cargó.
 describe("Página de dataset — la solicitud de publicación", () => {
-	/** Una fila con la forma del contrato, para no depender de campos que la tabla no devuelve. */
-	function makeRow(overrides: Partial<PublicationRequest> = {}): PublicationRequest {
-		return {
-			id: "req-1",
-			dataset_id: "pkg-1",
-			status: "pending",
-			requested_by: "user-editor",
-			requested_by_name: "editor.tecnologia",
-			approved_by: null,
-			approved_by_name: null,
-			comments: null,
-			motive: null,
-			created_at: "2026-10-01T00:00:00.000000",
-			...overrides,
-		};
-	}
-
 	it("muestra el estado de la solicitud **después** de la información textual", async () => {
 		// La dirección trae el **nombre** del dataset y la fila trae su **id**: el filtro tiene que cruzar
 		// esos dos mundos, y por eso esta prueba sirve aunque los dos valores sean distintos a propósito.
@@ -1062,6 +1073,119 @@ describe("Página de dataset — la solicitud de publicación", () => {
 // El flujo de publicación tiene **una sola** compuerta: no hay camino directo, ni siquiera para la
 // superadministración. Publicar es siempre pedir, y la decisión se toma en la cola. Estas dos pruebas
 // fijan ese contrato para los dos actores que antes se repartían los controles.
+describe("Página de dataset — decidir la solicitud desde la ficha", () => {
+	// La variante (b), promovida el 2026-10-14: la tarjeta que muestra el estado de la solicitud también
+	// deja decidirla, cuando quien mira **administra la organización dueña**. La pregunta al catálogo es la
+	// que la decisión exige —`permission: "admin"`, no la de editar, que incluye a los editores— y falla
+	// cerrado: `may_not` y `unknown` se comportan igual.
+	const ESTADO_PENDIENTE = "Pendiente de revisión, pedida por editor.tecnologia.";
+
+	/** Deja la ficha con el dataset privado, una solicitud pendiente ajena y una sesión viva. */
+	function montar(overrides: Partial<PublicationRequest> = {}): void {
+		setParams({ id: "matricula-2026" });
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1", ...overrides })]);
+		auth.login("tok-123", makeUser());
+	}
+
+	it("ofrece decidir cuando quien mira administra la organización dueña", async () => {
+		montar();
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+
+		render(DatasetPage);
+
+		expect(await screen.findByRole("button", { name: "Aprobar" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Rechazar" })).toBeInTheDocument();
+		expect(screen.getByLabelText("Comentario (obligatorio para rechazar)")).toBeInTheDocument();
+		// La pregunta se hizo por la organización **dueña** del dataset, que es la que decide.
+		expect(mocks.canAdministerOrganization).toHaveBeenCalledWith("org-1");
+	});
+
+	it("no ofrece decidir cuando no administra la organización", async () => {
+		montar();
+		mocks.canAdministerOrganization.mockResolvedValue("may_not");
+
+		render(DatasetPage);
+
+		expect(await screen.findByTestId("estado-solicitud")).toHaveTextContent(ESTADO_PENDIENTE);
+		expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
+	});
+
+	it("no ofrece decidir cuando la pregunta de permiso no se pudo hacer (fail closed)", async () => {
+		montar();
+		mocks.canAdministerOrganization.mockResolvedValue("unknown");
+
+		render(DatasetPage);
+
+		expect(await screen.findByTestId("estado-solicitud")).toHaveTextContent(ESTADO_PENDIENTE);
+		expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
+	});
+
+	it("la solicitud propia no se decide, ni administrando la organización", async () => {
+		// Cuatro ojos: `requested_by` es el **id** de quien pidió, y acá es el mismo de la sesión.
+		montar({ requested_by: "user-1" });
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+
+		render(DatasetPage);
+
+		expect(await screen.findByText("No puede aprobar su propia solicitud.")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
+	});
+
+	it("aprobar confirma con la relectura del valor almacenado y la ficha queda pública", async () => {
+		// La primera lectura ve el dataset **almacenado** privado; la segunda es la relectura que confirma
+		// la aprobación, y ya lo ve público. Sin esa relectura la decisión no se da por hecha.
+		mocks.showDataset
+			.mockResolvedValueOnce(makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }))
+			.mockResolvedValueOnce(makeDataset({ id: "pkg-1", owner_org: "org-1", private: false }));
+		montar();
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+		mocks.decideRequest.mockResolvedValue(makeRow({ dataset_id: "pkg-1", status: "approved" }));
+
+		render(DatasetPage);
+		await fireEvent.click(await screen.findByRole("button", { name: "Aprobar" }));
+
+		await waitFor(() => expect(mocks.decideRequest).toHaveBeenCalledWith("req-1", true, undefined));
+		// La confirmación relee el dataset **de la fila**, por su id — no el parámetro de la ruta.
+		await waitFor(() => expect(mocks.showDataset).toHaveBeenCalledWith("pkg-1"));
+		expect(screen.getByTestId("estado-solicitud")).toHaveTextContent("Publicada.");
+		// El efecto de la visibilidad, sin ambigüedad: la aprobación confirmada hizo público el dataset, así
+		// que **ya no queda ningún «Privado»** en la ficha (la insignia del hero y la fila «Visibilidad» de
+		// la tarjeta de metadatos dicen lo mismo, y por eso no se afirma sobre «Público»).
+		expect(screen.queryByText("Privado")).not.toBeInTheDocument();
+	});
+
+	it("rechazar exige el motivo, y con él la tarjeta explica el rechazo", async () => {
+		montar();
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+		mocks.decideRequest.mockResolvedValue(
+			makeRow({ dataset_id: "pkg-1", status: "rejected", comments: "Faltan metadatos." }),
+		);
+
+		render(DatasetPage);
+		const campo = await screen.findByLabelText("Comentario (obligatorio para rechazar)");
+		await fireEvent.click(screen.getByRole("button", { name: "Rechazar" }));
+
+		// Sin motivo no viaja ninguna decisión y se dice por qué.
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Para rechazar una solicitud debe escribir un motivo.",
+		);
+		expect(mocks.decideRequest).not.toHaveBeenCalled();
+
+		await fireEvent.input(campo, { target: { value: "Faltan metadatos." } });
+		await fireEvent.click(screen.getByRole("button", { name: "Rechazar" }));
+
+		await waitFor(() =>
+			expect(mocks.decideRequest).toHaveBeenCalledWith("req-1", false, "Faltan metadatos."),
+		);
+		expect(await screen.findByTestId("estado-solicitud")).toHaveTextContent(
+			"Rechazada. Motivo: Faltan metadatos.",
+		);
+	});
+});
+
 describe("Página de dataset — el camino directo ya no se ofrece", () => {
 	it("la superadministración tampoco publica en directo: sólo ve la solicitud", async () => {
 		mocks.showDataset.mockResolvedValue(
