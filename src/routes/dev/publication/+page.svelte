@@ -18,12 +18,20 @@
 	  **decidible** (`?expansion=`). El plegado es presentación, no política: la fila plegada sigue
 	  diciendo qué dataset es, de qué organización y quién la pidió.
 
-	La regla que la hoja deja mirar: publicar es siempre **pedir** y decidir en la cola. No hay camino
+	La regla que la hoja deja mirar: publicar es siempre **pedir**; se decide en la cola y, desde el
+	2026-10-14, también en la **ficha del dataset**. No hay camino
 	directo, ni siquiera para la superadministración. La **cola** no decide la solicitud que creó quien
 	mira y **exige un motivo para rechazar**; y una solicitud **anulada** dice que dejó de estar vigente.
 	Una solicitud ya resuelta dice quién la decidió, y la cancelada o la anulada no se atribuyen un
 	decisor. También los estados que no se pueden provocar a mano: un `403` rechazado con nombre propio,
 	un `200` que no concede, una solicitud rechazada con su motivo y una cola que no carga.
+
+	La hoja también **espeja** lo promovido el 2026-10-14: la ficha del dataset decide la solicitud desde
+	su propia tarjeta, con el **mismo** control de la cola (`PublicationDecision.svelte`), para que las
+	reglas de decidir tengan un solo dueño. Por eso el interruptor de rol dejó de ser un rótulo: el editor
+	no decide su propia solicitud (cuatro ojos), quien administra la organización sí, y la
+	superadministración de la plataforma recibe la misma respuesta afirmativa del catálogo porque la
+	pregunta no discrimina para ella (el quirk medido de `organization_list_for_user`).
 
 	Todas las llamadas —`readDataset`, `request`, `cancel`, `list`, `decide`— entran por **dobles**: las
 	acciones del catálogo todavía no existen en la capa de API del portal, así que la hoja no puede
@@ -53,6 +61,7 @@ import {
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import type { PublicationRequest } from "$lib/api/publication";
+import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
 import PublicationQueue, {
 	type PublicationDecisionResult,
 	type PublicationQueueItem,
@@ -60,6 +69,7 @@ import PublicationQueue, {
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { estadoDeLaSolicitud } from "$lib/copy/publication";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn, formatDate } from "$lib/utils";
@@ -76,10 +86,11 @@ import {
 	makeRequest,
 	ORGANIZACION,
 	SOLICITANTE_ID,
+	SUPERADMIN_ID,
 } from "./fixtures";
 
 // ─── Dimensiones del panel ────────────────────────────────────────────
-type Vista = "ambas" | "editor" | "administrador" | "sysadmin";
+type Vista = "todos" | "editor" | "administrador" | "sysadmin";
 type Caso = "sin-solicitud" | "pendiente" | "rechazada" | "propia" | "sin-motivo" | "annulada";
 type Fallo = "ninguno" | "403" | "sin-confirmar" | "relectura" | "red";
 type Cola = "con-solicitudes" | "vacia" | "error" | "resueltas" | "una-organizacion";
@@ -91,9 +102,15 @@ type Orgs = "plana" | "agrupada" | "filtro";
 type Secciones = "con" | "sin";
 /** Cuántas filas arrancan desplegadas: `"primera"` abre sólo la primera decidible. */
 type Expansion = "todas" | "primera";
+/**
+ * Quién mira la ficha. Hasta el 2026-10-14 este interruptor sólo cambiaba el **rótulo**: las tres
+ * fichas eran la misma. Para juzgar la variante (b) eso no alcanza, porque lo que la tarjeta ofrece
+ * **depende de quién mira**.
+ */
+type Rol = "editor" | "administrador" | "sysadmin";
 
 const VISTAS: { id: Vista; label: string }[] = [
-	{ id: "ambas", label: "Editor y superadministración" },
+	{ id: "todos", label: "Los tres roles" },
 	{ id: "editor", label: "Sólo el editor" },
 	{ id: "administrador", label: "Sólo el administrador" },
 	{ id: "sysadmin", label: "Sólo la superadministración" },
@@ -155,8 +172,8 @@ const PRESETS: Preset[] = [
 		id: "sin-solicitud",
 		label: "1 · Sin solicitud",
 		detalle:
-			"El editor, el administrador y la superadministración ven la solicitud; publicar es siempre pedir y decidir en la cola.",
-		vista: "ambas",
+			"El editor, el administrador y la superadministración ven la solicitud; publicar es siempre pedir, y se decide en la cola o en la ficha del dataset.",
+		vista: "todos",
 		caso: "sin-solicitud",
 		fallo: "ninguno",
 		cola: "con-solicitudes",
@@ -165,7 +182,7 @@ const PRESETS: Preset[] = [
 		id: "pendiente",
 		label: "2 · Pendiente",
 		detalle: "El editor ve la solicitud pendiente y sólo puede cancelarla.",
-		vista: "ambas",
+		vista: "todos",
 		caso: "pendiente",
 		fallo: "ninguno",
 		cola: "con-solicitudes",
@@ -174,7 +191,7 @@ const PRESETS: Preset[] = [
 		id: "rechazada",
 		label: "3 · Rechazada con motivo",
 		detalle: "El motivo que escribió el administrador vuelve al editor, y puede volver a pedirla.",
-		vista: "ambas",
+		vista: "todos",
 		caso: "rechazada",
 		fallo: "ninguno",
 		cola: "con-solicitudes",
@@ -274,7 +291,7 @@ const SECCION_VALUES = values(SECCIONES);
 const EXPANSION_VALUES = values(EXPANSIONES);
 
 // ─── Estado del panel, preseleccionable por URL ───────────────────────
-let vista = $state<Vista>(paramOr("vista", VISTA_VALUES, "ambas"));
+let vista = $state<Vista>(paramOr("vista", VISTA_VALUES, "todos"));
 let caso = $state<Caso>(paramOr("caso", CASO_VALUES, "sin-solicitud"));
 let fallo = $state<Fallo>(paramOr("fallo", FALLO_VALUES, "ninguno"));
 let cola = $state<Cola>(paramOr("cola", COLA_VALUES, "con-solicitudes"));
@@ -306,6 +323,36 @@ const solicitudVigente = $derived.by(() => {
 // Quién mira la cola: en el caso «propia» es la misma persona que creó la solicitud `req-1`. La
 // comparación es por id de usuario, que es lo que el catálogo devuelve en `requested_by`.
 const usuarioActual = $derived(caso === "propia" ? SOLICITANTE_ID : ADMINISTRADOR_ID);
+
+/**
+ * Quién mira la **ficha**, por rol: la comparación de cuatro ojos es por **id** de usuario, así que cada
+ * rol necesita su identidad. El editor es quien creó la solicitud de las fixtures —por eso no puede
+ * decidirla—, el administrador es otro y sí puede, y la superadministración es un tercero que tampoco
+ * administra esa organización.
+ */
+function quienMira(rol: Rol): string {
+	if (rol === "editor") return SOLICITANTE_ID;
+	if (rol === "sysadmin") return SUPERADMIN_ID;
+	return caso === "propia" ? SOLICITANTE_ID : ADMINISTRADOR_ID;
+}
+
+/**
+ * Qué hace la ficha con una decisión **confirmada**. La página real volvería a leer —o invalidaría— y
+ * mostraría el estado nuevo; acá se refleja lo mismo: la solicitud con el estado que confirmó el
+ * catálogo y, en un rechazo, el motivo que viajó con ella, y el dataset ya público si la aprobación
+ * concedió. Una decisión que no concedió no llega acá: el componente la trata como confirmación que no
+ * se pudo establecer.
+ */
+function reflejarDecision(vigente: PublicationRequest, respuesta: PublicationDecisionResult): void {
+	solicitud = {
+		value: {
+			...vigente,
+			status: respuesta.status,
+			comments: respuesta.comments ?? vigente.comments,
+		},
+	};
+	dataset = { ...dataset, private: respuesta.status !== "approved" };
+}
 
 // La cola que la hoja está mostrando: **fuente única** del contador, del filtro y de los grupos por
 // organización. La cola caída no es un dato (`null` la distingue de vacía) y la vacía es una lista
@@ -587,7 +634,7 @@ $effect(() => {
 	</div>
 {/snippet}
 
-{#snippet fichaDataset(item: CkanPackage)}
+{#snippet fichaDataset(item: CkanPackage, rol: Rol)}
 	<Card class="space-y-4 p-5">
 		<div class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
 			<span class="font-heading text-xl font-bold text-primary">{item.title}</span>
@@ -615,6 +662,52 @@ $effect(() => {
 				oncancelled={(reportada) => (solicitud = { value: reportada })}
 			/>
 		</div>
+
+		<!-- La tarjeta del estado de la solicitud, como la tiene la página real: es **la** superficie que la
+		     variante (b) cambia. La frase la calcula `$lib/copy/publication.ts` —la misma función que usa la
+		     página— para que esta hoja no pueda mostrar un texto que el portal nunca renderiza. -->
+		{#if solicitudVigente}
+			{@const vigente = solicitudVigente}
+			<div class="rounded-lg border border-border bg-muted/20 p-4" data-testid="ficha-solicitud">
+				<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+					Solicitud de publicación
+				</p>
+				<p
+					class="mt-2 flex items-center gap-2 text-sm leading-relaxed text-foreground"
+					data-testid="estado-solicitud"
+				>
+					<Inbox class="size-4 shrink-0 text-primary" aria-hidden="true" />
+					{estadoDeLaSolicitud(vigente)}
+				</p>
+
+				{#if vigente.status !== "pending"}
+					<!-- Nada que decidir: la solicitud ya está resuelta y la frase de arriba lo dice. El control
+					     no se dibuja para que no parezca que hay algo pendiente. -->
+				{:else if rol === "sysadmin"}
+					<PublicationDecision
+						item={vigente}
+						decide={decidirCola}
+						readDataset={leerDataset}
+						currentUser={quienMira(rol)}
+						ondecided={(respuesta) => reflejarDecision(vigente, respuesta)}
+					/>
+					<p class="mt-2 text-xs leading-relaxed text-muted-foreground">
+						Medido en el CKAN que corre (2026-10-14): con el permiso
+						<code class="font-mono text-xs">admin</code> la pregunta devuelve <em>todas</em> las
+						organizaciones para la superadministración de la plataforma, así que la ficha le ofrece decidir.
+						La frontera sigue siendo el catálogo, que responde su propia frase si la decisión no correspondía.
+					</p>
+				{:else}
+					<PublicationDecision
+						item={vigente}
+						decide={decidirCola}
+						readDataset={leerDataset}
+						currentUser={quienMira(rol)}
+						ondecided={(respuesta) => reflejarDecision(vigente, respuesta)}
+					/>
+				{/if}
+			</div>
+		{/if}
 	</Card>
 {/snippet}
 
@@ -727,7 +820,7 @@ $effect(() => {
 				La solicitud del editor, el administrador de la organización y la superadministración, y la
 				cola donde se decide, sobre el mismo dataset. Publicar es siempre <strong
 					class="font-semibold">pedir</strong
-				> y decidir en la cola: no hay camino directo. Los dos componentes reales
+				> y decidir en la cola o en la ficha del dataset: no hay camino directo. Los dos componentes reales
 				(<code class="font-mono text-xs">RequestPublicationControl.svelte</code>,
 				<code class="font-mono text-xs">PublicationQueue.svelte</code>) son los que la hoja renderiza: no
 				reescribe ni el copy ni el comportamiento. Todas las llamadas salen de dobles de la hoja, porque
@@ -755,7 +848,11 @@ $effect(() => {
 				No hay dos compuertas: publicar es siempre
 				<strong class="font-semibold">solicitar</strong>. Quien puede editar el dataset ve la solicitud
 				en el hero, y la decisión se toma en la cola. La superadministración pasa por el mismo camino:
-				no publica en directo. La vista sólo cambia el rol con el que se mira.
+				no publica en directo. Desde el 2026-10-14 la <strong class="font-semibold">ficha también
+				decide</strong> —la tarjeta de la solicitud monta el mismo control de la cola—, así que el
+				interruptor de la vista cambia de verdad lo que se ve: el editor mira su propia solicitud y no la
+				decide (cuatro ojos), quien administra la organización decide ahí mismo, y la superadministración
+				de la plataforma recibe la respuesta afirmativa que el catálogo le da a su pregunta.
 			</p>
 
 			<div class="mt-4 rounded-xl border border-border bg-muted/30 p-4">
@@ -767,29 +864,29 @@ $effect(() => {
 				</div>
 			</div>
 
-			<div class={cn("mt-4 grid gap-6", vista === "ambas" ? "lg:grid-cols-2" : "grid-cols-1")}>
-				{#if vista === "ambas" || vista === "editor"}
+			<div class={cn("mt-4 grid gap-6", vista === "todos" ? "lg:grid-cols-3" : "grid-cols-1")}>
+				{#if vista === "todos" || vista === "editor"}
 					<div data-testid="vista-editor">
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como editor de la organización
 						</p>
-						{#key montaje}{@render fichaDataset(dataset)}{/key}
+						{#key montaje}{@render fichaDataset(dataset, "editor")}{/key}
 					</div>
 				{/if}
-				{#if vista === "ambas" || vista === "sysadmin"}
-					<div data-testid="vista-sysadmin">
-						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-							Como superadministración de la plataforma
-						</p>
-						{#key montaje}{@render fichaDataset(dataset)}{/key}
-					</div>
-				{/if}
-				{#if vista === "administrador"}
+				{#if vista === "todos" || vista === "administrador"}
 					<div data-testid="vista-administrador">
 						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 							Como administrador de la organización
 						</p>
-						{#key montaje}{@render fichaDataset(dataset)}{/key}
+						{#key montaje}{@render fichaDataset(dataset, "administrador")}{/key}
+					</div>
+				{/if}
+				{#if vista === "todos" || vista === "sysadmin"}
+					<div data-testid="vista-sysadmin">
+						<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Como superadministración de la plataforma
+						</p>
+						{#key montaje}{@render fichaDataset(dataset, "sysadmin")}{/key}
 					</div>
 				{/if}
 			</div>
@@ -1209,12 +1306,27 @@ $effect(() => {
 									oncancelled={(reportada) => (solicitud = { value: reportada })}
 								/>
 							</div>
-							<p class="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-								<strong class="font-semibold text-foreground">Nada de aprobar acá.</strong> La ficha muestra
-								<em>en qué estado está</em> la solicitud —y le deja pedirla o cancelarla—, pero el formulario
-								de aprobar o rechazar es una opción de la page de solicitudes, donde decidir es el trabajo
-								principal y no un accesorio de otra página.
-							</p>
+							{#if solicitudVigente}
+								{@const vigente = solicitudVigente}
+								{#if vigente.status === "pending" && vigente.requested_by !== usuarioActual}
+									<div class="mt-4 border-t border-border pt-3">
+										<p class="text-xs font-medium text-muted-foreground">
+											La tarjeta también decide: es el mismo control de la cola.
+										</p>
+										<PublicationDecision
+											item={vigente}
+											decide={decidirCola}
+											readDataset={leerDataset}
+											currentUser={ADMINISTRADOR_ID}
+											ondecided={(respuesta) => reflejarDecision(vigente, respuesta)}
+										/>
+									</div>
+								{:else}
+									<p class="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+										Acá no hay nada que decidir: o la solicitud ya está resuelta, o es de quien mira.
+									</p>
+								{/if}
+							{/if}
 								</Card>
 
 								<div>
