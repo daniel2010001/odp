@@ -97,8 +97,14 @@
 porque el único miembro de esa organización es `ckan_admin` —el solicitante y a la vez sysadmin—, así que el recuento de
 personas **no-sysadmin** con `capacity = admin` en esa organización es **0** y la excepción aplica.
 **Lo que hay que ver en la corrida en vivo:** la fila pasa a `approved`, `requested_by` y `approved_by` quedan con **el
-mismo id** (`ckan_admin`) y el dataset queda **público**. Si la respuesta fuera `Four eyes`, el recuento está contando a
+mismo id** (`ckan_admin`) y el dataset queda **anónimamente legible**. Si la respuesta fuera `Four eyes`, el recuento está contando a
 un sysadmin: es **defecto del store**, y se reporta con el estado de la fila antes/después.
+
+**El criterio, en el vocabulario que se puede medir (reformulado el 2026-10-15 a pedido de la sesión del store):** *el
+dataset del caso queda **anónimamente legible*** — `package_show` anónimo → `200` y presente en `package_list` —, y
+**no** «público». La diferencia no es retórica: un dataset en `draft` con `private = false` **no** es legible, así que
+pedir «público» para el caso nombrado (`test-pdf`) exigía algo que ese dataset no puede cumplir por una propiedad
+**suya** (`state = 'draft'`, `metadata_created` 2026-09-25 — anterior a la solicitud del 2026-10-08 y a la aprobación).
 
 **Corrida hecha el 2026-10-15 por el autor, desde la ficha — y con una discrepancia medida, sin reconciliar.** El
 proxy registró `POST /api/3/action/publication_request_decide` → `200` a las **18:30:07** con `referer
@@ -244,7 +250,12 @@ dataset** —no por API—: así la corrida ejerce las dos mitades, el store y e
   `private`; el flip vive en el cuerpo de `publication_request_decide` para todo `approve=True`, después del veredicto
   de la autorización. El control natural: **las dos filas pasaron por el mismo flip** —`observatorio-…` quedó `active`
   y es legible, `test-pdf` quedó `draft` y no lo es—, así que la diferencia es el **estado del dataset**, no el camino
-  de autorización. **Alcance del veredicto, entonces:** la **excepción** (auto-aprobación **y** flip escrito) está
+  de autorización. **Y el flip escribió, medido:** el `metadata_modified` de `eb8a06b6-…` es `2026-10-15 18:30:06.804445`
+  —el **mismo instante** que el `decided_at` (`.592358`) y el `consumed_at` (`.592387`) de la fila—, así que el
+  `package_patch` de `private` y la escritura de la fila fueron **el mismo commit**. Con eso la bifurcación queda
+  resuelta del lado **«volteó y no alcanza»**, no del lado «no volteó»; y el `draft` es **anterior** a todo: el
+  `metadata_created` del dataset es `2026-09-25 05:49:17`, contra la solicitud (2026-10-08) y la aprobación
+  (2026-10-15). **Alcance del veredicto, entonces:** la **excepción** (auto-aprobación **y** flip escrito) está
   probada **dos veces**; la **visibilidad pública** está probada en `observatorio-…` (`fcyt`). Lo que `test-pdf` no
   prueba es la visibilidad, y eso es una propiedad **de ese dataset**, no del store ni del portal. **No se puede fechar
   cuándo quedó en `draft`** —esta versión de CKAN no tiene `package_revision` ni actividad registrada para ese
