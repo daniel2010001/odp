@@ -77,7 +77,8 @@
 
 | ID | Unidad | Dónde | Route | Commit |
 | --- | --- | --- | --- | --- |
-| T1 | **Diseño** de la sesión del servidor y del anti-CSRF (decisión de forma, no de código) | `odd/tasks/token-hardening.md` § El diseño | parent | — |
+| T1 | **Diseño** de la sesión del servidor y del anti-CSRF (decisión de forma, no de código) | `odd/tasks/token-hardening.md` § El diseño | parent | `890d184` |
+| T3a | **La primitiva de sesión** (sellado AEAD): la fundación de T3, y va **antes** que T2 porque el proxy y el login la necesitan | `src/lib/server/session.ts` + `session.test.ts` | parent | — |
 | T2 | El servidor del portal habla con el catálogo: `hooks.server.ts` + el proxy de acciones con **allowlist** | `src/hooks.server.ts` (nuevo), `src/routes/api/ckan/[...action]/+server.ts` | parent | — |
 | T3 | El login y la sesión: la credencial entra en la sesión del servidor y el store del navegador pasa a guardar **sólo el usuario** | `src/lib/server/ckan-auth.ts`, `src/lib/stores/auth.ts` | parent | — |
 | T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
@@ -136,3 +137,19 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   `ckan.auth.disable_cookie_auth_in_api` **no existe** (grep en todo el árbol de CKAN 2.11.6: cero
   ocurrencias); la opción real es `ckan.auth.enable_cookie_auth_in_api` (`config_declaration.yaml`, default
   `True`, `ckan.ini:107` en `true`). Tal como estaba escrito, aplicarlo habría sido un **no-op silencioso**.
+- **L5 (implementación, 2026-10-15): la primitiva de sesión, y el orden corregido.** T3a va **antes** de T2 porque el
+  proxy y el login **necesitan** la sesión: empezar por el punto de inyección habría dejado el camino sin sustrato.
+  `src/lib/server/session.ts` sella con **AES-256-GCM** (nonce nuevo en cada sello) y abre devolviendo `null` ante
+  cualquier sobre que no sea suyo —sello roto, otra clave, formato o versión desconocidos, payload con otra forma, o
+  vencido—, porque el camino de lectura corre en cada request y ahí un `throw` tumba la página. La clave se deriva a
+  32 bytes con SHA-256 y la resuelve `resolveSessionSecret`: en desarrollo acepta una clave de desarrollo, y **fuera
+  de desarrollo falla** en vez de tener un default —una clave por defecto ahí sería una sesión que cualquiera puede
+  fabricar—. **El costo de la cookie, medido** (era el pendiente declarado del diseño): con un JWT de ~90 caracteres
+  y un nombre con acentos el sello mide **334 caracteres** —220 bytes de JSON más 28 de nonce y tag, en base64url—
+  contra un límite práctico de ~4 KB por cookie. **15 pruebas**, dos estructurales: el largo del cuerpo cae entre los
+  múltiplos del base64 del payload cifrado, y el token **no** aparece ni en el valor sellado **ni** en su contenido
+  decodificado.
+  **Compuerta en este entorno, anotada porque cuesta un desvío descubrirlo:** `pnpm lint` aborta con «Linter process
+  terminated abnormally (possibly out of memory)» —de forma intermitente, y también con un solo archivo— salvo que se
+  suba el heap explícitamente: con `NODE_OPTIONS=--max-old-space-size=6144` el repo entero pasa (191 archivos, sin
+  correcciones). El `pre-commit` corre biome por su cuenta y sólo encontró formato.
