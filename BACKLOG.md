@@ -272,9 +272,11 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   el **caso de aceptación en vivo** (`test-pdf`) y los riesgos, incluido el de la cascada.
 >   **Estado (2026-10-15): a medias.** El **portal** ya refleja la respuesta del catálogo en la ficha y en la cola
 >   (T3; `PublicationDecision.svelte` dejó de decidir cuatro ojos por comparación de ids — ver
->   `odd/tasks/publication-self-approval.md` L6). El **store** tiene T1+T2 **sin commitear** en `odp-docker`
->   (`unit/handoff-refresh`), así que el campo no está en `master`, y la **corrida de aceptación en vivo** (`test-pdf`)
->   **no se hizo**. El ítem **no se borra** hasta que el store esté mergeado *y* `test-pdf` quede `approved` con
+>   `odd/tasks/publication-self-approval.md` L6 y L8). El **store** tiene T1+T2 **sin commitear en el working tree** de
+>   `odp-docker` —no en `unit/handoff-refresh`, que es una rama de otra unidad—, así que el campo no está en `master`,
+>   y la **corrida de aceptación en vivo** (`test-pdf`) **no se hizo**: no exige reiniciar el contenedor (el reloader
+>   de Werkzeug corre) y conviene hacerla **desde la ficha del dataset**, no por API, para ejercer las dos mitades.
+>   El ítem **no se borra** hasta que el store esté mergeado *y* `test-pdf` quede `approved` con
 >   `requested_by` = `approved_by` y el dataset público.
 >
 > ---

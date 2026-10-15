@@ -100,10 +100,15 @@ personas **no-sysadmin** con `capacity = admin` en esa organización es **0** y 
 mismo id** (`ckan_admin`) y el dataset queda **público**. Si la respuesta fuera `Four eyes`, el recuento está contando a
 un sysadmin: es **defecto del store**, y se reporta con el estado de la fila antes/después.
 
-**Antes de correrla, un reinicio:** el contenedor de CKAN tiene que estar sirviendo el **código nuevo** del store —Python
-cachea los imports al arrancar, así que un cambio en el plugin no llega al servidor vivo sin reiniciarlo—. Sin eso la
-prueba mediría el comportamiento **viejo**, y un `Four eyes` parecería un defecto del store cuando en realidad es un
-servidor sin reiniciar: verificarlo **antes** de sacar conclusiones.
+**Antes de correrla, un reinicio — corregido el 2026-10-15: en este stack no hace falta.** Esta sección decía que el
+contenedor de CKAN tenía que reiniciarse porque *«Python cachea los imports al arrancar»*. Medido sobre el stack vivo
+por la sesión del store: `USE_DEBUGPY_FOR_DEV` **no está seteado**, así que la línea de `start_ckan_development.sh` que
+agrega `--disable-reloader` no se ejecuta y `ckan run` corre **con** el reloader de Werkzeug; los banners de arranque
+del servidor (17:29:42 y 17:48:42) son **posteriores** a las últimas escrituras de fuente (17:29:36 y 17:48:24), y la
+extensión entra por bind mount (`./src:/srv/app/src_extensions`). El proceso **ya sirve el código final**, así que lo
+único que queda de la corrida es **aprobar la fila**. La lección general sigue en pie para cualquier otro despliegue:
+sin reloader, un cambio de plugin no llega al servidor vivo. **Y la fila conviene aprobarla desde la ficha del
+dataset** —no por API—: así la corrida ejerce las dos mitades, el store y el portal (S4).
 
 ## Riesgos y decisiones abiertas
 
@@ -161,13 +166,24 @@ servidor sin reiniciar: verificarlo **antes** de sacar conclusiones.
   **Sin el campo, cuatro ojos** —una fila que no dice nada no concede nada—: ése es el fallback, y por eso el campo es
   opcional. **Lo que NO se tocó, a propósito (S5):** un `editor` o un `admin` de una organización relacionada siguen
   viendo el control y el catálogo responde —hoy con su `403`—; el permiso de la ficha (`canAdministerOrganization`) y el
-  camino de pedir/cancelar quedan igual. **Lo que queda abierto:** (a) el árbol del store está **sin commitear**
-  (`unit/handoff-refresh` de `odp-docker`), así que el campo no está en `master`; (b) la **corrida de aceptación en
-  vivo** (`test-pdf`) **no se hizo**: exige el contenedor de CKAN reiniciado con el código nuevo —Python cachea los
-  imports al arrancar— y aprueba una fila real, así que va con el autor delante; (c) `/dev/publication` conserva su
+  camino de pedir/cancelar quedan igual. **Lo que queda abierto:** (a) el cambio del store está **sin commitear en el working tree** de
+  `odp-docker` —**no** en `unit/handoff-refresh`, que es una rama de otra unidad (un commit de docs): wirear contra
+  ella encontraría otra cosa—, así que el campo no está en `master`; (b) la **corrida de aceptación en
+  vivo** (`test-pdf`) **no se hizo**: no exige reiniciar el contenedor —medido: el reloader de Werkzeug corre; ver la corrección del caso de
+  aceptación— y aprueba una fila real, así que va con el autor delante y **desde la ficha**; (c) `/dev/publication` conserva su
   propia copia de la regla de cuatro ojos (`+page.svelte:385` y `:1311`) y **no** se alineó: sus fixtures no traen el
   campo, así que la hoja no muestra la excepción. Se alinea si el autor quiere revisar la variante ahí.
 - **L7 (medición, 2026-10-15):** el portal **no** consumía el campo antes de T3: `grep -rn decidable_by_caller src/` no
   devolvía nada y `PublicationDecision.svelte` decidía por comparación de ids (`isOwn`). Por eso el reporte de la
   sesión del store —«T1+T2+T3 ya están implementados»— era **inexacto en su tercera parte**: con el store concediendo,
   la ficha y la cola seguían diciendo «No puede aprobar su propia solicitud.»
+- **L8 (corrección de la sesión del store, 2026-10-15):** dos correcciones a este registro, medidas por la sesión de
+  `odp-docker`. **(1) El reinicio del contenedor no hace falta:** `USE_DEBUGPY_FOR_DEV` sin setear deja encendido el
+  reloader de Werkzeug y los banners de arranque son posteriores a sus últimas escrituras de fuente, así que el
+  proceso ya servía el código final (corregida la sección del caso de aceptación). **(2) El cambio del store no está
+  en `unit/handoff-refresh`:** está **sin commitear en el working tree**, y esa rama es de otra unidad; su commit y su
+  rama siguen esperando la decisión del autor en esa sesión. **El nombre del campo quedó reconfirmado de su lado:
+  `decidable_by_caller`, idéntico al que consume el portal.** Su pre-flight por API no pudo autenticarse
+  (`400 "Bad request: Action name not known: login"` — este CKAN no registra una acción `login`), y el valor del campo
+  en la fila de aceptación no depende de esa llamada: el único miembro de `direccion-investigacion` es `ckan_admin`
+  (solicitante y sysadmin), así que el recuento de otras personas es 0 y `decidable_by_caller` es `true`.
