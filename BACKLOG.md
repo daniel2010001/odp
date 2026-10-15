@@ -285,8 +285,13 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   flip **no** es condicional: las dos filas pasaron por el mismo `package_patch {private: False}` (`_flip_to_public`,
 >   de `61b6f1c`, anterior a este cambio) y la diferencia fue el `state` del dataset. **Veredicto acotado:** la
 >   **excepción** (auto-aprobación + flip escrito) está probada **dos veces**; la **visibilidad pública**, en
->   `observatorio-…` (`fcyt`). El ítem **no se borra** hasta mergear el store; el hallazgo del `draft` es un ítem
->   aparte (abajo).
+>   `observatorio-…` (`fcyt`); y **el flip escribió**: el `metadata_modified` de `eb8a06b6-…` es
+>   `2026-10-15 18:30:06.804445`, el **mismo instante** que el `decided_at`/`consumed_at` de la fila — o sea, el
+>   `package_patch` y la fila fueron el mismo commit, y el `draft` es anterior a todo (`metadata_created`
+>   2026-09-25 vs. solicitud 2026-10-08 y aprobación 2026-10-15). **Criterio del caso, reformulado el 2026-10-15:**
+>   «el dataset del caso queda **anónimamente legible**», no «público»: un `draft` con `private = false` no es
+>   legible, así que el caso nombrado no podía cumplir la palabra anterior. El ítem **no se borra** hasta mergear el
+>   store; el hallazgo del `draft` es un ítem aparte (abajo).
 >
 > - [ ] **Decidir qué hace el flujo de publicación con un dataset `draft`** (tier: lo decide el autor; nace de una
 >   medición, no de una hipótesis). Medido el 2026-10-15: `publication_request_decide` con `approve=True` **aprueba** un
