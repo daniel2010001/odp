@@ -267,6 +267,9 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   `has_user_permission_for_group_or_org`, que **casca permisos si el vínculo existe**, así que hay que asegurar que
 >   un admin de una organización relacionada **no** cuente como aprobador (ver la decisión de abajo). **Tier: `v1`**
 >   —es lo que hace usable el flujo en el despliegue real, sin tocar la gobernanza donde sí hay segunda persona—.
+>   **El plan está escrito y es el punto de partida de la sesión: `odd/tasks/publication-self-approval.md`** —specs
+>   S1–S5, las tres unidades (la excepción en el store, la lectura que el portal consume y la ficha/cola reflejándola),
+>   el **caso de aceptación en vivo** (`test-pdf`) y los riesgos, incluido el de la cascada.
 >
 > ---
 >
@@ -284,6 +287,19 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > existe, y una medición vieja lo menciona en este mismo archivo, §«una sonda que obtiene **403** es robusta a la
 > cascada»), **este proyecto no lo usa como camino de permisos y no debe depender de él**; (c) construir jerarquía
 > real de permisos entre organizaciones está **fuera del alcance** — y no es un pendiente: es una **decisión**.
+>
+> **Las razones que dio el autor (2026-10-15), además de la decisión:** un admin de la organización padre decidiendo
+> contra los admins de la hija **sobrepasa su autoridad**; y queda la **ambigüedad** de qué manda cuando alguien es
+> `view` en una organización y `admin` en otra (padre o hija). **No se descartó del todo**: la relación entre
+> organizaciones **no está aceptada para `v1`** —se tiene porque la UI de CKAN lo permite, y la UI nueva no lo tiene
+> hasta `v1`/`v2`—, así que **puede volver como `v2+`**.
+>
+> **Medido en el CKAN que corre (2026-10-15): sí tiene jerarquía y cascada.** La clave
+> `ckan.auth.roles_that_cascade_to_sub_groups` (`config/config_declaration.yaml:584-592`, **default `[admin]`**) hace que
+> los permisos del rol se apliquen «down the hierarchy», y **esta instancia la tiene encendida** (`ckan.ini:99 = admin`).
+> Lo que **no** existe es ningún vínculo: **0 filas** de jerarquía en `member`. O sea: el mecanismo está disponible y
+> activo, y **el proyecto decide no depender de él** — y por eso la excepción de `c′` tiene que mirar **membresías de la
+> organización dueña**, no permisos efectivos.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
