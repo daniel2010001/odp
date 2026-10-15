@@ -235,11 +235,11 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > recomienda; **(d)** publicación directa para el admin solitario → ya rechazada el 2026-10-08. Decir «nadie
 > podrá decidirla» exige una pregunta nueva al catálogo (¿hay otro admin en la organización?) y es trabajo aparte.
 >
->   **(c′)** la excepción **decidida por el dato**: auto-aprobación permitida **sólo si el catálogo confirma que no hay
->   ningún otro aprobador** —ni otro admin de la organización, ni un admin de una organización padre, ni otro sysadmin
->   activo distinto del solicitante—. Cero configuración, cero UI y **cero palanca que se pueda dejar mal puesta**:
->   cuatro ojos muerde **siempre que puede morder**. **Es la que recomiendo si importa la propiedad, no sólo el
->   desbloqueo.**
+>   **(c′) — LA ELEGIDA (autor, 2026-10-15).** La excepción **decidida por el dato**: auto-aprobación permitida **sólo si
+>   el catálogo confirma que no hay ningún otro aprobador** —ni otro admin de la **misma** organización dueña, ni otro
+>   sysadmin activo distinto del solicitante—. **La organización relacionada o «madre» NO cuenta**, y está anotado con
+>   su motivo en «La relación entre organizaciones es figurativa», más abajo. Cero configuración, cero UI y **cero
+>   palanca que se pueda dejar mal puesta**: cuatro ojos muerde **siempre que puede morder**.
 >
 >   **(c″)** la **flag de despliegue** (`ckanext.umss.allow_self_approval`, **default apagada**), por la misma vía que ya
 >   usa `expire_api_token.default_lifetime`. Exige dos cosas más: que el portal **conozca la política** (una lectura
@@ -255,8 +255,35 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   sobre `c″`** para el caso real (una persona, una organización). Si algún día hace falta tratar organizaciones distinto
 >   **por decisión**, la palanca va en manos de la superadministración, nunca de la organización.
 >
-> - [ ] **TODO (autor): decidir cuál de esas salidas va.** Sin decidirlo, el caso de una sola persona deja
->   solicitudes pendientes que nadie puede decidir y que la UI no explica. **Tier: lo define el autor.**
+> **DECISIÓN DEL AUTOR (2026-10-15): va la (c′)** —la excepción decidida por el dato—. La **(c″)**, la flag de
+> despliegue, **también le gusta pero no entra en `v0`/la demo**: queda como recomendación de futuro en **`v2+`**, y
+> subiría a **`v1+`** si el despliegue real pidiera una palanca explícita y documentada —porque `c′` no la necesita—.
+> La flag **por organización** queda descartada con su motivo escrito arriba.
+>
+> - [ ] **Implementar `c′`** —es lo único que falta para destrabar el caso de una sola persona—: en el **store**
+>   (`odp-docker`), la excepción cuando el catálogo confirma que **no hay otro aprobador**; en el **portal**, que la
+>   ficha **no oculte** el control cuando la excepción aplica (o el copy dirá que no se puede algo que sí se puede);
+>   y tests de las dos ramas. **Ojo con la cascada de CKAN al implementarlo:** el predicado del store usa
+>   `has_user_permission_for_group_or_org`, que **casca permisos si el vínculo existe**, así que hay que asegurar que
+>   un admin de una organización relacionada **no** cuente como aprobador (ver la decisión de abajo). **Tier: `v1`**
+>   —es lo que hace usable el flujo en el despliegue real, sin tocar la gobernanza donde sí hay segunda persona—.
+>
+> ---
+>
+> ### La relación entre organizaciones es **figurativa**, no un camino de permisos (decisión del autor, 2026-10-15)
+>
+> **Para nunca olvidarlo, y textual en su intención:** la jerarquía de organizaciones **no** es un mecanismo de
+> permisos. Una organización relacionada con otra —o una «madre»— es **figurativa**: sirve para **navegar** entre
+> organizaciones y para mostrar que existen vínculos del mundo real. **No se heredan permisos, no se tienen
+> privilegios sobre organizaciones hijas, nada de eso.** Que exista un vínculo **no** da dominio sobre la otra
+> organización.
+>
+> **Las tres consecuencias que importan al código:** (a) la política de aprobación **no puede** contar a un admin de
+> una organización relacionada como aprobador —por eso `c′` cuenta sólo a los admins de la **misma** organización y a
+> los sysadmins activos—; (b) aunque el catálogo **pueda** cascar permisos por jerarquía (CKAN lo hace si el vínculo
+> existe, y una medición vieja lo menciona en este mismo archivo, §«una sonda que obtiene **403** es robusta a la
+> cascada»), **este proyecto no lo usa como camino de permisos y no debe depender de él**; (c) construir jerarquía
+> real de permisos entre organizaciones está **fuera del alcance** — y no es un pendiente: es una **decisión**.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
@@ -3076,6 +3103,35 @@ después del cierre que describe el encabezado de esta sección; medición compl
   route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
   rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
   2026-09-11._
+
+  **Costo medido de mover la credencial (2026-10-15, reconocimiento con `path:line`).** No es un
+  endurecimiento suelto: toca el camino entero del token.
+  - **Hoy el token es un concepto exclusivamente del cliente**: `localStorage["auth"]`
+    (`src/lib/stores/auth.ts:14`), hidratado al importar el módulo, **sin expiración persistida** (el TTL es
+    server-side, `src/lib/server/ckan-auth.ts:29`).
+  - **11 sitios de producción** construyen un cliente con `apiKey: () => get(auth).token`
+    (`src/routes/+layout.svelte:33`; `dataset/[id]/+page.svelte:110,270,343,354`;
+    `resource/[resourceId]/+page.svelte:49,104`; `dashboard/requests/+page.svelte:33`; `dashboard/+page.svelte:67`;
+    `dashboard/datasets/[id]/edit/+page.svelte:56`; `dashboard/datasets/new/+page.svelte:58`), más **~10 lectores
+    directos** del store (guardián, encabezado, dashboard, wizard, ficha, recurso, login).
+  - **Dos caminos asumen el token legible en el navegador**: la **subida por XHR**, que lo pone a mano
+    (`src/lib/api/upload.ts:82`) y el **logout**, que lo manda en el body (`src/lib/api/auth.ts:48-56`,
+    `UserMenu.svelte:42`).
+  - **Siete suites están ancladas al mecanismo, no a un detalle**: `auth.test.ts`, `session-guard.test.ts`,
+    `dashboard.test.ts`, `wizard.test.ts`, `login.test.ts`, `PublicationQueue.test.ts` y `layout-header.test.ts`
+    (más `client.test.ts`, `upload.test.ts` y `resource-page.test.ts`, que aseveran el header `Authorization`
+    emitido desde el navegador).
+  - **No existe `hooks.server.ts`** y ningún camino SSR usa el token hoy: el punto de inyección hay que
+    **inventarlo**, y con él decidir quién guarda la credencial del lado servidor.
+  - Siguen en pie las dos consecuencias ya escritas arriba: **descargas privadas** (streamear los bytes con
+    soporte de `Range`) y **subidas** (`+server.ts` propio, `BODY_SIZE_LIMIT` y un método multipart en el cliente).
+  - **El riesgo que decide el diseño**: con cookie, el navegador la manda sola, así que la inyección por nginx
+    autenticaría **también las peticiones mutantes** → hace falta diseño anti-CSRF (`SameSite` estricto + token de
+    sincronización), que hoy no existe porque el header manual es inmune a eso.
+
+  **Veredicto de tamaño (2026-10-15): es una feature de varias sesiones, no un endurecimiento suelto.** El autor
+  decidió dejarla para una **sesión dedicada**, con este mapa y este costo como punto de partida; no entra en
+  `v0`/la demo y sigue siendo `[v1]`.
 
 - [x] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
 
