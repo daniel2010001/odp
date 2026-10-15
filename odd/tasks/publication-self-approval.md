@@ -54,10 +54,20 @@
    admin de una organización relacionada contaría como aprobador contra la decisión del autor.
 3. **Fallo cerrado**: si la consulta no se puede hacer, **no** hay excepción (se mantiene cuatro ojos). Un error de
    datos no puede conceder una aprobación.
-4. Lo que el portal necesita para S4: **una lectura propia del store**. Dos formas, y la recomendación es la primera:
-   (i) que la fila de `publication_request_list` traiga un campo calculado, por ejemplo `self_approvable: true|false`
-   para quien mira; (ii) una acción de lectura aparte (`publication_request_decide_preview` o similar). Con (i) el portal
-   no reimplementa la política —la lee—, que es la regla de la casa: **el portal ofrece, el catálogo decide**.
+4. Lo que el portal necesita para S4: **una lectura propia del store**, y ya está **implementada y congelada** (T2,
+   2026-10-15). **El campo es `decidable_by_caller`** (booleano), y su semántica, textual: *`true` si y sólo si
+   `publication_request_decide` autorizaría a **ese** caller sobre **esa** fila **y** la fila sigue `pending`*; `false`
+   si la fila ya está decidida, porque la acción la rechaza con `409 "That request is no longer pending"` —un `true`
+   ahí mandaría al portal derecho a una negativa—. Devuelve, sobre la misma solicitud pendiente: el **solicitante** →
+   `true` si no hay otra persona en su organización y `false` si la hay; otro `admin` de la organización, un `admin` de
+   una organización relacionada o un `sysadmin` → `true`; un `editor` u otro no-aprobador → `false`.
+   **Tres detalles que importan al consumirlo:** (a) el campo está en **las cuatro caras** (create, cancel, decide y
+   list), así que no importa de qué acción salga la fila; (b) `requested_by` sigue en la fila, así que distinguir «soy
+   el solicitante y puedo» de «puedo como tercero» es comparar dos ids, **sin segundo campo**; (c) el **costo**: en la
+   lista es **una sentencia para la página entera** —medida por test, no por fila— y en una fila suelta, una sentencia
+   más.
+   **El nombre está congelado por los tests del store** (`DECIDABLE_KEY`, `logic/action/publication.py:90`): consumir
+   otro —mi `self_approvable` original— wirea lo equivocado.
 5. Etiquetas: la excepción **concede**, así que no emite etiqueta de rechazo; `FOUR_EYES_LABEL` sigue siendo el
    vocabulario del caso negado y **no** se toca. Si se quiere distinguir en la traza *por qué* se concedió, la vía es la
    fila (mismo id en `requested_by`/`approved_by`), no una etiqueta nueva.
@@ -76,15 +86,18 @@
 | ID | Unidad | Dónde | Cómo se prueba |
 | --- | --- | --- | --- |
 | T1 | La excepción en el predicado + la consulta de «otro aprobador» (con fallo cerrado y sin contar cascada) | `odp-docker`, `ckanext-umss/logic/auth/publication.py` + sus tests | Tests del store: **dos ramas** —con otro admin en la org → cuatro ojos; sin otro admin → concede—; y un caso con **vínculo padre/hijo** que debe seguir negando (S2) |
-| T2 | La lectura que el portal consume (campo calculado en la lista, recomendado) | `odp-docker` + `src/lib/api/publication.ts` | Test del store (la fila trae el campo) + test del portal (lo lee) |
+| T2 | La lectura que el portal consume — **`decidable_by_caller`, ya implementado** (`DECIDABLE_KEY` en `logic/action/publication.py:90`, el helper `_decidable_by_caller` en `:146`, estampado en la fila en `:194`); T1 11/11 y T2 23/23 en el store | `odp-docker` + `src/lib/api/publication.ts` | Test del store (la fila trae el campo) + test del portal (lo lee) |
 | T3 | La ficha y la cola reflejan la respuesta en vez de decidir por su cuenta | `src/lib/components/dataset/PublicationDecision.svelte`, `PublicationQueue.svelte`, `src/routes/dataset/[id]/+page.svelte` + tests | Tests de los componentes y de la ficha: la propia **se decide** cuando la excepción aplica, y sigue sin decidirse cuando no |
 
 ## El caso de aceptación (en vivo, ya existe)
 
-`test-pdf` (`eb8a06b6-b0da-4b7e-9d71-75a6114d2c30`), en `direccion-investigacion`: **hoy** su solicitud está `pending`
-desde el 2026-10-08 y **nadie** puede decidirla porque el único miembro es `ckan_admin`, que además es el solicitante y
-el sysadmin. Con `c′` implementado, **esa misma solicitud** tiene que poder aprobarse desde la ficha (y la fila mostrará
-el mismo id en las dos columnas). Es la comprobación de punta a punta, y sirve además para la demo.
+`test-pdf` (`eb8a06b6-b0da-4b7e-9d71-75a6114d2c30`), en `direccion-investigacion`, solicitud
+**`d9947c1a-7bcd-4ee3-8fdf-67bd2e57feef`**: **hoy** está `pending` desde el 2026-10-08 y **nadie** puede decidirla,
+porque el único miembro de esa organización es `ckan_admin` —el solicitante y a la vez sysadmin—, así que el recuento de
+personas **no-sysadmin** con `capacity = admin` en esa organización es **0** y la excepción aplica.
+**Lo que hay que ver en la corrida en vivo:** la fila pasa a `approved`, `requested_by` y `approved_by` quedan con **el
+mismo id** (`ckan_admin`) y el dataset queda **público**. Si la respuesta fuera `Four eyes`, el recuento está contando a
+un sysadmin: es **defecto del store**, y se reporta con el estado de la fila antes/después.
 
 ## Riesgos y decisiones abiertas
 
