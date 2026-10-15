@@ -98,9 +98,22 @@ const viewer = $derived(currentUser === undefined ? ($currentUserStore?.id ?? nu
 
 const isOwn = $derived(viewer !== null && item.requested_by === viewer);
 
+/**
+ * La respuesta del catálogo sobre **esta** fila: concede la auto-aprobación cuando no hay otra persona
+ * que pueda aprobarla. Sin el campo —catálogo anterior— vale lo de siempre.
+ */
+const decidable = $derived(item.decidable_by_caller === true);
+
+/**
+ * Lo que el control deja de ofrecer. La propia se bloquea **sólo** si el catálogo no concedió la
+ * excepción: la comparación de ids decide la **frase** que se lee, no el permiso.
+ */
+const blocked = $derived(isOwn && !decidable);
+
 async function decideOn(approve: boolean) {
-	// Cuatro ojos: la propia solicitud no se decide, ni siquiera si el botón llegara a existir.
-	if (pending || isOwn) return;
+	// Cuatro ojos, con su excepción: la propia no se decide salvo que el catálogo la haya concedido, ni
+	// siquiera si el botón llegara a existir.
+	if (pending || blocked) return;
 
 	const comentario = comment.trim();
 	if (!approve && !comentario) {
@@ -163,7 +176,7 @@ async function decideOn(approve: boolean) {
 }
 </script>
 
-{#if isOwn}
+{#if blocked}
 	<div
 		role="note"
 		class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"

@@ -13,12 +13,21 @@
 import type { PublicationRequest } from "$lib/api/publication";
 
 /**
- * Lo mínimo que el control necesita de una solicitud: **su id** —para el `for`/`id` del comentario— y
- * **quién la creó**, que es la comparación de cuatro ojos. El resto de la fila no se usa, y por eso lo
- * pueden montar tanto la cola (`PublicationQueueItem`, su tipo de vista) como la ficha
- * (`PublicationRequest`, la fila cruda del catálogo) sin que ninguno fabrique los campos del otro.
+ * Lo mínimo que el control necesita de una solicitud: **su id** —para el `for`/`id` del comentario—,
+ * **quién la creó** y **si el catálogo le concedería la decisión a quien mira**. El resto de la fila no
+ * se usa, y por eso lo pueden montar tanto la cola (`PublicationQueueItem`, su tipo de vista) como la
+ * ficha (`PublicationRequest`, la fila cruda del catálogo) sin que ninguno fabrique los campos del otro.
  */
-export type DecidableRequest = { id: string; requested_by?: string | null };
+export type DecidableRequest = {
+	id: string;
+	requested_by?: string | null;
+	/**
+	 * La respuesta del catálogo sobre **esta** fila: `true` sólo si la decisión le correspondería a quien
+	 * mira y la fila sigue pendiente. Ausente en un catálogo anterior al campo, y entonces vale la regla
+	 * de siempre —la propia no se decide—.
+	 */
+	decidable_by_caller?: boolean | null;
+};
 
 /**
  * La respuesta de `publication_request_decide`: **sólo** su fila `publication_requests`, el contrato

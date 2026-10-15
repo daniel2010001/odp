@@ -4,7 +4,8 @@
 > la apruebe **sólo cuando el catálogo confirme que no hay ningún otro aprobador**. Es lo que destraba el caso de una
 > organización con una sola persona **sin** apagar la regla de cuatro ojos donde sí hay segunda persona.
 >
-> **Este documento es el plan, no el trabajo hecho.** La implementación vive en `odp-docker` (el store) y en el portal.
+> **Este documento es el plan, no el trabajo hecho.** La implementación vive en `odp-docker` (el store) y en el portal
+> (**T3 entregada en el portal el 2026-10-15**, ver L6).
 
 ## Specs
 
@@ -86,8 +87,8 @@
 | ID | Unidad | Dónde | Cómo se prueba |
 | --- | --- | --- | --- |
 | T1 | La excepción en el predicado + la consulta de «otro aprobador» (con fallo cerrado y sin contar cascada) | `odp-docker`, `ckanext-umss/logic/auth/publication.py` + sus tests | Tests del store: **dos ramas** —con otro admin en la org → cuatro ojos; sin otro admin → concede—; y un caso con **vínculo padre/hijo** que debe seguir negando (S2) |
-| T2 | La lectura que el portal consume — **`decidable_by_caller`, ya implementado** (`DECIDABLE_KEY` en `logic/action/publication.py:90`, el helper `_decidable_by_caller` en `:146`, estampado en la fila en `:194`); T1 11/11 y T2 23/23 en el store | `odp-docker` + `src/lib/api/publication.ts` | Test del store (la fila trae el campo) + test del portal (lo lee) |
-| T3 | La ficha y la cola reflejan la respuesta en vez de decidir por su cuenta | `src/lib/components/dataset/PublicationDecision.svelte`, `PublicationQueue.svelte`, `src/routes/dataset/[id]/+page.svelte` + tests | Tests de los componentes y de la ficha: la propia **se decide** cuando la excepción aplica, y sigue sin decidirse cuando no |
+| T2 | La lectura que el portal consume — el store la declara (`DECIDABLE_KEY` en `logic/action/publication.py:90`, el helper `_decidable_by_caller` en `:146`, estampado en la fila en `:194`; T1 11/11 y T2 23/23 **según la sesión del store, no verificado acá**). En el portal el campo viaja en la fila del catálogo (`src/lib/api/publication.ts:100`) y en lo mínimo que el control necesita (`publication-decision.ts:29`, `PublicationQueue.svelte:25`) | `odp-docker` + `src/lib/api/publication.ts`, `src/lib/components/dataset/publication-decision.ts`, `PublicationQueue.svelte` | Store: la fila trae el campo. Portal: **hecho con T3** — los tests montan filas con y sin el campo y leen su efecto |
+| T3 | **Hecho en el portal (2026-10-15)**: la ficha y la cola **reflejan la respuesta** en vez de deducir que la propia no se decide | `PublicationDecision.svelte:105-116` (el campo, la guarda y la nota), `PublicationQueue.svelte:169-172` (el plegado), `src/routes/dataset/[id]/+page.svelte:143` (la copia en memoria pasa a `false` al decidir) + tests | **6 tests nuevos** (`PublicationQueue.test.ts`, `dataset-page.test.ts`): la propia **se decide** con `true` y la decisión sale, sigue sin decidirse con `false`, **sin el campo** se comporta como antes, y el plegado la abre. Los tests de cuatro ojos anteriores quedaron **verdes sin cambios** |
 
 ## El caso de aceptación (en vivo, ya existe)
 
@@ -154,3 +155,19 @@ servidor sin reiniciar: verificarlo **antes** de sacar conclusiones.
 - **L5 (medición, 2026-10-15):** CKAN **sí** tiene jerarquía y cascada (`authz.get_roles_with_permission`,
   `get_children_group_hierarchy`, la clave `roles_that_cascade_to_sub_groups` con default `[admin]`), y esta instancia
   la tiene **activa**. La decisión del proyecto es **no depender de ella**.
+- **L6 (implementación del portal, 2026-10-15):** T3 entregada en `odp` (sin commitear al escribir esta línea).
+  **La regla que quedó:** el control bloquea la propia **sólo** si el catálogo no concedió la excepción
+  (`isOwn && item.decidable_by_caller !== true`), y el plegado de la cola abre la propia cuando el catálogo la concede.
+  **Sin el campo, cuatro ojos** —una fila que no dice nada no concede nada—: ése es el fallback, y por eso el campo es
+  opcional. **Lo que NO se tocó, a propósito (S5):** un `editor` o un `admin` de una organización relacionada siguen
+  viendo el control y el catálogo responde —hoy con su `403`—; el permiso de la ficha (`canAdministerOrganization`) y el
+  camino de pedir/cancelar quedan igual. **Lo que queda abierto:** (a) el árbol del store está **sin commitear**
+  (`unit/handoff-refresh` de `odp-docker`), así que el campo no está en `master`; (b) la **corrida de aceptación en
+  vivo** (`test-pdf`) **no se hizo**: exige el contenedor de CKAN reiniciado con el código nuevo —Python cachea los
+  imports al arrancar— y aprueba una fila real, así que va con el autor delante; (c) `/dev/publication` conserva su
+  propia copia de la regla de cuatro ojos (`+page.svelte:385` y `:1311`) y **no** se alineó: sus fixtures no traen el
+  campo, así que la hoja no muestra la excepción. Se alinea si el autor quiere revisar la variante ahí.
+- **L7 (medición, 2026-10-15):** el portal **no** consumía el campo antes de T3: `grep -rn decidable_by_caller src/` no
+  devolvía nada y `PublicationDecision.svelte` decidía por comparación de ids (`isOwn`). Por eso el reporte de la
+  sesión del store —«T1+T2+T3 ya están implementados»— era **inexacto en su tercera parte**: con el store concediendo,
+  la ficha y la cola seguían diciendo «No puede aprobar su propia solicitud.»

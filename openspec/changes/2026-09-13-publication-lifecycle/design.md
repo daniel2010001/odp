@@ -205,10 +205,12 @@ hot-mounts the plugin, production bakes it — see **Deployment**).
 | `publication_request_cancel(request_id)` | the requester, or an org `admin` | `pending` → `cancelled` |
 | `publication_request_decide(request_id, approve, comments?)` | an org `admin` of the owning org, an `admin` of a parent org, or a `sysadmin` — **never the requester** | `rejected` (a comment is **required**), or `approved` **and flips `private` in the same transaction**; the decision re-checks the dataset's current owner and the requester's current capacity |
 | ~~`publication_publish(dataset_id, comments?)`~~ | **removed 2026-10-08** (was: `sysadmin` only) | **Amended 2026-10-08: the action is removed, not merely refused.** The action, its auth function and both `plugin.py` registrations are gone, and the action MUST NOT be registered; an unregistered name answers `HTTP 400 "Bad request: Action name not known: publication_publish"` and writes no row. The previous "sysadmin's **recorded** direct path" no longer exists. |
-| `publication_request_list(status?)` | anyone who administers or edits in the org | the queue: requests of the orgs where the caller has capacity, plus the caller's own — a caller's own request is listed but not decidable by them |
+| `publication_request_list(status?)` | anyone who administers or edits in the org | the queue: requests of the orgs where the caller has capacity, plus the caller's own — an own request is decidable **only when the catalog grants it** (`decidable_by_caller`; the `c′` exception of 2026-10-15: the owning organization has no other approver). Otherwise the action still enforces four eyes |
 
 **Return shape — decided finally on 2026-10-07, after the same point was decided three times in a day.** Every
-action returns **only** its `publication_requests` row, carrying the derived display names. **No action returns
+action returns **only** its `publication_requests` row, carrying the derived display names — and, **since
+2026-10-15**, the per-caller decision answer `decidable_by_caller` (in all four faces; one statement for a whole
+page, measured). **No action returns
 the dataset.** A portal therefore does not learn the stored value from the response: after a flipping action it
 **re-reads the dataset** and confirms from the stored `private`. The verification is deliberately at the source
 — measuring the stored value is stronger than trusting the response of the writer that changed it — and the

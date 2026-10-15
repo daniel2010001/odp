@@ -17,6 +17,12 @@ export interface PublicationQueueItem {
 	organization_title?: string;
 	/** Id de usuario de quien creó la solicitud; sólo alimenta la comparación de cuatro ojos. */
 	requested_by?: string;
+	/**
+	 * La respuesta del catálogo: `true` sólo si `publication_request_decide` autorizaría a quien mira
+	 * sobre esta fila. Es lo que permite la excepción de auto-aprobación y lo que lee el plegado; ausente
+	 * en un catálogo anterior al campo.
+	 */
+	decidable_by_caller?: boolean | null;
 	/** Nombre visible de quien creó la solicitud; es lo que la fila muestra. */
 	requested_by_name?: string;
 	/** Nombre visible de quien decidió la solicitud; sólo lo traen las filas ya resueltas. */
@@ -154,6 +160,17 @@ function isOwn(item: PublicationQueueItem): boolean {
 	return viewer !== null && item.requested_by === viewer;
 }
 
+/**
+ * ¿Esta fila es una que quien mira puede decidir? Para la **propia** la respuesta es la del catálogo
+ * —la excepción de auto-aprobación viaja en la fila, y sin respuesta vale la regla de siempre—. Para
+ * las ajenas la cola no lo decide: las ofrece y el catálogo responde, así que cuentan como decidibles
+ * igual que antes de la excepción.
+ */
+function canDecide(item: PublicationQueueItem): boolean {
+	if (!isOwn(item)) return true;
+	return item.decidable_by_caller === true;
+}
+
 // ─── Presentación: el plegado y las secciones ─────────────────────────
 // El plegado es una decisión de **presentación**, no una política: lo único que se esconde es la
 // vista de decidir, y el disparador es un botón —nunca un estado que sólo viva en el hover—.
@@ -163,10 +180,10 @@ const pendientes = $derived(items.filter((item) => item.status === "pending"));
 const resueltas = $derived(items.filter((item) => item.status !== "pending"));
 
 // La fila que arranca abierta: la primera que quien mira **puede decidir**. Cuatro ojos: la propia
-// nunca, porque abrirla para decidir sería ofrecer lo que no se puede hacer. Si no hay ninguna
-// decidible, no se abre ninguna.
+// nunca —salvo que el catálogo haya concedido la excepción—, porque abrirla para decidir sería ofrecer
+// lo que no se puede hacer. Si no hay ninguna decidible, no se abre ninguna.
 const abiertaPorDefecto = $derived(
-	expansion === "primera" ? (pendientes.find((item) => !isOwn(item))?.id ?? null) : null,
+	expansion === "primera" ? (pendientes.find(canDecide)?.id ?? null) : null,
 );
 
 function estaAbierta(item: PublicationQueueItem): boolean {

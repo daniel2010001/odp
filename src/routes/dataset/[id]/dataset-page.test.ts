@@ -1124,8 +1124,34 @@ describe("Página de dataset — decidir la solicitud desde la ficha", () => {
 	});
 
 	it("la solicitud propia no se decide, ni administrando la organización", async () => {
-		// Cuatro ojos: `requested_by` es el **id** de quien pidió, y acá es el mismo de la sesión.
+		// Cuatro ojos: `requested_by` es el **id** de quien pidió, y acá es el mismo de la sesión. La fila
+		// **no** trae la respuesta del catálogo, así que este caso fija el fallback: sin respuesta, la propia
+		// sigue bloqueada —una fila que no dice nada no concede nada—.
 		montar({ requested_by: "user-1" });
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+
+		render(DatasetPage);
+
+		expect(await screen.findByText("No puede aprobar su propia solicitud.")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
+	});
+
+	it("la solicitud propia **se** decide cuando el catálogo concede la excepción", async () => {
+		// La excepción `c′`: el catálogo confirmó que no hay otra persona que pueda aprobarla, así que la
+		// propia deja de estar bloqueada. La ficha no lo deduce: refleja la respuesta de la fila.
+		montar({ requested_by: "user-1", decidable_by_caller: true });
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+
+		render(DatasetPage);
+
+		expect(await screen.findByRole("button", { name: "Aprobar" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Rechazar" })).toBeInTheDocument();
+		expect(screen.queryByText("No puede aprobar su propia solicitud.")).not.toBeInTheDocument();
+	});
+
+	it("la solicitud propia sigue sin decidirse cuando el catálogo no concede la excepción", async () => {
+		// La rama negativa del campo, con la frase de cuatro ojos: hay otra persona que puede aprobarla.
+		montar({ requested_by: "user-1", decidable_by_caller: false });
 		mocks.canAdministerOrganization.mockResolvedValue("may");
 
 		render(DatasetPage);
