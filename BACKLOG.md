@@ -186,6 +186,58 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > que la superadministración de la plataforma decida desde la ficha, es una decisión de producto que hay que tomar
 > explícitamente**: la pregunta del portal no puede distinguirlo.
 
+> **Avisos de la revisión nativa del PR #67 (2026-10-15) — verificados, y qué se hizo con cada uno.** El
+> linaje `review-1481add2b05f1386` (tier medium, cuatro lentes) **aprobó** el rango y dejó **siete**
+> hallazgos `informational`: ninguno bloqueó, ninguno abrió una corrección. Un aviso es una **hipótesis**
+> hasta medirlo, y esto es lo que dio medirlos uno por uno:
+>
+> - **Arreglados en el PR de seguimiento (2026-10-15)**: dos comentarios que habían quedado mintiendo —el
+>   de `SUPERADMIN_ID` en `dev/publication/fixtures.ts`, que decía que la superadministración «no decide»
+>   cuando lo medido es que **sí se le ofrece**—; la **asignación muerta** de la cola
+>   (`announcement = null` después de la confirmación, donde ya no servía: el limpiado del anuncio se
+>   restauró al **empezar** una decisión, que es donde la cola lo hacía antes de la extracción); y la
+>   **propiedad de tipos** invertida —el componente importaba su contrato de la cola, que es su
+>   consumidor—, que ahora vive en `src/lib/components/dataset/publication-decision.ts`.
+> - **Declarado, no arreglado**: el **ida y vuelta** de la pregunta de permiso
+>   (`R4-unconditional-permission-roundtrip`) es el precio deliberado de que el orden sea determinista
+>   —una llamada por vista de dataset—, y quedó escrito en el código **con la condición** para ahorrarla.
+> - **Decisión del autor, ya registrada arriba**: el quirk del sysadmin (`R4-sysadmin-gate-ineffective`).
+> - **Queda abierto:**
+>
+> - [ ] **La hoja y la ficha tienen cada una su `reflejarDecision`** (`dev/publication/+page.svelte` vs
+>   `dataset/[id]/+page.svelte`): el mismo reflejo del estado, escrito dos veces. Es superficie **sólo de
+>   desarrollo**, así que el costo es **deriva**, no comportamiento; si se unifican, la ocasión natural es
+>   el **TODO de localización** de arriba, que ya va a tocar esa tarjeta. **Tier: lo define el autor.**
+
+> **Pregunta del autor (2026-10-15): si en una organización sólo existe quien la administra, y es además quien pidió
+> la publicación, ¿quién la revisa?** Medido en la acción del store —`ckanext-umss/logic/auth/publication.py`,
+> `publication_request_decide`—, que es la autoridad real: el portal sólo **ofrece**, y **el catálogo decide**.
+>
+> La acción exige tres cosas, en este orden: (1) que el **solicitante todavía pueda editar** el dataset,
+> re-evaluado contra la organización **actual** y **sin excepción de sysadmin** —si esa capacidad se perdió, la
+> solicitud queda `pending` y el propio docstring lo declara: *«there is no escape hatch»*—; (2) **cuatro ojos
+> sin excepción** (`if is_sysadmin: if is_requester: return DECIDE_FOUR_EYES_MSG`); y (3) ser **admin de la
+> organización dueña**… **o sysadmin de la plataforma**, que tiene su **rama propia** después de cuatro ojos.
+>
+> **Consecuencia medida:** con sólo el org_admin solicitante, **la superadministración de la plataforma puede
+> decidirla** (es otra persona, y la rama de sysadmin la habilita): **hay salida y ya funciona**, no hay que
+> inventar nada. Si esa única persona **es también el sysadmin**, la solicitud **queda trabada**, y eso es un
+> desenlace **deliberado** del store, no un olvido.
+>
+> **El hueco es de la UI, no del catálogo:** cuando el bloqueo ocurre, la ficha y la cola dicen «No puede aprobar
+> su propia solicitud» y **nada más** — ni que hace falta otro administrador o la superadministración, ni que en
+> ese caso nadie podrá decidirla. La solicitud queda pendiente y **muda**.
+>
+> **Opciones (decisión del autor):** **(a)** decir en el copy que sólo **otro** administrador —o la
+> superadministración de la plataforma— puede decidirla; **(b)** **declarar** a la superadministración como
+> aprobador de respaldo de una organización sin segundo administrador (ya lo es de hecho); **(c)** permitir la
+> auto-aprobación cuando no hay nadie más → **rompe cuatro ojos**, que es el corazón de la gobernanza, no se
+> recomienda; **(d)** publicación directa para el admin solitario → ya rechazada el 2026-10-08. Decir «nadie
+> podrá decidirla» exige una pregunta nueva al catálogo (¿hay otro admin en la organización?) y es trabajo aparte.
+>
+> - [ ] **TODO (autor): decidir cuál de esas salidas va.** Sin decidirlo, el caso de una sola persona deja
+>   solicitudes pendientes que nadie puede decidir y que la UI no explica. **Tier: lo define el autor.**
+
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
 > **Son tres lugares y no hacen lo mismo** — y la confusión es razonable, porque el arreglo del otro repo los tocó a
