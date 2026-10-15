@@ -190,7 +190,8 @@ dataset** —no por API—: así la corrida ejerce las dos mitades, el store y e
   opcional. **Lo que NO se tocó, a propósito (S5):** un `editor` o un `admin` de una organización relacionada siguen
   viendo el control y el catálogo responde —hoy con su `403`—; el permiso de la ficha (`canAdministerOrganization`) y el
   camino de pedir/cancelar quedan igual. **Lo que queda abierto:** (a) el cambio del store ya está **commiteado** en la rama `unit/publication-self-approval` de `odp-docker`
-  (`21b1bb7` T1, `c260d99` T2, `5250569` T3), **sin push y sin PR** —eso lo decide el autor—, así que el campo no está
+  (`21b1bb7` T1, `c260d99` T2, `5250569` T3) y **empujada con PR abierto: el PR #18 de `odp-docker`**, base
+  `master` — el merge sigue siendo decisión del autor—, así que el campo no está
   en `master`; `unit/handoff-refresh` sigue siendo de otra unidad (wirear contra ella encontraría otra cosa); (b) la **corrida de aceptación en
   vivo** (`test-pdf`) **no se hizo**: no exige reiniciar el contenedor —medido: el reloader de Werkzeug corre; ver la corrección del caso de
   aceptación— y aprueba una fila real, así que va con el autor delante y **desde la ficha**; (c) `/dev/publication` conserva su
@@ -205,9 +206,13 @@ dataset** —no por API—: así la corrida ejerce las dos mitades, el store y e
   reloader de Werkzeug y los banners de arranque son posteriores a sus últimas escrituras de fuente, así que el
   proceso ya servía el código final (corregida la sección del caso de aceptación). **(2) El cambio del store no está
   en `unit/handoff-refresh`** —esa rama es de otra unidad—, pero el cambio ya **está commiteado** en
-  `unit/publication-self-approval` (`21b1bb7`, `c260d99`, `5250569`), sin push y sin PR: eso lo decide el autor. Este
+  `unit/publication-self-approval` (`21b1bb7`, `c260d99`, `5250569`), **empujada y con PR abierto: el PR #18 de
+  `odp-docker`** (base `master`); su merge sigue siendo decisión del autor. Este
   registro dijo «sin commitear en el working tree» y quedó viejo en horas, porque los mensajes se cruzaron: se anota
-  así, en vez de borrarlo, porque es la clase de dato que envejece solo. **El nombre del campo quedó reconfirmado de su lado:
+  así, en vez de borrarlo, porque es la clase de dato que envejece solo. **Y volvió a envejecer**: esta misma línea
+  decía «sin push y sin PR» y el 2026-10-15 el store ya tenía el **PR #18** abierto. Se anota el cambio de estado en
+  vez de reescribir la historia: el registro sirve justamente porque deja ver cuántas veces un dato de estado se
+  mueve debajo de una frase. **El nombre del campo quedó reconfirmado de su lado:
   `decidable_by_caller`, idéntico al que consume el portal.** Su pre-flight por API no pudo autenticarse
   (`400 "Bad request: Action name not known: login"` — este CKAN no registra una acción `login`), y el valor del campo
   en la fila de aceptación no depende de esa llamada: el único miembro de `direccion-investigacion` es `ckan_admin`
