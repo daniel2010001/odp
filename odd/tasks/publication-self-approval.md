@@ -100,6 +100,18 @@ personas **no-sysadmin** con `capacity = admin` en esa organización es **0** y 
 mismo id** (`ckan_admin`) y el dataset queda **público**. Si la respuesta fuera `Four eyes`, el recuento está contando a
 un sysadmin: es **defecto del store**, y se reporta con el estado de la fila antes/después.
 
+**Corrida hecha el 2026-10-15 por el autor, desde la ficha — y con una discrepancia medida, sin reconciliar.** El
+proxy registró `POST /api/3/action/publication_request_decide` → `200` a las **18:30:07** con `referer
+https://odp.hs.lan/dataset/eb8a06b6-…` (esta ficha) y otra a las **18:32:14** sobre
+`observatorio-de-movilidad-urbana-cochabamba` (`fcyt`). **De las dos, sólo la segunda quedó pública**: medido con
+peticiones anónimas al stack vivo el 2026-10-15, `package_show?id=observatorio-…` → `200`, `private: false`; y
+`package_show?id=eb8a06b6-…` —también por nombre `test-pdf`, que resuelve al mismo id— → **`403` «Access denied: User
+not authorized to read package eb8a06b6-…»**, con `package_search` anónimo en **count 1** (sólo el observatorio). Si la
+fila de `test-pdf` está `approved` con el mismo id en `requested_by`/`approved_by` —como la midió la sesión del store
+en la base—, entonces **el dataset no quedó público**, y eso contradice el contrato del store (*«`approved` … y cambia
+`private` en la misma transacción»*) y este criterio. **La aceptación NO se cierra** hasta reconciliarlo: el pedido
+concreto a la sesión del store quedó en L9.
+
 **Antes de correrla, un reinicio — corregido el 2026-10-15: en este stack no hace falta.** Esta sección decía que el
 contenedor de CKAN tenía que reiniciarse porque *«Python cachea los imports al arrancar»*. Medido sobre el stack vivo
 por la sesión del store: `USE_DEBUGPY_FOR_DEV` **no está seteado**, así que la línea de `start_ckan_development.sh` que
@@ -187,3 +199,17 @@ dataset** —no por API—: así la corrida ejerce las dos mitades, el store y e
   (`400 "Bad request: Action name not known: login"` — este CKAN no registra una acción `login`), y el valor del campo
   en la fila de aceptación no depende de esa llamada: el único miembro de `direccion-investigacion` es `ckan_admin`
   (solicitante y sysadmin), así que el recuento de otras personas es 0 y `decidable_by_caller` es `true`.
+- **L9 (discrepancia medida, 2026-10-15, sin reconciliar):** la corrida de aceptación **se hizo** el 2026-10-15 —el
+  autor la ejecutó desde la ficha, y la sesión del store la reconstruyó del proxy: `200` a las 18:30:07 con `referer`
+  de la ficha de `test-pdf` y otro a las 18:32:14 sobre `observatorio-de-movilidad-urbana-cochabamba`—, **pero de las
+  dos sólo la segunda quedó pública**. Medición propia, anónima, sobre el stack vivo
+  (`localhost:8082/api/3/action/…`): el observatorio → `200`/`private: false`/`state: active`; `eb8a06b6-…` → `403`
+  `Access denied: User  not authorized to read package eb8a06b6-b0da-4b7e-9d71-75a6114d2c30` (y también por el nombre
+  `test-pdf`, que resuelve al mismo id); `package_search` anónimo → `count 1`, sólo el observatorio. **Hipótesis
+  abiertas, en orden de lo que explicaría la contradicción:** (a) la vuelta de `private` en la acción es
+  **condicional** y no ocurre en la rama que concede la excepción (defecto del store en el camino de `c′`); (b) el
+  dataset se volvió a privatizar después de las 18:30; (c) la fila que se aprobó no es la de `test-pdf`. **Pedido
+  concreto a la sesión del store** (tiene la base; yo no): la fila `d9947c1a-…` (`status`, `decided_at`,
+  `requested_by`, `approved_by`, `dataset_id`), `package.private`/`state` de `eb8a06b6-…`, y si la vuelta de
+  `private` ocurre en la misma rama que concede la excepción o es condicional. **Lo que NO se puede afirmar**: que
+  la corrida pasó. La única mitad verificada de punta a punta es la del observatorio.
