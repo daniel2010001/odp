@@ -11,6 +11,11 @@
 - **S1 — La excepción.** La auto-aprobación se permite **sólo si no existe otro aprobador**: ni otro **admin de la misma
   organización** dueña del dataset (miembro `active` con `capacity = admin`), ni **otro sysadmin activo** distinto del
   solicitante. En cualquier otro caso, cuatro ojos sigue negando como hoy.
+  **Contar bien a los sysadmins (medido, 2026-10-15):** la instancia de desarrollo tiene **dos** filas de sysadmin
+  activas —`ckan_admin` y **`default`**, la **cuenta de sistema de CKAN**, sin credenciales usables y usada para
+  contenido sin atribución—. Si `default` contara como «otro aprobador», **la excepción no aplicaría nunca** en el caso
+  que viene a resolver (`test-pdf`), porque esa fila siempre existe. **La cuenta de sistema se excluye del recuento**,
+  con el motivo escrito al lado.
 - **S2 — La organización relacionada NO cuenta** (decisión del autor, 2026-10-15, textual en su intención): *«la
   jerarquía de organizaciones NO es un mecanismo de permisos… no se heredan permisos, no se tienen privilegios sobre
   organizaciones hijas… esto es solo figurativo, para demostrar que hay una org a la que pertenece o tienen más org
@@ -79,8 +84,15 @@ el mismo id en las dos columnas). Es la comprobación de punta a punta, y sirve 
    jerarquía), pero si alguien crea uno desde la UI de CKAN, el admin del padre **recibiría** permisos del hijo. Por eso
    la consulta de «otro aprobador» mira **membresías**, no permisos efectivos (S2, punto 2).
 2. **Qué cuenta como «otro aprobador»** — a cerrar en T1: sólo `active`; sólo `capacity = admin`; sólo la organización
-   **dueña actual** del dataset; sysadmins **activos** distintos del solicitante. Un miembro `pending`/`deleted` no
-   cuenta.
+   **dueña actual** del dataset; sysadmins **activos** distintos del solicitante **excluyendo la cuenta de sistema
+   `default`** (si no, la excepción no aplica nunca: esa fila siempre existe). Un miembro `pending`/`deleted` no cuenta.
+3. **Cómo quedan las organizaciones hoy (medido, 2026-10-15):** al crear una organización, CKAN hace al **creador
+   miembro `admin` de ella** (`ckan/logic/action/create.py:740-751`, con `ignore_auth` porque en ese momento todavía no
+   es miembro), **también si el creador es sysadmin** — así se explica que `ckan_admin` sea admin en las cinco orgs—.
+   Y **4 de las 5** (`direccion-investigacion`, `fcs`, `fcyt`, `rectorado`) tienen **un solo miembro**: son las que la
+   excepción destraba. `fca` tiene tres admins, y ahí cuatro ojos manda. Un sysadmin **no necesita** membresía para
+   administrar cualquiera, pero la membresía **igual se crea** — así que conviene no confundir «es miembro» con «es
+   aprobador por membresía» al escribir la consulta.
 3. **El caso del solicitante degradado no entra acá** (S5): es otra negativa y sigue como está.
 4. **Si `c′` no alcanzara** (por ejemplo, si el despliegue exige una palanca explícita y auditable), la alternativa ya
    escrita es `c″`, la flag de despliegue en `v2+`.

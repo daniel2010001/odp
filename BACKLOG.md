@@ -273,20 +273,28 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >
 > ---
 >
-> ### La relación entre organizaciones es **figurativa**, no un camino de permisos (decisión del autor, 2026-10-15)
+> ### La relación entre organizaciones: **figurativa** en `v0`/`v1`, y la cascada de CKAN **ni se adopta ni se descarta** (decisión del autor, 2026-10-15)
 >
-> **Para nunca olvidarlo, y textual en su intención:** la jerarquía de organizaciones **no** es un mecanismo de
-> permisos. Una organización relacionada con otra —o una «madre»— es **figurativa**: sirve para **navegar** entre
-> organizaciones y para mostrar que existen vínculos del mundo real. **No se heredan permisos, no se tienen
-> privilegios sobre organizaciones hijas, nada de eso.** Que exista un vínculo **no** da dominio sobre la otra
-> organización.
+> **Para nunca olvidarlo, y textual en su intención:** en **este proyecto**, hoy, la relación entre organizaciones es
+> **figurativa**: sirve para **navegar** entre organizaciones y para mostrar que existen vínculos del mundo real. **No
+> se heredan permisos, no se tienen privilegios sobre organizaciones hijas, nada de eso.** Que exista un vínculo **no**
+> da dominio sobre la otra organización.
 >
-> **Las tres consecuencias que importan al código:** (a) la política de aprobación **no puede** contar a un admin de
-> una organización relacionada como aprobador —por eso `c′` cuenta sólo a los admins de la **misma** organización y a
-> los sysadmins activos—; (b) aunque el catálogo **pueda** cascar permisos por jerarquía (CKAN lo hace si el vínculo
-> existe, y una medición vieja lo menciona en este mismo archivo, §«una sonda que obtiene **403** es robusta a la
-> cascada»), **este proyecto no lo usa como camino de permisos y no debe depender de él**; (c) construir jerarquía
-> real de permisos entre organizaciones está **fuera del alcance** — y no es un pendiente: es una **decisión**.
+> **Y ojo con el alcance de esa frase, porque es fácil de malinterpretar:** dice cómo **trata el proyecto** a la relación
+> entre organizaciones **hoy**, y **no** niega que CKAN tenga un mecanismo real. Lo tiene, y está medido abajo: **la
+> cascada de permisos por jerarquía existe y esta instancia la tiene encendida**. Lo que se decide es **no construir
+> sobre ella en `v0`/`v1`** — y **no se descarta para siempre**: si la relación entre organizaciones se adopta más
+> adelante (`v2+`), la cascada queda como una **herramienta disponible** para entonces, y la política de aprobación
+> habría que **revisarla a propósito** en ese momento, no por inercia. Anotado así, un desarrollador futuro **no tira la
+> herramienta**: encuentra el motivo y la condición para usarla.
+>
+> **Las tres consecuencias que importan al código:** (a) mientras la relación no se adopte, la política de aprobación
+> **no cuenta** a un admin de una organización relacionada como aprobador —por eso `c′` cuenta sólo a los admins de la
+> **misma** organización y a los sysadmins activos—; (b) el código **no puede depender** de la cascada sin una decisión
+> explícita: si mañana el vínculo existe, el comportamiento de los permisos **cambia solo** —CKAN ya lo casca, ver
+> abajo—, así que cualquier predicado que pregunte por *permiso efectivo* heredaría esa conducta sin que nadie la haya
+> decidido; (c) **construir** jerarquía real de permisos entre organizaciones es una **decisión de producto pendiente**
+> para `v2+`, no un pendiente técnico.
 >
 > **Las razones que dio el autor (2026-10-15), además de la decisión:** un admin de la organización padre decidiendo
 > contra los admins de la hija **sobrepasa su autoridad**; y queda la **ambigüedad** de qué manda cuando alguien es
@@ -298,8 +306,17 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > `ckan.auth.roles_that_cascade_to_sub_groups` (`config/config_declaration.yaml:584-592`, **default `[admin]`**) hace que
 > los permisos del rol se apliquen «down the hierarchy», y **esta instancia la tiene encendida** (`ckan.ini:99 = admin`).
 > Lo que **no** existe es ningún vínculo: **0 filas** de jerarquía en `member`. O sea: el mecanismo está disponible y
-> activo, y **el proyecto decide no depender de él** — y por eso la excepción de `c′` tiene que mirar **membresías de la
-> organización dueña**, no permisos efectivos.
+> activo, y **el proyecto decide no depender de él por ahora** — y por eso la excepción de `c′` mira **membresías de la
+> organización dueña**, no permisos efectivos. **No se está tirando una herramienta**: se está decidiendo **cuándo** se
+> usa, y queda anotado que ese día hay que revisar esta política.
+>
+> **Y cómo quedan las organizaciones de desarrollo (medido, 2026-10-15):** al crear una organización, CKAN hace al
+> **creador miembro `admin` de ella** (`ckan/logic/action/create.py:740-751`, con `ignore_auth` porque en ese momento
+> todavía no es miembro), **también cuando el creador es sysadmin** — por eso `ckan_admin` figura como admin en **las
+> cinco** orgs. Consecuencia práctica: **4 de las 5** (`direccion-investigacion`, `fcs`, `fcyt`, `rectorado`) tienen
+> **un solo miembro**, así que la excepción de `c′` es lo que las destraba; `fca` tiene tres admins y ahí cuatro ojos
+> manda. Un sysadmin **no necesita** membresía para administrar cualquiera —tiene su atajo, y la acción del store tiene
+> su rama propia—, pero **la membresía igual se crea**.
 
 ### `dataset_id`: qué se compara, qué se guarda y qué queda de los datos viejos (información para decidir)
 
