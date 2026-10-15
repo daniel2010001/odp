@@ -305,6 +305,12 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   portal, en todo caso, sería el que **muestra** el rechazo, como en S4. El lado del store ya lo tiene como tarea
 >   bloqueada, con la pregunta escrita y la evidencia (L10 del plan de esta feature), y ofrece anotarlo ahí cuando el
 >   autor decida la salida. Escalado por esa sesión.
+>   **La «pared» que este ítem cita es A3 «la pared» de
+>   `openspec/changes/2026-09-13-publication-lifecycle/tasks.md:366`** —el cambio de **publicación**, **no** el flujo de
+>   edición y borrado pospuesto para `v1`— y, según `odd/tasks/publication-lifecycle-minimum.md:936`, **ya está en el
+>   master del store** (`6472e48`). Así que el ítem **no espera al flujo de edición**: espera la decisión de producto
+>   (¿el flujo activa el `draft` al publicar, o se niega a publicar un `draft`?). Si el autor lo quiere revisar **con
+>   el flujo de edición delante**, ese vínculo hay que **crearlo**: hoy no existe en el registro.
 >
 > ---
 >
