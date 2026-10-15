@@ -1,0 +1,130 @@
+// El **puente vivo** del portal hacia el catálogo: lo que hace con un pedido de acción del navegador.
+//
+// ─── Por qué existe, y por qué es una pieza aparte de la ruta ─────────
+// `ckan-proxy.ts` decide **qué** se puede pedir y con qué cabeceras; esto resuelve el camino completo: la
+// credencial ya salida de la sesión sellada, la guarda, el reenvío y la respuesta normalizada. Vive separado
+// del `+server.ts` —y con tests— por el mismo motivo que `auth-server.ts` vive separado del login: los módulos
+// virtuales de SvelteKit (`$env`, `$app`) no resuelven en Vitest, así que la lógica se prueba sin ellos y la
+// ruta queda como adaptador.
+//
+// ─── Las tres cosas que este módulo garantiza ─────────────────────────
+//  · **La guarda va antes del reenvío**, y por eso las dos negativas devuelven sin llamar al `fetch`: un
+//    reenvío que ya salió no se puede deshacer. Sin sesión es `401`; una acción no permitida es `404` —no
+//    `403`—, porque el `404` no confirma qué acciones existen.
+//  · **La credencial viaja en la cabecera, nunca en la URL.** Importa sobre todo en un `GET`, donde los
+//    parámetros sí van en la query: un token en una URL termina en logs, historiales y `Referer`.
+//  · **Un catálogo caído no se disfraza de respuesta válida.** Un fallo de red es `502` con cuerpo propio —no
+//    una excepción que tumbe el request ni un `200` vacío que el navegador lea como «no hay nada»—, y un
+//    cuerpo que no es JSON conserva su status con el cuerpo vacío en vez de romper.
+
+import { upstreamHeaders, upstreamUrl } from "./ckan-proxy";
+
+/** El pedido, con la credencial **ya resuelta** por quien llama (de la cookie sellada). */
+export interface BridgeRequest {
+	action: string;
+	method: "GET" | "POST";
+	/** Los parámetros tal como llegaron del cliente. `undefined` no se manda. */
+	params: Record<string, unknown>;
+	/** La credencial de CKAN. Vacía = no hay sesión. */
+	token: string;
+	/** La URL interna del catálogo (`resolveCkanInternalUrl`). */
+	internalUrl: string;
+	/** Las cabeceras del pedido entrante: existen para que **nada** de ellas viaje, y para poder probarlo. */
+	incomingHeaders: Headers;
+}
+
+/** Lo que la ruta le devuelve al navegador: el status y el cuerpo, sin envoltorios propios. */
+export interface BridgeResult {
+	status: number;
+	body: unknown;
+}
+
+/** El `fetch` inyectable: en producción es el global, en los tests uno de mentira. */
+export type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
+
+/** Sin sesión: el navegador tiene que volver a entrar. */
+export const NO_SESSION_STATUS = 401;
+/** Acción fuera de la allowlist: no existe para este camino. */
+export const UNKNOWN_ACTION_STATUS = 404;
+/** El catálogo no respondió: la falla es de la conexión, no del pedido. */
+export const UPSTREAM_FAILURE_STATUS = 502;
+
+/** Un pedido sin sesión no se reenvía. */
+export function noSession(): BridgeResult {
+	return {
+		status: NO_SESSION_STATUS,
+		body: { error: "La sesión del portal no está activa." },
+	};
+}
+
+/** Una acción fuera de la allowlist no se reenvía, y el `404` no confirma qué acciones existen. */
+export function unknownAction(): BridgeResult {
+	return {
+		status: UNKNOWN_ACTION_STATUS,
+		body: { error: "Acción no disponible." },
+	};
+}
+
+/** Serializa un valor de la query: los complejos como JSON, que es lo que CKAN acepta en un `GET`. */
+function serializeParam(value: unknown): string {
+	return typeof value === "object" && value !== null ? JSON.stringify(value) : String(value);
+}
+
+/** Los parámetros que sí viajan: `undefined` se omite, porque `"undefined"` no es un valor. */
+function usableParams(params: Record<string, unknown>): [string, unknown][] {
+	return Object.entries(params).filter(([, valor]) => valor !== undefined);
+}
+
+/**
+ * Reenvía una acción al catálogo y devuelve su respuesta normalizada.
+ *
+ * El orden importa: primero la guarda, después la credencial, y recién entonces el `fetch`.
+ */
+export async function forwardToCatalog(
+	request: BridgeRequest,
+	fetcher: Fetcher = fetch,
+): Promise<BridgeResult> {
+	const url = upstreamUrl(request.internalUrl, request.action);
+	if (!url) {
+		return unknownAction();
+	}
+
+	if (!request.token || request.token.trim() === "") {
+		return noSession();
+	}
+
+	const headers = upstreamHeaders(request.incomingHeaders, request.token);
+	const params = usableParams(request.params);
+
+	let destino = url;
+	let init: RequestInit = { method: request.method, headers };
+
+	if (request.method === "GET") {
+		const conQuery = new URL(url);
+		for (const [clave, valor] of params) {
+			conQuery.searchParams.set(clave, serializeParam(valor));
+		}
+		destino = conQuery.toString();
+	} else {
+		init = { ...init, body: JSON.stringify(Object.fromEntries(params)) };
+	}
+
+	let respuesta: Response;
+	try {
+		respuesta = await fetcher(destino, init);
+	} catch {
+		// El catálogo no respondió: la falla es de la conexión. Se dice con nuestras palabras y con un status
+		// propio, para que el navegador no confunda un catálogo caído con una negativa del catálogo.
+		return {
+			status: UPSTREAM_FAILURE_STATUS,
+			body: { error: "No se pudo contactar el catálogo." },
+		};
+	}
+
+	try {
+		return { status: respuesta.status, body: await respuesta.json() };
+	} catch {
+		// Un cuerpo que no es JSON conserva su status: perder el status sería perder la única señal que quedó.
+		return { status: respuesta.status, body: null };
+	}
+}

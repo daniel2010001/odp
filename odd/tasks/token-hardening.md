@@ -80,7 +80,7 @@
 | T1 | **Diseño** de la sesión del servidor y del anti-CSRF (decisión de forma, no de código) | `odd/tasks/token-hardening.md` § El diseño | parent | `890d184` |
 | T3a | **La primitiva de sesión** (sellado AEAD): la fundación de T3, y va **antes** que T2 porque el proxy y el login la necesitan | `src/lib/server/session.ts` + `session.test.ts` | parent | — |
 | T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | — |
-| T2b | El **camino vivo**: la ruta del proxy y `hooks.server.ts`, que resuelven la sesión y llaman al núcleo | `src/routes/api/ckan/[...action]/+server.ts` (nuevo), `src/hooks.server.ts` (nuevo) | parent | — |
+| T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | — |
 | T3 | El login y la sesión: la credencial entra en la sesión del servidor y el store del navegador pasa a guardar **sólo el usuario** | `src/lib/server/ckan-auth.ts`, `src/lib/stores/auth.ts` | parent | — |
 | T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
 | T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
@@ -171,3 +171,16 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   risk/readability/reliability) **aprobó y quedó reconocida**, con **tres avisos no bloqueantes**: `R1-001` (risk,
   `session.ts:90-94`), `R2-001` (readability, `:112-117`) y `R3-001` (reliability, `:126-135`, el único WARNING).
   Viven como deuda en el `BACKLOG` y **no reabren la revisión**: el proveedor lo dice explícito.
+- **L8 (implementación, 2026-10-15): el puente vivo.** `src/lib/server/ckan-bridge.ts` resuelve el camino completo
+  —sesión ya salida de la cookie sellada, guarda, credencial, reenvío y respuesta normalizada— y la ruta es un
+  **adaptador** que sólo lee el entorno y la cookie (los módulos virtuales que Vitest no resuelve). **Las negativas
+  devuelven sin llamar al `fetch`** —sin sesión `401`, acción fuera de la allowlist `404`, y **no** `403`, porque el
+  `404` no confirma qué acciones existen—, porque un reenvío que ya salió no se puede deshacer; la credencial viaja en
+  la **cabecera** y **nunca** en la URL (importa sobre todo en un `GET`, donde los parámetros sí van en la query: un
+  token en una URL termina en logs, historiales y `Referer`); y un catálogo caído es `502` con cuerpo propio, nunca un
+  `200` vacío que el navegador lea como «no hay nada» ni una excepción que tumbe el request. **10 pruebas.**
+  **Dos decisiones de forma, declaradas:** (a) la ruta vive en **`/catalog/<acción>`** y **no** bajo `/api`, porque
+  `/api` ya es la superficie pública del catálogo —lo fija `vite.config.ts` para el desarrollo y el proxy del stack
+  desplegado—, así que una ruta del portal ahí la intercepta el proxy antes de llegar a SvelteKit; el cambio del
+  `baseUrl` del cliente es parte de T4; (b) **`hooks.server.ts` se mueve a T4**: hoy **ningún** camino consume
+  `event.locals` —la ruta lee la cookie por su cuenta—, así que crearlo ahora sería una superficie sin consumidor.
