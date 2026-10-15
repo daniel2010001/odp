@@ -8,14 +8,23 @@
 
 ## Specs
 
-- **S1 — La excepción.** La auto-aprobación se permite **sólo si no existe otro aprobador**: ni otro **admin de la misma
-  organización** dueña del dataset (miembro `active` con `capacity = admin`), ni **otro sysadmin activo** distinto del
-  solicitante. En cualquier otro caso, cuatro ojos sigue negando como hoy.
-  **Contar bien a los sysadmins (medido, 2026-10-15):** la instancia de desarrollo tiene **dos** filas de sysadmin
-  activas —`ckan_admin` y **`default`**, la **cuenta de sistema de CKAN**, sin credenciales usables y usada para
-  contenido sin atribución—. Si `default` contara como «otro aprobador», **la excepción no aplicaría nunca** en el caso
-  que viene a resolver (`test-pdf`), porque esa fila siempre existe. **La cuenta de sistema se excluye del recuento**,
-  con el motivo escrito al lado.
+- **S1 — La excepción.** La auto-aprobación se permite **sólo si no hay otra persona de la organización que pueda
+  aprobarla**: otro miembro `active` con `capacity = admin` de la **misma** organización dueña del dataset. **La
+  superadministración de la plataforma no cuenta** (S1-bis), y tampoco un admin de una organización relacionada (S2).
+  En cualquier otro caso, cuatro ojos sigue negando como hoy.
+- **S1-bis — Por qué la superadministración NO cuenta (decisión del autor, 2026-10-15).** Contar a un sysadmin como
+  «otro aprobador» **rompe el caso real**: CKAN hace al **creador** `admin` de la organización que crea
+  (`ckan/logic/action/create.py:740-751`), así que el sysadmin que crea las organizaciones queda **dentro de todas
+  ellas**, y entonces el admin de una organización **nunca** podría aprobarse lo suyo —tendría que aprobarlo el sysadmin
+  de la plataforma, que es lo contrario de lo que se busca: un cuello de botella único y ajeno a la organización—.
+  «Otra persona que puede aprobarla» significa **otra persona de la organización**, no la administración de la
+  plataforma.
+  **Efecto colateral bienvenido:** `default` —la cuenta de sistema, que también es sysadmin— deja de ser un problema
+  **sin excluirla por nombre ni por heurística de contraseña**: se excluye por rol, que es un hecho del sistema y no un
+  dato de una instancia.
+  **El precio, declarado:** si en una organización hay un administrador que *además* es sysadmin de la plataforma, el
+  resto de esa organización podrá auto-aprobarse aunque esa persona pudiera revisar. Es el precio de no convertir a la
+  plataforma en revisora; se documenta, y se revisa si alguna vez molesta.
 - **S2 — La organización relacionada NO cuenta** (decisión del autor, 2026-10-15, textual en su intención): *«la
   jerarquía de organizaciones NO es un mecanismo de permisos… no se heredan permisos, no se tienen privilegios sobre
   organizaciones hijas… esto es solo figurativo, para demostrar que hay una org a la que pertenece o tienen más org
@@ -83,9 +92,20 @@ el mismo id en las dos columnas). Es la comprobación de punta a punta, y sirve 
    (el default de CKAN es `[admin]`, `config_declaration.yaml:584-592`). Hoy no hay ningún vínculo (0 filas de
    jerarquía), pero si alguien crea uno desde la UI de CKAN, el admin del padre **recibiría** permisos del hijo. Por eso
    la consulta de «otro aprobador» mira **membresías**, no permisos efectivos (S2, punto 2).
-2. **Qué cuenta como «otro aprobador»** — a cerrar en T1: sólo `active`; sólo `capacity = admin`; sólo la organización
-   **dueña actual** del dataset; sysadmins **activos** distintos del solicitante **excluyendo la cuenta de sistema
-   `default`** (si no, la excepción no aplica nunca: esa fila siempre existe). Un miembro `pending`/`deleted` no cuenta.
+2. **Qué cuenta como «otro aprobador»** — a cerrar en T1: otro miembro **`active`** con **`capacity = admin`** de la
+   **misma organización dueña actual** del dataset, **excluyendo a la superadministración de la plataforma** (S1-bis: un
+   sysadmin no es la organización revisándose). Un miembro `pending`/`deleted` no cuenta, y **ningún sysadmin cuenta**
+   —ni `default`, ni el creador al que CKAN le puso la membresía—, así que no hace falta ninguna lista de nombres ni
+   ninguna heurística sobre contraseñas.
+4. **El vínculo padre/hijo no cambia el comportamiento del store, y la excepción tampoco lo usa** (resuelve una
+   incoherencia que la sesión par del store detectó el 2026-10-15): el predicado del store **sigue aceptando** a un
+   admin de una organización relacionada si alguien se lo pide —lo afirma su test
+   `test_a_parent_org_admin_can_decide_a_child_org_request`, con la config de cascada puesta—, y **eso no se toca**: la
+   excepción decide **cuándo** se permite la auto-aprobación, **no revoca la capacidad de nadie**. Lo que cambia es el
+   **recuento**: la excepción sólo mira a la organización dueña, así que el admin del padre **no cuenta como segunda
+   persona**. El test del store se queda como está; el test **nuevo** se llama por lo que mide —«el admin de la
+   organización relacionada no cuenta como segunda persona para la excepción»— y no «sigue negando», que se leería al
+   revés.
 3. **Cómo quedan las organizaciones hoy (medido, 2026-10-15):** al crear una organización, CKAN hace al **creador
    miembro `admin` de ella** (`ckan/logic/action/create.py:740-751`, con `ignore_auth` porque en ese momento todavía no
    es miembro), **también si el creador es sysadmin** — así se explica que `ckan_admin` sea admin en las cinco orgs—.

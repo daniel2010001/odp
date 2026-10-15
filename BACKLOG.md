@@ -290,8 +290,9 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >
 > **Las tres consecuencias que importan al código:** (a) mientras la relación no se adopte, la política de aprobación
 > **no cuenta** a un admin de una organización relacionada como aprobador —por eso `c′` cuenta sólo a los admins de la
-> **misma** organización y a los sysadmins activos—; (b) el código **no puede depender** de la cascada sin una decisión
-> explícita: si mañana el vínculo existe, el comportamiento de los permisos **cambia solo** —CKAN ya lo casca, ver
+> **misma** organización, y **a ningún sysadmin de la plataforma**: el sysadmin que crea una organización queda dentro de
+> ella por una regla de CKAN (`create.py:740-751`), así que contarlo convertiría a la plataforma en la revisora de
+> todas—; (b) el código **no puede depender** de la cascada sin una decisión explícita: si mañana el vínculo existe, el comportamiento de los permisos **cambia solo** —CKAN ya lo casca, ver
 > abajo—, así que cualquier predicado que pregunte por *permiso efectivo* heredaría esa conducta sin que nadie la haya
 > decidido; (c) **construir** jerarquía real de permisos entre organizaciones es una **decisión de producto pendiente**
 > para `v2+`, no un pendiente técnico.
