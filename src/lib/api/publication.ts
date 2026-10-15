@@ -87,6 +87,17 @@ export interface PublicationRequest {
 	status: PublicationRequestStatus;
 	/** Id de usuario de quien pidió. Sólo alimenta la comparación de cuatro ojos. */
 	requested_by?: string | null;
+	/**
+	 * ¿`publication_request_decide` autorizaría a **quien mira** sobre **esta** fila? La respuesta del
+	 * catálogo —el dueño de la regla de cuatro ojos— viaja ya calculada: `true` sólo si la fila sigue
+	 * `pending` **y** la decisión le correspondería. Así, la auto-aprobación permitida —la excepción de
+	 * `c′`, cuando no hay otra persona que pueda aprobarla— llega como `true`, y una fila ya decidida
+	 * llega como `false` aunque quien mire hubiera podido decidirla.
+	 *
+	 * El portal la **refleja**, no la deduce. Es opcional a propósito: una fila que no la trae —un
+	 * catálogo anterior al campo— se comporta como antes de la excepción, y ése es el fallback.
+	 */
+	decidable_by_caller?: boolean | null;
 	/** Nombre visible de quien pidió; es lo que la fila muestra. */
 	requested_by_name?: string | null;
 	/** Id de usuario de quien decidió; sólo tiene sentido en `approved` y `rejected`. */

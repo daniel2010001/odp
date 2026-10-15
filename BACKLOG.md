@@ -260,7 +260,7 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > subiría a **`v1+`** si el despliegue real pidiera una palanca explícita y documentada —porque `c′` no la necesita—.
 > La flag **por organización** queda descartada con su motivo escrito arriba.
 >
-> - [ ] **Implementar `c′`** —es lo único que falta para destrabar el caso de una sola persona—: en el **store**
+> - [~] **Implementar `c′`** —es lo único que falta para destrabar el caso de una sola persona—: en el **store**
 >   (`odp-docker`), la excepción cuando el catálogo confirma que **no hay otro aprobador**; en el **portal**, que la
 >   ficha **no oculte** el control cuando la excepción aplica (o el copy dirá que no se puede algo que sí se puede);
 >   y tests de las dos ramas. **Ojo con la cascada de CKAN al implementarlo:** el predicado del store usa
@@ -270,6 +270,12 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   **El plan está escrito y es el punto de partida de la sesión: `odd/tasks/publication-self-approval.md`** —specs
 >   S1–S5, las tres unidades (la excepción en el store, la lectura que el portal consume y la ficha/cola reflejándola),
 >   el **caso de aceptación en vivo** (`test-pdf`) y los riesgos, incluido el de la cascada.
+>   **Estado (2026-10-15): a medias.** El **portal** ya refleja la respuesta del catálogo en la ficha y en la cola
+>   (T3; `PublicationDecision.svelte` dejó de decidir cuatro ojos por comparación de ids — ver
+>   `odd/tasks/publication-self-approval.md` L6). El **store** tiene T1+T2 **sin commitear** en `odp-docker`
+>   (`unit/handoff-refresh`), así que el campo no está en `master`, y la **corrida de aceptación en vivo** (`test-pdf`)
+>   **no se hizo**. El ítem **no se borra** hasta que el store esté mergeado *y* `test-pdf` quede `approved` con
+>   `requested_by` = `approved_by` y el dataset público.
 >
 > ---
 >

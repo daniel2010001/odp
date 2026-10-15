@@ -135,9 +135,12 @@ const decidir = (requestId: string, approve: boolean, comments?: string) =>
  */
 function reflejarDecision(respuesta: PublicationDecisionResult): void {
 	if (!solicitudVigente) return;
+	// Una fila decidida **ya no es decidible** —es la semántica del campo en el catálogo—, así que la
+	// copia en memoria no conserva un `true` que dejó de ser cierto.
 	solicitudVigente = {
 		...solicitudVigente,
 		status: respuesta.status,
+		decidable_by_caller: false,
 		comments: respuesta.comments ?? solicitudVigente.comments,
 		approved_by_name: respuesta.approved_by_name ?? solicitudVigente.approved_by_name,
 	};

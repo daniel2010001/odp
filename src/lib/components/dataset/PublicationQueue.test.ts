@@ -439,6 +439,56 @@ describe("PublicationQueue — cuatro ojos", () => {
 	});
 });
 
+describe("PublicationQueue — la excepción de auto-aprobación (`c′`)", () => {
+	// Quien mira es, en todos estos casos, **quien creó** la solicitud. La regla de cuatro ojos deja de
+	// decidirse acá: el dueño es el catálogo, y la fila trae su respuesta —`decidable_by_caller`, el campo
+	// congelado del store—, así que el portal la refleja en vez de deducir que «la propia no se decide».
+	it("la propia **se** decide cuando el catálogo concede la excepción", async () => {
+		renderQueue({
+			currentUser: SOLICITANTE_ID,
+			list: vi.fn().mockResolvedValue([makeItem({ decidable_by_caller: true })]),
+		});
+
+		const propia = await rowFor("Matrícula 2026");
+		expect(within(propia).queryByText(SELF_APPROVAL)).toBeNull();
+		expect(within(propia).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
+		expect(within(propia).getByRole("button", { name: REJECT_LABEL })).toBeInTheDocument();
+		expect(within(propia).getByLabelText(COMMENT_LABEL)).toBeInTheDocument();
+	});
+
+	it("y la decisión sale: aprobar la propia llama a `decide` con su fila", async () => {
+		// La guarda del control también lee la respuesta del catálogo: sin esto, la nota desaparecería del
+		// dibujo pero la decisión seguiría sin enviarse.
+		const decide = vi
+			.fn()
+			.mockResolvedValue(makeItem({ decidable_by_caller: true, status: "approved" }));
+		const readDataset = vi.fn().mockResolvedValue(makeDataset({ private: false }));
+		renderQueue({
+			currentUser: SOLICITANTE_ID,
+			list: vi.fn().mockResolvedValue([makeItem({ decidable_by_caller: true })]),
+			decide,
+			readDataset,
+		});
+
+		const propia = await rowFor("Matrícula 2026");
+		await fireEvent.click(within(propia).getByRole("button", { name: APPROVE_LABEL }));
+
+		await waitFor(() => expect(decide).toHaveBeenCalledWith("req-1", true, undefined));
+	});
+
+	it("la propia sigue sin decidirse cuando el catálogo no la concede", async () => {
+		// La rama negativa del campo: hay otra persona que puede aprobarla, así que cuatro ojos manda.
+		renderQueue({
+			currentUser: SOLICITANTE_ID,
+			list: vi.fn().mockResolvedValue([makeItem({ decidable_by_caller: false })]),
+		});
+
+		const propia = await rowFor("Matrícula 2026");
+		expect(within(propia).getByText(SELF_APPROVAL)).toBeInTheDocument();
+		expect(within(propia).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+	});
+});
+
 describe("PublicationQueue — rechazar exige un motivo", () => {
 	it("rechazar sin comentario no envía la decisión y pide el motivo", async () => {
 		const { decide, ondecided } = renderQueue();
@@ -737,6 +787,19 @@ describe("PublicationQueue — la presentación: secciones y plegado", () => {
 		expect(within(propia).getByText(SELF_APPROVAL)).toBeInTheDocument();
 		expect(within(propia).queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
 		expect(within(propia).queryByRole("button", { name: REJECT_LABEL })).toBeNull();
+	});
+
+	it('con `expansion="primera"`, la propia que el catálogo concede arranca abierta', async () => {
+		// La regla del plegado es «la primera que quien mira **puede** decidir»: con la excepción concedida,
+		// su propia solicitud es una de ellas y no hay motivo para dejar el control detrás del disparador.
+		renderQueue({
+			expansion: "primera",
+			currentUser: SOLICITANTE_ID,
+			list: vi.fn().mockResolvedValue([makeItem({ decidable_by_caller: true })]),
+		});
+
+		const propia = await rowFor("Matrícula 2026");
+		expect(within(propia).getByRole("button", { name: APPROVE_LABEL })).toBeInTheDocument();
 	});
 
 	it("con todas las solicitudes propias no abre ninguna: no hay nada que decidir", async () => {
