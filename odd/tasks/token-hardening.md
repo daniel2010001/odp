@@ -85,7 +85,7 @@
 | T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | `b1e973d` |
 | T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | worker | (este commit) |
 | T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | (este commit; E5 pendiente) |
-| T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
+| T6 | Descargas por el portal, con `Range` y sin servir contenido activo desde el origen del portal (§ El diseño de T6, G1–G6) | `src/lib/server/ckan-download.ts`, `src/routes/catalog/download/[resourceId]/+server.ts`, `src/lib/resources/file-url.ts`, `ResourcePreview.svelte`, la ficha del recurso | worker | — |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
 | T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | — |
 
@@ -189,6 +189,44 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   y `POST /auth/logout` revoca **sólo** el de la sesión: el camino del cuerpo desaparece, y con él el hueco (c) de L13.
 - **F5 — Prueba de cierre:** `grep -rn "\.token" src/lib/stores src/lib/api/auth.ts` y ningún `get(auth).token` en
   `src/`; y una prueba que fije que el store no escribe `localStorage` y borra la clave heredada.
+
+## El diseño de T6 (2026-10-16)
+
+Mapa previo (explorador, 2026-10-16): el PDF se muestra en un `<iframe src={resource.url}>` con el visor **nativo**
+(que hace sus propias peticiones `Range`), la imagen en `<img>`, el texto en otro `<iframe>`, y el botón es un
+`<a href={resource.url}>` (`ResourcePreview.svelte:27,70-95`; ficha del recurso `:383,544-558`). `resource.url` de
+un archivo subido es la URL **pública** de CKAN (`…/dataset/<pkg>/resource/<id>/download/<archivo>`) y el navegador
+va directo ahí **sin** credencial: hoy un recurso privado no se puede descargar desde el portal salvo que el
+navegador tenga otra sesión de CKAN.
+
+- **G1 — Una ruta propia, sólo `GET`:** `/catalog/download/<resourceId>` (`src/routes/catalog/download/[resourceId]/
+  +server.ts`; el segmento estático le gana a `[...action]`). Un `GET` que **lee** no es un CSRF: una navegación
+  ajena con la cookie `Lax` no puede leer la respuesta, y un `<iframe>`/`<img>` cross-site no lleva cookie `Lax`.
+- **G2 — El servidor resuelve el archivo, nunca la URL del cliente.** `resource_show {id}` con la credencial de la
+  sesión (o anónimo); si `url_type !== "upload"` → `404` (los enlaces externos siguen siendo enlaces). El archivo
+  se pide a **`CKAN_INTERNAL_URL`** con la ruta **construida** `/dataset/<package_id>/resource/<id>/download/<nombre>`
+  (cada segmento con `encodeURIComponent`; el nombre es el último segmento de `resource.url`): el host de
+  `resource.url` **no** se usa jamás, o la ruta sería un SSRF con credencial.
+- **G3 — `Range` de punta a punta, en stream.** Viajan hacia CKAN `Range` e `If-Range`, y vuelven el status
+  (`200`/`206`/`416`) y `Content-Type`, `Content-Length`, `Content-Range`, `Accept-Ranges`, `ETag` y
+  `Last-Modified`; el cuerpo se devuelve como stream, sin leerlo. Más `Cache-Control: private, no-store` y
+  `Vary: Cookie`.
+- **G4 — Ningún contenido activo desde el origen del portal.** Antes los archivos se servían desde el host de CKAN;
+  ahora salen del **mismo origen que tiene la sesión**, así que un `.html` o un `.svg` subido ejecutaría scripts
+  capaces de llamar a `/catalog` a nombre del usuario. Por eso: `X-Content-Type-Options: nosniff` **siempre**; sólo
+  una lista explícita va `inline` (`application/pdf`, `image/png`, `image/jpeg`, `image/gif`, `image/webp`,
+  `text/plain`, `text/csv`, `application/json`); **todo lo demás** sale con `Content-Disposition: attachment` y
+  `Content-Security-Policy: sandbox`. No se pone `sandbox` a la lista `inline` porque rompe el visor de PDF de
+  Chromium.
+- **G5 — Errores:** sesión muerta `401` (el hook ya borró la cookie), acción denegada por CKAN `403`, inexistente
+  `404`, catálogo caído `502`, todos con cuerpo de texto propio y sin llamar al archivo cuando `resource_show` ya
+  negó. La lógica vive en `src/lib/server/ckan-download.ts` con `fetch` inyectable, y la ruta es un adaptador.
+- **G6 — El cliente.** `fileUrl(resource)` en `src/lib/resources/file-url.ts`: un archivo (`resourceKind ===
+  "file"`) → `/catalog/download/<id>`; un enlace → `safeExternalUrl(resource.url)` como hoy. Lo usan el `<iframe>`,
+  la `<img>` y el botón.
+
+**Sin medir, para T8:** que CKAN acepte el `Authorization` de un token de API en `/dataset/…/download/…` (una ruta
+web, no de la API) y que responda `206` a un `Range`.
 
 ## Riesgos y decisiones abiertas
 
