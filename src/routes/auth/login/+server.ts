@@ -1,8 +1,8 @@
 // POST /auth/login — proxy server-side de autenticación contra CKAN.
 //
 // La contraseña nunca se expone: el route la lee del body y la delega al flujo
-// validado de 6 pasos en `ckanLogin`, que devuelve únicamente el JWT y el
-// usuario resuelto.
+// validado de 6 pasos en `ckanLogin`, que devuelve el JWT y el usuario
+// resuelto. El JWT se sella en la cookie de sesión; al navegador sólo llega el usuario.
 
 import { json } from "@sveltejs/kit";
 import { dev } from "$app/environment";
@@ -20,6 +20,15 @@ import type { CkanUser } from "$lib/types/ckan";
 import type { RequestHandler } from "./$types";
 
 export const POST: RequestHandler = async ({ request, getClientAddress, cookies }) => {
+	// Sólo JSON, por la misma razón que el puente (`ckan-bridge.ts`, `isJsonBody`): un `POST` **sin**
+	// `Content-Type` no pasa por el preflight de CORS ni por `checkOrigin`, y entre subdominios del mismo sitio
+	// `Lax` no retiene la cookie. Sin esto, otra página del sitio podría iniciar sesión en el navegador de la
+	// víctima con una cuenta ajena (CSRF de login).
+	const tipo = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+	if (tipo !== "application/json") {
+		return json({ error: "El cuerpo del pedido debe ser JSON." }, { status: 415 });
+	}
+
 	let raw: unknown;
 	try {
 		raw = await request.json();
@@ -38,15 +47,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress, cookies 
 	const response = await handleLogin(baseUrl, getClientAddress(), raw);
 
 	// La credencial entra en la **sesión del servidor**: la cookie la pone esta ruta, es `httpOnly`, y el
-	// navegador no la lee. Hasta que los sitios del cliente migren al puente (`T4`), el cuerpo **sigue**
-	// llevando el token: el navegador lo necesita para sus llamadas de hoy, y sacarlo antes de migrarlas
-	// rompería el portal entero. Ése es el orden correcto, no una concesión.
+	// navegador no la lee. El cuerpo lleva **sólo** el usuario: el token nunca sale en la respuesta.
 	if (response.status === 200) {
 		const { token, user } = response.body as { token?: string; user?: CkanUser };
-		if (token && user) {
-			const { name, ...opciones } = sessionCookieOptions(!dev);
-			cookies.set(name, sealSession(buildSession(token, user, Date.now()), secret), opciones);
+		// Sin token o sin usuario no hay sesión que sellar, y el cuerpo crudo llevaría la credencial: se
+		// responde un error propio en vez de reenviarlo.
+		if (!token || !user) {
+			return json({ error: "Error interno del servidor." }, { status: 500 });
 		}
+		const { name, ...opciones } = sessionCookieOptions(!dev);
+		cookies.set(name, sealSession(buildSession(token, user, Date.now()), secret), opciones);
+		return json({ user });
 	}
 
 	return json(response.body, { status: response.status });

@@ -38,6 +38,11 @@ const baseUser: CkanUser = {
 	sysadmin: false,
 };
 
+/** Lo que `+layout.server.ts` entrega: el usuario de la sesión (nunca el token) o `null` si es anónimo. */
+const sessionUser = { id: "u-1", name: "jdoe", displayName: "Jane Doe", sysadmin: false };
+const anonymousData = { sessionUser: null };
+const signedInData = { sessionUser };
+
 const children = createRawSnippet(() => ({ render: () => "Contenido" }));
 
 beforeEach(() => {
@@ -50,19 +55,33 @@ beforeEach(() => {
 
 describe("Header (layout)", () => {
 	it("muestra 'Iniciar Sesión' hacia /auth/login cuando el usuario es anónimo", () => {
-		render(Layout, { children });
+		render(Layout, { children, data: anonymousData });
 
 		const link = screen.getByRole("link", { name: "Iniciar Sesión" });
 		expect(link).toHaveAttribute("href", "/auth/login");
 	});
 
-	it("muestra el menú de usuario cuando hay sesión autenticada", () => {
-		auth.login("tok-123", baseUser);
-
-		render(Layout, { children });
+	it("muestra el menú de usuario cuando el servidor entrega una sesión", () => {
+		render(Layout, { children, data: signedInData });
 
 		expect(screen.getByText("Jane Doe")).toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: "Iniciar Sesión" })).not.toBeInTheDocument();
+	});
+
+	it("adopta al usuario del servidor en el store, sin token", () => {
+		render(Layout, { children, data: signedInData });
+
+		expect(get(auth).user).toMatchObject({ id: "u-1", name: "jdoe", sysadmin: false });
+		expect(get(auth)).not.toHaveProperty("token");
+	});
+
+	it("si el servidor no tiene sesión, manda el servidor: lo que el store tenía se cierra", () => {
+		auth.setUser(baseUser);
+
+		render(Layout, { children, data: anonymousData });
+
+		expect(screen.getByRole("link", { name: "Iniciar Sesión" })).toBeInTheDocument();
+		expect(get(auth).user).toBeNull();
 	});
 
 	afterEach(() => {
@@ -73,34 +92,34 @@ describe("Header (layout)", () => {
 
 describe("El encabezado sondea la sesión guardada", () => {
 	it("una sesión muerta se termina localmente: pasa a anónimo y no navega", async () => {
-		auth.login("tok-muerto", baseUser);
 		sessionMock.check.mockResolvedValue({ state: "dead" });
 
-		render(Layout, { children });
+		render(Layout, { children, data: signedInData });
 
 		await waitFor(() => expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument());
 		expect(screen.getByRole("link", { name: "Iniciar Sesión" })).toHaveAttribute(
 			"href",
 			"/auth/login",
 		);
-		expect(get(auth).token).toBeNull();
+		expect(get(auth).user).toBeNull();
 		// El encabezado termina la sesión, no expulsa: en una página pública nadie debe rebotar al login.
 		expect(goto).not.toHaveBeenCalled();
 	});
 
 	it("una sesión viva conserva el nombre en el encabezado", async () => {
-		auth.login("tok-vivo", baseUser);
+		auth.setUser(baseUser);
 		sessionMock.check.mockResolvedValue({ state: "alive", user: baseUser });
 
-		render(Layout, { children });
+		render(Layout, { children, data: signedInData });
 
 		await waitFor(() => expect(sessionMock.check).toHaveBeenCalledTimes(1));
 		expect(screen.getByText("Jane Doe")).toBeInTheDocument();
-		expect(get(auth).token).toBe("tok-vivo");
+		// La sonda viva no cierra la sesión: el usuario sigue en el store.
+		expect(get(auth).user?.id).toBe(baseUser.id);
 	});
 
 	it("sin sesión guardada no llama a la API de sesión", async () => {
-		render(Layout, { children });
+		render(Layout, { children, data: anonymousData });
 		await tick();
 
 		expect(sessionMock.check).not.toHaveBeenCalled();
@@ -108,9 +127,7 @@ describe("El encabezado sondea la sesión guardada", () => {
 	});
 
 	it("sondea una sola vez aunque el estado de la sesión cambie", async () => {
-		auth.login("tok-vivo", baseUser);
-
-		render(Layout, { children });
+		render(Layout, { children, data: signedInData });
 		await waitFor(() => expect(sessionMock.check).toHaveBeenCalledTimes(1));
 
 		// Otra escritura en la tienda (p. ej. un `login` de otra pantalla) no vuelve a sondear: la
@@ -221,7 +238,7 @@ function fakeIntersectionObserver() {
 
 describe("El encabezado se achica cuando la página deja el tope", () => {
 	it("hay un centinela en el tope: sin él el observer no tiene qué observar", () => {
-		render(Layout, { children });
+		render(Layout, { children, data: anonymousData });
 
 		expect(document.querySelector("[data-header-sentinel]")).not.toBeNull();
 	});
@@ -229,7 +246,7 @@ describe("El encabezado se achica cuando la página deja el tope", () => {
 	it("al salir del tope marca el documento, y al volver lo desmarca", async () => {
 		const notify = fakeIntersectionObserver();
 
-		render(Layout, { children });
+		render(Layout, { children, data: anonymousData });
 		await tick();
 
 		expect(document.documentElement.hasAttribute("data-header-shrunk")).toBe(false);
@@ -246,7 +263,7 @@ describe("El encabezado se achica cuando la página deja el tope", () => {
 	it("el estado achicado va en el documento, no en el encabezado: los otros pegados también lo leen", async () => {
 		const notify = fakeIntersectionObserver();
 
-		render(Layout, { children });
+		render(Layout, { children, data: anonymousData });
 		await tick();
 		notify(false);
 		await tick();

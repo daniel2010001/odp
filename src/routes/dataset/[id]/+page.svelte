@@ -14,7 +14,7 @@ import {
 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import {
 	type AccessContext,
@@ -37,7 +37,6 @@ import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.sve
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { estadoDeLaSolicitud } from "$lib/copy/publication";
-import { env } from "$lib/env";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
@@ -101,14 +100,11 @@ const datasetId = $derived($page.params.id);
 
 // ─── Data fetching ───────────────────────────────────────────────
 // ─── API de publicación ─────────────────────────────────────────
-// Un solo cliente para las acciones de publicación: los controles reciben **funciones estables**, y el
-// token se lee en cada llamada (`apiKey` es una función), así que construir un cliente por llamada no
+// Un solo cliente para las acciones de publicación: los controles reciben **funciones estables**, y la
+// credencial la pone el puente del portal en cada llamada, así que construir un cliente por llamada no
 // compraría nada. Las cuatro acciones existen en la capa de API desde `B1`; los controles las reciben
 // inyectadas porque no importan la API —la página las cablea—, no porque falten del lado del portal.
-const publicationClient = createCkanClient({
-	baseUrl: env.CKAN_URL,
-	apiKey: () => get(auth).token,
-});
+const publicationClient = createPortalClient();
 const publicationApi = createPublicationApi(publicationClient);
 
 /**
@@ -264,26 +260,23 @@ async function loadDataset() {
 	dataset = null;
 	orgsEditables = [];
 
-	const token = get(auth).token;
-	// El cliente lleva el token de la sesión. Sin él, `package_show` de un dataset **privado**
-	// responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
+	const user = get(auth).user;
+	// El puente del portal pone la credencial de la sesión. Sin ella, `package_show` de un dataset
+	// **privado** responde 403 incluso para su propio dueño: todo dataset se crea privado hasta que el
 	// flujo de publicación defina su visibilidad.
-	const client = createCkanClient({
-		baseUrl: env.CKAN_URL,
-		apiKey: () => get(auth).token,
-	});
+	const client = createPortalClient();
 	const datasetApi = createDatasetApi(client);
 
 	try {
 		dataset = await datasetApi.show(datasetId);
 	} catch (err) {
-		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// Sólo se sondea ante un 403 con usuario. Sin usuario el espectador es anónimo, y sondear
 		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
 		let access: AccessContext = "anonymous";
-		if (classifyFailure(err) === "unauthorized" && token) {
+		if (classifyFailure(err) === "unauthorized" && user) {
 			let resolution: UnauthorizedResolution = "inconclusive";
 			try {
-				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+				resolution = await resolveUnauthorized(client, err, user, $page.url.pathname);
 			} catch {
 				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
 				resolution = "inconclusive";
@@ -343,7 +336,7 @@ async function loadDecidePermission(dueno: string) {
 		return;
 	}
 	try {
-		const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+		const client = createPortalClient();
 		puedeDecidirSolicitud =
 			(await createOrganizationApi(client).canAdministerOrganization(dueno)) === "may";
 	} catch {
@@ -354,7 +347,7 @@ async function loadDecidePermission(dueno: string) {
 // Bulk de permiso de edición. `unknown` se trata como «no podés»: fail closed.
 async function loadEditPermission() {
 	try {
-		const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+		const client = createPortalClient();
 		const resultado = await createOrganizationApi(client).listUpdatableOrganizationIds();
 		orgsEditables = resultado.state === "known" ? resultado.ids : [];
 	} catch {

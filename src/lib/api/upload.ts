@@ -1,4 +1,8 @@
-// Subida de recursos a CKAN directo desde el browser.
+// Subida de recursos a CKAN **por el puente del portal** (`POST /catalog/resource_create`).
+//
+// El navegador ya no tiene la credencial de CKAN (feature de endurecimiento del token): la cookie `httpOnly`
+// del portal viaja sola y el servidor inyecta `Authorization` hacia el catálogo. Por eso acá no hay
+// `Authorization` ni opción `token`.
 //
 // Por qué XHR y no fetch: `fetch` no puede reportar progreso de subida, y para un
 // archivo de hasta 50 MB el progreso importa. Un form action del servidor tampoco
@@ -28,9 +32,6 @@ export class UploadError extends Error {
 }
 
 export interface UploadResourceOptions {
-	/** Base de CKAN. Vacío = mismo origen (el proxy `/api/` del stack). */
-	baseUrl?: string;
-	token: string;
 	packageId: string;
 	file: Blob;
 	/** Nombre con el que CKAN registra el recurso. */
@@ -58,8 +59,6 @@ interface ResourceCreateEnvelope {
 /** Sube un archivo como recurso de un dataset. Resuelve con el recurso creado. */
 export function uploadResourceFile(options: UploadResourceOptions): Promise<CkanResource> {
 	const {
-		baseUrl = "",
-		token,
 		packageId,
 		file,
 		filename,
@@ -76,10 +75,8 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 
 	return new Promise<CkanResource>((resolve, reject) => {
 		const xhr = new XMLHttpRequest();
-		const base = baseUrl.replace(/\/$/, "");
 
-		xhr.open("POST", `${base}/api/3/action/resource_create`);
-		xhr.setRequestHeader("Authorization", token);
+		xhr.open("POST", "/catalog/resource_create");
 		xhr.timeout = timeoutMs;
 
 		xhr.upload.onprogress = (event) => {

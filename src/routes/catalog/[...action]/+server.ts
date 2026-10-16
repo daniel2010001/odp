@@ -5,12 +5,12 @@
 // `/api` **ya está tomado** por el proxy hacia CKAN: lo fija `vite.config.ts` para el desarrollo y el proxy del
 // stack desplegado publica `/api/` justamente como la superficie pública del catálogo. Una ruta del portal ahí
 // no llegaría nunca a SvelteKit: la intercepta el proxy antes. El cambio del `baseUrl` del cliente para que use
-// este camino es parte de la migración (T4 del plan).
+// este camino lo hace `createPortalClient` (T4a).
 //
 // ─── Qué hace esta ruta, y qué no ──────────────────────────────────────
-// Es un **adaptador**: resuelve la sesión sellada, junta los parámetros y delega en `forwardToCatalog`, que es
-// donde vive el orden que importa —guarda, credencial, reenvío— y donde están los tests. Acá sólo se lee el
-// entorno y la cookie, que son los módulos virtuales que Vitest no resuelve.
+// Es un **adaptador**: toma la sesión que `hooks.server.ts` ya resolvió, junta los parámetros y delega en
+// `forwardToCatalog`, que es donde vive el orden que importa —guarda, credencial, reenvío— y donde están los
+// tests. Acá sólo se lee el entorno, que es un módulo virtual que Vitest no resuelve.
 //
 // La credencial sale de la cookie `httpOnly` y **nunca** del pedido: si el navegador manda un `Authorization`,
 // `upstreamHeaders` no lo copia.
@@ -18,9 +18,8 @@
 import { json } from "@sveltejs/kit";
 import { dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
-import { type BridgeSession, forwardToCatalog } from "$lib/server/ckan-bridge";
+import { forwardToCatalog } from "$lib/server/ckan-bridge";
 import { resolveCkanInternalUrl } from "$lib/server/ckan-internal-url";
-import { openSession, resolveSessionSecret, SESSION_COOKIE_NAME } from "$lib/server/session";
 import type { RequestEvent, RequestHandler } from "./$types";
 
 /** El cuerpo del pedido como objeto plano. Sin cuerpo o con basura, el catálogo decide con sus defaults. */
@@ -33,32 +32,36 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
 	}
 }
 
+/** ¿El `POST` es una subida multipart? Entonces el cuerpo no se lee: viaja en stream hasta el puente. */
+function isMultipart(request: Request): boolean {
+	return (
+		request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() ===
+		"multipart/form-data"
+	);
+}
+
 /** El camino compartido por los dos verbos: sólo cambia de dónde salen los parámetros. */
 async function bridge(event: RequestEvent, method: "GET" | "POST") {
-	// Tres estados que **no** se confunden: sin cookie es **anónimo** —un visitante leyendo lo público tiene que
-	// seguir funcionando, y por eso el pedido se reenvía sin credencial—, y una cookie que no abre es una
-	// **sesión muerta**, que se responde con `401` para que el portal expulse por su camino único en vez de
-	// degradar la lectura a una vista vacía.
-	//
-	// La clave se resuelve **sólo** si hay cookie: el camino anónimo no debe depender de una variable obligatoria
-	// que no necesita, o un despliegue sin ella dejaría de servir lo público.
-	const cookie = event.cookies.get(SESSION_COOKIE_NAME);
-	let session: BridgeSession = "anonymous";
-	if (cookie !== undefined) {
-		const abierta = openSession(cookie, resolveSessionSecret(env.SESSION_SECRET, dev), Date.now());
-		session = abierta ? { token: abierta.token } : "dead";
-	}
+	// La sesión ya viene resuelta por `hooks.server.ts` (`locals.session`): anónimo, con credencial, o muerta.
+	// Una sesión muerta se responde con `401` para que el portal expulse por su camino único en vez de degradar
+	// la lectura a una vista vacía; un anónimo se reenvía sin credencial para que lo público siga funcionando.
+
+	// Una subida multipart pasa **sin consumir** `event.request.body`: el puente decide si la acción la admite y
+	// la reenvía como stream; los parámetros viajan dentro de las partes.
+	const multipart = method === "POST" && isMultipart(event.request);
 
 	const resultado = await forwardToCatalog({
 		action: event.params.action,
 		method,
-		params:
-			method === "POST"
+		params: multipart
+			? {}
+			: method === "POST"
 				? await readJsonBody(event.request)
 				: Object.fromEntries(event.url.searchParams),
-		session,
+		session: event.locals.session,
 		internalUrl: resolveCkanInternalUrl(env.CKAN_INTERNAL_URL, dev),
 		incomingHeaders: event.request.headers,
+		rawBody: multipart ? event.request.body : undefined,
 	});
 
 	// La misma URL responde distinto según la cookie (anónimo o con sesión), así que ninguna caché —ni el proxy

@@ -10,12 +10,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import type { PublicationRequest } from "$lib/api/publication";
 import { auth } from "$lib/stores/auth";
-import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanUser } from "$lib/types/ckan";
 import RequestsPage from "./+page.svelte";
 
 const mocks = vi.hoisted(() => ({
-	createCkanClient: vi.fn<(config: ApiClientConfig) => object>(),
+	createPortalClient: vi.fn<() => object>(),
 	listRequests: vi.fn(),
 	decideRequest: vi.fn(),
 	showDataset: vi.fn(),
@@ -23,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("$lib/env", () => ({ env: { CKAN_URL: "http://localhost:5000" } }));
-vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
+vi.mock("$lib/api/client", () => ({ createPortalClient: mocks.createPortalClient }));
 vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.showDataset }) }));
 vi.mock("$lib/api/publication", () => ({
 	createPublicationApi: () => ({
@@ -75,7 +74,7 @@ function renderPage() {
 beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
-	mocks.createCkanClient.mockReturnValue({});
+	mocks.createPortalClient.mockReturnValue({});
 	mocks.check.mockResolvedValue({ state: "alive", user: makeUser() });
 	mocks.listRequests.mockResolvedValue([makeRow()]);
 });
@@ -90,7 +89,7 @@ describe("Solicitudes — la compuerta de sesión", () => {
 	});
 
 	it("con la sesión viva muestra la cola y **no** navega a ningún lado", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		renderPage();
 
@@ -104,7 +103,7 @@ describe("Solicitudes — la compuerta de sesión", () => {
 
 describe("Solicitudes — el filtro por organización", () => {
 	it("con **una sola** organización no dibuja el selector: no hay nada que filtrar", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		mocks.listRequests.mockResolvedValue([makeRow()]);
 
 		renderPage();
@@ -116,7 +115,7 @@ describe("Solicitudes — el filtro por organización", () => {
 	});
 
 	it("con dos organizaciones dibuja el selector, y filtrar filtra de verdad", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		mocks.listRequests.mockResolvedValue([
 			makeRow({ id: "req-1", dataset_title: "Matrícula 2026" }),
 			makeRow({
@@ -145,7 +144,7 @@ describe("Solicitudes — el filtro por organización", () => {
 
 describe("Solicitudes — lo que la page le entrega a la cola", () => {
 	it("una fila sin título resoluble se lee con la frase del portal, nunca con la línea vacía", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		// El contrato tiene dos formas de vacío: `null` (el campo está vacío) y el token `"unknown"` (el id
 		// está seteado y no resuelve). Las dos tienen que leerse igual, y ninguna puede mostrar el id.
 		mocks.listRequests.mockResolvedValue([

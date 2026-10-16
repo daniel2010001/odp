@@ -15,7 +15,7 @@ import { Inbox } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import { createSessionApi } from "$lib/api/session";
@@ -24,13 +24,12 @@ import PublicationQueue, {
 } from "$lib/components/dataset/PublicationQueue.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
-import { env } from "$lib/env";
 import { endInvalidSession } from "$lib/session-guard";
-import { auth, isAuthenticated } from "$lib/stores/auth";
+import { isAuthenticated } from "$lib/stores/auth";
 import { cn } from "$lib/utils";
 
 function makeClient() {
-	return createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	return createPortalClient();
 }
 
 const publicationApi = createPublicationApi(makeClient());

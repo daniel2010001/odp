@@ -65,6 +65,8 @@ export interface SessionUser {
 	id: string;
 	name: string;
 	displayName?: string;
+	/** Si la cuenta es superadministradora en CKAN. El portal lo lee para `isSuperAdmin`; sólo un `true` literal lo es. */
+	sysadmin: boolean;
 }
 
 /** Lo que la sesión lleva adentro: la credencial de CKAN, el usuario y sus dos instantes. */
@@ -93,6 +95,7 @@ export function buildSession(token: string, user: CkanUser, now: number): Sessio
 			id: user.id,
 			name: user.name,
 			...(user.display_name ? { displayName: user.display_name } : {}),
+			sysadmin: user.sysadmin === true,
 		},
 		issuedAt: now,
 		expiresAt: now + CKAN_TOKEN_TTL_S * 1000,
@@ -153,7 +156,10 @@ function isSessionPayload(value: unknown): value is SessionPayload {
 		typeof user === "object" &&
 		user !== null &&
 		typeof user.id === "string" &&
-		typeof user.name === "string"
+		typeof user.name === "string" &&
+		// Ausente se acepta: las sesiones emitidas antes de que el campo existiera siguen vivas hasta su
+		// vencimiento, y descartarlas cerraría la sesión de todos al desplegar. `openSession` las normaliza.
+		(user.sysadmin === undefined || typeof user.sysadmin === "boolean")
 	);
 }
 
@@ -222,7 +228,7 @@ export function openSession(
 			return null;
 		}
 
-		return payload;
+		return { ...payload, user: { ...payload.user, sysadmin: payload.user.sysadmin === true } };
 	} catch {
 		// El AEAD falla con entradas ajenas y el JSON puede ser basura: las dos cosas son «no hay sesión».
 		return null;

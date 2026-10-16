@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CkanUser } from "$lib/types/ckan";
-import { createCkanClient } from "./client";
+import { createCkanClient, createPortalClient } from "./client";
 import { createSessionApi } from "./session";
 
 type FetchInit = { headers?: Record<string, string>; method?: string; body?: string };
@@ -133,6 +133,17 @@ describe("createSessionApi — la sonda de sesión", () => {
 		expect(result.state).toBe("inconclusive");
 		if (result.state !== "inconclusive") throw new Error("estado inesperado");
 		expect(result.error.status).toBe(404);
+	});
+
+	it("informa `dead` ante el 401 del puente sin corroborar: es su señal propia de cookie muerta", async () => {
+		const fetchMock = stubResponse(401, { error: "La sesión del portal no está activa." });
+
+		const result = await createSessionApi(createPortalClient()).check();
+
+		expect(result).toEqual({ state: "dead" });
+		// Una sola llamada: el 401 no viene de CKAN, así que no hay nada que corroborar.
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("/catalog/user_show");
 	});
 
 	it("informa `inconclusive` ante un 500 de CKAN: un hipo del servidor no expulsa al usuario", async () => {

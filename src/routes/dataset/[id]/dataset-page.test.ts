@@ -5,7 +5,7 @@ import { page } from "$app/stores";
 import type { PublicationRequest } from "$lib/api/publication";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
-import { type ApiClientConfig, CkanApiError } from "$lib/types/api";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanOrganization, CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import DatasetPage from "./+page.svelte";
 
@@ -16,7 +16,7 @@ const pageStore = page as unknown as {
 };
 
 const mocks = vi.hoisted(() => ({
-	createCkanClient: vi.fn<(config: ApiClientConfig) => object>(),
+	createPortalClient: vi.fn<() => object>(),
 	showDataset: vi.fn(),
 	getMockDatasetById: vi.fn(),
 	listUpdatableOrganizationIds: vi.fn(),
@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("$lib/env", () => ({
 	env: { CKAN_URL: "http://localhost:5000" },
 }));
-vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
+vi.mock("$lib/api/client", () => ({ createPortalClient: mocks.createPortalClient }));
 vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.showDataset }) }));
 vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({
@@ -146,7 +146,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
 	setParams({ id: "matricula-2026" });
-	mocks.createCkanClient.mockReturnValue({});
+	mocks.createPortalClient.mockReturnValue({});
 	mocks.showDataset.mockResolvedValue(makeDataset());
 	// Sin solicitudes, la tarjeta del estado no aparece y el hero no gana la acción de publicación: es
 	// el estado por defecto de las pruebas que no hablan de publicación.
@@ -174,16 +174,16 @@ afterEach(() => {
 	auth.reset();
 });
 
-describe("Página de dataset — carga con API key", () => {
-	it("crea el cliente CKAN con un apiKey que devuelve el token de la sesión", async () => {
-		auth.login("token-de-prueba", makeUser());
+describe("Página de dataset — carga por el puente del portal", () => {
+	it("crea el cliente del portal, sin credencial: el servidor pone la del usuario", async () => {
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
-		await waitFor(() => expect(mocks.createCkanClient).toHaveBeenCalled());
+		await waitFor(() => expect(mocks.createPortalClient).toHaveBeenCalled());
 
-		const config = mocks.createCkanClient.mock.calls[0][0];
-		expect(config.apiKey).toBeTypeOf("function");
-		expect((config.apiKey as () => string | null)()).toBe("token-de-prueba");
+		// El cliente del portal no admite `apiKey` ni `baseUrl`: no hay token del lado del navegador que
+		// pasarle, y por eso la página lo construye sin argumentos.
+		expect(mocks.createPortalClient.mock.calls[0]).toEqual([]);
 	});
 
 	it("no revela que el dataset existe cuando package_show responde 403 y no cae al mock", async () => {
@@ -242,7 +242,7 @@ describe("Página de dataset — estados de fallo honestos", () => {
 	});
 
 	it("ante un 403 con sesión viva dice que la cuenta no está autorizada, sin pedir iniciar sesión ni ofrecer reintento", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		mocks.check.mockResolvedValue({ state: "alive", user: makeUser() });
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -256,7 +256,7 @@ describe("Página de dataset — estados de fallo honestos", () => {
 	});
 
 	it("ante un 403 con sonda no concluyente no afirma ninguna causa y ofrece reintentar", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		mocks.check.mockResolvedValue({ state: "inconclusive", error: new CkanApiError("x", 500) });
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -271,7 +271,7 @@ describe("Página de dataset — estados de fallo honestos", () => {
 	});
 
 	it("ante una sesión muerta expulsa al login con el motivo y no renderiza estado de fallo", async () => {
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -294,7 +294,7 @@ describe("Página de dataset — estados de fallo honestos", () => {
 		// se limpió y la navegación no ocurrió, así que el portal no puede afirmar «su sesión expiró»
 		// (nadie llegó al login) ni «su cuenta no está autorizada». Debe salir del esqueleto de carga
 		// y aterrizar en el estado que no afirma ninguna de las dos causas, con reintento.
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showDataset.mockRejectedValue(new CkanApiError("Access denied", 403));
 		vi.mocked(goto).mockRejectedValueOnce(new Error("navigation failed"));
@@ -830,7 +830,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -859,7 +859,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 				comments: "Faltan metadatos de contacto.",
 			}),
 		]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -877,7 +877,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-999" })]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -892,7 +892,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockRejectedValue(new CkanApiError("Service Unavailable", 503));
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -913,7 +913,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockResolvedValue([]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -928,7 +928,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-999"] });
 		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -949,7 +949,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		mocks.listRequests.mockResolvedValue([
 			makeRow({ dataset_id: "matricula-2026", requested_by_name: "editor.legado" }),
 		]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -976,7 +976,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 				created_at: "2026-10-05T00:00:00.000000",
 			}),
 		]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -1004,7 +1004,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 				created_at: "2026-10-05T00:00:00.000000",
 			}),
 		]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -1030,7 +1030,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 				created_at: "2026-10-05T00:00:00.000000",
 			}),
 		]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -1047,7 +1047,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 			makeRow({ id: "req-old", created_at: "2026-10-01T00:00:00.000000" }),
 			makeRow({ id: "req-new", created_at: "2026-10-05T00:00:00.000000" }),
 		]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -1061,7 +1061,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 
 		render(DatasetPage);
 
@@ -1087,7 +1087,7 @@ describe("Página de dataset — decidir la solicitud desde la ficha", () => {
 			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
 		);
 		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1", ...overrides })]);
-		auth.login("tok-123", makeUser());
+		auth.setUser(makeUser());
 	}
 
 	it("ofrece decidir cuando quien mira administra la organización dueña", async () => {
@@ -1219,7 +1219,7 @@ describe("Página de dataset — el camino directo ya no se ofrece", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockResolvedValue([]);
-		auth.login("tok-123", makeUser({ sysadmin: true }));
+		auth.setUser(makeUser({ sysadmin: true }));
 
 		render(DatasetPage);
 
@@ -1236,7 +1236,7 @@ describe("Página de dataset — el camino directo ya no se ofrece", () => {
 		);
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.listRequests.mockResolvedValue([]);
-		auth.login("tok-123", makeUser({ sysadmin: false }));
+		auth.setUser(makeUser({ sysadmin: false }));
 
 		render(DatasetPage);
 

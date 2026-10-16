@@ -17,7 +17,13 @@
 //    una excepción que tumbe el request ni un `200` vacío que el navegador lea como «no hay nada»—, y un
 //    cuerpo que no es JSON conserva su status con el cuerpo vacío en vez de romper.
 
-import { isReadAction, upstreamHeaders, upstreamUrl } from "./ckan-proxy";
+import {
+	isReadAction,
+	isUploadAction,
+	upstreamHeaders,
+	upstreamMultipartHeaders,
+	upstreamUrl,
+} from "./ckan-proxy";
 
 /**
  * La sesión **ya resuelta** por quien llama, en tres estados que no se pueden confundir:
@@ -46,6 +52,12 @@ export interface BridgeRequest {
 	 * el `Content-Type` de un `POST`, para rechazarlo si no es JSON.
 	 */
 	incomingHeaders: Headers;
+	/**
+	 * El cuerpo **crudo** del pedido, sólo para una subida `multipart/form-data`. Se reenvía como stream, sin
+	 * leerlo ni parsearlo: leerlo entero pondría un archivo de decenas de MB en la memoria del servidor por
+	 * cada subida. `null`/ausente en un multipart es un pedido sin cuerpo que reenviar (`415`).
+	 */
+	rawBody?: ReadableStream<Uint8Array> | null;
 }
 
 /** Lo que la ruta le devuelve al navegador: el status y el cuerpo, sin envoltorios propios. */
@@ -98,7 +110,7 @@ export function methodNotAllowed(): BridgeResult {
 	};
 }
 
-/** Un `POST` que no se declara JSON no se reenvía. */
+/** Un `POST` que no se declara JSON (ni es una subida multipart válida) no se reenvía. */
 export function unsupportedMediaType(): BridgeResult {
 	return {
 		status: UNSUPPORTED_MEDIA_TYPE_STATUS,
@@ -115,8 +127,20 @@ export function unsupportedMediaType(): BridgeResult {
  * obliga a cualquier origen ajeno a pedir preflight, que el portal no concede.
  */
 function isJsonBody(headers: Headers): boolean {
-	const tipo = headers.get("content-type")?.split(";")[0].trim().toLowerCase();
-	return tipo === "application/json";
+	return mediaType(headers) === "application/json";
+}
+
+/**
+ * ¿El pedido declara un cuerpo multipart? Un tipo de formulario: SvelteKit (`csrf.checkOrigin`) rechaza un
+ * `POST` cross-origin con él y `SameSite=Lax` retiene la cookie, así que aceptarlo **sólo** para las acciones de
+ * subida (`UPLOAD_ACTIONS`) no debilita el anti-CSRF.
+ */
+function isMultipartBody(headers: Headers): boolean {
+	return mediaType(headers) === "multipart/form-data";
+}
+
+function mediaType(headers: Headers): string | undefined {
+	return headers.get("content-type")?.split(";")[0].trim().toLowerCase();
 }
 
 /** Serializa un valor de la query: los complejos como JSON, que es lo que CKAN acepta en un `GET`. */
@@ -148,7 +172,14 @@ export async function forwardToCatalog(
 		return methodNotAllowed();
 	}
 
-	if (request.method === "POST" && !isJsonBody(request.incomingHeaders)) {
+	// Multipart sólo para las acciones de subida y sólo con un cuerpo en stream; todo lo demás, JSON.
+	const multipart =
+		request.method === "POST" &&
+		isMultipartBody(request.incomingHeaders) &&
+		isUploadAction(request.action) &&
+		!!request.rawBody;
+
+	if (request.method === "POST" && !multipart && !isJsonBody(request.incomingHeaders)) {
 		return unsupportedMediaType();
 	}
 
@@ -158,20 +189,36 @@ export async function forwardToCatalog(
 
 	// `null` es **anónimo**, no una falla: el catálogo decide qué se puede leer sin credencial.
 	const token = request.session === "anonymous" ? null : request.session.token;
-	const headers = upstreamHeaders(request.incomingHeaders, token);
 	const params = usableParams(request.params);
 
 	let destino = url;
-	let init: RequestInit = { method: request.method, headers };
+	let init: RequestInit;
 
-	if (request.method === "GET") {
+	if (multipart) {
+		// El `Content-Type` del cliente viaja tal cual (lleva el boundary); Node exige `duplex` con un stream.
+		init = {
+			method: "POST",
+			headers: upstreamMultipartHeaders(
+				request.incomingHeaders.get("content-type") ?? "",
+				token,
+				request.incomingHeaders.get("content-length"),
+			),
+			body: request.rawBody,
+			duplex: "half",
+		} as RequestInit;
+	} else if (request.method === "GET") {
+		init = { method: "GET", headers: upstreamHeaders(request.incomingHeaders, token) };
 		const conQuery = new URL(url);
 		for (const [clave, valor] of params) {
 			conQuery.searchParams.set(clave, serializeParam(valor));
 		}
 		destino = conQuery.toString();
 	} else {
-		init = { ...init, body: JSON.stringify(Object.fromEntries(params)) };
+		init = {
+			method: "POST",
+			headers: upstreamHeaders(request.incomingHeaders, token),
+			body: JSON.stringify(Object.fromEntries(params)),
+		};
 	}
 
 	let respuesta: Response;

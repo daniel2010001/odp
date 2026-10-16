@@ -120,8 +120,8 @@ beforeEach(() => {
 	setParams({ id: "matricula-2026", resourceId: "res-1" });
 	mocks.showResource.mockResolvedValue(makeResource());
 	mocks.showDataset.mockResolvedValue(makeDataset());
-	// `createCkanClient` y `createDatastoreApi` NO se mockean: el cliente real corre contra este
-	// `fetch` stub, así que la vista previa de tabla y la cabecera `Authorization` se miden de verdad.
+	// `createPortalClient` y `createDatastoreApi` NO se mockean: el cliente real corre contra este
+	// `fetch` stub, así que la vista previa de tabla y la ausencia de `Authorization` se miden de verdad.
 	mocks.fetch.mockResolvedValue({
 		ok: true,
 		json: async () => ({
@@ -217,7 +217,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 	});
 
 	it("ante un 403 con sesión viva dice que la cuenta no está autorizada, sin pedir iniciar sesión ni ofrecer reintento", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "alive", user: baseUser });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -230,7 +230,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 	});
 
 	it("ante un 403 con sonda no concluyente no afirma ninguna causa y ofrece reintentar", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "inconclusive", error: new CkanApiError("x", 500) });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -245,7 +245,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 	});
 
 	it("ante una sesión muerta expulsa al login con el motivo y no renderiza estado de fallo", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -268,7 +268,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 		// se limpió y la navegación no ocurrió, así que el portal no puede afirmar «su sesión expiró»
 		// (nadie llegó al login) ni «su cuenta no está autorizada». Debe salir del esqueleto de carga
 		// y aterrizar en el estado que no afirma ninguna de las dos causas, con reintento.
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 		vi.mocked(goto).mockRejectedValueOnce(new Error("navigation failed"));
@@ -476,13 +476,14 @@ describe("Página de recurso — la vista previa según el tipo de recurso", () 
 	});
 });
 
-// ─── El cliente del DataStore lleva el token de la sesión (BACKLOG) ─────────
-// Sin `apiKey`, el `datastore_search` de un recurso de un dataset privado responde 403 y el dueño ve
-// la ficha pero nunca sus filas. El cliente real corre contra un `fetch` stubbeado, así que la
-// aserción mira la cabecera HTTP que de verdad sale: `Authorization` con el token de la sesión.
-describe("Página de recurso — el cliente del DataStore lleva el token", () => {
-	it("manda `Authorization` con el token de la sesión en `datastore_search`", async () => {
-		auth.login("tok-123", baseUser);
+// ─── El cliente del DataStore pasa por el puente del portal (BACKLOG) ─────────
+// El `datastore_search` de un recurso de un dataset privado necesita la credencial del dueño, o responde 403
+// y el dueño ve la ficha pero nunca sus filas. Esa credencial la pone el servidor del portal: el cliente real
+// corre contra un `fetch` stubbeado, así que la aserción mira lo que de verdad sale del navegador: el pedido
+// va al puente del mismo origen y **sin** `Authorization`.
+describe("Página de recurso — el cliente del DataStore pasa por el puente", () => {
+	it("pide `datastore_search` a /catalog y no manda `Authorization`", async () => {
+		auth.setUser(baseUser);
 		mocks.showResource.mockResolvedValue(
 			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
 		);
@@ -494,8 +495,9 @@ describe("Página de recurso — el cliente del DataStore lleva el token", () =>
 			String(args[0]).includes("datastore_search"),
 		);
 		expect(call).toBeTruthy();
+		expect(String(call?.[0])).toContain("/catalog/datastore_search");
 		const init = call?.[1] as RequestInit | undefined;
-		expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBe("tok-123");
+		expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBeUndefined();
 	});
 });
 
@@ -994,7 +996,9 @@ describe("Página de recurso — la ficha de un enlace dice la verdad", () => {
 
 		render(ResourcePage);
 
-		await screen.findByRole("link", { name: /Descargar recurso/i });
+		// El archivo alojado se descarga por el portal, no por la URL de CKAN.
+		const action = await screen.findByRole("link", { name: /Descargar recurso/i });
+		expect(action.getAttribute("href")).toBe("/catalog/download/res-1");
 		expect(screen.getByText("Nombre del archivo")).toBeTruthy();
 		expect(screen.getByText("Tamaño")).toBeTruthy();
 		expect(screen.queryByRole("link", { name: /Abrir enlace/i })).toBeNull();

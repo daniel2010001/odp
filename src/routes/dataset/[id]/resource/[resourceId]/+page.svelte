@@ -11,7 +11,7 @@ import {
 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createDatastoreApi } from "$lib/api/datastore";
 import {
@@ -32,6 +32,7 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
+import { fileUrl } from "$lib/resources/file-url";
 import { resourceKind } from "$lib/resources/kind";
 import { resourceNeighbours, resourcePositionLabel } from "$lib/resources/order";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -42,12 +43,10 @@ import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
 import { safeExternalUrl } from "$lib/utils/external-url";
 
-// Cliente del DataStore para la vista previa (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla). Lleva el
-// token de la sesión, el mismo idiom que el cliente de carga: sin él, el `datastore_search` de un
-// recurso de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
-const datastoreApi = createDatastoreApi(
-	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
-);
+// Cliente del DataStore para la vista previa (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla). Pasa por el
+// puente del portal, que pone la credencial de la sesión: sin ella, el `datastore_search` de un recurso
+// de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
+const datastoreApi = createDatastoreApi(createPortalClient());
 
 /** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
 type ResourceFailure = {
@@ -98,10 +97,10 @@ async function loadData() {
 	resource = null;
 	dataset = null;
 
-	const token = get(auth).token;
-	// El cliente lleva el token de la sesión. Sin él, `resource_show` de un recurso de un dataset
-	// privado responde 403 incluso para su propio dueño.
-	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	const user = get(auth).user;
+	// El puente del portal pone la credencial de la sesión. Sin ella, `resource_show` de un recurso de un
+	// dataset privado responde 403 incluso para su propio dueño.
+	const client = createPortalClient();
 	const resourceApi = createResourceApi(client);
 	const datasetApi = createDatasetApi(client);
 
@@ -116,13 +115,13 @@ async function loadData() {
 		resource = resourceResult.value;
 	} else {
 		const err = resourceResult.reason;
-		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// Sólo se sondea ante un 403 con usuario. Sin usuario el espectador es anónimo, y sondear
 		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
 		let access: AccessContext = "anonymous";
-		if (classifyFailure(err) === "unauthorized" && token) {
+		if (classifyFailure(err) === "unauthorized" && user) {
 			let resolution: UnauthorizedResolution = "inconclusive";
 			try {
-				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+				resolution = await resolveUnauthorized(client, err, user, $page.url.pathname);
 			} catch {
 				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
 				resolution = "inconclusive";
@@ -380,9 +379,10 @@ const exampleResponse = $derived(
 // por la API o por la UI nativa de CKAN. Se sanea antes de renderizarlo como `href`.
 const docsUrl = $derived(safeExternalUrl(apiExtras.find((e) => e.key === "docs_url")?.value));
 
-// `resource.url` también viene de CKAN y se renderiza como `href`: el saneo en el borde de
-// salida es lo que impide un `javascript:` almacenado (XSS almacenado).
-const downloadUrl = $derived(safeExternalUrl(resource?.url));
+// Un archivo alojado se descarga por el portal (`/catalog/download/<id>`, con la sesión); un enlace
+// conserva `resource.url`, que también viene de CKAN y se renderiza como `href`: el saneo en el
+// borde de salida (`fileUrl` → `safeExternalUrl`) es lo que impide un `javascript:` almacenado.
+const downloadUrl = $derived(resource ? fileUrl(resource) : null);
 
 // La misma regla del chip decide la vista previa: una referencia externa no aloja contenido en el
 // portal, así que no hay nada que previsualizar. Derivarlo acá y no repetir la comparación en la

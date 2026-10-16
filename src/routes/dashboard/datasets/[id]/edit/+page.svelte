@@ -3,14 +3,13 @@ import { Info, LoaderCircle, RotateCw, TriangleAlert } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
-import { type CkanClient, createCkanClient } from "$lib/api/client";
+import { type CkanClient, createPortalClient } from "$lib/api/client";
 import { createDatasetApi, isEditConflict } from "$lib/api/datasets";
 import { type AccessContext, describeFailure, type FailurePresentation } from "$lib/api/failure";
 import { createLicenseApi } from "$lib/api/licenses";
 import { createOrganizationApi, type PermissionAnswer } from "$lib/api/organizations";
 import { createSessionApi } from "$lib/api/session";
 import DatasetForm, { type DatasetFormInitial } from "$lib/components/datasets/DatasetForm.svelte";
-import { env } from "$lib/env";
 import type { DatasetCreateInput } from "$lib/schemas/dataset";
 import { endInvalidSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
@@ -53,7 +52,7 @@ let conflict = $state(false);
 let access: AccessContext = "unknown";
 
 function makeClient() {
-	return createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	return createPortalClient();
 }
 
 // El id de la ruta es la dependencia de la carga: si SvelteKit reutiliza este componente para una
@@ -79,7 +78,6 @@ $effect(() => {
 // La sonda corre **antes** de cargar: `inconclusive` (5xx, timeout, red) no expulsa a nadie
 // autenticado; sólo una sesión muerta vuelve al login, por el camino único.
 async function iniciar(generation: number) {
-	const token = get(auth).token;
 	const check = await createSessionApi(makeClient()).check();
 	if (generation !== loadId) return;
 
@@ -87,7 +85,7 @@ async function iniciar(generation: number) {
 		await endInvalidSession(`/dashboard/datasets/${$page.params.id}/edit`);
 		return;
 	}
-	if (check.state === "alive" && token) auth.login(token, check.user);
+	if (check.state === "alive") auth.setUser(check.user);
 	access = check.state === "alive" ? "session-alive" : "unknown";
 	await cargar(generation);
 }

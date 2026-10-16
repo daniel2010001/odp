@@ -4,23 +4,53 @@
 import type { ApiClientConfig } from "$lib/types/api";
 import { CkanApiError } from "$lib/types/api";
 
-export function createCkanClient(config: ApiClientConfig) {
-	const { baseUrl, timeout = 10000 } = config;
+/**
+ * La query de un `GET`: lo que el puente del portal lee con `Object.fromEntries(searchParams)`. Los objetos y
+ * arreglos viajan como JSON, los escalares como texto, y `undefined` se omite (un parámetro ausente no es la
+ * cadena «undefined»).
+ */
+function toQueryString(params?: Record<string, unknown>): string {
+	const query = new URLSearchParams();
+	for (const [key, value] of Object.entries(params ?? {})) {
+		if (value === undefined) continue;
+		query.set(
+			key,
+			typeof value === "object" && value !== null ? JSON.stringify(value) : String(value),
+		);
+	}
+	const text = query.toString();
+	return text ? `?${text}` : "";
+}
+
+/**
+ * El cliente de `config.baseUrl` es el de CKAN; `actionUrl` lo abstrae para que el cliente del portal comparta
+ * todo lo demás (errores, timeout, query de un `GET`) y sólo cambie a dónde apunta.
+ */
+function buildClient(
+	config: ApiClientConfig,
+	actionUrl: (action: string) => string,
+	{ withAuthorization }: { withAuthorization: boolean },
+) {
+	const { timeout = 10000 } = config;
 
 	async function request<T>(
 		action: string,
 		data?: Record<string, unknown>,
 		method: "GET" | "POST" = "POST",
 	): Promise<T> {
-		const url = `${baseUrl.replace(/\/$/, "")}/api/3/action/${action}`;
+		// Un `GET` no lleva cuerpo, así que sus parámetros viajan en la query; sin esto `publication_request_list
+		// {status}` perdía el filtro sin avisar.
+		const url = actionUrl(action) + (method === "GET" ? toQueryString(data) : "");
 
 		const headers: Record<string, string> = {
 			"Content-Type": "application/json",
 		};
 
-		const apiKey = typeof config.apiKey === "function" ? config.apiKey() : config.apiKey;
-		if (apiKey) {
-			headers.Authorization = apiKey;
+		if (withAuthorization) {
+			const apiKey = typeof config.apiKey === "function" ? config.apiKey() : config.apiKey;
+			if (apiKey) {
+				headers.Authorization = apiKey;
+			}
 		}
 
 		const controller = new AbortController();
@@ -70,6 +100,28 @@ export function createCkanClient(config: ApiClientConfig) {
 		/** Config actual (útil para stores de auth) */
 		getConfig: () => config,
 	};
+}
+
+export function createCkanClient(config: ApiClientConfig) {
+	const base = config.baseUrl.replace(/\/$/, "");
+	return buildClient(config, (action) => `${base}/api/3/action/${action}`, {
+		withAuthorization: true,
+	});
+}
+
+/** Lo único que el cliente del portal admite configurar: no hay `baseUrl` ni `apiKey`. */
+export type PortalClientConfig = Pick<ApiClientConfig, "timeout">;
+
+/**
+ * El cliente que habla con el **puente del portal**: pide a `/catalog/<acción>` del mismo origen y **no manda
+ * `Authorization`** ni admite `apiKey`. La credencial vive en la cookie `httpOnly` y la inyecta el servidor
+ * (`src/routes/catalog/[...action]/+server.ts`); el navegador no la tiene. Es el cliente de todo lo que
+ * requiere —o puede requerir— sesión; las páginas públicas siguen con `createCkanClient` contra `CKAN_URL`.
+ */
+export function createPortalClient(config: PortalClientConfig = {}) {
+	return buildClient({ baseUrl: "", ...config }, (action) => `/catalog/${action}`, {
+		withAuthorization: false,
+	});
 }
 
 export type CkanClient = ReturnType<typeof createCkanClient>;

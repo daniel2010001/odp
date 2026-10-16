@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define username/password login against CKAN via a SvelteKit server proxy, plus JWT storage, revocation, session validity, header menu, and dashboard guard. The password stays server-side; the browser stores only a revocable CKAN JWT. Bound to `/auth/login`, `/auth/logout`, `/dashboard`, and `src/lib/stores/auth.ts`.
+Define username/password login against CKAN via a SvelteKit server proxy, plus the portal session, revocation, session validity, header menu, and dashboard guard. The password stays server-side, and so does the CKAN JWT: since the token hardening (2026-10-16, `odd/tasks/token-hardening.md`) the browser holds only an `httpOnly` portal session cookie, and the portal's server injects the credential when it talks to CKAN. Bound to `/auth/login`, `/auth/logout`, `/catalog/*`, `/dashboard`, `src/hooks.server.ts`, and `src/lib/stores/auth.ts`.
 
 ## Requirements
 
@@ -26,13 +26,14 @@ The `/auth/login` endpoint MUST authenticate against CKAN and mint a token serve
 
 ### Requirement: Login Success
 
-On successful authentication, the client MUST persist the session and redirect to the dashboard.
+On successful authentication, the server MUST set the sealed session cookie and answer with the user only; the client MUST adopt that user and redirect to the dashboard. The `/auth/login` endpoint MUST accept only a JSON body (`415` otherwise), so that a cross-origin page cannot submit it without a CORS preflight.
 
 #### Scenario: Successful login
 
 - GIVEN valid CKAN credentials
 - WHEN the user submits the login form
-- THEN the auth store holds the token and user
+- THEN the response sets the session cookie and its body carries the user and no token
+- AND the auth store holds the user
 - AND the user is redirected to `/dashboard`
 
 ### Requirement: Login Failure
@@ -58,19 +59,34 @@ The `/auth/login` endpoint MUST limit repeated attempts from one source to mitig
 
 ### Requirement: Session Persistence
 
-The auth session MUST persist across reloads using localStorage.
+*Amended 2026-10-16 (token hardening, S1/S2): it read "MUST persist across reloads using localStorage", which kept a 24 h CKAN token readable by any script on the page.*
+
+The auth session MUST persist across reloads in a sealed (AEAD-encrypted), `httpOnly`, `SameSite=Lax` portal cookie that carries the CKAN JWT and the user. The CKAN JWT MUST NOT be readable by JavaScript: it MUST NOT appear in a response body, in `localStorage`, or in the client store. The server resolves the cookie once per request and hands the browser the **user only**.
 
 #### Scenario: Reload restores session
 
-- GIVEN an authenticated session with a stored JWT and user
+- GIVEN an authenticated session
 - WHEN the user reloads the page
-- THEN the auth store rehydrates the token and user from localStorage
+- THEN the root layout receives the session user from the server and the auth store adopts it
+- AND no CKAN token is present in the response, in `localStorage`, or in the store
+
+#### Scenario: A token stored before the hardening is removed
+
+- GIVEN a browser whose `localStorage` still holds the legacy `auth` entry
+- WHEN the portal loads
+- THEN the entry is deleted without being read
+
+#### Scenario: A dead cookie is dropped
+
+- GIVEN a session cookie that no longer opens (tampered, sealed with another key, or expired)
+- WHEN any request reaches the portal
+- THEN that response deletes the cookie, a call through `/catalog` answers `401`, and later requests are anonymous
 
 ### Requirement: Invalid Session Detection
 
 A stored token is evidence of a past login, never of a live session. An authenticated screen MUST verify that CKAN still accepts it before rendering anything derived from it, and an invalid session MUST force a re-login rather than degrade into an empty or permissionless view. CKAN does not report this condition as an authentication status: measured 2026-09-20, `organization_list_for_user` answers `200` with an empty list both for a dead token and for an anonymous caller, so degraded data is indistinguishable from "you have nothing" — and from "you lack permissions" — without a check.
 
-The check MUST be the authenticated action `user_show` **without `id`**: it answers `200` with the caller for a live token and `404` for an expired, revoked, or unknown one. Any other outcome (a `5xx`, a timeout, an unreachable host) describes the server or the transport, not the token, and MUST NOT be read as an invalid session. The stored session MUST be cleared **before** navigating away, because the login screen redirects a viewer that still holds a token back to the dashboard.
+The check MUST be the authenticated action `user_show` **without `id`**, sent through the portal's bridge (`/catalog/user_show`): it answers `200` with the caller for a live token and `404` for an expired, revoked, or unknown one, and the bridge itself answers `401` for a portal cookie that does not open — both mean an invalid session. The check runs only when the store holds a user: probing an anonymous viewer answers `404` and would be misread as a dead session. Any other outcome (a `5xx`, a timeout, an unreachable host) describes the server or the transport, not the token, and MUST NOT be read as an invalid session. The stored session MUST be cleared **before** navigating away, both in the store and on the server (`/auth/logout` drops the cookie), because the login screen redirects a viewer that still holds a session back to the dashboard, and a cookie left alive would restore it on the next load.
 
 #### Scenario: Dead session forces re-login
 
@@ -103,20 +119,24 @@ The check MUST be the authenticated action `user_show` **without `id`**: it answ
 
 ### Requirement: Logout
 
-Logout MUST revoke the CKAN token server-side and clear the client session.
+*Amended 2026-10-16 (token hardening): it read "clears localStorage"; the client no longer holds the token, and the server takes it from the session.*
+
+Logout MUST delete the portal session cookie, revoke the session's CKAN token server-side (best-effort), and clear the client store. The client sends no token.
 
 #### Scenario: Logout revokes and clears
 
 - GIVEN an authenticated session
 - WHEN the user triggers logout
-- THEN the server revokes the JWT via `api_token_revoke`
-- AND the client clears localStorage and the auth store
+- THEN the server revokes the session's JWT via `api_token_revoke`
+- AND the response deletes the session cookie
+- AND the client clears the auth store
 
-#### Scenario: Revoke failure still clears client
+#### Scenario: Revoke failure still clears the session
 
-- GIVEN an authenticated session while CKAN is unreachable
+- GIVEN an authenticated session while CKAN is unreachable or the server configuration is missing
 - WHEN the user triggers logout
-- THEN the client clears localStorage and the auth store regardless of the revoke outcome
+- THEN the session cookie is deleted regardless of the revoke outcome
+- AND the client clears the auth store
 
 ### Requirement: Header User Menu
 

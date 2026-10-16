@@ -33,6 +33,10 @@
 // `user_show` con `id` responde 200 a un llamador anónimo, así que jamás
 // distinguiría una sesión muerta de una anónima.
 //
+// **El 401 del puente (2026-10-16).** Desde que el navegador habla con `/catalog/<acción>` y no con CKAN, la
+// sonda también recibe la respuesta del puente: un `401` es su señal de cookie muerta, y se toma como `dead`
+// sin corroborar. El 404 de CKAN sigue con su corroboración.
+//
 // **Por qué todo lo demás es `inconclusive`.** Un 5xx, un 403, un timeout, una
 // caída de red o un cuerpo que no es JSON describen el servidor o el transporte,
 // no al token. Expulsar a un usuario que está autenticado porque CKAN tuvo un
@@ -46,7 +50,7 @@ import type { CkanClient } from "./client";
 export type SessionCheck =
 	/** El token vive: CKAN devolvió el usuario que llama. */
 	| { state: "alive"; user: CkanUser }
-	/** El 404 medido: el token está vencido, revocado, es basura, o no existe. */
+	/** El 401 del puente (cookie muerta) o el 404 medido de CKAN corroborado: el token ya no vale. */
 	| { state: "dead" }
 	/**
 	 * No se pudo saber. `error` describe el fallo real (5xx, 403, timeout, red,
@@ -75,7 +79,14 @@ export function createSessionApi(client: CkanClient) {
 				const user = await client.post<CkanUser>("user_show", {});
 				return { state: "alive", user };
 			} catch (err) {
-				// Sólo el 404 medido cierra la sesión; cualquier otro fallo se informa sin tocarla.
+				// El 401 es la señal **propia del puente del portal** para una cookie muerta (vencida, alterada o
+				// con otra clave), no una respuesta de CKAN: es inequívoca y no hay nada que corroborar. Un
+				// 401 de CKAN no existe en esta condición (ver la medición del encabezado).
+				if (err instanceof CkanApiError && err.status === 401) {
+					return { state: "dead" };
+				}
+				// El 404 medido de CKAN también cierra la sesión, pero ése sí se corrobora; cualquier otro
+				// fallo se informa sin tocarla.
 				if (err instanceof CkanApiError && err.status === 404) {
 					// Corroboración conductual (ver encabezado): un 404 de `user_show {}`
 					// puede venir de CKAN (token rechazado) o de una base URL/proxy roto.

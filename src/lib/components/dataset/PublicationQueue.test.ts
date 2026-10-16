@@ -415,7 +415,7 @@ describe("PublicationQueue — cuatro ojos", () => {
 		// Camino real del default: la sesión trae el usuario y la fila trae el mismo `id` de usuario.
 		// El nombre de la sesión no coincide con el id de la fila a propósito: si la comparación
 		// volviera al nombre, no habría bloqueo y la aserción fallaría.
-		auth.login("tok", makeUser({ id: SOLICITANTE_ID, name: "otro.nombre" }));
+		auth.setUser(makeUser({ id: SOLICITANTE_ID, name: "otro.nombre" }));
 		renderQueue({ currentUser: undefined });
 
 		const propia = await rowFor("Matrícula 2026");
@@ -428,7 +428,7 @@ describe("PublicationQueue — cuatro ojos", () => {
 	it("un `name` de la sesión igual al id de la fila no bloquea si el `id` difiere", async () => {
 		// Guarda contra revertir la comparación al nombre: el `name` de la sesión ES el id de la fila
 		// `req-1`, pero su `id` es otro. La comparación por id no debe bloquear.
-		auth.login("tok", makeUser({ id: OTRO_ID, name: SOLICITANTE_ID }));
+		auth.setUser(makeUser({ id: OTRO_ID, name: SOLICITANTE_ID }));
 		renderQueue({ currentUser: undefined });
 
 		const fila = await rowFor("Matrícula 2026");

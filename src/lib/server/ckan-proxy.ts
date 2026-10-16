@@ -102,6 +102,20 @@ export function isReadAction(action: string | null | undefined): boolean {
 }
 
 /**
+ * Las acciones que aceptan un cuerpo **`multipart/form-data`** (las que llevan un archivo). Para cualquier otra
+ * el puente sigue exigiendo JSON (`415`). Misma disciplina que `READ_ACTIONS`: lista explícita y probada, de
+ * modo que una acción nueva no pueda recibir un cuerpo en stream sin que alguien lo decida acá.
+ */
+export const UPLOAD_ACTIONS = ["resource_create", "resource_update"] as const;
+
+const UPLOAD = new Set<string>(UPLOAD_ACTIONS);
+
+/** ¿Esta acción admite una subida multipart? */
+export function isUploadAction(action: string | null | undefined): boolean {
+	return typeof action === "string" && UPLOAD.has(action);
+}
+
+/**
  * ¿El portal puede pedir esta acción? **Nombre exacto**: `package` no es `package_show`, y una cadena
  * compuesta (`package_show; DROP …`) no es una acción. Nada de prefijos ni de coincidencias parciales.
  */
@@ -141,5 +155,28 @@ export function upstreamHeaders(incoming: Headers, token: string | null): Header
 		headers.set("Authorization", token);
 	}
 	headers.set("Content-Type", "application/json");
+	return headers;
+}
+
+/**
+ * Las cabeceras de una **subida multipart**: la credencial de la sesión y el `Content-Type` del cliente **tal
+ * cual**, porque lleva el `boundary` y sin él el catálogo no puede leer las partes. Viaja también el
+ * `Content-Length` del cliente cuando es un entero: sin él el stream sale `chunked`, y un servidor WSGI que no
+ * acepte cuerpos `chunked` lo leería vacío. Son las únicas cabeceras del cliente que viajan, y sólo en este
+ * camino; el `Authorization` del cliente sigue sin viajar.
+ */
+export function upstreamMultipartHeaders(
+	contentType: string,
+	token: string | null,
+	contentLength?: string | null,
+): Headers {
+	const headers = new Headers();
+	if (token) {
+		headers.set("Authorization", token);
+	}
+	headers.set("Content-Type", contentType);
+	if (contentLength && /^\d+$/.test(contentLength)) {
+		headers.set("Content-Length", contentLength);
+	}
 	return headers;
 }

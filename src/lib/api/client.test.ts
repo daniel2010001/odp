@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CkanApiError } from "$lib/types/api";
-import { createCkanClient } from "./client";
+import { createCkanClient, createPortalClient } from "./client";
 
 type FetchInit = { headers?: Record<string, string>; method?: string; body?: string };
 
@@ -101,5 +101,104 @@ describe("createCkanClient — apiKey lazy", () => {
 		await client.get("package_search");
 
 		expect(requestHeaders(fetchMock).Authorization).toBe("static-token");
+	});
+});
+
+describe("createCkanClient — los parámetros de un GET viajan en la query", () => {
+	function urlOf(fetchMock: ReturnType<typeof stubFetch>): URL {
+		return new URL(String(fetchMock.mock.calls[0]?.[0]));
+	}
+
+	it("manda los parámetros en la query y no manda cuerpo", async () => {
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+		const fetchMock = stubFetch();
+
+		await client.get("publication_request_list", { status: "pending", limit: 5 });
+
+		const url = urlOf(fetchMock);
+		expect(url.origin + url.pathname).toBe(
+			"https://ckan.test/api/3/action/publication_request_list",
+		);
+		expect(url.searchParams.get("status")).toBe("pending");
+		expect(url.searchParams.get("limit")).toBe("5");
+		expect(fetchMock.mock.calls[0]?.[1]?.body).toBeUndefined();
+	});
+
+	it("un objeto viaja como JSON y un `undefined` se omite", async () => {
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+		const fetchMock = stubFetch();
+
+		await client.get("organization_list", { filtro: { a: [1, 2] }, omitido: undefined });
+
+		const url = urlOf(fetchMock);
+		expect(url.searchParams.get("filtro")).toBe('{"a":[1,2]}');
+		expect(url.searchParams.has("omitido")).toBe(false);
+	});
+
+	it("sin parámetros la URL queda sin query", async () => {
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+		const fetchMock = stubFetch();
+
+		await client.get("package_search");
+
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("https://ckan.test/api/3/action/package_search");
+	});
+
+	it("un POST sigue mandando el cuerpo JSON y nada en la query", async () => {
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+		const fetchMock = stubFetch();
+
+		await client.post("package_search", { q: "agua" });
+
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("https://ckan.test/api/3/action/package_search");
+		expect(fetchMock.mock.calls[0]?.[1]?.body).toBe('{"q":"agua"}');
+	});
+});
+
+describe("createPortalClient — el cliente que habla con el puente del portal", () => {
+	it("pide a /catalog/<acción> del mismo origen", async () => {
+		const client = createPortalClient();
+		const fetchMock = stubFetch();
+
+		await client.post("package_show", { id: "x" });
+
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("/catalog/package_show");
+		expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+		expect(fetchMock.mock.calls[0]?.[1]?.body).toBe('{"id":"x"}');
+	});
+
+	it("nunca manda Authorization: la credencial la pone el servidor", async () => {
+		const client = createPortalClient();
+		const fetchMock = stubFetch();
+
+		await client.get("package_search");
+		await client.post("package_show", { id: "x" });
+
+		expect(requestHeaders(fetchMock, 0).Authorization).toBeUndefined();
+		expect(requestHeaders(fetchMock, 1).Authorization).toBeUndefined();
+	});
+
+	it("un GET manda sus parámetros en la query del puente", async () => {
+		const client = createPortalClient();
+		const fetchMock = stubFetch();
+
+		await client.get("publication_request_list", { status: "pending" });
+
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("/catalog/publication_request_list?status=pending");
+	});
+
+	it("no tiene opción `apiKey`: el tipo la rechaza", () => {
+		// @ts-expect-error — el cliente del portal no admite credencial del lado del navegador.
+		createPortalClient({ apiKey: "x" });
+	});
+
+	it("traduce los errores igual que el cliente de CKAN", async () => {
+		const client = createPortalClient();
+		stubResponse(401, { error: "La sesión del portal no está activa." });
+
+		const error = await client.post("user_show", {}).catch((err: unknown) => err);
+
+		expect(error).toBeInstanceOf(CkanApiError);
+		expect((error as CkanApiError).status).toBe(401);
 	});
 });

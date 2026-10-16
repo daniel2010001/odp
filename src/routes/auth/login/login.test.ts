@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { get } from "svelte/store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { goto } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import { SESSION_EXPIRED_MESSAGE } from "$lib/session";
 import { auth } from "$lib/stores/auth";
@@ -80,11 +81,69 @@ describe("Login", () => {
 
 	it("con una sesión autenticada rebota al panel y no muestra el aviso", async () => {
 		pageStore.set({ params: {}, url: new URL("http://localhost/auth/login?expired=1") });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Login);
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dashboard"));
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("tras un login exitoso vuelve a correr la carga del layout, y recién después navega", async () => {
+		mocks.login.mockResolvedValue(baseUser);
+		const orden: string[] = [];
+		vi.mocked(invalidateAll).mockImplementationOnce(async () => {
+			orden.push("invalidateAll");
+		});
+		vi.mocked(goto).mockImplementationOnce(async () => {
+			orden.push("goto");
+		});
+
+		const { container } = render(Login);
+		await fireEvent.input(screen.getByLabelText("Nombre de usuario"), {
+			target: { value: "jdoe" },
+		});
+		await fireEvent.input(screen.getByLabelText("Contraseña"), {
+			target: { value: "secreta123" },
+		});
+		await fireEvent.submit(getForm(container));
+
+		// El layout tiene que traer al usuario que el servidor ya conoce antes de entrar al panel.
+		await waitFor(() => expect(orden).toEqual(["invalidateAll", "goto"]));
+		expect(goto).toHaveBeenCalledWith("/dashboard");
+	});
+
+	it("adopta al usuario que devuelve el login en el store, y el store no guarda credencial", async () => {
+		mocks.login.mockResolvedValue(baseUser);
+
+		const { container } = render(Login);
+		await fireEvent.input(screen.getByLabelText("Nombre de usuario"), {
+			target: { value: "jdoe" },
+		});
+		await fireEvent.input(screen.getByLabelText("Contraseña"), {
+			target: { value: "secreta123" },
+		});
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dashboard"));
+		expect(get(auth).user).toEqual(baseUser);
+		expect(get(auth)).not.toHaveProperty("token");
+		expect(localStorage.getItem("auth")).toBeNull();
+	});
+
+	it("un login rechazado no vuelve a correr la carga del layout", async () => {
+		mocks.login.mockRejectedValue(new Error("Usuario o contraseña incorrectos"));
+
+		const { container } = render(Login);
+		await fireEvent.input(screen.getByLabelText("Nombre de usuario"), {
+			target: { value: "jdoe" },
+		});
+		await fireEvent.input(screen.getByLabelText("Contraseña"), {
+			target: { value: "secreta123" },
+		});
+		await fireEvent.submit(getForm(container));
+
+		await screen.findByRole("alert");
+		expect(invalidateAll).not.toHaveBeenCalled();
 	});
 });

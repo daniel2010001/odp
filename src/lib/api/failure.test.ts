@@ -60,6 +60,15 @@ describe("classifyFailure — qué clase de fallo ocurrió", () => {
 		expect(classifyFailure(ERR_NOT_FOUND)).toBe("not-found");
 	});
 
+	it("un `401` es `unauthorized`: es la señal propia del puente para una sesión del portal muerta", () => {
+		// CKAN no lo emite para un token muerto (responde `403`/`404`), pero `/catalog` sí, ante una cookie que no
+		// abre (`ckan-bridge.ts`). Tomarlo como `unavailable` mostraría un error genérico en vez de llevar a la
+		// sonda, que es quien decide la expulsión.
+		expect(classifyFailure(new CkanApiError("La sesión del portal no está activa.", 401))).toBe(
+			"unauthorized",
+		);
+	});
+
 	// Un helper que sólo entiende `CkanApiError` etiqueta en silencio un fallo de transporte como una
 	// respuesta del catálogo, así que este grupo es de carga.
 	const NON_DEFINITIVE: Array<[string, unknown]> = [
@@ -67,7 +76,6 @@ describe("classifyFailure — qué clase de fallo ocurrió", () => {
 		["el timeout del cliente (estado 408)", new CkanApiError("Request timed out", 408)],
 		["un error del servidor (500)", new CkanApiError("Server Error", 500)],
 		["un error de pasarela (502)", new CkanApiError("Bad Gateway", 502)],
-		["un 401, que CKAN no emite para un token muerto", new CkanApiError("Unauthorized", 401)],
 		["un CkanApiError sin estado", new CkanApiError("Unknown")],
 		["un Error ajeno", new Error("boom")],
 		["un string lanzado", "boom"],
@@ -208,8 +216,8 @@ describe("describeFailure — el texto que ve el espectador", () => {
 		}
 	});
 
-	// `unavailable` agrupa un estado `0` (sin respuesta), el `408` del cliente, cualquier 5xx y un
-	// `401`. En los tres últimos el catálogo **sí** respondió, así que un texto que afirme que no se
+	// `unavailable` agrupa un estado `0` (sin respuesta), el `408` del cliente y cualquier 5xx. En los
+	// dos últimos el catálogo **sí** respondió, así que un texto que afirme que no se
 	// pudo conectar inventa una causa: el mismo defecto que este slice existe para eliminar. El texto
 	// habla de la consulta, no de la conexión.
 	it("no atribuye a la conexión un fallo del catálogo que sí respondió", () => {
@@ -217,7 +225,6 @@ describe("describeFailure — el texto que ve el espectador", () => {
 			["el timeout del cliente (408)", new CkanApiError("Request timed out", 408)],
 			["un error del servidor (500)", new CkanApiError("Server Error", 500)],
 			["un error de pasarela (502)", new CkanApiError("Bad Gateway", 502)],
-			["un 401", new CkanApiError("Unauthorized", 401)],
 		];
 
 		for (const [label, err] of CATALOG_ANSWERED) {

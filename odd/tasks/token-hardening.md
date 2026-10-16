@@ -21,9 +21,11 @@
 - **S3 — Las descargas privadas** (decisión del autor, 2026-10-15, verbatim del rótulo elegido): *«Streamear
   desde el portal (con `Range`)»*. El portal autentica contra CKAN y devuelve los bytes; el visor de PDF exige
   soporte de `Range`.
-- **S4 — `ckan.auth.enable_cookie_auth_in_api = false` es consecuencia, no requisito** (textual del ítem ya
-  corregido). Se apaga **cuando** el navegador ya no necesite la cookie de CKAN, no antes: `mintToken` usa
-  cookie + `X-CSRFToken` para acuñar el token, así que apagarla primero rompe el login.
+- **S4 — `ckan.auth.enable_cookie_auth_in_api` queda encendida** (enmendada 2026-10-16, L24, decisión del autor).
+  El texto anterior la daba por *«consecuencia, no requisito»* de apagar cuando el navegador ya no necesitara la
+  cookie de CKAN; medido, el login **del servidor** (`ckanLogin`) acuña el token con esa cookie + `X-CSRFToken`, así
+  que apagarla rompe todo login. El riesgo que cerraba —una cookie de CKAN **en el navegador** usada contra `/api`—
+  desapareció con S2: el navegador nunca la recibe.
 - **S5 — Las subidas.** Con el token fuera del navegador, el archivo ya no puede ir directo a `/api/`: pasa por
   una ruta del portal. Dos consecuencias **medidas**, no supuestas: `BODY_SIZE_LIMIT` del servicio `frontend`
   (default de adapter-node **512 KB**; al excederlo devuelve **HTTP 400 con el error de la app**, no 413 — con
@@ -82,11 +84,12 @@
 | T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | `a638a64` |
 | T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | `89b4ad2`, `1486e8f`, `0ebd417`, `95b951a` |
 | T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | `2459d93`, `95b951a` (mitad) |
-| T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
-| T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
-| T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
+| T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | `b1e973d` |
+| T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | worker | (este commit) |
+| T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | (este commit; E5 pendiente) |
+| T6 | Descargas por el portal, con `Range` y sin servir contenido activo desde el origen del portal (§ El diseño de T6, G1–G6) | `src/lib/server/ckan-download.ts`, `src/routes/catalog/download/[resourceId]/+server.ts`, `src/lib/resources/file-url.ts`, `ResourcePreview.svelte`, la ficha del recurso | worker | (este commit) |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
-| T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | — |
+| T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | `4f11d58`, L23–L25 |
 
 ## El diseño (T1)
 
@@ -114,6 +117,118 @@ en la otra punta del cable.
 acciones que el portal usa) sobre `CKAN_INTERNAL_URL` permite que los 11 sitios sigan llamando
 `POST /api/3/action/<action>`: cambia el `baseUrl` y la credencial desaparece del cliente. Sin allowlist sería
 un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
+
+## El diseño de T4 (2026-10-16)
+
+Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a**; el ayuno es T4b.
+
+- **D1 — La sesión se resuelve una vez por request, en `src/hooks.server.ts`.** La lógica vive en un módulo
+  puro y testeable (`src/lib/server/request-session.ts`): recibe el valor de la cookie, un resolvedor de la clave
+  (se llama **sólo** si hay cookie, igual que hoy) y `now`, y devuelve `{ session: BridgeSession, user:
+  SessionUser | null, clearCookie: boolean }`. El hook pone `event.locals.session` y `event.locals.user`
+  (tipados en `src/app.d.ts`) y, si la cookie está **muerta**, la **borra** en esa misma respuesta: así el primer
+  pedido responde `401` (la señal de expulsión) y los siguientes son anónimos, en vez de un `401` eterno que
+  rompería la navegación pública después de un vencimiento. `/catalog/[...action]` deja de leer la cookie y usa
+  `locals.session`.
+- **D2 — El usuario de la sesión lleva `sysadmin`.** `isSuperAdmin` lo lee y la sesión de hoy lo pierde:
+  `SessionUser` gana `sysadmin: boolean` (`buildSession` lo copia como `user.sysadmin === true`).
+- **D3 — La identidad llega del servidor.** `src/routes/+layout.server.ts` devuelve `{ sessionUser }` desde
+  `locals.user` —**nunca** el token—. `+layout.svelte` hidrata el store con ese usuario **sólo en el navegador**:
+  el store es un singleton de módulo, y escribirlo durante el SSR mezclaría usuarios entre requests. Tras el
+  login, `invalidateAll()` vuelve a correr la carga. Hasta T4b el store **convive** con el `localStorage` de hoy;
+  si los dos discrepan, manda el servidor.
+- **D4 — «¿Hay sesión?» lee el usuario, no el token.** `isAuthenticated` pasa a `user !== null`; los
+  `get(auth).token` que sólo preguntaban eso (las sondas de `dashboard`, `new`, `edit`, las fichas de dataset y
+  de recurso, `validateStoredSession`, `resolveUnauthorized`) preguntan por el usuario. **No se sondea sin
+  usuario**: `user_show {}` anónimo responde `404` y se leería como sesión muerta (medido 2026-09-20). Refrescar
+  la identidad tras una sonda viva es `auth.setUser(user)`, sin token. **Queda** la lectura del token en
+  `uploadEntry` (XHR de la subida): es T5.
+- **D5 — El cliente del portal.** `createPortalClient()` en `src/lib/api/client.ts`: pide a
+  `/catalog/<acción>` del mismo origen, **sin** `Authorization` ni opción `apiKey`. Los **11 sitios** de
+  `apiKey: () => get(auth).token` lo usan. Los clientes **sin** credencial de hoy (páginas públicas contra
+  `env.CKAN_URL`) **no se tocan**.
+- **D6 — Un `GET` manda sus parámetros en la query.** Defecto previo, medido al leer el cliente: `request()`
+  no manda cuerpo en un `GET` y tampoco arma la query, así que `publication_request_list {status}` pierde el
+  filtro. El puente lee la query de un `GET`; el cliente la arma igual que el puente la consume (objetos como
+  JSON, `undefined` omitido).
+- **D7 — La sonda entiende el `401` del puente.** Es la señal **propia** del puente para una cookie muerta, no
+  una respuesta de CKAN, así que es inequívoca: `check()` la devuelve como `dead` sin corroborar. El `404` de
+  CKAN sigue con su corroboración por `status_show`.
+
+## El diseño de T5 (2026-10-16)
+
+- **E1 — Sin ruta nueva.** El plan decía `src/routes/api/upload/+server.ts`, pero `/api` lo intercepta el proxy
+  antes de SvelteKit (L8). La subida va por el **mismo puente**: `POST /catalog/resource_create` (y
+  `resource_update`) con `multipart/form-data`.
+- **E2 — Multipart sólo para las acciones de subida.** `UPLOAD_ACTIONS = ["resource_create", "resource_update"]`
+  en `ckan-proxy.ts`, con la misma disciplina que `READ_ACTIONS` (lista explícita y probada). El puente acepta
+  `multipart/form-data` **sólo** para esas dos; para cualquier otra sigue el `415`. El anti-CSRF no se debilita:
+  `multipart/form-data` es un tipo de formulario y SvelteKit (`csrf.checkOrigin`) rechaza un `POST` cross-origin
+  con ese tipo, y `SameSite=Lax` retiene la cookie en un `POST` cross-site.
+- **E3 — El cuerpo se reenvía en stream**, sin leerlo ni parsearlo: `fetch(url, { body: request.body, duplex:
+  "half" })`, con el `Content-Type` del cliente **tal cual** (lleva el `boundary`, sin él CKAN no puede leer las
+  partes) y la credencial de la sesión. Es la **única** cabecera del cliente que viaja, y sólo en este camino; el
+  `Authorization` del cliente sigue sin viajar. Leerlo entero pondría un archivo de decenas de MB en la memoria
+  del servidor por cada subida.
+- **E4 — El cliente.** `uploadResourceFile` pide a `/catalog/resource_create` por XHR (el progreso de subida lo
+  da `xhr.upload.onprogress`, que `fetch` no tiene) y **sin** `Authorization`; la opción `token` desaparece. El
+  asistente deja de leer `get(auth).token` y pregunta por el usuario.
+- **E5 — El límite del cuerpo.** adapter-node corta en `BODY_SIZE_LIMIT` (default **512 KB**, y responde **400**,
+  no 413 —medido, S5—), así que el servicio `frontend` de **producción** necesita `BODY_SIZE_LIMIT` igual al
+  máximo de recurso de CKAN. Va en el compose de `odp-docker` (pedido a esa sesión). El dev (`vite dev`) no
+  aplica ese límite.
+
+## El diseño de T4b (2026-10-16)
+
+- **F1 — El login no devuelve el token.** `POST /auth/login` responde `{ user }` y la cookie sellada; el cliente
+  (`src/lib/api/auth.ts`) devuelve el usuario y la página de login lo adopta con `auth.setUser` + `invalidateAll()`.
+- **F2 — El store no tiene token.** `AuthState` pierde `token`; `auth.login(token, user)` desaparece (lo reemplaza
+  `setUser`); **nada** se persiste en `localStorage`: la identidad la entrega el servidor en cada carga (D3).
+- **F3 — La credencial heredada se borra.** Al cargar en el navegador, el store **elimina** `localStorage["auth"]`:
+  un navegador que inició sesión antes del despliegue guarda ahí un JWT vivo hasta 24 h, legible por cualquier XSS.
+  No se lee: se borra.
+- **F4 — El logout no recibe token.** `logout()` del cliente manda `{}` (`UserMenu` deja de leer `get(auth).token`)
+  y `POST /auth/logout` revoca **sólo** el de la sesión: el camino del cuerpo desaparece, y con él el hueco (c) de L13.
+- **F5 — Prueba de cierre:** `grep -rn "\.token" src/lib/stores src/lib/api/auth.ts` y ningún `get(auth).token` en
+  `src/`; y una prueba que fije que el store no escribe `localStorage` y borra la clave heredada.
+
+## El diseño de T6 (2026-10-16)
+
+Mapa previo (explorador, 2026-10-16): el PDF se muestra en un `<iframe src={resource.url}>` con el visor **nativo**
+(que hace sus propias peticiones `Range`), la imagen en `<img>`, el texto en otro `<iframe>`, y el botón es un
+`<a href={resource.url}>` (`ResourcePreview.svelte:27,70-95`; ficha del recurso `:383,544-558`). `resource.url` de
+un archivo subido es la URL **pública** de CKAN (`…/dataset/<pkg>/resource/<id>/download/<archivo>`) y el navegador
+va directo ahí **sin** credencial: hoy un recurso privado no se puede descargar desde el portal salvo que el
+navegador tenga otra sesión de CKAN.
+
+- **G1 — Una ruta propia, sólo `GET`:** `/catalog/download/<resourceId>` (`src/routes/catalog/download/[resourceId]/
+  +server.ts`; el segmento estático le gana a `[...action]`). Un `GET` que **lee** no es un CSRF: una navegación
+  ajena con la cookie `Lax` no puede leer la respuesta, y un `<iframe>`/`<img>` cross-site no lleva cookie `Lax`.
+- **G2 — El servidor resuelve el archivo, nunca la URL del cliente.** `resource_show {id}` con la credencial de la
+  sesión (o anónimo); si `url_type !== "upload"` → `404` (los enlaces externos siguen siendo enlaces). El archivo
+  se pide a **`CKAN_INTERNAL_URL`** con la ruta **construida** `/dataset/<package_id>/resource/<id>/download/<nombre>`
+  (cada segmento con `encodeURIComponent`; el nombre es el último segmento de `resource.url`): el host de
+  `resource.url` **no** se usa jamás, o la ruta sería un SSRF con credencial.
+- **G3 — `Range` de punta a punta, en stream.** Viajan hacia CKAN `Range` e `If-Range`, y vuelven el status
+  (`200`/`206`/`416`) y `Content-Type`, `Content-Length`, `Content-Range`, `Accept-Ranges`, `ETag` y
+  `Last-Modified`; el cuerpo se devuelve como stream, sin leerlo. Más `Cache-Control: private, no-store` y
+  `Vary: Cookie`.
+- **G4 — Ningún contenido activo desde el origen del portal.** Antes los archivos se servían desde el host de CKAN;
+  ahora salen del **mismo origen que tiene la sesión**, así que un `.html` o un `.svg` subido ejecutaría scripts
+  capaces de llamar a `/catalog` a nombre del usuario. Por eso: `X-Content-Type-Options: nosniff` **siempre**; sólo
+  una lista explícita va `inline` (`application/pdf`, `image/png`, `image/jpeg`, `image/gif`, `image/webp`,
+  `text/plain`, `text/csv`, `application/json`); **todo lo demás** sale con `Content-Disposition: attachment` y
+  `Content-Security-Policy: sandbox`. No se pone `sandbox` a la lista `inline` porque rompe el visor de PDF de
+  Chromium.
+- **G5 — Errores:** sesión muerta `401` (el hook ya borró la cookie), acción denegada por CKAN `403`, inexistente
+  `404`, catálogo caído `502`, todos con cuerpo de texto propio y sin llamar al archivo cuando `resource_show` ya
+  negó. La lógica vive en `src/lib/server/ckan-download.ts` con `fetch` inyectable, y la ruta es un adaptador.
+- **G6 — El cliente.** `fileUrl(resource)` en `src/lib/resources/file-url.ts`: un archivo (`resourceKind ===
+  "file"`) → `/catalog/download/<id>`; un enlace → `safeExternalUrl(resource.url)` como hoy. Lo usan el `<iframe>`,
+  la `<img>` y el botón.
+
+**Sin medir, para T8:** que CKAN acepte el `Authorization` de un token de API en `/dataset/…/download/…` (una ruta
+web, no de la API) y que responda `206` a un `Range`.
 
 ## Riesgos y decisiones abiertas
 
@@ -267,3 +382,108 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   `odp-docker` (el compose es de ese repo); en el stack dev no hace falta: corre `vite dev` y usa la clave de
   desarrollo, y el `.env` de `odp` no llega al contenedor (`.dockerignore` lo excluye y sólo se montan `src/` y
   `static/`).
+- **L15 (diseño de T4, 2026-10-16):** al leer los sitios aparecieron dos cosas que el plan no tenía: (1) `client.get`
+  **nunca** mandó sus parámetros (D6), y (2) sin token en el navegador, la pregunta «¿hay sesión?» tiene que
+  leer el **usuario**, porque sondear anónimo da `404` y se leería como sesión muerta (D4). T4 se parte en **T4a**
+  (D1–D7) y **T4b** (el ayuno, después de T5, porque la subida por XHR todavía lee el token). T4a va a un
+  worker por el respaldo de contexto del padre.
+- **L16 (respuesta de la sesión de `odp-docker`, 2026-10-16):** `SESSION_SECRET` quedó cableada en el servicio
+  `frontend` de `docker-compose.unified.yml` con `${SESSION_SECRET:?…}` —sin valor, Compose **no arranca**— y
+  declarada vacía en un `.env.example` nuevo de la raíz: **PR #22 de `odp-docker`**, sin mergear (decisión del
+  autor). **El valor va en `odp-docker/.env` (la raíz), no en `ckan-docker/.env`**: el compose raíz se interpola
+  desde el `.env` de su carpeta. No se recreó ningún contenedor: el dev unificado no cambia, porque `vite dev`
+  usa la clave de respaldo. Efecto a recordar: una variable del `.env` raíz pisa la del mismo nombre en el
+  compose de CKAN incluido.
+- **L17 (T4a entregada, 2026-10-16):** el worker implementó D1–D7 con RED observado en las suites nuevas
+  (`request-session`, el `sysadmin` de la sesión, la query del `GET`, el cliente del portal, el `401` de la sonda y
+  el store); las suites ancladas al mecanismo viejo se **re-anclaron** sin perder aserciones (en
+  `resource-page.test.ts` el «manda `Authorization`» pasó a «pide a `/catalog/…` y **no** manda `Authorization`»).
+  Dos de sus decisiones, aceptadas: las cookies ya emitidas **sin** `sysadmin` abren con `false` en vez de cerrarse
+  todas al desplegar, y `+layout.ts` tiene que **devolver** `data` o el usuario del servidor se perdía por el camino.
+  **Dos huecos que él mismo marcó y cerré yo, con RED:** (1) **el bucle por el lado del servidor**: una cookie con
+  sello válido y token revocado en CKAN sobrevivía a la sonda `dead` —`auth.logout()` sólo limpia el store—, así
+  que la próxima carga rehidrataba al usuario, el login lo devolvía al panel y la sonda volvía a expulsarlo;
+  `endInvalidSession` y `validateStoredSession` piden ahora `/auth/logout` **antes** de navegar (`logout()` sin
+  token manda `{}` y el servidor revoca el de la sesión). (2) **`classifyFailure` trataba el `401` como
+  `unavailable`**, una regla escrita cuando sólo CKAN respondía; el `401` es ahora la señal propia del puente y va
+  a la sonda como un `403`. **Riesgo declarado:** con una cookie presente y sin `SESSION_SECRET` fuera de desarrollo
+  el hook lanza en **todo** request; el compose de `odp-docker` (L16) ya no arranca sin ella. Compuertas: 1137
+  pruebas, `check` 0 errores, `lint` limpio. Quedan dos lecturas del token, las dos previstas: la subida (T5) y el
+  logout del menú (T4b).
+- **L18 (T5 entregada sin E5, 2026-10-16):** el worker implementó E1–E4 con 13 fallos RED antes de implementar: la
+  subida va por XHR a `/catalog/resource_create` **sin** `Authorization` (desaparecen las opciones `token` y
+  `baseUrl` de `uploadResourceFile`), y el puente acepta `multipart/form-data` **sólo** para `UPLOAD_ACTIONS` y
+  reenvía el stream sin leerlo (`duplex: "half"`). El asistente pregunta por el usuario, no por el token. **Un
+  agregado mío, con RED:** el puente reenvía también el `Content-Length` del cliente cuando es un entero; sin él
+  el stream sale `chunked`, y un WSGI que no acepte cuerpos `chunked` lo leería **vacío**. **No medido todavía y
+  pendiente para T8:** que el stream y ese `Content-Length` lleguen bien a CKAN a través de `undici` (sólo está
+  probado con un `fetch` de mentira). **E5 (`BODY_SIZE_LIMIT`) sigue pedido a `odp-docker`.** Compuertas: 1151
+  pruebas, `check` 0 errores, `lint` limpio. La única lectura del token que queda es el logout del menú (T4b).
+- **L19 (T4b entregada, 2026-10-16): el navegador ya no tiene el token.** El worker implementó F1–F5 con 8 fallos RED
+  antes de implementar: el login responde `{ user }`, el store perdió `token`, `login()` y toda escritura en
+  `localStorage`, la clave heredada `auth` se **borra sin leerse** al cargar, y el logout ya no recibe token: revoca
+  el de la sesión (cierra el hueco (c) de L13). Las aserciones que sólo probaban la persistencia del token se
+  **reemplazaron** por las de F2/F3, declaradas una por una en su informe. Su desvío, aceptado: si CKAN respondiera
+  `200` sin token o sin usuario, el login devuelve un `500` propio en vez de reenviar un cuerpo que podría llevar la
+  credencial. **Un agregado mío, sin RED posible (ruta):** el login exige `application/json` (`415` si no), por la
+  misma razón que el puente: sin `Content-Type` no hay preflight ni `checkOrigin`, y otra página del mismo sitio
+  podría iniciar sesión en el navegador de la víctima con una cuenta ajena (CSRF de login). Compuertas: 1152
+  pruebas, `check` 0 errores, `lint` limpio; `grep -rn "get(auth).token" src` → 0. **Queda para T8:** la spec de
+  autenticación (S7) todavía dice `localStorage`, y las rutas se verifican en vivo.
+- **L20 (E5 resuelto del lado de `odp-docker`, 2026-10-16):** **PR #23 de `odp-docker`** (sin mergear; el #22 de
+  `SESSION_SECRET` ya está mergeado). `BODY_SIZE_LIMIT: 55M` en el `frontend` de producción —los 50 MB por recurso
+  de RF-12 más el overhead del multipart, el mismo límite que `/api/`—, por debajo de los **100 MB efectivos** de
+  CKAN (`CKAN_MAX_UPLOAD_SIZE_MB=100` pisa `ckan.max_resource_size = 10`; medido en vivo). **Y un hallazgo que
+  rompía T5 sin que lo viéramos:** `/catalog/` no tenía límite propio en `frontend-proxy` y caía en `location /`,
+  con el default de nginx de **1 MB**, así que toda subida de más de 1 MB habría muerto en `413` antes de llegar al
+  portal. Ahora hay un `location /catalog/` con `55M`, en prod y en dev (dev recargado con `nginx -s reload`, sin
+  recrear contenedores); `location /` sigue en 1 MB a propósito. Medido en dev: 2 MB y 54 MB a `/catalog/` llegan al
+  portal, 56 MB da `413`, 2 MB a `/` sigue en `413`. **Regla que queda:** toda subida del portal va bajo `/catalog/`.
+- **L21 (T6 entregada, 2026-10-16):** el worker implementó G1–G6: `downloadResource` (`src/lib/server/ckan-download.ts`,
+  30 pruebas) con la sesión muerta en `401` sin ningún `fetch`, el enlace externo en `404` sin pedir el archivo, la URL
+  **construida** desde `CKAN_INTERNAL_URL` aunque `resource.url` apunte a otro host (el pin del SSRF), sólo `Range` e
+  `If-Range` del cliente, el stream devuelto sin leer, y `attachment` + `sandbox` + `nosniff` para todo lo que no esté
+  en la lista `inline`. `fileUrl` lleva el `<iframe>`, la `<img>` y el botón de un archivo a `/catalog/download/<id>`;
+  los enlaces no cambian. RED: sólo la falla de carga de los dos módulos nuevos (no hubo RED por regla), declarado por
+  él. **Su desvío, aceptado:** la prueba `javascript:` de `ResourcePreview` se partió en dos, porque la `url` de un
+  **archivo** ya no se usa en el cliente: el archivo con `javascript:` embebe el portal y el HTML no contiene
+  `javascript:`, y el **enlace** con `javascript:` sigue sin embeberse. **Un agregado mío, con RED:** el archivo se
+  pide con `Accept-Encoding: identity`, porque `fetch` descomprime solo y conserva el `Content-Length` comprimido, y
+  reenviarlo habría truncado la descarga. Compuertas: 1189 pruebas, `check` 0 errores, `lint` limpio. **Sin medir,
+  para T8:** que CKAN acepte el `Authorization` de un token en `/dataset/…/download/…` (ruta web, no de la API) y
+  responda `206` a un `Range`; si no lo acepta, G2 necesita otro camino.
+- **L22 (T8, primera parte — S7, 2026-10-16):** `openspec/specs/authentication/spec.md` enmendada con fecha y motivo
+  en los dos MUST que S7 nombraba —`Session Persistence` (cookie sellada `httpOnly`; el token no aparece en ningún
+  cuerpo, `localStorage` ni store; escenarios de la clave heredada y de la cookie muerta) y `Logout` (borra la cookie
+  y revoca el token de la sesión; el cliente no manda token)— y en dos que quedaban contradichos: `Login Success`
+  (el cuerpo lleva sólo el usuario; el endpoint exige JSON) e `Invalid Session Detection` (la sonda va por el puente,
+  el `401` del puente también es sesión muerta, no se sondea sin usuario, y la expulsión mata también la cookie).
+  **Queda de T8:** apagar `ckan.auth.enable_cookie_auth_in_api` (S4, `odp-docker`) y la verificación viva.
+- **L23 (T8, verificación viva anónima, 2026-10-16, `localhost:8082`, rama `feat/token-hardening-client` montada por
+  el contenedor):** `GET /catalog/status_show` anónimo `200`; `GET` de `package_delete` `405`; `POST` sin
+  `Content-Type` `415`; `api_token_create` `404`; cookie basura → `401` con `Set-Cookie: odp_session=; Max-Age=0`,
+  `Cache-Control: private, no-store` y `Vary: cookie`; login con cuerpo de formulario `415`; `package_search` anónimo
+  por el puente devuelve los 17 públicos; `publication_request_list?status=pending` por `GET` `200`. **Falta la mitad
+  autenticada** (login, cookie, sonda, subida, descarga privada con `Range`), que pide una cuenta de prueba.
+  **Y S4 no se puede cumplir tal como está escrito:** el login del **servidor** (`ckanLogin`) acuña el token con la
+  cookie web de CKAN + `X-CSRFToken`, así que apagar `enable_cookie_auth_in_api` rompe el login aunque el navegador
+  ya no tenga ninguna cookie de CKAN. El riesgo que esa opción cerraba —una cookie de CKAN **en el navegador**
+  usable contra `/api`— ya no existe: el navegador nunca recibe esa cookie. Decisión pendiente del autor.
+- **L24 (decisión del autor, 2026-10-16):** sobre S4, el rótulo elegido: *«Dejarla encendida y enmendar S4
+  (Recomendado)»*. Sobre la verificación autenticada: *«Usted la hace en el navegador con mi checklist
+  (Recomendado)»*. Y confirmó que su línea de `.env.example` es `SESSION_SECRET=` **sin valor** (*«Sí, sin valor:
+  commitéalo»*): entra con este commit, sin que yo lo haya leído —el arnés bloquea esa ruta—.
+- **L25 (T8 cerrada, 2026-10-16): la verificación autenticada del autor, en el navegador** (`https://odp.hs.lan`,
+  servido por el contenedor de `odp-docker`; no se levantó ningún servidor en el host). Pasos confirmados por él:
+  (1) login — `odp_session` `HttpOnly`, sin `auth` en `localStorage`, el cuerpo de `/auth/login` sin token; (2) las
+  llamadas van a `/catalog/<acción>` sin `Authorization`; (3) F5 conserva la sesión; (4) subida por
+  `/catalog/…` correcta; (5) el PDF y la imagen de un recurso abren y se pueden guardar —se abren en pestaña, no se
+  descargan directo, porque son tipos `inline` (G4)—; (6) el logout borra la cookie; (7) una cookie con un carácter
+  cambiado lleva al login y queda borrada. **Una regresión aparente, explicada:** como `ckan_admin`, único miembro
+  de su organización, no podía aprobar su propia solicitud. Causa: la rama había salido de `main` **antes** del PR
+  #74 (que refleja `decidable_by_caller`), y el contenedor sirve el árbol de esta rama; el riesgo 4 del plan lo
+  había anticipado. Se rebasó sobre `origin/main` (#74 y #75 incluidos) sin conflictos de texto, y se buscaron a
+  mano usos de la interfaz vieja que el #74 pudiera traer: ninguno. Compuertas: 1195 pruebas, `check` 0 errores,
+  `lint` limpio. **Nota sobre el campo `help`** de las respuestas (`https://api.odp.hs.lan/...`): es el cuerpo de
+  CKAN reenviado tal cual —el puente no reescribe cuerpos, porque el portal necesita `success`, `error.__type` y
+  `payload`—; nombra el host público de la API, que ya es público, y no lleva credencial.
