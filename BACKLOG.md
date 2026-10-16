@@ -3103,83 +3103,21 @@ después del cierre que describe el encabezado de esta sección; medición compl
   **posterior** y **no** un motivo para repetir la revisión de ese candidato. Se pagan cuando se toque ese módulo,
   o cuando el autor los priorice.
 
-- [ ] **[v1] El token de CKAN no debe ser legible por JavaScript (endurecimiento)** — hoy el JWT
-  vive en `localStorage` y el navegador lo manda en `Authorization`. En `v0` es un trade-off
-  aceptado, no un bug. El costo real es XSS: el portal renderiza contenido que viene de CKAN
-  (descripciones markdown, `url`s, nombres de recursos) y el token dura 24 h y además puede
-  acuñar y revocar tokens de esa cuenta.
+- [ ] **[v1] El logout probablemente no revoca el token en CKAN** (hallado en el endurecimiento del token,
+  2026-10-16; anterior a esa feature). `revokeToken` (`src/lib/server/ckan-auth.ts:347`) llama a
+  `api_token_revoke` **sin `Authorization`**, así que CKAN lo recibe como anónimo; y la familia de no-ops de
+  `api_token_revoke` ya está medida (`success: true` sin revocar). **Sin medir todavía.** El daño está acotado:
+  el logout **siempre** borra la cookie del portal, cada login revoca los tokens previos del portal
+  (`revokePreviousTokens`, deja **uno** por usuario) y el token vence a las 24 h. Arreglo probable: mandar el
+  propio JWT en `Authorization` (un token puede revocarse a sí mismo) y **verificar listando**, no por el
+  `success`. No hace falta borrar los tokens vivos a mano: vencen solos.
 
-  **Lo que este ítem decía antes quedó retirado el 2026-09-24: era incorrecto y no era
-  ejecutable.** Tres mediciones, todas contra el CKAN 2.11.6 que corre:
-  1. **`ckan.auth.disable_cookie_auth_in_api` no existe.** `grep` sobre todo el árbol de CKAN:
-     cero ocurrencias. La opción real es **`ckan.auth.enable_cookie_auth_in_api`**
-     (`config/config_declaration.yaml`, `default: True`; `ckan.ini:107` la fija en `true`). Tal
-     como estaba escrito, el ítem habría sido un **no-op silencioso**.
-  2. **Poner la real en `false` hoy rompería el login.** `mintToken`
-     (`src/lib/server/ckan-auth.ts`) autentica `POST /api/3/action/api_token_create` con
-     **cookie de sesión + `X-CSRFToken`**, no con un token, y `ckan/logic/auth/create.py` exige
-     identidad autenticada (`user.name == context['user']`). La doc de la propia opción advierte
-     que rompe módulos del frontend que llaman a la API.
-  3. **El truco de nginx no cubre CSRF.** El navegador manda la cookie sola, así que
-     `proxy_set_header 'Authorization' $cookie_<nombre>` autenticaría *cualquier* request que la
-     traiga, incluidas las que mutan.
-
-  **Diseño propuesto (BFF):** el servidor del portal guarda la credencial de CKAN y el navegador
-  sólo tiene una cookie de sesión httpOnly del portal; `hooks.server.ts` inyecta `Authorization`
-  server-side hacia `CKAN_INTERNAL_URL`. Con eso, `enable_cookie_auth_in_api = false` pasa a ser
-  una **consecuencia** del diseño, y segura.
-
-  **Restricción que hay que decidir ANTES de implementarlo:** sin credencial de CKAN en el
-  navegador, **las descargas de datasets privados fallan** — `/dataset/.../download/...` autoriza
-  con cookie o con token. Si hay que servir archivos privados desde el navegador, el portal tiene
-  que streamear los bytes (con soporte de `Range`, que el visor de PDF necesita) o emitir un token
-  de vida corta. Los datasets públicos no tienen ese problema.
-
-  **Efecto obligado sobre las subidas:** al sacar el token del browser, el archivo ya no puede ir
-  directo a `/api/`; pasa a un `+server.ts` propio y por lo tanto aparecen dos requisitos:
-  1. `BODY_SIZE_LIMIT` en el servicio `frontend` del compose (default de adapter-node: **512 KB**).
-     Trampa medida el 2026-09-11 sobre el build real: al excederlo el adapter **no devuelve 413**,
-     devuelve **HTTP 400 con el mensaje de error de la propia app** (un `request.json()` que falla
-     al leer el body), así que parece un error de validación y no un límite de tamaño. Con
-     `BODY_SIZE_LIMIT=55M` el mismo body de 2 MB se leyó completo.
-  2. Un método multipart en `src/lib/api/client.ts`, que hoy hardcodea `Content-Type:
-     application/json` + `JSON.stringify` y por eso no puede subir archivos. CKAN exige
-     `multipart/form-data` con la clave `upload` y pasar el `FormData` intacto, **sin** setear
-     `Content-Type`.
-
-  Mientras tanto el límite de adapter-node queda **deliberadamente sin subir**: en `v0` ningún
-  route de Node recibe archivos, y ampliarlo sin consumidor agranda el body aceptado en todas las
-  rutas del servidor. _Origen: research 2026-09-10 (ckanext-passwordless_api) + medición
-  2026-09-11._
-
-  **Costo medido de mover la credencial (2026-10-15, reconocimiento con `path:line`).** No es un
-  endurecimiento suelto: toca el camino entero del token.
-  - **Hoy el token es un concepto exclusivamente del cliente**: `localStorage["auth"]`
-    (`src/lib/stores/auth.ts:14`), hidratado al importar el módulo, **sin expiración persistida** (el TTL es
-    server-side, `src/lib/server/ckan-auth.ts:29`).
-  - **11 sitios de producción** construyen un cliente con `apiKey: () => get(auth).token`
-    (`src/routes/+layout.svelte:33`; `dataset/[id]/+page.svelte:110,270,343,354`;
-    `resource/[resourceId]/+page.svelte:49,104`; `dashboard/requests/+page.svelte:33`; `dashboard/+page.svelte:67`;
-    `dashboard/datasets/[id]/edit/+page.svelte:56`; `dashboard/datasets/new/+page.svelte:58`), más **~10 lectores
-    directos** del store (guardián, encabezado, dashboard, wizard, ficha, recurso, login).
-  - **Dos caminos asumen el token legible en el navegador**: la **subida por XHR**, que lo pone a mano
-    (`src/lib/api/upload.ts:82`) y el **logout**, que lo manda en el body (`src/lib/api/auth.ts:48-56`,
-    `UserMenu.svelte:42`).
-  - **Siete suites están ancladas al mecanismo, no a un detalle**: `auth.test.ts`, `session-guard.test.ts`,
-    `dashboard.test.ts`, `wizard.test.ts`, `login.test.ts`, `PublicationQueue.test.ts` y `layout-header.test.ts`
-    (más `client.test.ts`, `upload.test.ts` y `resource-page.test.ts`, que aseveran el header `Authorization`
-    emitido desde el navegador).
-  - **No existe `hooks.server.ts`** y ningún camino SSR usa el token hoy: el punto de inyección hay que
-    **inventarlo**, y con él decidir quién guarda la credencial del lado servidor.
-  - Siguen en pie las dos consecuencias ya escritas arriba: **descargas privadas** (streamear los bytes con
-    soporte de `Range`) y **subidas** (`+server.ts` propio, `BODY_SIZE_LIMIT` y un método multipart en el cliente).
-  - **El riesgo que decide el diseño**: con cookie, el navegador la manda sola, así que la inyección por nginx
-    autenticaría **también las peticiones mutantes** → hace falta diseño anti-CSRF (`SameSite` estricto + token de
-    sincronización), que hoy no existe porque el header manual es inmune a eso.
-
-  **Veredicto de tamaño (2026-10-15): es una feature de varias sesiones, no un endurecimiento suelto.** El autor
-  decidió dejarla para una **sesión dedicada**, con este mapa y este costo como punto de partida; no entra en
-  `v0`/la demo y sigue siendo `[v1]`.
+- [ ] **[doc] Para la documentación de usuario: qué se abre y qué se descarga** (pedido del autor,
+  2026-10-16). Desde el endurecimiento del token los archivos de un recurso salen por el portal
+  (`/catalog/download/<id>`), y **el portal** decide cómo se entregan (`src/lib/server/ckan-download.ts`,
+  `INLINE_TYPES`): **PDF, imágenes PNG/JPEG/GIF/WebP, texto, CSV y JSON se abren en el navegador** (para guardarlos:
+  clic derecho → guardar), y **todo lo demás se descarga** directo. Es a propósito: un `.html` o `.svg` abierto
+  desde el origen del portal podría ejecutar código con la sesión del usuario. El autor eligió dejarlo así.
 
 - [x] **[v1] CKAN 2.12: decidir y planificar la actualización** — medido el 2026-09-24.
 

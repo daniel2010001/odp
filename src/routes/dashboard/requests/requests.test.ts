@@ -158,4 +158,31 @@ describe("Solicitudes — lo que la page le entrega a la cola", () => {
 		expect(screen.queryByText("pkg-1")).not.toBeInTheDocument();
 		expect(screen.queryByText("unknown")).not.toBeInTheDocument();
 	});
+
+	it("la respuesta del catálogo llega a la cola: la propia que el catálogo concede se puede decidir", async () => {
+		// La excepción de cuatro ojos (#74) la decide el catálogo en `decidable_by_caller`. Si la page la pierde al
+		// traducir la fila, la cola aplica la regla vieja y el único aprobador posible no puede decidir — en la
+		// ficha del dataset sí podía, porque ahí la fila no pasa por esta traducción.
+		auth.setUser(makeUser());
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ requested_by: "user-admin", decidable_by_caller: true }),
+		]);
+
+		renderPage();
+
+		expect(await screen.findByRole("button", { name: "Aprobar" })).toBeInTheDocument();
+		expect(screen.queryByText("No puede aprobar su propia solicitud.")).not.toBeInTheDocument();
+	});
+
+	it("y la que el catálogo no concede sigue sin decidirse (la cola la deja plegada)", async () => {
+		auth.setUser(makeUser());
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ requested_by: "user-admin", decidable_by_caller: false }),
+		]);
+
+		renderPage();
+
+		expect(await screen.findByText("Matrícula 2026")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
+	});
 });

@@ -91,6 +91,9 @@ function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
 		created_at: fila.created_at ?? undefined,
 		status: fila.status,
 		comments: fila.comments ?? null,
+		// La respuesta del catálogo sobre la excepción de cuatro ojos (#74): sin ella la cola aplica la regla
+		// vieja y bloquea la propia aunque quien mira sea el único que puede aprobarla.
+		decidable_by_caller: fila.decidable_by_caller ?? null,
 	};
 }
 
