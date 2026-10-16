@@ -31,6 +31,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress, cookies 
 	// contenedorizado. Cuando falta, la decisión (default sólo en dev, o fallo en
 	// producción) vive en `resolveCkanInternalUrl`, no acá.
 	const baseUrl = resolveCkanInternalUrl(env.CKAN_INTERNAL_URL, dev);
+	// La clave se resuelve **antes** del login, no después: `handleLogin` acuña un token en CKAN, y si la clave
+	// faltara recién al sellar, el `500` llegaría con ese token ya vivo —sin dueño, sin revocar, 24 h—, y cada
+	// reintento acuñaría otro. Sin clave no se toca el catálogo.
+	const secret = resolveSessionSecret(env.SESSION_SECRET, dev);
 	const response = await handleLogin(baseUrl, getClientAddress(), raw);
 
 	// La credencial entra en la **sesión del servidor**: la cookie la pone esta ruta, es `httpOnly`, y el
@@ -41,14 +45,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, cookies 
 		const { token, user } = response.body as { token?: string; user?: CkanUser };
 		if (token && user) {
 			const { name, ...opciones } = sessionCookieOptions(!dev);
-			cookies.set(
-				name,
-				sealSession(
-					buildSession(token, user, Date.now()),
-					resolveSessionSecret(env.SESSION_SECRET, dev),
-				),
-				opciones,
-			);
+			cookies.set(name, sealSession(buildSession(token, user, Date.now()), secret), opciones);
 		}
 	}
 

@@ -237,3 +237,24 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   archivos de entorno como sensibles—, así que la agrega el autor o una sesión sin ese bloqueo. Es una línea, **sin
   valor**: `SESSION_SECRET=` con el comentario de por qué es obligatoria. Del lado del stack la tiene que definir el
   servicio `frontend` del compose, en `odp-docker`: sin ella, el login responde `500`.
+- **L13 (auditoría manual del diff completo, 2026-10-16, pedida por el autor):** se leyeron los seis archivos de
+  producción de `2536043..HEAD` buscando el hallazgo severo de L12, que sigue **sin conocerse**: lo de abajo es lo
+  que encontré yo, no la lista del proveedor. **Dos defectos y dos endurecimientos, corregidos:**
+  (1) **El logout no mataba la cookie cuando fallaba la configuración.** SvelteKit **descarta** las cookies de una
+  ruta que lanza —sólo las conserva ante un `Redirect` (`respond.js`, rama `catch`)—, así que con
+  `CKAN_INTERNAL_URL` o `SESSION_SECRET` ausentes el `cookies.delete` nunca llegaba y la sesión sellada quedaba
+  viva, contra lo que el propio comentario prometía. Ahora la cookie se borra **antes** de todo lo que puede
+  lanzar, y el `500` ruidoso (el contrato que el autor dejó abierto el 2026-09-24) se **devuelve** en vez de
+  lanzarse. (2) **El login acuñaba el token antes de saber si podía sellarlo:** sin `SESSION_SECRET` el `500`
+  llegaba con un token de CKAN ya vivo, sin dueño y sin revocar, y cada reintento acuñaba otro. La clave se
+  resuelve ahora **antes** de `handleLogin`. (3) **Cuarta pierna del anti-CSRF:** el puente rechaza con `415`, sin
+  llamar al catálogo, un `POST` que no declare `application/json` — `Lax` no separa subdominios del mismo sitio y
+  `checkOrigin` sólo mira los tipos de formulario, así que un `POST` **sin** `Content-Type` no pasaba por ninguna de
+  las dos. RED medido (`expected 200 to be 415`), 4 pruebas. (4) `/catalog` responde con
+  `Cache-Control: private, no-store` y `Vary: Cookie`: la misma URL es anónima o privada según la cookie.
+  (1), (2) y (4) viven en rutas, que Vitest no resuelve (módulos virtuales): **sin RED posible**, verificados por
+  lectura y por `check`; quedan para la verificación viva de T8. **Anotado y no corregido:** (a) `revokeToken`
+  (`ckan-auth.ts:347`, anterior a esta rama) llama `api_token_revoke` **sin `Authorization`** —hay que medir en vivo
+  si CKAN revoca algo así o es otro no-op silencioso de la familia de `BACKLOG.md:3576`—; (b) `resolveSessionSecret`
+  no exige un largo mínimo a la clave; (c) mientras el cuerpo del logout traiga token, si difiere del de la sesión
+  éste último no se revoca — se cierra solo en T4, cuando el cuerpo deja de llevarlo.

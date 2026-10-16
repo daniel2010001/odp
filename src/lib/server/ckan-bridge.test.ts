@@ -38,7 +38,8 @@ function pedido(overrides: Partial<Parameters<typeof forwardToCatalog>[0]> = {})
 		params: { id: "pkg-1" },
 		session: { token: TOKEN },
 		internalUrl: INTERNAL_URL,
-		incomingHeaders: new Headers(),
+		// Lo que manda el cliente del portal (`src/lib/api/client.ts`): un `POST` sin este tipo no se reenvía.
+		incomingHeaders: new Headers({ "content-type": "application/json" }),
 		...overrides,
 	};
 }
@@ -72,6 +73,61 @@ describe("el puente — el verbo no lo elige el cliente", () => {
 		expect(url).toBe(`${INTERNAL_URL}/api/3/action/package_delete`);
 		expect(init?.method).toBe("POST");
 		expect(resultado.status).toBe(200);
+	});
+});
+
+describe("el puente — un `POST` que no es JSON no se reenvía", () => {
+	// `SameSite=Lax` retiene la cookie en un `POST` cross-site, pero **no** entre subdominios del mismo sitio, y la
+	// verificación de origen de SvelteKit sólo mira los tipos de formulario: un `POST` **sin** `Content-Type`
+	// (un `Blob` sin tipo, por ejemplo) pasa sin preflight y sin esa verificación. Exigir `application/json` obliga
+	// a cualquier origen ajeno a pasar por el preflight de CORS, que el portal no concede.
+	it("sin `Content-Type` es 415 y **no** llama al catálogo", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(
+			pedido({ action: "package_delete", incomingHeaders: new Headers() }),
+			fetcher,
+		);
+
+		expect(resultado.status).toBe(415);
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("con un tipo de formulario (`text/plain`) es 415 y **no** llama al catálogo", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(
+			pedido({
+				action: "package_delete",
+				incomingHeaders: new Headers({ "content-type": "text/plain" }),
+			}),
+			fetcher,
+		);
+
+		expect(resultado.status).toBe(415);
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("con `application/json` y parámetros de tipo (`charset`) sí se reenvía", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(
+			pedido({
+				incomingHeaders: new Headers({ "content-type": "Application/JSON; charset=utf-8" }),
+			}),
+			fetcher,
+		);
+
+		expect(fetcher).toHaveBeenCalledOnce();
+		expect(resultado.status).toBe(200);
+	});
+
+	it("un `GET` no necesita `Content-Type`: no tiene cuerpo", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(pedido({ method: "GET", incomingHeaders: new Headers() }), fetcher);
+
+		expect(fetcher).toHaveBeenCalledOnce();
 	});
 });
 
@@ -165,6 +221,7 @@ describe("el puente — el pedido al catálogo", () => {
 		const incomingHeaders = new Headers({
 			authorization: "token-del-navegador",
 			cookie: "odp_session=x",
+			"content-type": "application/json",
 		});
 
 		await forwardToCatalog(pedido({ incomingHeaders }), fetcher);

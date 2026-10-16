@@ -61,7 +61,12 @@ async function bridge(event: RequestEvent, method: "GET" | "POST") {
 		incomingHeaders: event.request.headers,
 	});
 
-	return json(resultado.body, { status: resultado.status });
+	// La misma URL responde distinto según la cookie (anónimo o con sesión), así que ninguna caché —ni el proxy
+	// del stack ni el navegador— puede guardarla: una respuesta privada servida a otro visitante sería una fuga.
+	return json(resultado.body, {
+		status: resultado.status,
+		headers: { "cache-control": "private, no-store", vary: "cookie" },
+	});
 }
 
 export const GET: RequestHandler = (event) => bridge(event, "GET");

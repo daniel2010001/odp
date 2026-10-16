@@ -41,7 +41,10 @@ export interface BridgeRequest {
 	session: BridgeSession;
 	/** La URL interna del catálogo (`resolveCkanInternalUrl`). */
 	internalUrl: string;
-	/** Las cabeceras del pedido entrante: existen para que **nada** de ellas viaje, y para poder probarlo. */
+	/**
+	 * Las cabeceras del pedido entrante. **Nada** de ellas viaja al catálogo (y se prueba); la única que se lee es
+	 * el `Content-Type` de un `POST`, para rechazarlo si no es JSON.
+	 */
 	incomingHeaders: Headers;
 }
 
@@ -61,6 +64,8 @@ export const UNKNOWN_ACTION_STATUS = 404;
 
 /** El verbo no corresponde a la acción: un mutador no se pide con `GET` (ver `READ_ACTIONS`). */
 export const METHOD_NOT_ALLOWED_STATUS = 405;
+/** Un `POST` cuyo cuerpo no se declara JSON: no se reenvía (ver `isJsonBody`). */
+export const UNSUPPORTED_MEDIA_TYPE_STATUS = 415;
 /** El catálogo no respondió: la falla es de la conexión, no del pedido. */
 export const UPSTREAM_FAILURE_STATUS = 502;
 
@@ -93,6 +98,27 @@ export function methodNotAllowed(): BridgeResult {
 	};
 }
 
+/** Un `POST` que no se declara JSON no se reenvía. */
+export function unsupportedMediaType(): BridgeResult {
+	return {
+		status: UNSUPPORTED_MEDIA_TYPE_STATUS,
+		body: { error: "El cuerpo del pedido debe ser JSON." },
+	};
+}
+
+/**
+ * ¿El pedido declara un cuerpo JSON?
+ *
+ * Es la cuarta pierna del anti-CSRF. `SameSite=Lax` no retiene la cookie entre subdominios **del mismo sitio**,
+ * y la verificación de origen de SvelteKit sólo mira los tipos de formulario: un `POST` **sin** `Content-Type`
+ * —un `Blob` sin tipo— no pasa por ninguna de las dos ni por el preflight de CORS. Exigir `application/json`
+ * obliga a cualquier origen ajeno a pedir preflight, que el portal no concede.
+ */
+function isJsonBody(headers: Headers): boolean {
+	const tipo = headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+	return tipo === "application/json";
+}
+
 /** Serializa un valor de la query: los complejos como JSON, que es lo que CKAN acepta en un `GET`. */
 function serializeParam(value: unknown): string {
 	return typeof value === "object" && value !== null ? JSON.stringify(value) : String(value);
@@ -120,6 +146,10 @@ export async function forwardToCatalog(
 	// El verbo lo decide **el puente**, no el cliente: un mutador con `GET` sería el CSRF que `Lax` no frena.
 	if (request.method === "GET" && !isReadAction(request.action)) {
 		return methodNotAllowed();
+	}
+
+	if (request.method === "POST" && !isJsonBody(request.incomingHeaders)) {
+		return unsupportedMediaType();
 	}
 
 	if (request.session === "dead") {
