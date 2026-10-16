@@ -33,6 +33,7 @@
 | T3 | Revisión del autor en el playground, e iteración | S4 | autor | — |
 | T4 | Promover a la página del recurso, con tests, y borrar el playground | S1, S2, S4 | inline | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
+| T6 | **Datos para la demo:** al menos un CSV real **subido** y cargado en el DataStore, porque hoy no hay ninguno (L4) | S5 | a decidir con el autor (ver L4) | — |
 
 ## Riesgos
 
@@ -58,3 +59,10 @@
   la exportación a PNG (RF-32, `[v1]`) no viene incluida y habrá que hacerla a mano, y la v2 es joven (salió el
   2026-07-01), así que se fija la versión: `latest` es **2.8.0**. La accesibilidad la ponemos nosotros con cualquiera
   de las tres: una tabla de datos como alternativa, selectores usables con teclado y etiquetas que nombren los ejes.
+- **L4 (2026-10-16, medición del worker de T2, confirmada por el padre):** **el catálogo sembrado no tiene ningún recurso
+  en el DataStore.** `package_search` anónimo por el puente devuelve 17 datasets con 35 recursos, de los cuales **0 son
+  `datastore_active`**, **0 son `url_type: upload`** y los 8 con formato CSV son **enlaces externos**. Consecuencias:
+  (1) no se pudieron medir los tipos reales de columna, así que los fixtures usan los tipos documentados de CKAN
+  (`text`, `numeric`, `int4`, `float8`, `timestamp`) y la detección de números lee los valores en vez de confiar en el
+  tipo; (2) **para la demo hace falta subir al menos un CSV real** y confirmar que el DataPusher lo carga (T6). Si no, el
+  gráfico no tiene nada que mostrar.
