@@ -17,7 +17,7 @@
 //    una excepción que tumbe el request ni un `200` vacío que el navegador lea como «no hay nada»—, y un
 //    cuerpo que no es JSON conserva su status con el cuerpo vacío en vez de romper.
 
-import { upstreamHeaders, upstreamUrl } from "./ckan-proxy";
+import { isReadAction, upstreamHeaders, upstreamUrl } from "./ckan-proxy";
 
 /**
  * La sesión **ya resuelta** por quien llama, en tres estados que no se pueden confundir:
@@ -58,6 +58,9 @@ export type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
 export const NO_SESSION_STATUS = 401;
 /** Acción fuera de la allowlist: no existe para este camino. */
 export const UNKNOWN_ACTION_STATUS = 404;
+
+/** El verbo no corresponde a la acción: un mutador no se pide con `GET` (ver `READ_ACTIONS`). */
+export const METHOD_NOT_ALLOWED_STATUS = 405;
 /** El catálogo no respondió: la falla es de la conexión, no del pedido. */
 export const UPSTREAM_FAILURE_STATUS = 502;
 
@@ -74,6 +77,19 @@ export function unknownAction(): BridgeResult {
 	return {
 		status: UNKNOWN_ACTION_STATUS,
 		body: { error: "Acción no disponible." },
+	};
+}
+
+/**
+ * Un mutador pedido con `GET` no se reenvía.
+ *
+ * No es celo: `SameSite=Lax` no frena una navegación de nivel superior, así que ese `GET` **sí** llevaría la
+ * cookie de la sesión, y si el puente lo reenviara el efecto sería una escritura disparada desde otro sitio.
+ */
+export function methodNotAllowed(): BridgeResult {
+	return {
+		status: METHOD_NOT_ALLOWED_STATUS,
+		body: { error: "Método no permitido para esa acción." },
 	};
 }
 
@@ -99,6 +115,11 @@ export async function forwardToCatalog(
 	const url = upstreamUrl(request.internalUrl, request.action);
 	if (!url) {
 		return unknownAction();
+	}
+
+	// El verbo lo decide **el puente**, no el cliente: un mutador con `GET` sería el CSRF que `Lax` no frena.
+	if (request.method === "GET" && !isReadAction(request.action)) {
+		return methodNotAllowed();
 	}
 
 	if (request.session === "dead") {

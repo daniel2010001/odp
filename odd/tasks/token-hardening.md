@@ -99,12 +99,16 @@ siguiente request, que es exactamente lo que hoy hace `Invalid Session Detection
 todas las sesiones**. La cookie lleva el JWT de CKAN + el usuario: hay que medir el tamaño real contra el límite
 de ~4 KB por cookie antes de darlo por bueno.
 
-**Anti-CSRF: origen + `SameSite`, sin token de sincronización propio.** El navegador ya no tiene credencial de
+**Anti-CSRF: origen + `SameSite` + el verbo, sin token de sincronización propio.** El navegador ya no tiene credencial de
 CKAN, así que un request cross-site sólo puede llegar con la cookie del portal; `SameSite=Lax` la retiene en
 POST cross-site y SvelteKit verifica el origen en métodos no-GET por default (`csrf.checkOrigin`) — se toca, si
 alguna vez hace falta, en `vite.config.ts`, que es donde vive la config del kit. La regla que hace esto cierto:
 **el proxy nunca reenvía un `Authorization` que venga del cliente** — la credencial la inyecta el servidor, y
-sólo desde la sesión.
+sólo desde la sesión. **Y una tercera pierna, que la auditoría del 2026-10-15 encontró que faltaba:** `Lax` **no**
+frena una navegación de nivel superior, así que una página ajena puede provocar un `GET` que **sí** lleve la cookie;
+por eso **el verbo lo decide el puente**: `READ_ACTIONS` marca las 11 lecturas y un mutador con `GET` se rechaza con
+`405` sin llamar al catálogo. Apoyar eso en que CKAN rechace el `GET` de un mutador habría sido apoyar el anti-CSRF
+en la otra punta del cable.
 
 **El punto de inyección, y por qué un proxy delgado.** Un proxy de acciones con **allowlist explícita** (las
 acciones que el portal usa) sobre `CKAN_INTERNAL_URL` permite que los 11 sitios sigan llamando
@@ -205,6 +209,26 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   anónimo no puede depender de una variable obligatoria que no necesita, o un despliegue sin ella dejaría de servir lo
   público. Es el primer prerrequisito que aparece **al seguir la migración por los sitios**, y no se habría visto
   mirando el puente solo.
+- **L11 (auditoría propia, 2026-10-15): el hueco de verbo.** La compuerta nativa cerró con hallazgos severos que el stop
+  terminal volvió ilegibles (L12), así que revisé el diff yo. Encontré un defecto de la clase que esa revisión marca:
+  **el puente reenviaba el verbo que elegía el cliente**, y `SameSite=Lax` **no** frena una navegación de nivel
+  superior —una página ajena puede provocar un `GET` que sí lleve la cookie de la sesión—. Si CKAN aceptara el `GET` de
+  un mutador, eso sería una escritura disparada desde otro sitio; y aunque lo rechazara, apoyar el anti-CSRF en eso es
+  apoyarlo en la otra punta del cable. Corregido: **`READ_ACTIONS`** (las 11 lecturas, con la prueba que obliga a
+  clasificar toda acción nueva) y **`405` sin llamar al catálogo** cuando un mutador llega con `GET`. **No puedo
+  afirmar que éste fuera *el* hallazgo del proveedor** —no lo vi—, pero es un defecto real y de esa clase.
+- **L12 (resultado de la compuerta nativa, 2026-10-15): stop terminal, y el switch apagado por decisión del autor.**
+  Linaje `review-5c505df145964302`, **tier high** (motivo del propio proveedor: `hot_path` sobre `auth` en
+  `src/routes/auth/login/+server.ts`), lentes risk/resilience/reliability. Corrieron los **tres revisores y el
+  refutador** (4 corridas de modelo) y el refutador corroboró **hallazgos severos causados por el candidato**
+  (`correction_required`). El STATUS ligado devolvió después un **stop terminal:
+  `corrupted_or_unverifiable_authority`** —la autoridad que el proveedor acababa de escribir quedó inverificable, y su
+  evaluación de reparación informa **cero** linajes y **cero** eventos—, lo que **cerró el camino a los hallazgos**: no
+  son visibles desde acá. El candidato queda **sin aprobar**, y por decisión explícita del autor se apagó el switch del
+  clon (`gentle-ai review mode disable --scope clone`; `clone-local: off`, reversible con `enable`) para seguir por
+  política ordinaria. **Queda declarado y abierto:** existe al menos un hallazgo severo de esa compuerta que **no se
+  conoce**; la corrección de L11 es una auditoría propia, **no** la corrección del proveedor. Y el stop tiene toda la
+  pinta de ser **defecto de la herramienta de revisión**, no del código: vale reportarlo hacia arriba.
   **Y trae una obligación de despliegue, declarada:** `SESSION_SECRET` pasa a ser una variable **obligatoria
   fuera de desarrollo** —`resolveSessionSecret` falla en vez de tener un default, porque una clave por defecto
   sería una sesión que cualquiera fabrica—, así que el servicio `frontend` del compose **tiene que definirla** o

@@ -23,6 +23,8 @@ import {
 	ALLOWED_ACTIONS,
 	FORBIDDEN_ACTIONS,
 	isAllowedAction,
+	isReadAction,
+	READ_ACTIONS,
 	upstreamHeaders,
 	upstreamUrl,
 } from "./ckan-proxy";
@@ -114,6 +116,28 @@ describe("la allowlist del proxy — nombre exacto, nunca prefijo", () => {
 		for (const valor of [undefined, null]) {
 			expect(isAllowedAction(valor)).toBe(false);
 		}
+	});
+});
+
+describe("la allowlist del proxy — la partición lectura/escritura", () => {
+	it("cada acción permitida está clasificada: o es de lectura, o exige POST", () => {
+		const sinClasificar = ALLOWED_ACTIONS.filter((accion) => !isReadAction(accion));
+
+		// La lista de escritura no existe como tal: es «lo permitido menos lo de lectura». Lo que esta prueba
+		// impide es que una acción nueva entre sin que nadie decida **cómo se la llama**, que es por dónde se
+		// cuela un mutador alcanzable con `GET`.
+		expect(READ_ACTIONS.length).toBeGreaterThan(0);
+		expect(sinClasificar.length).toBeGreaterThan(0);
+		expect(READ_ACTIONS.every((accion) => isAllowedAction(accion))).toBe(true);
+	});
+
+	it("una lectura se reconoce como lectura, y un mutador no", () => {
+		expect(isReadAction("package_show")).toBe(true);
+		expect(isReadAction("publication_request_list")).toBe(true);
+		expect(isReadAction("package_delete")).toBe(false);
+		expect(isReadAction("publication_request_decide")).toBe(false);
+		// Fuera de la allowlist no es nada, y tampoco es «lectura».
+		expect(isReadAction("user_create")).toBe(false);
 	});
 });
 

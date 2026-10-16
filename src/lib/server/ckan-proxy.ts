@@ -72,6 +72,36 @@ export const FORBIDDEN_ACTIONS = [
 const ALLOWED = new Set<string>(ALLOWED_ACTIONS);
 
 /**
+ * Las acciones de la allowlist que se pueden pedir con **`GET`**. Todo lo demás exige `POST`.
+ *
+ * La razón no es de estilo. `SameSite=Lax` **no** frena una navegación de nivel superior: una página ajena puede
+ * provocar un `GET` que sí lleve la cookie de la sesión. Si el verbo lo eligiera el cliente, eso sería una
+ * **acción de escritura disparada desde otro sitio** —un CSRF que el diseño no cubriría—, y no se puede depender
+ * de que CKAN rechace el `GET` de un mutador: se rechaza acá. Es la tercera pierna del anti-CSRF, junto con el
+ * `SameSite` y la verificación de origen.
+ */
+export const READ_ACTIONS = [
+	"datastore_search",
+	"license_list",
+	"organization_list",
+	"organization_list_for_user",
+	"organization_show",
+	"package_search",
+	"package_show",
+	"publication_request_list",
+	"resource_show",
+	"status_show",
+	"user_show",
+] as const;
+
+const READ = new Set<string>(READ_ACTIONS);
+
+/** ¿Esta acción es de **lectura**? Sólo las de lectura viajan con `GET`; el resto, con `POST`. */
+export function isReadAction(action: string | null | undefined): boolean {
+	return typeof action === "string" && READ.has(action);
+}
+
+/**
  * ¿El portal puede pedir esta acción? **Nombre exacto**: `package` no es `package_show`, y una cadena
  * compuesta (`package_show; DROP …`) no es una acción. Nada de prefijos ni de coincidencias parciales.
  */

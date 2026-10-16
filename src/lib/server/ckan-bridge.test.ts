@@ -43,6 +43,38 @@ function pedido(overrides: Partial<Parameters<typeof forwardToCatalog>[0]> = {})
 	};
 }
 
+describe("el puente — el verbo no lo elige el cliente", () => {
+	it("un mutador **no** se reenvía con `GET`: es el CSRF que `SameSite=Lax` no frena", async () => {
+		// La navegación de nivel superior **sí** lleva la cookie `Lax`, así que una página ajena puede provocar
+		// un `GET` con la sesión de la víctima. Si el puente reenviara cualquier verbo sobre cualquier acción
+		// permitida, eso sería una escritura disparada desde otro sitio. No se depende de que CKAN lo rechace:
+		// se rechaza acá, y sin llamar al catálogo.
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(
+			pedido({ action: "package_delete", method: "GET", params: { id: "pkg-1" } }),
+			fetcher,
+		);
+
+		expect(resultado.status).toBe(405);
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("ese mismo mutador **sí** se reenvía con `POST`", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(
+			pedido({ action: "package_delete", method: "POST", params: { id: "pkg-1" } }),
+			fetcher,
+		);
+
+		const [url, init] = fetcher.mock.calls[0];
+		expect(url).toBe(`${INTERNAL_URL}/api/3/action/package_delete`);
+		expect(init?.method).toBe("POST");
+		expect(resultado.status).toBe(200);
+	});
+});
+
 describe("el puente — la guarda va antes del reenvío", () => {
 	it("una acción no permitida devuelve 404 y **no** llama al catálogo", async () => {
 		const fetcher = makeFetcher();
