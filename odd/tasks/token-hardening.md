@@ -457,3 +457,13 @@ web, no de la API) y que responda `206` a un `Range`.
   (el cuerpo lleva sólo el usuario; el endpoint exige JSON) e `Invalid Session Detection` (la sonda va por el puente,
   el `401` del puente también es sesión muerta, no se sondea sin usuario, y la expulsión mata también la cookie).
   **Queda de T8:** apagar `ckan.auth.enable_cookie_auth_in_api` (S4, `odp-docker`) y la verificación viva.
+- **L23 (T8, verificación viva anónima, 2026-10-16, `localhost:8082`, rama `feat/token-hardening-client` montada por
+  el contenedor):** `GET /catalog/status_show` anónimo `200`; `GET` de `package_delete` `405`; `POST` sin
+  `Content-Type` `415`; `api_token_create` `404`; cookie basura → `401` con `Set-Cookie: odp_session=; Max-Age=0`,
+  `Cache-Control: private, no-store` y `Vary: cookie`; login con cuerpo de formulario `415`; `package_search` anónimo
+  por el puente devuelve los 17 públicos; `publication_request_list?status=pending` por `GET` `200`. **Falta la mitad
+  autenticada** (login, cookie, sonda, subida, descarga privada con `Range`), que pide una cuenta de prueba.
+  **Y S4 no se puede cumplir tal como está escrito:** el login del **servidor** (`ckanLogin`) acuña el token con la
+  cookie web de CKAN + `X-CSRFToken`, así que apagar `enable_cookie_auth_in_api` rompe el login aunque el navegador
+  ya no tenga ninguna cookie de CKAN. El riesgo que esa opción cerraba —una cookie de CKAN **en el navegador**
+  usable contra `/api`— ya no existe: el navegador nunca recibe esa cookie. Decisión pendiente del autor.
