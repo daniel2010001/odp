@@ -82,7 +82,8 @@
 | T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | `a638a64` |
 | T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | `89b4ad2`, `1486e8f`, `0ebd417`, `95b951a` |
 | T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | `2459d93`, `95b951a` (mitad) |
-| T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
+| T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | — |
+| T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | parent | — |
 | T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
 | T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
@@ -114,6 +115,43 @@ en la otra punta del cable.
 acciones que el portal usa) sobre `CKAN_INTERNAL_URL` permite que los 11 sitios sigan llamando
 `POST /api/3/action/<action>`: cambia el `baseUrl` y la credencial desaparece del cliente. Sin allowlist sería
 un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
+
+## El diseño de T4 (2026-10-16)
+
+Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a**; el ayuno es T4b.
+
+- **D1 — La sesión se resuelve una vez por request, en `src/hooks.server.ts`.** La lógica vive en un módulo
+  puro y testeable (`src/lib/server/request-session.ts`): recibe el valor de la cookie, un resolvedor de la clave
+  (se llama **sólo** si hay cookie, igual que hoy) y `now`, y devuelve `{ session: BridgeSession, user:
+  SessionUser | null, clearCookie: boolean }`. El hook pone `event.locals.session` y `event.locals.user`
+  (tipados en `src/app.d.ts`) y, si la cookie está **muerta**, la **borra** en esa misma respuesta: así el primer
+  pedido responde `401` (la señal de expulsión) y los siguientes son anónimos, en vez de un `401` eterno que
+  rompería la navegación pública después de un vencimiento. `/catalog/[...action]` deja de leer la cookie y usa
+  `locals.session`.
+- **D2 — El usuario de la sesión lleva `sysadmin`.** `isSuperAdmin` lo lee y la sesión de hoy lo pierde:
+  `SessionUser` gana `sysadmin: boolean` (`buildSession` lo copia como `user.sysadmin === true`).
+- **D3 — La identidad llega del servidor.** `src/routes/+layout.server.ts` devuelve `{ sessionUser }` desde
+  `locals.user` —**nunca** el token—. `+layout.svelte` hidrata el store con ese usuario **sólo en el navegador**:
+  el store es un singleton de módulo, y escribirlo durante el SSR mezclaría usuarios entre requests. Tras el
+  login, `invalidateAll()` vuelve a correr la carga. Hasta T4b el store **convive** con el `localStorage` de hoy;
+  si los dos discrepan, manda el servidor.
+- **D4 — «¿Hay sesión?» lee el usuario, no el token.** `isAuthenticated` pasa a `user !== null`; los
+  `get(auth).token` que sólo preguntaban eso (las sondas de `dashboard`, `new`, `edit`, las fichas de dataset y
+  de recurso, `validateStoredSession`, `resolveUnauthorized`) preguntan por el usuario. **No se sondea sin
+  usuario**: `user_show {}` anónimo responde `404` y se leería como sesión muerta (medido 2026-09-20). Refrescar
+  la identidad tras una sonda viva es `auth.setUser(user)`, sin token. **Queda** la lectura del token en
+  `uploadEntry` (XHR de la subida): es T5.
+- **D5 — El cliente del portal.** `createPortalClient()` en `src/lib/api/client.ts`: pide a
+  `/catalog/<acción>` del mismo origen, **sin** `Authorization` ni opción `apiKey`. Los **11 sitios** de
+  `apiKey: () => get(auth).token` lo usan. Los clientes **sin** credencial de hoy (páginas públicas contra
+  `env.CKAN_URL`) **no se tocan**.
+- **D6 — Un `GET` manda sus parámetros en la query.** Defecto previo, medido al leer el cliente: `request()`
+  no manda cuerpo en un `GET` y tampoco arma la query, así que `publication_request_list {status}` pierde el
+  filtro. El puente lee la query de un `GET`; el cliente la arma igual que el puente la consume (objetos como
+  JSON, `undefined` omitido).
+- **D7 — La sonda entiende el `401` del puente.** Es la señal **propia** del puente para una cookie muerta, no
+  una respuesta de CKAN, así que es inequívoca: `check()` la devuelve como `dead` sin corroborar. El `404` de
+  CKAN sigue con su corroboración por `status_show`.
 
 ## Riesgos y decisiones abiertas
 
@@ -267,3 +305,8 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   `odp-docker` (el compose es de ese repo); en el stack dev no hace falta: corre `vite dev` y usa la clave de
   desarrollo, y el `.env` de `odp` no llega al contenedor (`.dockerignore` lo excluye y sólo se montan `src/` y
   `static/`).
+- **L15 (diseño de T4, 2026-10-16):** al leer los sitios aparecieron dos cosas que el plan no tenía: (1) `client.get`
+  **nunca** mandó sus parámetros (D6), y (2) sin token en el navegador, la pregunta «¿hay sesión?» tiene que
+  leer el **usuario**, porque sondear anónimo da `404` y se leería como sesión muerta (D4). T4 se parte en **T4a**
+  (D1–D7) y **T4b** (el ayuno, después de T5, porque la subida por XHR todavía lee el token). T4a va a un
+  worker por el respaldo de contexto del padre.
