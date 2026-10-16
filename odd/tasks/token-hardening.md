@@ -390,3 +390,12 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   podría iniciar sesión en el navegador de la víctima con una cuenta ajena (CSRF de login). Compuertas: 1152
   pruebas, `check` 0 errores, `lint` limpio; `grep -rn "get(auth).token" src` → 0. **Queda para T8:** la spec de
   autenticación (S7) todavía dice `localStorage`, y las rutas se verifican en vivo.
+- **L20 (E5 resuelto del lado de `odp-docker`, 2026-10-16):** **PR #23 de `odp-docker`** (sin mergear; el #22 de
+  `SESSION_SECRET` ya está mergeado). `BODY_SIZE_LIMIT: 55M` en el `frontend` de producción —los 50 MB por recurso
+  de RF-12 más el overhead del multipart, el mismo límite que `/api/`—, por debajo de los **100 MB efectivos** de
+  CKAN (`CKAN_MAX_UPLOAD_SIZE_MB=100` pisa `ckan.max_resource_size = 10`; medido en vivo). **Y un hallazgo que
+  rompía T5 sin que lo viéramos:** `/catalog/` no tenía límite propio en `frontend-proxy` y caía en `location /`,
+  con el default de nginx de **1 MB**, así que toda subida de más de 1 MB habría muerto en `413` antes de llegar al
+  portal. Ahora hay un `location /catalog/` con `55M`, en prod y en dev (dev recargado con `nginx -s reload`, sin
+  recrear contenedores); `location /` sigue en 1 MB a propósito. Medido en dev: 2 MB y 54 MB a `/catalog/` llegan al
+  portal, 56 MB da `413`, 2 MB a `/` sigue en `413`. **Regla que queda:** toda subida del portal va bajo `/catalog/`.
