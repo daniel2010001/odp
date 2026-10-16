@@ -176,6 +176,20 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   máximo de recurso de CKAN. Va en el compose de `odp-docker` (pedido a esa sesión). El dev (`vite dev`) no
   aplica ese límite.
 
+## El diseño de T4b (2026-10-16)
+
+- **F1 — El login no devuelve el token.** `POST /auth/login` responde `{ user }` y la cookie sellada; el cliente
+  (`src/lib/api/auth.ts`) devuelve el usuario y la página de login lo adopta con `auth.setUser` + `invalidateAll()`.
+- **F2 — El store no tiene token.** `AuthState` pierde `token`; `auth.login(token, user)` desaparece (lo reemplaza
+  `setUser`); **nada** se persiste en `localStorage`: la identidad la entrega el servidor en cada carga (D3).
+- **F3 — La credencial heredada se borra.** Al cargar en el navegador, el store **elimina** `localStorage["auth"]`:
+  un navegador que inició sesión antes del despliegue guarda ahí un JWT vivo hasta 24 h, legible por cualquier XSS.
+  No se lee: se borra.
+- **F4 — El logout no recibe token.** `logout()` del cliente manda `{}` (`UserMenu` deja de leer `get(auth).token`)
+  y `POST /auth/logout` revoca **sólo** el de la sesión: el camino del cuerpo desaparece, y con él el hueco (c) de L13.
+- **F5 — Prueba de cierre:** `grep -rn "\.token" src/lib/stores src/lib/api/auth.ts` y ningún `get(auth).token` en
+  `src/`; y una prueba que fije que el store no escribe `localStorage` y borra la clave heredada.
+
 ## Riesgos y decisiones abiertas
 
 1. **La cookie sellada no es revocable en el portal** (declarado arriba). Si el despliegue exige cierre de
