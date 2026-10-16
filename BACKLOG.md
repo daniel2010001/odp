@@ -260,39 +260,6 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > subiría a **`v1+`** si el despliegue real pidiera una palanca explícita y documentada —porque `c′` no la necesita—.
 > La flag **por organización** queda descartada con su motivo escrito arriba.
 >
-> - [~] **Implementar `c′`** —es lo único que falta para destrabar el caso de una sola persona—: en el **store**
->   (`odp-docker`), la excepción cuando el catálogo confirma que **no hay otro aprobador**; en el **portal**, que la
->   ficha **no oculte** el control cuando la excepción aplica (o el copy dirá que no se puede algo que sí se puede);
->   y tests de las dos ramas. **Ojo con la cascada de CKAN al implementarlo:** el predicado del store usa
->   `has_user_permission_for_group_or_org`, que **casca permisos si el vínculo existe**, así que hay que asegurar que
->   un admin de una organización relacionada **no** cuente como aprobador (ver la decisión de abajo). **Tier: `v1`**
->   —es lo que hace usable el flujo en el despliegue real, sin tocar la gobernanza donde sí hay segunda persona—.
->   **El plan está escrito y es el punto de partida de la sesión: `odd/tasks/publication-self-approval.md`** —specs
->   S1–S5, las tres unidades (la excepción en el store, la lectura que el portal consume y la ficha/cola reflejándola),
->   el **caso de aceptación en vivo** (`test-pdf`) y los riesgos, incluido el de la cascada.
->   **Estado (2026-10-15): a medias, y con una discrepancia abierta.** El **portal** ya refleja la respuesta del
->   catálogo en la ficha y en la cola (T3; `PublicationDecision.svelte` dejó de decidir cuatro ojos por comparación de
->   ids — ver `odd/tasks/publication-self-approval.md` L6, L8 y L9). El **store** ya está commiteado en la rama
->   `unit/publication-self-approval` de `odp-docker` (`21b1bb7` T1, `c260d99` T2, `5250569` T3), **sin push y sin PR**:
->   eso lo decide el autor. La **corrida de aceptación se hizo** desde la ficha el 2026-10-15 —sin reiniciar el
->   contenedor: el reloader de Werkzeug corre— y **ahí está la discrepancia**: de las dos auto-aprobaciones del proxy,
->   sólo `observatorio-de-movilidad-urbana-cochabamba` quedó **público**; `test-pdf` —cuya fila la sesión del store mide
->   `approved` con el mismo id en `requested_by`/`approved_by`— **sigue privado** (`403` anónimo sobre `eb8a06b6-…`), lo
->   que contradice el contrato del store (`approved` cambia `private` en la misma transacción) y el criterio de
->   aceptación. **Reconciliado el mismo día, y NO era defecto del store:** el dataset quedó **`private = false`** pero en
->   **`state = 'draft'`**, y en este CKAN el label `public` exige `state == 'active'` **y** `not private`
->   (`ckan/lib/plugins.py:602-604`), así que un borrador **no es públicamente legible aunque `private` sea falso**. El
->   flip **no** es condicional: las dos filas pasaron por el mismo `package_patch {private: False}` (`_flip_to_public`,
->   de `61b6f1c`, anterior a este cambio) y la diferencia fue el `state` del dataset. **Veredicto acotado:** la
->   **excepción** (auto-aprobación + flip escrito) está probada **dos veces**; la **visibilidad pública**, en
->   `observatorio-…` (`fcyt`); y **el flip escribió**: el `metadata_modified` de `eb8a06b6-…` es
->   `2026-10-15 18:30:06.804445`, el **mismo instante** que el `decided_at`/`consumed_at` de la fila — o sea, el
->   `package_patch` y la fila fueron el mismo commit, y el `draft` es anterior a todo (`metadata_created`
->   2026-09-25 vs. solicitud 2026-10-08 y aprobación 2026-10-15). **Criterio del caso, reformulado el 2026-10-15:**
->   «el dataset del caso queda **anónimamente legible**», no «público»: un `draft` con `private = false` no es
->   legible, así que el caso nombrado no podía cumplir la palabra anterior. El ítem **no se borra** hasta mergear el
->   store; el hallazgo del `draft` es un ítem aparte (abajo).
->
 > - [ ] **Decidir qué hace el flujo de publicación con un dataset `draft`** (tier: lo decide el autor; nace de una
 >   medición, no de una hipótesis). Medido el 2026-10-15: `publication_request_decide` con `approve=True` **aprueba** un
 >   dataset en `state = 'draft'` y le escribe `private = false`, pero el dataset **nunca se vuelve públicamente
@@ -3518,6 +3485,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Implementar `c′`: la auto-aprobación cuando no hay otro aprobador** | **Cerrado** (2026-10-15, registrado el 2026-10-16). El portal, en el PR #74; el store, en el **PR #18 de `odp-docker`**, mergeado el 2026-10-15 a las 19:53. La corrida de aceptación desde la ficha probó dos veces la excepción y el flip escrito. Sólo `test-pdf` no quedó legible, y la causa no es del store: el dataset estaba en `draft`. Eso quedó como ítem propio, «Decidir qué hace el flujo de publicación con un dataset `draft`». El registro completo está en `odd/tasks/publication-self-approval.md`, de L8 a L11. Sus siete commits de cierre quedaron en la rama remota después del merge del #74, y recién el 2026-10-16 llegaron a `main`. |
 | **El vacío del buscador: las tres salidas en una sola sección, con saltos `#id`** | **Implementado y promovido** (2026-10-01) — **entregado en el PR #45**. El pedido era **ambiguo** y se preguntó primero (regla 9): el autor eligió **lectura A** (los saltos dentro de la tarjeta del aviso) y **V3** (botón secundario), **sin** resalte del destino y **sin** rótulo visible. Medido en el navegador, el enlace anterior compartía `color` (`oklch(0.52 0.085 257)`) y `text-decoration-line` con «Limpiar búsqueda y filtros» —el mismo objeto visual para dos acciones distintas—, y V3 lo separa por color, fondo, borde y alto. La sección ganó nombre accesible (aviso como `<h2>`), los tres bloques `id` y un margen de desplazamiento que sale del token `--header-h` más el alto **medido** de la barra; la fila sólo ofrece saltos de bloques **presentes**. Tests primero (6 en RED), después verde. **Cinco compuertas aprobadas** (`review-4b0bfe7ead4517a1`, `review-5c51328ff49347d3`, `review-98fbf65d694a6a49`, `review-fda3530895a9b51f`, `review-7135c0450f94bdce`), y la del rango completo encontró **un CRITICAL que las acotadas no podían ver** (el enlace copiado no aterrizaba: la carga perezosa y el margen medido llegan después de que el navegador resuelve el fragmento), corregido y validado por el proveedor; la medición viva del enlace profundo destapó además que el fragmento **se borraba de la barra de direcciones**, también corregido. Sus avisos, en «Deuda de revisión (RDD)». La hoja `/dev/search-empty` se borró al promover. Gates: `test` **708/708** · `check` 0 errores / 4 warnings · Biome exit 0 · aterrizaje y URL medidos en vivo (+13,625 px, fragmento conservado). |
 | **Sección «Data API» para recursos con tabla (bloque D, slice D3)** | **Implementado y aprobado** (2026-09-23). La sección «Acceso por API» estaba gateada a `resource_type === "api"`, un campo **heredado que nada escribe** —el propio formulario de CKAN lo tiene comentado y es `None` en los 35 recursos del catálogo—, así que **no se renderizaba nunca**: era UI muerta. Ahora el gate es `datastore_active === true` (el mismo marcador que usa la vista previa) y el endpoint que muestra es **`datastore_search`**, el que devuelve filas, en vez de `resource_show`, que no. El ejemplo de curl y las dos piezas de copy acompañan. **Reconciliación de la spec en el mismo paso, con dos defectos:** «Preview Placeholder» exigía un área reservada prometiendo una vista previa que ya existe, y «API Metadata» describía un gate que no coincidía ni con el código ni con la realidad. Revisión nativa `review-03b5057b001e6f9b` **aprobada** (tier medium, lente reliability, 3 archivos / 150 líneas, presupuesto 75), 2 avisos informativos. Gates: `check` 0 errores · `test` **601/601**. |
 | **Endurecer la vista previa de datos (bloque D, slice D2)** | **Implementado y aprobado** (2026-09-23). Los 4 hallazgos de `review-ca9abb1187a39513`. El sustantivo —`R3-stale-search-race`— se arregló con la guarda de corrida superada (el `cleanup` del efecto marca su corrida y los dos handlers comprueban antes de escribir; sin `AbortController` porque el cliente no acepta `signal`), y **el test que lo cubre fue verificado en contra: se neutralizó la guarda y el test FALLÓ** (aparecía la fila vieja), con el archivo restaurado byte-idéntico por sha256. Los otros tres: una celda con objeto ya no pinta `[object Object]` (va a JSON, con funciones y símbolos cayendo al guion y los primitivos intactos), el prop `limit` —declarado, con default y **sin uso**— **se eliminó** (lo que limita las filas es el fetch, y un prop que no hace nada declara un contrato falso), y el estado de carga tiene test con promesa diferida. Revisión nativa `review-891f798293c18235` **aprobada** (tier medium, lente reliability, 4 archivos / 129 líneas, presupuesto 65), 2 avisos informativos. Gates: `check` 0 errores · `test` **593/593** · Biome limpio. |

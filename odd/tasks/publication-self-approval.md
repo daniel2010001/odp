@@ -270,3 +270,9 @@ dataset—, y el flip no lo puso ahí.
   una **decisión de producto**, no un defecto de esta unidad (el flip es anterior a `c′` y el portal no crea
   borradores): **¿el flujo lo activa al aprobar, o se niega a publicar un `draft` y lo dice?** Queda como ítem propio en
   el `BACKLOG`, sin tier decidido.
+- **L11 (cierre, 2026-10-16):** la unidad está **cerrada**. El store se mergeó en el **PR #18 de `odp-docker`** el
+  2026-10-15 a las 19:53, y el portal en el PR #74. Era la condición que faltaba para borrar el ítem del `BACKLOG`. El
+  ítem se borró y quedó una fila en el historial de cierre. El hallazgo del `draft` (L10) sigue abierto como ítem propio.
+  **Y un hallazgo de proceso:** L7 a L10 y sus correcciones se empujaron a `feat/self-approval-portal` **después** de
+  mergear el #74, así que no llegaron a `main` hasta este cierre. Por eso la frase de L8 sobre el PR #18 (abierto,
+  «su merge sigue siendo decisión del autor») envejeció sin que nadie la viera: el merge se hizo el mismo día.
