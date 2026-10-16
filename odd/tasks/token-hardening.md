@@ -310,3 +310,10 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   leer el **usuario**, porque sondear anónimo da `404` y se leería como sesión muerta (D4). T4 se parte en **T4a**
   (D1–D7) y **T4b** (el ayuno, después de T5, porque la subida por XHR todavía lee el token). T4a va a un
   worker por el respaldo de contexto del padre.
+- **L16 (respuesta de la sesión de `odp-docker`, 2026-10-16):** `SESSION_SECRET` quedó cableada en el servicio
+  `frontend` de `docker-compose.unified.yml` con `${SESSION_SECRET:?…}` —sin valor, Compose **no arranca**— y
+  declarada vacía en un `.env.example` nuevo de la raíz: **PR #22 de `odp-docker`**, sin mergear (decisión del
+  autor). **El valor va en `odp-docker/.env` (la raíz), no en `ckan-docker/.env`**: el compose raíz se interpola
+  desde el `.env` de su carpeta. No se recreó ningún contenedor: el dev unificado no cambia, porque `vite dev`
+  usa la clave de respaldo. Efecto a recordar: una variable del `.env` raíz pisa la del mismo nombre en el
+  compose de CKAN incluido.
