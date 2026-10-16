@@ -85,7 +85,7 @@
 | T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | `b1e973d` |
 | T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | worker | (este commit) |
 | T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | (este commit; E5 pendiente) |
-| T6 | Descargas por el portal, con `Range` y sin servir contenido activo desde el origen del portal (§ El diseño de T6, G1–G6) | `src/lib/server/ckan-download.ts`, `src/routes/catalog/download/[resourceId]/+server.ts`, `src/lib/resources/file-url.ts`, `ResourcePreview.svelte`, la ficha del recurso | worker | — |
+| T6 | Descargas por el portal, con `Range` y sin servir contenido activo desde el origen del portal (§ El diseño de T6, G1–G6) | `src/lib/server/ckan-download.ts`, `src/routes/catalog/download/[resourceId]/+server.ts`, `src/lib/resources/file-url.ts`, `ResourcePreview.svelte`, la ficha del recurso | worker | (este commit) |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
 | T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | — |
 
@@ -437,3 +437,16 @@ web, no de la API) y que responda `206` a un `Range`.
   portal. Ahora hay un `location /catalog/` con `55M`, en prod y en dev (dev recargado con `nginx -s reload`, sin
   recrear contenedores); `location /` sigue en 1 MB a propósito. Medido en dev: 2 MB y 54 MB a `/catalog/` llegan al
   portal, 56 MB da `413`, 2 MB a `/` sigue en `413`. **Regla que queda:** toda subida del portal va bajo `/catalog/`.
+- **L21 (T6 entregada, 2026-10-16):** el worker implementó G1–G6: `downloadResource` (`src/lib/server/ckan-download.ts`,
+  30 pruebas) con la sesión muerta en `401` sin ningún `fetch`, el enlace externo en `404` sin pedir el archivo, la URL
+  **construida** desde `CKAN_INTERNAL_URL` aunque `resource.url` apunte a otro host (el pin del SSRF), sólo `Range` e
+  `If-Range` del cliente, el stream devuelto sin leer, y `attachment` + `sandbox` + `nosniff` para todo lo que no esté
+  en la lista `inline`. `fileUrl` lleva el `<iframe>`, la `<img>` y el botón de un archivo a `/catalog/download/<id>`;
+  los enlaces no cambian. RED: sólo la falla de carga de los dos módulos nuevos (no hubo RED por regla), declarado por
+  él. **Su desvío, aceptado:** la prueba `javascript:` de `ResourcePreview` se partió en dos, porque la `url` de un
+  **archivo** ya no se usa en el cliente: el archivo con `javascript:` embebe el portal y el HTML no contiene
+  `javascript:`, y el **enlace** con `javascript:` sigue sin embeberse. **Un agregado mío, con RED:** el archivo se
+  pide con `Accept-Encoding: identity`, porque `fetch` descomprime solo y conserva el `Content-Length` comprimido, y
+  reenviarlo habría truncado la descarga. Compuertas: 1189 pruebas, `check` 0 errores, `lint` limpio. **Sin medir,
+  para T8:** que CKAN acepte el `Authorization` de un token en `/dataset/…/download/…` (ruta web, no de la API) y
+  responda `206` a un `Range`; si no lo acepta, G2 necesita otro camino.

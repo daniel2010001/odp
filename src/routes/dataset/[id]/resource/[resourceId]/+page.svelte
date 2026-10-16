@@ -32,6 +32,7 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
+import { fileUrl } from "$lib/resources/file-url";
 import { resourceKind } from "$lib/resources/kind";
 import { resourceNeighbours, resourcePositionLabel } from "$lib/resources/order";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -378,9 +379,10 @@ const exampleResponse = $derived(
 // por la API o por la UI nativa de CKAN. Se sanea antes de renderizarlo como `href`.
 const docsUrl = $derived(safeExternalUrl(apiExtras.find((e) => e.key === "docs_url")?.value));
 
-// `resource.url` también viene de CKAN y se renderiza como `href`: el saneo en el borde de
-// salida es lo que impide un `javascript:` almacenado (XSS almacenado).
-const downloadUrl = $derived(safeExternalUrl(resource?.url));
+// Un archivo alojado se descarga por el portal (`/catalog/download/<id>`, con la sesión); un enlace
+// conserva `resource.url`, que también viene de CKAN y se renderiza como `href`: el saneo en el
+// borde de salida (`fileUrl` → `safeExternalUrl`) es lo que impide un `javascript:` almacenado.
+const downloadUrl = $derived(resource ? fileUrl(resource) : null);
 
 // La misma regla del chip decide la vista previa: una referencia externa no aloja contenido en el
 // portal, así que no hay nada que previsualizar. Derivarlo acá y no repetir la comparación en la

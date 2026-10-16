@@ -996,7 +996,9 @@ describe("Página de recurso — la ficha de un enlace dice la verdad", () => {
 
 		render(ResourcePage);
 
-		await screen.findByRole("link", { name: /Descargar recurso/i });
+		// El archivo alojado se descarga por el portal, no por la URL de CKAN.
+		const action = await screen.findByRole("link", { name: /Descargar recurso/i });
+		expect(action.getAttribute("href")).toBe("/catalog/download/res-1");
 		expect(screen.getByText("Nombre del archivo")).toBeTruthy();
 		expect(screen.getByText("Tamaño")).toBeTruthy();
 		expect(screen.queryByRole("link", { name: /Abrir enlace/i })).toBeNull();

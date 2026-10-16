@@ -1,9 +1,9 @@
 <script lang="ts">
 import { Loader2 } from "@lucide/svelte";
 import type { DatastoreApi, DatastoreSearchResult } from "$lib/api/datastore";
+import { fileUrl } from "$lib/resources/file-url";
 import { isTabularFormat, previewKind } from "$lib/resources/preview";
 import type { CkanResource } from "$lib/types/ckan";
-import { safeExternalUrl } from "$lib/utils/external-url";
 import DataPreviewTable from "./DataPreviewTable.svelte";
 
 // El panel de vista previa, uno solo para toda la ficha del recurso. **Qué** se puede previsualizar
@@ -12,9 +12,11 @@ import DataPreviewTable from "./DataPreviewTable.svelte";
 // eso producía un falso negativo: un XLSX que el DataPusher sí cargó tiene una tabla y el panel la
 // negaba. Ahora la tabla la decide `datastore_active`, y el tipo del archivo decide el resto.
 //
-// Todo embed pasa por `safeExternalUrl`: `resource.url` es texto arbitrario en CKAN —el asistente lo
-// valida al escribir, la API y la UI nativa de CKAN no— y un `javascript:` almacenado se ejecutaría
-// en un `<iframe src>`. Sin URL segura no hay embed: el panel cae al estado «none».
+// Todo embed pasa por `fileUrl`: un archivo alojado sale de la ruta de descarga del portal (que
+// autentica con la sesión y sirve los bytes con `Range`), y cualquier otra `url` pasa por
+// `safeExternalUrl`: `resource.url` es texto arbitrario en CKAN —el asistente lo valida al escribir,
+// la API y la UI nativa de CKAN no— y un `javascript:` almacenado se ejecutaría en un
+// `<iframe src>`. Sin URL segura no hay embed: el panel cae al estado «none».
 let {
 	resource,
 	datastore,
@@ -24,7 +26,7 @@ let {
 } = $props();
 
 const kind = $derived(previewKind(resource));
-const sourceUrl = $derived(safeExternalUrl(resource.url));
+const sourceUrl = $derived(fileUrl(resource));
 
 interface StateCopy {
 	title: string;

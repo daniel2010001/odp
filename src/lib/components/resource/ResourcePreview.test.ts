@@ -116,7 +116,8 @@ describe("ResourcePreview — el tipo del archivo decide el embed", () => {
 		});
 
 		const iframe = await screen.findByTitle("Vista previa de Flujos vehiculares");
-		expect(iframe).toHaveAttribute("src", "https://example.com/flujos.pdf");
+		// Un archivo alojado sale del portal, no de la `url` de CKAN.
+		expect(iframe).toHaveAttribute("src", "/catalog/download/res-1");
 		expect(search).not.toHaveBeenCalled();
 	});
 
@@ -130,7 +131,7 @@ describe("ResourcePreview — el tipo del archivo decide el embed", () => {
 		});
 
 		const image = await screen.findByAltText("Flujos vehiculares");
-		expect(image).toHaveAttribute("src", "https://example.com/flujos.png");
+		expect(image).toHaveAttribute("src", "/catalog/download/res-1");
 		expect(search).not.toHaveBeenCalled();
 	});
 
@@ -146,7 +147,7 @@ describe("ResourcePreview — el tipo del archivo decide el embed", () => {
 		});
 
 		const iframe = await screen.findByTitle("Vista previa de Flujos vehiculares");
-		expect(iframe).toHaveAttribute("src", url);
+		expect(iframe).toHaveAttribute("src", "/catalog/download/res-1");
 		expect(search).not.toHaveBeenCalled();
 	});
 
@@ -229,11 +230,29 @@ describe("ResourcePreview — estados de carga y carrera de consultas", () => {
 });
 
 describe("ResourcePreview — bordes de seguridad del embed", () => {
-	it("una URL `javascript:` no se embebe: cae al estado «none»", async () => {
+	it("una URL `javascript:` guardada en un archivo no llega al embed: el `<iframe>` apunta al portal", async () => {
+		// La `url` de un archivo alojado ya no se usa en el cliente: el embed sale de la ruta de descarga del
+		// portal, que construye la URL del archivo en el servidor. El `javascript:` almacenado no tiene por
+		// dónde llegar a un `src`.
 		const { api, search } = makeDatastore();
 		const { container } = render(ResourcePreview, {
 			props: {
 				resource: makeResource({ format: "PDF", url: "javascript:alert(1)" }),
+				datastore: api,
+			},
+		});
+
+		const iframe = await screen.findByTitle("Vista previa de Flujos vehiculares");
+		expect(iframe).toHaveAttribute("src", "/catalog/download/res-1");
+		expect(container.innerHTML).not.toContain("javascript:");
+		expect(search).not.toHaveBeenCalled();
+	});
+
+	it("una URL `javascript:` en un enlace no se embebe: cae al estado «none»", async () => {
+		const { api, search } = makeDatastore();
+		const { container } = render(ResourcePreview, {
+			props: {
+				resource: makeResource({ format: "PDF", url: "javascript:alert(1)", url_type: undefined }),
 				datastore: api,
 			},
 		});
