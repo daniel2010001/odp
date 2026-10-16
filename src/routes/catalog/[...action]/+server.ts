@@ -32,22 +32,36 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
 	}
 }
 
+/** ¿El `POST` es una subida multipart? Entonces el cuerpo no se lee: viaja en stream hasta el puente. */
+function isMultipart(request: Request): boolean {
+	return (
+		request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() ===
+		"multipart/form-data"
+	);
+}
+
 /** El camino compartido por los dos verbos: sólo cambia de dónde salen los parámetros. */
 async function bridge(event: RequestEvent, method: "GET" | "POST") {
 	// La sesión ya viene resuelta por `hooks.server.ts` (`locals.session`): anónimo, con credencial, o muerta.
 	// Una sesión muerta se responde con `401` para que el portal expulse por su camino único en vez de degradar
 	// la lectura a una vista vacía; un anónimo se reenvía sin credencial para que lo público siga funcionando.
 
+	// Una subida multipart pasa **sin consumir** `event.request.body`: el puente decide si la acción la admite y
+	// la reenvía como stream; los parámetros viajan dentro de las partes.
+	const multipart = method === "POST" && isMultipart(event.request);
+
 	const resultado = await forwardToCatalog({
 		action: event.params.action,
 		method,
-		params:
-			method === "POST"
+		params: multipart
+			? {}
+			: method === "POST"
 				? await readJsonBody(event.request)
 				: Object.fromEntries(event.url.searchParams),
 		session: event.locals.session,
 		internalUrl: resolveCkanInternalUrl(env.CKAN_INTERNAL_URL, dev),
 		incomingHeaders: event.request.headers,
+		rawBody: multipart ? event.request.body : undefined,
 	});
 
 	// La misma URL responde distinto según la cookie (anónimo o con sesión), así que ninguna caché —ni el proxy

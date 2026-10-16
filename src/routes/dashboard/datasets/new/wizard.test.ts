@@ -771,6 +771,8 @@ describe("Wizard de creación", () => {
 				description: "Tabla completa de matrícula.",
 			}),
 		);
+		// La subida va por el puente: el asistente ya no le pasa una credencial.
+		expect(mocks.upload.mock.calls[0][0]).not.toHaveProperty("token");
 
 		await waitFor(() => expect(mocks.resourceCreate).toHaveBeenCalled());
 		expect(mocks.resourceCreate).toHaveBeenCalledWith(

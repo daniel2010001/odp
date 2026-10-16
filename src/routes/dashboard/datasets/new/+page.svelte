@@ -222,8 +222,8 @@ async function runResources(packageId: string) {
 }
 
 async function uploadEntry(packageId: string, entry: RecursoEntry) {
-	const token = get(auth).token;
-	if (!token || !entry.file) return;
+	// La credencial la pone el servidor desde la cookie de sesión; acá sólo importa que haya usuario.
+	if (!get(auth).user || !entry.file) return;
 	entry.estado = "subiendo";
 	entry.progreso = 0;
 	entry.error = undefined;
@@ -236,7 +236,6 @@ async function uploadEntry(packageId: string, entry: RecursoEntry) {
 			filename: entry.file.name,
 			name: nombreEfectivo(entry),
 			description: entry.descripcion.trim() || undefined,
-			token,
 			onProgress: (percent) => {
 				entry.progreso = percent;
 				// Al llegar al 100 % los bytes ya se enviaron, pero CKAN todavía valida

@@ -24,7 +24,9 @@ import {
 	FORBIDDEN_ACTIONS,
 	isAllowedAction,
 	isReadAction,
+	isUploadAction,
 	READ_ACTIONS,
+	UPLOAD_ACTIONS,
 	upstreamHeaders,
 	upstreamUrl,
 } from "./ckan-proxy";
@@ -138,6 +140,27 @@ describe("la allowlist del proxy — la partición lectura/escritura", () => {
 		expect(isReadAction("publication_request_decide")).toBe(false);
 		// Fuera de la allowlist no es nada, y tampoco es «lectura».
 		expect(isReadAction("user_create")).toBe(false);
+	});
+});
+
+describe("la allowlist del proxy — las acciones de subida (multipart)", () => {
+	it("son exactamente las dos que llevan archivo, y están permitidas", () => {
+		expect([...UPLOAD_ACTIONS]).toEqual(["resource_create", "resource_update"]);
+		expect(UPLOAD_ACTIONS.every((accion) => isAllowedAction(accion))).toBe(true);
+	});
+
+	it("ninguna acción de subida es de lectura: se piden con POST", () => {
+		expect(UPLOAD_ACTIONS.some((accion) => isReadAction(accion))).toBe(false);
+	});
+
+	it("una acción de subida se reconoce, y cualquier otra no", () => {
+		expect(isUploadAction("resource_create")).toBe(true);
+		expect(isUploadAction("resource_update")).toBe(true);
+		expect(isUploadAction("package_create")).toBe(false);
+		expect(isUploadAction("resource_delete")).toBe(false);
+		expect(isUploadAction("user_create")).toBe(false);
+		expect(isUploadAction(null)).toBe(false);
+		expect(isUploadAction(undefined)).toBe(false);
 	});
 });
 

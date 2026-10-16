@@ -84,7 +84,7 @@
 | T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | `2459d93`, `95b951a` (mitad) |
 | T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | `b1e973d` |
 | T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | parent | — |
-| T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | — |
+| T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | (este commit; E5 pendiente) |
 | T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
 | T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | — |
@@ -356,3 +356,12 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   el hook lanza en **todo** request; el compose de `odp-docker` (L16) ya no arranca sin ella. Compuertas: 1137
   pruebas, `check` 0 errores, `lint` limpio. Quedan dos lecturas del token, las dos previstas: la subida (T5) y el
   logout del menú (T4b).
+- **L18 (T5 entregada sin E5, 2026-10-16):** el worker implementó E1–E4 con 13 fallos RED antes de implementar: la
+  subida va por XHR a `/catalog/resource_create` **sin** `Authorization` (desaparecen las opciones `token` y
+  `baseUrl` de `uploadResourceFile`), y el puente acepta `multipart/form-data` **sólo** para `UPLOAD_ACTIONS` y
+  reenvía el stream sin leerlo (`duplex: "half"`). El asistente pregunta por el usuario, no por el token. **Un
+  agregado mío, con RED:** el puente reenvía también el `Content-Length` del cliente cuando es un entero; sin él
+  el stream sale `chunked`, y un WSGI que no acepte cuerpos `chunked` lo leería **vacío**. **No medido todavía y
+  pendiente para T8:** que el stream y ese `Content-Length` lleguen bien a CKAN a través de `undici` (sólo está
+  probado con un `fetch` de mentira). **E5 (`BODY_SIZE_LIMIT`) sigue pedido a `odp-docker`.** Compuertas: 1151
+  pruebas, `check` 0 errores, `lint` limpio. La única lectura del token que queda es el logout del menú (T4b).

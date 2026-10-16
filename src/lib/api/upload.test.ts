@@ -42,8 +42,6 @@ class FakeXhr {
 
 function start(overrides: Partial<Parameters<typeof uploadResourceFile>[0]> = {}) {
 	const promise = uploadResourceFile({
-		baseUrl: "https://ckan.test",
-		token: "tok-123",
 		packageId: "ds-1",
 		file: new Blob(["contenido"]),
 		filename: "datos.csv",
@@ -68,7 +66,8 @@ describe("uploadResourceFile — transporte", () => {
 		const { promise, xhr } = start();
 
 		expect(xhr.method).toBe("POST");
-		expect(xhr.url).toBe("https://ckan.test/api/3/action/resource_create");
+		// Por el puente del portal (mismo origen), no directo a `/api/` del catálogo.
+		expect(xhr.url).toBe("/catalog/resource_create");
 
 		xhr.onload?.();
 		return promise;
@@ -83,10 +82,10 @@ describe("uploadResourceFile — transporte", () => {
 		return promise;
 	});
 
-	it("manda el token en Authorization", () => {
+	it("no pone Authorization: la credencial la inyecta el servidor desde la cookie", () => {
 		const { promise, xhr } = start();
 
-		expect(xhr.headers.Authorization).toBe("tok-123");
+		expect(Object.keys(xhr.headers).map((key) => key.toLowerCase())).not.toContain("authorization");
 
 		xhr.onload?.();
 		return promise;
@@ -98,26 +97,6 @@ describe("uploadResourceFile — transporte", () => {
 		expect(xhr.body?.get("package_id")).toBe("ds-1");
 		expect(xhr.body?.get("name")).toBe("datos.csv");
 		expect(xhr.body?.get("upload")).toBeInstanceOf(Blob);
-
-		xhr.onload?.();
-		return promise;
-	});
-
-	it("respeta una baseUrl vacía (mismo origen)", () => {
-		const { promise, xhr } = start({ baseUrl: "" });
-
-		expect(xhr.url).toBe("/api/3/action/resource_create");
-
-		xhr.onload?.();
-		return promise;
-	});
-});
-
-describe("uploadResourceFile — name y description", () => {
-	it("manda el name provisto como nombre visible del recurso", () => {
-		const { promise, xhr } = start({ name: "Matrícula 2026 (datos)" });
-
-		expect(xhr.body?.get("name")).toBe("Matrícula 2026 (datos)");
 
 		xhr.onload?.();
 		return promise;
@@ -277,8 +256,6 @@ describe("uploadResourceFile — cancelación", () => {
 		controller.abort();
 
 		const promise = uploadResourceFile({
-			baseUrl: "https://ckan.test",
-			token: "tok-123",
 			packageId: "ds-1",
 			file: new Blob(["contenido"]),
 			filename: "datos.csv",

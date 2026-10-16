@@ -270,3 +270,176 @@ describe("el puente — la respuesta del catálogo", () => {
 		expect(resultado.body).toBeNull();
 	});
 });
+
+describe("el puente — subidas multipart (E2/E3)", () => {
+	const MULTIPART = "multipart/form-data; boundary=----abc123";
+
+	/** Un cuerpo en stream que registra si alguien lo leyó o lo bloqueó: el puente no debe tocarlo. */
+	function cuerpo() {
+		return new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new TextEncoder().encode("partes"));
+				controller.close();
+			},
+		});
+	}
+
+	function subida(overrides: Partial<Parameters<typeof forwardToCatalog>[0]> = {}) {
+		return pedido({
+			action: "resource_create",
+			params: {},
+			incomingHeaders: new Headers({ "content-type": MULTIPART }),
+			rawBody: cuerpo(),
+			...overrides,
+		});
+	}
+
+	it("una acción de subida con multipart se reenvía con el stream intacto y `duplex: half`", async () => {
+		const fetcher = makeFetcher();
+		const raw = cuerpo();
+
+		const resultado = await forwardToCatalog(subida({ rawBody: raw }), fetcher);
+
+		const [url, init] = fetcher.mock.calls[0];
+		expect(url).toBe(`${INTERNAL_URL}/api/3/action/resource_create`);
+		expect(init?.method).toBe("POST");
+		expect(init?.body).toBe(raw);
+		expect((init as RequestInit & { duplex?: string }).duplex).toBe("half");
+		// No se leyó ni se bloqueó: sigue siendo el mismo stream, libre para que `fetch` lo consuma.
+		expect(raw.locked).toBe(false);
+		expect(resultado.status).toBe(200);
+	});
+
+	it("`resource_update` también acepta multipart", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(subida({ action: "resource_update" }), fetcher);
+
+		expect(fetcher.mock.calls[0][0]).toBe(`${INTERNAL_URL}/api/3/action/resource_update`);
+	});
+
+	it("conserva el `Content-Type` del cliente tal cual (lleva el boundary) y pone la credencial de la sesión", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(subida(), fetcher);
+
+		const headers = new Headers(fetcher.mock.calls[0][1]?.headers);
+		expect(headers.get("content-type")).toBe(MULTIPART);
+		expect(headers.get("authorization")).toBe(TOKEN);
+	});
+
+	it("conserva el `Content-Length` del cliente: sin él el stream viaja `chunked` y un WSGI puede leerlo vacío", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(
+			subida({
+				incomingHeaders: new Headers({ "content-type": MULTIPART, "content-length": "6" }),
+			}),
+			fetcher,
+		);
+
+		expect(new Headers(fetcher.mock.calls[0][1]?.headers).get("content-length")).toBe("6");
+	});
+
+	it("un `Content-Length` que no es un entero no viaja", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(
+			subida({
+				incomingHeaders: new Headers({ "content-type": MULTIPART, "content-length": "6, 7" }),
+			}),
+			fetcher,
+		);
+
+		expect(new Headers(fetcher.mock.calls[0][1]?.headers).get("content-length")).toBeNull();
+	});
+
+	it("ninguna otra cabecera del cliente viaja, y su `Authorization` tampoco", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(
+			subida({
+				incomingHeaders: new Headers({
+					"content-type": MULTIPART,
+					authorization: "token-del-atacante",
+					cookie: "portal=sellada",
+					"x-extra": "1",
+				}),
+			}),
+			fetcher,
+		);
+
+		const headers = new Headers(fetcher.mock.calls[0][1]?.headers);
+		expect([...headers.keys()].sort()).toEqual(["authorization", "content-type"]);
+		expect(headers.get("authorization")).toBe(TOKEN);
+	});
+
+	it("un anónimo sube sin credencial: el catálogo decide", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(subida({ session: "anonymous" }), fetcher);
+
+		const headers = new Headers(fetcher.mock.calls[0][1]?.headers);
+		expect(headers.has("authorization")).toBe(false);
+		expect(headers.get("content-type")).toBe(MULTIPART);
+	});
+
+	it("multipart en cualquier otra acción es 415 y **no** llama al catálogo", async () => {
+		const fetcher = makeFetcher();
+
+		for (const action of ["package_create", "package_delete", "resource_delete", "user_show"]) {
+			const resultado = await forwardToCatalog(subida({ action }), fetcher);
+			expect(resultado.status).toBe(415);
+		}
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("una sesión muerta es 401 y **no** llama al catálogo", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(subida({ session: "dead" }), fetcher);
+
+		expect(resultado.status).toBe(401);
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("una acción desconocida es 404 y **no** llama al catálogo", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(subida({ action: "api_token_create" }), fetcher);
+
+		expect(resultado.status).toBe(404);
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("multipart sin cuerpo en stream es 415 y **no** llama al catálogo", async () => {
+		const fetcher = makeFetcher();
+
+		const resultado = await forwardToCatalog(subida({ rawBody: null }), fetcher);
+
+		expect(resultado.status).toBe(415);
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("un fallo de red al subir es 502, igual que con JSON", async () => {
+		const fetcher = vi.fn<Fetcher>().mockRejectedValue(new Error("ECONNREFUSED"));
+
+		const resultado = await forwardToCatalog(subida(), fetcher);
+
+		expect(resultado.status).toBe(502);
+	});
+
+	it("PRESERVE: el JSON de siempre sigue reenviándose con `application/json` y sin `duplex`", async () => {
+		const fetcher = makeFetcher();
+
+		await forwardToCatalog(
+			pedido({ action: "resource_create", params: { package_id: "p" } }),
+			fetcher,
+		);
+
+		const [, init] = fetcher.mock.calls[0];
+		expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+		expect(init?.body).toBe(JSON.stringify({ package_id: "p" }));
+		expect((init as RequestInit & { duplex?: string }).duplex).toBeUndefined();
+	});
+});
