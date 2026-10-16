@@ -217,7 +217,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 	});
 
 	it("ante un 403 con sesión viva dice que la cuenta no está autorizada, sin pedir iniciar sesión ni ofrecer reintento", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "alive", user: baseUser });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -230,7 +230,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 	});
 
 	it("ante un 403 con sonda no concluyente no afirma ninguna causa y ofrece reintentar", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "inconclusive", error: new CkanApiError("x", 500) });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -245,7 +245,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 	});
 
 	it("ante una sesión muerta expulsa al login con el motivo y no renderiza estado de fallo", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 
@@ -268,7 +268,7 @@ describe("Página de recurso — estados de fallo honestos", () => {
 		// se limpió y la navegación no ocurrió, así que el portal no puede afirmar «su sesión expiró»
 		// (nadie llegó al login) ni «su cuenta no está autorizada». Debe salir del esqueleto de carga
 		// y aterrizar en el estado que no afirma ninguna de las dos causas, con reintento.
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.check.mockResolvedValue({ state: "dead" });
 		mocks.showResource.mockRejectedValue(new CkanApiError("Access denied", 403));
 		vi.mocked(goto).mockRejectedValueOnce(new Error("navigation failed"));
@@ -483,7 +483,7 @@ describe("Página de recurso — la vista previa según el tipo de recurso", () 
 // va al puente del mismo origen y **sin** `Authorization`.
 describe("Página de recurso — el cliente del DataStore pasa por el puente", () => {
 	it("pide `datastore_search` a /catalog y no manda `Authorization`", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.showResource.mockResolvedValue(
 			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
 		);

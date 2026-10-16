@@ -20,48 +20,74 @@ beforeEach(() => {
 	auth.reset();
 });
 
-describe("auth store — persistencia", () => {
-	it("login persiste token y user en localStorage", () => {
-		auth.login("tok-123", baseUser);
+describe("auth store — sin credencial en el navegador", () => {
+	it("el estado no tiene campo `token`", () => {
+		auth.setUser(baseUser);
 
-		expect(get(auth).token).toBe("tok-123");
+		expect(get(auth)).not.toHaveProperty("token");
 		expect(get(auth).user).toEqual(baseUser);
-
-		const raw = localStorage.getItem(STORAGE_KEY);
-		expect(raw).not.toBeNull();
-		expect(JSON.parse(raw as string)).toEqual({ token: "tok-123", user: baseUser });
 	});
 
-	it("logout limpia localStorage y el estado", () => {
-		auth.login("tok-123", baseUser);
-		expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull();
+	it("no existe `auth.login(token, user)`: la identidad se fija con setUser", () => {
+		expect((auth as unknown as Record<string, unknown>).login).toBeUndefined();
+	});
 
+	it("setUser, hydrate y logout no escriben localStorage", () => {
+		const setItem = vi.spyOn(localStorage, "setItem");
+
+		auth.setUser(baseUser);
+		auth.hydrate({ id: "u-1", name: "jdoe", displayName: "Jane Doe", sysadmin: true });
 		auth.logout();
 
-		expect(get(auth).token).toBeNull();
-		expect(get(auth).user).toBeNull();
+		expect(setItem).not.toHaveBeenCalled();
 		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+		setItem.mockRestore();
 	});
 
-	it("hidrata token y user desde localStorage al cargar", async () => {
+	it("al cargar borra la clave heredada `auth` sin leerla", async () => {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: "tok-abc", user: baseUser }));
+		const getItem = vi.spyOn(localStorage, "getItem");
 
 		vi.resetModules();
 		const fresh = await import("./auth");
 
-		expect(get(fresh.auth).token).toBe("tok-abc");
-		expect(get(fresh.auth).user).toEqual(baseUser);
+		expect(getItem).not.toHaveBeenCalledWith(STORAGE_KEY);
+		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+		// Lo que había guardado no se adopta: la identidad sólo la entrega el servidor.
+		expect(get(fresh.auth).user).toBeNull();
+		getItem.mockRestore();
+	});
+
+	it("si localStorage lanza al borrar la clave heredada, el store carga igual", async () => {
+		const removeItem = vi.spyOn(localStorage, "removeItem").mockImplementation(() => {
+			throw new Error("SecurityError");
+		});
+
+		vi.resetModules();
+		const fresh = await import("./auth");
+
+		expect(get(fresh.auth).user).toBeNull();
+		removeItem.mockRestore();
+	});
+
+	it("logout limpia el estado", () => {
+		auth.setUser(baseUser);
+
+		auth.logout();
+
+		expect(get(auth).user).toBeNull();
+		expect(get(isAuthenticated)).toBe(false);
 	});
 });
 
 describe("isSuperAdmin", () => {
 	it("es true cuando user.sysadmin es true", () => {
-		auth.login("tok-123", { ...baseUser, sysadmin: true });
+		auth.setUser({ ...baseUser, sysadmin: true });
 		expect(get(isSuperAdmin)).toBe(true);
 	});
 
 	it("es false aunque capacity sea 'admin' cuando sysadmin no es true", () => {
-		auth.login("tok-123", { ...baseUser, sysadmin: false, capacity: "admin" });
+		auth.setUser({ ...baseUser, sysadmin: false, capacity: "admin" });
 		expect(get(isSuperAdmin)).toBe(false);
 	});
 
@@ -73,66 +99,34 @@ describe("isSuperAdmin", () => {
 describe("isAuthenticated / currentUser", () => {
 	it("isAuthenticated refleja la presencia del usuario", () => {
 		expect(get(isAuthenticated)).toBe(false);
-		auth.login("tok-123", baseUser);
-		expect(get(isAuthenticated)).toBe(true);
-	});
-
-	it("isAuthenticated no depende del token: un usuario sin token ya es una sesión", () => {
 		auth.setUser(baseUser);
-
-		expect(get(auth).token).toBeNull();
 		expect(get(isAuthenticated)).toBe(true);
-	});
-
-	it("un token sin usuario no es una sesión", async () => {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: "tok-huerfano" }));
-
-		vi.resetModules();
-		const fresh = await import("./auth");
-
-		expect(get(fresh.isAuthenticated)).toBe(false);
 	});
 
 	it("currentUser expone el usuario autenticado", () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		expect(get(currentUser)).toEqual(baseUser);
 	});
 });
 
 describe("auth.setUser", () => {
-	it("fija el usuario sin tocar el token", () => {
-		auth.login("tok-123", baseUser);
+	it("fija el usuario y limpia el error", () => {
+		auth.setError("falló");
 
 		auth.setUser({ ...baseUser, display_name: "Otra Jane" });
 
-		expect(get(auth).token).toBe("tok-123");
 		expect(get(auth).user?.display_name).toBe("Otra Jane");
-	});
-
-	it("no escribe localStorage si no hay token que acompañe al usuario", () => {
-		auth.setUser(baseUser);
-
-		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
-	});
-
-	it("con token guardado, refresca el usuario persistido", () => {
-		auth.login("tok-123", baseUser);
-
-		auth.setUser({ ...baseUser, display_name: "Otra Jane" });
-
-		const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) as string);
-		expect(raw.token).toBe("tok-123");
-		expect(raw.user.display_name).toBe("Otra Jane");
+		expect(get(auth).error).toBeNull();
 	});
 });
 
 describe("auth.hydrate — la identidad del servidor manda", () => {
 	const sessionUser = { id: "u-1", name: "jdoe", displayName: "Jane Doe", sysadmin: true };
 
-	it("con usuario del servidor y nada guardado, fija el usuario sin token", () => {
+	it("con usuario del servidor y nada guardado, fija el usuario", () => {
 		auth.hydrate(sessionUser);
 
-		expect(get(auth).token).toBeNull();
+		expect(get(auth)).not.toHaveProperty("token");
 		expect(get(auth).user).toMatchObject({
 			id: "u-1",
 			name: "jdoe",
@@ -143,33 +137,31 @@ describe("auth.hydrate — la identidad del servidor manda", () => {
 		expect(get(isSuperAdmin)).toBe(true);
 	});
 
-	it("si el guardado es del mismo usuario conserva el token (hasta T4b la subida lo lee)", () => {
-		auth.login("tok-123", baseUser);
+	it("del mismo usuario conserva los campos que el servidor no entrega y deja mandar a los que sí", () => {
+		auth.setUser({ ...baseUser, email: "jane@umss.edu", display_name: "Vieja" });
 
 		auth.hydrate(sessionUser);
 
-		expect(get(auth).token).toBe("tok-123");
 		expect(get(auth).user?.id).toBe("u-1");
+		expect(get(auth).user?.email).toBe("jane@umss.edu");
+		expect(get(auth).user?.display_name).toBe("Jane Doe");
 	});
 
-	it("si el guardado es de otro usuario, el servidor gana y el token ajeno se descarta", () => {
-		auth.login("tok-ajeno", { ...baseUser, id: "u-2", name: "otro" });
+	it("si el guardado es de otro usuario, el servidor gana y no se heredan sus campos", () => {
+		auth.setUser({ ...baseUser, id: "u-2", name: "otro", email: "otro@umss.edu" });
 
 		auth.hydrate(sessionUser);
 
-		expect(get(auth).token).toBeNull();
 		expect(get(auth).user?.id).toBe("u-1");
-		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+		expect(get(auth).user?.email).toBeUndefined();
 	});
 
 	it("si el servidor no tiene sesión, cierra la guardada: el servidor gana", () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		auth.hydrate(null);
 
 		expect(get(auth).user).toBeNull();
-		expect(get(auth).token).toBeNull();
 		expect(get(isAuthenticated)).toBe(false);
-		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
 	});
 });

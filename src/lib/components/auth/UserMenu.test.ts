@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe("UserMenu", () => {
 	it("renderiza el display_name del usuario autenticado", () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(UserMenu);
 
@@ -38,7 +38,7 @@ describe("UserMenu", () => {
 	});
 
 	it("usa el username como respaldo cuando no hay display_name", () => {
-		auth.login("tok-123", { ...baseUser, display_name: "" });
+		auth.setUser({ ...baseUser, display_name: "" });
 
 		render(UserMenu);
 
@@ -46,7 +46,7 @@ describe("UserMenu", () => {
 	});
 
 	it("la entrada de solicitudes apunta a la ruta inglesa del portal", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(UserMenu);
 		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
@@ -58,7 +58,7 @@ describe("UserMenu", () => {
 	});
 
 	it("abre el dropdown y muestra Panel y Cerrar sesión", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(UserMenu);
 		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
@@ -68,7 +68,7 @@ describe("UserMenu", () => {
 	});
 
 	it("cierra el dropdown al presionar Escape", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(UserMenu);
 		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
@@ -79,8 +79,8 @@ describe("UserMenu", () => {
 		expect(screen.queryByRole("menuitem", { name: /panel/i })).not.toBeInTheDocument();
 	});
 
-	it("cierra sesión: revoca el token, limpia el store y redirige a /", async () => {
-		auth.login("tok-123", baseUser);
+	it("cierra sesión: pide al servidor cerrar la sesión, limpia el store y redirige a /", async () => {
+		auth.setUser(baseUser);
 
 		render(UserMenu);
 		await fireEvent.click(screen.getByRole("button", { name: "Jane Doe" }));
@@ -90,9 +90,8 @@ describe("UserMenu", () => {
 
 		expect(fetchMock).toHaveBeenCalledWith(
 			"/auth/logout",
-			expect.objectContaining({ method: "POST", body: JSON.stringify({ token: "tok-123" }) }),
+			expect.objectContaining({ method: "POST", body: "{}" }),
 		);
-		expect(get(auth).token).toBeNull();
 		expect(get(auth).user).toBeNull();
 	});
 });

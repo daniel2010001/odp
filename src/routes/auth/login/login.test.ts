@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { get } from "svelte/store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
@@ -80,7 +81,7 @@ describe("Login", () => {
 
 	it("con una sesión autenticada rebota al panel y no muestra el aviso", async () => {
 		pageStore.set({ params: {}, url: new URL("http://localhost/auth/login?expired=1") });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Login);
 
@@ -89,7 +90,7 @@ describe("Login", () => {
 	});
 
 	it("tras un login exitoso vuelve a correr la carga del layout, y recién después navega", async () => {
-		mocks.login.mockResolvedValue({ token: "tok-123", user: baseUser });
+		mocks.login.mockResolvedValue(baseUser);
 		const orden: string[] = [];
 		vi.mocked(invalidateAll).mockImplementationOnce(async () => {
 			orden.push("invalidateAll");
@@ -110,6 +111,24 @@ describe("Login", () => {
 		// El layout tiene que traer al usuario que el servidor ya conoce antes de entrar al panel.
 		await waitFor(() => expect(orden).toEqual(["invalidateAll", "goto"]));
 		expect(goto).toHaveBeenCalledWith("/dashboard");
+	});
+
+	it("adopta al usuario que devuelve el login en el store, y el store no guarda credencial", async () => {
+		mocks.login.mockResolvedValue(baseUser);
+
+		const { container } = render(Login);
+		await fireEvent.input(screen.getByLabelText("Nombre de usuario"), {
+			target: { value: "jdoe" },
+		});
+		await fireEvent.input(screen.getByLabelText("Contraseña"), {
+			target: { value: "secreta123" },
+		});
+		await fireEvent.submit(getForm(container));
+
+		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dashboard"));
+		expect(get(auth).user).toEqual(baseUser);
+		expect(get(auth)).not.toHaveProperty("token");
+		expect(localStorage.getItem("auth")).toBeNull();
 	});
 
 	it("un login rechazado no vuelve a correr la carga del layout", async () => {

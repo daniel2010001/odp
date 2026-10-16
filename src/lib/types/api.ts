@@ -70,12 +70,3 @@ export class CkanApiError extends Error {
 		this.name = "CkanApiError";
 	}
 }
-
-// ─── Auth ────────────────────────────────────────────────────────────
-export interface AuthSession {
-	token: string;
-	user: CkanUser;
-}
-
-// Re-export para conveniencia
-import type { CkanUser } from "./ckan";

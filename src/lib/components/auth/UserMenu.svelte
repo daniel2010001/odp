@@ -1,6 +1,5 @@
 <script lang="ts">
 import { ChevronDown, Inbox, LayoutDashboard, LogOut } from "@lucide/svelte";
-import { get } from "svelte/store";
 import { goto } from "$app/navigation";
 import { logout } from "$lib/api/auth";
 import { auth } from "$lib/stores/auth";
@@ -39,10 +38,9 @@ $effect(() => {
 });
 
 async function handleLogout() {
-	const token = get(auth).token;
 	close();
 	// Revocación best-effort: nunca lanza, y el cliente limpia el estado igual.
-	if (token) await logout(token);
+	await logout();
 	auth.logout();
 	await goto("/");
 }

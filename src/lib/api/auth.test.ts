@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe("api/auth — login", () => {
-	it("hace POST a /auth/login con las credenciales y devuelve { token, user }", async () => {
+	it("hace POST a /auth/login con las credenciales y devuelve el usuario", async () => {
 		const user = {
 			id: "abc-123",
 			name: "jdoe",
@@ -26,7 +26,7 @@ describe("api/auth — login", () => {
 			created: "2026-01-01",
 			state: "active" as const,
 		};
-		const mock = stubFetch({ ok: true, status: 200, json: { token: "jwt-1", user } });
+		const mock = stubFetch({ ok: true, status: 200, json: { user } });
 
 		const result = await login("jdoe", "secret123");
 
@@ -35,8 +35,23 @@ describe("api/auth — login", () => {
 		expect(init.method).toBe("POST");
 		expect(init.headers?.["Content-Type"]).toBe("application/json");
 		expect(JSON.parse(init.body ?? "{}")).toEqual({ username: "jdoe", password: "secret123" });
-		expect(result.token).toBe("jwt-1");
-		expect(result.user.name).toBe("jdoe");
+		expect(result.name).toBe("jdoe");
+		expect(result).not.toHaveProperty("token");
+	});
+
+	it("no expone un token aunque el servidor lo mandara: devuelve sólo el usuario", async () => {
+		const user = { id: "abc-123", name: "jdoe", display_name: "Jane Doe" };
+		stubFetch({ ok: true, status: 200, json: { token: "jwt-1", user } });
+
+		const result = await login("jdoe", "secret123");
+
+		expect(result).toEqual(user);
+	});
+
+	it("lanza AuthApiError si la respuesta OK no trae usuario", async () => {
+		stubFetch({ ok: true, status: 200, json: {} });
+
+		await expect(login("jdoe", "secret123")).rejects.toBeInstanceOf(AuthApiError);
 	});
 
 	it("lanza AuthApiError con el mensaje español cuando el servidor responde 401", async () => {
@@ -60,19 +75,7 @@ describe("api/auth — login", () => {
 });
 
 describe("api/auth — logout", () => {
-	it("hace POST a /auth/logout con el token en el cuerpo", async () => {
-		const mock = stubFetch({ ok: true, status: 200, json: { success: true } });
-
-		await logout("jwt-1");
-
-		expect(mock.mock.calls[0]?.[0]).toBe("/auth/logout");
-		const init = mock.mock.calls[0]?.[1] as FetchInit;
-		expect(init.method).toBe("POST");
-		expect(init.headers?.["Content-Type"]).toBe("application/json");
-		expect(JSON.parse(init.body ?? "{}")).toEqual({ token: "jwt-1" });
-	});
-
-	it("sin token manda un cuerpo vacío: el servidor revoca el de la sesión y borra la cookie", async () => {
+	it("hace POST a /auth/logout con un cuerpo vacío: el servidor revoca el token de la sesión y borra la cookie", async () => {
 		const mock = stubFetch({ ok: true, status: 200, json: { success: true } });
 
 		await logout();
@@ -80,6 +83,7 @@ describe("api/auth — logout", () => {
 		expect(mock.mock.calls[0]?.[0]).toBe("/auth/logout");
 		const init = mock.mock.calls[0]?.[1] as FetchInit;
 		expect(init.method).toBe("POST");
+		expect(init.headers?.["Content-Type"]).toBe("application/json");
 		expect(JSON.parse(init.body ?? "null")).toEqual({});
 	});
 
@@ -91,6 +95,6 @@ describe("api/auth — logout", () => {
 			}),
 		);
 
-		await expect(logout("jwt-1")).resolves.toBeUndefined();
+		await expect(logout()).resolves.toBeUndefined();
 	});
 });

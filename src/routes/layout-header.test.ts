@@ -72,17 +72,16 @@ describe("Header (layout)", () => {
 		render(Layout, { children, data: signedInData });
 
 		expect(get(auth).user).toMatchObject({ id: "u-1", name: "jdoe", sysadmin: false });
-		expect(get(auth).token).toBeNull();
+		expect(get(auth)).not.toHaveProperty("token");
 	});
 
-	it("si el servidor no tiene sesión, manda el servidor: lo que quedó en localStorage se cierra", () => {
-		auth.login("tok-viejo", baseUser);
+	it("si el servidor no tiene sesión, manda el servidor: lo que el store tenía se cierra", () => {
+		auth.setUser(baseUser);
 
 		render(Layout, { children, data: anonymousData });
 
 		expect(screen.getByRole("link", { name: "Iniciar Sesión" })).toBeInTheDocument();
 		expect(get(auth).user).toBeNull();
-		expect(get(auth).token).toBeNull();
 	});
 
 	afterEach(() => {
@@ -102,21 +101,21 @@ describe("El encabezado sondea la sesión guardada", () => {
 			"href",
 			"/auth/login",
 		);
-		expect(get(auth).token).toBeNull();
+		expect(get(auth).user).toBeNull();
 		// El encabezado termina la sesión, no expulsa: en una página pública nadie debe rebotar al login.
 		expect(goto).not.toHaveBeenCalled();
 	});
 
 	it("una sesión viva conserva el nombre en el encabezado", async () => {
-		auth.login("tok-vivo", baseUser);
+		auth.setUser(baseUser);
 		sessionMock.check.mockResolvedValue({ state: "alive", user: baseUser });
 
 		render(Layout, { children, data: signedInData });
 
 		await waitFor(() => expect(sessionMock.check).toHaveBeenCalledTimes(1));
 		expect(screen.getByText("Jane Doe")).toBeInTheDocument();
-		// Hasta T4b el token guardado del mismo usuario se conserva: la subida por XHR todavía lo lee.
-		expect(get(auth).token).toBe("tok-vivo");
+		// La sonda viva no cierra la sesión: el usuario sigue en el store.
+		expect(get(auth).user?.id).toBe(baseUser.id);
 	});
 
 	it("sin sesión guardada no llama a la API de sesión", async () => {

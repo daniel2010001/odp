@@ -52,8 +52,8 @@ async function handleSubmit(event: SubmitEvent) {
 
 	loading = true;
 	try {
-		const session = await apiLogin(parsed.data.username, parsed.data.password);
-		auth.login(session.token, session.user);
+		const user = await apiLogin(parsed.data.username, parsed.data.password);
+		auth.setUser(user);
 		// El login acaba de poner la cookie de sesión: se vuelve a correr la carga del layout para que
 		// `sessionUser` traiga al usuario que el servidor ya conoce.
 		await invalidateAll();

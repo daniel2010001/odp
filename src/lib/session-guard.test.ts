@@ -61,7 +61,7 @@ beforeEach(() => {
 
 describe("endInvalidSession — el camino único de expulsión", () => {
 	it("limpia la sesión y navega al login con el motivo y el destino", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		await endInvalidSession("/dashboard/datasets/new");
 
@@ -76,7 +76,7 @@ describe("endInvalidSession — el camino único de expulsión", () => {
 	});
 
 	it("limpia antes de navegar: al llegar el goto el store ya es anónimo", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		// La aserción vive **dentro** del mock: mide el instante exacto de la navegación. Si el orden
 		// se invirtiera, acá el store todavía tendría token y el guard de `/auth/login` reenviaría al
 		// dashboard, cerrando el bucle que este test existe para impedir.
@@ -111,7 +111,7 @@ describe("endInvalidSession — el camino único de expulsión", () => {
 describe("resolveUnauthorized — la rama compartida del 403", () => {
 	it("no sondea ni navega cuando el fallo no es de autorización (404)", async () => {
 		const { client, post } = forbiddenProbe();
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		await expect(
 			resolveUnauthorized(client, new CkanApiError("Not Found", 404), baseUser, "/dataset/x"),
@@ -123,7 +123,7 @@ describe("resolveUnauthorized — la rama compartida del 403", () => {
 
 	it("no sondea un fallo que el catálogo no respondió (5xx)", async () => {
 		const { client, post } = forbiddenProbe();
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		await expect(
 			resolveUnauthorized(client, new CkanApiError("Server Error", 500), baseUser, "/dataset/x"),
@@ -153,7 +153,7 @@ describe("resolveUnauthorized — la rama compartida del 403", () => {
 			if (action === "user_show") throw new CkanApiError("Not found", 404);
 			return { ckan_version: "2.11" };
 		});
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		// Medido dentro del mock de `goto`, igual que el test de expulsión de arriba: la sesión ya
 		// debe estar limpia en el instante exacto de la navegación, o `/auth/login` rebota al
 		// dashboard y el bucle que este módulo existe para frenar se reabre.
@@ -181,7 +181,7 @@ describe("resolveUnauthorized — la rama compartida del 403", () => {
 
 	it("informa `alive` y no navega a ningún lado cuando la sonda confirma la sesión", async () => {
 		const { client } = stubClient(async () => baseUser);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		await expect(
 			resolveUnauthorized(client, new CkanApiError("Access denied", 403), baseUser, "/dataset/x"),
@@ -195,7 +195,7 @@ describe("resolveUnauthorized — la rama compartida del 403", () => {
 		const { client } = stubClient(async () => {
 			throw new CkanApiError("Server Error", 500);
 		});
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		await expect(
 			resolveUnauthorized(client, new CkanApiError("Access denied", 403), baseUser, "/dataset/x"),
@@ -247,7 +247,7 @@ describe("validateStoredSession — el veredicto vale para la sesión que se son
 	});
 
 	it("un `dead` de una sesión ya reemplazada no cierra la sesión que se acaba de abrir", async () => {
-		auth.login("tok-viejo", baseUser);
+		auth.setUser(baseUser);
 
 		// La sonda queda **en vuelo** hasta que el test la libera, que es la única forma de que el
 		// veredicto llegue tarde: si se resolviera al instante, no habría nada que competir.
@@ -264,13 +264,12 @@ describe("validateStoredSession — el veredicto vale para la sesión que se son
 		const sonda = validateStoredSession(client);
 
 		// Mientras la sonda del token viejo viaja, el usuario entra con una sesión nueva.
-		auth.login("tok-nuevo", { ...baseUser, id: "u-2", name: "otro" });
+		auth.setUser({ ...baseUser, id: "u-2", name: "otro" });
 		liberar();
 		await sonda;
 
 		// El veredicto era de la sesión **vieja**: la nueva no se tira por él.
 		expect(get(auth).user?.id).toBe("u-2");
-		expect(get(auth).token).toBe("tok-nuevo");
 		expect(get(isAuthenticated)).toBe(true);
 	});
 });

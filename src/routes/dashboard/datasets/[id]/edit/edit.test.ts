@@ -157,7 +157,7 @@ beforeEach(() => {
 
 describe("Ruta de edición de dataset", () => {
 	it("pregunta el permiso con el `owner_org` del dataset cargado", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 
 		const { container } = renderPage();
 
@@ -166,7 +166,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("sin permiso no rinde el formulario", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.canUpdateDatasetIn.mockResolvedValue("may_not");
 
 		renderPage();
@@ -178,7 +178,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("con la pregunta de permiso no concluida no rinde el formulario y ofrece reintentar", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.canUpdateDatasetIn.mockResolvedValueOnce("unknown").mockResolvedValueOnce("may");
 
 		renderPage();
@@ -192,7 +192,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("con extras ilegibles rinde el mensaje del resumen y no pregunta el permiso", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		const sinExtras = makeDataset();
 		(sinExtras as { extras?: unknown }).extras = undefined;
 		mocks.show.mockResolvedValue(sinExtras);
@@ -207,7 +207,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("cuenta un fallo de carga con el vocabulario compartido, no con prosa nueva", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.show.mockRejectedValue(new CkanApiError("Forbidden", 403));
 
 		renderPage();
@@ -219,7 +219,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("guarda con `package_revise` y el `match` lleva el `metadata_modified` cargado", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 
 		const { container } = renderPage();
 		await screen.findByLabelText(/título/i);
@@ -245,7 +245,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("con un conflicto rinde el aviso y deja el envío deshabilitado", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.post.mockRejectedValue(
 			new CkanApiError("HTTP 409", 409, "Validation Error", { match: ["metadata_modified"] }),
 		);
@@ -265,7 +265,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("con un fallo de guardado que no es conflicto muestra un mensaje honesto y no el texto crudo del servidor", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.post.mockRejectedValue(new CkanApiError("Boom", 500));
 		const consola = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -291,7 +291,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("con un error de validación del catálogo dice la causa en vez de ofrecer un fallo transitorio", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		// 409 con `Validation Error` pero sin `match: ["metadata_modified"]`: no es el conflicto de
 		// concurrencia, es una validación de esquema. Corregir los campos cambia el resultado.
 		mocks.post.mockRejectedValue(
@@ -314,7 +314,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("con un 403 de guardado dice la falta de permiso en vez de un fallo transitorio", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.post.mockRejectedValue(new CkanApiError("Access denied", 403));
 		const consola = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -334,7 +334,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("si la carga de licencias falla, el diagnóstico queda en la consola aunque no sea modo desarrollo", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.licenseList.mockRejectedValue(new CkanApiError("Server Error", 500));
 		// El registro no puede depender del modo: en producción es el único diagnóstico que existe.
 		vi.stubEnv("DEV", false);
@@ -356,7 +356,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("si la sugerencia de etiquetas rechaza, la página no queda cargando", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		// La sugerencia es cosmética: un rechazo no puede dejar la pantalla en "Cargando el dataset...".
 		mocks.tagSuggestions.mockRejectedValue(new Error("servicio de etiquetas caído"));
 
@@ -367,7 +367,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("si cambia el id de la ruta, carga el nuevo dataset y no conserva el anterior", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		mocks.show.mockImplementation((id: string) =>
 			Promise.resolve(
 				id === "pkg-2"
@@ -389,7 +389,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("si el id cambia con una carga en vuelo, la respuesta vieja no pisa el formulario", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		const primero = Promise.withResolvers<LoadedPackage>();
 		mocks.show.mockImplementation((id: string) =>
 			id === "pkg-1"
@@ -411,7 +411,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("si el id cambia con las licencias en vuelo y el nuevo dataset no puede editar, no queda cargando", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		const licenciasViejas = Promise.withResolvers<CkanLicense[]>();
 		mocks.licenseList.mockReturnValue(licenciasViejas.promise);
 		let permisos = 0;
@@ -438,7 +438,7 @@ describe("Ruta de edición de dataset", () => {
 	});
 
 	it("si el id cambia con la pregunta de permiso en vuelo, la respuesta vieja no habilita nada", async () => {
-		auth.login("tok-123", user);
+		auth.setUser(user);
 		const permisoViejo = Promise.withResolvers<string>();
 		let llamadas = 0;
 		mocks.canUpdateDatasetIn.mockImplementation(() => {

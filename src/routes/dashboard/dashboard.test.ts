@@ -133,7 +133,7 @@ describe("Dashboard", () => {
 	});
 
 	it("renderiza el saludo con el display_name cuando hay sesión", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -143,7 +143,7 @@ describe("Dashboard", () => {
 	});
 
 	it("muestra el badge de administrador del sistema cuando isSuperAdmin es true", async () => {
-		auth.login("tok-123", { ...baseUser, sysadmin: true });
+		auth.setUser({ ...baseUser, sysadmin: true });
 		// La identidad que manda es la que devuelve la sonda `alive`, no la guardada.
 		mocks.sessionCheck.mockResolvedValue({
 			state: "alive",
@@ -161,7 +161,7 @@ describe("Dashboard", () => {
 		// La desambiguación no puede arrastrar el rol de organización: las dos etiquetas conviven, y el
 		// badge del sistema se distingue de la capacidad dentro de la organización.
 		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "admin" })]);
-		auth.login("tok-123", { ...baseUser, sysadmin: true });
+		auth.setUser({ ...baseUser, sysadmin: true });
 		mocks.sessionCheck.mockResolvedValue({
 			state: "alive",
 			user: { ...baseUser, sysadmin: true },
@@ -175,7 +175,7 @@ describe("Dashboard", () => {
 	});
 
 	it("consulta «Mis datasets» con el id del usuario autenticado", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -188,7 +188,7 @@ describe("Dashboard", () => {
 	});
 
 	it("ofrece el CTA al wizard y lista datasets y organizaciones enlazados", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -226,7 +226,7 @@ describe("Dashboard", () => {
 				}),
 			],
 		});
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -244,7 +244,7 @@ describe("Dashboard", () => {
 				extras: [{ key: "sigla", value: "FCyT" }],
 			}),
 		]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -256,7 +256,7 @@ describe("Dashboard", () => {
 
 	it("sin sigla declarada, el mosaico cae al monograma derivado del nombre", async () => {
 		mocks.listForUser.mockResolvedValue([makeOrganization({ extras: [] })]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -265,7 +265,7 @@ describe("Dashboard", () => {
 	});
 
 	it("la barra de acciones arranca oculta", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Dashboard);
 
@@ -283,7 +283,7 @@ describe("Dashboard", () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
 		mocks.canCreateDataset.mockResolvedValue(false);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -300,7 +300,7 @@ describe("Dashboard", () => {
 		mocks.listForUser
 			.mockRejectedValueOnce(new Error("boom"))
 			.mockResolvedValueOnce([makeOrganization()]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -316,7 +316,7 @@ describe("Dashboard", () => {
 describe("Sonda de sesión (D2)", () => {
 	it("dead: limpia la sesión y navega al login sin cargar nada", async () => {
 		mocks.sessionCheck.mockResolvedValue({ state: "dead" });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -338,7 +338,7 @@ describe("Sonda de sesión (D2)", () => {
 
 	it("dead: no renderiza la identidad de la sesión guardada", async () => {
 		mocks.sessionCheck.mockResolvedValue({ state: "dead" });
-		auth.login("tok-123", { ...baseUser, sysadmin: true });
+		auth.setUser({ ...baseUser, sysadmin: true });
 
 		render(Dashboard);
 
@@ -361,7 +361,7 @@ describe("Sonda de sesión (D2)", () => {
 			state: "inconclusive",
 			error: new CkanApiError("Server Error", 500),
 		});
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -373,7 +373,7 @@ describe("Sonda de sesión (D2)", () => {
 	});
 
 	it("alive: el llamador de la sonda reemplaza al usuario guardado obsoleto", async () => {
-		auth.login("tok-123", { ...baseUser, display_name: "Obsoleto" });
+		auth.setUser({ ...baseUser, display_name: "Obsoleto" });
 		mocks.sessionCheck.mockResolvedValue({
 			state: "alive",
 			user: { ...baseUser, display_name: "Jane Doe" },
@@ -392,7 +392,7 @@ describe("Sonda de sesión (D2)", () => {
 			error: new CkanApiError("Server Error", 500),
 		});
 		// Sesión local corrupta: hay token pero ningún id de usuario utilizable.
-		auth.login("tok-123", { ...baseUser, id: "" });
+		auth.setUser({ ...baseUser, id: "" });
 
 		render(Dashboard);
 
@@ -411,7 +411,7 @@ describe("Oferta de creación (D3)", () => {
 	it("con una organización vuelven la grilla y el CTA del estado vacío", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([makeOrganization()]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -435,7 +435,7 @@ describe("Oferta de creación (D3)", () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "member" })]);
 		mocks.canCreateDataset.mockResolvedValue(false);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -455,7 +455,7 @@ describe("Oferta de creación (D3)", () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([makeOrganization({ capacity: "member" })]);
 		mocks.canCreateDataset.mockRejectedValue(new Error("boom"));
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -473,7 +473,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 	it("con organización disponible muestra la copia base y el CTA", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([makeOrganization()]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -487,7 +487,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockResolvedValue([]);
 		mocks.canCreateDataset.mockResolvedValue(false);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -499,7 +499,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		// Nunca resuelve: las organizaciones quedan en carga de forma indefinida.
 		mocks.listForUser.mockReturnValue(new Promise(() => {}));
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -513,7 +513,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 	it("con la carga de organizaciones fallida no afirma que haga falta una y muestra el error honesto", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 0, results: [] });
 		mocks.listForUser.mockRejectedValue(new Error("boom"));
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -530,7 +530,7 @@ describe("Estado vacío de «Mis datasets»", () => {
 describe("Paginación de «Mis datasets»", () => {
 	it("el badge muestra el total y no el largo de la página", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 137, results: makePackages(20) });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -541,7 +541,7 @@ describe("Paginación de «Mis datasets»", () => {
 
 	it("con más de una página, muestra el rango y habilita «siguiente» en la primera página", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 137, results: makePackages(20) });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -552,7 +552,7 @@ describe("Paginación de «Mis datasets»", () => {
 
 	it("«siguiente» recarga con offset 20 y el pie pasa al rango de la página 2", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 137, results: makePackages(20) });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -571,7 +571,7 @@ describe("Paginación de «Mis datasets»", () => {
 
 	it("con una sola página no renderiza controles de paginación", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 12, results: makePackages(12) });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -586,7 +586,7 @@ describe("Paginación de «Mis datasets»", () => {
 			// La página 2 ya no existe: el conjunto se redujo a 20 mientras se paginaba.
 			.mockResolvedValueOnce({ count: 20, results: [] })
 			.mockResolvedValueOnce({ count: 20, results: makePackages(20) });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -605,7 +605,7 @@ describe("Paginación de «Mis datasets»", () => {
 		mocks.currentUser
 			.mockResolvedValueOnce({ count: 137, results: makePackages(20) })
 			.mockRejectedValueOnce(new Error("boom"));
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -621,7 +621,7 @@ describe("Paginación de «Mis datasets»", () => {
 
 	it("en la última página deshabilita «siguiente» y muestra el rango final", async () => {
 		mocks.currentUser.mockResolvedValue({ count: 137, results: makePackages(20) });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -659,7 +659,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 			results: [makePackage({ owner_org: "org-1" })],
 		});
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -699,7 +699,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 			],
 		});
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -715,7 +715,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 			results: [makePackage({ owner_org: "org-1" })],
 		});
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Dashboard);
 
@@ -731,7 +731,7 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 		const fila = makePackage({ owner_org: "org-1" });
 		mocks.currentUser.mockResolvedValue({ count: 1, results: [fila] });
 		mocks.listUpdatableOrganizationIds.mockRejectedValue(new Error("boom"));
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		render(Dashboard);
 		await screen.findByRole("link", { name: /matrícula estudiantil 2026/i });
 		await waitFor(() => expect(mocks.listUpdatableOrganizationIds).toHaveBeenCalledTimes(1));

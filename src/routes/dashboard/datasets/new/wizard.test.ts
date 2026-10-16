@@ -147,7 +147,7 @@ describe("Wizard de creación", () => {
 
 	it("muestra el estado vacío cuando el usuario no tiene organización escribible", async () => {
 		mocks.listForUser.mockResolvedValue([]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -157,7 +157,7 @@ describe("Wizard de creación", () => {
 
 	it("muestra error con reintento cuando falla la carga de organizaciones", async () => {
 		mocks.listForUser.mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce([org]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -167,7 +167,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("bloquea el submit ante un campo requerido faltante sin llamar a CKAN", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -183,7 +183,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("envía package_create con el payload esperado en un envío mínimo válido", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -207,7 +207,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("selecciona automáticamente la única organización y la muestra de solo lectura", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -219,7 +219,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("con varias organizaciones y ninguna elegida, la ficha nombra lo que falta en vez de quedar en blanco", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.listForUser.mockResolvedValue([
 			org,
 			{ ...org, id: "org-2", name: "facultad-de-tecnologia", title: "Facultad de Tecnología" },
@@ -235,7 +235,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("muestra el slug bloqueado y lo desbloquea con la acción de editar", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -252,7 +252,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("no muestra el campo de visibilidad y crea siempre como privado", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -264,7 +264,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("envía el resumen como extra summary en el payload", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -286,7 +286,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("agrega etiquetas a través de TagsInput y las envía en tag_string", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -317,7 +317,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("carga las licencias desde license_list y envía la seleccionada", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -337,7 +337,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("ofrece una sola opción de «sin licencia» aunque CKAN devuelva notspecified", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -355,7 +355,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("cuando license_list falla, deshabilita el select y permite crear sin licencia", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.licenseList.mockRejectedValueOnce(new Error("boom"));
 
 		const { container } = render(Wizard);
@@ -377,7 +377,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("crea un enlace externo con resource_create en JSON, sin multipart", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -408,7 +408,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("rechaza enlaces con esquema javascript: o data: y no los agrega", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -430,7 +430,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("reporta un enlace fallido sin navegar, conserva el dataset y lo reintenta", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 		mocks.resourceCreate
 			.mockRejectedValueOnce(new Error("fallo de red"))
 			.mockResolvedValueOnce({} as never);
@@ -470,7 +470,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("muestra el error del slug cuando su formato es inválido, en vez de fallar en silencio", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -493,7 +493,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("traduce el conflicto real de nombre que devuelve CKAN en el mensaje de slug en uso", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -519,7 +519,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("no llama «slug en uso» a un error que sólo menciona una URL", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -546,7 +546,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("explica el 403 de permisos sin filtrar el texto crudo del servidor", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -572,7 +572,7 @@ describe("Wizard de creación", () => {
 	it.each([
 		400, 409, 422,
 	])("explica el rechazo definitivo %s del catálogo sin filtrar el texto crudo", async (status) => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -593,7 +593,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("lleva el foco al primer campo inválido en orden de formulario al intentar enviar", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -613,7 +613,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("valida en vivo al perder el foco y limpia el error al corregirlo", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -637,7 +637,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("el resumen enlaza cada error con su campo", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -654,7 +654,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("agrega un archivo como una sola entrada de recurso", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -673,7 +673,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("agrega un enlace como una sola entrada de recurso", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -693,7 +693,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("edita una fila y guarda los cambios", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -721,7 +721,7 @@ describe("Wizard de creación", () => {
 	});
 
 	it("envía el nombre y la descripción por recurso en el payload", async () => {
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
 
@@ -788,7 +788,7 @@ describe("Wizard de creación", () => {
 describe("Sonda de sesión del asistente (D2)", () => {
 	it("dead: no carga nada, deja la sesión anónima y no diagnostica un permiso inexistente", async () => {
 		mocks.sessionCheck.mockResolvedValue({ state: "dead" });
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -819,7 +819,7 @@ describe("Sonda de sesión del asistente (D2)", () => {
 			state: "inconclusive",
 			error: new CkanApiError("Server Error", 500),
 		});
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 
@@ -835,7 +835,7 @@ describe("Sonda de sesión del asistente (D2)", () => {
 		// La sonda confirma que la sesión vive, pero el llamador no tiene ninguna organización: es el
 		// caso legítimo del `200 []` que la sonda **no** debe confundir con una sesión muerta.
 		mocks.listForUser.mockResolvedValue([]);
-		auth.login("tok-123", baseUser);
+		auth.setUser(baseUser);
 
 		render(Wizard);
 

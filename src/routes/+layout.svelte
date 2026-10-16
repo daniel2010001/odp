@@ -16,7 +16,7 @@ let { children, data } = $props();
 // navegador**: el store es un singleton de módulo y escribirlo durante el SSR mezclaría usuarios entre
 // requests (y los efectos no corren en el servidor, así que el efecto de abajo ya cumple eso por construcción).
 // `$effect.pre` corre antes del primer render y otra vez cuando `invalidateAll()` (tras el login) trae datos
-// nuevos. Si el servidor y el `localStorage` discrepan, manda el servidor.
+// nuevos. El store no persiste nada: la identidad es siempre la del servidor.
 $effect.pre(() => {
 	auth.hydrate(data.sessionUser);
 });

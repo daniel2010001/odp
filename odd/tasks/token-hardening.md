@@ -83,7 +83,7 @@
 | T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | `89b4ad2`, `1486e8f`, `0ebd417`, `95b951a` |
 | T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | `2459d93`, `95b951a` (mitad) |
 | T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | `b1e973d` |
-| T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | parent | — |
+| T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | worker | (este commit) |
 | T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | (este commit; E5 pendiente) |
 | T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
@@ -379,3 +379,14 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   pendiente para T8:** que el stream y ese `Content-Length` lleguen bien a CKAN a través de `undici` (sólo está
   probado con un `fetch` de mentira). **E5 (`BODY_SIZE_LIMIT`) sigue pedido a `odp-docker`.** Compuertas: 1151
   pruebas, `check` 0 errores, `lint` limpio. La única lectura del token que queda es el logout del menú (T4b).
+- **L19 (T4b entregada, 2026-10-16): el navegador ya no tiene el token.** El worker implementó F1–F5 con 8 fallos RED
+  antes de implementar: el login responde `{ user }`, el store perdió `token`, `login()` y toda escritura en
+  `localStorage`, la clave heredada `auth` se **borra sin leerse** al cargar, y el logout ya no recibe token: revoca
+  el de la sesión (cierra el hueco (c) de L13). Las aserciones que sólo probaban la persistencia del token se
+  **reemplazaron** por las de F2/F3, declaradas una por una en su informe. Su desvío, aceptado: si CKAN respondiera
+  `200` sin token o sin usuario, el login devuelve un `500` propio en vez de reenviar un cuerpo que podría llevar la
+  credencial. **Un agregado mío, sin RED posible (ruta):** el login exige `application/json` (`415` si no), por la
+  misma razón que el puente: sin `Content-Type` no hay preflight ni `checkOrigin`, y otra página del mismo sitio
+  podría iniciar sesión en el navegador de la víctima con una cuenta ajena (CSRF de login). Compuertas: 1152
+  pruebas, `check` 0 errores, `lint` limpio; `grep -rn "get(auth).token" src` → 0. **Queda para T8:** la spec de
+  autenticación (S7) todavía dice `localStorage`, y las rutas se verifican en vivo.
