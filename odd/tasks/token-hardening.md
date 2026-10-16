@@ -89,7 +89,7 @@
 | T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | (este commit; E5 pendiente) |
 | T6 | Descargas por el portal, con `Range` y sin servir contenido activo desde el origen del portal (§ El diseño de T6, G1–G6) | `src/lib/server/ckan-download.ts`, `src/routes/catalog/download/[resourceId]/+server.ts`, `src/lib/resources/file-url.ts`, `ResourcePreview.svelte`, la ficha del recurso | worker | (este commit) |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
-| T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | — |
+| T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | `4f11d58`, L23–L25 |
 
 ## El diseño (T1)
 
@@ -473,3 +473,17 @@ web, no de la API) y que responda `206` a un `Range`.
   (Recomendado)»*. Sobre la verificación autenticada: *«Usted la hace en el navegador con mi checklist
   (Recomendado)»*. Y confirmó que su línea de `.env.example` es `SESSION_SECRET=` **sin valor** (*«Sí, sin valor:
   commitéalo»*): entra con este commit, sin que yo lo haya leído —el arnés bloquea esa ruta—.
+- **L25 (T8 cerrada, 2026-10-16): la verificación autenticada del autor, en el navegador** (`https://odp.hs.lan`,
+  servido por el contenedor de `odp-docker`; no se levantó ningún servidor en el host). Pasos confirmados por él:
+  (1) login — `odp_session` `HttpOnly`, sin `auth` en `localStorage`, el cuerpo de `/auth/login` sin token; (2) las
+  llamadas van a `/catalog/<acción>` sin `Authorization`; (3) F5 conserva la sesión; (4) subida por
+  `/catalog/…` correcta; (5) el PDF y la imagen de un recurso abren y se pueden guardar —se abren en pestaña, no se
+  descargan directo, porque son tipos `inline` (G4)—; (6) el logout borra la cookie; (7) una cookie con un carácter
+  cambiado lleva al login y queda borrada. **Una regresión aparente, explicada:** como `ckan_admin`, único miembro
+  de su organización, no podía aprobar su propia solicitud. Causa: la rama había salido de `main` **antes** del PR
+  #74 (que refleja `decidable_by_caller`), y el contenedor sirve el árbol de esta rama; el riesgo 4 del plan lo
+  había anticipado. Se rebasó sobre `origin/main` (#74 y #75 incluidos) sin conflictos de texto, y se buscaron a
+  mano usos de la interfaz vieja que el #74 pudiera traer: ninguno. Compuertas: 1195 pruebas, `check` 0 errores,
+  `lint` limpio. **Nota sobre el campo `help`** de las respuestas (`https://api.odp.hs.lan/...`): es el cuerpo de
+  CKAN reenviado tal cual —el puente no reescribe cuerpos, porque el portal necesita `success`, `error.__type` y
+  `payload`—; nombra el host público de la API, que ya es público, y no lleva credencial.
