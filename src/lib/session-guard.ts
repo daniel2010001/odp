@@ -2,7 +2,7 @@
 //
 // ─── Una condición, un mensaje, una ruta ─────────────────────────────
 // «La sesión murió» se diagnostica desde más de un lugar —la sonda `user_show {}` que responde 404 y
-// la sesión local corrupta, con token pero sin identidad— y todos deben terminar exactamente igual:
+// la sesión local corrupta— y todos deben terminar exactamente igual:
 // limpiar el almacenamiento y volver al login declarando el motivo. Tener esos tres pasos
 // (`auth.logout()`, `SESSION_EXPIRED_MESSAGE` y `sessionExpiredLoginUrl()`) repetidos en cada pantalla
 // permitía que dos superficies mostraran dos diagnósticos distintos para la misma condición. Por eso
@@ -16,11 +16,13 @@
 
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
+import { logout as logoutServerSession } from "./api/auth";
 import type { CkanClient } from "./api/client";
 import { classifyFailure } from "./api/failure";
 import { createSessionApi, type SessionCheck } from "./api/session";
 import { sessionExpiredLoginUrl } from "./session";
 import { auth } from "./stores/auth";
+import type { CkanUser } from "./types/ckan";
 
 /**
  * Cierra una sesión que ya no sirve: la limpia del almacenamiento y manda al login con el motivo
@@ -31,6 +33,10 @@ import { auth } from "./stores/auth";
  */
 export async function endInvalidSession(returnTo: string): Promise<void> {
 	auth.logout();
+	// La sesión del **servidor** también se mata, y antes de navegar: una cookie con sello válido cuyo token
+	// CKAN ya no acepta sigue abriendo, así que la próxima carga rehidrataría al usuario y el guard del login
+	// lo devolvería al panel — el mismo bucle, por el lado del servidor. `logout` es best-effort: nunca lanza.
+	await logoutServerSession();
 	await goto(sessionExpiredLoginUrl(returnTo));
 }
 
@@ -39,19 +45,23 @@ export async function endInvalidSession(returnTo: string): Promise<void> {
  * una superficie que no debe expulsar a nadie (el encabezado en una página pública) deje de
  * mostrar una sesión que ya no existe.
  *
- * Devuelve `null` cuando no hay token guardado: en ese caso no se llama a la API. La decisión de
+ * Devuelve `null` cuando no hay usuario de sesión: en ese caso no se llama a la API. La decisión de
  * qué es una sesión muerta (`dead`) vive en la sonda, no acá; esta función sólo la consume, igual
  * que `resolveUnauthorized`.
  */
 export async function validateStoredSession(client: CkanClient): Promise<SessionCheck | null> {
-	const token = get(auth).token;
-	if (!token) return null;
+	const sondeado = get(auth).user;
+	if (!sondeado) return null;
 
 	const check = await createSessionApi(client).check();
-	// El veredicto vale para **el token que se sondeó**: si mientras la sonda viajaba el usuario entró
-	// o cambió de sesión, el token guardado ya es otro y una sesión nueva no se tira por un veredicto
+	// El veredicto vale para **la sesión que se sondeó**: si mientras la sonda viajaba el usuario entró
+	// o cambió de cuenta, la sesión guardada ya es otra y una sesión nueva no se tira por un veredicto
 	// viejo. Sin esta comparación, un `dead` de la sesión anterior cierra la que se acaba de abrir.
-	if (check.state === "dead" && get(auth).token === token) auth.logout();
+	if (check.state === "dead" && get(auth).user?.id === sondeado.id) {
+		auth.logout();
+		// Sin esto la cookie seguiría abriendo y la próxima carga mostraría otra vez la sesión muerta.
+		await logoutServerSession();
+	}
 	return check;
 }
 
@@ -74,14 +84,15 @@ export type UnauthorizedResolution = "expelled" | "alive" | "inconclusive";
 export async function resolveUnauthorized(
 	client: CkanClient,
 	err: unknown,
-	token: string | null,
+	user: CkanUser | null | undefined,
 	returnTo: string,
 ): Promise<UnauthorizedResolution> {
 	// Sólo un fallo de autorización merece una sonda; un 404 o un 5xx no deben expulsar a nadie.
 	if (classifyFailure(err) !== "unauthorized") return "inconclusive";
-	// Un espectador anónimo no es una sesión muerta. Medido: sondear `user_show {}` sin token
-	// responde 404, lo que lo etiquetaría como expirado. Nunca se sondea sin token.
-	if (!token) return "inconclusive";
+	// Un espectador anónimo no es una sesión muerta. Medido: sondear `user_show {}` sin sesión
+	// responde 404, lo que lo etiquetaría como expirado. Nunca se sondea sin usuario (el token ya no
+	// es legible en el navegador: la pregunta «¿hay sesión?» la contesta el usuario).
+	if (!user) return "inconclusive";
 
 	const check = await createSessionApi(client).check();
 	if (check.state === "dead") {

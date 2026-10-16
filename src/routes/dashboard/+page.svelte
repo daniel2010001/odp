@@ -16,7 +16,7 @@ import {
 import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createSessionApi } from "$lib/api/session";
@@ -27,7 +27,6 @@ import {
 	EMPTY_STATE_PRIMARY_ACTION_LABEL,
 	emptyStateMessage,
 } from "$lib/copy/dashboard";
-import { env } from "$lib/env";
 import { endInvalidSession } from "$lib/session-guard";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
@@ -64,7 +63,7 @@ let orgsEditables = $state<string[]>([]);
 
 // ─── Cliente CKAN autenticado ────────────────────────────────────────
 function makeClient() {
-	return createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	return createPortalClient();
 }
 
 // ─── Guard de auth + carga inicial ───────────────────────────────────
@@ -82,10 +81,6 @@ onMount(() => {
 // distinguir «no tengo organizaciones» de «mi sesión murió»: ofrece crear a una sesión caída (D3)
 // y el asistente diagnostica un permiso inexistente (D2).
 async function iniciarPanel() {
-	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
-	// sesión vacía en el almacenamiento, un estado que el guard de `/auth/login` no puede distinguir de
-	// una sesión real y que expulsaría al usuario en el siguiente montaje.
-	const token = get(auth).token;
 	const check = await createSessionApi(makeClient()).check();
 
 	if (check.state === "dead") {
@@ -99,10 +94,11 @@ async function iniciarPanel() {
 	// significa «viva» (una sonda inconclusa también abre el panel), sí «comprobada y no muerta».
 	sessionNotDead = true;
 
-	if (check.state === "alive" && token) {
+	if (check.state === "alive") {
 		// El llamador que devolvió la sonda **es** la identidad: se refresca el store con él para que
-		// `$currentUser` siga siendo la única fuente y no sobreviva un usuario local obsoleto.
-		auth.login(token, check.user);
+		// `$currentUser` siga siendo la única fuente y no sobreviva un usuario local obsoleto. Sólo el
+		// usuario: la credencial no pasa por acá.
+		auth.setUser(check.user);
 	}
 
 	// `inconclusive` (5xx, timeout, red): un hipo de CKAN no expulsa a nadie autenticado. Se carga

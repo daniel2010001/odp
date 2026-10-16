@@ -5,7 +5,7 @@ import { page } from "$app/stores";
 import type { PublicationRequest } from "$lib/api/publication";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
-import { type ApiClientConfig, CkanApiError } from "$lib/types/api";
+import { CkanApiError } from "$lib/types/api";
 import type { CkanOrganization, CkanPackage, CkanResource, CkanUser } from "$lib/types/ckan";
 import DatasetPage from "./+page.svelte";
 
@@ -16,7 +16,7 @@ const pageStore = page as unknown as {
 };
 
 const mocks = vi.hoisted(() => ({
-	createCkanClient: vi.fn<(config: ApiClientConfig) => object>(),
+	createPortalClient: vi.fn<() => object>(),
 	showDataset: vi.fn(),
 	getMockDatasetById: vi.fn(),
 	listUpdatableOrganizationIds: vi.fn(),
@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("$lib/env", () => ({
 	env: { CKAN_URL: "http://localhost:5000" },
 }));
-vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
+vi.mock("$lib/api/client", () => ({ createPortalClient: mocks.createPortalClient }));
 vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.showDataset }) }));
 vi.mock("$lib/api/organizations", () => ({
 	createOrganizationApi: () => ({
@@ -146,7 +146,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
 	setParams({ id: "matricula-2026" });
-	mocks.createCkanClient.mockReturnValue({});
+	mocks.createPortalClient.mockReturnValue({});
 	mocks.showDataset.mockResolvedValue(makeDataset());
 	// Sin solicitudes, la tarjeta del estado no aparece y el hero no gana la acción de publicación: es
 	// el estado por defecto de las pruebas que no hablan de publicación.
@@ -174,16 +174,16 @@ afterEach(() => {
 	auth.reset();
 });
 
-describe("Página de dataset — carga con API key", () => {
-	it("crea el cliente CKAN con un apiKey que devuelve el token de la sesión", async () => {
+describe("Página de dataset — carga por el puente del portal", () => {
+	it("crea el cliente del portal, sin credencial: el servidor pone la del usuario", async () => {
 		auth.login("token-de-prueba", makeUser());
 
 		render(DatasetPage);
-		await waitFor(() => expect(mocks.createCkanClient).toHaveBeenCalled());
+		await waitFor(() => expect(mocks.createPortalClient).toHaveBeenCalled());
 
-		const config = mocks.createCkanClient.mock.calls[0][0];
-		expect(config.apiKey).toBeTypeOf("function");
-		expect((config.apiKey as () => string | null)()).toBe("token-de-prueba");
+		// El cliente del portal no admite `apiKey` ni `baseUrl`: no hay token del lado del navegador que
+		// pasarle, y por eso la página lo construye sin argumentos.
+		expect(mocks.createPortalClient.mock.calls[0]).toEqual([]);
 	});
 
 	it("no revela que el dataset existe cuando package_show responde 403 y no cae al mock", async () => {

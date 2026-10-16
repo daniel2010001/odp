@@ -11,7 +11,7 @@ import {
 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createDatastoreApi } from "$lib/api/datastore";
 import {
@@ -42,12 +42,10 @@ import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
 import { safeExternalUrl } from "$lib/utils/external-url";
 
-// Cliente del DataStore para la vista previa (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla). Lleva el
-// token de la sesión, el mismo idiom que el cliente de carga: sin él, el `datastore_search` de un
-// recurso de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
-const datastoreApi = createDatastoreApi(
-	createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token }),
-);
+// Cliente del DataStore para la vista previa (RF-30: PDF/imagen/TXT/JSON; RF-31: tabla). Pasa por el
+// puente del portal, que pone la credencial de la sesión: sin ella, el `datastore_search` de un recurso
+// de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
+const datastoreApi = createDatastoreApi(createPortalClient());
 
 /** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
 type ResourceFailure = {
@@ -98,10 +96,10 @@ async function loadData() {
 	resource = null;
 	dataset = null;
 
-	const token = get(auth).token;
-	// El cliente lleva el token de la sesión. Sin él, `resource_show` de un recurso de un dataset
-	// privado responde 403 incluso para su propio dueño.
-	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	const user = get(auth).user;
+	// El puente del portal pone la credencial de la sesión. Sin ella, `resource_show` de un recurso de un
+	// dataset privado responde 403 incluso para su propio dueño.
+	const client = createPortalClient();
 	const resourceApi = createResourceApi(client);
 	const datasetApi = createDatasetApi(client);
 
@@ -116,13 +114,13 @@ async function loadData() {
 		resource = resourceResult.value;
 	} else {
 		const err = resourceResult.reason;
-		// Sólo se sondea ante un 403 con token. Sin token el espectador es anónimo, y sondear
+		// Sólo se sondea ante un 403 con usuario. Sin usuario el espectador es anónimo, y sondear
 		// `user_show {}` respondería 404 (medido), etiquetándolo como una sesión muerta que no es.
 		let access: AccessContext = "anonymous";
-		if (classifyFailure(err) === "unauthorized" && token) {
+		if (classifyFailure(err) === "unauthorized" && user) {
 			let resolution: UnauthorizedResolution = "inconclusive";
 			try {
-				resolution = await resolveUnauthorized(client, err, token, $page.url.pathname);
+				resolution = await resolveUnauthorized(client, err, user, $page.url.pathname);
 			} catch {
 				// Una navegación que falla no expulsa: ante la duda, la sesión queda intacta.
 				resolution = "inconclusive";

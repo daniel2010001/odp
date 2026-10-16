@@ -1,7 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { get } from "svelte/store";
-import { goto } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import { login as apiLogin } from "$lib/api/auth";
 import Button from "$lib/components/ui/button/button.svelte";
@@ -54,6 +54,9 @@ async function handleSubmit(event: SubmitEvent) {
 	try {
 		const session = await apiLogin(parsed.data.username, parsed.data.password);
 		auth.login(session.token, session.user);
+		// El login acaba de poner la cookie de sesión: se vuelve a correr la carga del layout para que
+		// `sessionUser` traiga al usuario que el servidor ya conoce.
+		await invalidateAll();
 		const returnTo = get(page).url.searchParams.get("returnTo");
 		await goto(returnTo || "/dashboard");
 	} catch (err) {

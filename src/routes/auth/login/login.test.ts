@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { goto } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import { SESSION_EXPIRED_MESSAGE } from "$lib/session";
 import { auth } from "$lib/stores/auth";
@@ -86,5 +86,45 @@ describe("Login", () => {
 
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dashboard"));
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("tras un login exitoso vuelve a correr la carga del layout, y recién después navega", async () => {
+		mocks.login.mockResolvedValue({ token: "tok-123", user: baseUser });
+		const orden: string[] = [];
+		vi.mocked(invalidateAll).mockImplementationOnce(async () => {
+			orden.push("invalidateAll");
+		});
+		vi.mocked(goto).mockImplementationOnce(async () => {
+			orden.push("goto");
+		});
+
+		const { container } = render(Login);
+		await fireEvent.input(screen.getByLabelText("Nombre de usuario"), {
+			target: { value: "jdoe" },
+		});
+		await fireEvent.input(screen.getByLabelText("Contraseña"), {
+			target: { value: "secreta123" },
+		});
+		await fireEvent.submit(getForm(container));
+
+		// El layout tiene que traer al usuario que el servidor ya conoce antes de entrar al panel.
+		await waitFor(() => expect(orden).toEqual(["invalidateAll", "goto"]));
+		expect(goto).toHaveBeenCalledWith("/dashboard");
+	});
+
+	it("un login rechazado no vuelve a correr la carga del layout", async () => {
+		mocks.login.mockRejectedValue(new Error("Usuario o contraseña incorrectos"));
+
+		const { container } = render(Login);
+		await fireEvent.input(screen.getByLabelText("Nombre de usuario"), {
+			target: { value: "jdoe" },
+		});
+		await fireEvent.input(screen.getByLabelText("Contraseña"), {
+			target: { value: "secreta123" },
+		});
+		await fireEvent.submit(getForm(container));
+
+		await screen.findByRole("alert");
+		expect(invalidateAll).not.toHaveBeenCalled();
 	});
 });

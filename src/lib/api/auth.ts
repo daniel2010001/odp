@@ -41,16 +41,17 @@ export async function login(username: string, password: string): Promise<AuthSes
 }
 
 /**
- * Cierra sesión: informa el token al proxy /auth/logout para que intente
- * revocarlo en CKAN. Es best-effort: nunca lanza, porque el cliente limpia
- * localStorage independientemente del resultado de la revocación.
+ * Cierra sesión: el proxy /auth/logout borra la cookie de sesión del portal e
+ * intenta revocar el token en CKAN —el del cuerpo si viene, si no el de la
+ * sesión—. Es best-effort: nunca lanza, porque el cliente limpia su estado
+ * independientemente del resultado de la revocación.
  */
-export async function logout(token: string): Promise<void> {
+export async function logout(token?: string): Promise<void> {
 	try {
 		await fetch("/auth/logout", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ token }),
+			body: JSON.stringify(token ? { token } : {}),
 		});
 	} catch {
 		// best-effort: se ignora cualquier fallo de red.

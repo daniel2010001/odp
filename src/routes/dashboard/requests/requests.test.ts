@@ -10,12 +10,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import type { PublicationRequest } from "$lib/api/publication";
 import { auth } from "$lib/stores/auth";
-import type { ApiClientConfig } from "$lib/types/api";
 import type { CkanUser } from "$lib/types/ckan";
 import RequestsPage from "./+page.svelte";
 
 const mocks = vi.hoisted(() => ({
-	createCkanClient: vi.fn<(config: ApiClientConfig) => object>(),
+	createPortalClient: vi.fn<() => object>(),
 	listRequests: vi.fn(),
 	decideRequest: vi.fn(),
 	showDataset: vi.fn(),
@@ -23,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("$lib/env", () => ({ env: { CKAN_URL: "http://localhost:5000" } }));
-vi.mock("$lib/api/client", () => ({ createCkanClient: mocks.createCkanClient }));
+vi.mock("$lib/api/client", () => ({ createPortalClient: mocks.createPortalClient }));
 vi.mock("$lib/api/datasets", () => ({ createDatasetApi: () => ({ show: mocks.showDataset }) }));
 vi.mock("$lib/api/publication", () => ({
 	createPublicationApi: () => ({
@@ -75,7 +74,7 @@ function renderPage() {
 beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
-	mocks.createCkanClient.mockReturnValue({});
+	mocks.createPortalClient.mockReturnValue({});
 	mocks.check.mockResolvedValue({ state: "alive", user: makeUser() });
 	mocks.listRequests.mockResolvedValue([makeRow()]);
 });

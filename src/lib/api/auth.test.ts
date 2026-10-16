@@ -72,6 +72,17 @@ describe("api/auth — logout", () => {
 		expect(JSON.parse(init.body ?? "{}")).toEqual({ token: "jwt-1" });
 	});
 
+	it("sin token manda un cuerpo vacío: el servidor revoca el de la sesión y borra la cookie", async () => {
+		const mock = stubFetch({ ok: true, status: 200, json: { success: true } });
+
+		await logout();
+
+		expect(mock.mock.calls[0]?.[0]).toBe("/auth/logout");
+		const init = mock.mock.calls[0]?.[1] as FetchInit;
+		expect(init.method).toBe("POST");
+		expect(JSON.parse(init.body ?? "null")).toEqual({});
+	});
+
 	it("no lanza cuando el servidor falla (best-effort)", async () => {
 		vi.stubGlobal(
 			"fetch",

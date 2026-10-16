@@ -3,7 +3,7 @@ import { Info, LoaderCircle, RotateCw, TriangleAlert } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createLicenseApi } from "$lib/api/licenses";
 import { createOrganizationApi } from "$lib/api/organizations";
@@ -14,7 +14,6 @@ import DatasetForm, {
 	nombreEfectivo,
 	type RecursoEntry,
 } from "$lib/components/datasets/DatasetForm.svelte";
-import { env } from "$lib/env";
 import type { DatasetCreateInput } from "$lib/schemas/dataset";
 import { endInvalidSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
@@ -55,7 +54,7 @@ const uploadControllers = new Map<string, AbortController>();
 
 // ─── Cliente CKAN autenticado ────────────────────────────────────────
 function makeClient() {
-	return createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
+	return createPortalClient();
 }
 
 // ─── Guard de auth + carga inicial ───────────────────────────────────
@@ -73,9 +72,6 @@ onMount(() => {
 // organizaciones. Sin la sonda, el asistente leería ese `[]` como «no tiene organización» y
 // diagnosticaría un permiso inexistente a quien sólo perdió la sesión.
 async function iniciarAsistente() {
-	// El token se lee **una sola vez** y sólo se reescribe si existe: `login("", …)` persistiría una
-	// sesión vacía que el guard de `/auth/login` no puede distinguir de una real.
-	const token = get(auth).token;
 	const check = await createSessionApi(makeClient()).check();
 
 	if (check.state === "dead") {
@@ -85,10 +81,10 @@ async function iniciarAsistente() {
 		return;
 	}
 
-	if (check.state === "alive" && token) {
+	if (check.state === "alive") {
 		// El llamador que devolvió la sonda **es** la identidad: se refresca el store con él para que
 		// la sesión guardada no sobreviva obsoleta.
-		auth.login(token, check.user);
+		auth.setUser(check.user);
 	}
 
 	// `inconclusive` (5xx, timeout, red): un hipo de CKAN no expulsa a nadie autenticado. Se carga

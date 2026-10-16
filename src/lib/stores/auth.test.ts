@@ -71,14 +71,105 @@ describe("isSuperAdmin", () => {
 });
 
 describe("isAuthenticated / currentUser", () => {
-	it("isAuthenticated refleja la presencia del token", () => {
+	it("isAuthenticated refleja la presencia del usuario", () => {
 		expect(get(isAuthenticated)).toBe(false);
 		auth.login("tok-123", baseUser);
 		expect(get(isAuthenticated)).toBe(true);
 	});
 
+	it("isAuthenticated no depende del token: un usuario sin token ya es una sesión", () => {
+		auth.setUser(baseUser);
+
+		expect(get(auth).token).toBeNull();
+		expect(get(isAuthenticated)).toBe(true);
+	});
+
+	it("un token sin usuario no es una sesión", async () => {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: "tok-huerfano" }));
+
+		vi.resetModules();
+		const fresh = await import("./auth");
+
+		expect(get(fresh.isAuthenticated)).toBe(false);
+	});
+
 	it("currentUser expone el usuario autenticado", () => {
 		auth.login("tok-123", baseUser);
 		expect(get(currentUser)).toEqual(baseUser);
+	});
+});
+
+describe("auth.setUser", () => {
+	it("fija el usuario sin tocar el token", () => {
+		auth.login("tok-123", baseUser);
+
+		auth.setUser({ ...baseUser, display_name: "Otra Jane" });
+
+		expect(get(auth).token).toBe("tok-123");
+		expect(get(auth).user?.display_name).toBe("Otra Jane");
+	});
+
+	it("no escribe localStorage si no hay token que acompañe al usuario", () => {
+		auth.setUser(baseUser);
+
+		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+	});
+
+	it("con token guardado, refresca el usuario persistido", () => {
+		auth.login("tok-123", baseUser);
+
+		auth.setUser({ ...baseUser, display_name: "Otra Jane" });
+
+		const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) as string);
+		expect(raw.token).toBe("tok-123");
+		expect(raw.user.display_name).toBe("Otra Jane");
+	});
+});
+
+describe("auth.hydrate — la identidad del servidor manda", () => {
+	const sessionUser = { id: "u-1", name: "jdoe", displayName: "Jane Doe", sysadmin: true };
+
+	it("con usuario del servidor y nada guardado, fija el usuario sin token", () => {
+		auth.hydrate(sessionUser);
+
+		expect(get(auth).token).toBeNull();
+		expect(get(auth).user).toMatchObject({
+			id: "u-1",
+			name: "jdoe",
+			display_name: "Jane Doe",
+			sysadmin: true,
+		});
+		expect(get(isAuthenticated)).toBe(true);
+		expect(get(isSuperAdmin)).toBe(true);
+	});
+
+	it("si el guardado es del mismo usuario conserva el token (hasta T4b la subida lo lee)", () => {
+		auth.login("tok-123", baseUser);
+
+		auth.hydrate(sessionUser);
+
+		expect(get(auth).token).toBe("tok-123");
+		expect(get(auth).user?.id).toBe("u-1");
+	});
+
+	it("si el guardado es de otro usuario, el servidor gana y el token ajeno se descarta", () => {
+		auth.login("tok-ajeno", { ...baseUser, id: "u-2", name: "otro" });
+
+		auth.hydrate(sessionUser);
+
+		expect(get(auth).token).toBeNull();
+		expect(get(auth).user?.id).toBe("u-1");
+		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+	});
+
+	it("si el servidor no tiene sesión, cierra la guardada: el servidor gana", () => {
+		auth.login("tok-123", baseUser);
+
+		auth.hydrate(null);
+
+		expect(get(auth).user).toBeNull();
+		expect(get(auth).token).toBeNull();
+		expect(get(isAuthenticated)).toBe(false);
+		expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
 	});
 });

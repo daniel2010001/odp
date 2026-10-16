@@ -2,16 +2,31 @@
 import "../app.css";
 import { Menu, Monitor, Moon, Sun, X } from "@lucide/svelte";
 import { onDestroy, onMount } from "svelte";
-import { get } from "svelte/store";
-import { createCkanClient } from "$lib/api/client";
+import { createPortalClient } from "$lib/api/client";
 import UserMenu from "$lib/components/auth/UserMenu.svelte";
 import ThemePlayground from "$lib/components/ThemePlayground.svelte";
-import { env } from "$lib/env";
 import { validateStoredSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 import { theme } from "$lib/stores/theme";
 
-let { children } = $props();
+let { children, data } = $props();
+
+// ─── La identidad llega del servidor ──────────────────────────────────
+// `data.sessionUser` sale de `+layout.server.ts` (`locals.user`), nunca con el token. Se adopta **sólo en el
+// navegador**: el store es un singleton de módulo y escribirlo durante el SSR mezclaría usuarios entre
+// requests (y los efectos no corren en el servidor, así que el efecto de abajo ya cumple eso por construcción).
+// `$effect.pre` corre antes del primer render y otra vez cuando `invalidateAll()` (tras el login) trae datos
+// nuevos. Si el servidor y el `localStorage` discrepan, manda el servidor.
+$effect.pre(() => {
+	auth.hydrate(data.sessionUser);
+});
+
+// `window` sólo existe en el navegador (`$app/environment` no resuelve en Vitest, y esto no lo necesita).
+const inBrowser = typeof window !== "undefined";
+
+// En el SSR el store está vacío, así que el encabezado se dibuja con la identidad que trajo el servidor; en
+// el navegador manda el store (que el efecto de arriba ya alineó con el servidor y que el logout limpia).
+const signedIn = $derived(inBrowser ? $isAuthenticated : data.sessionUser !== null);
 
 let mobileMenuOpen = $state(false);
 let currentTheme: "light" | "dark" | "system" = $state("system");
@@ -21,8 +36,8 @@ const unsub = theme.subscribe((v) => {
 });
 onDestroy(unsub);
 
-// ─── La sesión guardada se sondea una vez por carga ───────────────────
-// `$isAuthenticated` sólo dice «hay un token en el almacenamiento»: tras una limpieza de la base de
+// ─── La sesión se sondea una vez por carga ────────────────────────────
+// `$isAuthenticated` sólo dice «el servidor entregó un usuario»: tras una limpieza de la base de
 // CKAN el token queda muerto pero el estado sigue pareciendo autenticado, y el encabezado mostraría
 // una sesión que ya no existe. Se sondea al montar —una sola vez, porque el layout raíz vive durante
 // toda la navegación cliente y `onMount` corre una vez por instancia— y, si está muerta, se termina
@@ -30,8 +45,7 @@ onDestroy(unsub);
 // anónimo. Las pantallas que sí necesitan los datos del usuario conservan su `endInvalidSession`
 // con redirección.
 onMount(() => {
-	const client = createCkanClient({ baseUrl: env.CKAN_URL, apiKey: () => get(auth).token });
-	void validateStoredSession(client);
+	void validateStoredSession(createPortalClient());
 });
 
 // Resolve what icon to show based on effective dark state
@@ -146,7 +160,7 @@ $effect(() => {
 						{/if}
 					</button>
 
-					{#if $isAuthenticated}
+					{#if signedIn}
 						<UserMenu />
 					{:else}
 						<a
@@ -218,7 +232,7 @@ $effect(() => {
 						{/if}
 					</button>
 
-					{#if $isAuthenticated}
+					{#if signedIn}
 						<div class="mt-2">
 							<UserMenu />
 						</div>

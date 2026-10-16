@@ -53,7 +53,12 @@ const TAG_BYTES_ESPERADOS = 16;
 function makePayload(overrides: Partial<SessionPayload> = {}): SessionPayload {
 	return {
 		token: TOKEN,
-		user: { id: "u-1", name: "ckan_admin", displayName: "Administración del catálogo" },
+		user: {
+			id: "u-1",
+			name: "ckan_admin",
+			displayName: "Administración del catálogo",
+			sysadmin: false,
+		},
 		issuedAt: NOW,
 		expiresAt: NOW + CKAN_TOKEN_TTL_S * 1000,
 		...overrides,
@@ -193,7 +198,40 @@ describe("la sesión que arma el login", () => {
 			id: "u-1",
 			name: "ckan_admin",
 			displayName: "Administración del catálogo",
+			sysadmin: false,
 		});
+	});
+
+	it("copia el `sysadmin` del usuario de CKAN: sólo un `true` literal lo es", () => {
+		expect(buildSession("jwt", makeCkanUser({ sysadmin: true }), NOW).user.sysadmin).toBe(true);
+		expect(buildSession("jwt", makeCkanUser({ sysadmin: false }), NOW).user.sysadmin).toBe(false);
+		// Ausente no es `true`: la bandera de superadministrador no se infiere.
+		expect(buildSession("jwt", makeCkanUser({ sysadmin: undefined }), NOW).user.sysadmin).toBe(
+			false,
+		);
+	});
+
+	it("el `sysadmin` sobrevive al sello: sellar y abrir devuelve la misma bandera", () => {
+		const sellada = sealSession(buildSession("jwt", makeCkanUser({ sysadmin: true }), NOW), SECRET);
+
+		expect(openSession(sellada, SECRET, NOW)?.user.sysadmin).toBe(true);
+	});
+
+	it("una sesión emitida antes de existir el campo abre con `sysadmin: false`, no se descarta", () => {
+		// Las cookies vivas al desplegar este cambio no lo llevan: tirarlas cerraría la sesión de todos.
+		const { sysadmin: _omitido, ...sinBandera } = makePayload().user;
+		const sellada = sealSession(makePayload({ user: sinBandera as never }), SECRET);
+
+		expect(openSession(sellada, SECRET, NOW)?.user.sysadmin).toBe(false);
+	});
+
+	it("un `sysadmin` que no es booleano no es una sesión", () => {
+		const sellada = sealSession(
+			makePayload({ user: { id: "u-1", name: "x", sysadmin: "si" as never } }),
+			SECRET,
+		);
+
+		expect(openSession(sellada, SECRET, NOW)).toBeNull();
 	});
 
 	it("un usuario sin nombre visible no inventa uno", () => {

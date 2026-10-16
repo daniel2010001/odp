@@ -317,3 +317,19 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
   desde el `.env` de su carpeta. No se recreó ningún contenedor: el dev unificado no cambia, porque `vite dev`
   usa la clave de respaldo. Efecto a recordar: una variable del `.env` raíz pisa la del mismo nombre en el
   compose de CKAN incluido.
+- **L17 (T4a entregada, 2026-10-16):** el worker implementó D1–D7 con RED observado en las suites nuevas
+  (`request-session`, el `sysadmin` de la sesión, la query del `GET`, el cliente del portal, el `401` de la sonda y
+  el store); las suites ancladas al mecanismo viejo se **re-anclaron** sin perder aserciones (en
+  `resource-page.test.ts` el «manda `Authorization`» pasó a «pide a `/catalog/…` y **no** manda `Authorization`»).
+  Dos de sus decisiones, aceptadas: las cookies ya emitidas **sin** `sysadmin` abren con `false` en vez de cerrarse
+  todas al desplegar, y `+layout.ts` tiene que **devolver** `data` o el usuario del servidor se perdía por el camino.
+  **Dos huecos que él mismo marcó y cerré yo, con RED:** (1) **el bucle por el lado del servidor**: una cookie con
+  sello válido y token revocado en CKAN sobrevivía a la sonda `dead` —`auth.logout()` sólo limpia el store—, así
+  que la próxima carga rehidrataba al usuario, el login lo devolvía al panel y la sonda volvía a expulsarlo;
+  `endInvalidSession` y `validateStoredSession` piden ahora `/auth/logout` **antes** de navegar (`logout()` sin
+  token manda `{}` y el servidor revoca el de la sesión). (2) **`classifyFailure` trataba el `401` como
+  `unavailable`**, una regla escrita cuando sólo CKAN respondía; el `401` es ahora la señal propia del puente y va
+  a la sonda como un `403`. **Riesgo declarado:** con una cookie presente y sin `SESSION_SECRET` fuera de desarrollo
+  el hook lanza en **todo** request; el compose de `odp-docker` (L16) ya no arranca sin ella. Compuertas: 1137
+  pruebas, `check` 0 errores, `lint` limpio. Quedan dos lecturas del token, las dos previstas: la subida (T5) y el
+  logout del menú (T4b).
