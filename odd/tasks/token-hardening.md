@@ -78,10 +78,10 @@
 | ID | Unidad | Dónde | Route | Commit |
 | --- | --- | --- | --- | --- |
 | T1 | **Diseño** de la sesión del servidor y del anti-CSRF (decisión de forma, no de código) | `odd/tasks/token-hardening.md` § El diseño | parent | `890d184` |
-| T3a | **La primitiva de sesión** (sellado AEAD): la fundación de T3, y va **antes** que T2 porque el proxy y el login la necesitan | `src/lib/server/session.ts` + `session.test.ts` | parent | — |
-| T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | — |
-| T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | — |
-| T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | — |
+| T3a | **La primitiva de sesión** (sellado AEAD): la fundación de T3, y va **antes** que T2 porque el proxy y el login la necesitan | `src/lib/server/session.ts` + `session.test.ts` | parent | `4dae7d9` |
+| T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | `a638a64` |
+| T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | `89b4ad2`, `1486e8f`, `0ebd417`, `95b951a` |
+| T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | `2459d93`, `95b951a` (mitad) |
 | T4 | Migrar los **11 sitios** y los lectores del store a la interfaz nueva | los 7 archivos de la lista + los lectores | worker | — |
 | T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
 | T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
@@ -258,3 +258,12 @@ un proxy abierto al token; por eso la lista es parte del contrato y se prueba.
   si CKAN revoca algo así o es otro no-op silencioso de la familia de `BACKLOG.md:3576`—; (b) `resolveSessionSecret`
   no exige un largo mínimo a la clave; (c) mientras el cuerpo del logout traiga token, si difiere del de la sesión
   éste último no se revoca — se cierra solo en T4, cuando el cuerpo deja de llevarlo.
+- **L14 (decisión del autor, 2026-10-16): la entrega en dos tiempos.** Con la rama en ~1720 líneas y 8 commits, el
+  autor eligió la recomendación textual *«un PR con estos commits ya hechos y T4 en otra rama»* (*«vamos con tu
+  recomendación, go»*). **Corte del primer PR:** T1, T3a, T2a, T2b, la primera mitad de T3 y la auditoría de L13 —
+  la sesión sellada, el puente y el login/logout que la emiten y la matan—, que **no cambia nada visible**: ningún
+  sitio del cliente usa todavía el puente y el cuerpo del login sigue llevando el token. **T4 en adelante** va en una
+  rama propia, apilada sobre ésta hasta que se mergee. **`SESSION_SECRET` del stack** quedó pedida a la sesión de
+  `odp-docker` (el compose es de ese repo); en el stack dev no hace falta: corre `vite dev` y usa la clave de
+  desarrollo, y el `.env` de `odp` no llega al contenedor (`.dockerignore` lo excluye y sólo se montan `src/` y
+  `static/`).
