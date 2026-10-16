@@ -29,7 +29,7 @@
 | ID | Tarea | Specs | Ruta | Commit |
 |---|---|---|---|---|
 | T1 | Comparar dos o tres bibliotecas y que el autor elija — **hecha: LayerChart 2** (L3) | S3 | explore (en segundo plano) + decisión del autor | `1b8ea0b` |
-| T2 | Playground `/dev/resource-chart` con presets (CSV con columnas numéricas, sin columnas numéricas, recurso sin DataStore) | S1, S2, S4 | inline | — |
+| T2 | Playground `/dev/resource-chart` con presets (CSV con columnas numéricas, sin columnas numéricas, recurso sin DataStore) — **hecha** (L5) | S1, S2, S4 | worker | `c6fd2df`, `f852f79` |
 | T3 | Revisión del autor en el playground, e iteración | S4 | autor | — |
 | T4 | Promover a la página del recurso, con tests, y borrar el playground | S1, S2, S4 | inline | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
@@ -66,3 +66,18 @@
   (`text`, `numeric`, `int4`, `float8`, `timestamp`) y la detección de números lee los valores en vez de confiar en el
   tipo; (2) **para la demo hace falta subir al menos un CSV real** y confirmar que el DataPusher lo carga (T6). Si no, el
   gráfico no tiene nada que mostrar.
+- **L5 (2026-10-16, T2 entregada por el worker y verificada por el padre):** el playground `/dev/resource-chart` con
+  LayerChart 2.8.0 fijado. Tiene barras, líneas y pastel (S2: LayerChart lo da sin costo extra); selectores bits-ui
+  `Select`; el gráfico con `role="img"` y una etiqueta que nombra los dos ejes; y los mismos puntos en una tabla dentro
+  de un `<details>`. El panel global tiene cuatro casos: columnas numéricas, sólo texto, sin DataStore y 500 filas.
+  Los interruptores «Filas pedidas» (20/100/500) y «X repetido» (que decida el usuario, sumar siempre, o filas tal
+  cual) están en su sección. La lógica pura está en `src/lib/charts/` (`columns.ts`, `points.ts`), con 18 tests; la
+  RED se observó antes de la GREEN. Verificado por el padre: 18/18, `pnpm check` sin errores y `pnpm lint` limpio. El
+  worker reportó además la suite completa (1215 tests), `pnpm build` (seguro en SSR) y ~64 KB gzip para el chunk del
+  playground. Faltan tests de los componentes Svelte y del teclado del `Select`. **Preguntas abiertas para el autor
+  (T3):** cuántas filas pide el gráfico; qué hacer con X repetido; si un año guardado como texto cuenta como Y; si
+  «1,5» con coma decimal se lee como número; si reusa las filas de la vista previa o pide las suyas; y el tooltip y el
+  modo oscuro, que no se revisaron.
+  **Corte de entrega:** la rama ya pasa las ~400 líneas (959 en 5 commits, sin contar el lockfile). La entrega se
+  divide en dos PRs encadenados: **PR 1 = T1 + T2** (plan, dependencia, lógica y playground, hasta `f852f79`) y
+  **PR 2 = T3–T6** (iteración, promoción a la página real y datos de la demo), que se abre sobre el primero.
