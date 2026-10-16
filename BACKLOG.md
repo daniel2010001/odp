@@ -2527,7 +2527,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > **Estado (2026-10-16, decisión del autor): `v0` se puede cerrar.** El recorrido de la demo cumple su criterio de salida
 > (`PRD.md` §3). Los cinco ítems de diseño que quedaban pasaron a `[v1]`. Los `[v0]` que siguen abiertos son de
 > operación o esperan una decisión: rotar las credenciales y fijar el patch de CKAN; los colaboradores por dataset pasaron a `[v1]`. Lo
-> próximo es sumar a la demo **features de valor**, que el autor elige.
+> próximo es sumar a la demo **features de valor**. **En curso (go del autor, 2026-10-16):** primero los **gráficos sobre un
+> CSV** (un recorte de RF-24, en `odd/tasks/csv-charts.md`, rama `feat/csv-charts`) y después la **sección para
+> desarrolladores** (RF-37/38).
 
 - [x] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
   el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
