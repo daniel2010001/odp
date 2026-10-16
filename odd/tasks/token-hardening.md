@@ -450,3 +450,10 @@ web, no de la API) y que responda `206` a un `Range`.
   reenviarlo habría truncado la descarga. Compuertas: 1189 pruebas, `check` 0 errores, `lint` limpio. **Sin medir,
   para T8:** que CKAN acepte el `Authorization` de un token en `/dataset/…/download/…` (ruta web, no de la API) y
   responda `206` a un `Range`; si no lo acepta, G2 necesita otro camino.
+- **L22 (T8, primera parte — S7, 2026-10-16):** `openspec/specs/authentication/spec.md` enmendada con fecha y motivo
+  en los dos MUST que S7 nombraba —`Session Persistence` (cookie sellada `httpOnly`; el token no aparece en ningún
+  cuerpo, `localStorage` ni store; escenarios de la clave heredada y de la cookie muerta) y `Logout` (borra la cookie
+  y revoca el token de la sesión; el cliente no manda token)— y en dos que quedaban contradichos: `Login Success`
+  (el cuerpo lleva sólo el usuario; el endpoint exige JSON) e `Invalid Session Detection` (la sonda va por el puente,
+  el `401` del puente también es sesión muerta, no se sondea sin usuario, y la expulsión mata también la cookie).
+  **Queda de T8:** apagar `ckan.auth.enable_cookie_auth_in_api` (S4, `odp-docker`) y la verificación viva.
