@@ -2524,6 +2524,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## v0 — core presentable
 
+> **Estado (2026-10-16, decisión del autor): `v0` se puede cerrar.** El recorrido de la demo cumple su criterio de salida
+> (`PRD.md` §3). Los cinco ítems de diseño que quedaban pasaron a `[v1]`. Los `[v0]` que siguen abiertos son de
+> operación o esperan una decisión: rotar las credenciales y fijar el patch de CKAN; los colaboradores por dataset pasaron a `[v1]`. Lo
+> próximo es sumar a la demo **features de valor**. **En curso (go del autor, 2026-10-16):** primero los **gráficos sobre un
+> CSV** (un recorte de RF-24, en `odd/tasks/csv-charts.md`, rama `feat/csv-charts`) y después la **sección para
+> desarrolladores** (RF-37/38).
+
 - [x] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
   el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
   (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
@@ -2539,7 +2546,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   una de dos vías, no las dos: implementar la edición, o que el copy deje de anunciarla.
   **CERRADO (2026-10-06): STALE** — la ruta de edición existe (`src/routes/dashboard/datasets/[id]/edit/+page.svelte`); ya no hay promesa sin respaldo.
 
-- [ ] **[v0] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
+- [ ] **[v1] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
   la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
   `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
   similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
@@ -2750,7 +2758,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
   `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
 
-- [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
+- [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
   **Estado medido (2026-09-30): VIVO.** Ningún **archivo versionado** habilita la bandera: aparece en `PRD.md:245` y en los
@@ -2802,7 +2811,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   nada detrás —sin foco visible para el teclado—, así que ahora lleva un anillo con tokens en las tres formas
   (regla 7).
 
-- [ ] **[v0]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
+- [ ] **[v1]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
   «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
   y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
   **El alcance no está definido: el autor no dijo qué le falta**, y la primera tarea es que la mire y lo
@@ -2811,7 +2821,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
   **Frena en la decisión del autor: el alcance.**
 
-- [ ] **[v0]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
+- [ ] **[v1]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
   autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
   antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
   (`‹ Anterior` · contador · `Siguiente ›`) que **envuelven a una segunda línea** en anchos cortos, y su
@@ -2836,7 +2847,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   decisión del autor el 2026-10-01 (no es importante)._
   **CERRADO (2026-10-06):** ya decidido el 2026-10-01 (no se actúa); no hay trabajo abierto.
 
-- [ ] **[v0]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
+- [ ] **[v1]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
   Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
   float-menu del dashboard es más pequeño que el de los menús del search, o que los resúmenes del
   form-create-dataset». **Medido — son TRES aires distintos más un número mágico:**
@@ -2874,6 +2886,19 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Estado medido (2026-09-30): VIVO — es tarea de operación, no de código.** Las credenciales de `postgresql` siguen siendo
   las mismas que estuvieron publicadas. **Frena en la acción del autor** (se aplica a mano sobre `.env`, ruta que el harness
   no autoriza a editar).
+  **Estado medido (2026-10-16, por la sesión de `odp-docker`, HEAD `29240a3`, sin imprimir los valores): VIVO.**
+  `ckan-docker/.env` (sin versionar, mtime 2026-10-07) sigue con los mismos pares que se filtraron: `CKAN_DB_*` (`:11-12`),
+  `DATASTORE_READONLY_*` (`:14-15`) y las URLs de `:17-19` y `:22-24`. **Dos cosas que el arreglo necesita y este ítem no
+  decía:** (1) son los **valores por defecto del template**, porque `.env.example` (`:12`, `:15-18`, `:22-23`) los trae
+  tal cual; y (2) **cambiar `.env` no alcanza**: el volumen de Postgres ya inicializado no vuelve a leerlo, así que
+  además hay que cambiar las contraseñas en la base con `ALTER ROLE`.
+  **Seguimiento en `odp-docker` (decisión del autor, 2026-10-16):** `odd/tasks/rotate-postgres-credentials.md`. Es un
+  registro **local y no versionado**, porque `odd/` está excluido en ese repo (`.git/info/exclude:9`), con respaldo
+  en Engram #839. Por eso **el ítem sigue acá**: es la copia versionada. Lo nuevo que midió esa sesión, sin imprimir
+  valores: (1) `POSTGRES_PASSWORD`, la del superusuario, **también es el default del template**; (2) **ningún compose
+  publica Postgres en un puerto del host**; (3) `02_disable_debug_toolbar.sh` registra **9 credenciales expuestas** en
+  la home, no sólo los dos pares de Postgres que nombra este ítem, así que hay que inventariar el resto como
+  criterio de aceptación.
 
   **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
   arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
@@ -2911,6 +2936,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   natural era ese upgrade, que ya pasó. La mitad de `.env` **no es verificable desde acá** (ruta de entorno
   bloqueada): la aplica el autor.
 
+  **Actualización medida (2026-10-16, por la sesión de `odp-docker`): la mitad de `.env` está CERRADA.** `grep` da 0
+  apariciones de `CKAN_VERSION` en `ckan-docker/.env` y en `.env.example`. **Queda sólo la decisión de fijar el patch**,
+  y no está registrada en ningún lado. Corre **2.12.0** (`auth.py:307`). Los cuatro `FROM` y `checks.yml:68` están en
+  `2.12`, sin patch. `test-ckan-image-tag.sh` vigila que coincidan entre sí, pero no decide si se fija el patch.
+  **Seguimiento en `odp-docker` (decisión del autor, 2026-10-16):** `odd/tasks/ckan-patch-pin-decision.md`. Es un
+  registro local y no versionado, con respaldo en Engram #839, así que el ítem sigue acá como copia versionada.
+
   **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
   upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
   `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
@@ -2930,28 +2962,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
   reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
   natural para decidirlo.
 
-- [~] **[v0] Higiene de versión: el tag de CKAN sin fuente única** — hallazgo `R2-002`
-  del linaje huérfano de la revisión del upgrade: `pre-existing`, SUGGESTION, **no** introducido por
-  el upgrade. El tag vivía como literal en los 4 `FROM` de los Dockerfiles, en las imágenes de
-  servicio de `.github/workflows/checks.yml` y en una celda de tabla del README, sin fuente única: un
-  bump exigía ediciones coordinadas, y una olvidada deja el CI corriendo otra versión que los
-  stacks — pasó de verdad con `redis:3`, que el 2.12 destapó (`HELLO`/RESP3) y que `d861c95` arregló.
-  Origen: store nativo, linaje `review-7e3ab346bc8b3f85`; transcripción completa en
-  `odd/tasks/ckan-2.12-upgrade.md`.
-  **Estado al 2026-09-29 — cerrado por partes, y la marca es `[~]` a propósito:**
-  (a) **la deriva del tag de CKAN queda máquina-verificada** por
-  `ckan-docker/ckan/tests/test-ckan-image-tag.sh` (`f21dc6b`, rango gateado
-  `f4c4ca0..4910824`): compara los cinco sitios que nombran `ckan/ckan-base`/`ckan/ckan-dev` y
-  falla nombrando archivo y tag; un sitio que deja de nombrar CKAN, una extracción vacía o un digest
-  también fallan. Se descartó `ARG` como solución (los cuatro Dockerfiles extienden dos imágenes
-  distintas y el `container:` del workflow lo resuelve el runner).
-  (b) **NO cubre** las imágenes de servicio ni la celda del README, por decisión medida: sus tags los
-  gobiernan otros upstreams (el de Solr lleva sufijo `-solr9`).
-  (c) **Sigue abierto y con dueño propio el caso que sí mordió:** el `redis:6` del job frente al
-  cliente de CKAN 2.12 (`HELLO`/RESP3). Hoy vive en un comentario del workflow, **sin guarda**; es el
-  candidato natural para la próxima guarda de versión, y no lo cierra `f21dc6b`.
-
-- [ ] **[v0]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
+- [ ] **[v1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
   «para el caso de los pdf creo que ese espacio es pequeño, creo que lo mismo aplicará para otros view, como los gráficos y
   demás». **Medido en el código hoy:** el `<iframe>` del PDF mide **`h-[520px]`** (`ResourcePreview.svelte:131`), la imagen
   **`max-h-[520px]`** (`:138`), el texto **`h-[360px]`** (`:151`), y los esqueletos de carga `min-h-[420px]` (`:113`) y
@@ -3432,6 +3444,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Higiene de versión: el tag de CKAN sin fuente única (`R2-002`)** | **Cerrado** (medido el 2026-10-16 por la sesión de `odp-docker`). Las partes (a) y (b) se cerraron el 2026-09-29 con `test-ckan-image-tag.sh` (`f21dc6b`). La parte (c), la guarda de `redis` frente al cliente de CKAN 2.12 (`HELLO`/RESP3), la cerró `ckan-docker/ckan/tests/test-redis-version.sh` (`c283c2a`, ajustada en `47753b2`): exige que la imagen de `checks.yml` sea `redis` 6 o superior y que los compose usen `redis:${REDIS_VERSION}`, y el job `shell-tests` la corre en CI. Límite declarado: no lee el valor de `REDIS_VERSION` en `.env`. Registro en `odp-docker`: `odd/tasks/redis-resp3-guard.md`. |
 | **Sin organizaciones, la acción de crear dataset no debe mostrarse** | **Cerrado** desde el 2026-09-20 (`f7b5562`, D3), sin registrarse en el BACKLOG hasta el 2026-10-16. Ahora es más estricto que lo pedido: la oferta no depende de pertenecer a una organización sino del permiso que exige el asistente, `organization_list_for_user {permission: "create_dataset"}` (`canCreateDataset`). Por eso tampoco se le ofrece a un `member`. Las tres superficies del dashboard (grilla, barra pegajosa y CTA del estado vacío) usan una sola condición, y si falla la consulta no se ofrece crear. Si se entra directo a `/dashboard/datasets/new` sin organización escribible, el asistente explica que hace falta el rol de editor. Tests: `dashboard.test.ts` («sin organizaciones no ofrece crear en ninguna superficie» y el caso del `member`) y `wizard.test.ts`; 95 de 95 pasan. |
 | **El enlace de descarga del recurso renderiza la URL propia de CKAN** | **Cerrado** (medido el 2026-10-16). Se tomó la opción (a) del ítem: la descarga pasa por el portal. Lo hizo token-hardening en `47bca41` (PR #76). Un archivo alojado sale de `/catalog/download/<id>` con la sesión y con `Range`, por `fileUrl` (`src/lib/resources/file-url.ts`). La misma ruta alimenta el botón de descarga y la vista previa (`ResourcePreview.svelte`). Un enlace externo conserva su URL, saneada. Se verificó en vivo: 49 MB bajados con el mismo sha256, `206` con `Range` y `403` para un anónimo (`odd/tasks/token-hardening.md` L26). |
 | **Una sesión muerta degrada a anónimo en silencio** | **Cerrado** desde el 2026-09-20, sin registrarse en el BACKLOG hasta el 2026-10-16. Lo exige el requisito *Invalid Session Detection* (`openspec/specs/authentication/spec.md`). La sonda es `user_show {}` por el puente (`src/lib/api/session.ts`) y corre en las cuatro pantallas del dashboard. Si la sesión está muerta, la borra y envía al login con el motivo. Un `5xx` no expulsa. Con token-hardening, una cookie que no abre recibe `401` del puente y la cookie se borra. Los tests de `session`, `session-guard` y `api/session` pasan. |
