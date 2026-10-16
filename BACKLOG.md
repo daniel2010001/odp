@@ -2524,13 +2524,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## v0 — core presentable
 
-> **Revisión de UI del usuario (2026-09-14).** Observaciones nombradas, no arregladas todavía; el usuario
-> pidió explícitamente anotarlas antes de tocarlas.
->
-> - [ ] **[v0] Sin organizaciones, la acción de crear dataset NO debe mostrarse.** Hoy se ofrece igual y
->   lleva a un callejón sin salida («no pertenecer a ninguna org» = no se puede crear). _Origen: revisión
->   de UI del 2026-09-14._
->
 - [x] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
   el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
   (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
@@ -3439,6 +3432,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Sin organizaciones, la acción de crear dataset no debe mostrarse** | **Cerrado** desde el 2026-09-20 (`f7b5562`, D3), sin registrarse en el BACKLOG hasta el 2026-10-16. Ahora es más estricto que lo pedido: la oferta no depende de pertenecer a una organización sino del permiso que exige el asistente, `organization_list_for_user {permission: "create_dataset"}` (`canCreateDataset`). Por eso tampoco se le ofrece a un `member`. Las tres superficies del dashboard (grilla, barra pegajosa y CTA del estado vacío) usan una sola condición, y si falla la consulta no se ofrece crear. Si se entra directo a `/dashboard/datasets/new` sin organización escribible, el asistente explica que hace falta el rol de editor. Tests: `dashboard.test.ts` («sin organizaciones no ofrece crear en ninguna superficie» y el caso del `member`) y `wizard.test.ts`; 95 de 95 pasan. |
 | **El enlace de descarga del recurso renderiza la URL propia de CKAN** | **Cerrado** (medido el 2026-10-16). Se tomó la opción (a) del ítem: la descarga pasa por el portal. Lo hizo token-hardening en `47bca41` (PR #76). Un archivo alojado sale de `/catalog/download/<id>` con la sesión y con `Range`, por `fileUrl` (`src/lib/resources/file-url.ts`). La misma ruta alimenta el botón de descarga y la vista previa (`ResourcePreview.svelte`). Un enlace externo conserva su URL, saneada. Se verificó en vivo: 49 MB bajados con el mismo sha256, `206` con `Range` y `403` para un anónimo (`odd/tasks/token-hardening.md` L26). |
 | **Una sesión muerta degrada a anónimo en silencio** | **Cerrado** desde el 2026-09-20, sin registrarse en el BACKLOG hasta el 2026-10-16. Lo exige el requisito *Invalid Session Detection* (`openspec/specs/authentication/spec.md`). La sonda es `user_show {}` por el puente (`src/lib/api/session.ts`) y corre en las cuatro pantallas del dashboard. Si la sesión está muerta, la borra y envía al login con el motivo. Un `5xx` no expulsa. Con token-hardening, una cookie que no abre recibe `401` del puente y la cookie se borra. Los tests de `session`, `session-guard` y `api/session` pasan. |
 | **Los recursos de un dataset privado se ven como «Recurso no encontrado»** | **Cerrado** desde el 2026-09-20 (`5219055`, `e99b81e`), sin registrarse en el BACKLOG hasta el 2026-10-16. Las dos mitades del ítem: (1) la sesión muerta, cerrada en la fila anterior; (2) la página, que hoy distingue los casos. A una sesión viva sin permiso le muestra «Acceso no autorizado». Si la sonda no concluye, muestra «No se pudo confirmar el acceso» con reintento. A un anónimo le muestra «no encontrado, o sin permiso» a propósito, para no revelar que el recurso existe (`src/lib/api/failure.ts`). El mock de DEV sólo cubre una no-respuesta, nunca un `403`/`404`. |
