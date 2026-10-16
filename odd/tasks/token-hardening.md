@@ -21,9 +21,11 @@
 - **S3 — Las descargas privadas** (decisión del autor, 2026-10-15, verbatim del rótulo elegido): *«Streamear
   desde el portal (con `Range`)»*. El portal autentica contra CKAN y devuelve los bytes; el visor de PDF exige
   soporte de `Range`.
-- **S4 — `ckan.auth.enable_cookie_auth_in_api = false` es consecuencia, no requisito** (textual del ítem ya
-  corregido). Se apaga **cuando** el navegador ya no necesite la cookie de CKAN, no antes: `mintToken` usa
-  cookie + `X-CSRFToken` para acuñar el token, así que apagarla primero rompe el login.
+- **S4 — `ckan.auth.enable_cookie_auth_in_api` queda encendida** (enmendada 2026-10-16, L24, decisión del autor).
+  El texto anterior la daba por *«consecuencia, no requisito»* de apagar cuando el navegador ya no necesitara la
+  cookie de CKAN; medido, el login **del servidor** (`ckanLogin`) acuña el token con esa cookie + `X-CSRFToken`, así
+  que apagarla rompe todo login. El riesgo que cerraba —una cookie de CKAN **en el navegador** usada contra `/api`—
+  desapareció con S2: el navegador nunca la recibe.
 - **S5 — Las subidas.** Con el token fuera del navegador, el archivo ya no puede ir directo a `/api/`: pasa por
   una ruta del portal. Dos consecuencias **medidas**, no supuestas: `BODY_SIZE_LIMIT` del servicio `frontend`
   (default de adapter-node **512 KB**; al excederlo devuelve **HTTP 400 con el error de la app**, no 413 — con
@@ -467,3 +469,7 @@ web, no de la API) y que responda `206` a un `Range`.
   cookie web de CKAN + `X-CSRFToken`, así que apagar `enable_cookie_auth_in_api` rompe el login aunque el navegador
   ya no tenga ninguna cookie de CKAN. El riesgo que esa opción cerraba —una cookie de CKAN **en el navegador**
   usable contra `/api`— ya no existe: el navegador nunca recibe esa cookie. Decisión pendiente del autor.
+- **L24 (decisión del autor, 2026-10-16):** sobre S4, el rótulo elegido: *«Dejarla encendida y enmendar S4
+  (Recomendado)»*. Sobre la verificación autenticada: *«Usted la hace en el navegador con mi checklist
+  (Recomendado)»*. Y confirmó que su línea de `.env.example` es `SESSION_SECRET=` **sin valor** (*«Sí, sin valor:
+  commitéalo»*): entra con este commit, sin que yo lo haya leído —el arnés bloquea esa ruta—.
