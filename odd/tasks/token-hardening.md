@@ -82,9 +82,9 @@
 | T2a | El **núcleo del puente**: la allowlist de acciones y la inyección de la credencial, con la guarda que la ata al código real | `src/lib/server/ckan-proxy.ts` + `ckan-proxy.test.ts` | parent | `a638a64` |
 | T2b | El **camino vivo**: la ruta que resuelve la sesión y llama al núcleo — **hecha**, en `/catalog/[...action]`; `hooks.server.ts` pasa a T4 porque hoy **nada** consume `event.locals` | `src/lib/server/ckan-bridge.ts` + `ckan-bridge.test.ts`, `src/routes/catalog/[...action]/+server.ts` | parent | `89b4ad2`, `1486e8f`, `0ebd417`, `95b951a` |
 | T3 | El login y la sesión — **hecha la primera mitad**: el login **emite la cookie sellada** y el logout la mata. El **ayuno** del store del navegador (guardar sólo el usuario) va con la migración de T4, porque sacarle el token antes de migrar los sitios los rompe | `src/lib/server/session.ts` (`buildSession`), `src/routes/auth/login/+server.ts`, `src/routes/auth/logout/+server.ts` | parent | `2459d93`, `95b951a` (mitad) |
-| T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | — |
+| T4a | **El cliente habla con el puente** y la identidad sale del servidor: `hooks.server.ts`, `+layout.server.ts`, el cliente del portal, los 11 sitios y los lectores del token (§ El diseño de T4, D1–D7) | ver § El diseño de T4 | worker | `b1e973d` |
 | T4b | **El ayuno**: el login deja de devolver el token, el store y `localStorage` dejan de guardarlo, el logout deja de recibirlo. Va **después de T5**, porque la subida por XHR todavía lo lee | `src/lib/stores/auth.ts`, `src/lib/api/auth.ts`, rutas de login/logout | parent | — |
-| T5 | Subida y logout por rutas del portal: multipart + `BODY_SIZE_LIMIT` | `src/lib/api/upload.ts`, `src/lib/api/auth.ts`, `src/routes/api/upload/+server.ts`, compose | parent | — |
+| T5 | La **subida** por el puente: multipart sólo para las acciones de subida, cuerpo en stream, y `BODY_SIZE_LIMIT` en el compose (§ El diseño de T5, E1–E5). El logout ya va sin token desde el servidor (L17); su cuerpo se vacía en T4b | `src/lib/server/ckan-proxy.ts`, `src/lib/server/ckan-bridge.ts`, `src/routes/catalog/[...action]/+server.ts`, `src/lib/api/upload.ts`, el asistente; compose en `odp-docker` | worker | — |
 | T6 | Descargas privadas por el portal, con `Range` | ruta de descarga del portal | parent | — |
 | T7 | Re-anclar las suites al mecanismo nuevo (las 7 + las 3 que aseveran el header) | los 10 archivos de test | worker | — |
 | T8 | Enmendar la spec de autenticación (S7) y **apagar** `enable_cookie_auth_in_api`, con verificación viva en el navegador | `openspec/specs/authentication/spec.md`, stack de `odp-docker`, navegador | parent | — |
@@ -152,6 +152,29 @@ Decisiones de forma, mías, tomadas al leer los sitios (L15). **D1–D7 son T4a*
 - **D7 — La sonda entiende el `401` del puente.** Es la señal **propia** del puente para una cookie muerta, no
   una respuesta de CKAN, así que es inequívoca: `check()` la devuelve como `dead` sin corroborar. El `404` de
   CKAN sigue con su corroboración por `status_show`.
+
+## El diseño de T5 (2026-10-16)
+
+- **E1 — Sin ruta nueva.** El plan decía `src/routes/api/upload/+server.ts`, pero `/api` lo intercepta el proxy
+  antes de SvelteKit (L8). La subida va por el **mismo puente**: `POST /catalog/resource_create` (y
+  `resource_update`) con `multipart/form-data`.
+- **E2 — Multipart sólo para las acciones de subida.** `UPLOAD_ACTIONS = ["resource_create", "resource_update"]`
+  en `ckan-proxy.ts`, con la misma disciplina que `READ_ACTIONS` (lista explícita y probada). El puente acepta
+  `multipart/form-data` **sólo** para esas dos; para cualquier otra sigue el `415`. El anti-CSRF no se debilita:
+  `multipart/form-data` es un tipo de formulario y SvelteKit (`csrf.checkOrigin`) rechaza un `POST` cross-origin
+  con ese tipo, y `SameSite=Lax` retiene la cookie en un `POST` cross-site.
+- **E3 — El cuerpo se reenvía en stream**, sin leerlo ni parsearlo: `fetch(url, { body: request.body, duplex:
+  "half" })`, con el `Content-Type` del cliente **tal cual** (lleva el `boundary`, sin él CKAN no puede leer las
+  partes) y la credencial de la sesión. Es la **única** cabecera del cliente que viaja, y sólo en este camino; el
+  `Authorization` del cliente sigue sin viajar. Leerlo entero pondría un archivo de decenas de MB en la memoria
+  del servidor por cada subida.
+- **E4 — El cliente.** `uploadResourceFile` pide a `/catalog/resource_create` por XHR (el progreso de subida lo
+  da `xhr.upload.onprogress`, que `fetch` no tiene) y **sin** `Authorization`; la opción `token` desaparece. El
+  asistente deja de leer `get(auth).token` y pregunta por el usuario.
+- **E5 — El límite del cuerpo.** adapter-node corta en `BODY_SIZE_LIMIT` (default **512 KB**, y responde **400**,
+  no 413 —medido, S5—), así que el servicio `frontend` de **producción** necesita `BODY_SIZE_LIMIT` igual al
+  máximo de recurso de CKAN. Va en el compose de `odp-docker` (pedido a esa sesión). El dev (`vite dev`) no
+  aplica ese límite.
 
 ## Riesgos y decisiones abiertas
 
