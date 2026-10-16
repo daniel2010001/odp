@@ -28,7 +28,7 @@
 
 | ID | Tarea | Specs | Ruta | Commit |
 |---|---|---|---|---|
-| T1 | Comparar dos o tres bibliotecas y que el autor elija | S3 | explore (en segundo plano) + decisión del autor | — |
+| T1 | Comparar dos o tres bibliotecas y que el autor elija — **hecha: LayerChart 2** (L3) | S3 | explore (en segundo plano) + decisión del autor | `1b8ea0b` |
 | T2 | Playground `/dev/resource-chart` con presets (CSV con columnas numéricas, sin columnas numéricas, recurso sin DataStore) | S1, S2, S4 | inline | — |
 | T3 | Revisión del autor en el playground, e iteración | S4 | autor | — |
 | T4 | Promover a la página del recurso, con tests, y borrar el playground | S1, S2, S4 | inline | — |
@@ -37,6 +37,9 @@
 ## Riesgos
 
 - **Dependencia nueva** (`Risk` ítem 5): entra al bundle del cliente y tiene que ser segura en SSR.
+- **Ver el playground en `localhost:8082` exige reconstruir la imagen de `frontend-dev`:** el contenedor sólo monta
+  `src/` y `static/`, y `node_modules` viene horneado en la imagen (`pnpm dev`, `WorkingDir /app`, medido con
+  `docker inspect` el 2026-10-16). Es una acción sobre un entorno compartido y se le consulta al autor antes de T3.
 - **Tipos de columna:** el eje Y necesita columnas numéricas, así que hay que medir qué tipos devuelve
   `datastore_search` por columna antes de diseñar el selector.
 
@@ -48,3 +51,10 @@
   coordinar entre ambas sesiones, hazlo.»
 - **L2 (2026-10-16):** T1 delegada a un explorador en segundo plano. La recomendación se le presenta al autor antes de
   escribir código.
+- **L3 (2026-10-16, decisión del autor, textual del rótulo elegido):** *«LayerChart 2 (Recomendado)»*. La comparación
+  (LayerChart 2, Apache ECharts 6 y Chart.js 4) tuvo en cuenta: Svelte 5 nativo; que el `Chart` de shadcn-svelte está
+  construido sobre LayerChart, así que se vendoriza a mano como el resto; que es SVG, y por eso los tokens `oklch`
+  (`--chart-1..5`, `src/app.css:66-70` y `:97-101`) se aplican por CSS; y ~105 KB gzip. **Lo que se acepta a sabiendas:**
+  la exportación a PNG (RF-32, `[v1]`) no viene incluida y habrá que hacerla a mano, y la v2 es joven (salió el
+  2026-07-01), así que se fija la versión: `latest` es **2.8.0**. La accesibilidad la ponemos nosotros con cualquiera
+  de las tres: una tabla de datos como alternativa, selectores usables con teclado y etiquetas que nombren los ejes.
