@@ -2915,52 +2915,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Lo que sí se pierde:** el JS/CSS sin minificar de la UI nativa de CKAN y su modo debug de
   plantillas. Irrelevante mientras la interfaz sea el portal.
 
-- [ ] **[v0] Higiene de configuración de versión** — `CKAN_VERSION=2.10.0` en
-  `ckan-docker/.env` y `.env.example` es **config muerta** y hay que quitarlo: cero referencias en
-  este repo y también cero en el upstream (cuyo compose usa `build:`, no `image:` con ese valor).
-  Es lo que hacía creer que el stack corría 2.10 cuando corre 2.11.6; la versión real la fija el
-  `FROM` de los cuatro Dockerfiles. *(Pendiente al 2026-09-24: la edición de `.env` y
-  `.env.example` requiere autorización explícita del autor, porque son rutas de entorno.)*
-  **Actualización medida (2026-09-29):** el commit `a128b4f` quitó la clave de `.env.example`;
-  la copia de `.env` **no es verificable desde la sesión** (el guardrail bloquea esa ruta), así
-  que la aplica el autor si sigue ahí. El ítem sigue **abierto** por esa mitad y por la decisión
-  de pinear o no los `FROM` en el minor.
-  **Estado medido (2026-09-30): VIVO, abierto por partida doble.** `a128b4f` tocó **sólo `ckan-docker/.env.example`**; la copia
-  de `.env` **no es verificable** desde la sesión (ruta de entorno bloqueada), así que esa mitad va como nota y **no** como
-  cierre. Y sigue pendiente la decisión de pinear o no los cuatro `FROM`.
-
-  **Actualización medida (2026-10-15): la decisión de pinear sigue abierta, y el minor ya no es 2.11.** Los cuatro
-  `FROM` de `ckan-docker/` están hoy en **`2.12`** (`Dockerfile:1`, `Dockerfile.dev:1`, `Dockerfile.umss:8`,
-  `Dockerfile.dev.umss:7`), así que el párrafo de arriba —«corre 2.11.6», «flotando en el minor 2.11»— quedó viejo:
-  **el upgrade ocurrió**. El fondo no cambia: **pinear el patch sigue siendo una decisión pendiente**, y su momento
-  natural era ese upgrade, que ya pasó. La mitad de `.env` **no es verificable desde acá** (ruta de entorno
-  bloqueada): la aplica el autor.
-
-  **Actualización medida (2026-10-16, por la sesión de `odp-docker`): la mitad de `.env` está CERRADA.** `grep` da 0
-  apariciones de `CKAN_VERSION` en `ckan-docker/.env` y en `.env.example`. **Queda sólo la decisión de fijar el patch**,
-  y no está registrada en ningún lado. Corre **2.12.0** (`auth.py:307`). Los cuatro `FROM` y `checks.yml:68` están en
-  `2.12`, sin patch. `test-ckan-image-tag.sh` vigila que coincidan entre sí, pero no decide si se fija el patch.
-  **Seguimiento en `odp-docker` (decisión del autor, 2026-10-16):** `odd/tasks/ckan-patch-pin-decision.md`. Es un
-  registro local y no versionado, con respaldo en Engram #839, así que el ítem sigue acá como copia versionada.
-
-  **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
-  upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
-  `2.12-solr9`. **Hecho (2026-09-27):** `5d47358` dejó `.env` y `.env.example` en `2.12-solr9` —el tag
-  que el stack realmente corre, ya no por override de shell—. **Y `reindexar` resultó innecesario, y
-  eso está medido:** el configset del core vive en el **volumen**, no en la imagen; el motor de Solr
-  es el mismo en los dos tags (`solr-spec 9.9.0` / `lucene 9.12.2`), y lo único que cambia es el
-  `managed-schema` que trae la imagen. Por eso el índice siguió legible con el tag viejo **y** con el
-  nuevo: `numFound: 17` y `package_search: 16` sin cambios antes y después. Lo que se re-sembró fue el
-  **catálogo**, y eso fue del volumen limpio del upgrade (2026-09-24), **no** del cambio de tag.
-  **No dar por hecho un reindex acá: verificar el índice.** _(Precisión hecha el **2026-09-28**, un día
-después del cierre que describe el encabezado de esta sección; medición completa en
-`odd/tasks/ckan-2.12-upgrade.md`.)_
-
-  Y **los `FROM` quedan flotando en el minor (`2.11`)**: es una decisión, no un descuido. Pinear el
-  patch (`2.11.6`) da reproducibilidad byte a byte, pero obliga a bumpear a mano para recibir los
-  parches de seguridad y despega el archivo del upstream congelado. Si algún día importa la
-  reproducibilidad exacta, se pinean los cuatro a la vez — con la subida a 2.12 es el momento
-  natural para decidirlo.
+- [ ] **[v1] Revisar el tag de CKAN cuando salga 2.12.1, o antes de pasar a producción.** El autor decidió
+  mantener `2.12` sin fijar el patch (2026-10-16); hoy `2.12` y `2.12.0` son la misma imagen. Seguimiento en
+  `odp-docker`: `odd/tasks/ckan-patch-pin-decision.md` (registro local, no versionado). Historia completa en el
+  historial de cierre, fila «Higiene de configuración de versión».
 
 - [ ] **[v1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
@@ -3444,6 +3402,7 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Higiene de configuración de versión (`CKAN_VERSION` muerta y fijar el patch de CKAN)** | **Cerrado** (2026-10-16). La mitad de `.env` ya estaba cerrada: `CKAN_VERSION` no aparece en `ckan-docker/.env` ni en `.env.example` (`a128b4f`). La decisión de fijar el patch la tomó el autor, textual: *«mantener en 2.12, creo que ahora mismo estamos con la .0 y es la últimia desde hace 2 meses, por ahora dejarlo así»*. La sesión de `odp-docker` verificó en Docker Hub que `ckan/ckan-base:2.12` y `2.12.0` tienen el mismo digest (`sha256:87ecf3f2…`, publicado el 2026-08-27) y que todavía no existe la 2.12.1. Queda un ítem `[v1]` para revisarlo cuando salga la 2.12.1 o antes de producción. |
 | **Higiene de versión: el tag de CKAN sin fuente única (`R2-002`)** | **Cerrado** (medido el 2026-10-16 por la sesión de `odp-docker`). Las partes (a) y (b) se cerraron el 2026-09-29 con `test-ckan-image-tag.sh` (`f21dc6b`). La parte (c), la guarda de `redis` frente al cliente de CKAN 2.12 (`HELLO`/RESP3), la cerró `ckan-docker/ckan/tests/test-redis-version.sh` (`c283c2a`, ajustada en `47753b2`): exige que la imagen de `checks.yml` sea `redis` 6 o superior y que los compose usen `redis:${REDIS_VERSION}`, y el job `shell-tests` la corre en CI. Límite declarado: no lee el valor de `REDIS_VERSION` en `.env`. Registro en `odp-docker`: `odd/tasks/redis-resp3-guard.md`. |
 | **Sin organizaciones, la acción de crear dataset no debe mostrarse** | **Cerrado** desde el 2026-09-20 (`f7b5562`, D3), sin registrarse en el BACKLOG hasta el 2026-10-16. Ahora es más estricto que lo pedido: la oferta no depende de pertenecer a una organización sino del permiso que exige el asistente, `organization_list_for_user {permission: "create_dataset"}` (`canCreateDataset`). Por eso tampoco se le ofrece a un `member`. Las tres superficies del dashboard (grilla, barra pegajosa y CTA del estado vacío) usan una sola condición, y si falla la consulta no se ofrece crear. Si se entra directo a `/dashboard/datasets/new` sin organización escribible, el asistente explica que hace falta el rol de editor. Tests: `dashboard.test.ts` («sin organizaciones no ofrece crear en ninguna superficie» y el caso del `member`) y `wizard.test.ts`; 95 de 95 pasan. |
 | **El enlace de descarga del recurso renderiza la URL propia de CKAN** | **Cerrado** (medido el 2026-10-16). Se tomó la opción (a) del ítem: la descarga pasa por el portal. Lo hizo token-hardening en `47bca41` (PR #76). Un archivo alojado sale de `/catalog/download/<id>` con la sesión y con `Range`, por `fileUrl` (`src/lib/resources/file-url.ts`). La misma ruta alimenta el botón de descarga y la vista previa (`ResourcePreview.svelte`). Un enlace externo conserva su URL, saneada. Se verificó en vivo: 49 MB bajados con el mismo sha256, `206` con `Range` y `403` para un anónimo (`odd/tasks/token-hardening.md` L26). |
