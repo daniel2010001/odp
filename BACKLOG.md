@@ -2526,7 +2526,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 > **Estado (2026-10-16, decisión del autor): `v0` se puede cerrar.** El recorrido de la demo cumple su criterio de salida
 > (`PRD.md` §3). Los cinco ítems de diseño que quedaban pasaron a `[v1]`. Los `[v0]` que siguen abiertos son de
-> operación o esperan una decisión: rotar las credenciales, fijar el patch de CKAN y los colaboradores por dataset. Lo
+> operación o esperan una decisión: rotar las credenciales y fijar el patch de CKAN; los colaboradores por dataset pasaron a `[v1]`. Lo
 > próximo es sumar a la demo **features de valor**, que el autor elige.
 
 - [x] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
@@ -2756,7 +2756,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
   `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
 
-- [ ] **[v0] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
+- [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
   está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
   el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
   **Estado medido (2026-09-30): VIVO.** Ningún **archivo versionado** habilita la bandera: aparece en `PRD.md:245` y en los

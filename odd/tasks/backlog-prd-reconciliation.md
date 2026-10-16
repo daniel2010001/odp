@@ -323,3 +323,15 @@ De los **13 ítems `[v0]` abiertos**: **3 cerrados** (dos por trabajo hecho, uno
 **Antes de presentar:** la instalación tiene que estar **provisionada** —organización, usuarios y sus capacidades—, que
 es el paso que no se ve en la demo y que la arruina si falta.
 
+### Para mencionar en la presentación: lo que viene (anotado el 2026-10-16)
+
+> Pedido del autor: si se prepara una presentación de la demo, conviene que nombre **lo que el proyecto ya tiene
+> previsto** y no solo lo construido. Esta lista se mantiene a medida que el autor decide; no es un compromiso de fechas.
+
+- **Colaboradores por dataset (RF-18), en `v1`.** CKAN lo trae de forma nativa (`ckan.auth.allow_dataset_collaborators`),
+  pero con el portal como dueño de toda la interfaz necesita su propia pantalla para administrarlos. Por eso no entró
+  en la demo (decisión del autor, 2026-10-16).
+- **Features de valor que se suman a la demo, en este orden (decisión del autor, 2026-10-16):** (1) **gráficos sobre
+  un CSV**, un recorte de RF-24 (el módulo de análisis, el «core diferencial» de §2.4); (2) una **sección para
+  desarrolladores** con ejemplos de consumo (RF-37/38). Cuando se terminen, se suman al guion de arriba.
+
