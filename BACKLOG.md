@@ -260,22 +260,24 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > subiría a **`v1+`** si el despliegue real pidiera una palanca explícita y documentada —porque `c′` no la necesita—.
 > La flag **por organización** queda descartada con su motivo escrito arriba.
 >
-> - [~] **Implementar `c′`** —es lo único que falta para destrabar el caso de una sola persona—: en el **store**
->   (`odp-docker`), la excepción cuando el catálogo confirma que **no hay otro aprobador**; en el **portal**, que la
->   ficha **no oculte** el control cuando la excepción aplica (o el copy dirá que no se puede algo que sí se puede);
->   y tests de las dos ramas. **Ojo con la cascada de CKAN al implementarlo:** el predicado del store usa
->   `has_user_permission_for_group_or_org`, que **casca permisos si el vínculo existe**, así que hay que asegurar que
->   un admin de una organización relacionada **no** cuente como aprobador (ver la decisión de abajo). **Tier: `v1`**
->   —es lo que hace usable el flujo en el despliegue real, sin tocar la gobernanza donde sí hay segunda persona—.
->   **El plan está escrito y es el punto de partida de la sesión: `odd/tasks/publication-self-approval.md`** —specs
->   S1–S5, las tres unidades (la excepción en el store, la lectura que el portal consume y la ficha/cola reflejándola),
->   el **caso de aceptación en vivo** (`test-pdf`) y los riesgos, incluido el de la cascada.
->   **Estado (2026-10-15): a medias.** El **portal** ya refleja la respuesta del catálogo en la ficha y en la cola
->   (T3; `PublicationDecision.svelte` dejó de decidir cuatro ojos por comparación de ids — ver
->   `odd/tasks/publication-self-approval.md` L6). El **store** tiene T1+T2 **sin commitear** en `odp-docker`
->   (`unit/handoff-refresh`), así que el campo no está en `master`, y la **corrida de aceptación en vivo** (`test-pdf`)
->   **no se hizo**. El ítem **no se borra** hasta que el store esté mergeado *y* `test-pdf` quede `approved` con
->   `requested_by` = `approved_by` y el dataset público.
+> - [ ] **Decidir qué hace el flujo de publicación con un dataset `draft`** (tier: lo decide el autor; nace de una
+>   medición, no de una hipótesis). Medido el 2026-10-15: `publication_request_decide` con `approve=True` **aprueba** un
+>   dataset en `state = 'draft'` y le escribe `private = false`, pero el dataset **nunca se vuelve públicamente
+>   legible** —el `403` anónimo y la ausencia del listado público siguen—, y la pared de A3 le reserva el cambio de
+>   `state` al sysadmin, así que **nadie por debajo puede activarlo** después. Las dos salidas, sin decidir: **¿el flujo
+>   lo activa al aprobar, o se niega a publicar un `draft`** y lo dice? **No es defecto de `c′`**: el flip es anterior
+>   (`_flip_to_public`, `61b6f1c`) y el portal no crea borradores — hoy un `draft` sólo puede entrar por la UI de CKAN.
+>   **El dueño del arreglo es `odp-docker`, no este repo**: las dos salidas viven en `ckanext-umss` —(i) en
+>   `_flip_to_public`/`publication_request_decide`, (ii) en el predicado de autorización del mismo módulo—, y el
+>   portal, en todo caso, sería el que **muestra** el rechazo, como en S4. El lado del store ya lo tiene como tarea
+>   bloqueada, con la pregunta escrita y la evidencia (L10 del plan de esta feature), y ofrece anotarlo ahí cuando el
+>   autor decida la salida. Escalado por esa sesión.
+>   **La «pared» que este ítem cita es A3 «la pared» de
+>   `openspec/changes/2026-09-13-publication-lifecycle/tasks.md:366`** —el cambio de **publicación**, **no** el flujo de
+>   edición y borrado pospuesto para `v1`— y, según `odd/tasks/publication-lifecycle-minimum.md:936`, **ya está en el
+>   master del store** (`6472e48`). Así que el ítem **no espera al flujo de edición**: espera la decisión de producto
+>   (¿el flujo activa el `draft` al publicar, o se niega a publicar un `draft`?). Si el autor lo quiere revisar **con
+>   el flujo de edición delante**, ese vínculo hay que **crearlo**: hoy no existe en el registro.
 >
 > ---
 >
@@ -2522,36 +2524,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 ## v0 — core presentable
 
-> **Revisión de UI del usuario (2026-09-14).** Observaciones nombradas, no arregladas todavía; el usuario
-> pidió explícitamente anotarlas antes de tocarlas.
->
-> - [ ] **[v0] Sin organizaciones, la acción de crear dataset NO debe mostrarse.** Hoy se ofrece igual y
->   lleva a un callejón sin salida («no pertenecer a ninguna org» = no se puede crear). _Origen: revisión
->   de UI del 2026-09-14._
-> - [ ] **[v0] Una sesión muerta degrada a anónimo EN SILENCIO — medido (2026-09-14).**
->   `organization_list_for_user` con un token inválido devuelve **`success: true` y `result: []`**, no un
->   error (igual que sin token). Consecuencia: el portal no puede distinguir «estoy logueado y no tengo
->   organizaciones» de «mi token ya no existe», y muestra listas vacías sin avisar. Ocurrió de verdad: un
->   `db clean` de CKAN borra la tabla `api_token`, así que toda sesión abierta queda muerta y el dashboard
->   y el wizard se ven vacíos. **Falta que el portal detecte la sesión inválida y fuerce re-login.**
->   Nota: es la misma familia de no-op silencioso que `api_token_revoke`.
-> - [ ] **[v0] Los recursos de un dataset privado se ven como «Recurso no encontrado». DIAGNOSTICADO
->   (2026-09-14).** Dos defectos distintos, y solo uno es de la aplicación:
->   1. **La causa del síntoma que reportó el usuario es la sesión muerta** (el `db clean` borró
->      `api_token`, ver el ítem anterior). Medido con el dataset `test` del usuario: `package_show`
->      **anónimo → HTTP 403 `Authorization Error`** (el dataset es privado), y **con token válido → 200**,
->      `private=true`, 1 recurso, `url_type=upload`, `format=PDF`; `resource_show` con token válido → OK.
->      **El recurso existe y está bien**: el pedido sale anónimo y CKAN responde 403. **Se arregla con
->      re-login.**
->   2. **El defecto real de la página, que queda pendiente:** `dataset/[id]/resource/[resourceId]/+page.svelte:84`
->      **convierte un `403` en «Recurso no encontrado»** — confunde «no tenés permiso para verlo» con «no
->      existe». Y en DEV, antes de fallar, intenta un **fallback a mock** (`getMockResourceById`), que es lo
->      que **enmascara** el error verdadero durante el desarrollo (el mismo antipatrón que ya se había
->      encontrado en otra página). A arreglar: distinguir `403` de `404` y decirlo, y no dejar que el mock
->      se trague un fallo de autorización. Es exactamente lo que exige el requisito
->      `Distinguishable Authorization Errors` de la spec del ciclo de vida, aplicado a otra página.
->      _Origen: revisión de UI del 2026-09-14 + diagnóstico del 2026-09-14._
->
 - [x] **[v0] El asistente promete editar el dataset después de publicarlo, y esa edición no existe** —
   el paso final del wizard muestra «Podrá editarlo después de publicarlo.»
   (`src/routes/dashboard/datasets/new/+page.svelte:1696`), pero **no hay ninguna ruta de edición de
@@ -2587,29 +2559,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
   de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
   nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
-
-- [ ] **[v0] El enlace de descarga del recurso renderiza la URL propia de CKAN, no la del portal.**
-  Verificado en vivo (2026-09-20): «Descargar recurso» apunta a
-  `http://localhost:5000/dataset/<name>/resource/<file>/download/<file>` — el `ckan.site_url` de CKAN —,
-  no al origen del portal. Con la arquitectura vigente (CKAN **headless**, sólo su API REST; ver el
-  encabezado de este archivo), exponer el origen del backend y depender de su configuración merece una
-  decisión explícita: servir la descarga a través del portal, o aceptar el acoplamiento de forma
-  deliberada.
-  _Origen: verificación independiente en navegador real contra el stack vivo, 2026-09-20._
-  **Estado medido (2026-09-30): VIVO.** `resource/[resourceId]/+page.svelte:358` sigue con `downloadUrl =
-  safeExternalUrl(resource?.url)` y `:544` con `href={downloadUrl}`; no hay ruta que proxee (los únicos `+server.ts` son
-  los dos de `auth`). **Frena en la decisión del autor:** servirlo por el portal, o aceptar el acoplamiento de forma deliberada.
-  **Decisión del autor (2026-10-08): para después, y antes de entregar `v1`.** Hoy **funciona** —el stack sirve su URL
-  de CKAN por `https` en un dominio propio, análogo al de `api.odp`—, así que no bloquea `v0`. Se retoma antes de
-  entregar `v1`, y queda anotado como **RECOMENDACIÓN con opciones**, no como decisión tomada:
-  (a) **proxear la descarga por el portal** (una ruta `+server.ts` que resuelva el recurso y sirva el archivo): el
-      enlace deja de depender del origen y de la configuración de CKAN, al costo de una ruta nueva, su caché y su
-      manejo de rangos;
-  (b) **aceptar el acoplamiento de forma deliberada** y documentarlo (es lo que pasa hoy): cero código, y el precio es
-      que el portal hereda la disponibilidad y la configuración pública del backend;
-  (c) el intermedio: **mantener la URL de CKAN detrás de un alias del mismo origen del portal** (nginx), que cambia una
-      dependencia de configuración por una de despliegue.
-  **Para retomarlo**: la verificación viva del 2026-09-20 y el estado medido del 2026-09-30 (`+page.svelte:358` y `:544`).
 
 - [ ] **[v1] Con el catálogo caído, el portal le muestra al usuario el error del parser, no una frase suya.**
   Observado por el autor (2026-10-08): con CKAN caído, el aviso que se lee es «No se pudieron cargar sus
@@ -3483,6 +3432,11 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Sin organizaciones, la acción de crear dataset no debe mostrarse** | **Cerrado** desde el 2026-09-20 (`f7b5562`, D3), sin registrarse en el BACKLOG hasta el 2026-10-16. Ahora es más estricto que lo pedido: la oferta no depende de pertenecer a una organización sino del permiso que exige el asistente, `organization_list_for_user {permission: "create_dataset"}` (`canCreateDataset`). Por eso tampoco se le ofrece a un `member`. Las tres superficies del dashboard (grilla, barra pegajosa y CTA del estado vacío) usan una sola condición, y si falla la consulta no se ofrece crear. Si se entra directo a `/dashboard/datasets/new` sin organización escribible, el asistente explica que hace falta el rol de editor. Tests: `dashboard.test.ts` («sin organizaciones no ofrece crear en ninguna superficie» y el caso del `member`) y `wizard.test.ts`; 95 de 95 pasan. |
+| **El enlace de descarga del recurso renderiza la URL propia de CKAN** | **Cerrado** (medido el 2026-10-16). Se tomó la opción (a) del ítem: la descarga pasa por el portal. Lo hizo token-hardening en `47bca41` (PR #76). Un archivo alojado sale de `/catalog/download/<id>` con la sesión y con `Range`, por `fileUrl` (`src/lib/resources/file-url.ts`). La misma ruta alimenta el botón de descarga y la vista previa (`ResourcePreview.svelte`). Un enlace externo conserva su URL, saneada. Se verificó en vivo: 49 MB bajados con el mismo sha256, `206` con `Range` y `403` para un anónimo (`odd/tasks/token-hardening.md` L26). |
+| **Una sesión muerta degrada a anónimo en silencio** | **Cerrado** desde el 2026-09-20, sin registrarse en el BACKLOG hasta el 2026-10-16. Lo exige el requisito *Invalid Session Detection* (`openspec/specs/authentication/spec.md`). La sonda es `user_show {}` por el puente (`src/lib/api/session.ts`) y corre en las cuatro pantallas del dashboard. Si la sesión está muerta, la borra y envía al login con el motivo. Un `5xx` no expulsa. Con token-hardening, una cookie que no abre recibe `401` del puente y la cookie se borra. Los tests de `session`, `session-guard` y `api/session` pasan. |
+| **Los recursos de un dataset privado se ven como «Recurso no encontrado»** | **Cerrado** desde el 2026-09-20 (`5219055`, `e99b81e`), sin registrarse en el BACKLOG hasta el 2026-10-16. Las dos mitades del ítem: (1) la sesión muerta, cerrada en la fila anterior; (2) la página, que hoy distingue los casos. A una sesión viva sin permiso le muestra «Acceso no autorizado». Si la sonda no concluye, muestra «No se pudo confirmar el acceso» con reintento. A un anónimo le muestra «no encontrado, o sin permiso» a propósito, para no revelar que el recurso existe (`src/lib/api/failure.ts`). El mock de DEV sólo cubre una no-respuesta, nunca un `403`/`404`. |
+| **Implementar `c′`: la auto-aprobación cuando no hay otro aprobador** | **Cerrado** (2026-10-15, registrado el 2026-10-16). El portal, en el PR #74; el store, en el **PR #18 de `odp-docker`**, mergeado el 2026-10-15 a las 19:53. La corrida de aceptación desde la ficha probó dos veces la excepción y el flip escrito. Sólo `test-pdf` no quedó legible, y la causa no es del store: el dataset estaba en `draft`. Eso quedó como ítem propio, «Decidir qué hace el flujo de publicación con un dataset `draft`». El registro completo está en `odd/tasks/publication-self-approval.md`, de L8 a L11. Sus siete commits de cierre quedaron en la rama remota después del merge del #74, y recién el 2026-10-16 llegaron a `main`. |
 | **El vacío del buscador: las tres salidas en una sola sección, con saltos `#id`** | **Implementado y promovido** (2026-10-01) — **entregado en el PR #45**. El pedido era **ambiguo** y se preguntó primero (regla 9): el autor eligió **lectura A** (los saltos dentro de la tarjeta del aviso) y **V3** (botón secundario), **sin** resalte del destino y **sin** rótulo visible. Medido en el navegador, el enlace anterior compartía `color` (`oklch(0.52 0.085 257)`) y `text-decoration-line` con «Limpiar búsqueda y filtros» —el mismo objeto visual para dos acciones distintas—, y V3 lo separa por color, fondo, borde y alto. La sección ganó nombre accesible (aviso como `<h2>`), los tres bloques `id` y un margen de desplazamiento que sale del token `--header-h` más el alto **medido** de la barra; la fila sólo ofrece saltos de bloques **presentes**. Tests primero (6 en RED), después verde. **Cinco compuertas aprobadas** (`review-4b0bfe7ead4517a1`, `review-5c51328ff49347d3`, `review-98fbf65d694a6a49`, `review-fda3530895a9b51f`, `review-7135c0450f94bdce`), y la del rango completo encontró **un CRITICAL que las acotadas no podían ver** (el enlace copiado no aterrizaba: la carga perezosa y el margen medido llegan después de que el navegador resuelve el fragmento), corregido y validado por el proveedor; la medición viva del enlace profundo destapó además que el fragmento **se borraba de la barra de direcciones**, también corregido. Sus avisos, en «Deuda de revisión (RDD)». La hoja `/dev/search-empty` se borró al promover. Gates: `test` **708/708** · `check` 0 errores / 4 warnings · Biome exit 0 · aterrizaje y URL medidos en vivo (+13,625 px, fragmento conservado). |
 | **Sección «Data API» para recursos con tabla (bloque D, slice D3)** | **Implementado y aprobado** (2026-09-23). La sección «Acceso por API» estaba gateada a `resource_type === "api"`, un campo **heredado que nada escribe** —el propio formulario de CKAN lo tiene comentado y es `None` en los 35 recursos del catálogo—, así que **no se renderizaba nunca**: era UI muerta. Ahora el gate es `datastore_active === true` (el mismo marcador que usa la vista previa) y el endpoint que muestra es **`datastore_search`**, el que devuelve filas, en vez de `resource_show`, que no. El ejemplo de curl y las dos piezas de copy acompañan. **Reconciliación de la spec en el mismo paso, con dos defectos:** «Preview Placeholder» exigía un área reservada prometiendo una vista previa que ya existe, y «API Metadata» describía un gate que no coincidía ni con el código ni con la realidad. Revisión nativa `review-03b5057b001e6f9b` **aprobada** (tier medium, lente reliability, 3 archivos / 150 líneas, presupuesto 75), 2 avisos informativos. Gates: `check` 0 errores · `test` **601/601**. |
 | **Endurecer la vista previa de datos (bloque D, slice D2)** | **Implementado y aprobado** (2026-09-23). Los 4 hallazgos de `review-ca9abb1187a39513`. El sustantivo —`R3-stale-search-race`— se arregló con la guarda de corrida superada (el `cleanup` del efecto marca su corrida y los dos handlers comprueban antes de escribir; sin `AbortController` porque el cliente no acepta `signal`), y **el test que lo cubre fue verificado en contra: se neutralizó la guarda y el test FALLÓ** (aparecía la fila vieja), con el archivo restaurado byte-idéntico por sha256. Los otros tres: una celda con objeto ya no pinta `[object Object]` (va a JSON, con funciones y símbolos cayendo al guion y los primitivos intactos), el prop `limit` —declarado, con default y **sin uso**— **se eliminó** (lo que limita las filas es el fetch, y un prop que no hace nada declara un contrato falso), y el estado de carga tiene test con promesa diferida. Revisión nativa `review-891f798293c18235` **aprobada** (tier medium, lente reliability, 4 archivos / 129 líneas, presupuesto 65), 2 avisos informativos. Gates: `check` 0 errores · `test` **593/593** · Biome limpio. |

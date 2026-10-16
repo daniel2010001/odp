@@ -97,13 +97,41 @@
 porque el único miembro de esa organización es `ckan_admin` —el solicitante y a la vez sysadmin—, así que el recuento de
 personas **no-sysadmin** con `capacity = admin` en esa organización es **0** y la excepción aplica.
 **Lo que hay que ver en la corrida en vivo:** la fila pasa a `approved`, `requested_by` y `approved_by` quedan con **el
-mismo id** (`ckan_admin`) y el dataset queda **público**. Si la respuesta fuera `Four eyes`, el recuento está contando a
+mismo id** (`ckan_admin`) y el dataset queda **anónimamente legible**. Si la respuesta fuera `Four eyes`, el recuento está contando a
 un sysadmin: es **defecto del store**, y se reporta con el estado de la fila antes/después.
 
-**Antes de correrla, un reinicio:** el contenedor de CKAN tiene que estar sirviendo el **código nuevo** del store —Python
-cachea los imports al arrancar, así que un cambio en el plugin no llega al servidor vivo sin reiniciarlo—. Sin eso la
-prueba mediría el comportamiento **viejo**, y un `Four eyes` parecería un defecto del store cuando en realidad es un
-servidor sin reiniciar: verificarlo **antes** de sacar conclusiones.
+**El criterio, en el vocabulario que se puede medir (reformulado el 2026-10-15 a pedido de la sesión del store):** *el
+dataset del caso queda **anónimamente legible*** — `package_show` anónimo → `200` y presente en `package_list` —, y
+**no** «público». La diferencia no es retórica: un dataset en `draft` con `private = false` **no** es legible, así que
+pedir «público» para el caso nombrado (`test-pdf`) exigía algo que ese dataset no puede cumplir por una propiedad
+**suya** (`state = 'draft'`, `metadata_created` 2026-09-25 — anterior a la solicitud del 2026-10-08 y a la aprobación).
+
+**Corrida hecha el 2026-10-15 por el autor, desde la ficha — y con una discrepancia medida, sin reconciliar.** El
+proxy registró `POST /api/3/action/publication_request_decide` → `200` a las **18:30:07** con `referer
+https://odp.hs.lan/dataset/eb8a06b6-…` (esta ficha) y otra a las **18:32:14** sobre
+`observatorio-de-movilidad-urbana-cochabamba` (`fcyt`). **De las dos, sólo la segunda quedó pública**: medido con
+peticiones anónimas al stack vivo el 2026-10-15, `package_show?id=observatorio-…` → `200`, `private: false`; y
+`package_show?id=eb8a06b6-…` —también por nombre `test-pdf`, que resuelve al mismo id— → **`403` «Access denied: User
+not authorized to read package eb8a06b6-…»**, con `package_search` anónimo en **count 1** (sólo el observatorio). Si la
+fila de `test-pdf` está `approved` con el mismo id en `requested_by`/`approved_by` —como la midió la sesión del store
+en la base—, entonces **el dataset no quedó público**, y eso contradice el contrato del store (*«`approved` … y cambia
+`private` en la misma transacción»*) y este criterio. **La aceptación NO se cierra** hasta reconciliarlo: el pedido
+concreto a la sesión del store quedó en L9. **El criterio, medido como se puede medir de verdad:** `package_show`
+**anónimo** → `200` y el dataset presente en `package_list`, y **el valor guardado tiene DOS mitades: `private` y
+`state`** — en este CKAN el label `public` exige `state == 'active'` **y** `not private` (`ckan/lib/plugins.py:602-604`),
+así que un `draft` **no es públicamente legible aunque `private` sea falso** (medido el 2026-10-15). Por eso **una
+corrida nueva usa un privado `state: 'active'`**. El estado de la fila dice que el catálogo concedió; **no** dice que el
+dataset sea legible.
+
+**Antes de correrla, un reinicio — corregido el 2026-10-15: en este stack no hace falta.** Esta sección decía que el
+contenedor de CKAN tenía que reiniciarse porque *«Python cachea los imports al arrancar»*. Medido sobre el stack vivo
+por la sesión del store: `USE_DEBUGPY_FOR_DEV` **no está seteado**, así que la línea de `start_ckan_development.sh` que
+agrega `--disable-reloader` no se ejecuta y `ckan run` corre **con** el reloader de Werkzeug; los banners de arranque
+del servidor (17:29:42 y 17:48:42) son **posteriores** a las últimas escrituras de fuente (17:29:36 y 17:48:24), y la
+extensión entra por bind mount (`./src:/srv/app/src_extensions`). El proceso **ya sirve el código final**, así que lo
+único que queda de la corrida es **aprobar la fila**. La lección general sigue en pie para cualquier otro despliegue:
+sin reloader, un cambio de plugin no llega al servidor vivo. **Y la fila conviene aprobarla desde la ficha del
+dataset** —no por API—: así la corrida ejerce las dos mitades, el store y el portal (S4).
 
 ## Riesgos y decisiones abiertas
 
@@ -161,13 +189,90 @@ servidor sin reiniciar: verificarlo **antes** de sacar conclusiones.
   **Sin el campo, cuatro ojos** —una fila que no dice nada no concede nada—: ése es el fallback, y por eso el campo es
   opcional. **Lo que NO se tocó, a propósito (S5):** un `editor` o un `admin` de una organización relacionada siguen
   viendo el control y el catálogo responde —hoy con su `403`—; el permiso de la ficha (`canAdministerOrganization`) y el
-  camino de pedir/cancelar quedan igual. **Lo que queda abierto:** (a) el árbol del store está **sin commitear**
-  (`unit/handoff-refresh` de `odp-docker`), así que el campo no está en `master`; (b) la **corrida de aceptación en
-  vivo** (`test-pdf`) **no se hizo**: exige el contenedor de CKAN reiniciado con el código nuevo —Python cachea los
-  imports al arrancar— y aprueba una fila real, así que va con el autor delante; (c) `/dev/publication` conserva su
+  camino de pedir/cancelar quedan igual. **Lo que queda abierto:** (a) el cambio del store ya está **commiteado** en la rama `unit/publication-self-approval` de `odp-docker`
+  (`21b1bb7` T1, `c260d99` T2, `5250569` T3) y **empujada con PR abierto: el PR #18 de `odp-docker`**, base
+  `master` — el merge sigue siendo decisión del autor—, así que el campo no está
+  en `master`; `unit/handoff-refresh` sigue siendo de otra unidad (wirear contra ella encontraría otra cosa); (b) la **corrida de aceptación en
+  vivo** (`test-pdf`) **no se hizo**: no exige reiniciar el contenedor —medido: el reloader de Werkzeug corre; ver la corrección del caso de
+  aceptación— y aprueba una fila real, así que va con el autor delante y **desde la ficha**; (c) `/dev/publication` conserva su
   propia copia de la regla de cuatro ojos (`+page.svelte:385` y `:1311`) y **no** se alineó: sus fixtures no traen el
   campo, así que la hoja no muestra la excepción. Se alinea si el autor quiere revisar la variante ahí.
 - **L7 (medición, 2026-10-15):** el portal **no** consumía el campo antes de T3: `grep -rn decidable_by_caller src/` no
   devolvía nada y `PublicationDecision.svelte` decidía por comparación de ids (`isOwn`). Por eso el reporte de la
   sesión del store —«T1+T2+T3 ya están implementados»— era **inexacto en su tercera parte**: con el store concediendo,
   la ficha y la cola seguían diciendo «No puede aprobar su propia solicitud.»
+- **L8 (corrección de la sesión del store, 2026-10-15):** dos correcciones a este registro, medidas por la sesión de
+  `odp-docker`. **(1) El reinicio del contenedor no hace falta:** `USE_DEBUGPY_FOR_DEV` sin setear deja encendido el
+  reloader de Werkzeug y los banners de arranque son posteriores a sus últimas escrituras de fuente, así que el
+  proceso ya servía el código final (corregida la sección del caso de aceptación). **(2) El cambio del store no está
+  en `unit/handoff-refresh`** —esa rama es de otra unidad—, pero el cambio ya **está commiteado** en
+  `unit/publication-self-approval` (`21b1bb7`, `c260d99`, `5250569`), **empujada y con PR abierto: el PR #18 de
+  `odp-docker`** (base `master`); su merge sigue siendo decisión del autor. Este
+  registro dijo «sin commitear en el working tree» y quedó viejo en horas, porque los mensajes se cruzaron: se anota
+  así, en vez de borrarlo, porque es la clase de dato que envejece solo. **Y volvió a envejecer**: esta misma línea
+  decía «sin push y sin PR» y el 2026-10-15 el store ya tenía el **PR #18** abierto. Se anota el cambio de estado en
+  vez de reescribir la historia: el registro sirve justamente porque deja ver cuántas veces un dato de estado se
+  mueve debajo de una frase. **El nombre del campo quedó reconfirmado de su lado:
+  `decidable_by_caller`, idéntico al que consume el portal.** Su pre-flight por API no pudo autenticarse
+  (`400 "Bad request: Action name not known: login"` — este CKAN no registra una acción `login`), y el valor del campo
+  en la fila de aceptación no depende de esa llamada: el único miembro de `direccion-investigacion` es `ckan_admin`
+  (solicitante y sysadmin), así que el recuento de otras personas es 0 y `decidable_by_caller` es `true`.
+- **L9 (discrepancia medida, 2026-10-15, sin reconciliar):** la corrida de aceptación **se hizo** el 2026-10-15 —el
+  autor la ejecutó desde la ficha, y la sesión del store la reconstruyó del proxy: `200` a las 18:30:07 con `referer`
+  de la ficha de `test-pdf` y otro a las 18:32:14 sobre `observatorio-de-movilidad-urbana-cochabamba`—, **pero de las
+  dos sólo la segunda quedó pública**. Medición propia, anónima, sobre el stack vivo
+  (`localhost:8082/api/3/action/…`): el observatorio → `200`/`private: false`/`state: active`; `eb8a06b6-…` → `403`
+  `Access denied: User  not authorized to read package eb8a06b6-b0da-4b7e-9d71-75a6114d2c30` (y también por el nombre
+  `test-pdf`, que resuelve al mismo id); `package_search` anónimo → `count 1`, sólo el observatorio. **Hipótesis
+  abiertas, en orden de lo que explicaría la contradicción:** (a) la vuelta de `private` en la acción es
+  **condicional** y no ocurre en la rama que concede la excepción (defecto del store en el camino de `c′`); (b) el
+  dataset se volvió a privatizar después de las 18:30; (c) la fila que se aprobó no es la de `test-pdf`. **Pedido
+  concreto a la sesión del store** (tiene la base; yo no): la fila `d9947c1a-…` (`status`, `decided_at`,
+  `requested_by`, `approved_by`, `dataset_id`), `package.private`/`state` de `eb8a06b6-…`, y si la vuelta de
+  `private` ocurre en la misma rama que concede la excepción o es condicional. **Lo que NO se puede afirmar**: que
+  la corrida pasó. La única mitad verificada de punta a punta es la del observatorio.
+  **Ampliación (misma tarde):** los **tres** caminos anónimos coinciden —el proxy del portal, CKAN directo en `:5000` y
+  el **listado público** (`package_list`: **17** datasets, y `test-pdf` **no** está entre ellos)—, así que no es un
+  artefacto de una ruta. Y aparece una firma que **reconciliaría las dos mediciones sin postular ningún defecto**: si en
+  la base `private = false` pero `package.state` es **`draft`**, el anónimo recibe `403` y el dataset no figura en el
+  listado público —exactamente lo medido acá, y exactamente lo medido en este stack el 2026-09-13 («`draft` → `403`
+  anónimo; ausente del `package_search` anónimo»)—, mientras que la consulta de la sesión del store («cero privados en
+  esas cuatro organizaciones») también daría cero. Por eso **`package.state` no es un detalle: distingue «el store no
+  volteó `private`» de «volteó, y el dataset no es legible igual»**. **Consecuencia operativa:** `test-pdf` **ya no
+  sirve como caso repetible** (su solicitud está aprobada y no se vuelve a aprobar), así que una corrida nueva usa un
+  dataset privado **nuevo** en una de las cuatro organizaciones de una sola persona, y se mide **anónimo**
+  (`package_show` → `200` y el dataset en `package_list`), nunca por el estado de la fila.
+  **Cerrado el mismo día, con la causa medida — y no era la que ninguno de los dos sospechaba.** La sesión del store
+  midió lo que faltaba: la fila `d9947c1a-…` está `approved`, con `requested_by = approved_by = e447d9e5-…`
+  (`ckan_admin`), `dataset_id = eb8a06b6-…`, `decided_at = 2026-10-15 18:30:06.592358`; y el dataset quedó
+  **`private = false`** con **`state = 'draft'`**. Ahí está todo: **el label `public` de este CKAN exige
+  `state == 'active'` **y** `not private`** (`ckan/lib/plugins.py:602-604`, y al anónimo le toca `['public']`,
+  `:619-622`), así que **un borrador no es públicamente legible aunque `private` sea falso** — de ahí el `403` y de ahí
+  que el listado público no lo traiga. **Las dos mediciones eran mitades del mismo hecho**: la suya miraba `private` y
+  no `state`; la mía, la legibilidad. **Mi hipótesis (a) —el flip condicional— es FALSA**, y quedó refutada con el diff:
+  `_flip_to_public` sólo hace `package_patch {private: False}` (lo introduce `61b6f1c`, **anterior** a este cambio) y
+  `git diff master..HEAD` sobre ese módulo no tiene una sola línea `+`/`-` que mencione `flip`, `package_patch` ni
+  `private`; el flip vive en el cuerpo de `publication_request_decide` para todo `approve=True`, después del veredicto
+  de la autorización. El control natural: **las dos filas pasaron por el mismo flip** —`observatorio-…` quedó `active`
+  y es legible, `test-pdf` quedó `draft` y no lo es—, así que la diferencia es el **estado del dataset**, no el camino
+  de autorización. **Y el flip escribió, medido:** el `metadata_modified` de `eb8a06b6-…` es `2026-10-15 18:30:06.804445`
+  —el **mismo instante** que el `decided_at` (`.592358`) y el `consumed_at` (`.592387`) de la fila—, así que el
+  `package_patch` de `private` y la escritura de la fila fueron **el mismo commit**. Con eso la bifurcación queda
+  resuelta del lado **«volteó y no alcanza»**, no del lado «no volteó»; y el `draft` es **anterior** a todo: el
+  `metadata_created` del dataset es `2026-09-25 05:49:17`, contra la solicitud (2026-10-08) y la aprobación
+  (2026-10-15). **Alcance del veredicto, entonces:** la **excepción** (auto-aprobación **y** flip escrito) está
+  probada **dos veces**; la **visibilidad pública** está probada en `observatorio-…` (`fcyt`). Lo que `test-pdf` no
+  prueba es la visibilidad, y eso es una propiedad **de ese dataset**, no del store ni del portal. **No se puede fechar
+  cuándo quedó en `draft`** —esta versión de CKAN no tiene `package_revision` ni actividad registrada para ese
+dataset—, y el flip no lo puso ahí.
+- **L10 (hallazgo escalado al autor, 2026-10-15):** el flujo **puede aprobar un `draft` que nunca se vuelve visible**, y
+  la pared de A3 le reserva el cambio de `state` al sysadmin, así que **nadie por debajo puede activarlo** después. Es
+  una **decisión de producto**, no un defecto de esta unidad (el flip es anterior a `c′` y el portal no crea
+  borradores): **¿el flujo lo activa al aprobar, o se niega a publicar un `draft` y lo dice?** Queda como ítem propio en
+  el `BACKLOG`, sin tier decidido.
+- **L11 (cierre, 2026-10-16):** la unidad está **cerrada**. El store se mergeó en el **PR #18 de `odp-docker`** el
+  2026-10-15 a las 19:53, y el portal en el PR #74. Era la condición que faltaba para borrar el ítem del `BACKLOG`. El
+  ítem se borró y quedó una fila en el historial de cierre. El hallazgo del `draft` (L10) sigue abierto como ítem propio.
+  **Y un hallazgo de proceso:** L7 a L10 y sus correcciones se empujaron a `feat/self-approval-portal` **después** de
+  mergear el #74, así que no llegaron a `main` hasta este cierre. Por eso la frase de L8 sobre el PR #18 (abierto,
+  «su merge sigue siendo decisión del autor») envejeció sin que nadie la viera: el merge se hizo el mismo día.
