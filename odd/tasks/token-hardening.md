@@ -487,3 +487,16 @@ web, no de la API) y que responda `206` a un `Range`.
   `lint` limpio. **Nota sobre el campo `help`** de las respuestas (`https://api.odp.hs.lan/...`): es el cuerpo de
   CKAN reenviado tal cual —el puente no reescribe cuerpos, porque el portal necesita `success`, `error.__type` y
   `payload`—; nombra el host público de la API, que ya es público, y no lleva credencial.
+- **L26 (la última medición de la feature, 2026-10-16, stack dev por `localhost:8082`):** pedida por el autor con el
+  límite de producto de **50 MB** (la ampliación a 100 queda para mucho después). Sesión de prueba: un token
+  temporal de `ckan_admin` (CLI de CKAN, 1 h) sellado con la clave de desarrollo, un dataset **privado** de prueba
+  en `direccion-investigacion`, y subidas por `POST /catalog/resource_create` con multipart, como el XHR del
+  asistente. **Subidas:** 5 MB → `200`, 49 MB → `200`, un PDF de 2 MB → `200`, y CKAN registró los tres con el tamaño
+  **exacto** en bytes (`url_type: upload`); 56 MB → `413` de nginx, antes del portal. **Descargas:** `Range: 0-99`
+  sobre el PDF privado → `206`, `Content-Range: bytes 0-99/2097161`, `Accept-Ranges: bytes`, `nosniff`; el archivo
+  de 49 MB bajado entero por `/catalog/download/<id>` tiene el **mismo sha256** que el subido; anónimo sobre el
+  privado → `403`. **Queda medido lo que G2 dejaba abierto:** CKAN **sí** acepta el `Authorization` de un token de
+  API en `/dataset/…/download/…` y responde `206` a un `Range`. **Limpieza verificada:** `dataset_purge`
+  (`package_show` → `Not Found`), los tres archivos borrados del disco del contenedor
+  (`/var/lib/ckan/resources/…`, con sus tamaños confirmados antes de borrar), el token revocado y verificado
+  **listando** (0) y contra la API (`404`), y el directorio temporal del host borrado.
