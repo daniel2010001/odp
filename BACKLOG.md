@@ -2892,6 +2892,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   decía:** (1) son los **valores por defecto del template**, porque `.env.example` (`:12`, `:15-18`, `:22-23`) los trae
   tal cual; y (2) **cambiar `.env` no alcanza**: el volumen de Postgres ya inicializado no vuelve a leerlo, así que
   además hay que cambiar las contraseñas en la base con `ALTER ROLE`.
+  **Seguimiento en `odp-docker` (decisión del autor, 2026-10-16):** `odd/tasks/rotate-postgres-credentials.md`. Es un
+  registro **local y no versionado**, porque `odd/` está excluido en ese repo (`.git/info/exclude:9`), con respaldo
+  en Engram #839. Por eso **el ítem sigue acá**: es la copia versionada. Lo nuevo que midió esa sesión, sin imprimir
+  valores: (1) `POSTGRES_PASSWORD`, la del superusuario, **también es el default del template**; (2) **ningún compose
+  publica Postgres en un puerto del host**; (3) `02_disable_debug_toolbar.sh` registra **9 credenciales expuestas** en
+  la home, no sólo los dos pares de Postgres que nombra este ítem, así que hay que inventariar el resto como
+  criterio de aceptación.
 
   **El arreglo, para que no vuelva:** la imagen `ckan-dev` fuerza `debug = true` en el ini en CADA
   arranque (`/srv/app/start_ckan_development.sh:11`), y `debug` es lo que activa el
@@ -2933,6 +2940,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   apariciones de `CKAN_VERSION` en `ckan-docker/.env` y en `.env.example`. **Queda sólo la decisión de fijar el patch**,
   y no está registrada en ningún lado. Corre **2.12.0** (`auth.py:307`). Los cuatro `FROM` y `checks.yml:68` están en
   `2.12`, sin patch. `test-ckan-image-tag.sh` vigila que coincidan entre sí, pero no decide si se fija el patch.
+  **Seguimiento en `odp-docker` (decisión del autor, 2026-10-16):** `odd/tasks/ckan-patch-pin-decision.md`. Es un
+  registro local y no versionado, con respaldo en Engram #839, así que el ítem sigue acá como copia versionada.
 
   **`SOLR_IMAGE_VERSION=2.10-solr9` se dejó como está, a propósito:** es el valor que trae el
   upstream junto al base 2.11, así que no era un error propio. Al subir a 2.12 hay que moverlo a
