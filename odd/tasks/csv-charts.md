@@ -132,3 +132,17 @@
   **Lo que sí se rescata:** las operaciones de Y (`COUNT`, `COUNT DISTINCT`, `SUM`, `AVG`, `MIN`, `MAX`); de 1 a 3
   columnas en X; agrupar correos por dominio; y la idea de una configuración **declarativa** que se guarda y se vuelve a
   ejecutar: `{ version, chartType, x: [{ field, bucket }], y: { field, agg }, includeNull }`.
+- **L9 (2026-10-17, mediciones de solo lectura de la sesión de `odp-docker` sobre el CKAN dev vivo, 2.12, `29240a3`):**
+  1. **`datastore_search_sql` está deshabilitada** (`ckan.datastore.sqlsearch.enabled` = False por defecto; la API
+     responde `400 Action name not known`). La lista de funciones permitidas tiene `date_trunc`, `date_part`,
+     `width_bucket`, `floor`, `count`, `sum` y `avg`; `extract` se rechaza siempre (el parser lo ve como
+     `pg_catalog.extract`), así que se usa `date_part`. Habilitarla abriría **SQL arbitrario de sólo lectura también a
+     anónimos** sobre recursos públicos, y una consulta cara es una vía de DoS.
+  2. **`resource_view_create` exige un plugin `IResourceView`** cuyo nombre coincida con el `view_type`
+     (`ckan/lib/datapreview.py:65-74`); si no, `ValidationError "No plugin found for view_type"`. La configuración se
+     valida con el `schema` del plugin, y lo que el schema no declara no se guarda. `ckanext-umss` hoy no implementa
+     `IResourceView`; agregarlo se estima en ~80-150 líneas más tests, sin migraciones (estimación, no medido).
+  3. **La carga es DataPusher 0.0.21, no xloader, e infiere tipos:** `numeric`, `timestamp` y `text`. Medido con su
+     mismo `type_guess`: un año sale `numeric`, una fecha `2024-01-15` sale `timestamp`, y un código `0012` sale
+     `numeric` y **pierde los ceros a la izquierda**. Se corrige por columna con `type_override` en el diccionario de
+     datos, que obliga a recargar el recurso.
