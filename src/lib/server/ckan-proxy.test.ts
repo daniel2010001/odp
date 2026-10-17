@@ -49,7 +49,7 @@ function accionesQueLaCapaDeClienteUsa(): Set<string> {
 	for (const archivo of archivosDeLaCapaDeCliente()) {
 		const fuente = readFileSync(archivo, "utf8");
 		for (const [, nombre] of fuente.matchAll(
-			/\.(?:get|post)\s*(?:<[^>]*>)?\(\s*"([a-z][a-z0-9_]+)"/g,
+			/\.(?:get|post)\s*(?:<[\s\S]*?>)?\(\s*"([a-z][a-z0-9_]+)"/g,
 		)) {
 			encontradas.add(nombre);
 		}
@@ -69,6 +69,18 @@ describe("la allowlist del proxy — atada al código real", () => {
 
 		const faltantes = [...usadas].filter((accion) => !isAllowedAction(accion));
 		expect(faltantes).toEqual([]);
+	});
+
+	it("y al revés: toda acción permitida la usa la capa de cliente (sin permisos de más)", () => {
+		const usadas = accionesQueLaCapaDeClienteUsa();
+		const sobrantes = ALLOWED_ACTIONS.filter((accion) => !usadas.has(accion));
+		expect(sobrantes).toEqual([]);
+	});
+
+	it("las lecturas de los gráficos viajan sólo por POST: el cliente no las pide con GET", () => {
+		// Mínimo privilegio (verificación de `9486aeb`): habilitar GET sin un consumidor GET es superficie sin uso.
+		expect(isReadAction("umss_chart_data")).toBe(false);
+		expect(isReadAction("resource_view_list")).toBe(false);
 	});
 
 	it("las tres acciones de tokens NO están permitidas: el navegador no puede acuñar ni revocar tokens", () => {

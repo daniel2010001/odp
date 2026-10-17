@@ -95,8 +95,8 @@ Respuesta:
   formulario del publicador pide la vista previa antes de guardar.
 
 **El puente del portal** (`src/lib/server/ckan-proxy.ts`): hoy no deja pasar estas acciones. Hay que sumar
-`umss_chart_data` y `resource_view_list` a las de lectura, y `resource_view_create`, `resource_view_update` y
-`resource_view_delete` a las permitidas.
+las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el cliente las pide todas por `POST`
+(corregido en L13 por la verificación independiente; antes este párrafo ponía dos en las de lectura).
 
 ## Tasks
 
@@ -253,3 +253,12 @@ Respuesta:
   4. El tope de 500 grupos pasa a una constante del portal en P2.
   5. Una vista con una `version` que el portal no conoce no se dibuja: P3 muestra un aviso, sin migración.
   El rótulo de los rangos numéricos (`[0, 5)` o «0–5») lo decide el autor al revisar P2.
+- **L13 (2026-10-17, verificación independiente del puente, `9486aeb`): «aprobar con notas»; las dos se corrigieron.**
+  Se verificó que las escrituras de vistas no se alcanzan por `GET` (`405` antes del `fetch`), que las acciones de
+  tokens siguen prohibidas y que las de subida no cambiaron. Las dos notas: (1) `umss_chart_data` y
+  `resource_view_list` estaban habilitadas por `GET` sin ningún consumidor `GET`. Era permiso de más y el error estaba
+  en este contrato: se sacaron de `READ_ACTIONS`, por mínimo privilegio. (2) El invariante se probaba en una sola
+  dirección, y la expresión regular del escaneo no veía llamadas con genéricos anidados (`datastore.ts:30`). Se arregló
+  la expresión y se agregó la prueba inversa: toda acción permitida la usa el cliente. Hubo RED en las dos (sobraba
+  `datastore_search` por el escaneo, y las dos lecturas eran `GET`), y GREEN 270/270 en `src/lib`. **Incidente de
+  alcance:** el verificador citó código del plugin en `odp-docker`, así que leyó ese repo sin autorización.
