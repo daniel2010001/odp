@@ -81,3 +81,10 @@
   **Corte de entrega:** la rama ya pasa las ~400 líneas (959 en 5 commits, sin contar el lockfile). La entrega se
   divide en dos PRs encadenados: **PR 1 = T1 + T2** (plan, dependencia, lógica y playground, hasta `f852f79`) y
   **PR 2 = T3–T6** (iteración, promoción a la página real y datos de la demo), que se abre sobre el primero.
+- **L6 (2026-10-16, reporte del autor: «intento abrir el /dev/resource-chart pero me dice que hay error en el
+  servidor»):** reproducido. `GET /dev/resource-chart` en `:8082` → `500` con `Cannot find module 'layerchart'`: el
+  contenedor `frontend-dev` monta `src/` de este repo pero trae `node_modules` horneado en la imagen. **Arreglo
+  provisional:** `pnpm add layerchart@2.8.0` dentro del contenedor y `docker restart` (Vite había cacheado el fallo de
+  resolución). Después: `200` en el playground, en `/` y en `/search`, sin errores en los logs. **No sobrevive a recrear
+  el contenedor** (`docker compose up --force-recreate`, `down`/`up`): el arreglo durable es reconstruir la imagen de
+  `frontend-dev` después del merge del PR #82.
