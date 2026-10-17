@@ -112,7 +112,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
-| T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore (L4) | S5 | a decidir con el autor | — |
+| T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
 ## Riesgos
 
@@ -294,3 +294,15 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   desplegar la demo en otra infraestructura. **Corrección en curso:** el seed crea privado y publica por el flujo,
   con solicitud y aprobación. `ckan_admin` es el único miembro de `rectorado`, así que aplica la excepción `c′`.
   Token de la corrida: efímero, creado por la CLI y revocado (la lista da 0 restantes).
+- **L16 (2026-10-17, T6 cerrada y verificada en vivo):** el seed ahora crea privado, sube el archivo y publica por el
+  flujo (`publication_request_create` → `publication_request_decide`). Si la aprobación se rechaza, no aborta, y al
+  final relee el dataset para comprobar el resultado. Corrido por el padre contra el CKAN dev con un token efímero de
+  la CLI, revocado al terminar (0 restantes): «✓ publicado: planilla-docente-ficticia (private=false, state=active)»,
+  recurso `37a71273-2523-47d9-8ec0-bb7debddfb43`. **Verificado como anónimo por el puente:** `package_show` da
+  `private: false` y `state: active`. El DataPusher cargó la tabla: `datastore_active: true`, `total: 2500`. Tipos
+  reportados: `n`, `horas_mes`, `bs_hora` y `salario` como `numeric`; `fecha_ingreso` como `timestamp` (aunque tiene
+  vacíos); el resto `text`, y `_id` como **`int`**. **Hallazgo:** las familias de tipos de L11 usan nombres de
+  Postgres (`int4`, `float8`), pero el DataStore informa otros (`int`). Una tabla creada por API con enteros quedaría
+  rechazada de los dos lados. Se le pidió a la sesión de `odp-docker` que mida la tabla de nombres reportados. El
+  portal se ajusta con esa medición; hasta entonces queda igual que el servidor. La demo no se ve afectada, porque
+  DataPusher usa `numeric`, `timestamp` y `text`.
