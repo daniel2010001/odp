@@ -417,3 +417,11 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
       queda sólo con la interfaz.
   - (3) Push y PR de `odp-docker` autorizados; la sesión de `odp-docker` los hace, y el merge sigue siendo decisión del
     autor.
+- **L25 (2026-10-17, el autor: «merge revisado y aprobado»):** se mergearon **los dos** PRs: #82 (`ed91708`, toda la
+  rama `feat/csv-charts` hasta `92847cc`, que estaba en borrador) y #83 (`4d10c71`). El CI de `main` está verde en los
+  dos. En consecuencia, el corte de L24 **ya no aplica**: el contrato, el cliente, el puente (con su verificación
+  independiente), LayerChart, el playground y los documentos ya están en `main`, y **el PR B se descarta**. El
+  contenido de #83 ya venía dentro de #82, y el merge quedó limpio. **Lo que falta va en un PR nuevo desde esta misma
+  rama:** el arreglo del retraso de los selectores, los rótulos de los rangos y los identificadores en inglés (el
+  worker en curso), y luego P3. La imagen de `frontend-dev` ya se puede reconstruir, porque LayerChart está en el
+  `package.json` de `main`; hasta entonces el contenedor usa la instalación manual de L6.
