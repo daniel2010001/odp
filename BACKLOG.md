@@ -3013,6 +3013,24 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **cambiadas sin aviso**. El CSV de la demo no lo sufre, porque usa fechas ISO. Para `v1`, la salida (preprocesado,
   tipos fijados por el publicador o cambiar de cargador) se decide con la medición del muestreo delante. Registro
   crudo, local y no versionado: `odp-docker/odd/tasks/loader-eval.md` y `loader-eval/datapusher-0.0.21-result.json`.
+  **Medición 2: la ventana de muestreo** (`scripts/data/loader-sampling-window.csv`, 1200 filas, valores
+  problemáticos en las filas 1001, 1100 y 1200). **Una falla deja la tabla a medias y ACTIVA:**
+  - `datapusher_status: error`, **sin mensaje** (`"error": {}`);
+  - `datastore_active: true`, con `total: 1000` de 1200.
+  El DataPusher adivinó los tipos con las primeras 1000 filas (`numeric` y `timestamp`) y mandó la tabla en tramos
+  por bytes (`CHUNK_SIZE` 16384, `jobs.py:33`). CKAN rechazó el tramo 4 con un `409`
+  (`invalid input syntax for type numeric: "sin dato"`), **y nada deshizo los tramos que ya habían entrado**. Un
+  gráfico mostraría «1000 filas» sin ninguna señal de que faltan datos. El primer valor malo corta todo, así que la
+  coma decimal, la fecha inválida y la fecha ambigua tardías siguen sin medir por separado; se arman tres archivos de
+  una columna cada uno. Registro crudo: `odp-docker/odd/tasks/loader-eval.md` (Run 2).
+- [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
+  ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
+  es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
+  del recurso y en el formulario de gráficos, para quien puede editar. Algo como «La carga de la tabla no terminó: los
+  datos pueden estar incompletos», con la fecha del intento. Hace falta sumar `datapusher_status` al puente,
+  consultada sólo por `POST`. **No depende de qué cargador se elija:** cualquiera puede fallar a mitad de camino. Para
+  la demo no hace falta, porque su CSV carga completo, pero es lo primero que se ve si un publicador real sube un
+  archivo con datos sucios.
   **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
   demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
