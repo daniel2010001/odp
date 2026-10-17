@@ -342,3 +342,16 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   declarada responden con `__extras`. `NotAuthorized` y `ObjectNotFound` no llevan clave. **El portal no cambia:** el
   adaptador ya manda `config`, `view_type` y `__extras` al aviso general (`validation.test.ts`, «una clave
   desconocida, o `__extras`, da el aviso general»).
+- **L20 (2026-10-17, respuestas del autor a las preguntas de P2, textual):** «respondiendo a las pregutnas: 1: me gusta
+  más el [a, b], pero creo que a-b sería más "abto" para que la población en general lo entienda, o qué dices? yo
+  prferiría dejarlo con [,] 2: Buena preguta y es un buen punto en donde para a pensar un poco, en mi anterior
+  proyecto, ckan-frontend, tenia un form para crear vistas si no mal recuerdo, pero esto era una page nueva, también
+  está el tema de qué hacer con la edición de resources, ahora mismo no se tiene incluido esto en el form de edición,
+  solo se puede crear. 3: lo segundo, pero ya guarda? respecto a la revisición del /dev/...: veo que hay un poco de
+  "retraso" en los cambios de config, esto es porque son "muchas" filas? o es porque estamos usando algún archivo o
+  prueba que no sea el datastore? es solo duda.»
+  Medido sobre el retraso: el playground no tiene ninguna demora artificial. El doble agrega 200 filas en memoria, sin
+  red y sin DataStore (`fixtures.ts:160`, `fake-api.ts:246`), así que **no** es por el volumen de filas. Las causas
+  posibles, sin medir: (a) el servidor de desarrollo, que no está optimizado; (b) las transiciones de LayerChart;
+  (c) el `$effect` que reconcilia el borrador (`ChartForm.svelte:171`); y además, por diseño, el gráfico no cambia
+  hasta pulsar «Vista previa».
