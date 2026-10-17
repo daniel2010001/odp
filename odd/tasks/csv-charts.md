@@ -88,3 +88,29 @@
   resolución). Después: `200` en el playground, en `/` y en `/search`, sin errores en los logs. **No sobrevive a recrear
   el contenedor** (`docker compose up --force-recreate`, `down`/`up`): el arreglo durable es reconstruir la imagen de
   `frontend-dev` después del merge del PR #82.
+- **L7 (2026-10-17, respuestas del autor a las seis preguntas de T3, textual):** «1 a qué te refieres con "filas"? si te
+  refieres a las filas de los csv/excel creo que no hay límite en cuanto a esto, vi que en algunos protales similares
+  llegaban a 4k de filas, pero creo que esos son extremos, en las tablas de esas plataformas también había eso de cambiar
+  las filas mostradas en la tablas, 10, 20 50 si no mal recuerdo, por esto ya creo que depende más de la configuración
+  que manejemos, por mí podemos usar los que sugieras. Si te refieres a otra cosa podrías decirme? explica un poco más a
+  detalle. 2: esto creo que depende mucho de qué se quiera mostrar, por ejemplo: th: N, nombre, apellido, cargo, turno,
+  h/mes, bs/h, salario. si revisamos los valores podemos ver que nombres y aelidos no se repiten nunca, cargo sí con
+  poca frecuencia, turno solo hay 3, horas al mes podría variar un poco pero los valores tienenden a ser iguales
+  dependiendo el turno, bs por hora también suele ser muy similar y el salario es h/mes * bs/h, si vemos un poco podemo
+  decir que la mejor opción son los turno vs el salario o algo así, entiendes? y como NO es una cosa que el usuario que
+  ve los dataset pueda hacer es mejor tener algo así como una "configuración" ya hecha, porque si lo hacemos cada vez que
+  re refresca la vista estaríamos cargado mucho datos, esto ya me paso y la mejor solución que tenía era ahcer las
+  consultas al datapusher directamente, crear los gráficos de forma estática y guardar esa config como una vista, pero
+  qué dices sobre esta idea? 3: yo lo menejaba todas las columnas para X y Y sin importar qué, y el user decide qué eje
+  usar, esto podría resultar en gráficos feos, pero como es el user el que decíde lo dejé así. 4: yo intentaba
+  "normalizar" los valores, eg: si son text como enums (A con 14 row, B con 23, C con 35, a con 3, c con 1), las fechas
+  por día de la semana/mes/trimestre/año/decada, los números lo hacía por rangos/step (step=1 enteros-1,2,3-, step=5
+  -0al4,5al9 etc), si era posible null también. 5: preferiria que pidiera al datapusher, yo lo hacia armando una query
+  con la info de las X-Y y los rangos. 6: tooltip y dark.mode los revisé y funcionan, o a qué te refieres? NOTA: los
+  ejemplos que te dije son de un proyecto muy similar que usaba ckan también, pero en react, no lo pde terminar por
+  tiempo, si quieres revisarlo está en un repo de github llamado daniel2010001/ckan-frontend, es mio»
+  **Qué cambia:** el gráfico deja de ser una herramienta del visitante y pasa a ser una **configuración guardada por
+  quien publica**, que el visitante sólo ve. La agregación (agrupar por X, con rangos para números y fechas, y `null`
+  como grupo propio) se hace en el **DataStore**, no en el navegador. X e Y aceptan cualquier columna. El tooltip y el
+  modo oscuro quedan **revisados por el autor**. S1 queda en revisión hasta decidir dónde se guarda la configuración y
+  cómo se consulta: se están midiendo su repo anterior (explorador) y el CKAN vivo (sesión de `odp-docker`).
