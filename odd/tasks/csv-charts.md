@@ -431,3 +431,19 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   passed. El merge lo decide el autor. Hasta entonces, el CKAN dev sirve la rama local `feat/csv-charts`; después del
   merge, `odp-docker` puede volver a `master` sin perder las acciones. El arreglo de `bin/test-umss` queda como un
   pendiente aparte, declarado en el PR.
+- **L27 (2026-10-17, P2 follow-up entregado y verificado):**
+  - **El retraso de los selectores, medido y corregido.** El formulario reconciliaba el borrador en un `$effect`, así
+    que cada cambio de selector dibujaba dos veces. Medido en Chromium real, por CDP, con 8 rondas: la etiqueta de la
+    agrupación pasaba por «Rangos numéricos» → «Seleccione una opción» → «Valor tal cual»; con el arreglo hace **una
+    sola escritura**, sin el estado intermedio. Los tiempos (mediana de 12 a 8 ms) son ruido de un servidor de
+    desarrollo y no prueban nada por sí solos. Lo que discrimina es la cantidad de escrituras, que pasó de 2 a 1. Ahora
+    la reconciliación ocurre en la misma escritura (`$derived` y un solo `setDraft`), y hubo RED antes del GREEN.
+  - **Rótulos de los rangos (L21):** `groupLabels()` devuelve las dos formas. El eje muestra «0–5000»; el tooltip y la
+    tabla accesible, «[0, 5000)». El interruptor del playground se retiró. El tooltip no se probó con un hover real;
+    se verificó leyendo LayerChart y con el chequeo de tipos.
+  - **De paso, un error previo corregido:** escribir en «Tamaño del rango» rompía el formulario
+    (`x_step.trim is not a function`). Tiene su test.
+  - **Identificadores en inglés** en las superficies de la interfaz (L22). El parámetro del playground cambió de
+    `?caso=` a `?case=`.
+  - Verificación del padre: 154/154 en la feature, `pnpm check` sin errores, Biome limpio y `200` en `:8082`. El
+    worker corrió además la suite completa: 1332/1332.
