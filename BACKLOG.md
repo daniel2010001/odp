@@ -2982,6 +2982,76 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Propuesta:** primero **medir**. Un CSV determinista de casos borde, una columna por caso, subido al CKAN dev, para
   anotar qué hace hoy el DataPusher; después repetir con DataPusher+ y comparar. La elección del cargador es de
   `odp-docker`. **No bloquea la demo:** su CSV carga bien con el DataPusher actual.
+  **Primera lectura de DataPusher+ (sesión de `odp-docker`, 2026-10-17, sin instalar nada; fuentes: README y
+  `CLAUDE.md` de `dathere/datapusher-plus` en `main`):** **evaluarlo es un proyecto, no un cambio de plugin.** Choca
+  con el stack en cuatro puntos: (1) declara Python 3.10–3.13 y CKAN 2.12 corre en **3.14.7**; (2) **exige
+  `ckanext-scheming`**, que cambia cómo se define el esquema de datasets y toca a `ckanext-umss` y al portal; (3) la de
+  `main` es una **alfa** (v3.0.0a0) y orquesta con Prefect 3.7+ por defecto (sin Prefect cae a los jobs de CKAN, sin
+  reintentos); (4) necesita el binario `qsv` v25+ y no lista la 2.12 entre los CKAN soportados («2.10+»). **Orden
+  acordado:** primero medir el DataPusher actual con el CSV de casos borde; con eso se decide si alcanza con
+  `type_override` o un preprocesado, o si vale el costo de DataPusher+ (o de xloader).
+  **Medición 1: DataPusher 0.0.21, el cargador actual (sesión de `odp-docker`, 2026-10-17)**, con
+  `scripts/data/loader-edge-cases.csv` en un dataset privado y descartable. La carga terminó completa: 48 filas, sin
+  corte. Lo que hace con cada caso:
+  - **Corrompe sin avisar (lo grave):**
+    - **(a) Fechas ambiguas leídas como mm/dd:** `03/04/2024` → 4 de marzo, mientras que `15/03/2024` sí sale 15 de
+      marzo. Cada valor se interpreta como le resulta, así que una columna con datos bolivianos (dd/mm) mezcla dos
+      convenciones en silencio.
+    - **(b) Descarta la zona horaria:** `10:30:00-04:00` → `10:30:00`, no `14:30Z`.
+    - **(c) Pierde los ceros a la izquierda:** `0012` → `12`.
+  - **Tipo numérico donde lo ideal sería otro:** `1/0` (booleano), número de serie de Excel (fecha), año suelto e
+    identificadores largos. Los valores no cambian.
+  - **Cae a texto, lo que es conservador:** no rompe nada, pero no sirve como número. Pasa con la coma decimal, los
+    miles (`1.234,56` y `1,234.56`), la moneda, el porcentaje, las unidades, todos los marcadores de nulo (`NA`, `N/A`,
+    `-`, `s/d`), los booleanos salvo `1/0` y los meses en español.
+  - **Bien:** las fechas ISO, `dd/mm/aaaa` cuando no es ambigua y los timestamps sin zona horaria.
+  - **El texto se guarda byte por byte:** no normaliza espacios, NBSP ni NFC/NFD.
+  - **El muestreo no se midió con este archivo:** messytables adivina con una ventana de **1000 filas**
+    (`messytables/commas.py`: `window or 1000`; `datapusher/jobs.py:459`), así que con 48 filas el archivo entero es la
+    muestra. Hace falta un segundo archivo con valores problemáticos después de la fila 1000.
+  **Consecuencia para el producto:** un publicador que suba un CSV con fechas `dd/mm/aaaa` puede terminar con fechas
+  **cambiadas sin aviso**. El CSV de la demo no lo sufre, porque usa fechas ISO. Para `v1`, la salida (preprocesado,
+  tipos fijados por el publicador o cambiar de cargador) se decide con la medición del muestreo delante. Registro
+  crudo, local y no versionado: `odp-docker/odd/tasks/loader-eval.md` y `loader-eval/datapusher-0.0.21-result.json`.
+  **Medición 2: la ventana de muestreo** (`scripts/data/loader-sampling-window.csv`, 1200 filas, valores
+  problemáticos en las filas 1001, 1100 y 1200). **Una falla deja la tabla a medias y ACTIVA:**
+  - `datapusher_status: error`, **sin mensaje** (`"error": {}`);
+  - `datastore_active: true`, con `total: 1000` de 1200.
+  El DataPusher adivinó los tipos con las primeras 1000 filas (`numeric` y `timestamp`) y mandó la tabla en tramos
+  por bytes (`CHUNK_SIZE` 16384, `jobs.py:33`). CKAN rechazó el tramo 4 con un `409`
+  (`invalid input syntax for type numeric: "sin dato"`), **y nada deshizo los tramos que ya habían entrado**. Un
+  gráfico mostraría «1000 filas» sin ninguna señal de que faltan datos. El primer valor malo corta todo, así que la
+  coma decimal, la fecha inválida y la fecha ambigua tardías siguen sin medir por separado; se arman tres archivos de
+  una columna cada uno. Registro crudo: `odp-docker/odd/tasks/loader-eval.md` (Run 2).
+  **Medición 3: un archivo por columna** (`scripts/data/loader-late-*.csv`). **Cierra el DataPusher:**
+  - **Coma decimal tardía:** `error`, tabla activa con 1000/1200 filas (`invalid input syntax for type numeric: "1,5"`).
+  - **Fecha inválida tardía:** `error`, tabla activa con 1000/1200 filas (`date/time field value out of range`).
+  - **Fecha ambigua tardía:** `complete`, 1200/1200, **pero `03/04/2024` → 4 de marzo**. Las filas 1–1000 se leyeron
+    dd/mm (`13/01/2010` → 13 de enero) y las siguientes, mm/dd: **la misma columna tiene dos convenciones, sin un solo
+    error en ningún lado**.
+  En los dos casos de error, la API de estado da `error` con el mensaje vacío.
+  **Veredicto sobre el DataPusher 0.0.21:**
+  - **No sirve para datos bolivianos con fechas dd/mm**: los corrompe en silencio.
+  - **Ante datos sucios deja tablas incompletas y activas.**
+  - Lo que se decida para `v1` (un preprocesado que normalice antes de subir, tipos fijados por el publicador, u otro
+    cargador) tiene que resolver estos dos puntos; el aviso al publicador (ítem siguiente) es necesario en cualquier
+    caso.
+  **Hallazgo de la limpieza:** **`datastore_delete` hace que el DataPusher vuelva a cargar el recurso.** Mientras
+  corría el purge, dos tablas del DataStore reaparecieron y **quedaron huérfanas** después de `dataset_purge`; hubo que
+  borrarlas a mano. Además, `dataset_purge` deja los archivos subidos en `/var/lib/ckan/resources`. **Un dataset
+  purgado puede dejar archivos y tablas huérfanas**, así que una limpieza no debe hacer `datastore_delete` antes del
+  purge (o tiene que esperar al DataPusher) y debe verificar `pg_tables` al final. Se relaciona con el riesgo de
+  graficar un dataset borrado de forma lógica (`csv-charts` L23). La organización y el dataset de prueba ya se
+  borraron, verificados en Postgres, Solr y disco. Registro: `odp-docker/odd/tasks/loader-eval.md` (Run 3 y
+  Cleanup).
+- [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
+  ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
+  es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
+  del recurso y en el formulario de gráficos, para quien puede editar. Algo como «La carga de la tabla no terminó: los
+  datos pueden estar incompletos», con la fecha del intento. Hace falta sumar `datapusher_status` al puente,
+  consultada sólo por `POST`. **No depende de qué cargador se elija:** cualquiera puede fallar a mitad de camino. Para
+  la demo no hace falta, porque su CSV carga completo, pero es lo primero que se ve si un publicador real sube un
+  archivo con datos sucios.
   **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
   demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un

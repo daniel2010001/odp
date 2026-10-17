@@ -1,0 +1,427 @@
+{
+	"title": "Casos borde del cargador del DataStore — expectativas de la medición",
+	"csv_file": "scripts/data/loader-edge-cases.csv",
+	"csv_sha256": "c74fe2fa9690e708c158ce587e027c45df21860481ac3473e909b3f11001ae22",
+	"row_count": 48,
+	"generated_by": "scripts/generate-edge-cases-csv.mjs",
+	"purpose": "Este JSON acompaña a scripts/data/loader-edge-cases.csv: una columna por caso borde del BACKLOG «[v1] Evaluar un cargador del DataStore que normalice valores», y para cada columna el tipo y los valores que guardaría un cargador ideal. El archivo lo consume la sesión de odp-docker, que sube el CSV con cada cargador y anota lo que realmente pasa. «Ideal» es una elección declarada en `notes` cuando el dato es ambiguo (dd/mm contra mm/dd, códigos con ceros a la izquierda, números de serie de Excel); la medición no consiste en acertar el ideal sino en registrar qué se guardó.",
+	"how_to_record": "Para cada cargador (DataPusher 0.0.21, el actual, y DataPusher+ vigente) se sube ESTE mismo archivo, sin editarlo, como recurso de un dataset del CKAN dev y se espera a que termine la tarea de carga. Después, por cargador, se anota lo siguiente.\n\n1. ¿Terminó la carga? El `total` de `datastore_search` (¿son las 48 filas?), si el recurso quedó `datastore_active`, y el mensaje de error del cargador con la fila donde se detuvo si se detuvo.\n\n2. Tipo por columna: la respuesta de `datastore_search` trae `fields`, y cada entrada tiene `id` y `type`. Anotar el `type` que el cargador declaró para cada columna de este archivo, más `_id`. Ojo: `fields` informa el `typname` de Postgres (`int4`, `float8`, `text`, `timestamptz`), no el nombre del tipo del DataStore (L17 de odd/tasks/csv-charts.md), así que conviene anotar los dos nombres si no coinciden.\n\n3. Valores guardados: para cada columna, leer las filas de `sample_rows` (`_id` es el número de fila de datos, 1 = primera fila después de la cabecera) con `datastore_search` (`filters: {\"_id\": n}` o `offset`) y anotar el valor tal como vuelve. Se compara con `ideal_values`; lo que sirve es el valor crudo guardado, no un «bien/mal».\n\n4. Un bloque por cargador, con nombre y versión, y las tres cosas por columna. Si la carga se cortó, anotar en qué fila y qué columnas quedaron: el corte es el resultado más importante de la medición, porque un cargador que se niega a cargar es más seguro que uno que guarda un número equivocado.",
+	"columns": [
+		{
+			"column": "baseline_integer",
+			"backlog_case": null,
+			"description": "Control: enteros limpios, sin separadores, sin marcas y todos distintos.",
+			"raw_samples": ["1000", "1003", "1006"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [1000, 1003, 1006],
+			"notes": "Baseline, no un caso borde. Si esta columna no sale `numeric`, el cargador falló en algo básico y el resto de la medición no se puede interpretar."
+		},
+		{
+			"column": "baseline_iso_date",
+			"backlog_case": null,
+			"description": "Control: fechas ISO `YYYY-MM-DD`, un día por fila, sin ambigüedad ni huecos.",
+			"raw_samples": ["2024-01-01", "2024-01-02", "2024-01-03"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-01-01", "2024-01-02", "2024-01-03"],
+			"notes": "Baseline. DataPusher 0.0.21 infiere `timestamp` para ISO (L9) y L16 lo confirmó en vivo sobre la tabla de la demo."
+		},
+		{
+			"column": "decimal_comma",
+			"backlog_case": 1,
+			"description": "Números con coma decimal y sin separador de miles: `1,5` donde el formato internacional escribe `1.5`.",
+			"raw_samples": ["1,5", "2,25", "-0,5"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [1.5, 2.25, -0.5],
+			"notes": "Ideal: 1.5. DataPusher 0.0.21 no decide la coma por el archivo sino por el locale del servidor (CKAN #5769): si el locale es en_US la columna entera queda `text`. En el CSV estos valores van entre comillas porque la coma es el separador."
+		},
+		{
+			"column": "thousands_dot_decimal_comma",
+			"backlog_case": 1,
+			"description": "Formato español completo: punto de miles y coma decimal, `1.234,56`.",
+			"raw_samples": ["1.234,56", "12.345,00", "999.999,99"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [1234.56, 12345, 999999.99],
+			"notes": "Ideal: 1234.56. La lectura inversa (punto decimal) también existe en otros archivos, así que reconocerlo exige una regla, no una heurística por valor: acá el agrupamiento de tres dígitos y la coma final no dejan duda. Un cargador que no lo reconoce guarda el texto y el número deja de ser comparable."
+		},
+		{
+			"column": "us_thousands",
+			"backlog_case": 1,
+			"description": "Formato inglés: coma de miles y punto decimal, `1,234.56`, el opuesto del caso anterior.",
+			"raw_samples": ["1,234.56", "12,345.00", "999,999.99"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [1234.56, 12345, 999999.99],
+			"notes": "Ideal: 1234.56. Si el cargador aplica una sola regla de separadores para todo el archivo, esta columna y `thousands_dot_decimal_comma` no pueden estar bien las dos: ése es exactamente el resultado que se quiere medir."
+		},
+		{
+			"column": "currency_usd",
+			"backlog_case": 2,
+			"description": "Importes con símbolo de moneda adelante: `$1,234.56`.",
+			"raw_samples": ["$1,234.56", "$15.00", "$0.00"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [1234.56, 15, 0],
+			"notes": "Ideal: 1234.56, sin el símbolo. Es una elección: guardar el número pierde de qué moneda era, y guardarlo como texto pierde la aritmética. Lo que no sirve es dejarlo `text` sin avisar y que el gráfico no pueda sumar."
+		},
+		{
+			"column": "percent_value",
+			"backlog_case": 2,
+			"description": "Porcentajes con signo `%` y coma decimal: `15%`, `7,5%`.",
+			"raw_samples": ["15%", "7,5%", "0%"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [15, 7.5, 0],
+			"notes": "Ideal: 15 en puntos porcentuales. Guardar 0,15 es igual de defendible (la fracción) y es la razón por la que el `%` no se puede borrar sin decidir: quien mire la columna después no sabe cuál de las dos escalas es."
+		},
+		{
+			"column": "measured_with_unit",
+			"backlog_case": 2,
+			"description": "Cantidades con unidad pegada al número: `12 kg`, `3,5 m`, `250 ml`.",
+			"raw_samples": ["12 kg", "3,5 m", "250 ml"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [12, 3.5, 250],
+			"notes": "Ideal: 12, sin la unidad. Las unidades no son homogéneas (`kg`, `m`, `km/h`, `L`) y borrarlas mezcla magnitudes incomparables en una misma columna: el ideal del valor es el número, y la unidad debería vivir en el nombre de la columna, no en la celda."
+		},
+		{
+			"column": "boolean_10",
+			"backlog_case": 3,
+			"description": "Booleano escrito como 1 y 0.",
+			"raw_samples": ["1", "0"],
+			"sample_rows": [1, 2],
+			"ideal_type": "boolean",
+			"ideal_values": [true, false],
+			"notes": "Ideal: `true`. Pero una columna con sólo 0 y 1 es indistinguible de un contador o de un código sin metadatos: convertir a booleano es una decisión de quien conoce el dato, no algo que el archivo diga. Es el caso donde la medición del cargador y la del diccionario de datos se separan."
+		},
+		{
+			"column": "boolean_true_false",
+			"backlog_case": 3,
+			"description": "Booleano escrito como `true` y `false`, en minúsculas.",
+			"raw_samples": ["true", "false"],
+			"sample_rows": [1, 2],
+			"ideal_type": "boolean",
+			"ideal_values": [true, false],
+			"notes": "Ideal: `true`. DataPusher+ reconoce booleanos si la columna tiene exactamente dos valores que empiezan por `t/f` (BACKLOG), así que es el caso donde el cargador nuevo debería ganar; el actual (0.0.21) los deja `text`."
+		},
+		{
+			"column": "boolean_si_no",
+			"backlog_case": 3,
+			"description": "Booleano en español: `sí` (con tilde) y `no`.",
+			"raw_samples": ["sí", "no"],
+			"sample_rows": [1, 2],
+			"ideal_type": "boolean",
+			"ideal_values": [true, false],
+			"notes": "Ideal: `true`. DataPusher+ **no** lo detecta: sus patrones son `0/1`, `t/f` y `y/n`, y «sí/no» no entra en ninguno (BACKLOG). Es el caso más importante de la medición para un portal en español, y el que probablemente exija `type_override` o un cargador propio."
+		},
+		{
+			"column": "boolean_s_n",
+			"backlog_case": 3,
+			"description": "Booleano abreviado en español: `S` y `N`.",
+			"raw_samples": ["S", "N"],
+			"sample_rows": [1, 2],
+			"ideal_type": "boolean",
+			"ideal_values": [true, false],
+			"notes": "Ideal: `true`. Tampoco entra en los patrones de DataPusher+ (`y/n` es inglés, `s/n` no), y en mayúscula la ambigüedad con una categoría `S`/`N` es total: sin diccionario de datos no hay forma de saber que es un booleano."
+		},
+		{
+			"column": "boolean_marker_x",
+			"backlog_case": 3,
+			"description": "Booleano de planilla: `X` marca sí y la celda vacía marca no.",
+			"raw_samples": ["X", ""],
+			"sample_rows": [1, 2],
+			"ideal_type": "boolean",
+			"ideal_values": [true, null],
+			"notes": "Ideal: `true` / `null`. La celda vacía es el problema: en notación de planilla significa «no», pero en un DataStore es «dato faltante», y las dos lecturas son legítimas. Convertirla a `false` inventa un dato; dejarla `null` lo pierde. Cualquiera de las dos hay que declararla."
+		},
+		{
+			"column": "date_dd_mm_yyyy_unambiguous",
+			"backlog_case": 4,
+			"description": "Fecha dd/mm/aaaa con días mayores que 12 en todas las filas, así no puede ser mm/dd.",
+			"raw_samples": ["15/03/2024", "28/02/2023", "31/12/2022"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-03-15", "2023-02-28", "2022-12-31"],
+			"notes": "Ideal: 2024-03-15. Ésta no es ambigua: leída como mm/dd daría mes 15, que no existe. Si el cargador deja esta columna en `text`, no está interpretando fechas locales en absoluto."
+		},
+		{
+			"column": "date_ambiguous_dd_mm",
+			"backlog_case": 4,
+			"description": "Fecha dd/mm/aaaa ambigua: todos los días son ≤ 12, así que también es una fecha mm/dd válida.",
+			"raw_samples": ["03/04/2024", "05/06/2023", "07/08/2022"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-04-03", "2023-06-05", "2022-08-07"],
+			"notes": "Ideal elegido: 2024-04-03 (dd/mm, la convención local). La otra lectura, 2024-03-04, es igual de válida para el archivo: acá «ideal» es una **decisión** del portal, no un hecho del dato. Lo que se mide es qué elige el cargador; si elige mm/dd, un 3 de abril se guarda como 4 de marzo y nada lo delata."
+		},
+		{
+			"column": "date_spanish_month",
+			"backlog_case": 4,
+			"description": "Fecha con mes en texto español: `15 de marzo de 2024`, y una sin cero a la izquierda.",
+			"raw_samples": ["15 de marzo de 2024", "1 de enero de 2023", "28 de febrero de 2022"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-03-15", "2023-01-01", "2022-02-28"],
+			"notes": "Ideal: 2024-03-15. DataPusher+ reconoce 19 formatos, pero sólo en columnas cuyo **nombre** coincide con un patrón de fecha (BACKLOG): acá el nombre de la columna no está en español, así que se mide el reconocimiento por valor, no por nombre. Es el tipo de fecha que un usuario escribe a mano."
+		},
+		{
+			"column": "date_excel_serial",
+			"backlog_case": 4,
+			"description": "Número de serie de Excel: un entero que representa una fecha (45292 = 2024-01-01).",
+			"raw_samples": ["45292", "44927", "44197"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-01-01", "2023-01-01", "2021-01-01"],
+			"notes": "Ideal elegido: la fecha (2024-01-01). Pero en un CSV el serial es un número suelto e indistinguible de un identificador o de un contador: guardarlo como `numeric` 45292 también es defendible. Que el cargador lo convierta sin que nadie se lo pida es adivinar; que lo deje número es no rescatar un dato que el autor creía fecha. Ésa es la ambigüedad que se mide."
+		},
+		{
+			"column": "date_partial_year_month",
+			"backlog_case": 4,
+			"description": "Fecha parcial año-mes, sin día: `2024-03`.",
+			"raw_samples": ["2024-03", "2023-11", "2022-07"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["2024-03", "2023-11", "2022-07"],
+			"notes": "Ideal: conservar `2024-03` como texto. Convertirla a `2024-03-01` inventa el día, y un `timestamp` con un día inventado contamina cualquier agrupación por mes en el borde. Guardarla como texto conserva la precisión real (un mes) y deja la decisión de «a qué día pertenece» a la consulta."
+		},
+		{
+			"column": "date_partial_year",
+			"backlog_case": 4,
+			"description": "Fecha parcial: sólo el año, `2024`.",
+			"raw_samples": ["2024", "1999", "2010"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["2024", "1999", "2010"],
+			"notes": "Ideal: conservar `2024` como texto, porque el dato dice «un año», no «un número». L9 midió lo contrario en DataPusher 0.0.21: un año sale `numeric`. Si el portal necesita agrupar por año, `date_part` sobre un timestamp o conservar el texto da lo mismo; un `numeric` con 2024 en una columna de importes, no."
+		},
+		{
+			"column": "date_invalid",
+			"backlog_case": 4,
+			"description": "Fechas que no existen: 31 de febrero, 30 de febrero, mes 13, 31 de abril.",
+			"raw_samples": ["31/02/2024", "2023-02-30", "2024-13-01"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["31/02/2024", "2023-02-30", "2024-13-01"],
+			"notes": "Ideal: conservar el texto original para que la fila se pueda corregir. Ninguna conversión es correcta: un cargador que «arregla» 31/02/2024 a 02/03/2024 o 29/02/2024 está inventando un dato, y uno que la convierte a `null` borra la evidencia de que había una fecha mal escrita. Lo que se mide es si la carga se corta, si la fila se rechaza o si el valor se guarda tal cual."
+		},
+		{
+			"column": "timestamp_with_tz",
+			"backlog_case": 4,
+			"description": "Timestamp con zona horaria explícita: `Z` y desplazamientos `-04:00`, `+02:00`.",
+			"raw_samples": [
+				"2024-03-15T10:30:00Z",
+				"2024-03-15T10:30:00-04:00",
+				"2023-11-02T23:59:59+02:00"
+			],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-03-15T10:30:00Z", "2024-03-15T14:30:00Z", "2023-11-02T21:59:59Z"],
+			"notes": "Ideal: el mismo instante en UTC (10:30Z, 14:30Z, 21:59:59Z). Con zona el instante no se pierde: guardarlo como `timestamptz` conserva la información y lo hace comparable. Si el cargador descarta el desplazamiento y guarda la hora de pared, tres instantes distintos se vuelven el mismo número."
+		},
+		{
+			"column": "timestamp_without_tz",
+			"backlog_case": 4,
+			"description": "Timestamp sin zona horaria, con `T` y con espacio, tal como se escribe en una planilla.",
+			"raw_samples": ["2024-03-15 10:30:00", "2023-11-02T23:59:59", "2022-07-01 00:00:00"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "timestamp",
+			"ideal_values": ["2024-03-15T10:30:00", "2023-11-02T23:59:59", "2022-07-01T00:00:00"],
+			"notes": "Ideal: conservar la hora de pared (2024-03-15T10:30:00) y **declarar la suposición**. Sin zona no hay respuesta correcta: DataPusher+ asume UTC (BACKLOG), que para Bolivia (UTC-4) mueve la hora cuatro horas. Un `timestamp` sin zona conserva el dato; un `timestamptz` con UTC inventado, no."
+		},
+		{
+			"column": "null_marker_na",
+			"backlog_case": 5,
+			"description": "Columna numérica con `NA` intercalado como marca de dato faltante.",
+			"raw_samples": ["10", "NA", "12"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [10, null, 12],
+			"notes": "Ideal: 10 / null. Es el caso que hoy rompe la carga: DataPusher 0.0.21 adivina el tipo con las primeras filas y, si una columna numérica trae un `N/A` («NA» incluido) más abajo, la carga se corta a mitad (BACKLOG). La medición tiene que anotar **hasta qué fila llegó**, no sólo el tipo."
+		},
+		{
+			"column": "null_marker_n_a",
+			"backlog_case": 5,
+			"description": "La misma marca con barra: `N/A`, que es la que aparece en los reportes exportados.",
+			"raw_samples": ["20", "N/A", "22"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [20, null, 22],
+			"notes": "Ideal: 20 / null. Está en su propia columna, separada de `NA`, porque un cargador puede reconocer una forma y no la otra; con las dos juntas no se sabría cuál lo rompió."
+		},
+		{
+			"column": "null_marker_dash",
+			"backlog_case": 5,
+			"description": "Guion suelto `-` como marca de sin dato en una columna numérica.",
+			"raw_samples": ["30", "32", "-"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [30, 32, null],
+			"notes": "Ideal: 30 / null. Es la marca más peligrosa porque el guion también es un valor legítimo en columnas de texto (un rango, un código). Convertirlo a null en una columna numérica es una buena apuesta; hacerlo en una de texto, no."
+		},
+		{
+			"column": "null_marker_sd",
+			"backlog_case": 5,
+			"description": "Marca de sin dato en español: `s/d` («sin dato»).",
+			"raw_samples": ["40", "42", "s/d"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "numeric",
+			"ideal_values": [40, 42, null],
+			"notes": "Ideal: 40 / null. Ningún cargador genérico la conoce: es una marca local. Si el portal quiere que `s/d` cuente como vacío, lo tiene que declarar por columna; es evidencia para el diccionario de datos, no para el cargador."
+		},
+		{
+			"column": "text_leading_trailing_spaces",
+			"backlog_case": 6,
+			"description": "Nombres con espacios al principio o al final de la celda.",
+			"raw_samples": ["  Ana Quispe  ", "Luis Mamani ", "  Rosa Flores"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["Ana Quispe", "Luis Mamani", "Rosa Flores"],
+			"notes": "Ideal: `Ana Quispe`, recortado. También es defendible no tocarlos (los espacios podrían ser significativos), pero mientras no se decida, «Ana Quispe» y «Ana Quispe␣» son dos categorías distintas en un gráfico. Se mide si el cargador los conserva, los recorta o los colapsa."
+		},
+		{
+			"column": "text_case_variants",
+			"backlog_case": 6,
+			"description": "El mismo valor en tres capitalizaciones: `Cochabamba`, `cochabamba`, `COCHABAMBA`.",
+			"raw_samples": ["Cochabamba", "cochabamba", "COCHABAMBA"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["Cochabamba", "cochabamba", "COCHABAMBA"],
+			"notes": "Ideal: tal cual, porque la capitalización es información (un nombre propio no se escribe en mayúsculas). El problema es de la consulta: agrupar sin unificar mayúsculas parte un departamento en tres. Un cargador que normaliza el texto a minúsculas destruye el nombre para siempre; uno que lo deja pasa el problema a la consulta, que es donde se puede arreglar. La medición anota cuál de las dos cosas hace."
+		},
+		{
+			"column": "text_accents",
+			"backlog_case": 6,
+			"description": "El mismo nombre con tilde y sin tilde: `José` / `Jose`, `Gutiérrez` / `Gutierrez`.",
+			"raw_samples": ["José", "Jose", "María"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["José", "Jose", "María"],
+			"notes": "Ideal: tal cual. Quitar tildes «para que coincida» destruye el nombre; el mismo problema de agrupación que las mayúsculas se resuelve en la consulta (o con una columna normalizada aparte), no borrando el dato en la carga."
+		},
+		{
+			"column": "text_nbsp",
+			"backlog_case": 6,
+			"description": "Espacio no separable (U+00A0) dentro del valor y al final, en lugar de un espacio común.",
+			"raw_samples": ["San\u00a0José", "La\u00a0Paz", "Santa Cruz\u00a0"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["San José", "La Paz", "Santa Cruz"],
+			"notes": "Ideal: `San José`, con espacio común y recortado. U+00A0 se ve **idéntico** a un espacio y Postgres no lo colapsa, así que «La Paz» y «La␣Paz» (NBSP) son dos valores distintos en la base y nadie lo ve en pantalla. Es el caso que explica por qué un gráfico «pierde» una categoría sin que haya un error."
+		},
+		{
+			"column": "text_nfc_vs_nfd",
+			"backlog_case": 6,
+			"description": "El mismo nombre en NFC (`José`, é = U+00E9) y en NFD (`Jose` + U+0301).",
+			"raw_samples": ["José", "Jose\u0301", "Gutiérrez"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["José", "José", "Gutiérrez"],
+			"notes": "Ideal: NFC, para que el mismo nombre sea un solo valor. Postgres compara texto por bytes y no normaliza: las formas NFC y NFD se ven iguales y son cadenas distintas, así que la columna tiene el doble de categorías de las que muestra. Un cargador que normaliza a NFC arregla el dato; uno que no, deja el problema a la consulta."
+		},
+		{
+			"column": "code_leading_zeros",
+			"backlog_case": 7,
+			"description": "Códigos con ceros a la izquierda: `0012`, `0007`, que son identificadores, no cantidades.",
+			"raw_samples": ["0012", "0007", "0042"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["0012", "0007", "0042"],
+			"notes": "Ideal: `0012` como texto. L9 lo midió: DataPusher 0.0.21 infiere `numeric` y **pierde los ceros a la izquierda**, así que `0012` y `12` pasan a ser el mismo código. La corrección conocida es `type_override` en el diccionario de datos (y recargar); el cargador no tiene cómo saberlo por sí solo."
+		},
+		{
+			"column": "long_numeric_id",
+			"backlog_case": 8,
+			"description": "Identificadores numéricos largos: teléfonos y documentos de 11 a 16 dígitos.",
+			"raw_samples": ["71234567", "59171234567", "1234567890123"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["71234567", "59171234567", "1234567890123"],
+			"notes": "Ideal: texto. No se suman ni se promedian, y como número pierden información: por encima de 2^31 no entran en `int4` (1234567890123) y por encima de 2^53 un `double` ya no los representa exactos (`9007199254740993` vuelve como `…992`, el último dígito cambia en silencio). Un cargador que los declara `numeric` no falla: guarda otro número."
+		},
+		{
+			"column": "mixed_types",
+			"backlog_case": 9,
+			"description": "Columna sin tipo único: número, texto, fecha, booleano, número local, vacío y `N/A` en la misma columna.",
+			"raw_samples": ["12", "Ana", "2024-03-15"],
+			"sample_rows": [1, 2, 3],
+			"ideal_type": "text",
+			"ideal_values": ["12", "Ana", "2024-03-15"],
+			"notes": "Ideal: `text`, que es el único tipo que guarda todas las filas sin pérdida. Un cargador que adivina `numeric` con las primeras filas y después encuentra «Ana» corta la carga o trunca; uno que adivina y convierte deja celdas vacías en silencio. Cualquier elección que no sea texto pierde filas, y lo que se mide es cuántas."
+		},
+		{
+			"column": "late_text_after_row_30",
+			"backlog_case": 9,
+			"description": "Columna casi numérica: las primeras 30 filas son enteros y el texto aparece recién después de la fila 30 (34, 41 y 48).",
+			"raw_samples": ["101", "sin dato", "pendiente"],
+			"sample_rows": [1, 34, 41],
+			"ideal_type": "text",
+			"ideal_values": ["101", "sin dato", "pendiente"],
+			"notes": "Ideal: `text`, por las tres filas de texto. La posición es el punto: DataPusher 0.0.21 adivina el tipo con las **primeras** filas, declara `numeric` y no ve el texto hasta que ya cargó treinta y pico de filas, así que falla o trunca a mitad (BACKLOG). Si el cargador hace un muestreo de las primeras filas, ésta es la columna que lo delata; si recorre todo el archivo, la declara `text` y la medición lo muestra en `fields`."
+		}
+	],
+	"separate_file_cases": [
+		{
+			"backlog_case": 10,
+			"case": "latin1_encoding",
+			"description": "El mismo contenido guardado en Latin-1/Windows-1252 (á = 0xE1) y subido como UTF-8: los acentos llegan rotos o la carga falla.",
+			"why_separate": "Un archivo tiene una sola codificación. Si se mezclara acá, todas las columnas de texto dejarían de ser comparables entre sí."
+		},
+		{
+			"backlog_case": 10,
+			"case": "utf8_bom",
+			"description": "BOM UTF-8 (EF BB BF) al inicio del archivo: la primera celda de la cabecera puede quedar como «\\ufeffbaseline_integer» y esa columna no se reconoce.",
+			"why_separate": "El BOM afecta sólo a la primera celda del archivo, y ese efecto no se puede aislar dentro de una columna de un CSV generado sin BOM."
+		},
+		{
+			"backlog_case": 10,
+			"case": "semicolon_separator",
+			"description": "Separador `;` con coma decimal, que es lo que produce Excel en configuración regional española: un cargador que asume `,` ve una sola columna con toda la fila adentro.",
+			"why_separate": "El separador define la estructura del archivo entero, no el valor de una columna: con `;` todas las columnas de este archivo se leen mal a la vez."
+		},
+		{
+			"backlog_case": 11,
+			"case": "duplicate_headers",
+			"description": "Dos columnas con el mismo nombre: el cargador puede renombrar la segunda, rechazar el archivo o pisar la primera.",
+			"why_separate": "Rompe el resto de la medición: el mapeo columna→caso deja de ser uno a uno y no se puede saber qué columna reportó `fields`."
+		},
+		{
+			"backlog_case": 11,
+			"case": "empty_header",
+			"description": "Una columna sin nombre en la cabecera: el DataStore necesita un nombre y lo inventa o rechaza la carga.",
+			"why_separate": "Sin nombre no hay forma de referirse a esa columna en este JSON ni en `datastore_search`."
+		},
+		{
+			"backlog_case": 11,
+			"case": "header_over_63_chars",
+			"description": "Un encabezado de más de 63 caracteres: PostgreSQL trunca los identificadores a 63 bytes, así que el nombre que vuelve en `fields` no es el que se subió.",
+			"why_separate": "El nombre de la columna cambia por el camino, y con él el mapeo columna→caso del archivo entero."
+		},
+		{
+			"backlog_case": 11,
+			"case": "title_rows_before_header",
+			"description": "Dos o tres filas de título o comentario antes de la fila de encabezados: el cargador toma la primera fila como cabecera y todo corre una fila de lugar.",
+			"why_separate": "Desplaza la cabecera; dentro de un CSV con cabecera en la primera fila no se puede representar."
+		},
+		{
+			"backlog_case": 12,
+			"case": "excel_multiple_sheets",
+			"description": "Un .xlsx con varias hojas: cuál se carga depende del cargador, y los tipos pueden diferir entre hojas.",
+			"why_separate": "Este archivo es CSV; la elección de hoja no se puede expresar en un solo archivo plano."
+		},
+		{
+			"backlog_case": 12,
+			"case": "excel_merged_cells",
+			"description": "Un .xlsx con celdas combinadas: el valor queda en la primera celda del rango y las demás vacías, así que una columna que se ve llena llega con vacíos.",
+			"why_separate": "El CSV no tiene el concepto de celda combinada: el efecto (vacíos) se puede medir, la causa no."
+		},
+		{
+			"backlog_case": 12,
+			"case": "excel_formulas",
+			"description": "Un .xlsx con fórmulas: se guarda el resultado calculado o la fórmula como texto según lo que lea el cargador, y un archivo sin recalcular trae el valor viejo.",
+			"why_separate": "Un CSV no tiene fórmulas: el caso existe sólo en el archivo de Excel original."
+		}
+	]
+}
