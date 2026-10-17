@@ -2990,6 +2990,29 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   reintentos); (4) necesita el binario `qsv` v25+ y no lista la 2.12 entre los CKAN soportados («2.10+»). **Orden
   acordado:** primero medir el DataPusher actual con el CSV de casos borde; con eso se decide si alcanza con
   `type_override` o un preprocesado, o si vale el costo de DataPusher+ (o de xloader).
+  **Medición 1: DataPusher 0.0.21, el cargador actual (sesión de `odp-docker`, 2026-10-17)**, con
+  `scripts/data/loader-edge-cases.csv` en un dataset privado y descartable. La carga terminó completa: 48 filas, sin
+  corte. Lo que hace con cada caso:
+  - **Corrompe sin avisar (lo grave):**
+    - **(a) Fechas ambiguas leídas como mm/dd:** `03/04/2024` → 4 de marzo, mientras que `15/03/2024` sí sale 15 de
+      marzo. Cada valor se interpreta como le resulta, así que una columna con datos bolivianos (dd/mm) mezcla dos
+      convenciones en silencio.
+    - **(b) Descarta la zona horaria:** `10:30:00-04:00` → `10:30:00`, no `14:30Z`.
+    - **(c) Pierde los ceros a la izquierda:** `0012` → `12`.
+  - **Tipo numérico donde lo ideal sería otro:** `1/0` (booleano), número de serie de Excel (fecha), año suelto e
+    identificadores largos. Los valores no cambian.
+  - **Cae a texto, lo que es conservador:** no rompe nada, pero no sirve como número. Pasa con la coma decimal, los
+    miles (`1.234,56` y `1,234.56`), la moneda, el porcentaje, las unidades, todos los marcadores de nulo (`NA`, `N/A`,
+    `-`, `s/d`), los booleanos salvo `1/0` y los meses en español.
+  - **Bien:** las fechas ISO, `dd/mm/aaaa` cuando no es ambigua y los timestamps sin zona horaria.
+  - **El texto se guarda byte por byte:** no normaliza espacios, NBSP ni NFC/NFD.
+  - **El muestreo no se midió con este archivo:** messytables adivina con una ventana de **1000 filas**
+    (`messytables/commas.py`: `window or 1000`; `datapusher/jobs.py:459`), así que con 48 filas el archivo entero es la
+    muestra. Hace falta un segundo archivo con valores problemáticos después de la fila 1000.
+  **Consecuencia para el producto:** un publicador que suba un CSV con fechas `dd/mm/aaaa` puede terminar con fechas
+  **cambiadas sin aviso**. El CSV de la demo no lo sufre, porque usa fechas ISO. Para `v1`, la salida (preprocesado,
+  tipos fijados por el publicador o cambiar de cargador) se decide con la medición del muestreo delante. Registro
+  crudo, local y no versionado: `odp-docker/odd/tasks/loader-eval.md` y `loader-eval/datapusher-0.0.21-result.json`.
   **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
   demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
