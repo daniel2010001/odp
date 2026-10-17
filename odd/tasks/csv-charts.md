@@ -6,11 +6,11 @@
 
 ## Specs
 
-- **S1 — El pedido, textual (2026-10-16):** *«vamos con ambas, pero como dices, empecemos con los gráficos»*. Lo que
-  «como dices» acepta es la propuesta del agente, también textual: *«En la página de un recurso tabular, el usuario
-  elige el eje X, el eje Y y el tipo de gráfico (barras o líneas). La mitad difícil ya existe: los CSV se cargan al
-  DataStore de CKAN y el portal ya los lee con `datastore_search`, que es lo que alimenta la vista previa de tabla. No
-  hace falta backend nuevo.»*
+- **S1 — El pedido (reescrito el 2026-10-17 por L7 y L10).** Original, textual (2026-10-16): *«vamos con ambas, pero
+  como dices, empecemos con los gráficos»*. Redefinido por el autor en L7: *«como NO es una cosa que el usuario que ve
+  los dataset pueda hacer es mejor tener algo así como una "configuración" ya hecha»*, *«guardar esa config como una
+  vista»*, y la consulta la hace la base: *«armando una query con la info de las X-Y y los rangos»*. **El gráfico es una
+  vista del recurso que configura quien publica y que el visitante sólo ve.**
 - **S2 — El requerimiento de origen, textual (`PRD.md` RF-24):** *«Permite al usuario crear gráficos configurando eje
   X, eje Y y tipo (barras, líneas, pastel).»* El pastel está en el PRD y no en la propuesta aceptada: entra si la
   biblioteca elegida lo da sin costo extra, y si no, se anota como pendiente de `[v1]`.
@@ -23,17 +23,87 @@
 - **S5 — La demo lo muestra (pedido del autor, 2026-10-16):** cuando la feature esté terminada, se suma al guion de la
   presentación (`odd/tasks/backlog-prd-reconciliation.md`, § «El guion de la presentación» y § «Para mencionar en la
   presentación»).
+- **S6 — La arquitectura (decisión del autor, 2026-10-17, textual del rótulo elegido):** *«Plugin de vista + acción
+  propia (Recomendado)»*. En `ckanext-umss` (`odp-docker`): un plugin `IResourceView` llamado `umss_chart` y una acción
+  `umss_chart_data` que agrupa del lado del servidor. **`datastore_search_sql` sigue apagada.** El visitante sólo
+  ejecuta configuraciones que el publicador guardó.
+- **S7 — El alcance de la demo (decisión del autor, 2026-10-17, textual del rótulo elegido):** *«Sí, ese alcance
+  (Recomendado)»*: X de una columna; texto tal cual (unificar mayúsculas es opcional), números por paso, fechas por
+  año, trimestre o mes, y `null` como grupo propio; Y: contar, contar distintos, sumar, promedio, mínimo y máximo;
+  barras, líneas y pastel. Pasan a `v1`: varias columnas en X, día de la semana, década y correos por dominio.
+
+## El contrato entre el portal y `ckanext-umss` (versión 1, 2026-10-17)
+
+> Fuente versionada del contrato: este archivo. El `odd/` de `odp-docker` no se versiona, así que esa sesión lo cita
+> por ruta. Un cambio de contrato se anota en el Log y sube `version`.
+
+**La configuración de la vista** (`resource_view` con `view_type: "umss_chart"`). Claves planas y escalares, porque
+CKAN guarda en `config` sólo lo que el `schema` del plugin declara:
+
+| Clave | Valor | Regla |
+|---|---|---|
+| `version` | `1` | obligatoria |
+| `chart_type` | `bar` · `line` · `pie` | obligatoria |
+| `x_field` | id de una columna de la tabla | obligatoria; tiene que existir en los `fields` del DataStore |
+| `x_bucket` | `value` · `number_step` · `year` · `quarter` · `month` | `number_step` exige una columna `numeric`; `year`/`quarter`/`month`, una `timestamp` |
+| `x_step` | número > 0 | obligatoria sólo con `number_step`; prohibida con el resto |
+| `x_fold_case` | booleano, por defecto `false` | sólo con `value` sobre una columna `text` |
+| `y_agg` | `count` · `count_distinct` · `sum` · `avg` · `min` · `max` | obligatoria |
+| `y_field` | id de una columna | prohibida con `count` (cuenta filas); cualquier tipo con `count_distinct`; `numeric` con `sum`/`avg`/`min`/`max` |
+| `include_null` | booleano, por defecto `true` | si es `true`, las filas con X nulo forman un grupo propio |
+
+El título y la descripción son los campos propios de la vista (`title`, `description`), no de `config`.
+
+**La acción `umss_chart_data`.** Dos formas de llamarla:
+- **Visitante:** `{ "view_id": "<id>" }`. Lee la configuración guardada. Exige poder ver el recurso de la vista (la
+  misma autorización que `resource_view_show`).
+- **Editor, mientras configura:** `{ "resource_id": "<id>", "config": { … } }`. Exige poder **editar** el recurso
+  (`resource_update`). Un visitante sin ese permiso recibe `NotAuthorized` aunque el recurso sea público.
+
+Respuesta:
+
+```json
+{
+  "version": 1,
+  "config": { "…": "la configuración normalizada, con los valores por defecto aplicados" },
+  "groups": [ { "key": "2024-Q1", "value": 1530.5 }, { "key": null, "value": 3 } ],
+  "truncated": false,
+  "total_rows": 12480
+}
+```
+
+- `key` es crudo y el portal lo rotula: `value` devuelve el valor tal cual (en minúsculas si `x_fold_case`);
+  `number_step` devuelve el límite inferior del rango semiabierto `[k, k + x_step)`; `year` → `"2024"`; `quarter` →
+  `"2024-Q1"`; `month` → `"2024-01"`; el grupo nulo → `null`.
+- Orden: por `key` ascendente, con el nulo al final.
+- Topes: como máximo **500 grupos** (`truncated: true` si hubo más) y un **`statement_timeout`** en la consulta.
+- `total_rows`: las filas de la tabla, no las que entraron en grupos.
+- Errores: una configuración inválida es `ValidationError` con la clave culpable (por ejemplo `{"y_field": ["…"]}`);
+  una vista o recurso inexistente es `ObjectNotFound`; sin permiso, `NotAuthorized`; el tope de tiempo vencido es un
+  `ValidationError` con la clave `query`.
+- **Seguridad:** los nombres de columna se validan contra los `fields` del DataStore y se pasan como identificadores
+  con comillas (`psycopg2.sql.Identifier`), nunca concatenados. Los valores van como parámetros. Sólo `date_part`,
+  `date_trunc`, `floor`, `count`, `sum`, `avg`, `min` y `max`.
+
+**El puente del portal** (`src/lib/server/ckan-proxy.ts`): hoy no deja pasar estas acciones. Hay que sumar
+`umss_chart_data` y `resource_view_list` a las de lectura, y `resource_view_create`, `resource_view_update` y
+`resource_view_delete` a las permitidas.
 
 ## Tasks
 
 | ID | Tarea | Specs | Ruta | Commit |
 |---|---|---|---|---|
-| T1 | Comparar dos o tres bibliotecas y que el autor elija — **hecha: LayerChart 2** (L3) | S3 | explore (en segundo plano) + decisión del autor | `1b8ea0b` |
-| T2 | Playground `/dev/resource-chart` con presets (CSV con columnas numéricas, sin columnas numéricas, recurso sin DataStore) — **hecha** (L5) | S1, S2, S4 | worker | `c6fd2df`, `f852f79` |
-| T3 | Revisión del autor en el playground, e iteración | S4 | autor | — |
-| T4 | Promover a la página del recurso, con tests, y borrar el playground | S1, S2, S4 | inline | — |
+| T1 | Comparar bibliotecas y que el autor elija — **hecha: LayerChart 2** (L3) | S3 | explore + autor | `7aee9b1` |
+| T2 | Playground `/dev/resource-chart` — **hecha** (L5); queda como base del formulario del publicador | S4 | worker | `c6fd2df`, `f852f79` |
+| T3 | Revisión del autor — **hecha**: redefinió la feature (L7) y eligió arquitectura y alcance (L10) | S1, S6, S7 | autor | — |
+| O1 | **Prueba primero:** plugin `umss_chart` mínimo; crear una vista y leerla de vuelta con la configuración completa | S6 | sesión `odp-docker` | — |
+| O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error | S6, S7 | sesión `odp-docker` | — |
+| O3 | Verificación independiente de O1 y O2 (toca seguridad) | S6 | sesión `odp-docker` | — |
+| P1 | El puente: sumar las acciones del contrato | S6 | inline | — |
+| P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
+| P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
-| T6 | **Datos para la demo:** al menos un CSV real **subido** y cargado en el DataStore, porque hoy no hay ninguno (L4) | S5 | a decidir con el autor (ver L4) | — |
+| T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore (L4) | S5 | a decidir con el autor | — |
 
 ## Riesgos
 
@@ -146,3 +216,11 @@
      mismo `type_guess`: un año sale `numeric`, una fecha `2024-01-15` sale `timestamp`, y un código `0012` sale
      `numeric` y **pierde los ceros a la izquierda**. Se corrige por columna con `type_override` en el diccionario de
      datos, que obliga a recargar el recurso.
+- **L10 (2026-10-17, decisiones del autor, textual de los rótulos elegidos):** arquitectura: *«Plugin de vista + acción
+  propia (Recomendado)»*; alcance: *«Sí, ese alcance (Recomendado)»*. Y sobre las vistas, textual: «es complicado, las
+  vistas que ckan acepta son pocas, si queremos alguna, como "chart_view", tendríamos que crear un plugin para que ckan
+  lo reconosca, lo intenté en ese proyceto pero no lo pude conseguir, si quieres puedes comprobar esto, quisas en la
+  2.12 es pueda, yo lo prové en la 2.10 hace años.» La regla sigue igual en la 2.12 (L9). Una causa probable del
+  fracaso anterior: CKAN descarta en silencio lo que el `schema` del plugin no declara. Por eso **O1 va primero** y
+  prueba que la vista se guarda y se lee completa antes de construir encima. **El PR #82 no se mergea:** su lógica fila
+  por fila se reemplaza por la agrupación del servidor, y el playground pasa a ser el formulario del publicador.
