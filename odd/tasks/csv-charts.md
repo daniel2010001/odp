@@ -119,6 +119,8 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
+| P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
+| P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -447,3 +449,27 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     `?caso=` a `?case=`.
   - Verificación del padre: 154/154 en la feature, `pnpm check` sin errores, Biome limpio y `200` en `:8082`. El
     worker corrió además la suite completa: 1332/1332.
+- **L28 (2026-10-17, revisión del autor del playground, textual):** «1: no me termina de gustar eso de tener que
+  precionar "vista previa" con cada cambio, hay alguna forma de hacerlo al instante? o algo intermedio? quisas para
+  algunas opciones y para otras no? o recomiendas dejarlo como está? respecto al diseño: no termina de gustarme que esté
+  las opciones arriba del todo y que tengamos que bajar para precionar el visualizar y bajar aun más para ver la vista
+  completa, quisas algo así como un sidebar? o dos columnas? respecto a los gráficos, por ahora creo que con esos 3
+  tipos es suficiente, pero el diseño no termina de gustarme, parece gráficos anticuados o algo así, un poco más de
+  diseño no estaría mal, o no se puede con esta librería de charts? también estuve pensando que algunas plataformas, no
+  necesariamente de este tipo, tienen una forma de poder "consumir" gráficos, algo así como llamarlas con un <iframe/>
+  sabes algo? creo que esto también tenia ckan, o por lo menos recuerdo algo parecido de un plugin de ckan antiguo, no
+  estoy seguro.»
+  **Decisiones del autor (textual de los rótulos elegidos):**
+  1. *«Dos niveles (Recomendado)»*: tipo de gráfico, título y descripción se aplican al instante, sin consulta; las
+     opciones de datos piden la vista previa solas tras ~400 ms sin tocar. Desaparece el botón «Vista previa».
+  2. *«Dos columnas (Recomendado)»*: opciones a la izquierda (~340 px) en dos grupos, Datos y Presentación; el gráfico
+     grande y siempre visible a la derecha; apilado en el teléfono.
+  3. *«Sí, a comparar en el playground (Recomendado)»*: estilo nuevo con barras redondeadas, grilla suave, tooltip como
+     tarjeta, área degradada en las líneas y dona con el total; interruptor «estilo actual / nuevo».
+  4. *«Sí, después de P3 (Recomendado)»*: gráficos insertables por `<iframe>` (`/embed/charts/[viewId]` y un botón
+     «Insertar»), con el bloqueo del *framing* en el resto del portal. Entra en la demo.
+  **Hallazgo de seguridad:** hoy el portal no envía `frame-ancestors` ni `X-Frame-Options` (no aparecen en `src/` ni en
+  la configuración del proxy de `odp-docker`), así que cualquier página del portal se puede meter en un `<iframe>`
+  ajeno. El riesgo es bajo por la cookie `SameSite=Lax`, pero se cierra en P4: el *framing* se bloquea en todo el
+  portal y se permite sólo en `/embed`. Es Risk ítem 2 y lleva verificación independiente.
+  **Tareas nuevas:** P2b (los tres primeros puntos, en el playground, rama `feat/chart-form-live`) y P4 (insertar).
