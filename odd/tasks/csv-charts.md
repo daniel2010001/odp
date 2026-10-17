@@ -114,7 +114,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | T2 | Playground `/dev/resource-chart` — **hecha** (L5); queda como base del formulario del publicador | S4 | worker | `c6fd2df`, `f852f79` |
 | T3 | Revisión del autor — **hecha**: redefinió la feature (L7) y eligió arquitectura y alcance (L10) | S1, S6, S7 | autor | — |
 | O1 | **Prueba primero:** plugin `umss_chart` mínimo; crear una vista y leerla de vuelta con la configuración completa — **hecha** (L11) | S6 | sesión `odp-docker` | `odp-docker` `f02dc78` (rama local `feat/csv-charts`) |
-| O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error — **hecha** (L23) | S6, S7 | sesión `odp-docker` | `odp-docker` `1aae43a` |
+| O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error — **hecha** (L23) | S6, S7 | sesión `odp-docker` | `odp-docker` `1aae43a`; valores no finitos como «sin dato» en `b1a6015` (L23) |
 | O3 | Verificación independiente de O1 y O2 (toca seguridad) — **PASS** (L23) | S6 | sesión `odp-docker` | `odp-docker` `b083f85` (endurecimiento) |
 | P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
