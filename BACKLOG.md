@@ -3024,8 +3024,10 @@ después del cierre que describe el encabezado de esta sección; medición compl
   `odd/tasks/csv-charts.md` L28). No envía `frame-ancestors` ni `X-Frame-Options`: no aparecen en `src/` ni en la
   configuración del proxy de `odp-docker`. El riesgo práctico es bajo, porque la cookie de sesión es `SameSite=Lax` y
   no viaja a un `<iframe>` de otro sitio, pero es una protección estándar que falta. **Se cierra con P4 de
-  `csv-charts`:** se bloquea el *framing* en todo el portal y se permite sólo en `/embed`, con verificación
-  independiente.
+  `csv-charts`:** se bloquea el *framing* en todo lo que sirve SvelteKit y se permite sólo en `/embed`, con
+  verificación independiente. **No cubre `/api/`:** esas respuestas las sirve CKAN a través de `frontend-proxy`, no
+  SvelteKit. Es JSON y no se dibuja en un `<iframe>`, así que no importa. El proxy no agrega ni borra cabeceras de
+  *framing*; lo midió la sesión de `odp-docker` el 2026-10-17 (`csv-charts` L30).
 
 - [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
   dedicada sobre la superficie del portal y su frontera con CKAN — **no** un ítem por síntoma. Es un

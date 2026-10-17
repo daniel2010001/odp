@@ -479,3 +479,11 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   con prioridad y evidencia. Para la demo: reconstruir la imagen de `frontend-dev`, el despliegue para presentar y
   medir las cabeceras del proxy para P4. Para `v1`: el cargador, los colaboradores, el runtime de Node, el `draft` y
   los riesgos heredados. No hace falta una vista por defecto ni permisos nuevos.
+- **L30 (2026-10-17, medición de la sesión de `odp-docker` para P4, sólo lectura):** `frontend-proxy` **no agrega ni
+  borra** `X-Frame-Options` ni `Content-Security-Policy`, ni en dev ni en prod. En `nginx.conf` y `dev-nginx.conf` no
+  hay `add_header`, `proxy_hide_header` ni `include` relacionados. `nginx -T` sobre el contenedor vivo da lo mismo. Por
+  `:8082`, `/`, `/dev/resource-chart` y `/api/3/action/status_show` responden sin ninguna de las dos cabeceras. **Lo que
+  ponga el portal desde los hooks llega intacto.** Dos precisiones: (1) el nginx propio de CKAN
+  (`ckan-docker/nginx/setup/nginx.conf:34`) sí pone `X-Frame-Options: SAMEORIGIN`, pero en su propio puerto SSL, fuera
+  del camino del portal; (2) los hooks de SvelteKit **no cubren `/api/`**, que sirve CKAN a través del proxy. Es JSON,
+  así que no importa, pero el alcance de P4 se escribe como «lo que sirve SvelteKit», no como «todo».
