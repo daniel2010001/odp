@@ -487,3 +487,15 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   (`ckan-docker/nginx/setup/nginx.conf:34`) sí pone `X-Frame-Options: SAMEORIGIN`, pero en su propio puerto SSL, fuera
   del camino del portal; (2) los hooks de SvelteKit **no cubren `/api/`**, que sirve CKAN a través del proxy. Es JSON,
   así que no importa, pero el alcance de P4 se escribe como «lo que sirve SvelteKit», no como «todo».
+- **L31 (2026-10-17, P2b entregada y verificada):** en el playground:
+  - **Vista previa en dos niveles:** el tipo de gráfico redibuja al instante, sin consulta; las opciones de datos
+    consultan solas a los 400 ms del último cambio, y una respuesta vieja se descarta. Mientras carga, el gráfico
+    anterior queda atenuado, con `aria-busy` y un texto de estado. «Guardar» depende de `canonicalDataKey`, la
+    identidad de los datos sin el tipo de gráfico.
+  - **Dos columnas:** opciones de 340 px agrupadas en Datos y Presentación, y el gráfico `sticky`. Sin scroll
+    horizontal a 375 px.
+  - **Estilo «Nuevo»** detrás de una prop (`variant`), con el interruptor «Actual / Nuevo» al lado del gráfico.
+  El padre verificó 133/133 en la feature, `pnpm check` sin errores, Biome limpio y `200`; el worker corrió la suite
+  completa (1342) y el build. **No se verificó a ojo:** el aspecto del estilo nuevo (sólo se midió el DOM y los
+  estilos computados con Chromium), el modo oscuro, los tooltips de líneas y dona, y que las animaciones se apaguen
+  con `prefers-reduced-motion`. Eso queda para la revisión del autor.
