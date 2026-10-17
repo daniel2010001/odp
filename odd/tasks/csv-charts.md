@@ -473,3 +473,9 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   ajeno. El riesgo es bajo por la cookie `SameSite=Lax`, pero se cierra en P4: el *framing* se bloquea en todo el
   portal y se permite sólo en `/embed`. Es Risk ítem 2 y lleva verificación independiente.
   **Tareas nuevas:** P2b (los tres primeros puntos, en el playground, rama `feat/chart-form-live`) y P4 (insertar).
+- **L29 (2026-10-17, `odp-docker`):** el **PR #26 de `odp-docker` está mergeado** (`d7c665d`), así que las acciones
+  `umss_chart` y `umss_chart_data` ya están en su `master`. El PR #27 arregla `bin/test-umss` (el esquema del DataStore
+  en `datastore_test`). A pedido del autor, se le pasó a esa sesión la lista de pendientes que dependen de su repo,
+  con prioridad y evidencia. Para la demo: reconstruir la imagen de `frontend-dev`, el despliegue para presentar y
+  medir las cabeceras del proxy para P4. Para `v1`: el cargador, los colaboradores, el runtime de Node, el `draft` y
+  los riesgos heredados. No hace falta una vista por defecto ni permisos nuevos.
