@@ -2986,12 +2986,32 @@ después del cierre que describe el encabezado de esta sección; medición compl
   esa «edición» incluye los recursos.
 
 - [ ] **[v1] Evaluar un cargador del DataStore que normalice valores** (pedido del autor, 2026-10-17, en
-  `odd/tasks/csv-charts.md` L14). Hoy corre DataPusher 0.0.21. Infiere `numeric`, `timestamp` y `text`, pero no
-  normaliza booleanos («1/0», «true/false», «sí/no») y pierde los ceros a la izquierda de un código (L9). El autor
-  recuerda haber usado en otro proyecto uno que sí normalizaba, quizás xloader. **A medir antes de decidir:** xloader
-  carga todo como texto salvo que se fijen los tipos en el diccionario de datos, así que el candidato más probable es
-  **DataPusher+** (`datapusher-plus`), que infiere tipos y normaliza fechas. Es una decisión de infraestructura de
-  `odp-docker`.
+  `odd/tasks/csv-charts.md` L14; ampliado el mismo día). **Estado: nada hecho todavía, ni medido.** Lo verificado en las
+  fuentes (README de `ckanext-xloader`, `datapusher/jobs.py`, issue de CKAN #5769, README de `datapusher-plus` y
+  documentación de `qsv stats`):
+  - **DataPusher** (el actual, 0.0.21) adivina el tipo con las primeras filas. Si una columna numérica trae un «N/A»
+    más abajo, **la carga se corta a mitad**. La coma decimal depende del *locale* del servidor (#5769), no detecta
+    booleanos y pierde los ceros a la izquierda (L9).
+  - **xloader** copia todo **como texto** con `COPY`; los tipos los fija después quien administra, en el diccionario
+    de datos. Es lo más probable de lo que el autor recuerda de la 2.10: no normaliza por sí mismo.
+  - **DataPusher+** infiere tipos sobre todo el archivo con `qsv`: fechas en 19 formatos (sólo en columnas cuyo nombre
+    coincide con un patrón; sin zona horaria asume UTC) y booleanos sólo si hay exactamente 2 valores que empiezan por
+    `0/1`, `t/f` o `y/n` (**«sí/no» no**). La coma decimal es una opción nueva y opcional (PR #319/#320). Es el
+    candidato más fuerte, pero no lo resuelve todo.
+  **Casos borde a contemplar** (propuestos por el autor y por el agente): (1) números con formato local: `1,5`,
+  `1.234,56` frente a `1,234.56`; (2) números con moneda, porcentaje o unidades; (3) booleanos `1/0`, `true/false`,
+  `sí/no`, `S/N`, `X`; (4) fechas `dd/mm` frente a `mm/dd`, meses en texto, número de serie de Excel, fechas parciales,
+  inválidas y zona horaria; (5) marcas de «sin dato» (`NA`, `N/A`, `-`, `s/d`); (6) texto: espacios, mayúsculas,
+  tildes, espacios no separables, NFC/NFD; (7) códigos con ceros a la izquierda; (8) identificadores numéricos
+  grandes (CI, teléfonos); (9) columnas mixtas; (10) codificación Latin-1/Windows-1252, BOM y separador `;`;
+  (11) encabezados duplicados, vacíos, de más de 63 caracteres o con filas de título antes; (12) Excel con varias
+  hojas, celdas combinadas y fórmulas.
+  **Dónde se resuelve cada uno:** el cargador (1, 3, 4, 7, 8, 9); una **pantalla del portal para corregir tipos** en
+  el diccionario de datos (`type_override`), que hoy no existe; avisos del portal **antes de subir** (10, 11); y la
+  consulta del gráfico, que ya cubre vacíos y mayúsculas.
+  **Propuesta:** primero **medir**. Un CSV determinista de casos borde, una columna por caso, subido al CKAN dev, para
+  anotar qué hace hoy el DataPusher; después repetir con DataPusher+ y comparar. La elección del cargador es de
+  `odp-docker`. **No bloquea la demo:** su CSV carga bien con el DataPusher actual.
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
   generador arma palabras y oraciones, un randomizador produce números y fechas, y una inserción por lotes con un ORM
   de TypeScript (cree que Drizzle) cargaba ~3 millones de filas en 30 minutos. Ofreció buscarlo en su backup de
