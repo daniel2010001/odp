@@ -83,7 +83,12 @@ Respuesta:
   `ValidationError` con la clave `query`.
 - **Seguridad:** los nombres de columna se validan contra los `fields` del DataStore y se pasan como identificadores
   con comillas (`psycopg2.sql.Identifier`), nunca concatenados. Los valores van como parámetros. Sólo `date_part`,
-  `date_trunc`, `floor`, `lower`, `count`, `sum`, `avg`, `min` y `max` (`lower` sumada en L11, para `x_fold_case`).
+  `date_trunc`, `floor`, `lower`, `btrim`, `count`, `sum`, `avg`, `min` y `max` (`lower` sumada en L11, para
+  `x_fold_case`; `btrim` en L17).
+- **Vacíos en columnas de texto (L17):** el DataStore guarda `''` tal cual en una columna `text` (sólo lo convierte en
+  `NULL` en las demás). En el contrato, **una cadena vacía o de sólo espacios en una columna de texto es «sin dato»**:
+  en la clave de X cae en el grupo nulo (al final, y respeta `include_null`), y en `count_distinct` no cuenta como un
+  valor. En SQL: `NULLIF(btrim(col), '')`.
 - **Precisiones de L11 (sin cambio de formato, sigue `version: 1`):** al **leer**, las claves de la configuración vienen
   en el **nivel superior** de la vista (`view.chart_type`), no bajo `view.config`; al **escribir**, van planas en el
   cuerpo de `resource_view_create`/`update` (un `config` anidado se rechaza). Una clave no declarada da
@@ -306,3 +311,14 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   rechazada de los dos lados. Se le pidió a la sesión de `odp-docker` que mida la tabla de nombres reportados. El
   portal se ajusta con esa medición; hasta entonces queda igual que el servidor. La demo no se ve afectada, porque
   DataPusher usa `numeric`, `timestamp` y `text`.
+- **L17 (2026-10-17, medición de la sesión de `odp-docker` y una regla nueva del contrato):** **corrección de L16:** no
+  hay discrepancia de tipos. `fields` informa el `typname` de Postgres (`int` declarado → `int4`, `float` → `float8`,
+  `bigint` → `int8`, `double precision` → `float8`). La única excepción es `_id`, al que CKAN le pone `int` a mano
+  (`ckanext/datastore/backend/postgres.py:206`), y que L12 ya excluye. Las familias de L11 estaban bien y el portal no
+  cambia. **Regla nueva:** en el recurso real, `turno` tiene 76 cadenas vacías y 0 `NULL`, porque el DataStore sólo
+  convierte `''` en `NULL` fuera de las columnas `text` (`postgres.py:1207`). Con el contrato anterior, los vacíos
+  salían como un grupo `""` ordenado primero, que `include_null: false` no sacaba. Decisión del padre, por ser
+  semántica del contrato y en línea con lo que pidió el autor en L7 («si era posible null también»): **en texto,
+  vacío o sólo espacios es «sin dato»**, en la clave de X y en `count_distinct`. Sigue `version: 1`, porque la forma
+  no cambia. `btrim` se suma a las funciones; esa lista es una regla propia de la acción, no la de
+  `datastore_search_sql`, que sigue apagada.
