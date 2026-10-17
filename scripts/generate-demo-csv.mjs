@@ -90,7 +90,7 @@ function makeRandom(seed) {
 
 // ── Catálogos ficticios ──
 
-const NOMBRES = [
+const FIRST_NAMES = [
 	"José",
 	"María",
 	"Juan",
@@ -143,7 +143,7 @@ const NOMBRES = [
 	"Roxana",
 ];
 
-const APELLIDOS = [
+const LAST_NAMES = [
 	"Quispe",
 	"Mamani",
 	"Flores",
@@ -230,7 +230,7 @@ const APELLIDOS = [
 ];
 
 /** Los nueve departamentos, con Cochabamba sobrerrepresentada (sede de la UMSS). */
-const DEPARTAMENTOS = [
+const DEPARTMENTS = [
 	["Cochabamba", 30],
 	["La Paz", 22],
 	["Santa Cruz", 18],
@@ -242,7 +242,7 @@ const DEPARTAMENTOS = [
 	["Pando", 3],
 ];
 
-const FACULTADES = [
+const FACULTIES = [
 	["Ciencias y Tecnología", 22],
 	["Ciencias Económicas", 16],
 	["Ciencias Jurídicas y Políticas", 14],
@@ -254,7 +254,7 @@ const FACULTADES = [
 ];
 
 /** Cargos con cola larga a propósito: los raros son pocos y pagan más por hora. */
-const CARGOS = [
+const POSITIONS = [
 	["Docente auxiliar", 34],
 	["Docente adjunto", 22],
 	["Docente asociado", 16],
@@ -268,7 +268,7 @@ const CARGOS = [
 ];
 
 /** Rango de bs/hora por cargo: el salario es el producto, así que el cargo manda. */
-const BS_HORA_POR_CARGO = {
+const HOURLY_RATE_BY_POSITION = {
 	"Docente auxiliar": [52, 68],
 	"Docente adjunto": [68, 84],
 	"Docente asociado": [82, 100],
@@ -281,25 +281,25 @@ const BS_HORA_POR_CARGO = {
 	Decano: [130, 160],
 };
 
-const TURNOS = [
+const SHIFTS = [
 	["mañana", 52],
 	["tarde", 33],
 	["noche", 15],
 ];
 
 /** Horas al mes por turno: los valores se agrupan por turno (ejemplo del autor, L7). */
-const HORAS_POR_TURNO = {
+const HOURS_BY_SHIFT = {
 	mañana: [88, 120],
 	tarde: [64, 92],
 	noche: [36, 60],
 };
 /** Sin turno declarado las horas quedan dispersas, para que el grupo `null` no engañe. */
-const HORAS_SIN_TURNO = [40, 110];
+const HOURS_WITHOUT_SHIFT = [40, 110];
 
-const PROB_TURNO_VACIO = 0.03;
-const PROB_FECHA_VACIA = 0.02;
-const ANIO_MIN = 1995;
-const ANIO_MAX = 2025;
+const PROB_EMPTY_SHIFT = 0.03;
+const PROB_EMPTY_HIRE_DATE = 0.02;
+const MIN_YEAR = 1995;
+const MAX_YEAR = 2025;
 
 const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
 
@@ -307,12 +307,12 @@ function daysInMonth(year, month) {
 	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-function fechaIngreso(rnd) {
+function randomHireDate(rnd) {
 	// Pesos crecientes: más ingresos recientes, pero ningún año queda vacío (los buckets
 	// por año del contrato necesitan serie, no un montón).
 	const years = [];
-	for (let year = ANIO_MIN; year <= ANIO_MAX; year++) {
-		years.push([year, 1 + (year - ANIO_MIN) * 0.3]);
+	for (let year = MIN_YEAR; year <= MAX_YEAR; year++) {
+		years.push([year, 1 + (year - MIN_YEAR) * 0.3]);
 	}
 	const year = rnd.weighted(years);
 	const month = rnd.int(1, 12);
@@ -325,7 +325,7 @@ function fechaIngreso(rnd) {
  * el CSV lleva y lo que el DataStore devuelve: el salario se calcula acá, una sola vez.
  */
 export function generateRows({ seed = DEFAULT_SEED, count = ROW_COUNT } = {}) {
-	const pool = NOMBRES.length * APELLIDOS.length;
+	const pool = FIRST_NAMES.length * LAST_NAMES.length;
 	if (count > pool) {
 		throw new Error(`count ${count} supera las ${pool} combinaciones de nombre+apellido.`);
 	}
@@ -335,33 +335,33 @@ export function generateRows({ seed = DEFAULT_SEED, count = ROW_COUNT } = {}) {
 	const rows = [];
 
 	for (let i = 1; i <= count; i++) {
-		let nombre;
-		let apellido;
+		let firstName;
+		let lastName;
 		do {
-			nombre = rnd.pick(NOMBRES);
-			apellido = rnd.pick(APELLIDOS);
-		} while (people.has(`${nombre} ${apellido}`));
-		people.add(`${nombre} ${apellido}`);
+			firstName = rnd.pick(FIRST_NAMES);
+			lastName = rnd.pick(LAST_NAMES);
+		} while (people.has(`${firstName} ${lastName}`));
+		people.add(`${firstName} ${lastName}`);
 
-		const cargo = rnd.weighted(CARGOS);
-		const turno = rnd.chance(PROB_TURNO_VACIO) ? "" : rnd.weighted(TURNOS);
-		const [horasMin, horasMax] = turno ? HORAS_POR_TURNO[turno] : HORAS_SIN_TURNO;
-		const horasMes = rnd.int(horasMin, horasMax);
-		const [bsMin, bsMax] = BS_HORA_POR_CARGO[cargo];
-		const bsHora = rnd.int(Math.round(bsMin * 100), Math.round(bsMax * 100)) / 100;
+		const position = rnd.weighted(POSITIONS);
+		const shift = rnd.chance(PROB_EMPTY_SHIFT) ? "" : rnd.weighted(SHIFTS);
+		const [minHours, maxHours] = shift ? HOURS_BY_SHIFT[shift] : HOURS_WITHOUT_SHIFT;
+		const monthlyHours = rnd.int(minHours, maxHours);
+		const [minRate, maxRate] = HOURLY_RATE_BY_POSITION[position];
+		const hourlyRate = rnd.int(Math.round(minRate * 100), Math.round(maxRate * 100)) / 100;
 
 		rows.push({
 			n: String(i),
-			nombre,
-			apellido,
-			departamento: rnd.weighted(DEPARTAMENTOS),
-			facultad: rnd.weighted(FACULTADES),
-			cargo,
-			turno,
-			horas_mes: String(horasMes),
-			bs_hora: bsHora.toFixed(2),
-			salario: round2(horasMes * bsHora).toFixed(2),
-			fecha_ingreso: rnd.chance(PROB_FECHA_VACIA) ? "" : fechaIngreso(rnd),
+			nombre: firstName,
+			apellido: lastName,
+			departamento: rnd.weighted(DEPARTMENTS),
+			facultad: rnd.weighted(FACULTIES),
+			cargo: position,
+			turno: shift,
+			horas_mes: String(monthlyHours),
+			bs_hora: hourlyRate.toFixed(2),
+			salario: round2(monthlyHours * hourlyRate).toFixed(2),
+			fecha_ingreso: rnd.chance(PROB_EMPTY_HIRE_DATE) ? "" : randomHireDate(rnd),
 		});
 	}
 

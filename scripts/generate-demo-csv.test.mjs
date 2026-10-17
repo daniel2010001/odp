@@ -107,14 +107,14 @@ test("la cabecera es la del contrato y hay exactamente ROW_COUNT filas", () => {
 
 test("salario es horas_mes * bs_hora redondeado a centavos, en toda fila", () => {
 	for (const row of rows) {
-		const horas = Number(row.horas_mes);
-		const bs = Number(row.bs_hora);
-		const salario = Number(row.salario);
-		assert.ok(Number.isFinite(horas) && horas > 0, `horas_mes inválido en n=${row.n}`);
-		assert.ok(Number.isFinite(bs) && bs > 0, `bs_hora inválido en n=${row.n}`);
+		const hours = Number(row.horas_mes);
+		const hourlyRate = Number(row.bs_hora);
+		const salary = Number(row.salario);
+		assert.ok(Number.isFinite(hours) && hours > 0, `horas_mes inválido en n=${row.n}`);
+		assert.ok(Number.isFinite(hourlyRate) && hourlyRate > 0, `bs_hora inválido en n=${row.n}`);
 		assert.match(row.bs_hora, /^\d+\.\d{2}$/, `bs_hora sin 2 decimales en n=${row.n}`);
 		assert.match(row.salario, /^\d+\.\d{2}$/, `salario sin 2 decimales en n=${row.n}`);
-		assert.equal(salario, round2(horas * bs), `salario no cierra en n=${row.n}`);
+		assert.equal(salary, round2(hours * hourlyRate), `salario no cierra en n=${row.n}`);
 	}
 });
 
@@ -125,10 +125,13 @@ test("turno tiene exactamente tres valores más el vacío", () => {
 
 test("las tasas de vacíos son las del grupo null: ~3% turno, ~2% fecha_ingreso", () => {
 	const rate = (column) => rows.filter((row) => row[column] === "").length / rows.length;
-	const turno = rate("turno");
-	const fecha = rate("fecha_ingreso");
-	assert.ok(turno >= 0.02 && turno <= 0.04, `turno vacío fuera de banda: ${turno}`);
-	assert.ok(fecha >= 0.01 && fecha <= 0.03, `fecha_ingreso vacío fuera de banda: ${fecha}`);
+	const shift = rate("turno");
+	const hireDate = rate("fecha_ingreso");
+	assert.ok(shift >= 0.02 && shift <= 0.04, `turno vacío fuera de banda: ${shift}`);
+	assert.ok(
+		hireDate >= 0.01 && hireDate <= 0.03,
+		`fecha_ingreso vacío fuera de banda: ${hireDate}`,
+	);
 
 	// Ninguna otra columna trae vacíos: los datos faltantes son deliberados y acotados.
 	for (const column of COLUMNS) {

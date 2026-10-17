@@ -33,13 +33,13 @@ const DATA = {
 };
 
 /** Cliente falso: registra la acción y el payload de cada llamada. */
-function makeClient(respuesta: unknown = {}) {
-	const post = vi.fn().mockResolvedValue(respuesta);
+function makeClient(response: unknown = {}) {
+	const post = vi.fn().mockResolvedValue(response);
 	return { client: { post } as unknown as CkanClient, post };
 }
 
-function callDe(post: ReturnType<typeof makeClient>["post"], indice = 0) {
-	const [action, payload] = post.mock.calls[indice] as [string, Record<string, unknown>];
+function callAt(post: ReturnType<typeof makeClient>["post"], index = 0) {
+	const [action, payload] = post.mock.calls[index] as [string, Record<string, unknown>];
 	return { action, payload };
 }
 
@@ -76,12 +76,12 @@ describe("createChartApi.listViews", () => {
 			},
 		]);
 
-		const vistas = await createChartApi(client).listViews("res-1");
+		const views = await createChartApi(client).listViews("res-1");
 
-		const { action, payload } = callDe(post);
+		const { action, payload } = callAt(post);
 		expect(action).toBe("resource_view_list");
 		expect(payload).toEqual({ id: "res-1" });
-		expect(vistas).toEqual([
+		expect(views).toEqual([
 			{
 				id: "v1",
 				resource_id: "res-1",
@@ -122,12 +122,12 @@ describe("createChartApi.listViews", () => {
 			},
 		]);
 
-		const [vista] = await createChartApi(client).listViews("res-1");
+		const [view] = await createChartApi(client).listViews("res-1");
 
-		expect(vista?.config.chart_type).toBe("line");
-		expect(vista?.config.x_step).toBeUndefined();
-		expect(vista?.config).not.toHaveProperty("plugin");
-		expect(vista?.config).not.toHaveProperty("order");
+		expect(view?.config.chart_type).toBe("line");
+		expect(view?.config.x_step).toBeUndefined();
+		expect(view?.config).not.toHaveProperty("plugin");
+		expect(view?.config).not.toHaveProperty("order");
 	});
 });
 
@@ -135,12 +135,12 @@ describe("createChartApi.data", () => {
 	it("pide umss_chart_data con view_id (la forma del visitante)", async () => {
 		const { client, post } = makeClient(DATA);
 
-		const resultado = await createChartApi(client).data("v1");
+		const result = await createChartApi(client).data("v1");
 
-		const { action, payload } = callDe(post);
+		const { action, payload } = callAt(post);
 		expect(action).toBe("umss_chart_data");
 		expect(payload).toEqual({ view_id: "v1" });
-		expect(resultado).toEqual(DATA);
+		expect(result).toEqual(DATA);
 	});
 });
 
@@ -148,12 +148,12 @@ describe("createChartApi.preview", () => {
 	it("pide umss_chart_data con resource_id y config (la forma del editor)", async () => {
 		const { client, post } = makeClient(DATA);
 
-		const resultado = await createChartApi(client).preview("res-1", CONFIG);
+		const result = await createChartApi(client).preview("res-1", CONFIG);
 
-		const { action, payload } = callDe(post);
+		const { action, payload } = callAt(post);
 		expect(action).toBe("umss_chart_data");
 		expect(payload).toEqual({ resource_id: "res-1", config: CONFIG });
-		expect(resultado.groups).toEqual(DATA.groups);
+		expect(result.groups).toEqual(DATA.groups);
 	});
 });
 
@@ -168,14 +168,14 @@ describe("createChartApi.createView", () => {
 			...CONFIG,
 		});
 
-		const vista = await createChartApi(client).createView(
+		const view = await createChartApi(client).createView(
 			"res-1",
 			"Empleo por turno",
 			"Descripción",
 			CONFIG,
 		);
 
-		const { action, payload } = callDe(post);
+		const { action, payload } = callAt(post);
 		expect(action).toBe("resource_view_create");
 		// La config va **plana**: CKAN sólo guarda en `config` lo que el `schema` del plugin declara, y eso
 		// es lo que el plugin lee del payload de la acción.
@@ -192,8 +192,8 @@ describe("createChartApi.createView", () => {
 		});
 		expect(payload).not.toHaveProperty("config");
 		// Y la respuesta, que también llega plana, se devuelve tipada como el resto.
-		expect(vista.id).toBe("v1");
-		expect(vista.config.chart_type).toBe("bar");
+		expect(view.id).toBe("v1");
+		expect(view.config.chart_type).toBe("bar");
 	});
 });
 
@@ -208,13 +208,13 @@ describe("createChartApi.updateView", () => {
 			...CONFIG,
 		});
 
-		const vista = await createChartApi(client).updateView("v1", {
+		const view = await createChartApi(client).updateView("v1", {
 			title: "Otro título",
 			description: "Otra descripción",
 			config: CONFIG,
 		});
 
-		const { action, payload } = callDe(post);
+		const { action, payload } = callAt(post);
 		expect(action).toBe("resource_view_update");
 		expect(payload).toEqual({
 			id: "v1",
@@ -226,7 +226,7 @@ describe("createChartApi.updateView", () => {
 			x_bucket: "value",
 			y_agg: "count",
 		});
-		expect(vista.config.x_field).toBe("departamento");
+		expect(view.config.x_field).toBe("departamento");
 	});
 });
 
@@ -236,7 +236,7 @@ describe("createChartApi.deleteView", () => {
 
 		await createChartApi(client).deleteView("v1");
 
-		const { action, payload } = callDe(post);
+		const { action, payload } = callAt(post);
 		expect(action).toBe("resource_view_delete");
 		expect(payload).toEqual({ id: "v1" });
 	});

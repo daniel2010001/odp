@@ -73,8 +73,8 @@ describe("la allowlist del proxy — atada al código real", () => {
 
 	it("y al revés: toda acción permitida la usa la capa de cliente (sin permisos de más)", () => {
 		const usadas = accionesQueLaCapaDeClienteUsa();
-		const sobrantes = ALLOWED_ACTIONS.filter((accion) => !usadas.has(accion));
-		expect(sobrantes).toEqual([]);
+		const unused = ALLOWED_ACTIONS.filter((action) => !usadas.has(action));
+		expect(unused).toEqual([]);
 	});
 
 	it("las lecturas de los gráficos viajan sólo por POST: el cliente no las pide con GET", () => {
@@ -157,9 +157,9 @@ describe("la allowlist del proxy — la partición lectura/escritura", () => {
 	it("los tres mutadores de las vistas de gráfico NO son de lectura: se piden con POST", () => {
 		// El par de lectura de la feature es `umss_chart_data` + `resource_view_list`; crear, actualizar y
 		// borrar una vista cambian el catálogo, así que ni siquiera son alcanzables con un `GET`.
-		for (const accion of ["resource_view_create", "resource_view_update", "resource_view_delete"]) {
-			expect(isAllowedAction(accion)).toBe(true);
-			expect(isReadAction(accion)).toBe(false);
+		for (const action of ["resource_view_create", "resource_view_update", "resource_view_delete"]) {
+			expect(isAllowedAction(action)).toBe(true);
+			expect(isReadAction(action)).toBe(false);
 		}
 	});
 });
