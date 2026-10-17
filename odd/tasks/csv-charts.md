@@ -283,3 +283,14 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   `umss_chart_data`. (3) **T6 en marcha:** generador determinista + subida de un CSV real desde el seed, en un worker.
   La ingesta masiva (millones de filas, el método del autor con Drizzle) es otro tema y va al `BACKLOG`; no se busca
   ahora en el backup.
+- **L15 (2026-10-17, T6: el CSV está y el seed estaba roto en una instalación nueva):** el CSV ya está en el repo
+  (`d4597d5`): `scripts/data/planilla-docente-ficticia.csv`, con 2.500 filas y sha256 `186e531d…`. Lo produce un
+  generador determinista, y el padre verificó que dos corridas dan el mismo archivo y que los 12 tests de
+  `node --test` pasan. El promedio de salario por turno separa bien las barras: mañana 8.496,75, tarde 6.217,84 y
+  noche 3.986,38. **La primera carga en el CKAN dev falló:** `package_create` con `private: false` →
+  `403 "Publication flow: publication goes through the publication flow"`. La pared de publicación rechaza un
+  dataset creado ya público, sea quien sea el que lo pide. **Consecuencia más amplia:** el seed entero estaba roto
+  para una instalación nueva, y sus 17 datasets sólo existen porque se crearon antes de la pared. Eso importa para
+  desplegar la demo en otra infraestructura. **Corrección en curso:** el seed crea privado y publica por el flujo,
+  con solicitud y aprobación. `ckan_admin` es el único miembro de `rectorado`, así que aplica la excepción `c′`.
+  Token de la corrida: efímero, creado por la CLI y revocado (la lista da 0 restantes).
