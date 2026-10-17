@@ -3012,6 +3012,8 @@ después del cierre que describe el encabezado de esta sección; medición compl
   **Propuesta:** primero **medir**. Un CSV determinista de casos borde, una columna por caso, subido al CKAN dev, para
   anotar qué hace hoy el DataPusher; después repetir con DataPusher+ y comparar. La elección del cargador es de
   `odp-docker`. **No bloquea la demo:** su CSV carga bien con el DataPusher actual.
+  **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
+  demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
   generador arma palabras y oraciones, un randomizador produce números y fechas, y una inserción por lotes con un ORM
   de TypeScript (cree que Drizzle) cargaba ~3 millones de filas en 30 minutos. Ofreció buscarlo en su backup de

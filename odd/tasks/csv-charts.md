@@ -402,3 +402,18 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   **Riesgos heredados de CKAN**, los mismos que `datastore_search`: un miembro de la organización puede graficar un
   dataset borrado de forma lógica, porque la tabla del DataStore sobrevive, y nada verifica que `read_url` y
   `write_url` sean distintos. Registro local del otro lado: `odp-docker/odd/tasks/csv-charts-umss.md` (L1–L11).
+- **L24 (2026-10-17, decisiones del autor, textual):** «1: después, pero anota para hacerlo para v1, mientras más antes
+  mejor, quisas luego de terminar esto de los gráficos para mostrar en la demo los resultados. 2: hazo, lo que
+  recomiendes. 3: si, puedes decirle que lo haga. si todo ok podemos hacerlo».
+  - (1) La medición de casos borde del cargador queda en el `BACKLOG`, para después de los gráficos y antes de la demo
+    si se puede.
+  - (2) **Corte de entrega en tres PRs:**
+    - **PR A = #83** (`feat/demo-seed-data`, desde `main`): el generador, el CSV y el seed por el flujo. No depende de
+      nada más. Se armó en un worktree aparte, porque un worker ocupaba el árbol principal. El commit usó
+      `--no-verify` porque el worktree no tiene `node_modules`; Biome se corrió a mano y salió limpio.
+    - **PR B** (desde `main`): el contrato en tipos, el cliente de la API y el puente. Se arma cuando termine el worker
+      que renombra `contract.ts`.
+    - **PR C = #82** (`feat/csv-charts`): la interfaz. Cuando A y B estén en `main`, se trae `main` a la rama y el #82
+      queda sólo con la interfaz.
+  - (3) Push y PR de `odp-docker` autorizados; la sesión de `odp-docker` los hace, y el merge sigue siendo decisión del
+    autor.
