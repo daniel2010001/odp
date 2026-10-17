@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import type { DatastoreField } from "$lib/api/datastore";
 import {
 	canonicalConfigKey,
+	canonicalDataKey,
 	chartConfigFromDraft,
 	emptyChartDraft,
 	reconcileChartDraft,
@@ -222,5 +223,38 @@ describe("canonicalConfigKey — la configuración que se previsualizó", () => 
 
 	it("una configuración ausente no tiene clave", () => {
 		expect(canonicalConfigKey(null)).toBeNull();
+	});
+});
+
+describe("canonicalDataKey — los datos que hay que pedirle al servidor", () => {
+	const base = {
+		version: 1,
+		chart_type: "bar" as const,
+		x_field: "turno",
+		x_bucket: "value" as const,
+		x_fold_case: false,
+		y_agg: "count" as const,
+		include_null: true,
+	};
+
+	// La vista previa se pide por los datos; el tipo de gráfico, el título y la descripción se aplican sin
+	// consulta (L28, decisión 1), así que no pueden formar parte de esta clave.
+	it("el tipo de gráfico no cambia los datos que se piden", () => {
+		expect(canonicalDataKey({ ...base, chart_type: "line" })).toBe(canonicalDataKey(base));
+		expect(canonicalDataKey({ ...base, chart_type: "pie" })).toBe(canonicalDataKey(base));
+	});
+
+	it("cada opción de datos sí cambia la clave", () => {
+		const key = canonicalDataKey(base);
+
+		expect(canonicalDataKey({ ...base, x_field: "cargo" })).not.toBe(key);
+		expect(canonicalDataKey({ ...base, x_bucket: "number_step", x_step: 100 })).not.toBe(key);
+		expect(canonicalDataKey({ ...base, x_fold_case: true })).not.toBe(key);
+		expect(canonicalDataKey({ ...base, y_agg: "sum", y_field: "salario" })).not.toBe(key);
+		expect(canonicalDataKey({ ...base, include_null: false })).not.toBe(key);
+	});
+
+	it("una configuración ausente no tiene clave", () => {
+		expect(canonicalDataKey(null)).toBeNull();
 	});
 });

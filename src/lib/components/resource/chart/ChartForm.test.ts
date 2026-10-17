@@ -1,20 +1,38 @@
 // Contrato del formulario del publicador, montado solo: es la pieza que el autor revisa en el playground y la
 // que después vive en la página real.
 //
-// Lo que se fija acá no es cómo se ve, es lo que **promete**: que «Guardar» no se habilita hasta que la
-// vista previa de esta mismísima configuración salió bien (precisión de L11), que un cambio posterior la
-// vuelve a deshabilitar, y que un rechazo del servidor aparece en el campo que lo causó en vez de en un
-// mensaje genérico.
+// Lo que se fija acá no es cómo se ve, es lo que **promete**:
+//  · la vista previa tiene **dos niveles** (L28, decisión 1): la presentación se aplica al instante sin
+//    consulta y las opciones de datos piden la vista previa solas tras una pausa corta;
+//  · la respuesta vieja se descarta, y mientras se calcula el gráfico anterior sigue a la vista, atenuado y
+//    anunciado como ocupado;
+//  · «Guardar» no se habilita hasta que los datos dibujados corresponden a la configuración que se ve
+//    (precisión de L11);
+//  · un rechazo del servidor aparece en el campo que lo causó en vez de en un mensaje genérico.
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
-import type { ChartConfig, ChartData } from "$lib/charts/contract";
+import type {
+	ChartConfig,
+	ChartData,
+	ChartGroup,
+	NormalizedChartConfig,
+} from "$lib/charts/contract";
+import type { ChartDraft } from "$lib/charts/form";
 import { FIELD_MESSAGES } from "$lib/charts/validation";
 import { CkanApiError } from "$lib/types/api";
 import ChartForm from "./ChartForm.svelte";
+
+// LayerChart necesita un `ResizeObserver` que jsdom no implementa; acá no se mide el layout.
+class ResizeObserverStub {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
 const FIELDS: DatastoreField[] = [
 	{ id: "_id", type: "int4" },
@@ -24,26 +42,31 @@ const FIELDS: DatastoreField[] = [
 	{ id: "fecha_ingreso", type: "timestamp" },
 ];
 
-/** La respuesta del contrato, con grupos vacíos: así el test no depende de dibujar el SVG. */
-const EMPTY_DATA: ChartData = {
+/** La configuración del borrador inicial de `renderForm`, ya normalizada por el contrato. */
+const NORMALIZED_CONFIG: NormalizedChartConfig = {
 	version: 1,
-	config: {
-		version: 1,
-		chart_type: "bar",
-		x_field: "turno",
-		x_bucket: "value",
-		x_fold_case: false,
-		y_agg: "avg",
-		y_field: "salario",
-		include_null: true,
-	},
-	groups: [],
-	truncated: false,
-	total_rows: 200,
+	chart_type: "bar",
+	x_field: "turno",
+	x_bucket: "value",
+	x_fold_case: false,
+	y_agg: "avg",
+	y_field: "salario",
+	include_null: true,
 };
 
+/** La respuesta del contrato: los grupos que se piden, con el total de filas de la tabla. */
+function makeData(groups: ChartGroup[] = [], totalRows = 200): ChartData {
+	return {
+		version: 1,
+		config: NORMALIZED_CONFIG,
+		groups,
+		truncated: false,
+		total_rows: totalRows,
+	};
+}
+
 const okPreview = () =>
-	vi.fn(async (_id: string, _config: ChartConfig): Promise<ChartData> => EMPTY_DATA);
+	vi.fn(async (_id: string, _config: ChartConfig): Promise<ChartData> => makeData());
 const okCreateView = () =>
 	vi.fn(
 		async (): Promise<ChartView> => ({
@@ -65,19 +88,34 @@ function makeApi(
 	};
 }
 
-function renderForm(api: Pick<ChartApi, "preview" | "createView">) {
+function renderForm(
+	api: Pick<ChartApi, "preview" | "createView">,
+	initialConfig: Partial<ChartDraft> = {
+		x_field: "turno",
+		y_agg: "avg",
+		y_field: "salario",
+	},
+) {
 	return render(ChartForm, {
 		props: {
 			fields: FIELDS,
 			api,
 			resourceId: "recurso-1",
-			initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+			initialConfig,
 		},
 	});
 }
 
 const saveButton = () => screen.getByRole("button", { name: "Guardar" });
-const previewButton = () => screen.getByRole("button", { name: /Vista previa/ });
+
+/**
+ * Deja correr las promesas del doble y aplica el render que disparan. Con temporizadores falsos las
+ * microtareas siguen siendo reales, así que alcanza con cederlas; el render necesita un `flushSync`.
+ */
+async function settle() {
+	for (let i = 0; i < 4; i += 1) await Promise.resolve();
+	flushSync();
+}
 
 /**
  * Abre un selector de `bits-ui` y elige la opción siguiente con el teclado. Con puntero no se puede:
@@ -95,44 +133,188 @@ async function pickNextOption(label: string) {
 	fireEvent.keyDown(document.activeElement ?? focused, { key: "Enter" });
 }
 
-describe("ChartForm — no se guarda lo que no se vio", () => {
-	it("arranca con «Guardar» deshabilitado", () => {
-		renderForm(makeApi());
-
-		expect(saveButton()).toBeDisabled();
+describe("ChartForm — la vista previa en dos niveles (L28)", () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
-	it("pide la vista previa con la configuración normalizada y recién entonces habilita «Guardar»", async () => {
+	it("pide la vista previa sola al abrir, con la configuración normalizada, y recién entonces habilita «Guardar»", async () => {
 		const preview = okPreview();
-		const api = makeApi({ preview });
-		renderForm(api);
+		renderForm(makeApi({ preview }));
 
-		await fireEvent.click(previewButton());
+		// Al abrir no hay nada que agrupar: no se espera la pausa de las opciones de datos.
+		expect(preview).toHaveBeenCalledTimes(1);
+		expect(preview).toHaveBeenCalledWith("recurso-1", NORMALIZED_CONFIG);
+		expect(saveButton()).toBeDisabled();
 
-		await waitFor(() => expect(saveButton()).toBeEnabled());
-		expect(preview).toHaveBeenCalledWith("recurso-1", EMPTY_DATA.config);
+		await settle();
+
+		expect(saveButton()).toBeEnabled();
 	});
 
-	it("un cambio posterior a la vista previa vuelve a deshabilitar «Guardar»", async () => {
-		renderForm(makeApi());
-		await fireEvent.click(previewButton());
-		await waitFor(() => expect(saveButton()).toBeEnabled());
+	it("cambiar la presentación se aplica al instante y no pide datos", async () => {
+		const preview = okPreview();
+		renderForm(makeApi({ preview }));
+		await settle();
+		preview.mockClear();
+
+		await pickNextOption("Tipo de gráfico");
+		await fireEvent.input(screen.getByLabelText("Título de la vista"), {
+			target: { value: "Otro título" },
+		});
+		await fireEvent.input(screen.getByLabelText("Descripción de la vista"), {
+			target: { value: "Otra descripción" },
+		});
+		flushSync();
+
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(preview).not.toHaveBeenCalled();
+		// Los datos dibujados siguen siendo los de la configuración de datos vigente.
+		expect(saveButton()).toBeEnabled();
+	});
+
+	it("varios cambios seguidos de las opciones de datos piden una sola vez, después de la pausa", async () => {
+		const preview = okPreview();
+		renderForm(makeApi({ preview }));
+		await settle();
+		preview.mockClear();
 
 		await fireEvent.click(screen.getByLabelText(/Mostrar las filas sin dato/));
+		await fireEvent.click(screen.getByLabelText(/Unificar mayúsculas/));
+		await pickNextOption("Cálculo del eje vertical");
+		flushSync();
 
+		expect(preview).not.toHaveBeenCalled();
+
+		await vi.advanceTimersByTimeAsync(399);
+		expect(preview).not.toHaveBeenCalled();
+
+		await vi.advanceTimersByTimeAsync(1);
+		await settle();
+
+		expect(preview).toHaveBeenCalledTimes(1);
+		// La que se pide es la última configuración, no una intermedia.
+		expect(preview.mock.calls[0]?.[1]).toMatchObject({
+			y_agg: "min",
+			y_field: "salario",
+			x_fold_case: true,
+			include_null: false,
+		});
+	});
+
+	it("una configuración incompleta no pide datos y deja el error en su campo", async () => {
+		const preview = okPreview();
+		renderForm(makeApi({ preview }), {
+			x_field: "salario",
+			x_bucket: "number_step",
+			x_step: "5000",
+			y_agg: "count",
+		});
+		await settle();
+		preview.mockClear();
+
+		await fireEvent.input(screen.getByLabelText(/Tamaño del rango/), { target: { value: "" } });
+		flushSync();
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(preview).not.toHaveBeenCalled();
+		expect(screen.getByText("Indique el paso del eje X.")).toBeInTheDocument();
 		expect(saveButton()).toBeDisabled();
 	});
 
+	it("mientras calcula, el gráfico anterior sigue a la vista, atenuado y anunciado como ocupado", async () => {
+		const preview = vi
+			.fn()
+			.mockImplementationOnce(async () => makeData([{ key: "mañana", value: 3 }]))
+			// La segunda respuesta nunca llega: lo que se mide es el estado de espera.
+			.mockImplementationOnce(() => new Promise<ChartData>(() => {}));
+		renderForm(makeApi({ preview }));
+		await settle();
+
+		await fireEvent.click(screen.getByLabelText(/Mostrar las filas sin dato/));
+		flushSync();
+
+		// Apenas cambia una opción de datos, lo dibujado ya no corresponde: se dice, y el gráfico sigue ahí.
+		const table = () => within(screen.getByRole("table"));
+		expect(screen.getByText(/no corresponden todavía a las opciones/)).toBeInTheDocument();
+		expect(table().getByText("mañana")).toBeInTheDocument();
+
+		// Pasada la pausa el pedido está en curso: se anuncia ocupado y el gráfico anterior sigue a la vista.
+		await vi.advanceTimersByTimeAsync(400);
+		flushSync();
+
+		const busy = screen.getByRole("status");
+		expect(busy).toHaveTextContent(/Actualizando el gráfico/);
+		expect(busy.closest("[aria-busy='true']")).not.toBeNull();
+		expect(table().getByText("mañana")).toBeInTheDocument();
+	});
+
+	it("una respuesta que llega tarde se descarta: manda la más nueva", async () => {
+		let rejectSlow: (reason: unknown) => void = () => {};
+		const slow = new Promise<ChartData>((_resolve, reject) => {
+			rejectSlow = reject;
+		});
+		const preview = vi
+			.fn()
+			.mockImplementationOnce(() => slow)
+			.mockImplementationOnce(async () => makeData());
+		renderForm(makeApi({ preview }));
+		expect(preview).toHaveBeenCalledTimes(1);
+
+		await fireEvent.click(screen.getByLabelText(/Mostrar las filas sin dato/));
+		flushSync();
+		await vi.advanceTimersByTimeAsync(400);
+		expect(preview).toHaveBeenCalledTimes(2);
+		await settle();
+		expect(saveButton()).toBeEnabled();
+
+		// La vieja llega tarde y con un rechazo que ensuciaría el campo del eje Y: se ignora.
+		rejectSlow(
+			new CkanApiError("Validation Error", 409, "Validation Error", {
+				__type: "Validation Error",
+				message: "Bad request",
+				y_field: ["La columna del eje vertical debe ser numérica."],
+			}),
+		);
+		await settle();
+
+		expect(screen.queryByText(FIELD_MESSAGES.y_field)).toBeNull();
+		expect(saveButton()).toBeEnabled();
+	});
+
+	it("«Guardar» se habilita sólo cuando los datos dibujados son los de la configuración vigente", async () => {
+		const preview = okPreview();
+		renderForm(makeApi({ preview }));
+
+		// Sin datos dibujados no hay nada que guardar.
+		expect(saveButton()).toBeDisabled();
+		await settle();
+		expect(saveButton()).toBeEnabled();
+
+		await fireEvent.click(screen.getByLabelText(/Mostrar las filas sin dato/));
+		flushSync();
+		expect(saveButton()).toBeDisabled();
+
+		await vi.advanceTimersByTimeAsync(400);
+		await settle();
+		expect(saveButton()).toBeEnabled();
+	});
+});
+
+describe("ChartForm — no se guarda lo que no se vio", () => {
 	it("guardar usa la configuración previsualizada", async () => {
 		const createView = okCreateView();
-		const api = makeApi({ createView });
-		renderForm(api);
-		await fireEvent.click(previewButton());
+		renderForm(makeApi({ createView }));
 		await waitFor(() => expect(saveButton()).toBeEnabled());
 
 		await fireEvent.click(saveButton());
 
 		await waitFor(() => expect(createView).toHaveBeenCalled());
+		expect(createView).toHaveBeenCalledWith("recurso-1", "", "", NORMALIZED_CONFIG);
 		expect(await screen.findByText("Vista guardada.")).toBeInTheDocument();
 	});
 });
@@ -202,19 +384,14 @@ describe("ChartForm — el paso del rango", () => {
 	// El `<input type="number">` entrega un número (o `null`), no el texto que el borrador guarda: sin
 	// normalizarlo, escribir el paso reventaba el formulario en `draft.x_step.trim`.
 	it("escribir el paso deja el formulario lejos y lo lee como número", async () => {
-		render(ChartForm, {
-			props: {
-				fields: FIELDS,
-				api: makeApi(),
-				resourceId: "recurso-1",
-				initialConfig: {
-					x_field: "salario",
-					x_bucket: "number_step",
-					x_step: "",
-					y_agg: "count",
-				},
-			},
+		renderForm(makeApi(), {
+			x_field: "salario",
+			x_bucket: "number_step",
+			x_step: "",
+			y_agg: "count",
 		});
+
+		expect(screen.getByText("Indique el paso del eje X.")).toBeInTheDocument();
 
 		// El paso vacío trae su error, y el texto del error también cuelga de la etiqueta: de ahí la regex.
 		await fireEvent.input(screen.getByLabelText(/Tamaño del rango/), {
@@ -222,16 +399,17 @@ describe("ChartForm — el paso del rango", () => {
 		});
 
 		expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(5000);
-		expect(previewButton()).toBeEnabled();
+		expect(screen.queryByText("Indique el paso del eje X.")).toBeNull();
 	});
 });
 
 describe("ChartForm — el borrador inicial", () => {
 	it("un caso inicial incoherente se reconcilia en vez de dejar el formulario en un estado inválido", async () => {
+		const preview = okPreview();
 		render(ChartForm, {
 			props: {
 				fields: FIELDS,
-				api: makeApi(),
+				api: makeApi({ preview }),
 				resourceId: "recurso-1",
 				// Trimestre sobre una columna de texto, un paso que no aplica y sumar una columna de texto: nada de
 				// esto se puede elegir, así que el borrador tiene que caer a una combinación válida sola.
@@ -246,7 +424,12 @@ describe("ChartForm — el borrador inicial", () => {
 			},
 		});
 
-		await waitFor(() => expect(previewButton()).toBeEnabled());
+		await waitFor(() => expect(preview).toHaveBeenCalled());
+		expect(preview.mock.calls[0]?.[1]).toMatchObject({
+			x_bucket: "value",
+			y_agg: "sum",
+			y_field: "horas_mes",
+		});
 	});
 });
 
@@ -263,8 +446,6 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 		});
 		renderForm(api);
 
-		await fireEvent.click(previewButton());
-
 		// El campo muestra el texto del portal para la clave; el del servidor no es copy de la interfaz (L18).
 		expect(await screen.findByText(FIELD_MESSAGES.y_field)).toBeInTheDocument();
 		expect(screen.queryByText("La columna del eje vertical debe ser numérica.")).toBeNull();
@@ -278,8 +459,6 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 			}),
 		});
 		renderForm(api);
-
-		await fireEvent.click(previewButton());
 
 		expect(await screen.findByText("No se pudo confirmar el acceso")).toBeInTheDocument();
 		expect(screen.getByText("Código 403")).toBeInTheDocument();

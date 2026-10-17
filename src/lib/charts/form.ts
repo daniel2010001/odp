@@ -8,7 +8,8 @@
 //
 // La última pieza es la que habilita «Guardar» (contrato, «Precisiones de L11»): la **clave canónica** de
 // la configuración. Se compara contra la que se previsualizó con éxito, así que cualquier cambio posterior
-// la invalida y el publicador no guarda algo que no vio.
+// la invalida y el publicador no guarda algo que no vio. Con la vista previa automática (L28) la comparación
+// se hace sobre las claves de **datos** (`canonicalDataKey`), porque la presentación se aplica sin consulta.
 //
 // Este módulo es puro: no conoce el cliente, ni el formulario, ni el gráfico.
 
@@ -130,4 +131,24 @@ function parseStep(text: string): number | string {
 export function canonicalConfigKey(config: Partial<ChartConfig> | null | undefined): string | null {
 	if (!config) return null;
 	return JSON.stringify(CHART_CONFIG_KEYS.map((key) => config[key] ?? null));
+}
+
+/**
+ * Las claves de la configuración que **cambian los datos** que hay que pedir: todo el contrato menos la
+ * presentación. El tipo de gráfico, el título y la descripción se aplican al instante, sin consulta (L28,
+ * decisión 1), así que cambiar de barras a líneas no invalida los grupos que ya están dibujados.
+ */
+export const CHART_DATA_KEYS = CHART_CONFIG_KEYS.filter((key) => key !== "chart_type");
+
+/**
+ * La identidad de los **datos** de una configuración: lo que se compara para decidir si lo dibujado
+ * corresponde a lo que se ve en pantalla —y por lo tanto si «Guardar» puede habilitarse—, y también lo que
+ * se compara para descartar una respuesta que llegó tarde.
+ *
+ * Es más angosta que `canonicalConfigKey` a propósito: los grupos y sus dos rótulos (L21) salen de estas
+ * claves, no del tipo de gráfico.
+ */
+export function canonicalDataKey(config: Partial<ChartConfig> | null | undefined): string | null {
+	if (!config) return null;
+	return JSON.stringify(CHART_DATA_KEYS.map((key) => config[key] ?? null));
 }
