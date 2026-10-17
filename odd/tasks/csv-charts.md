@@ -336,3 +336,9 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   **Preguntas abiertas para el autor, de P2:** el rótulo de los rangos (`[0, 5000)` o `0–5000`), dónde vive el
   formulario en el producto (se recomienda la página del recurso, visible para quien puede editar) y qué pasa después
   de guardar (se recomienda volver a la página con el gráfico visible).
+- **L19 (2026-10-17, precisión de la sesión de `odp-docker`):** `umss_chart_data` devuelve sólo claves del conjunto de
+  L18, fijado con un test. Una clave no declarada en la configuración del editor va bajo `config`
+  («Unexpected key: …»). `resource_view_create` y `resource_view_update` son de CKAN core, y ante una clave no
+  declarada responden con `__extras`. `NotAuthorized` y `ObjectNotFound` no llevan clave. **El portal no cambia:** el
+  adaptador ya manda `config`, `view_type` y `__extras` al aviso general (`validation.test.ts`, «una clave
+  desconocida, o `__extras`, da el aviso general»).
