@@ -9,8 +9,8 @@
 // devolvió. Los tipos de columna que mira son **las familias que el backend reconoce** (medido por la sesión
 // de `odp-docker`, O1 sobre CKAN 2.12): «numérico» es `numeric`, `int2`, `int4`, `int8`, `float4` o `float8`;
 // «fecha» es `timestamp`, `timestamptz` o `date`; y todo lo demás cuenta como texto, salvo que `x_fold_case`
-// exige exactamente `text`. No se reusa `isNumericType` de `columns.ts` a propósito: aquél adivina más tipos
-// para la interfaz, y acá la regla tiene que ser la misma que aplica el servidor, ni más ancha ni más angosta.
+// exige exactamente `text`. Las familias no se ensanchan para adivinar: la regla tiene que ser la misma que
+// aplica el servidor, ni más ancha ni más angosta (L17 cerró la duda de L16 sobre `int`).
 //
 // Lo que este módulo **no** hace: consultar, agrupar ni rotular valores del eje Y. La agregación la hace la
 // base (S6) y el portal sólo arma la configuración y rotula las `key` que vuelven.
@@ -22,6 +22,13 @@ export const CHART_VIEW_TYPE = "umss_chart";
 
 /** La versión del contrato que este módulo valida. Un cambio de contrato sube este número. */
 export const CHART_CONTRACT_VERSION = 1;
+
+/**
+ * El tope de grupos de una respuesta: el contrato corta en **500 grupos** y lo declara con
+ * `truncated: true`. Es una constante del portal (L12, punto 4) porque el formulario tiene que poder
+ * explicar el recorte sin pedirlo.
+ */
+export const MAX_CHART_GROUPS = 500;
 
 export const CHART_TYPES = ["bar", "line", "pie"] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
@@ -38,6 +45,61 @@ export type YAggregate = (typeof Y_AGGREGATES)[number];
  */
 const NUMERIC_TYPES = new Set(["numeric", "int2", "int4", "int8", "float4", "float8"]);
 const TIMESTAMP_TYPES = new Set(["timestamp", "timestamptz", "date"]);
+
+/** La familia de una columna, con los tres nombres que el formulario necesita distinguir. */
+export type FieldFamily = "numeric" | "timestamp" | "text";
+
+/**
+ * La familia de un tipo del DataStore. Todo lo que el contrato no reconoce cae a texto, igual que en el
+ * servidor: es la familia que sólo admite «valor tal cual» (y, si el tipo es `text` de verdad, unificar
+ * mayúsculas).
+ */
+export function fieldFamily(type: string): FieldFamily {
+	if (NUMERIC_TYPES.has(type)) return "numeric";
+	if (TIMESTAMP_TYPES.has(type)) return "timestamp";
+	return "text";
+}
+
+/** Las agrupaciones del eje X que admite cada familia de columna (contrato v1, tabla de claves). */
+export function xBucketsFor(type: string): XBucket[] {
+	switch (fieldFamily(type)) {
+		case "numeric":
+			return ["value", "number_step"];
+		case "timestamp":
+			return ["value", "year", "quarter", "month"];
+		default:
+			return ["value"];
+	}
+}
+
+/** Las columnas que se ofrecen como eje X: todas menos la interna del catálogo. */
+export function xColumnsFor(fields: readonly DatastoreField[]): string[] {
+	return fields.filter((field) => field.id !== INTERNAL_FIELD_ID).map((field) => field.id);
+}
+
+/**
+ * Las columnas que se ofrecen como eje Y para un cálculo dado: ninguna con `count` (cuenta filas),
+ * cualquiera con `count_distinct`, y sólo numéricas con `sum`/`avg`/`min`/`max`.
+ */
+export function yColumnsFor(fields: readonly DatastoreField[], agg: YAggregate): string[] {
+	if (agg === "count") return [];
+	return fields
+		.filter((field) => field.id !== INTERNAL_FIELD_ID)
+		.filter((field) => agg === "count_distinct" || fieldFamily(field.type) === "numeric")
+		.map((field) => field.id);
+}
+
+/**
+ * Si el interruptor de unificar mayúsculas tiene sentido: sólo con `value` sobre una columna `text`
+ * (el contrato es más angosto que la familia: `varchar` no es un tipo del DataStore, pero si algún día
+ * apareciera, no habilita el interruptor).
+ */
+export function foldCaseAvailable(
+	field: DatastoreField | undefined,
+	bucket: XBucket | "",
+): boolean {
+	return bucket === "value" && field?.type === "text";
+}
 
 /**
  * La configuración de una vista `umss_chart`, con claves planas y escalares: CKAN guarda en `config` sólo
@@ -338,7 +400,17 @@ export interface ChartLabelOptions {
 	bucket: XBucket;
 	/** El paso del eje X, necesario para rotular un rango de `number_step`. */
 	step?: number;
+	/**
+	 * Cómo se escribe un rango numérico. Las dos formas dicen lo mismo —el límite inferior es parte del
+	 * rango y el superior no— y la elección es del autor al revisar el formulario (L12); por defecto se
+	 * mantiene el intervalo semiabierto, que es el que ya estaba medido.
+	 */
+	rangeStyle?: RangeLabelStyle;
 }
+
+/** `[0, 5)` o «0–5»: dos formas del mismo rango semiabierto. */
+export const RANGE_LABEL_STYLES = ["interval", "dash"] as const;
+export type RangeLabelStyle = (typeof RANGE_LABEL_STYLES)[number];
 
 /**
  * El rótulo de una `key` cruda del servidor, según cómo se agrupó el eje X.
@@ -353,7 +425,7 @@ export interface ChartLabelOptions {
  */
 export function groupLabel(
 	key: ChartGroupKey | undefined,
-	{ bucket, step }: ChartLabelOptions,
+	{ bucket, step, rangeStyle = "interval" }: ChartLabelOptions,
 ): string {
 	if (key === null || key === undefined) return NULL_GROUP_LABEL;
 
@@ -364,7 +436,8 @@ export function groupLabel(
 		case "number_step": {
 			const lower = typeof key === "number" ? key : Number(text);
 			if (!Number.isFinite(lower) || !isPositiveNumber(step)) return text;
-			return `[${lower}, ${lower + step})`;
+			const upper = lower + step;
+			return rangeStyle === "dash" ? `${lower}–${upper}` : `[${lower}, ${upper})`;
 		}
 		case "year":
 			return text;

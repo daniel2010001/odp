@@ -14,11 +14,17 @@ import {
 	CHART_CONTRACT_VERSION,
 	CHART_VIEW_TYPE,
 	type ChartConfig,
+	fieldFamily,
+	foldCaseAvailable,
 	groupLabel,
+	MAX_CHART_GROUPS,
 	type NormalizedChartConfig,
 	NULL_GROUP_LABEL,
 	pickChartConfig,
 	validateChartConfig,
+	xBucketsFor,
+	xColumnsFor,
+	yColumnsFor,
 } from "./contract";
 
 const f = (id: string, type: string): DatastoreField => ({ id, type });
@@ -409,6 +415,18 @@ describe("groupLabel — el rótulo que el portal pone a cada key cruda", () => 
 		expect(groupLabel(0, { bucket: "number_step", step: 0.5 })).toBe("[0, 0.5)");
 	});
 
+	it("number_step admite el rótulo «0–5» en vez de «[0, 5)» (la variante la decide el autor, L12)", () => {
+		expect(groupLabel(0, { bucket: "number_step", step: 5, rangeStyle: "dash" })).toBe("0–5");
+		expect(groupLabel(-5, { bucket: "number_step", step: 5, rangeStyle: "dash" })).toBe("-5–0");
+		expect(groupLabel(1500, { bucket: "number_step", step: 500, rangeStyle: "dash" })).toBe(
+			"1500–2000",
+		);
+		// Sin elegir, el rótulo es el intervalo semiabierto: no cambia lo ya medido.
+		expect(groupLabel(0, { bucket: "number_step", step: 5, rangeStyle: "interval" })).toBe(
+			"[0, 5)",
+		);
+	});
+
 	it("number_step sin un paso válido cae al valor crudo: no inventa un rango", () => {
 		expect(groupLabel(7, { bucket: "number_step" })).toBe("7");
 		expect(groupLabel(7, { bucket: "number_step", step: 0 })).toBe("7");
@@ -455,5 +473,71 @@ describe("validateChartConfig — `_id` es interna del catálogo y no se grafica
 		expect(resultado.errors.y_field).toBe(
 			"La columna «_id» es interna del catálogo y no se puede graficar.",
 		);
+	});
+});
+
+describe("las familias de tipos y lo que cada una habilita en el formulario", () => {
+	it("clasifica con las mismas familias que el backend, ni más anchas ni más angostas (L17)", () => {
+		expect(fieldFamily("numeric")).toBe("numeric");
+		expect(fieldFamily("int2")).toBe("numeric");
+		expect(fieldFamily("int8")).toBe("numeric");
+		expect(fieldFamily("float4")).toBe("numeric");
+		expect(fieldFamily("timestamp")).toBe("timestamp");
+		expect(fieldFamily("timestamptz")).toBe("timestamp");
+		expect(fieldFamily("date")).toBe("timestamp");
+		expect(fieldFamily("text")).toBe("text");
+		// L17 cerró la duda de L16: las familias quedan como el servidor las nombra, y `int` —que no es
+		// uno de los tipos que el contrato reconoce— no entra por la ventana.
+		expect(fieldFamily("int")).toBe("text");
+	});
+
+	it("cada familia ofrece sólo las agrupaciones que admite", () => {
+		expect(xBucketsFor("text")).toEqual(["value"]);
+		expect(xBucketsFor("numeric")).toEqual(["value", "number_step"]);
+		expect(xBucketsFor("timestamp")).toEqual(["value", "year", "quarter", "month"]);
+		expect(xBucketsFor("int")).toEqual(["value"]);
+	});
+
+	it("el eje X ofrece todas las columnas menos la interna del catálogo", () => {
+		expect(xColumnsFor(FIELDS)).toEqual([
+			"departamento",
+			"codigo",
+			"monto",
+			"entero",
+			"flotante",
+			"fecha",
+			"fecha_dia",
+			"fecha_hora",
+			"alias_raro",
+		]);
+	});
+
+	it("contar filas no ofrece columna del eje Y", () => {
+		expect(yColumnsFor(FIELDS, "count")).toEqual([]);
+	});
+
+	it("contar distintos ofrece cualquier columna, la interna incluida nunca", () => {
+		const columnas = yColumnsFor(FIELDS, "count_distinct");
+
+		expect(columnas).toContain("codigo");
+		expect(columnas).toContain("fecha");
+		expect(columnas).not.toContain("_id");
+	});
+
+	it("sumar, promediar, mínimo y máximo ofrecen sólo columnas numéricas", () => {
+		for (const agg of ["sum", "avg", "min", "max"] as const) {
+			expect(yColumnsFor(FIELDS, agg)).toEqual(["monto", "entero", "flotante"]);
+		}
+	});
+
+	it("unificar mayúsculas sólo se ofrece con «valor» sobre una columna de texto", () => {
+		expect(foldCaseAvailable(f("letra", "text"), "value")).toBe(true);
+		expect(foldCaseAvailable(f("letra", "text"), "quarter")).toBe(false);
+		expect(foldCaseAvailable(f("monto", "numeric"), "value")).toBe(false);
+		expect(foldCaseAvailable(undefined, "value")).toBe(false);
+	});
+
+	it("el tope de grupos del contrato es una constante del portal", () => {
+		expect(MAX_CHART_GROUPS).toBe(500);
 	});
 });
