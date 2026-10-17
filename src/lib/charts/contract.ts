@@ -402,15 +402,14 @@ export interface ChartLabelOptions {
 	step?: number;
 	/**
 	 * Cómo se escribe un rango numérico. Las dos formas dicen lo mismo —el límite inferior es parte del
-	 * rango y el superior no— y la elección es del autor al revisar el formulario (L12); por defecto se
-	 * mantiene el intervalo semiabierto, que es el que ya estaba medido.
+	 * rango y el superior no— y cada superficie usa la suya (L21): el eje, «0–5000»; el tooltip y la tabla
+	 * accesible, el intervalo exacto «[0, 5000)». Por defecto, el intervalo.
 	 */
 	rangeStyle?: RangeLabelStyle;
 }
 
 /** `[0, 5)` o «0–5»: dos formas del mismo rango semiabierto. */
-export const RANGE_LABEL_STYLES = ["interval", "dash"] as const;
-export type RangeLabelStyle = (typeof RANGE_LABEL_STYLES)[number];
+export type RangeLabelStyle = "interval" | "dash";
 
 /**
  * El rótulo de una `key` cruda del servidor, según cómo se agrupó el eje X.
@@ -455,4 +454,22 @@ export function groupLabel(
 		default:
 			return text;
 	}
+}
+
+/**
+ * Los dos rótulos del mismo grupo, cada uno en su superficie (L21, decisión del autor: «los dos»).
+ *
+ * El eje horizontal escribe el rango con guion («0–5000»), que se lee de un vistazo y no ocupa lugar; el
+ * tooltip y la tabla accesible —donde sí hay espacio para ser exacto— escriben el intervalo semiabierto
+ * («[0, 5000)»), que es la forma que no deja dudas de dónde cae el límite superior. En cualquier otra
+ * agrupación las dos formas coinciden: no hay rango que escribir.
+ */
+export function groupLabels(
+	key: ChartGroupKey | undefined,
+	{ bucket, step }: Omit<ChartLabelOptions, "rangeStyle">,
+): { axis: string; interval: string } {
+	return {
+		axis: groupLabel(key, { bucket, step, rangeStyle: "dash" }),
+		interval: groupLabel(key, { bucket, step, rangeStyle: "interval" }),
+	};
 }

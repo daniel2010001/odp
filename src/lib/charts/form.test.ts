@@ -68,25 +68,25 @@ describe("reconcileChartDraft — el borrador siempre queda en un estado posible
 		);
 		expect(draft.x_bucket).toBe("quarter");
 
-		const aTexto = reconcileChartDraft({ ...base, x_field: "turno", x_bucket: "quarter" }, FIELDS);
-		expect(aTexto.x_bucket).toBe("value");
+		const toText = reconcileChartDraft({ ...base, x_field: "turno", x_bucket: "quarter" }, FIELDS);
+		expect(toText.x_bucket).toBe("value");
 
-		const aNumero = reconcileChartDraft({ ...base, x_field: "salario", x_bucket: "year" }, FIELDS);
-		expect(aNumero.x_bucket).toBe("value");
+		const toNumber = reconcileChartDraft({ ...base, x_field: "salario", x_bucket: "year" }, FIELDS);
+		expect(toNumber.x_bucket).toBe("value");
 	});
 
 	it("el paso se conserva sólo con el rango numérico", () => {
-		const conPaso = reconcileChartDraft(
+		const withStep = reconcileChartDraft(
 			{ ...base, x_field: "salario", x_bucket: "number_step", x_step: "5000" },
 			FIELDS,
 		);
-		expect(conPaso.x_step).toBe("5000");
+		expect(withStep.x_step).toBe("5000");
 
-		const sinPaso = reconcileChartDraft(
+		const withoutStep = reconcileChartDraft(
 			{ ...base, x_field: "salario", x_bucket: "value", x_step: "5000" },
 			FIELDS,
 		);
-		expect(sinPaso.x_step).toBe("");
+		expect(withoutStep.x_step).toBe("");
 	});
 
 	it("unificar mayúsculas sólo sobrevive con «valor» en una columna de texto", () => {
@@ -111,11 +111,11 @@ describe("reconcileChartDraft — el borrador siempre queda en un estado posible
 	});
 
 	it("un cálculo que necesita columna elige la primera que sirve si no hay una válida", () => {
-		const desdeCero = reconcileChartDraft({ ...base, y_agg: "sum" }, FIELDS);
-		expect(desdeCero.y_field).toBe("horas_mes");
+		const fromEmpty = reconcileChartDraft({ ...base, y_agg: "sum" }, FIELDS);
+		expect(fromEmpty.y_field).toBe("horas_mes");
 
-		const desdeTexto = reconcileChartDraft({ ...base, y_agg: "avg", y_field: "cargo" }, FIELDS);
-		expect(desdeTexto.y_field).toBe("horas_mes");
+		const fromText = reconcileChartDraft({ ...base, y_agg: "avg", y_field: "cargo" }, FIELDS);
+		expect(fromText.y_field).toBe("horas_mes");
 	});
 
 	it("contar distintos acepta la columna de texto que ya estaba elegida", () => {
@@ -181,7 +181,7 @@ describe("chartConfigFromDraft — el borrador se valida como lo haría el servi
 
 describe("canonicalConfigKey — la configuración que se previsualizó", () => {
 	it("dos configuraciones iguales dan la misma clave aunque cambie el orden de las claves", () => {
-		const uno = {
+		const first = {
 			version: 1,
 			chart_type: "bar" as const,
 			x_field: "turno",
@@ -190,7 +190,7 @@ describe("canonicalConfigKey — la configuración que se previsualizó", () => 
 			y_agg: "count" as const,
 			include_null: true,
 		};
-		const otro = {
+		const second = {
 			include_null: true,
 			y_agg: "count" as const,
 			x_fold_case: false,
@@ -200,7 +200,7 @@ describe("canonicalConfigKey — la configuración que se previsualizó", () => 
 			version: 1,
 		};
 
-		expect(canonicalConfigKey(uno)).toBe(canonicalConfigKey(otro));
+		expect(canonicalConfigKey(first)).toBe(canonicalConfigKey(second));
 	});
 
 	it("cualquier cambio en la configuración cambia la clave", () => {

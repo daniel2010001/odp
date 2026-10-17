@@ -11,7 +11,6 @@ import {
 	foldCaseAvailable,
 	MAX_CHART_GROUPS,
 	NULL_GROUP_LABEL,
-	type RangeLabelStyle,
 	type XBucket,
 	xBucketsFor,
 	xColumnsFor,
@@ -48,8 +47,6 @@ let {
 	initialTitle = "",
 	initialDescription = "",
 	initialConfig,
-	rangeStyle = "interval",
-	previewControls,
 }: {
 	fields: DatastoreField[];
 	api: Pick<ChartApi, "preview" | "createView">;
@@ -58,9 +55,6 @@ let {
 	initialDescription?: string;
 	/** El borrador de arranque; el playground lo usa para abrir cada caso ya configurado. */
 	initialConfig?: Partial<ChartDraft>;
-	rangeStyle?: RangeLabelStyle;
-	/** Controles que la superficie anfitriona necesita al lado de la vista previa (regla 8). */
-	previewControls?: import("svelte").Snippet;
 } = $props();
 
 const TYPE_OPTIONS: { value: ChartType; label: string }[] = [
@@ -94,10 +88,27 @@ const uid = $props.id();
 let title = $state(untrack(() => initialTitle));
 let description = $state(untrack(() => initialDescription));
 // `untrack`: es el valor de arranque, no una derivación — si el anfitrión remonta con otro caso, se remonta
-// el componente (el playground lo hace con `{#key}`).
+// el componente (el playground lo hace con `{#key}`). Se reconcilia una vez, al crearlo.
 let draft = $state<ChartDraft>(
 	untrack(() => reconcileChartDraft({ ...emptyChartDraft(fields), ...initialConfig }, fields)),
 );
+
+/**
+ * El borrador **ya reconciliado** con las columnas vigentes. Es una derivación y no un efecto que reescribe
+ * el estado: lo que la columna o la agrupación nueva ya no admite se descarta en el mismo render que el
+ * cambio, sin una segunda vuelta. Si el anfitrión cambia los `fields` después de montar, la corrección entra
+ * igual, sin escribir estado desde un efecto (Svelte 5 lo desaconseja y era el origen del retraso, L21).
+ */
+const view = $derived(reconcileChartDraft(draft, fields));
+
+/**
+ * La única puerta de escritura del borrador: cada cambio se reconcilia antes de guardarse, así que nunca
+ * queda un estado que la columna elegida no permita. El paso se normaliza a texto porque el `<input
+ * type="number">` entrega un número (o `null`) y el borrador lo guarda como texto.
+ */
+function setDraft(change: Partial<ChartDraft>) {
+	draft = reconcileChartDraft({ ...view, ...change }, fields);
+}
 
 /**
  * Lo que devolvió la última vista previa, atado a la **clave canónica** de la configuración que la pidió:
@@ -122,7 +133,7 @@ let saving = $state(false);
 let saved = $state<string | null>(null);
 let saveFailure = $state<{ snapshot: string; title: string; message: string } | null>(null);
 
-const validation = $derived(chartConfigFromDraft(draft, fields));
+const validation = $derived(chartConfigFromDraft(view, fields));
 const currentKey = $derived(canonicalConfigKey(validation.config));
 
 const previewErrors = $derived(
@@ -142,36 +153,27 @@ const saveError = $derived(
 
 // Las opciones que el borrador habilita en este momento: la agrupación depende del tipo de la columna, el
 // eje Y del cálculo, y el interruptor de mayúsculas de las dos cosas.
-const selectedField = $derived(fields.find((field) => field.id === draft.x_field));
+const selectedField = $derived(fields.find((field) => field.id === view.x_field));
 const bucketOptions = $derived(
 	(selectedField ? xBucketsFor(selectedField.type) : ["value" as XBucket]).map((bucket) => ({
 		value: bucket,
 		label: BUCKET_LABELS[bucket],
 	})),
 );
-const yOptions = $derived(yColumnsFor(fields, draft.y_agg));
-const showFoldCase = $derived(foldCaseAvailable(selectedField, draft.x_bucket));
+const yOptions = $derived(yColumnsFor(fields, view.y_agg));
+const showFoldCase = $derived(foldCaseAvailable(selectedField, view.x_bucket));
 
 const xOptions = $derived(xColumnsFor(fields).map((id) => ({ value: id, label: id })));
 const yColumnOptions = $derived(yOptions.map((id) => ({ value: id, label: id })));
 
 const xLabel = $derived(
 	xAxisLabel(
-		draft.x_bucket === "" ? "value" : draft.x_bucket,
-		draft.x_field,
+		view.x_bucket === "" ? "value" : view.x_bucket,
+		view.x_field,
 		validation.config?.x_step,
 	),
 );
-const yLabel = $derived(
-	yAxisLabel(draft.y_agg, draft.y_agg === "count" ? undefined : draft.y_field),
-);
-
-// Cada cambio del borrador se reconcilia: lo que la columna nueva ya no admite se descarta en vez de quedar
-// como un error que el publicador no puede explicar.
-$effect(() => {
-	const reconciled = reconcileChartDraft(draft, fields);
-	if (JSON.stringify(reconciled) !== JSON.stringify(draft)) draft = reconciled;
-});
+const yLabel = $derived(yAxisLabel(view.y_agg, view.y_agg === "count" ? undefined : view.y_field));
 
 async function runPreview() {
 	if (!validation.valid || !validation.config) return;
@@ -261,13 +263,17 @@ async function save() {
 				<ChartSelect
 					label="Tipo de gráfico"
 					options={TYPE_OPTIONS}
-					bind:value={() => draft.chart_type, (value) => (draft.chart_type = value as ChartType)}
+					bind:value={() => view.chart_type, (value) => setDraft({ chart_type: value as ChartType })}
 				/>
 				{@render fieldError("chart_type")}
 			</div>
 
 			<div class="flex flex-col gap-1.5">
-				<ChartSelect label="Columna del eje horizontal" options={xOptions} bind:value={draft.x_field} />
+				<ChartSelect
+					label="Columna del eje horizontal"
+					options={xOptions}
+					bind:value={() => view.x_field, (value) => setDraft({ x_field: value })}
+				/>
 				{@render fieldError("x_field")}
 			</div>
 
@@ -275,12 +281,12 @@ async function save() {
 				<ChartSelect
 					label="Agrupación del eje horizontal"
 					options={bucketOptions}
-					bind:value={() => draft.x_bucket, (value) => (draft.x_bucket = value as XBucket)}
+					bind:value={() => view.x_bucket, (value) => setDraft({ x_bucket: value as XBucket })}
 				/>
 				{@render fieldError("x_bucket")}
 			</div>
 
-			{#if draft.x_bucket === "number_step"}
+			{#if view.x_bucket === "number_step"}
 				<label class="flex flex-col gap-1.5">
 					<span class="text-sm font-medium text-foreground">Tamaño del rango</span>
 					<input
@@ -288,7 +294,7 @@ async function save() {
 						min="0"
 						step="any"
 						inputmode="decimal"
-						bind:value={draft.x_step}
+						bind:value={() => view.x_step, (value) => setDraft({ x_step: value === null ? "" : String(value) })}
 						aria-invalid={errors.x_step ? "true" : undefined}
 						aria-describedby={errors.x_step ? `${uid}-x_step-error` : undefined}
 						class={inputClass}
@@ -301,14 +307,18 @@ async function save() {
 				<ChartSelect
 					label="Cálculo del eje vertical"
 					options={AGG_OPTIONS}
-					bind:value={() => draft.y_agg, (value) => (draft.y_agg = value as YAggregate)}
+					bind:value={() => view.y_agg, (value) => setDraft({ y_agg: value as YAggregate })}
 				/>
 				{@render fieldError("y_agg")}
 			</div>
 
-			{#if draft.y_agg !== "count"}
+			{#if view.y_agg !== "count"}
 				<div class="flex flex-col gap-1.5">
-					<ChartSelect label="Columna del eje vertical" options={yColumnOptions} bind:value={draft.y_field} />
+					<ChartSelect
+						label="Columna del eje vertical"
+						options={yColumnOptions}
+						bind:value={() => view.y_field, (value) => setDraft({ y_field: value })}
+					/>
 					{@render fieldError("y_field")}
 				</div>
 			{/if}
@@ -317,7 +327,11 @@ async function save() {
 		<div class="flex flex-col gap-2">
 			{#if showFoldCase}
 				<label class="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-					<input type="checkbox" bind:checked={draft.x_fold_case} class="mt-0.5 size-4 cursor-pointer accent-primary" />
+					<input
+						type="checkbox"
+						bind:checked={() => view.x_fold_case, (checked) => setDraft({ x_fold_case: checked })}
+						class="mt-0.5 size-4 cursor-pointer accent-primary"
+					/>
 					<span>
 						Unificar mayúsculas y minúsculas
 						<span class="block text-xs text-muted-foreground">
@@ -330,7 +344,11 @@ async function save() {
 			{/if}
 
 			<label class="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-				<input type="checkbox" bind:checked={draft.include_null} class="mt-0.5 size-4 cursor-pointer accent-primary" />
+				<input
+					type="checkbox"
+					bind:checked={() => view.include_null, (checked) => setDraft({ include_null: checked })}
+					class="mt-0.5 size-4 cursor-pointer accent-primary"
+				/>
 				<span>
 					Mostrar las filas sin dato como un grupo propio
 					<span class="block text-xs text-muted-foreground">
@@ -374,7 +392,6 @@ async function save() {
 				</p>
 			</div>
 			<div class="flex flex-wrap gap-2">
-				{@render previewControls?.()}
 				<Button type="button" variant="outline" disabled={!canPreview} onclick={runPreview}>
 					<Play class="size-4" aria-hidden="true" />
 					Vista previa
@@ -413,7 +430,6 @@ async function save() {
 						chartType={shown.config.chart_type}
 						bucket={shown.config.x_bucket}
 						step={shown.config.x_step}
-						{rangeStyle}
 						{xLabel}
 						{yLabel}
 					/>

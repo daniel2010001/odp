@@ -38,7 +38,7 @@ export interface FakeChartApiOptions {
 const NUMERIC_AGGS = new Set(["sum", "avg", "min", "max"]);
 
 /** Una cadena vacía o de sólo espacios es «sin dato»: el `NULLIF(btrim(col), '')` del servidor (L17). */
-function sinDato(value: unknown): boolean {
+function isBlank(value: unknown): boolean {
 	return (
 		value === null || value === undefined || (typeof value === "string" && value.trim() === "")
 	);
@@ -53,14 +53,14 @@ function round2(value: number): number {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-function numero(value: unknown): number | null {
+function toNumber(value: unknown): number | null {
 	if (typeof value === "number") return Number.isFinite(value) ? value : null;
 	if (typeof value !== "string" || value.trim() === "") return null;
 	const parsed = Number(value.trim());
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
-function fecha(value: unknown): Date | null {
+function toDate(value: unknown): Date | null {
 	if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
 	if (typeof value !== "string" || value.trim() === "") return null;
 	const parsed = new Date(value);
@@ -74,7 +74,7 @@ function fecha(value: unknown): Date | null {
  */
 function keyOf(row: Record<string, unknown>, config: NormalizedChartConfig): ChartGroupKey {
 	const raw = row[config.x_field];
-	if (sinDato(raw)) return null;
+	if (isBlank(raw)) return null;
 
 	switch (config.x_bucket) {
 		case "value": {
@@ -82,23 +82,23 @@ function keyOf(row: Record<string, unknown>, config: NormalizedChartConfig): Cha
 			return raw as ChartGroupKey;
 		}
 		case "number_step": {
-			const n = numero(raw);
+			const n = toNumber(raw);
 			if (n === null) return null;
 			const step = config.x_step ?? 1;
 			// Redondeo a diez decimales: `floor` con pasos fraccionarios arrastra el error del punto flotante.
 			return Math.round(Math.floor(n / step) * step * 1e10) / 1e10;
 		}
 		case "year": {
-			const d = fecha(raw);
+			const d = toDate(raw);
 			return d ? String(d.getUTCFullYear()) : null;
 		}
 		case "quarter": {
-			const d = fecha(raw);
+			const d = toDate(raw);
 			if (!d) return null;
 			return `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
 		}
 		case "month": {
-			const d = fecha(raw);
+			const d = toDate(raw);
 			if (!d) return null;
 			return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 		}
@@ -112,17 +112,17 @@ function measureOf(row: Record<string, unknown>, config: NormalizedChartConfig):
 	if (config.y_agg === "count") return 1;
 	if (!config.y_field) return null;
 	const raw = row[config.y_field];
-	if (sinDato(raw)) return null;
+	if (isBlank(raw)) return null;
 	if (config.y_agg === "count_distinct") return 1;
 	if (!NUMERIC_AGGS.has(config.y_agg)) return null;
-	return numero(raw);
+	return toNumber(raw);
 }
 
 /** La `key` que cuenta para «contar distintos»: el valor sin espacios; `null` no es un valor (L17). */
 function distinctKeyOf(row: Record<string, unknown>, config: NormalizedChartConfig): string | null {
 	if (!config.y_field) return null;
 	const raw = row[config.y_field];
-	if (sinDato(raw)) return null;
+	if (isBlank(raw)) return null;
 	return trim(raw);
 }
 

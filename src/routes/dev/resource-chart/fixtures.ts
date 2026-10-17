@@ -42,7 +42,7 @@ export interface DemoTable {
 	total: number;
 }
 
-const NOMBRES = [
+const FIRST_NAMES = [
 	"José",
 	"María",
 	"Juan",
@@ -65,7 +65,7 @@ const NOMBRES = [
 	"Claudia",
 ];
 
-const APELLIDOS = [
+const LAST_NAMES = [
 	"Quispe",
 	"Mamani",
 	"Flores",
@@ -88,7 +88,7 @@ const APELLIDOS = [
 	"Poma",
 ];
 
-const DEPARTAMENTOS = [
+const DEPARTMENTS = [
 	"Cochabamba",
 	"La Paz",
 	"Santa Cruz",
@@ -100,7 +100,7 @@ const DEPARTAMENTOS = [
 	"Pando",
 ];
 
-const FACULTADES = [
+const FACULTIES = [
 	"Ciencias y Tecnología",
 	"Ciencias Económicas",
 	"Ciencias Jurídicas y Políticas",
@@ -111,7 +111,7 @@ const FACULTADES = [
 	"Arquitectura y Ciencias del Hábitat",
 ];
 
-const CARGOS = [
+const POSITIONS = [
 	"Docente auxiliar",
 	"Docente adjunto",
 	"Docente asociado",
@@ -123,17 +123,17 @@ const CARGOS = [
 ];
 
 /** `[turno, peso, rango de horas al mes]`. El turno manda en las horas, y por eso en el salario. */
-const TURNOS: [string, number, [number, number]][] = [
+const SHIFTS: [string, number, [number, number]][] = [
 	["mañana", 52, [88, 120]],
 	["tarde", 33, [64, 92]],
 	["noche", 15, [36, 60]],
 ];
 
-const ANIO_MIN = 1995;
-const ANIO_MAX = 2025;
+const YEAR_MIN = 1995;
+const YEAR_MAX = 2025;
 /** Proporción de `turno` vacío en la tabla real (76/2500) y de `fecha_ingreso` nula (57/2500). */
-const PROB_TURNO_VACIO = 0.03;
-const PROB_FECHA_NULA = 0.023;
+const EMPTY_SHIFT_RATE = 0.03;
+const NULL_DATE_RATE = 0.023;
 
 /** PRNG determinista (`mulberry32`): dos llamadas con la misma semilla dan las mismas filas. */
 function mulberry32(seed: number): () => number {
@@ -162,54 +162,57 @@ export function demoTable(count = 200, seed = 20261017): DemoTable {
 	const int = (min: number, max: number) => min + Math.floor(next() * (max - min + 1));
 	const pick = <T>(list: readonly T[]): T => list[Math.floor(next() * list.length)] ?? list[0];
 
-	const turnoWeighted = (): string => {
-		const total = TURNOS.reduce((sum, [, weight]) => sum + weight, 0);
+	const weightedShift = (): string => {
+		const total = SHIFTS.reduce((sum, [, weight]) => sum + weight, 0);
 		let r = next() * total;
-		for (const [turno, weight] of TURNOS) {
+		for (const [shift, weight] of SHIFTS) {
 			r -= weight;
-			if (r < 0) return turno;
+			if (r < 0) return shift;
 		}
-		return TURNOS[TURNOS.length - 1][0];
+		return SHIFTS[SHIFTS.length - 1][0];
 	};
 
 	const records: Record<string, unknown>[] = [];
 	for (let i = 1; i <= count; i++) {
-		const nombre = pick(NOMBRES);
-		const apellido = pick(APELLIDOS);
-		const cargo = pick(CARGOS);
-		const turnoElegido = turnoWeighted();
-		const [, , [horasMin, horasMax]] = TURNOS.find(([t]) => t === turnoElegido) ?? TURNOS[0];
-		const turno = turnoElegido;
+		const firstName = pick(FIRST_NAMES);
+		const lastName = pick(LAST_NAMES);
+		const position = pick(POSITIONS);
+		const pickedShift = weightedShift();
+		const [, , [hoursMin, hoursMax]] = SHIFTS.find(([shift]) => shift === pickedShift) ?? SHIFTS[0];
+		const shift = pickedShift;
 		// Cadenas vacías, no NULL: es lo que trae el CSV real en `turno` (L17).
-		const turnoFinal = next() < PROB_TURNO_VACIO ? "" : turno;
-		const horas = int(horasMin, horasMax);
-		const bsHora = int(50 + (CARGOS.indexOf(cargo) + 1) * 6, 70 + (CARGOS.indexOf(cargo) + 1) * 7);
+		const finalShift = next() < EMPTY_SHIFT_RATE ? "" : shift;
+		const hours = int(hoursMin, hoursMax);
+		const ratePerHour = int(
+			50 + (POSITIONS.indexOf(position) + 1) * 6,
+			70 + (POSITIONS.indexOf(position) + 1) * 7,
+		);
 
 		const year = Math.min(
-			ANIO_MAX,
-			ANIO_MIN + Math.floor(next() ** 0.7 * (ANIO_MAX - ANIO_MIN + 1)),
+			YEAR_MAX,
+			YEAR_MIN + Math.floor(next() ** 0.7 * (YEAR_MAX - YEAR_MIN + 1)),
 		);
 		const month = int(1, 12);
 		const day = int(1, daysInMonth(year, month));
 		// NULL de verdad en `fecha_ingreso`: el otro camino al grupo nulo (L16/L17).
-		const fecha =
-			next() < PROB_FECHA_NULA
+		const hireDate =
+			next() < NULL_DATE_RATE
 				? null
 				: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00`;
 
 		records.push({
 			_id: i,
 			n: i,
-			nombre,
-			apellido,
-			departamento: pick(DEPARTAMENTOS),
-			facultad: pick(FACULTADES),
-			cargo,
-			turno: turnoFinal,
-			horas_mes: horas,
-			bs_hora: bsHora,
-			salario: round2(horas * bsHora),
-			fecha_ingreso: fecha,
+			nombre: firstName,
+			apellido: lastName,
+			departamento: pick(DEPARTMENTS),
+			facultad: pick(FACULTIES),
+			cargo: position,
+			turno: finalShift,
+			horas_mes: hours,
+			bs_hora: ratePerHour,
+			salario: round2(hours * ratePerHour),
+			fecha_ingreso: hireDate,
 		});
 	}
 
