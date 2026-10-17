@@ -83,7 +83,16 @@ Respuesta:
   `ValidationError` con la clave `query`.
 - **Seguridad:** los nombres de columna se validan contra los `fields` del DataStore y se pasan como identificadores
   con comillas (`psycopg2.sql.Identifier`), nunca concatenados. Los valores van como parámetros. Sólo `date_part`,
-  `date_trunc`, `floor`, `count`, `sum`, `avg`, `min` y `max`.
+  `date_trunc`, `floor`, `lower`, `count`, `sum`, `avg`, `min` y `max` (`lower` sumada en L11, para `x_fold_case`).
+- **Precisiones de L11 (sin cambio de formato, sigue `version: 1`):** al **leer**, las claves de la configuración vienen
+  en el **nivel superior** de la vista (`view.chart_type`), no bajo `view.config`; al **escribir**, van planas en el
+  cuerpo de `resource_view_create`/`update` (un `config` anidado se rechaza). Una clave no declarada da
+  `ValidationError` (`__extras`), no se descarta. Familias de tipos: «numérica» es `numeric`, `int2`, `int4`, `int8`,
+  `float4`, `float8`; «fecha» es `timestamp`, `timestamptz`, `date`. Claves de error por tipo incompatible: `x_bucket`
+  (rangos numéricos o de fecha) e `y_field` (`sum`/`avg`/`min`/`max`). Recurso sin tabla en el DataStore:
+  `ObjectNotFound`. Tope de tiempo: 5 s por defecto (`ckanext.umss.chart.timeout_ms`). **Al guardar la vista sólo se
+  validan las reglas de forma; las reglas contra el DataStore se validan al ejecutar `umss_chart_data`**, así que el
+  formulario del publicador pide la vista previa antes de guardar.
 
 **El puente del portal** (`src/lib/server/ckan-proxy.ts`): hoy no deja pasar estas acciones. Hay que sumar
 `umss_chart_data` y `resource_view_list` a las de lectura, y `resource_view_create`, `resource_view_update` y
@@ -96,7 +105,7 @@ Respuesta:
 | T1 | Comparar bibliotecas y que el autor elija — **hecha: LayerChart 2** (L3) | S3 | explore + autor | `7aee9b1` |
 | T2 | Playground `/dev/resource-chart` — **hecha** (L5); queda como base del formulario del publicador | S4 | worker | `c6fd2df`, `f852f79` |
 | T3 | Revisión del autor — **hecha**: redefinió la feature (L7) y eligió arquitectura y alcance (L10) | S1, S6, S7 | autor | — |
-| O1 | **Prueba primero:** plugin `umss_chart` mínimo; crear una vista y leerla de vuelta con la configuración completa | S6 | sesión `odp-docker` | — |
+| O1 | **Prueba primero:** plugin `umss_chart` mínimo; crear una vista y leerla de vuelta con la configuración completa — **hecha** (L11) | S6 | sesión `odp-docker` | `odp-docker` `f02dc78` (rama local `feat/csv-charts`) |
 | O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error | S6, S7 | sesión `odp-docker` | — |
 | O3 | Verificación independiente de O1 y O2 (toca seguridad) | S6 | sesión `odp-docker` | — |
 | P1 | El puente: sumar las acciones del contrato | S6 | inline | — |
@@ -224,3 +233,10 @@ Respuesta:
   fracaso anterior: CKAN descarta en silencio lo que el `schema` del plugin no declara. Por eso **O1 va primero** y
   prueba que la vista se guarda y se lee completa antes de construir encima. **El PR #82 no se mergea:** su lógica fila
   por fila se reemplaza por la agrupación del servidor, y el playground pasa a ser el formulario del publicador.
+- **L11 (2026-10-17, O1 cumplida por la sesión de `odp-docker`, `f02dc78`, 5 tests nuevos, 211 en total):**
+  `resource_view_create` con `view_type: "umss_chart"` y las 9 claves; `resource_view_show` y `resource_view_list` las
+  devuelven todas y tipadas, con los valores por defecto aplicados. **Mi hipótesis sobre la 2.10 no se confirmó en la
+  2.12:** una clave no declarada no se descarta en silencio, sino que da `ValidationError` (`__extras`) y no se guarda
+  nada. Lo más probable es que en la 2.10 faltara el plugin con ese nombre, o que las claves fueran anidadas. La vista
+  la implementa el plugin `umss` que ya existe, así que `ckan.plugins` no cambia. Las precisiones del contrato quedan en
+  su sección. Se le pasaron al worker de P1 mientras trabajaba.
