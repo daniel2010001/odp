@@ -26,8 +26,9 @@
 
 /**
  * Las acciones que el navegador puede pedir a través del portal: **exactamente** las que usa hoy la capa de
- * cliente (`src/lib/api`), medida el 2026-10-15. Es el conjunto más chico que no rompe ninguna función del
- * portal, y el más grande que no agrega superficie nueva.
+ * cliente (`src/lib/api`), medida el 2026-10-15 y ampliada el 2026-10-17 con las vistas de gráfico de
+ * `umss_chart` (`src/lib/api/charts.ts`, contrato en `odd/tasks/csv-charts.md`). Es el conjunto más chico
+ * que no rompe ninguna función del portal, y el más grande que no agrega superficie nueva.
  */
 export const ALLOWED_ACTIONS = [
 	"datastore_search",
@@ -52,7 +53,12 @@ export const ALLOWED_ACTIONS = [
 	"resource_delete",
 	"resource_show",
 	"resource_update",
+	"resource_view_create",
+	"resource_view_delete",
+	"resource_view_list",
+	"resource_view_update",
 	"status_show",
+	"umss_chart_data",
 	"user_show",
 ] as const;
 
@@ -90,7 +96,9 @@ export const READ_ACTIONS = [
 	"package_show",
 	"publication_request_list",
 	"resource_show",
+	"resource_view_list",
 	"status_show",
+	"umss_chart_data",
 	"user_show",
 ] as const;
 

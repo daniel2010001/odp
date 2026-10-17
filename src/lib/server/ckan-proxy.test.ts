@@ -141,6 +141,15 @@ describe("la allowlist del proxy — la partición lectura/escritura", () => {
 		// Fuera de la allowlist no es nada, y tampoco es «lectura».
 		expect(isReadAction("user_create")).toBe(false);
 	});
+
+	it("los tres mutadores de las vistas de gráfico NO son de lectura: se piden con POST", () => {
+		// El par de lectura de la feature es `umss_chart_data` + `resource_view_list`; crear, actualizar y
+		// borrar una vista cambian el catálogo, así que ni siquiera son alcanzables con un `GET`.
+		for (const accion of ["resource_view_create", "resource_view_update", "resource_view_delete"]) {
+			expect(isAllowedAction(accion)).toBe(true);
+			expect(isReadAction(accion)).toBe(false);
+		}
+	});
 });
 
 describe("la allowlist del proxy — las acciones de subida (multipart)", () => {
