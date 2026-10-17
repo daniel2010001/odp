@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
 import type { ChartConfig, ChartData } from "$lib/charts/contract";
+import { FIELD_MESSAGES } from "$lib/charts/validation";
 import { CkanApiError } from "$lib/types/api";
 import ChartForm from "./ChartForm.svelte";
 
@@ -158,9 +159,9 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 
 		await fireEvent.click(vistaPrevia());
 
-		expect(
-			await screen.findByText("La columna del eje vertical debe ser numérica."),
-		).toBeInTheDocument();
+		// El campo muestra el texto del portal para la clave; el del servidor no es copy de la interfaz (L18).
+		expect(await screen.findByText(FIELD_MESSAGES.y_field)).toBeInTheDocument();
+		expect(screen.queryByText("La columna del eje vertical debe ser numérica.")).toBeNull();
 		expect(guardar()).toBeDisabled();
 	});
 

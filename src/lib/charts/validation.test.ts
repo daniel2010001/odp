@@ -1,14 +1,21 @@
 // El adaptador de errores del servidor al formulario del publicador (contrato v1, L12 punto 3).
 //
-// El servidor devuelve un `ValidationError` con la clave culpable y **un arreglo de mensajes** por clave
-// (`{"y_field": ["…"]}`); el formulario muestra un texto **por campo**. Este módulo es la única traducción
-// entre las dos formas, así que lo que se fija acá es: qué se considera un error de validación, qué mensaje
-// gana cuando hay varios, dónde caen las claves que no son de la configuración, y que lo que no es un error
-// de validación no se inventa.
+// El servidor devuelve un `ValidationError` con la clave culpable y mensajes **en inglés**, parte de ellos de
+// CKAN core («Missing value»). El contrato garantiza la **clave**, no el texto (L18). Así que lo que se fija
+// acá es: qué se considera un error de validación; que el campo muestra el texto **del portal** para esa
+// clave, nunca el del servidor; que las claves que no son de la configuración dan un aviso propio; que el
+// texto del servidor sólo sobrevive como detalle técnico; y que lo que no es un error de validación no se
+// inventa.
 
 import { describe, expect, it } from "vitest";
 import { CkanApiError } from "$lib/types/api";
-import { adaptServerValidation } from "./validation";
+import { CHART_CONFIG_KEYS } from "./contract";
+import {
+	adaptServerValidation,
+	FIELD_MESSAGES,
+	GENERAL_NOTICE,
+	NOTICE_MESSAGES,
+} from "./validation";
 
 function validationError(entries: Record<string, unknown>): CkanApiError {
 	return new CkanApiError("HTTP 409", 409, "Validation Error", {
@@ -39,63 +46,75 @@ describe("adaptServerValidation — no inventa errores", () => {
 	});
 });
 
-describe("adaptServerValidation — una clave culpable, un mensaje", () => {
-	it("toma el primer mensaje del arreglo", () => {
-		const adapted = adaptServerValidation(
-			validationError({ y_field: ["La columna debe ser numérica.", "otro detalle"] }),
-		);
-
-		expect(adapted?.errors).toEqual({ y_field: "La columna debe ser numérica." });
-		expect(adapted?.rest).toEqual([]);
+describe("adaptServerValidation — el campo muestra el texto del portal, no el del servidor", () => {
+	it("una clave de la configuración muestra el mensaje propio de esa clave", () => {
+		const adapted = adaptServerValidation(validationError({ y_field: ["Missing value"] }));
+		expect(adapted?.errors).toEqual({ y_field: FIELD_MESSAGES.y_field });
+		expect(JSON.stringify(adapted?.errors)).not.toContain("Missing value");
 	});
 
-	it("adapta varias claves a la vez", () => {
+	it("adapta varias claves a la vez, cada una con su texto", () => {
 		const adapted = adaptServerValidation(
-			validationError({
-				x_bucket: ["La agrupación no corresponde al tipo de la columna."],
-				y_field: ["La columna debe ser numérica."],
-			}),
+			validationError({ x_bucket: ["Value must be one of: value"], x_step: ["Missing value"] }),
 		);
-
 		expect(adapted?.errors).toEqual({
-			x_bucket: "La agrupación no corresponde al tipo de la columna.",
-			y_field: "La columna debe ser numérica.",
+			x_bucket: FIELD_MESSAGES.x_bucket,
+			x_step: FIELD_MESSAGES.x_step,
 		});
 	});
 
-	it("descarta los mensajes que no son texto y cae a un texto propio", () => {
-		const adapted = adaptServerValidation(validationError({ x_step: [], chart_type: [null] }));
+	it("cada clave de la configuración tiene su texto en español", () => {
+		for (const key of CHART_CONFIG_KEYS) {
+			expect(FIELD_MESSAGES[key]).toMatch(/\S/);
+		}
+	});
 
-		expect(adapted?.errors.chart_type).toBe("El catálogo rechazó este campo.");
-		expect(adapted?.errors.x_step).toBe("El catálogo rechazó este campo.");
+	it("el texto del servidor sobrevive sólo como detalle técnico, con su clave", () => {
+		const adapted = adaptServerValidation(validationError({ y_field: ["Missing value", "otro"] }));
+		expect(adapted?.technical).toEqual(["y_field: Missing value"]);
 	});
 });
 
-describe("adaptServerValidation — lo que no es una clave de la configuración", () => {
-	it("una clave del propio catálogo (`title`) no se muestra bajo un campo del gráfico", () => {
+describe("adaptServerValidation — las claves que no son de un campo", () => {
+	it("el tope de tiempo (`query`) da un aviso propio, no un campo en rojo", () => {
 		const adapted = adaptServerValidation(
-			validationError({ title: ["Falta el título."], y_agg: ["Elija un cálculo."] }),
+			validationError({ query: ["canceling statement due to statement timeout"] }),
 		);
-
-		expect(adapted?.errors).toEqual({ y_agg: "Elija un cálculo." });
-		expect(adapted?.rest).toEqual(["title: Falta el título."]);
-	});
-
-	it("`__extras` se aplana con su clave, porque es ahí donde cae una clave no declarada", () => {
-		const adapted = adaptServerValidation(
-			validationError({ __extras: { grafico_raro: ["Unexpected key"] } }),
-		);
-
 		expect(adapted?.errors).toEqual({});
-		expect(adapted?.rest).toEqual(["grafico_raro: Unexpected key"]);
+		expect(adapted?.notices).toEqual([NOTICE_MESSAGES.query]);
+		expect(adapted?.technical).toEqual(["query: canceling statement due to statement timeout"]);
 	});
 
-	it("el `message` y el `__type` de arriba no son claves culpables", () => {
-		const adapted = adaptServerValidation(
-			validationError({ message: "Bad request", __type: "Validation Error", version: ["x"] }),
-		);
+	it("una clave propia de la vista (`title`) da su aviso", () => {
+		const adapted = adaptServerValidation(validationError({ title: ["Missing value"] }));
+		expect(adapted?.notices).toEqual([NOTICE_MESSAGES.title]);
+	});
 
-		expect(adapted?.errors).toEqual({ version: "x" });
-		expect(adapted?.rest).toEqual([]);
+	it("una clave desconocida, o `__extras`, da el aviso general, una sola vez", () => {
+		const adapted = adaptServerValidation(
+			validationError({
+				resource_id: ["Not found"],
+				__extras: { grafico_raro: ["The input field grafico_raro was not expected."] },
+			}),
+		);
+		expect(adapted?.errors).toEqual({});
+		expect(adapted?.notices).toEqual([GENERAL_NOTICE]);
+		expect(adapted?.technical).toEqual([
+			"resource_id: Not found",
+			"grafico_raro: The input field grafico_raro was not expected.",
+		]);
+	});
+
+	it("el `message` y el `__type` del sobre no son claves culpables", () => {
+		const adapted = adaptServerValidation(validationError({ version: ["x"] }));
+		expect(adapted?.errors).toEqual({ version: FIELD_MESSAGES.version });
+		expect(adapted?.notices).toEqual([]);
+		expect(adapted?.technical).toEqual(["version: x"]);
+	});
+
+	it("una clave sin mensaje igual se adapta, sin detalle técnico", () => {
+		const adapted = adaptServerValidation(validationError({ chart_type: [42] }));
+		expect(adapted?.errors).toEqual({ chart_type: FIELD_MESSAGES.chart_type });
+		expect(adapted?.technical).toEqual([]);
 	});
 });

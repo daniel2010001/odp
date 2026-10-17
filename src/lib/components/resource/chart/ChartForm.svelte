@@ -107,7 +107,13 @@ type Preview =
 	| { kind: "idle" }
 	| { kind: "loading"; key: string }
 	| { kind: "ok"; key: string; data: ChartData }
-	| { kind: "rejected"; key: string | null; errors: ChartConfigErrors; rest: string[] }
+	| {
+			kind: "rejected";
+			key: string | null;
+			errors: ChartConfigErrors;
+			notices: string[];
+			technical: string[];
+	  }
 	| { kind: "failed"; key: string | null; title: string; message: string; code: string };
 
 let preview = $state<Preview>({ kind: "idle" });
@@ -178,7 +184,13 @@ async function runPreview() {
 	} catch (err) {
 		const adapted = adaptServerValidation(err);
 		if (adapted) {
-			preview = { kind: "rejected", key, errors: adapted.errors, rest: adapted.rest };
+			preview = {
+				kind: "rejected",
+				key,
+				errors: adapted.errors,
+				notices: adapted.notices,
+				technical: adapted.technical,
+			};
 			return;
 		}
 		const failure = describeFailure(err, "resource", "unknown");
@@ -204,7 +216,13 @@ async function save() {
 	} catch (err) {
 		const adapted = adaptServerValidation(err);
 		if (adapted) {
-			preview = { kind: "rejected", key: currentKey, errors: adapted.errors, rest: adapted.rest };
+			preview = {
+				kind: "rejected",
+				key: currentKey,
+				errors: adapted.errors,
+				notices: adapted.notices,
+				technical: adapted.technical,
+			};
 		} else {
 			const failure = describeFailure(err, "resource", "unknown");
 			saveFailure = {
@@ -422,9 +440,14 @@ async function save() {
 				<p class="text-sm font-medium text-foreground">
 					El catálogo rechazó esta configuración. Revise los campos marcados.
 				</p>
-				{#each preview.rest as message (message)}
-					<p class="text-xs leading-relaxed text-muted-foreground">{message}</p>
+				{#each preview.notices as notice (notice)}
+					<p class="text-xs leading-relaxed text-muted-foreground">{notice}</p>
 				{/each}
+				{#if preview.technical.length > 0}
+					<p class="font-mono text-xs text-muted-foreground">
+						Detalle técnico: {preview.technical.join(" · ")}
+					</p>
+				{/if}
 			</div>
 		{:else if preview.kind === "failed" && preview.key === currentKey}
 			<div class="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2">

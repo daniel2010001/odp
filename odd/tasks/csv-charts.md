@@ -322,3 +322,17 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   vacío o sólo espacios es «sin dato»**, en la clave de X y en `count_distinct`. Sigue `version: 1`, porque la forma
   no cambia. `btrim` se suma a las funciones; esa lista es una regla propia de la acción, no la de
   `datastore_search_sql`, que sigue apagada.
+- **L18 (2026-10-17, P2 entregada y dos acuerdos con la sesión de `odp-docker`):** el formulario del publicador vive en
+  el playground, contra un doble del contrato (`6dd2a39`, `76413f0`). El padre verificó: 144/144 tests en la feature,
+  `pnpm check` sin errores, Biome limpio y `200` en `:8082`. Se borró el camino fila por fila (`points.ts`,
+  `columns.ts`, `ChartBuilder.svelte`). Los acuerdos:
+  1. **Orden del texto:** la acción ordena las claves de texto con `COLLATE "C"`, por punto de código, igual que el
+     doble del portal. Números y fechas ordenan por su tipo, y el grupo nulo va al final.
+  2. **Los mensajes del servidor no son copy de la interfaz:** llegan en inglés y una parte viene de CKAN core. **El
+     contrato garantiza la clave del error, no el texto.** El portal muestra **su** texto en español para cada clave
+     (`FIELD_MESSAGES`, más avisos propios para `query`, `title` y las demás claves), y el texto del servidor sólo
+     queda como «Detalle técnico». Un catálogo `i18n` del plugin no se hace ahora; si hiciera falta, sería `[v1]`.
+     Para el adaptador se observó RED (10 tests) y luego GREEN (116/116).
+  **Preguntas abiertas para el autor, de P2:** el rótulo de los rangos (`[0, 5000)` o `0–5000`), dónde vive el
+  formulario en el producto (se recomienda la página del recurso, visible para quien puede editar) y qué pasa después
+  de guardar (se recomienda volver a la página con el gráfico visible).
