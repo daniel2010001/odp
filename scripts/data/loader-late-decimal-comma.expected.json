@@ -1,0 +1,33 @@
+{
+	"title": "Coma decimal tardía del cargador del DataStore — expectativas de la medición",
+	"csv_file": "scripts/data/loader-late-decimal-comma.csv",
+	"csv_sha256": "6bf2725c15377563c4090ee628ecc76ecd1872fcd4a78390f3bcac7f5060b226",
+	"row_count": 1200,
+	"sample_window_rows": 1000,
+	"late_rows": [1001, 1100, 1200],
+	"generated_by": "scripts/generate-edge-cases-csv.mjs",
+	"purpose": "Este JSON acompaña a scripts/data/loader-late-decimal-comma.csv: 1200 filas y dos columnas, el control `row_number` y una sola columna con valor problemático, `late_decimal_comma_after_row_1000`, cuyos valores son los mismos que los de la columna homónima de scripts/data/loader-sampling-window.csv —los dos archivos los escribe este mismo generador desde la misma especificación, así que no pueden divergir—. Aísla **un solo** comportamiento: la coma decimal en un valor tardío (`1,5`, `2,25`, `3,75`) después de una ventana que sólo vio puntos decimales. La razón de separarlo está en la Medición 2 del BACKLOG: con los cuatro casos tardíos en un mismo archivo, el primer valor malo —el texto de la fila 1001— hizo que CKAN rechazara el tramo entero (409, `invalid input syntax for type numeric`) y la carga se cortó ahí, así que los otros tres nunca se evaluaron. Con una sola columna problemática, lo que se anote en las filas 1001, 1100 y 1200 es atribuible a este caso y a ningún otro. La ventana de muestreo sigue siendo de 1000 filas (messytables: `messytables/commas.py`, `window or 1000`; `datapusher/jobs.py:459`, `type_guess(row_set.sample, strict=True)`): el valor problemático cae afuera y la pregunta es qué hace el cargador con él.",
+	"how_to_record": "Se sube ESTE archivo, sin editarlo, como recurso de un dataset desechable del CKAN dev, con cada cargador (DataPusher 0.0.21 y DataPusher+ vigente), y se espera a que termine la tarea de carga. Como el archivo tiene una sola columna problemática, lo que se anote es de ese caso y de ningún otro.\n\n1. ¿Terminó la carga? El `total` de `datastore_search` tiene que ser 1200. Si es ~1000, la carga se cortó justo al salir de la ventana de muestreo: el primer valor malo hizo rechazar el tramo entero y la tabla quedó activa e incompleta. Anotar la fila del error del cargador y qué quedó cargado.\n\n2. Tipo por columna: en `fields` de `datastore_search`, anotar el `type` (el `typname` de Postgres: `int4`, `float8`, `text`, `timestamptz`) de `row_number`, de `late_decimal_comma_after_row_1000` y de `_id`.\n\n3. Valores guardados: leer las filas de `sample_rows` de la columna tardía —1, 500 y 1000, adentro de la ventana, más la 1001, la 1100, la 1200, afuera— con `datastore_search` y anotar el valor tal como vuelve. Comparar las de adentro con las tardías es el punto: si las de adentro están bien y las tardías no, el problema es el muestreo, no el valor.\n\n4. Un bloque por cargador, con nombre y versión, con el total, el tipo por columna y los seis valores de la columna tardía. Los desenlaces posibles están enumerados en `notes` de esa columna: la carga se corta en la fila ~1001, el valor tardío queda `null`, queda corrompido, o la columna cae a texto.",
+	"columns": [
+		{
+			"column": "row_number",
+			"backlog_case": null,
+			"description": "Control: el número de fila, de 1 a 1200, entero, sin huecos ni repetidos.",
+			"raw_samples": ["1", "500", "1000", "1001", "1100", "1200"],
+			"sample_rows": [1, 500, 1000, 1001, 1100, 1200],
+			"ideal_type": "numeric",
+			"ideal_values": [1, 500, 1000, 1001, 1100, 1200],
+			"notes": "Control, no un caso borde: si esta columna no sale `numeric` de la fila 1 a la 1200, el resto de la medición no se puede interpretar. Fija además la fila real: el `_id` que devuelva `datastore_search` tiene que coincidir con este número, y el `total` de la respuesta dice si la carga llegó a 1200 o se cortó en la fila 1001."
+		},
+		{
+			"column": "late_decimal_comma_after_row_1000",
+			"backlog_case": 1,
+			"description": "Decimales con punto, limpios, en las filas 1–1000; y con coma en la 1001 (`1,5`), la 1100 (`2,25`) y la 1200 (`3,75`).",
+			"raw_samples": ["12.50", "137.25", "262.25", "1,5", "2,25", "3,75"],
+			"sample_rows": [1, 500, 1000, 1001, 1100, 1200],
+			"ideal_type": "numeric",
+			"ideal_values": [12.5, 137.25, 262.25, 1.5, 2.25, 3.75],
+			"notes": "Ideal: 1.5 / 2.25 / 3.75, sin importar si el decimal venía con punto o con coma. La ventana ve sólo puntos, así que la columna se declara `numeric` antes de la fila 1001. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001 y quedan 1000 filas; (2) las tres celdas tardías quedan `null`, sin aviso de que había un dato; (3) el valor tardío queda corrompido: `1,5` leído como dos columnas o como 15 si se borra la coma, que es peor que perderlo; (4) la columna cae a texto y la coma se conserva tal cual, que no rompe nada pero deja el número sin aritmética."
+		}
+	]
+}

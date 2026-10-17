@@ -1,0 +1,47 @@
+{
+	"title": "Fecha ambigua tardía del cargador del DataStore — expectativas de la medición",
+	"csv_file": "scripts/data/loader-late-ambiguous-date.csv",
+	"csv_sha256": "84afcae103c0981559cc30aa0a82727c45e0bf995f033f666e467d21cc6ba5da",
+	"row_count": 1200,
+	"sample_window_rows": 1000,
+	"late_rows": [1001, 1100, 1200],
+	"generated_by": "scripts/generate-edge-cases-csv.mjs",
+	"purpose": "Este JSON acompaña a scripts/data/loader-late-ambiguous-date.csv: 1200 filas y dos columnas, el control `row_number` y una sola columna con valor problemático, `late_ambiguous_date_after_row_1000`, cuyos valores son los mismos que los de la columna homónima de scripts/data/loader-sampling-window.csv —los dos archivos los escribe este mismo generador desde la misma especificación, así que no pueden divergir—. Aísla **un solo** comportamiento: una fecha `dd/mm` ambigua en un valor tardío (`03/04/2024`, `05/06/2023`, `07/08/2022`) frente a la convención que dejó ver la ventana, llena de días mayores que 12. La razón de separarlo está en la Medición 2 del BACKLOG: con los cuatro casos tardíos en un mismo archivo, el primer valor malo —el texto de la fila 1001— hizo que CKAN rechazara el tramo entero (409, `invalid input syntax for type numeric`) y la carga se cortó ahí, así que los otros tres nunca se evaluaron. Con una sola columna problemática, lo que se anote en las filas 1001, 1100 y 1200 es atribuible a este caso y a ningún otro. La ventana de muestreo sigue siendo de 1000 filas (messytables: `messytables/commas.py`, `window or 1000`; `datapusher/jobs.py:459`, `type_guess(row_set.sample, strict=True)`): el valor problemático cae afuera y la pregunta es qué hace el cargador con él.",
+	"how_to_record": "Se sube ESTE archivo, sin editarlo, como recurso de un dataset desechable del CKAN dev, con cada cargador (DataPusher 0.0.21 y DataPusher+ vigente), y se espera a que termine la tarea de carga. Como el archivo tiene una sola columna problemática, lo que se anote es de ese caso y de ningún otro.\n\n1. ¿Terminó la carga? El `total` de `datastore_search` tiene que ser 1200. Si es ~1000, la carga se cortó justo al salir de la ventana de muestreo: el primer valor malo hizo rechazar el tramo entero y la tabla quedó activa e incompleta. Anotar la fila del error del cargador y qué quedó cargado.\n\n2. Tipo por columna: en `fields` de `datastore_search`, anotar el `type` (el `typname` de Postgres: `int4`, `float8`, `text`, `timestamptz`) de `row_number`, de `late_ambiguous_date_after_row_1000` y de `_id`.\n\n3. Valores guardados: leer las filas de `sample_rows` de la columna tardía —1, 500 y 1000, adentro de la ventana, más la 1001, la 1100, la 1200, afuera— con `datastore_search` y anotar el valor tal como vuelve. Comparar las de adentro con las tardías es el punto: si las de adentro están bien y las tardías no, el problema es el muestreo, no el valor.\n\n4. Un bloque por cargador, con nombre y versión, con el total, el tipo por columna y los seis valores de la columna tardía. Los desenlaces posibles están enumerados en `notes` de esa columna: la carga se corta en la fila ~1001, el valor tardío queda `null`, queda corrompido, o la columna cae a texto.",
+	"columns": [
+		{
+			"column": "row_number",
+			"backlog_case": null,
+			"description": "Control: el número de fila, de 1 a 1200, entero, sin huecos ni repetidos.",
+			"raw_samples": ["1", "500", "1000", "1001", "1100", "1200"],
+			"sample_rows": [1, 500, 1000, 1001, 1100, 1200],
+			"ideal_type": "numeric",
+			"ideal_values": [1, 500, 1000, 1001, 1100, 1200],
+			"notes": "Control, no un caso borde: si esta columna no sale `numeric` de la fila 1 a la 1200, el resto de la medición no se puede interpretar. Fija además la fila real: el `_id` que devuelva `datastore_search` tiene que coincidir con este número, y el `total` de la respuesta dice si la carga llegó a 1200 o se cortó en la fila 1001."
+		},
+		{
+			"column": "late_ambiguous_date_after_row_1000",
+			"backlog_case": 4,
+			"description": "`dd/mm/aaaa` con día mayor que 12 en las filas 1–1000, y ambiguas (día ≤ 12) en la 1001 (`03/04/2024`), la 1100 (`05/06/2023`) y la 1200 (`07/08/2022`).",
+			"raw_samples": [
+				"13/01/2010",
+				"16/08/2012",
+				"20/03/2015",
+				"03/04/2024",
+				"05/06/2023",
+				"07/08/2022"
+			],
+			"sample_rows": [1, 500, 1000, 1001, 1100, 1200],
+			"ideal_type": "timestamp",
+			"ideal_values": [
+				"2010-01-13",
+				"2012-08-16",
+				"2015-03-20",
+				"2024-04-03",
+				"2023-06-05",
+				"2022-08-07"
+			],
+			"notes": "Ideal declarado: la lectura dd/mm (03/04/2024 = 3 de abril). Mide si la convención que la ventana dejó ver se **mantiene** o se vuelve a adivinar por valor: Medición 1 ya mostró que DataPusher 0.0.21 lee cada valor como le resulta (`15/03/2024` dd/mm y `03/04/2024` mm/dd en la misma columna), y con la ventana llena de días > 12 hay una convención establecida que se puede contradecir. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001; (2) las tres celdas tardías quedan `null`; (3) el valor tardío queda corrompido, guardado como mm/dd (4 de marzo, 6 de mayo, 8 de julio) sin ningún aviso, que es el desenlace peligroso de todo el archivo y el que esta columna existe para detectar; (4) la columna cae a texto y las fechas ambiguas se conservan escritas, que no se puede ordenar pero al menos no miente."
+		}
+	]
+}

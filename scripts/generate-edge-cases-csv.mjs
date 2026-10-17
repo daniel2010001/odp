@@ -10,6 +10,14 @@
 // `datastore_search` en `fields` y qué valor queda guardado. El JSON de expectativas dice,
 // para cada columna, qué guardaría un cargador ideal — y dónde «ideal» es una elección.
 //
+// Tres grupos de archivos, cada uno con su `.expected.json`:
+//   1. `loader-edge-cases.csv`: 48 filas, una columna por caso borde (Medición 1).
+//   2. `loader-sampling-window.csv`: 1200 filas, cuatro casos tardíos juntos, para medir la
+//      ventana de muestreo de 1000 filas (Medición 2).
+//   3. `loader-late-*.csv`: 1200 filas, el control `row_number` y **una** columna tardía por
+//      archivo. La Medición 2 mostró que el cargador rechaza el tramo entero en el PRIMER valor
+//      malo, así que en el archivo 2 el texto de la fila 1001 tapó los otros tres casos.
+//
 // Reglas del archivo, que son las que hacen la medición legible:
 //   · Una columna = un caso. Dos rarezas en la misma columna no dicen cuál rompió.
 //   · Dos controles (`baseline_integer`, `baseline_iso_date`): si fallan, el problema es del
@@ -948,6 +956,120 @@ export function generateSamplingExpectations() {
 	return buildSamplingExpectations(generateSamplingCsv());
 }
 
+// ── Tercer grupo: un archivo por comportamiento tardío ──
+//
+// Por qué: Medición 2 del BACKLOG (DataPusher 0.0.21, 2026-10-17) cargó
+// `loader-sampling-window.csv` y la tabla quedó ACTIVA con 1000 de 1200 filas. El cargador
+// adivinó `numeric` y `timestamp` con las primeras 1000 filas y mandó la tabla en tramos de
+// 16 KB; CKAN rechazó el tramo 4 con un 409 (`invalid input syntax for type numeric:
+// "sin dato"`) y nada deshizo los tramos que ya habían entrado. **El primer valor malo corta
+// todo**: el texto de la fila 1001 abortó el tramo, así que la coma decimal, la fecha inválida
+// y la fecha ambigua tardías nunca se evaluaron.
+//
+// De ahí estos archivos: el control `row_number` y **una** columna tardía cada uno, con los
+// mismos valores que la columna homónima del archivo 2 (se toman de `SAMPLING_COLUMN_SPECS`,
+// no se copian), para que no puedan divergir. Si la carga se corta, se corta por ese caso y
+// por ningún otro, y lo anotado en las filas 1001, 1100 y 1200 es atribuible a él.
+
+/** La entrada de `SAMPLING_COLUMN_SPECS` con ese nombre; falla si no existe. */
+function samplingSpec(name) {
+	const spec = SAMPLING_COLUMN_SPECS.find((candidate) => candidate.name === name);
+	if (!spec) throw new Error(`columna de la ventana desconocida: ${name}`);
+	return spec;
+}
+
+/** El control de filas, compartido con el archivo de la ventana. */
+const ROW_NUMBER_SPEC = samplingSpec("row_number");
+
+const ISOLATED_DATASET_SPECS = [
+	{
+		slug: "late-decimal-comma",
+		lateColumn: "late_decimal_comma_after_row_1000",
+		title: "Coma decimal tardía del cargador del DataStore — expectativas de la medición",
+		isolates:
+			"la coma decimal en un valor tardío (`1,5`, `2,25`, `3,75`) después de una ventana que sólo vio puntos decimales",
+	},
+	{
+		slug: "late-invalid-date",
+		lateColumn: "late_invalid_date_after_row_1000",
+		title: "Fecha inválida tardía del cargador del DataStore — expectativas de la medición",
+		isolates:
+			"una fecha inválida en un valor tardío (`31/02/2024`, `2024-13-01`, `no aplica`) después de una ventana que sólo vio fechas ISO válidas",
+	},
+	{
+		slug: "late-ambiguous-date",
+		lateColumn: "late_ambiguous_date_after_row_1000",
+		title: "Fecha ambigua tardía del cargador del DataStore — expectativas de la medición",
+		isolates:
+			"una fecha `dd/mm` ambigua en un valor tardío (`03/04/2024`, `05/06/2023`, `07/08/2022`) frente a la convención que dejó ver la ventana, llena de días mayores que 12",
+	},
+];
+
+function isolatedPurpose(dataset) {
+	return `Este JSON acompaña a ${dataset.csvFileLabel}: ${SAMPLING_ROW_COUNT} filas y dos columnas, el control \`row_number\` y una sola columna con valor problemático, \`${dataset.lateColumn}\`, cuyos valores son los mismos que los de la columna homónima de ${SAMPLING_CSV_FILE_LABEL} —los dos archivos los escribe este mismo generador desde la misma especificación, así que no pueden divergir—. Aísla **un solo** comportamiento: ${dataset.isolates}. La razón de separarlo está en la Medición 2 del BACKLOG: con los cuatro casos tardíos en un mismo archivo, el primer valor malo —el texto de la fila 1001— hizo que CKAN rechazara el tramo entero (409, \`invalid input syntax for type numeric\`) y la carga se cortó ahí, así que los otros tres nunca se evaluaron. Con una sola columna problemática, lo que se anote en las filas 1001, 1100 y 1200 es atribuible a este caso y a ningún otro. La ventana de muestreo sigue siendo de 1000 filas (messytables: \`messytables/commas.py\`, \`window or 1000\`; \`datapusher/jobs.py:459\`, \`type_guess(row_set.sample, strict=True)\`): el valor problemático cae afuera y la pregunta es qué hace el cargador con él.`;
+}
+
+function isolatedHowToRecord(dataset) {
+	return `Se sube ESTE archivo, sin editarlo, como recurso de un dataset desechable del CKAN dev, con cada cargador (DataPusher 0.0.21 y DataPusher+ vigente), y se espera a que termine la tarea de carga. Como el archivo tiene una sola columna problemática, lo que se anote es de ese caso y de ningún otro.
+
+1. ¿Terminó la carga? El \`total\` de \`datastore_search\` tiene que ser ${SAMPLING_ROW_COUNT}. Si es ~${SAMPLE_WINDOW_ROWS}, la carga se cortó justo al salir de la ventana de muestreo: el primer valor malo hizo rechazar el tramo entero y la tabla quedó activa e incompleta. Anotar la fila del error del cargador y qué quedó cargado.
+
+2. Tipo por columna: en \`fields\` de \`datastore_search\`, anotar el \`type\` (el \`typname\` de Postgres: \`int4\`, \`float8\`, \`text\`, \`timestamptz\`) de \`row_number\`, de \`${dataset.lateColumn}\` y de \`_id\`.
+
+3. Valores guardados: leer las filas de \`sample_rows\` de la columna tardía —1, 500 y ${SAMPLE_WINDOW_ROWS}, adentro de la ventana, más la ${LATE_ROWS.join(", la ")}, afuera— con \`datastore_search\` y anotar el valor tal como vuelve. Comparar las de adentro con las tardías es el punto: si las de adentro están bien y las tardías no, el problema es el muestreo, no el valor.
+
+4. Un bloque por cargador, con nombre y versión, con el total, el tipo por columna y los seis valores de la columna tardía. Los desenlaces posibles están enumerados en \`notes\` de esa columna: la carga se corta en la fila ~1001, el valor tardío queda \`null\`, queda corrompido, o la columna cae a texto.`;
+}
+
+/** Los tres datasets del tercer grupo, con sus rutas y sus dos columnas. */
+export const ISOLATED_DATASETS = ISOLATED_DATASET_SPECS.map((spec) => {
+	const lateSpec = samplingSpec(spec.lateColumn);
+	return {
+		slug: spec.slug,
+		lateColumn: spec.lateColumn,
+		title: spec.title,
+		isolates: spec.isolates,
+		columnSpecs: [ROW_NUMBER_SPEC, lateSpec],
+		columns: [ROW_NUMBER_SPEC.name, lateSpec.name],
+		csvPath: resolve(HERE, "data", `loader-${spec.slug}.csv`),
+		expectationsPath: resolve(HERE, "data", `loader-${spec.slug}.expected.json`),
+		csvFileLabel: `scripts/data/loader-${spec.slug}.csv`,
+	};
+});
+
+/** Filas de un dataset aislado como objetos `{ columna: valor }`. */
+export function generateIsolatedRows(dataset) {
+	return sequenceOf(SAMPLING_ROW_COUNT, (index) =>
+		Object.fromEntries(dataset.columnSpecs.map((spec) => [spec.name, spec.values[index]])),
+	);
+}
+
+export function generateIsolatedCsv(dataset) {
+	return formatCsv(generateIsolatedRows(dataset), dataset.columns);
+}
+
+export function buildIsolatedExpectations(dataset, csvText) {
+	// Misma forma que el JSON de la ventana: nada nuevo que aprender para quien lo lee.
+	const payload = {
+		title: dataset.title,
+		csv_file: dataset.csvFileLabel,
+		csv_sha256: createHash("sha256").update(csvText).digest("hex"),
+		row_count: SAMPLING_ROW_COUNT,
+		sample_window_rows: SAMPLE_WINDOW_ROWS,
+		late_rows: [...LATE_ROWS],
+		generated_by: "scripts/generate-edge-cases-csv.mjs",
+		purpose: isolatedPurpose(dataset),
+		how_to_record: isolatedHowToRecord(dataset),
+		columns: buildColumnExpectations(dataset.columnSpecs),
+	};
+
+	return serializeJson(payload);
+}
+
+export function generateIsolatedExpectations(dataset) {
+	return buildIsolatedExpectations(dataset, generateIsolatedCsv(dataset));
+}
+
 // ── CLI ──
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -957,11 +1079,21 @@ if (isMain) {
 	const expectations = buildExpectations(csv);
 	const samplingCsv = generateSamplingCsv();
 	const samplingExpectations = buildSamplingExpectations(samplingCsv);
+	// Se genera una vez por dataset y se reusa para escribir y para reportar el sha256.
+	const isolatedFiles = ISOLATED_DATASETS.map((dataset) => {
+		const csvText = generateIsolatedCsv(dataset);
+		return { dataset, csvText, expectationsText: buildIsolatedExpectations(dataset, csvText) };
+	});
 	mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
 	writeFileSync(OUTPUT_PATH, csv, "utf8");
 	writeFileSync(EXPECTATIONS_PATH, expectations, "utf8");
 	writeFileSync(SAMPLING_OUTPUT_PATH, samplingCsv, "utf8");
 	writeFileSync(SAMPLING_EXPECTATIONS_PATH, samplingExpectations, "utf8");
+
+	for (const { dataset, csvText, expectationsText } of isolatedFiles) {
+		writeFileSync(dataset.csvPath, csvText, "utf8");
+		writeFileSync(dataset.expectationsPath, expectationsText, "utf8");
+	}
 
 	const report = (path, text) => {
 		const bytes = Buffer.byteLength(text, "utf8");
@@ -976,4 +1108,11 @@ if (isMain) {
 	);
 	report(SAMPLING_OUTPUT_PATH, samplingCsv);
 	report(SAMPLING_EXPECTATIONS_PATH, samplingExpectations);
+	for (const { dataset, csvText, expectationsText } of isolatedFiles) {
+		console.log(
+			`✓ ${dataset.columns.length} columnas (${dataset.lateColumn}), ${SAMPLING_ROW_COUNT} filas`,
+		);
+		report(dataset.csvPath, csvText);
+		report(dataset.expectationsPath, expectationsText);
+	}
 }

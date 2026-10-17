@@ -1,0 +1,47 @@
+{
+	"title": "Fecha inválida tardía del cargador del DataStore — expectativas de la medición",
+	"csv_file": "scripts/data/loader-late-invalid-date.csv",
+	"csv_sha256": "c06a6f084b404917fc2d8fa3b7f88c74a1a900fa9d3cc9e811ae41667cc6ba9b",
+	"row_count": 1200,
+	"sample_window_rows": 1000,
+	"late_rows": [1001, 1100, 1200],
+	"generated_by": "scripts/generate-edge-cases-csv.mjs",
+	"purpose": "Este JSON acompaña a scripts/data/loader-late-invalid-date.csv: 1200 filas y dos columnas, el control `row_number` y una sola columna con valor problemático, `late_invalid_date_after_row_1000`, cuyos valores son los mismos que los de la columna homónima de scripts/data/loader-sampling-window.csv —los dos archivos los escribe este mismo generador desde la misma especificación, así que no pueden divergir—. Aísla **un solo** comportamiento: una fecha inválida en un valor tardío (`31/02/2024`, `2024-13-01`, `no aplica`) después de una ventana que sólo vio fechas ISO válidas. La razón de separarlo está en la Medición 2 del BACKLOG: con los cuatro casos tardíos en un mismo archivo, el primer valor malo —el texto de la fila 1001— hizo que CKAN rechazara el tramo entero (409, `invalid input syntax for type numeric`) y la carga se cortó ahí, así que los otros tres nunca se evaluaron. Con una sola columna problemática, lo que se anote en las filas 1001, 1100 y 1200 es atribuible a este caso y a ningún otro. La ventana de muestreo sigue siendo de 1000 filas (messytables: `messytables/commas.py`, `window or 1000`; `datapusher/jobs.py:459`, `type_guess(row_set.sample, strict=True)`): el valor problemático cae afuera y la pregunta es qué hace el cargador con él.",
+	"how_to_record": "Se sube ESTE archivo, sin editarlo, como recurso de un dataset desechable del CKAN dev, con cada cargador (DataPusher 0.0.21 y DataPusher+ vigente), y se espera a que termine la tarea de carga. Como el archivo tiene una sola columna problemática, lo que se anote es de ese caso y de ningún otro.\n\n1. ¿Terminó la carga? El `total` de `datastore_search` tiene que ser 1200. Si es ~1000, la carga se cortó justo al salir de la ventana de muestreo: el primer valor malo hizo rechazar el tramo entero y la tabla quedó activa e incompleta. Anotar la fila del error del cargador y qué quedó cargado.\n\n2. Tipo por columna: en `fields` de `datastore_search`, anotar el `type` (el `typname` de Postgres: `int4`, `float8`, `text`, `timestamptz`) de `row_number`, de `late_invalid_date_after_row_1000` y de `_id`.\n\n3. Valores guardados: leer las filas de `sample_rows` de la columna tardía —1, 500 y 1000, adentro de la ventana, más la 1001, la 1100, la 1200, afuera— con `datastore_search` y anotar el valor tal como vuelve. Comparar las de adentro con las tardías es el punto: si las de adentro están bien y las tardías no, el problema es el muestreo, no el valor.\n\n4. Un bloque por cargador, con nombre y versión, con el total, el tipo por columna y los seis valores de la columna tardía. Los desenlaces posibles están enumerados en `notes` de esa columna: la carga se corta en la fila ~1001, el valor tardío queda `null`, queda corrompido, o la columna cae a texto.",
+	"columns": [
+		{
+			"column": "row_number",
+			"backlog_case": null,
+			"description": "Control: el número de fila, de 1 a 1200, entero, sin huecos ni repetidos.",
+			"raw_samples": ["1", "500", "1000", "1001", "1100", "1200"],
+			"sample_rows": [1, 500, 1000, 1001, 1100, 1200],
+			"ideal_type": "numeric",
+			"ideal_values": [1, 500, 1000, 1001, 1100, 1200],
+			"notes": "Control, no un caso borde: si esta columna no sale `numeric` de la fila 1 a la 1200, el resto de la medición no se puede interpretar. Fija además la fila real: el `_id` que devuelva `datastore_search` tiene que coincidir con este número, y el `total` de la respuesta dice si la carga llegó a 1200 o se cortó en la fila 1001."
+		},
+		{
+			"column": "late_invalid_date_after_row_1000",
+			"backlog_case": 4,
+			"description": "Fechas ISO válidas en las filas 1–1000 e inválidas en la 1001 (`31/02/2024`), la 1100 (`2024-13-01`) y la 1200 (`no aplica`).",
+			"raw_samples": [
+				"2024-01-01",
+				"2025-05-14",
+				"2026-09-26",
+				"31/02/2024",
+				"2024-13-01",
+				"no aplica"
+			],
+			"sample_rows": [1, 500, 1000, 1001, 1100, 1200],
+			"ideal_type": "text",
+			"ideal_values": [
+				"2024-01-01",
+				"2025-05-14",
+				"2026-09-26",
+				"31/02/2024",
+				"2024-13-01",
+				"no aplica"
+			],
+			"notes": "Ideal: conservar los tres valores tal como están escritos, para que la fila se pueda corregir; inventar 02/03/2024 o 29/02/2024 es fabricar un dato. La ventana sólo vio ISO, así que la columna se declara `timestamp` antes de la fila 1001. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001 y quedan 1000 filas; (2) las tres celdas tardías quedan `null` y se pierde la evidencia de que había una fecha mal escrita; (3) el valor tardío queda corrompido, es decir convertido a una fecha que el archivo no decía; (4) la columna cae a texto y los tres valores se guardan literalmente, que es lo conservador y lo que se quiere medir."
+		}
+	]
+}

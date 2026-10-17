@@ -27,8 +27,11 @@ import {
 	excelSerialToIso,
 	generateCsv,
 	generateExpectations,
+	generateIsolatedCsv,
+	generateIsolatedExpectations,
 	generateSamplingCsv,
 	generateSamplingExpectations,
+	ISOLATED_DATASETS,
 	LATE_ROWS,
 	OUTPUT_PATH,
 	ROW_COUNT,
@@ -560,4 +563,214 @@ test("los archivos versionados de la ventana coinciden con el generador", () => 
 		"el JSON de la ventana no coincide: corra `node scripts/generate-edge-cases-csv.mjs`",
 	);
 	assert.equal(samplingExpectations.csv_sha256, sha256(samplingCsv));
+});
+
+// ── Tercer grupo: un archivo por comportamiento tardío, de una sola columna ──
+//
+// Medición 2 del BACKLOG mostró que el DataPusher actual rechaza el tramo entero en el
+// PRIMER valor malo: con los cuatro casos tardíos en el mismo archivo, el texto de la fila
+// 1001 cortó la carga ahí (409, `invalid input syntax for type numeric: "sin dato"`) y la
+// coma decimal, la fecha inválida y la fecha ambigua nunca se evaluaron. Cada archivo de
+// este grupo lleva el control `row_number` y UNA sola columna tardía, con los mismos
+// valores que la columna homónima de `loader-sampling-window.csv`.
+
+test("el grupo aislado son tres archivos, uno por comportamiento tardío", () => {
+	assert.deepEqual(
+		ISOLATED_DATASETS.map((dataset) => dataset.slug),
+		["late-decimal-comma", "late-invalid-date", "late-ambiguous-date"],
+	);
+	assert.deepEqual(
+		ISOLATED_DATASETS.map((dataset) => dataset.lateColumn),
+		[
+			"late_decimal_comma_after_row_1000",
+			"late_invalid_date_after_row_1000",
+			"late_ambiguous_date_after_row_1000",
+		],
+	);
+	for (const dataset of ISOLATED_DATASETS) {
+		assert.ok(
+			LATE_COLUMNS.includes(dataset.lateColumn),
+			`${dataset.slug} no aísla una columna tardía de la ventana`,
+		);
+		assert.equal(dataset.columns.length, 2, `${dataset.slug} no tiene exactamente dos columnas`);
+		assert.deepEqual(
+			[...dataset.columns],
+			["row_number", dataset.lateColumn],
+			`${dataset.slug} no es el control más una sola columna tardía`,
+		);
+	}
+});
+
+test("cada archivo aislado es determinista: dos generaciones son idénticas", () => {
+	for (const dataset of ISOLATED_DATASETS) {
+		const csvText = generateIsolatedCsv(dataset);
+		assert.equal(generateIsolatedCsv(dataset), csvText, `${dataset.slug} no es determinista`);
+		assert.equal(
+			generateIsolatedExpectations(dataset),
+			generateIsolatedExpectations(dataset),
+			`el JSON de ${dataset.slug} no es determinista`,
+		);
+	}
+});
+
+test("cada archivo aislado tiene 1200 filas y dos columnas, con el JSON uno a uno", () => {
+	for (const dataset of ISOLATED_DATASETS) {
+		const isolatedRecords = parseCsv(generateIsolatedCsv(dataset));
+		assert.deepEqual(isolatedRecords[0], [...dataset.columns], `${dataset.slug}: cabecera`);
+		assert.equal(isolatedRecords.length - 1, SAMPLING_ROW_COUNT, `${dataset.slug}: filas`);
+		for (const record of isolatedRecords.slice(1)) {
+			assert.equal(record.length, 2, `${dataset.slug}: fila con ${record.length} campos`);
+		}
+
+		const payload = JSON.parse(generateIsolatedExpectations(dataset));
+		assert.deepEqual(
+			Object.keys(payload),
+			Object.keys(samplingExpectations),
+			`el JSON de ${dataset.slug} no tiene la misma forma que el de la ventana`,
+		);
+		assert.deepEqual(
+			payload.columns.map((entry) => entry.column),
+			[...dataset.columns],
+			`las columnas del JSON de ${dataset.slug} no son las del CSV, o están en otro orden`,
+		);
+		assert.equal(payload.row_count, SAMPLING_ROW_COUNT);
+		assert.equal(payload.sample_window_rows, SAMPLE_WINDOW_ROWS);
+		assert.deepEqual(payload.late_rows, [...LATE_ROWS]);
+		assert.equal(payload.csv_file, dataset.csvFileLabel);
+		assert.equal(payload.csv_sha256, sha256(generateIsolatedCsv(dataset)));
+	}
+});
+
+test("los valores de la columna aislada son, fila por fila, los de la ventana", () => {
+	for (const dataset of ISOLATED_DATASETS) {
+		const isolatedRecords = parseCsv(generateIsolatedCsv(dataset));
+		const isolatedHeader = isolatedRecords[0];
+		const isolatedRows = isolatedRecords
+			.slice(1)
+			.map((record) =>
+				Object.fromEntries(record.map((value, index) => [isolatedHeader[index], value])),
+			);
+		assert.equal(isolatedRows.length, samplingRows.length, `${dataset.slug}: largo distinto`);
+		for (const [index, row] of isolatedRows.entries()) {
+			assert.equal(
+				row[dataset.lateColumn],
+				samplingRows[index][dataset.lateColumn],
+				`${dataset.slug}: la fila ${index + 1} no coincide con la de la ventana`,
+			);
+			assert.equal(row.row_number, samplingRows[index].row_number, `${dataset.slug}: control`);
+		}
+	}
+});
+
+test("cada archivo aislado tiene el valor tardío sólo en 1001, 1100 y 1200", () => {
+	for (const dataset of ISOLATED_DATASETS) {
+		const records = parseCsv(generateIsolatedCsv(dataset));
+		const header = records[0];
+		const rowsOfFile = records
+			.slice(1)
+			.map((record) => Object.fromEntries(record.map((value, index) => [header[index], value])));
+
+		const clean = CLEAN_CHECKS[dataset.lateColumn];
+		const late = LATE_VALUES[dataset.lateColumn];
+		LATE_ROWS.forEach((row, index) => {
+			assert.equal(
+				rowsOfFile[row - 1][dataset.lateColumn],
+				late[index],
+				`${dataset.slug}: la fila ${row} no tiene «${late[index]}»`,
+			);
+		});
+		const dirtyRows = rowsOfFile
+			.map((row, index) => ({ row: index + 1, value: row[dataset.lateColumn] }))
+			.filter(({ value }) => !clean(value))
+			.map(({ row }) => row);
+		assert.deepEqual(dirtyRows, [...LATE_ROWS], `${dataset.slug}: valores sucios de más`);
+	}
+});
+
+test("el JSON aislado dice qué comportamiento aísla y por qué el primer valor malo aborta", () => {
+	for (const dataset of ISOLATED_DATASETS) {
+		const payload = JSON.parse(generateIsolatedExpectations(dataset));
+		for (const field of ["purpose", "how_to_record"]) {
+			assert.equal(typeof payload[field], "string", `${dataset.slug}: falta ${field}`);
+		}
+		assert.ok(
+			payload.purpose.includes("Medición 2"),
+			`el purpose de ${dataset.slug} no cita la Medición 2`,
+		);
+		assert.ok(
+			payload.purpose.includes(dataset.lateColumn),
+			`el purpose de ${dataset.slug} no nombra la columna que aísla`,
+		);
+		assert.ok(
+			payload.purpose.includes("se corta") || payload.purpose.includes("cortó"),
+			`el purpose de ${dataset.slug} no dice por qué se separó el caso`,
+		);
+		assert.ok(
+			payload.how_to_record.includes("datastore_search"),
+			`how_to_record de ${dataset.slug} no dice cómo leer el resultado`,
+		);
+
+		const lateEntry = payload.columns.find((entry) => entry.column === dataset.lateColumn);
+		const windowEntry = samplingExpectations.columns.find(
+			(entry) => entry.column === dataset.lateColumn,
+		);
+		assert.ok(lateEntry, `${dataset.slug}: el JSON no describe su columna tardía`);
+		assert.deepEqual(lateEntry.sample_rows, [1, 500, SAMPLE_WINDOW_ROWS, ...LATE_ROWS]);
+		assert.equal(lateEntry.ideal_type, windowEntry.ideal_type, `${dataset.slug}: ideal_type`);
+		assert.deepEqual(lateEntry.ideal_values, windowEntry.ideal_values, `${dataset.slug}: ideales`);
+		assert.equal(
+			lateEntry.notes,
+			windowEntry.notes,
+			`${dataset.slug}: las notas no son las de la ventana (cuatro desenlaces)`,
+		);
+	}
+});
+
+test("los archivos aislados versionados en scripts/data/ coinciden con el generador", () => {
+	for (const dataset of ISOLATED_DATASETS) {
+		assert.equal(
+			readFileSync(dataset.csvPath, "utf8"),
+			generateIsolatedCsv(dataset),
+			`el CSV de ${dataset.slug} no coincide: corra \`node scripts/generate-edge-cases-csv.mjs\``,
+		);
+		assert.equal(
+			readFileSync(dataset.expectationsPath, "utf8"),
+			generateIsolatedExpectations(dataset),
+			`el JSON de ${dataset.slug} no coincide: corra \`node scripts/generate-edge-cases-csv.mjs\``,
+		);
+	}
+});
+
+// Los cuatro hashes de los dos datasets anteriores, fijados a mano: los tres archivos nuevos
+// se agregan sin tocarles un byte a los que ya estaban medidos.
+const EXISTING_SHA256 = {
+	csv: [
+		"c74fe2fa9690e708c158ce587e027c45df21860481ac3473e909b3f11001ae22",
+		"6a0b7ad7c05a47e8595422b4cfbea2248ed5a28ddcb8d88c1bcb6acac651e681",
+	],
+	json: [
+		"4dd5dce692d6566d04e740ad33bb72d654f27c2cc79516d310777cd2f1f9d2a6",
+		"7ed05b729196ff7c817ae4cf8e1d90b3de6f423f5e4cf954ffa7c5b4f40fa877",
+	],
+};
+
+test("los cuatro archivos que ya existían no cambiaron: sus sha256 son los del commit anterior", () => {
+	const existingCsvPaths = [OUTPUT_PATH, SAMPLING_OUTPUT_PATH];
+	const existingJsonPaths = [EXPECTATIONS_PATH, SAMPLING_EXPECTATIONS_PATH];
+	existingCsvPaths.forEach((path, index) => {
+		assert.equal(
+			sha256(readFileSync(path, "utf8")),
+			EXISTING_SHA256.csv[index],
+			`cambió el CSV existente ${path}`,
+		);
+	});
+	existingJsonPaths.forEach((path, index) => {
+		assert.equal(
+			sha256(readFileSync(path, "utf8")),
+			EXISTING_SHA256.json[index],
+			`cambió el JSON existente ${path}`,
+		);
+	});
+	assert.equal(sha256(csv), EXISTING_SHA256.csv[0]);
+	assert.equal(sha256(samplingCsv), EXISTING_SHA256.csv[1]);
 });
