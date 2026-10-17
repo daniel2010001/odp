@@ -51,8 +51,13 @@ export const ROW_COUNT = 48;
 // ── Helpers de series ──
 
 /** Un valor por fila, construido a partir del índice 0-based. */
+function sequenceOf(count, build) {
+	return Array.from({ length: count }, (_, index) => build(index));
+}
+
+/** Lo mismo, para las filas del primer dataset. */
 function sequence(build) {
-	return Array.from({ length: ROW_COUNT }, (_, index) => build(index));
+	return sequenceOf(ROW_COUNT, build);
 }
 
 /** Repite un patrón hasta llenar ROW_COUNT filas. */
@@ -547,6 +552,130 @@ const COLUMN_SPECS = [
 
 export const COLUMNS = COLUMN_SPECS.map((spec) => spec.name);
 
+// ── Segundo dataset: la ventana de muestreo de 1000 filas ──
+//
+// Por qué otro archivo y no otra columna: Medición 1 del BACKLOG (DataPusher 0.0.21,
+// 2026-10-17) midió con 48 filas, y con 48 filas el archivo entero **es** la muestra.
+// messytables adivina el tipo con una ventana de 1000 filas (`messytables/commas.py`:
+// `window or 1000`; `datapusher/jobs.py:459` llama `type_guess(row_set.sample, strict=True)`),
+// así que nada de lo medido dice qué pasa cuando el valor problemático cae **después** de la
+// ventana: el cargador ya declaró el tipo cuando lo encuentra. Este archivo son 1200 filas,
+// las primeras 1000 limpias y el valor problemático en la 1001, la 1100 y la 1200.
+//
+// Una columna = un caso, igual que en el primer archivo, y `notes` enumera los cuatro
+// desenlaces posibles para que la sesión que mide anote cuál pasó: la carga se corta en la
+// fila ~1001 (tabla a medio cargar), el valor tardío queda `null`, queda corrompido, o la
+// columna cae a `text`.
+
+export const SAMPLING_OUTPUT_PATH = resolve(HERE, "data", "loader-sampling-window.csv");
+export const SAMPLING_EXPECTATIONS_PATH = resolve(
+	HERE,
+	"data",
+	"loader-sampling-window.expected.json",
+);
+export const SAMPLING_CSV_FILE_LABEL = "scripts/data/loader-sampling-window.csv";
+
+/** 1200 = la ventana de 1000 más 200 filas, para que las tres filas tardías queden afuera. */
+export const SAMPLING_ROW_COUNT = 1200;
+
+/** Las filas que cubre la muestra de messytables: 1..1000 inclusive. */
+export const SAMPLE_WINDOW_ROWS = 1000;
+
+/** Las tres filas tardías: la primera afuera de la ventana, una intermedia y la última. */
+export const LATE_ROWS = [1001, 1100, 1200];
+
+/** Dónde se mira cada columna: adentro de la ventana y en las tres filas tardías. */
+const SAMPLING_SAMPLE_ROWS = [1, 500, SAMPLE_WINDOW_ROWS, ...LATE_ROWS];
+
+/**
+ * Valor de la columna: `cleanValue` en las 1200 filas, salvo las tres tardías, que llevan el
+ * valor problemático en el mismo orden que LATE_ROWS.
+ */
+function withLateValues(cleanValue, lateValues) {
+	const late = new Map(LATE_ROWS.map((row, index) => [row - 1, lateValues[index]]));
+	return sequenceOf(SAMPLING_ROW_COUNT, (index) => late.get(index) ?? cleanValue(index));
+}
+
+/**
+ * `dd/mm/aaaa` **inequívoca**: día 13–28, que existe en todos los meses y no puede ser un mes
+ * leído al revés. Recorre días, meses y años en ese orden, así que no repite en 1200 filas.
+ * La fecha válida es parte del contrato: acá se mide el muestreo, no la validación.
+ */
+function ddMmYyyyWithDayOverTwelve(index) {
+	const year = 2010 + Math.floor(index / (12 * 16));
+	const month = 1 + (Math.floor(index / 16) % 12);
+	const day = 13 + (index % 16);
+	return `${pad2(day)}/${pad2(month)}/${year}`;
+}
+
+// Las columnas del segundo dataset: el control de filas y los cuatro casos tardíos.
+const SAMPLING_COLUMN_SPECS = [
+	{
+		name: "row_number",
+		backlogCase: null,
+		description: "Control: el número de fila, de 1 a 1200, entero, sin huecos ni repetidos.",
+		idealType: "numeric",
+		values: sequenceOf(SAMPLING_ROW_COUNT, (index) => String(index + 1)),
+		toIdeal: Number,
+		sampleRows: SAMPLING_SAMPLE_ROWS,
+		notes:
+			"Control, no un caso borde: si esta columna no sale `numeric` de la fila 1 a la 1200, el resto de la medición no se puede interpretar. Fija además la fila real: el `_id` que devuelva `datastore_search` tiene que coincidir con este número, y el `total` de la respuesta dice si la carga llegó a 1200 o se cortó en la fila 1001.",
+	},
+	{
+		name: "late_text_after_row_1000",
+		backlogCase: 9,
+		description:
+			"Enteros limpios en las filas 1–1000 y texto recién en la 1001 (`sin dato`), la 1100 (`pendiente`) y la 1200 (`N/A`), después de la ventana de muestreo.",
+		idealType: "text",
+		values: withLateValues((index) => String(5000 + index), ["sin dato", "pendiente", "N/A"]),
+		toIdeal: identity,
+		sampleRows: SAMPLING_SAMPLE_ROWS,
+		notes:
+			"Es `late_text_after_row_30` movido afuera de la ventana: messytables muestrea las primeras 1000 filas, así que las tres de texto no entran en la muestra y el cargador ya declaró `numeric`. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001 y la tabla queda a medio cargar con 1000 filas; (2) las tres celdas tardías quedan `null` y la columna sigue numérica; (3) el valor tardío queda corrompido, por ejemplo un 0 o un número truncado; (4) la columna cae a texto y las 1200 filas se guardan tal cual, que es el desenlace conservador y el ideal declarado.",
+	},
+	{
+		name: "late_decimal_comma_after_row_1000",
+		backlogCase: 1,
+		description:
+			"Decimales con punto, limpios, en las filas 1–1000; y con coma en la 1001 (`1,5`), la 1100 (`2,25`) y la 1200 (`3,75`).",
+		idealType: "numeric",
+		values: withLateValues((index) => (12.5 + index * 0.25).toFixed(2), ["1,5", "2,25", "3,75"]),
+		toIdeal: (raw) => Number(raw.replace(",", ".")),
+		sampleRows: SAMPLING_SAMPLE_ROWS,
+		notes:
+			"Ideal: 1.5 / 2.25 / 3.75, sin importar si el decimal venía con punto o con coma. La ventana ve sólo puntos, así que la columna se declara `numeric` antes de la fila 1001. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001 y quedan 1000 filas; (2) las tres celdas tardías quedan `null`, sin aviso de que había un dato; (3) el valor tardío queda corrompido: `1,5` leído como dos columnas o como 15 si se borra la coma, que es peor que perderlo; (4) la columna cae a texto y la coma se conserva tal cual, que no rompe nada pero deja el número sin aritmética.",
+	},
+	{
+		name: "late_invalid_date_after_row_1000",
+		backlogCase: 4,
+		description:
+			"Fechas ISO válidas en las filas 1–1000 e inválidas en la 1001 (`31/02/2024`), la 1100 (`2024-13-01`) y la 1200 (`no aplica`).",
+		idealType: "text",
+		values: withLateValues(
+			(index) => isoDateFromDayOffset(index),
+			["31/02/2024", "2024-13-01", "no aplica"],
+		),
+		toIdeal: identity,
+		sampleRows: SAMPLING_SAMPLE_ROWS,
+		notes:
+			"Ideal: conservar los tres valores tal como están escritos, para que la fila se pueda corregir; inventar 02/03/2024 o 29/02/2024 es fabricar un dato. La ventana sólo vio ISO, así que la columna se declara `timestamp` antes de la fila 1001. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001 y quedan 1000 filas; (2) las tres celdas tardías quedan `null` y se pierde la evidencia de que había una fecha mal escrita; (3) el valor tardío queda corrompido, es decir convertido a una fecha que el archivo no decía; (4) la columna cae a texto y los tres valores se guardan literalmente, que es lo conservador y lo que se quiere medir.",
+	},
+	{
+		name: "late_ambiguous_date_after_row_1000",
+		backlogCase: 4,
+		description:
+			"`dd/mm/aaaa` con día mayor que 12 en las filas 1–1000, y ambiguas (día ≤ 12) en la 1001 (`03/04/2024`), la 1100 (`05/06/2023`) y la 1200 (`07/08/2022`).",
+		idealType: "timestamp",
+		values: withLateValues(ddMmYyyyWithDayOverTwelve, ["03/04/2024", "05/06/2023", "07/08/2022"]),
+		toIdeal: ddMmToIso,
+		sampleRows: SAMPLING_SAMPLE_ROWS,
+		notes:
+			"Ideal declarado: la lectura dd/mm (03/04/2024 = 3 de abril). Mide si la convención que la ventana dejó ver se **mantiene** o se vuelve a adivinar por valor: Medición 1 ya mostró que DataPusher 0.0.21 lee cada valor como le resulta (`15/03/2024` dd/mm y `03/04/2024` mm/dd en la misma columna), y con la ventana llena de días > 12 hay una convención establecida que se puede contradecir. Los cuatro desenlaces que se anotan: (1) la carga se corta en la fila ~1001; (2) las tres celdas tardías quedan `null`; (3) el valor tardío queda corrompido, guardado como mm/dd (4 de marzo, 6 de mayo, 8 de julio) sin ningún aviso, que es el desenlace peligroso de todo el archivo y el que esta columna existe para detectar; (4) la columna cae a texto y las fechas ambiguas se conservan escritas, que no se puede ordenar pero al menos no miente.",
+	},
+];
+
+export const SAMPLING_COLUMNS = SAMPLING_COLUMN_SPECS.map((spec) => spec.name);
+
 // ── Casos que no caben en este archivo ──
 
 const SEPARATE_FILE_CASES = [
@@ -644,6 +773,17 @@ export function generateCsv() {
 	return formatCsv(generateRows(), COLUMNS);
 }
 
+/** Filas del segundo dataset como objetos `{ columna: valor }`. */
+export function generateSamplingRows() {
+	return sequenceOf(SAMPLING_ROW_COUNT, (index) =>
+		Object.fromEntries(SAMPLING_COLUMN_SPECS.map((spec) => [spec.name, spec.values[index]])),
+	);
+}
+
+export function generateSamplingCsv() {
+	return formatCsv(generateSamplingRows(), SAMPLING_COLUMNS);
+}
+
 // ── Expectativas ──
 
 /** Qué se hace con el archivo, para que la sesión que mide no tenga que adivinarlo. */
@@ -725,20 +865,7 @@ export function serializeJson(payload) {
 }
 
 export function buildExpectations(csvText) {
-	const columns = COLUMN_SPECS.map((spec) => {
-		const toIdeal = spec.toIdeal ?? identity;
-		const rawSamples = spec.rawSamples ?? distinctSamples(spec.values, 3);
-		return {
-			column: spec.name,
-			backlog_case: spec.backlogCase,
-			description: spec.description,
-			raw_samples: rawSamples,
-			sample_rows: rawSamples.map((raw) => spec.values.indexOf(raw) + 1),
-			ideal_type: spec.idealType,
-			ideal_values: rawSamples.map((raw) => toIdeal(raw)),
-			notes: spec.notes,
-		};
-	});
+	const columns = buildColumnExpectations(COLUMN_SPECS);
 
 	const payload = {
 		title: PAYLOAD_TITLE,
@@ -759,6 +886,68 @@ export function generateExpectations() {
 	return buildExpectations(generateCsv());
 }
 
+/** Las entradas de `columns`, en el mismo orden que las columnas del CSV. */
+function buildColumnExpectations(specs) {
+	return specs.map((spec) => {
+		const toIdeal = spec.toIdeal ?? identity;
+		// Con `sampleRows` la fila es parte del caso (el segundo dataset, donde importa que la
+		// muestra esté adentro de la ventana); sin él, la muestra es el primer valor distinto y
+		// su fila se deduce de la columna.
+		const rawSamples = spec.sampleRows
+			? spec.sampleRows.map((row) => spec.values[row - 1])
+			: (spec.rawSamples ?? distinctSamples(spec.values, 3));
+		const sampleRows = spec.sampleRows ?? rawSamples.map((raw) => spec.values.indexOf(raw) + 1);
+		return {
+			column: spec.name,
+			backlog_case: spec.backlogCase,
+			description: spec.description,
+			raw_samples: rawSamples,
+			sample_rows: sampleRows,
+			ideal_type: spec.idealType,
+			ideal_values: rawSamples.map((raw) => toIdeal(raw)),
+			notes: spec.notes,
+		};
+	});
+}
+
+// ── Expectativas del segundo dataset ──
+
+const SAMPLING_PURPOSE = `Este JSON acompaña a ${SAMPLING_CSV_FILE_LABEL}: ${SAMPLING_ROW_COUNT} filas para medir la **ventana de muestreo** del cargador, que es el caso que ${CSV_FILE_LABEL} no podía medir. DataPusher 0.0.21 adivina el tipo con una muestra de las primeras 1000 filas (messytables: \`messytables/commas.py\`, \`window or 1000\`; \`datapusher/jobs.py:459\`, \`type_guess(row_set.sample, strict=True)\`), así que con 48 filas el archivo entero era la muestra y el texto tardío de la fila 34 estaba adentro. Acá las filas 1–1000 son limpias y el valor problemático aparece recién en la 1001, la 1100 y la 1200: el cargador ya declaró el tipo con las primeras 1000 cuando lo encuentra, y la pregunta es qué hace entonces. Para cada columna, \`sample_rows\` incluye filas de adentro de la ventana (1, 500, 1000) y las tres tardías, y \`notes\` enumera los cuatro desenlaces posibles —la carga se corta en la fila ~1001 y la tabla queda a medio cargar, el valor tardío queda \`null\`, queda corrompido, o la columna cae a texto— para anotar cuál pasó.`;
+
+const SAMPLING_HOW_TO_RECORD = `Se sube ESTE archivo, sin editarlo, como recurso de un dataset desechable del CKAN dev, con cada cargador (DataPusher 0.0.21 y DataPusher+ vigente), y se espera a que termine la tarea de carga.
+
+1. ¿Terminó la carga? El \`total\` de \`datastore_search\` tiene que ser ${SAMPLING_ROW_COUNT}. Si es ~1000, la carga se cortó justo al salir de la ventana de muestreo: anotar la fila del error del cargador y qué columnas quedaron con datos. Ese corte es el resultado más importante de esta medición, porque una tabla a medio cargar que se ve completa es peor que una carga fallida.
+
+2. Tipo por columna: en \`fields\` de \`datastore_search\`, anotar el \`type\` (el \`typname\` de Postgres: \`int4\`, \`float8\`, \`text\`, \`timestamptz\`) de cada columna y de \`_id\`.
+
+3. Valores guardados: leer las filas de \`sample_rows\` de cada columna —1, 500 y 1000, adentro de la ventana, más la 1001, la 1100 y la 1200— con \`datastore_search\` y anotar el valor tal como vuelve. Comparar las de adentro con las tardías es el punto: si las de adentro están bien y las tardías no, el problema es el muestreo, no el valor.
+
+4. Un bloque por cargador, con nombre y versión, con el total, el tipo por columna y los seis valores por columna.`;
+
+const SAMPLING_PAYLOAD_TITLE =
+	"Ventana de muestreo del cargador del DataStore — expectativas de la medición";
+
+export function buildSamplingExpectations(csvText) {
+	const payload = {
+		title: SAMPLING_PAYLOAD_TITLE,
+		csv_file: SAMPLING_CSV_FILE_LABEL,
+		csv_sha256: createHash("sha256").update(csvText).digest("hex"),
+		row_count: SAMPLING_ROW_COUNT,
+		sample_window_rows: SAMPLE_WINDOW_ROWS,
+		late_rows: [...LATE_ROWS],
+		generated_by: "scripts/generate-edge-cases-csv.mjs",
+		purpose: SAMPLING_PURPOSE,
+		how_to_record: SAMPLING_HOW_TO_RECORD,
+		columns: buildColumnExpectations(SAMPLING_COLUMN_SPECS),
+	};
+
+	return serializeJson(payload);
+}
+
+export function generateSamplingExpectations() {
+	return buildSamplingExpectations(generateSamplingCsv());
+}
+
 // ── CLI ──
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -766,9 +955,13 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv
 if (isMain) {
 	const csv = generateCsv();
 	const expectations = buildExpectations(csv);
+	const samplingCsv = generateSamplingCsv();
+	const samplingExpectations = buildSamplingExpectations(samplingCsv);
 	mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
 	writeFileSync(OUTPUT_PATH, csv, "utf8");
 	writeFileSync(EXPECTATIONS_PATH, expectations, "utf8");
+	writeFileSync(SAMPLING_OUTPUT_PATH, samplingCsv, "utf8");
+	writeFileSync(SAMPLING_EXPECTATIONS_PATH, samplingExpectations, "utf8");
 
 	const report = (path, text) => {
 		const bytes = Buffer.byteLength(text, "utf8");
@@ -778,4 +971,9 @@ if (isMain) {
 	console.log(`✓ ${COLUMN_SPECS.length} columnas, ${ROW_COUNT} filas`);
 	report(OUTPUT_PATH, csv);
 	report(EXPECTATIONS_PATH, expectations);
+	console.log(
+		`✓ ${SAMPLING_COLUMN_SPECS.length} columnas, ${SAMPLING_ROW_COUNT} filas (ventana ${SAMPLE_WINDOW_ROWS}, tardías ${LATE_ROWS.join(", ")})`,
+	);
+	report(SAMPLING_OUTPUT_PATH, samplingCsv);
+	report(SAMPLING_EXPECTATIONS_PATH, samplingExpectations);
 }
