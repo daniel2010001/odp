@@ -2982,6 +2982,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Propuesta:** primero **medir**. Un CSV determinista de casos borde, una columna por caso, subido al CKAN dev, para
   anotar qué hace hoy el DataPusher; después repetir con DataPusher+ y comparar. La elección del cargador es de
   `odp-docker`. **No bloquea la demo:** su CSV carga bien con el DataPusher actual.
+  **Primera lectura de DataPusher+ (sesión de `odp-docker`, 2026-10-17, sin instalar nada; fuentes: README y
+  `CLAUDE.md` de `dathere/datapusher-plus` en `main`):** **evaluarlo es un proyecto, no un cambio de plugin.** Choca
+  con el stack en cuatro puntos: (1) declara Python 3.10–3.13 y CKAN 2.12 corre en **3.14.7**; (2) **exige
+  `ckanext-scheming`**, que cambia cómo se define el esquema de datasets y toca a `ckanext-umss` y al portal; (3) la de
+  `main` es una **alfa** (v3.0.0a0) y orquesta con Prefect 3.7+ por defecto (sin Prefect cae a los jobs de CKAN, sin
+  reintentos); (4) necesita el binario `qsv` v25+ y no lista la 2.12 entre los CKAN soportados («2.10+»). **Orden
+  acordado:** primero medir el DataPusher actual con el CSV de casos borde; con eso se decide si alcanza con
+  `type_override` o un preprocesado, o si vale el costo de DataPusher+ (o de xloader).
   **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
   demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
