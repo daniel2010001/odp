@@ -26,8 +26,9 @@
 
 /**
  * Las acciones que el navegador puede pedir a través del portal: **exactamente** las que usa hoy la capa de
- * cliente (`src/lib/api`), medida el 2026-10-15. Es el conjunto más chico que no rompe ninguna función del
- * portal, y el más grande que no agrega superficie nueva.
+ * cliente (`src/lib/api`), medida el 2026-10-15 y ampliada el 2026-10-17 con las vistas de gráfico de
+ * `umss_chart` (`src/lib/api/charts.ts`, contrato en `odd/tasks/csv-charts.md`). Es el conjunto más chico
+ * que no rompe ninguna función del portal, y el más grande que no agrega superficie nueva.
  */
 export const ALLOWED_ACTIONS = [
 	"datastore_search",
@@ -52,7 +53,12 @@ export const ALLOWED_ACTIONS = [
 	"resource_delete",
 	"resource_show",
 	"resource_update",
+	"resource_view_create",
+	"resource_view_delete",
+	"resource_view_list",
+	"resource_view_update",
 	"status_show",
+	"umss_chart_data",
 	"user_show",
 ] as const;
 
@@ -79,6 +85,10 @@ const ALLOWED = new Set<string>(ALLOWED_ACTIONS);
  * **acción de escritura disparada desde otro sitio** —un CSRF que el diseño no cubriría—, y no se puede depender
  * de que CKAN rechace el `GET` de un mutador: se rechaza acá. Es la tercera pierna del anti-CSRF, junto con el
  * `SameSite` y la verificación de origen.
+ *
+ * `umss_chart_data` y `resource_view_list` son lecturas, pero **no** están acá: el cliente las pide por `POST`, y
+ * habilitar `GET` sin un consumidor `GET` sería superficie sin uso (verificación independiente de `9486aeb`). El
+ * formulario del editor, además, no se puede expresar por `GET`: su `config` es un objeto.
  */
 export const READ_ACTIONS = [
 	"datastore_search",

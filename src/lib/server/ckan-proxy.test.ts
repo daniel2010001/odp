@@ -49,7 +49,7 @@ function accionesQueLaCapaDeClienteUsa(): Set<string> {
 	for (const archivo of archivosDeLaCapaDeCliente()) {
 		const fuente = readFileSync(archivo, "utf8");
 		for (const [, nombre] of fuente.matchAll(
-			/\.(?:get|post)\s*(?:<[^>]*>)?\(\s*"([a-z][a-z0-9_]+)"/g,
+			/\.(?:get|post)\s*(?:<[\s\S]*?>)?\(\s*"([a-z][a-z0-9_]+)"/g,
 		)) {
 			encontradas.add(nombre);
 		}
@@ -69,6 +69,18 @@ describe("la allowlist del proxy — atada al código real", () => {
 
 		const faltantes = [...usadas].filter((accion) => !isAllowedAction(accion));
 		expect(faltantes).toEqual([]);
+	});
+
+	it("y al revés: toda acción permitida la usa la capa de cliente (sin permisos de más)", () => {
+		const usadas = accionesQueLaCapaDeClienteUsa();
+		const unused = ALLOWED_ACTIONS.filter((action) => !usadas.has(action));
+		expect(unused).toEqual([]);
+	});
+
+	it("las lecturas de los gráficos viajan sólo por POST: el cliente no las pide con GET", () => {
+		// Mínimo privilegio (verificación de `9486aeb`): habilitar GET sin un consumidor GET es superficie sin uso.
+		expect(isReadAction("umss_chart_data")).toBe(false);
+		expect(isReadAction("resource_view_list")).toBe(false);
 	});
 
 	it("las tres acciones de tokens NO están permitidas: el navegador no puede acuñar ni revocar tokens", () => {
@@ -140,6 +152,15 @@ describe("la allowlist del proxy — la partición lectura/escritura", () => {
 		expect(isReadAction("publication_request_decide")).toBe(false);
 		// Fuera de la allowlist no es nada, y tampoco es «lectura».
 		expect(isReadAction("user_create")).toBe(false);
+	});
+
+	it("los tres mutadores de las vistas de gráfico NO son de lectura: se piden con POST", () => {
+		// El par de lectura de la feature es `umss_chart_data` + `resource_view_list`; crear, actualizar y
+		// borrar una vista cambian el catálogo, así que ni siquiera son alcanzables con un `GET`.
+		for (const action of ["resource_view_create", "resource_view_update", "resource_view_delete"]) {
+			expect(isAllowedAction(action)).toBe(true);
+			expect(isReadAction(action)).toBe(false);
+		}
 	});
 });
 

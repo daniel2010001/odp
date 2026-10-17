@@ -42,6 +42,7 @@
 		"bits-ui": "^2.19.2",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
+		"layerchart": "2.8.0",
 		"markdown-it": "^15.0.2",
 		"papaparse": "^5.5.3",
 		"tailwind-merge": "^3.6.0",
