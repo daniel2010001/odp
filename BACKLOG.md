@@ -2978,6 +2978,13 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## v1 — producto usable en producción
 
+- [ ] **Editar un recurso existente desde la edición del dataset** (tier por decidir; señalado por el autor el
+  2026-10-17, en `odd/tasks/csv-charts.md` L20 y L21). Según el autor, hoy el formulario de edición sólo permite crear
+  recursos, no cambiar uno existente (archivo, nombre, formato). **Falta medirlo** antes de decidir: qué hace hoy
+  `DatasetForm` en modo edición con los recursos ya guardados, y si `resource_update` tiene algún llamador. El
+  `PRD.md` §3 pone en `v0` «la creación de un dataset con recursos (archivos y enlaces) y su edición»: hay que ver si
+  esa «edición» incluye los recursos.
+
 - [ ] **[v1] Evaluar un cargador del DataStore que normalice valores** (pedido del autor, 2026-10-17, en
   `odd/tasks/csv-charts.md` L14). Hoy corre DataPusher 0.0.21. Infiere `numeric`, `timestamp` y `text`, pero no
   normaliza booleanos («1/0», «true/false», «sí/no») y pierde los ceros a la izquierda de un código (L9). El autor

@@ -355,3 +355,18 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   posibles, sin medir: (a) el servidor de desarrollo, que no está optimizado; (b) las transiciones de LayerChart;
   (c) el `$effect` que reconcilia el borrador (`ChartForm.svelte:171`); y además, por diseño, el gráfico no cambia
   hasta pulsar «Vista previa».
+- **L21 (2026-10-17, decisiones del autor, textual de los rótulos elegidos):**
+  - **Rangos:** *«Los dos (Recomendado)»*. «0–5000» en el eje y el intervalo exacto «[0, 5000)» en el tooltip y en la
+    tabla accesible. Se aclaró que lo correcto es el intervalo semiabierto: con `[0, 5000]`, el 5000 caería en dos
+    grupos. El interruptor del playground se retira, porque ya está decidido.
+  - **Dónde vive el formulario:** *«Página propia (Recomendado)»*, con `…/resource/<recurso>/graficos/nuevo` y
+    `…/graficos/<vista>/editar`, y un botón «Crear gráfico» en la página del recurso para quien puede editar. El padre
+    había recomendado antes la página del recurso; cambió de opinión por la experiencia del autor en `ckan-frontend`
+    y porque una página propia sirve para crear y para editar.
+  - **«Edición de resources»:** *«Las dos»*. (a) **Editar o borrar un gráfico ya guardado** entra en esta feature,
+    en P3, y el cliente ya tiene `updateView` y `deleteView`. (b) **Editar un recurso existente** desde la edición del
+    dataset es otra feature: va al `BACKLOG`, con su estado medido antes de decidir si entra en la demo.
+  - **Retraso:** *«Al cambiar un selector»*. Sospecha, sin medir: el `$effect` de `ChartForm.svelte:171` corrige el
+    borrador **después** del render, y eso da un segundo render en cada cambio. Svelte 5 desaconseja escribir estado
+    en un `$effect`. Se corrige en el mismo cambio, y el autor vuelve a mirarlo.
+- Tras guardar, el publicador vuelve a la página del recurso con el gráfico visible (L20, punto 3).
