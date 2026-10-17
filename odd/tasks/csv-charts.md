@@ -89,6 +89,9 @@ Respuesta:
   `NULL` en las demás). En el contrato, **una cadena vacía o de sólo espacios en una columna de texto es «sin dato»**:
   en la clave de X cae en el grupo nulo (al final, y respeta `include_null`), y en `count_distinct` no cuenta como un
   valor. En SQL: `NULLIF(btrim(col), '')`.
+- **Valores no finitos (L23):** `NaN`, `Infinity` y `-Infinity` en una columna numérica de X también son «sin dato»:
+  caen en el único grupo nulo, al final, y respetan `include_null`. En el valor de Y vuelven como `null`, nunca como
+  `NaN` en el JSON.
 - **Precisiones de L11 (sin cambio de formato, sigue `version: 1`):** al **leer**, las claves de la configuración vienen
   en el **nivel superior** de la vista (`view.chart_type`), no bajo `view.config`; al **escribir**, van planas en el
   cuerpo de `resource_view_create`/`update` (un `config` anidado se rechaza). Una clave no declarada da
@@ -111,8 +114,8 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | T2 | Playground `/dev/resource-chart` — **hecha** (L5); queda como base del formulario del publicador | S4 | worker | `c6fd2df`, `f852f79` |
 | T3 | Revisión del autor — **hecha**: redefinió la feature (L7) y eligió arquitectura y alcance (L10) | S1, S6, S7 | autor | — |
 | O1 | **Prueba primero:** plugin `umss_chart` mínimo; crear una vista y leerla de vuelta con la configuración completa — **hecha** (L11) | S6 | sesión `odp-docker` | `odp-docker` `f02dc78` (rama local `feat/csv-charts`) |
-| O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error | S6, S7 | sesión `odp-docker` | — |
-| O3 | Verificación independiente de O1 y O2 (toca seguridad) | S6 | sesión `odp-docker` | — |
+| O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error — **hecha** (L23) | S6, S7 | sesión `odp-docker` | `odp-docker` `1aae43a` |
+| O3 | Verificación independiente de O1 y O2 (toca seguridad) — **PASS** (L23) | S6 | sesión `odp-docker` | `odp-docker` `b083f85` (endurecimiento) |
 | P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
@@ -380,3 +383,22 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   en dos workers con superficies disjuntas. **No** se renombran: los nombres de columna y los valores del CSV, que son
   datos (el sha256 no cambia), los textos visibles, los títulos de los tests, ni los identificadores que ya existían
   antes de esta rama, cuyo barrido el autor dejó para `v1`.
+- **L23 (2026-10-17, O2 y O3 cerrados en `odp-docker`, rama local `feat/csv-charts`, sin push):** `f02dc78` (O1),
+  `1aae43a` (O2) y `b083f85` (endurecimiento por O3). 81 tests de gráficos y 287 de `ckanext-umss` en total.
+  **O3, verificación independiente: PASS, sin hallazgos bloqueantes.** La consulta corre con el rol `datastore_ro`
+  (sólo `SELECT`), todo identificador va como `sql.Identifier`, y un pedido con las dos formas o con ninguna se rechaza
+  antes de leer. El CKAN dev ya lo sirve: monta el árbol de `odp-docker` y recarga solo. **Si esa rama se cambia por
+  `master` antes del merge, las acciones desaparecen.** El push y los PR de `odp-docker` los decide el autor.
+  **El padre lo verificó en vivo** con un token efímero de la CLI, revocado al terminar:
+  - `turno` / `count`: mañana 1266, noche 362, tarde 796 y `{key: null, value: 76}` al final, con 2500 filas y
+    `truncated: false`;
+  - `avg` de `salario` con `include_null: false`: 8496,75 / 3986,38 / 6217,84, sin grupo nulo. Coinciden con lo que
+    calculó el generador (L15).
+  - Sin sesión, la forma del editor da `Authorization Error`.
+  El promedio llega sin redondear, así que el formato numérico lo pone el portal. **Endurecimiento:** el tope de tiempo
+  no se puede apagar (cualquier valor inválido vuelve a 5000 ms); un agregado `NaN` o `Infinity` vuelve como `null`;
+  y una configuración con claves que no son texto da `{"config": …}`, no un 500. **Regla nueva, decidida por el
+  padre:** los valores no finitos en X son «sin dato», por coherencia con L17 (contrato, sigue `version: 1`).
+  **Riesgos heredados de CKAN**, los mismos que `datastore_search`: un miembro de la organización puede graficar un
+  dataset borrado de forma lógica, porque la tabla del DataStore sobrevive, y nada verifica que `read_url` y
+  `write_url` sean distintos. Registro local del otro lado: `odp-docker/odd/tasks/csv-charts-umss.md` (L1–L11).
