@@ -1,73 +1,217 @@
-// Fixtures con la forma exacta de `datastore_search` (`DatastoreSearchResult`).
+// La tabla de la demo, con la forma **real** medida en vivo (L16) y la regla de nulos de L17.
 //
-// MEDICIÓN (2026-10-16): ninguno de los 17 conjuntos del catálogo sembrado tiene `datastore_active`
-// (todo `datastore_search` anónimo responde «Resource not found»), así que no hay tipos reales que
-// copiar. Las formas de abajo salen del comportamiento documentado del cargador de CKAN: el
-// DataPusher infiere `numeric`/`timestamp`/`text`; xloader carga todo como `text` salvo que el
-// diccionario de datos diga otra cosa. Se cubren ambas, y la columna «text» con números es la
-// razón por la que el selector parsea valores en vez de confiar en el tipo.
+// No se importa el CSV de 266 KB (ni sus 2.500 filas) al bundle del cliente: acá se genera una muestra
+// determinista de ~200 filas con las mismas columnas y los mismos tipos que el DataPusher reportó para
+// `planilla-docente-ficticia`:
+//
+//   `n`, `horas_mes`, `bs_hora`, `salario` → `numeric`; `fecha_ingreso` → `timestamp`; el resto → `text`;
+//   `_id` → `int` (la columna que numera CKAN, que nunca se grafica).
+//
+// Dos detalles que no son cosméticos:
+//  · `turno` trae cadenas vacías (en la tabla real, 76 de 2.500 y **ningún** NULL). Desde L17 una cadena
+//    vacía o de sólo espacios es «sin dato»: forma parte del grupo nulo y no cuenta como valor. Si acá
+//    hubiera NULL en vez de `""`, el doble no probaría la regla que el servidor aplica con
+//    `NULLIF(btrim(col), '')`.
+//  · `fecha_ingreso` trae NULL de verdad (57 en la tabla real), que es el otro camino al grupo nulo.
+//
+// La forma de los datos sale del ejemplo del autor (L7): nombres y apellidos que no se repiten, `cargo`
+// con poca frecuencia, tres turnos, `horas_mes` agrupadas por turno, y `salario = horas_mes * bs_hora` —
+// así «turno vs. salario promedio» tiene una señal clara.
 
-import type { DatastoreSearchResult } from "$lib/api/datastore";
+import type { DatastoreField } from "$lib/api/datastore";
 
-const MUNICIPIOS = ["Cochabamba", "Sacaba", "Quillacollo", "Tiquipaya", "Vinto", "Colcapirhua"];
+/** Los `fields` de la tabla, con los tipos que informa el DataStore (L16). */
+export const DEMO_FIELDS: DatastoreField[] = [
+	{ id: "_id", type: "int" },
+	{ id: "n", type: "numeric" },
+	{ id: "nombre", type: "text" },
+	{ id: "apellido", type: "text" },
+	{ id: "departamento", type: "text" },
+	{ id: "facultad", type: "text" },
+	{ id: "cargo", type: "text" },
+	{ id: "turno", type: "text" },
+	{ id: "horas_mes", type: "numeric" },
+	{ id: "bs_hora", type: "numeric" },
+	{ id: "salario", type: "numeric" },
+	{ id: "fecha_ingreso", type: "timestamp" },
+];
 
-/** Tipos inferidos: `numeric` donde hay números, `text` donde no. Se repite el municipio por año. */
-export function numericTable(rows = 18): DatastoreSearchResult {
-	const records = Array.from({ length: rows }, (_, i) => ({
-		_id: i + 1,
-		municipio: MUNICIPIOS[i % MUNICIPIOS.length],
-		anio: String(2019 + Math.floor(i / MUNICIPIOS.length)),
-		vehiculos: 20000 + ((i * 7919) % 160000),
-		tasa: i % 7 === 3 ? null : Math.round(((i * 37) % 100) * 10) / 10,
-		// Cargada como texto por xloader: sólo parsear los valores revela que es numérica.
-		accidentes: i % 5 === 4 ? "" : String(10 + ((i * 13) % 90)),
-	}));
-	return {
-		fields: [
-			{ id: "_id", type: "int" },
-			{ id: "municipio", type: "text" },
-			{ id: "anio", type: "text" },
-			{ id: "vehiculos", type: "numeric" },
-			{ id: "tasa", type: "numeric" },
-			{ id: "accidentes", type: "text" },
-		],
-		records,
-		total: rows,
+export interface DemoTable {
+	fields: DatastoreField[];
+	records: Record<string, unknown>[];
+	total: number;
+}
+
+const NOMBRES = [
+	"José",
+	"María",
+	"Juan",
+	"Ana",
+	"Luis",
+	"Rosa",
+	"Carlos",
+	"Carmen",
+	"Jorge",
+	"Silvia",
+	"Roberto",
+	"Patricia",
+	"Fernando",
+	"Gabriela",
+	"Ricardo",
+	"Mónica",
+	"Eduardo",
+	"Beatriz",
+	"Álvaro",
+	"Claudia",
+];
+
+const APELLIDOS = [
+	"Quispe",
+	"Mamani",
+	"Flores",
+	"Choque",
+	"Condori",
+	"Rojas",
+	"Vargas",
+	"Ticona",
+	"Cruz",
+	"Gutiérrez",
+	"Villarroel",
+	"Apaza",
+	"Colque",
+	"Huanca",
+	"Zeballos",
+	"Montaño",
+	"Salazar",
+	"Aguilar",
+	"Ríos",
+	"Poma",
+];
+
+const DEPARTAMENTOS = [
+	"Cochabamba",
+	"La Paz",
+	"Santa Cruz",
+	"Oruro",
+	"Potosí",
+	"Chuquisaca",
+	"Tarija",
+	"Beni",
+	"Pando",
+];
+
+const FACULTADES = [
+	"Ciencias y Tecnología",
+	"Ciencias Económicas",
+	"Ciencias Jurídicas y Políticas",
+	"Ciencias de la Salud",
+	"Ciencias Agrícolas",
+	"Humanidades y Ciencias de la Educación",
+	"Ciencias Sociales",
+	"Arquitectura y Ciencias del Hábitat",
+];
+
+const CARGOS = [
+	"Docente auxiliar",
+	"Docente adjunto",
+	"Docente asociado",
+	"Docente titular",
+	"Investigador",
+	"Coordinador académico",
+	"Jefe de departamento",
+	"Director de carrera",
+];
+
+/** `[turno, peso, rango de horas al mes]`. El turno manda en las horas, y por eso en el salario. */
+const TURNOS: [string, number, [number, number]][] = [
+	["mañana", 52, [88, 120]],
+	["tarde", 33, [64, 92]],
+	["noche", 15, [36, 60]],
+];
+
+const ANIO_MIN = 1995;
+const ANIO_MAX = 2025;
+/** Proporción de `turno` vacío en la tabla real (76/2500) y de `fecha_ingreso` nula (57/2500). */
+const PROB_TURNO_VACIO = 0.03;
+const PROB_FECHA_NULA = 0.023;
+
+/** PRNG determinista (`mulberry32`): dos llamadas con la misma semilla dan las mismas filas. */
+function mulberry32(seed: number): () => number {
+	let state = seed >>> 0;
+	return () => {
+		state = (state + 0x6d2b79f5) >>> 0;
+		let t = state;
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 	};
 }
 
-/** Un CSV de puro texto: no hay nada que graficar. */
-export function textOnlyTable(): DatastoreSearchResult {
-	return {
-		fields: [
-			{ id: "_id", type: "int" },
-			{ id: "carrera", type: "text" },
-			{ id: "responsable", type: "text" },
-			{ id: "observacion", type: "text" },
-		],
-		records: [
-			{ _id: 1, carrera: "Ingeniería Civil", responsable: "M. Rojas", observacion: "En revisión" },
-			{ _id: 2, carrera: "Medicina", responsable: "L. Flores", observacion: "" },
-			{ _id: 3, carrera: "Derecho", responsable: "P. Vargas", observacion: "Aprobada" },
-		],
-		total: 3,
-	};
+const round2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
+
+function daysInMonth(year: number, month: number): number {
+	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/** Muchas filas: 500 puntos (y un `total` mayor, como una tabla real paginada). */
-export function manyRows(rows = 500, total = 12480): DatastoreSearchResult {
-	const records = Array.from({ length: rows }, (_, i) => ({
-		_id: i + 1,
-		punto: `P-${String(i + 1).padStart(4, "0")}`,
-		flujo: Math.round(1000 + 800 * Math.sin(i / 17) + ((i * 7919) % 400)),
-	}));
-	return {
-		fields: [
-			{ id: "_id", type: "int" },
-			{ id: "punto", type: "text" },
-			{ id: "flujo", type: "numeric" },
-		],
-		records,
-		total,
+/**
+ * La muestra de la demo. `count` es configurable para que un test pueda generar más grupos que el tope del
+ * contrato sin tocar el resto del archivo.
+ */
+export function demoTable(count = 200, seed = 20261017): DemoTable {
+	const next = mulberry32(seed);
+	const int = (min: number, max: number) => min + Math.floor(next() * (max - min + 1));
+	const pick = <T>(list: readonly T[]): T => list[Math.floor(next() * list.length)] ?? list[0];
+
+	const turnoWeighted = (): string => {
+		const total = TURNOS.reduce((sum, [, weight]) => sum + weight, 0);
+		let r = next() * total;
+		for (const [turno, weight] of TURNOS) {
+			r -= weight;
+			if (r < 0) return turno;
+		}
+		return TURNOS[TURNOS.length - 1][0];
 	};
+
+	const records: Record<string, unknown>[] = [];
+	for (let i = 1; i <= count; i++) {
+		const nombre = pick(NOMBRES);
+		const apellido = pick(APELLIDOS);
+		const cargo = pick(CARGOS);
+		const turnoElegido = turnoWeighted();
+		const [, , [horasMin, horasMax]] = TURNOS.find(([t]) => t === turnoElegido) ?? TURNOS[0];
+		const turno = turnoElegido;
+		// Cadenas vacías, no NULL: es lo que trae el CSV real en `turno` (L17).
+		const turnoFinal = next() < PROB_TURNO_VACIO ? "" : turno;
+		const horas = int(horasMin, horasMax);
+		const bsHora = int(50 + (CARGOS.indexOf(cargo) + 1) * 6, 70 + (CARGOS.indexOf(cargo) + 1) * 7);
+
+		const year = Math.min(
+			ANIO_MAX,
+			ANIO_MIN + Math.floor(next() ** 0.7 * (ANIO_MAX - ANIO_MIN + 1)),
+		);
+		const month = int(1, 12);
+		const day = int(1, daysInMonth(year, month));
+		// NULL de verdad en `fecha_ingreso`: el otro camino al grupo nulo (L16/L17).
+		const fecha =
+			next() < PROB_FECHA_NULA
+				? null
+				: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00`;
+
+		records.push({
+			_id: i,
+			n: i,
+			nombre,
+			apellido,
+			departamento: pick(DEPARTAMENTOS),
+			facultad: pick(FACULTADES),
+			cargo,
+			turno: turnoFinal,
+			horas_mes: horas,
+			bs_hora: bsHora,
+			salario: round2(horas * bsHora),
+			fecha_ingreso: fecha,
+		});
+	}
+
+	return { fields: DEMO_FIELDS, records, total: count };
 }
