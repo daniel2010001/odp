@@ -114,3 +114,21 @@
   como grupo propio) se hace en el **DataStore**, no en el navegador. X e Y aceptan cualquier columna. El tooltip y el
   modo oscuro quedan **revisados por el autor**. S1 queda en revisión hasta decidir dónde se guarda la configuración y
   cómo se consulta: se están midiendo su repo anterior (explorador) y el CKAN vivo (sesión de `odp-docker`).
+- **L8 (2026-10-17, el repo anterior del autor, `daniel2010001/ckan-frontend`, rama `develop`):** el explorador no pudo
+  entrar a GitHub y leyó **sin autorización** una copia local fuera del proyecto
+  (`/home/danielblc/backup-windows/universidad/c4/ckan-frontend`). El padre volvió a verificar los hallazgos clave contra
+  `develop` por la API de GitHub, que es lo autorizado, y coinciden:
+  - **Guardar la vista no llegó a implementarse.** El código sólo llama `resource_view_show` y `resource_view_list`
+    (`src/services/ckan/resource.service.ts:15,20`), sin `resource_view_create`. `new-view/page.tsx` es un stub.
+    `chart_view` es el tipo previsto (`view.model.ts:10,45`), pero no es un tipo nativo de CKAN, y la página sólo
+    renderiza la tabla (`resource/page.tsx:329`). **No existe ninguna forma de `config` que reutilizar.**
+  - **La consulta era `datastore_search_sql` con SQL armado por concatenación**
+    (`new-chart/page.tsx:77-80`: `SELECT ${operation}, ${columns} FROM "${resourceId}" GROUP BY …`). Los nombres de
+    columna van sin comillas ni validación: es **inyección de SQL real**. No se reutiliza.
+  - **Los rangos se calculaban en el navegador**, después de bajar filas (`bar-view`/`donut-view`), con un paso numérico
+    libre y fechas por año, trimestre, mes o día. No había día de la semana, ni década, ni manejo de `null`, ni
+    unificación de mayúsculas. `MEDIAN` no es SQL válido de Postgres y las operaciones de fecha estaban deshabilitadas
+    (`view.model.ts:59,63`).
+  **Lo que sí se rescata:** las operaciones de Y (`COUNT`, `COUNT DISTINCT`, `SUM`, `AVG`, `MIN`, `MAX`); de 1 a 3
+  columnas en X; agrupar correos por dominio; y la idea de una configuración **declarativa** que se guarda y se vuelve a
+  ejecutar: `{ version, chartType, x: [{ field, bucket }], y: { field, agg }, includeNull }`.
