@@ -3023,6 +3023,27 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   gráfico mostraría «1000 filas» sin ninguna señal de que faltan datos. El primer valor malo corta todo, así que la
   coma decimal, la fecha inválida y la fecha ambigua tardías siguen sin medir por separado; se arman tres archivos de
   una columna cada uno. Registro crudo: `odp-docker/odd/tasks/loader-eval.md` (Run 2).
+  **Medición 3: un archivo por columna** (`scripts/data/loader-late-*.csv`). **Cierra el DataPusher:**
+  - **Coma decimal tardía:** `error`, tabla activa con 1000/1200 filas (`invalid input syntax for type numeric: "1,5"`).
+  - **Fecha inválida tardía:** `error`, tabla activa con 1000/1200 filas (`date/time field value out of range`).
+  - **Fecha ambigua tardía:** `complete`, 1200/1200, **pero `03/04/2024` → 4 de marzo**. Las filas 1–1000 se leyeron
+    dd/mm (`13/01/2010` → 13 de enero) y las siguientes, mm/dd: **la misma columna tiene dos convenciones, sin un solo
+    error en ningún lado**.
+  En los dos casos de error, la API de estado da `error` con el mensaje vacío.
+  **Veredicto sobre el DataPusher 0.0.21:**
+  - **No sirve para datos bolivianos con fechas dd/mm**: los corrompe en silencio.
+  - **Ante datos sucios deja tablas incompletas y activas.**
+  - Lo que se decida para `v1` (un preprocesado que normalice antes de subir, tipos fijados por el publicador, u otro
+    cargador) tiene que resolver estos dos puntos; el aviso al publicador (ítem siguiente) es necesario en cualquier
+    caso.
+  **Hallazgo de la limpieza:** **`datastore_delete` hace que el DataPusher vuelva a cargar el recurso.** Mientras
+  corría el purge, dos tablas del DataStore reaparecieron y **quedaron huérfanas** después de `dataset_purge`; hubo que
+  borrarlas a mano. Además, `dataset_purge` deja los archivos subidos en `/var/lib/ckan/resources`. **Un dataset
+  purgado puede dejar archivos y tablas huérfanas**, así que una limpieza no debe hacer `datastore_delete` antes del
+  purge (o tiene que esperar al DataPusher) y debe verificar `pg_tables` al final. Se relaciona con el riesgo de
+  graficar un dataset borrado de forma lógica (`csv-charts` L23). La organización y el dataset de prueba ya se
+  borraron, verificados en Postgres, Solr y disco. Registro: `odp-docker/odd/tasks/loader-eval.md` (Run 3 y
+  Cleanup).
 - [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
   ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
   es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
