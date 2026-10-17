@@ -425,3 +425,9 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   rama:** el arreglo del retraso de los selectores, los rótulos de los rangos y los identificadores en inglés (el
   worker en curso), y luego P3. La imagen de `frontend-dev` ya se puede reconstruir, porque LayerChart está en el
   `package.json` de `main`; hasta entonces el contenedor usa la instalación manual de L6.
+- **L26 (2026-10-17, el PR de `odp-docker`):** **PR #26 de `odp-docker`** (`feat/csv-charts` → `master`, 4 commits,
+  `f02dc78..b1a6015`). El CI está verde: la suite `ckanext-umss` da 289 passed, igual que en local (corre los tests
+  nuevos contra `ckan/ckan-postgres-dev:2.12`, que trae el esquema del DataStore), y los tests de shell dan 14
+  passed. El merge lo decide el autor. Hasta entonces, el CKAN dev sirve la rama local `feat/csv-charts`; después del
+  merge, `odp-docker` puede volver a `master` sin perder las acciones. El arreglo de `bin/test-umss` queda como un
+  pendiente aparte, declarado en el PR.
