@@ -68,3 +68,54 @@ describe("ResourceChart — los rangos numéricos se escriben de las dos formas 
 		expect(within(axis()).getByText("mañana")).toBeInTheDocument();
 	});
 });
+
+describe("ResourceChart — el estilo nuevo (L28, decisión 3)", () => {
+	// Los dos estilos viven en el mismo componente: `variant` elige cuál se dibuja, así que promover el nuevo
+	// es cambiar su valor por defecto. Lo que se fija acá es lo que el estilo nuevo agrega —la dona con el
+	// total en el centro— y lo que **no** puede perder: los rótulos de los rangos decididos en L21.
+
+	function renderStyled(
+		groups: ChartGroup[],
+		chartType: "bar" | "pie",
+		variant: "current" | "new",
+	) {
+		return render(ResourceChart, {
+			props: {
+				groups,
+				chartType,
+				bucket: "number_step",
+				step: 5000,
+				xLabel: "salario",
+				yLabel: "Cantidad de filas",
+				variant,
+			},
+		});
+	}
+
+	it("el pastel es una dona con el total en el centro, y el total también está en la etiqueta accesible", () => {
+		renderStyled(GROUPS, "pie", "new");
+
+		expect(screen.getByText("Total")).toBeInTheDocument();
+		expect(screen.getByText("11")).toBeInTheDocument();
+		expect(screen.getByRole("img")).toHaveAccessibleName(/Total: 11/);
+	});
+
+	it("el estilo actual no dibuja la dona ni el total", () => {
+		renderStyled(GROUPS, "pie", "current");
+
+		expect(screen.queryByText("Total")).toBeNull();
+		expect(screen.getByRole("img")).not.toHaveAccessibleName(/Total/);
+	});
+
+	it("el estilo nuevo conserva los dos rótulos del rango: el eje «0–5000» y la tabla «[0, 5000)»", () => {
+		renderStyled(GROUPS, "bar", "new");
+
+		expect(within(axis()).getByText("0–5000")).toBeInTheDocument();
+		const rows = within(table()).getAllByRole("row").slice(1);
+		expect(rows.map((row) => row.firstElementChild?.textContent)).toEqual([
+			"[0, 5000)",
+			"[5000, 10000)",
+			"Sin dato",
+		]);
+	});
+});

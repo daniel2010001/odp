@@ -119,6 +119,8 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
+| P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
+| P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -447,3 +449,53 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     `?caso=` a `?case=`.
   - Verificación del padre: 154/154 en la feature, `pnpm check` sin errores, Biome limpio y `200` en `:8082`. El
     worker corrió además la suite completa: 1332/1332.
+- **L28 (2026-10-17, revisión del autor del playground, textual):** «1: no me termina de gustar eso de tener que
+  precionar "vista previa" con cada cambio, hay alguna forma de hacerlo al instante? o algo intermedio? quisas para
+  algunas opciones y para otras no? o recomiendas dejarlo como está? respecto al diseño: no termina de gustarme que esté
+  las opciones arriba del todo y que tengamos que bajar para precionar el visualizar y bajar aun más para ver la vista
+  completa, quisas algo así como un sidebar? o dos columnas? respecto a los gráficos, por ahora creo que con esos 3
+  tipos es suficiente, pero el diseño no termina de gustarme, parece gráficos anticuados o algo así, un poco más de
+  diseño no estaría mal, o no se puede con esta librería de charts? también estuve pensando que algunas plataformas, no
+  necesariamente de este tipo, tienen una forma de poder "consumir" gráficos, algo así como llamarlas con un <iframe/>
+  sabes algo? creo que esto también tenia ckan, o por lo menos recuerdo algo parecido de un plugin de ckan antiguo, no
+  estoy seguro.»
+  **Decisiones del autor (textual de los rótulos elegidos):**
+  1. *«Dos niveles (Recomendado)»*: tipo de gráfico, título y descripción se aplican al instante, sin consulta; las
+     opciones de datos piden la vista previa solas tras ~400 ms sin tocar. Desaparece el botón «Vista previa».
+  2. *«Dos columnas (Recomendado)»*: opciones a la izquierda (~340 px) en dos grupos, Datos y Presentación; el gráfico
+     grande y siempre visible a la derecha; apilado en el teléfono.
+  3. *«Sí, a comparar en el playground (Recomendado)»*: estilo nuevo con barras redondeadas, grilla suave, tooltip como
+     tarjeta, área degradada en las líneas y dona con el total; interruptor «estilo actual / nuevo».
+  4. *«Sí, después de P3 (Recomendado)»*: gráficos insertables por `<iframe>` (`/embed/charts/[viewId]` y un botón
+     «Insertar»), con el bloqueo del *framing* en el resto del portal. Entra en la demo.
+  **Hallazgo de seguridad:** hoy el portal no envía `frame-ancestors` ni `X-Frame-Options` (no aparecen en `src/` ni en
+  la configuración del proxy de `odp-docker`), así que cualquier página del portal se puede meter en un `<iframe>`
+  ajeno. El riesgo es bajo por la cookie `SameSite=Lax`, pero se cierra en P4: el *framing* se bloquea en todo el
+  portal y se permite sólo en `/embed`. Es Risk ítem 2 y lleva verificación independiente.
+  **Tareas nuevas:** P2b (los tres primeros puntos, en el playground, rama `feat/chart-form-live`) y P4 (insertar).
+- **L29 (2026-10-17, `odp-docker`):** el **PR #26 de `odp-docker` está mergeado** (`d7c665d`), así que las acciones
+  `umss_chart` y `umss_chart_data` ya están en su `master`. El PR #27 arregla `bin/test-umss` (el esquema del DataStore
+  en `datastore_test`). A pedido del autor, se le pasó a esa sesión la lista de pendientes que dependen de su repo,
+  con prioridad y evidencia. Para la demo: reconstruir la imagen de `frontend-dev`, el despliegue para presentar y
+  medir las cabeceras del proxy para P4. Para `v1`: el cargador, los colaboradores, el runtime de Node, el `draft` y
+  los riesgos heredados. No hace falta una vista por defecto ni permisos nuevos.
+- **L30 (2026-10-17, medición de la sesión de `odp-docker` para P4, sólo lectura):** `frontend-proxy` **no agrega ni
+  borra** `X-Frame-Options` ni `Content-Security-Policy`, ni en dev ni en prod. En `nginx.conf` y `dev-nginx.conf` no
+  hay `add_header`, `proxy_hide_header` ni `include` relacionados. `nginx -T` sobre el contenedor vivo da lo mismo. Por
+  `:8082`, `/`, `/dev/resource-chart` y `/api/3/action/status_show` responden sin ninguna de las dos cabeceras. **Lo que
+  ponga el portal desde los hooks llega intacto.** Dos precisiones: (1) el nginx propio de CKAN
+  (`ckan-docker/nginx/setup/nginx.conf:34`) sí pone `X-Frame-Options: SAMEORIGIN`, pero en su propio puerto SSL, fuera
+  del camino del portal; (2) los hooks de SvelteKit **no cubren `/api/`**, que sirve CKAN a través del proxy. Es JSON,
+  así que no importa, pero el alcance de P4 se escribe como «lo que sirve SvelteKit», no como «todo».
+- **L31 (2026-10-17, P2b entregada y verificada):** en el playground:
+  - **Vista previa en dos niveles:** el tipo de gráfico redibuja al instante, sin consulta; las opciones de datos
+    consultan solas a los 400 ms del último cambio, y una respuesta vieja se descarta. Mientras carga, el gráfico
+    anterior queda atenuado, con `aria-busy` y un texto de estado. «Guardar» depende de `canonicalDataKey`, la
+    identidad de los datos sin el tipo de gráfico.
+  - **Dos columnas:** opciones de 340 px agrupadas en Datos y Presentación, y el gráfico `sticky`. Sin scroll
+    horizontal a 375 px.
+  - **Estilo «Nuevo»** detrás de una prop (`variant`), con el interruptor «Actual / Nuevo» al lado del gráfico.
+  El padre verificó 133/133 en la feature, `pnpm check` sin errores, Biome limpio y `200`; el worker corrió la suite
+  completa (1342) y el build. **No se verificó a ojo:** el aspecto del estilo nuevo (sólo se midió el DOM y los
+  estilos computados con Chromium), el modo oscuro, los tooltips de líneas y dona, y que las animaciones se apaguen
+  con `prefers-reduced-motion`. Eso queda para la revisión del autor.

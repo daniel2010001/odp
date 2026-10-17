@@ -5,9 +5,13 @@
 	**doble** del servidor (`fake-api.ts`): la acción `umss_chart_data` todavía no existe en vivo, así que acá
 	se revisa el formulario contra la respuesta del contrato y no contra un catálogo que no puede contestar.
 
-	El panel global es **liviano** y sólo tiene presets de caso: no queda ningún interruptor de variante. El
-	rótulo de los rangos numéricos ya está decidido (L21): el eje escribe «0–5000» y la tabla el intervalo
-	exacto «[0, 5000)», sin nada que elegir.
+	El panel global es **liviano** y sólo tiene presets de caso: el único interruptor de variante —«Estilo del
+gráfico», actual o nuevo— vive al lado del gráfico, que es lo que cambia (regla 8). El rótulo de los rangos
+numéricos ya está decidido (L21): el eje escribe «0–5000» y la tabla el intervalo exacto «[0, 5000)», sin nada
+que elegir.
+
+	La vista previa tiene dos niveles (L28): tipo de gráfico, título y descripción se aplican al instante, y las
+	opciones de datos piden los grupos solas. No hay botón «Vista previa» que pulsar ni que bajar a buscar.
 
 	La hoja es material de revisión y se borra al promover el formulario: la compuerta de producción está en
 	`+page.ts`.
@@ -22,6 +26,7 @@ import { demoTable } from "./fixtures";
 
 type PresetId =
 	| "turno-salario"
+	| "turno-pastel"
 	| "ingreso-anio"
 	| "cargo-conteo"
 	| "paso-numerico"
@@ -48,6 +53,21 @@ const PRESETS: Preset[] = [
 		description: "Promedio del salario mensual según el turno del docente.",
 		config: {
 			chart_type: "bar",
+			x_field: "turno",
+			x_bucket: "value",
+			y_agg: "avg",
+			y_field: "salario",
+		},
+	},
+	{
+		id: "turno-pastel",
+		label: "Turno, en pastel",
+		note: "El mismo caso en pastel: en el estilo nuevo es una dona con el total en el centro, y cada porción lleva el intervalo exacto en la leyenda y en el tooltip.",
+		scenario: "ok",
+		title: "Salario promedio por turno",
+		description: "Promedio del salario mensual según el turno del docente.",
+		config: {
+			chart_type: "pie",
 			x_field: "turno",
 			x_bucket: "value",
 			y_agg: "avg",
@@ -173,7 +193,7 @@ const api = $derived(createFakeChartApi({ table: TABLE, scenario: preset.scenari
 		<p class="mt-2 text-xs leading-relaxed text-muted-foreground">{preset.note}</p>
 	</Card>
 
-	<Card class="overflow-hidden border-primary/20">
+	<Card class="overflow-hidden border-primary/20 lg:overflow-visible">
 		<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
 			<div>
 				<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recurso</p>
