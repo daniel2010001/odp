@@ -3,21 +3,51 @@
 //
 // Puebla el CKAN de dev con contenido realista (organizaciones + datasets)
 // espejado de src/lib/mock/data.ts, para que el portal muestre datos reales
-// en lugar de listas vacías. No sube bytes: los recursos son enlaces (url-only).
+// en lugar de listas vacías. Casi todos los recursos son enlaces (url-only); la
+// excepción es el dataset ficticio de la demo (`planilla-docente-ficticia`), que se
+// **sube** como archivo para que el DataPusher lo cargue en el DataStore. Sin eso la
+// demo de gráficos no tiene nada que graficar (L4 de odd/tasks/csv-charts.md, T6).
 //
-// Uso:
+// Uso con la contraseña del sysadmin (flujo original):
 //   CKAN_URL=http://localhost:5000 \
 //   CKAN_SYSADMIN_NAME=ckan_admin \
 //   CKAN_SYSADMIN_PASSWORD=... \
 //   node scripts/seed-ckan.mjs
 //
-// Idempotente: si una organización o dataset ya existe (por `name`), lo salta.
-// El token de seed se revoca al terminar (best-effort). No se guarda ninguna
-// credencial en el repo: la contraseña se lee del entorno en cada corrida.
+// Uso con un token propio, sin login por contraseña:
+//   CKAN_URL=http://localhost:5000 \
+//   CKAN_API_TOKEN=... \
+//   node scripts/seed-ckan.mjs
+//
+// Con `CKAN_API_TOKEN` no se hace login, no se mintea ningún token y **no se revoca
+// nada al terminar**: el token es del llamador y sigue vigente. Sin esa variable, el
+// seed mintea un token de seed y lo revoca (best-effort) al final, como antes.
+//
+// Publica por el flujo de publicación, como lo haría una persona. La pared del store
+// (`ckanext-umss`) rechaza crear o parchear un dataset a `private: false` —para todos,
+// sysadmin incluido—, así que cada dataset nace **privado** y después se pide y se aprueba
+// su publicación con las acciones del portal (`publication_request_create` y
+// `publication_request_decide`, tal como las llama `src/lib/api/publication.ts`). Sin ese
+// paso una instalación nueva no siembra nada: los 17 datasets del catálogo dev están sólo
+// porque son anteriores a la pared (L15 de odd/tasks/csv-charts.md).
+//
+// Idempotente: si una organización ya existe (por `name`), se salta; si un dataset ya
+// existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
+// corrida anterior murió entre crear y aprobar), se reusa la solicitud pendiente o se pide
+// una nueva, y se termina la publicación. Si al dataset de la demo le falta el recurso, se
+// sube sólo el recurso.
+// No se guarda ninguna credencial en el repo: se leen del entorno en cada corrida.
+
+import { readFileSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 const CKAN_URL = (process.env.CKAN_URL ?? "http://localhost:5000").replace(/\/+$/, "");
 const ADMIN_NAME = process.env.CKAN_SYSADMIN_NAME ?? "ckan_admin";
 const ADMIN_PASSWORD = process.env.CKAN_SYSADMIN_PASSWORD;
+const CKAN_API_TOKEN = process.env.CKAN_API_TOKEN?.trim() || null;
 
 // El plugin `expire_api_token` (presente en `CKAN__PLUGINS`) hace **obligatorios**
 // `expires_in` y `unit` en `api_token_create`: sin ellos CKAN responde 409 con
@@ -25,9 +55,21 @@ const ADMIN_PASSWORD = process.env.CKAN_SYSADMIN_PASSWORD;
 // Mismos valores que el portal (`src/lib/server/ckan-auth.ts`, `TOKEN_TTL`).
 const TOKEN_TTL = { expires_in: 1, unit: 86400 };
 
-if (!ADMIN_PASSWORD) {
-	console.error("Falta CKAN_SYSADMIN_PASSWORD. Exportala antes de correr el seed.");
-	process.exit(2);
+// ── Credenciales: token del llamador o login por contraseña ──
+
+async function resolveCredentials() {
+	if (CKAN_API_TOKEN) {
+		console.log("Credencial: CKAN_API_TOKEN del llamador (sin login y sin revocar al final).");
+		return { token: CKAN_API_TOKEN, jar: null, csrf: null, jti: null, ownsToken: false };
+	}
+	if (!ADMIN_PASSWORD) {
+		console.error(
+			"Falta CKAN_SYSADMIN_PASSWORD o CKAN_API_TOKEN. Exporte una de las dos antes de correr el seed.",
+		);
+		process.exit(2);
+	}
+	const { jar, csrf, token, jti } = await login();
+	return { token, jar, csrf, jti, ownsToken: true };
 }
 
 // ── Mini jar de cookies (mismo flujo validado que src/lib/server/ckan-auth.ts) ──
@@ -132,6 +174,123 @@ async function api(token, action, data) {
 		body: JSON.stringify(data),
 	});
 	return res.json();
+}
+
+// ── Publicación: el seed publica por el flujo, como lo haría una persona ──
+//
+// Un dataset no puede nacer público: la pared del store lo rechaza. Nace privado, y después
+// se pide (`publication_request_create`) y se aprueba (`publication_request_decide`) como el
+// mismo usuario. En una organización con un solo administrador —todas las de un catálogo
+// recién sembrado, donde el único miembro es quien corre el seed— la excepción de
+// auto-aprobación (`c′`) lo concede; con un segundo aprobador manda cuatro ojos y el dataset
+// se queda privado, sin abortar el resto del seed.
+
+// Los errores de CKAN vienen en dos formas: `{__type, message}` (403 de autorización) y una
+// clave por campo con la lista de mensajes (409 de validación). El log quiere el rótulo y el
+// mensaje, no el JSON entero.
+function errorText(error) {
+	if (!error) return "sin detalle";
+	if (typeof error === "string") return error;
+	if (typeof error.message === "string") return error.message;
+	const parts = Object.entries(error).map(([key, value]) => {
+		const text = Array.isArray(value) ? value.map(errorText).join(", ") : errorText(value);
+		return `${key}: ${text}`;
+	});
+	return parts.join("; ") || "sin detalle";
+}
+
+// La solicitud **pendiente** de un dataset, si la hay. La acción es `side_effect_free` y el
+// portal la llama por GET; acá va por POST como todas las demás, que CKAN acepta igual. El
+// cliente del portal sólo manda `status` (`src/lib/api/publication.ts:156-160`), así que el
+// filtro por dataset se hace de este lado — contra sus **dos** formas, el id canónico y el
+// nombre de las filas legadas, como hace la ficha (`src/routes/dataset/[id]/+page.svelte:177`).
+async function pendingRequestFor(token, pkg) {
+	const list = await api(token, "publication_request_list", { status: "pending" });
+	if (!list.success) return { error: list.error ?? {} };
+	const row = (list.result ?? []).find(
+		(request) => request.dataset_id === pkg.id || request.dataset_id === pkg.name,
+	);
+	return { row: row ?? null };
+}
+
+// Pide —o reusa— la solicitud de publicación, la aprueba y **relee** el dataset para informar
+// el valor guardado.
+//
+// `pkg` es una lectura del dataset (`package_create` o `package_show`): de ahí salen el id y
+// el `state`. El `state` se mira **antes** de publicar porque el flujo no lo toca: un `draft`
+// queda ilegible aunque la aprobación voltee `private` (L10 de
+// odd/tasks/publication-self-approval.md), o sea que aprobarlo sería un trámite que no
+// publica nada.
+async function publishDataset(token, pkg) {
+	const { id, name } = pkg;
+	if (pkg.state !== "active") {
+		console.error(
+			`✗ publicación ${name}: el dataset está en state=${pkg.state ?? "?"}, y el flujo no lo ` +
+				"vuelve legible (sólo `private: false` con `state: active` es público), así que no se pide.",
+		);
+		return;
+	}
+
+	const pending = await pendingRequestFor(token, pkg);
+	if (pending.error) {
+		console.error(`✗ publicación ${name}: no se pudo leer la cola (${errorText(pending.error)}).`);
+		return;
+	}
+
+	// Idempotencia del pedido: una corrida anterior pudo dejar la solicitud abierta. Pedir otra
+	// sería duplicarla; el catálogo además ya tiene una pendiente para este dataset.
+	let request = pending.row;
+	if (request) {
+		console.log(`· solicitud pendiente reaprovechada: ${name} (${request.id})`);
+	} else {
+		const created = await api(token, "publication_request_create", { dataset_id: id });
+		if (!created.success) {
+			console.error(`✗ publication_request_create ${name}: ${errorText(created.error)}.`);
+			return;
+		}
+		request = created.result;
+	}
+
+	if (!request?.id) {
+		console.error(
+			`✗ publicación ${name}: la solicitud no trae id (${JSON.stringify(request ?? null)}).`,
+		);
+		return;
+	}
+
+	const decided = await api(token, "publication_request_decide", {
+		request_id: request.id,
+		approve: true,
+	});
+	if (!decided.success) {
+		// Cuatro ojos no es un fallo del seed: el dataset queda privado con su solicitud
+		// pendiente y el resto del catálogo se siembra igual. Se dice en una línea.
+		console.error(
+			`✗ publicación ${name}: la aprobación fue rechazada (${errorText(decided.error)}); ` +
+				`el dataset queda privado con la solicitud ${request.id} pendiente.`,
+		);
+		return;
+	}
+
+	// La prueba es el valor **guardado**, no la respuesta del decisor: se relee el dataset. Se
+	// informan las dos mitades porque el label `public` de este CKAN exige `private: false`
+	// **y** `state: active`. Leído con el token del dueño esto prueba que el flip se escribió,
+	// no que la lectura anónima funcione.
+	const shown = await api(token, "package_show", { id });
+	if (!shown.success) {
+		console.error(
+			`✗ ${name}: se aprobó (${request.id}) pero no se pudo releer el dataset ` +
+				`(${errorText(shown.error)}).`,
+		);
+		return;
+	}
+	const { private: isPrivate, state } = shown.result;
+	const isPublic = isPrivate === false && state === "active";
+	console.log(
+		isPublic
+			? `✓ publicado: ${name} (private=false, state=active)`
+			: `✗ ${name}: aprobado, pero no es público (private=${isPrivate}, state=${state}).`,
+	);
 }
 
 // ── Datos espejados de src/lib/mock/data.ts ──
@@ -331,12 +490,154 @@ const SHOWCASE = {
 	],
 };
 
+// ── Dataset ficticio de la demo de gráficos (T6 de odd/tasks/csv-charts.md) ──
+//
+// Lo genera `scripts/generate-demo-csv.mjs` con semilla fija (mismas filas y mismo
+// sha256 en cada corrida). Es el **único** recurso del catálogo sembrado que se sube
+// como archivo en vez de enlace, porque el DataPusher sólo carga lo que tiene bytes.
+// El archivo se sube **antes** de publicar, con el dataset privado: si la subida falla,
+// el dataset no queda público y vacío (ver `seedDemoDataset`).
+// Organización: `rectorado`. Una planilla de personal docente es administración
+// central, no investigación de una facultad, y las cinco organizaciones del catálogo
+// ya describen su contenido (fcyt/fcs/fca publican datos de sus disciplinas).
+const DEMO = {
+	owner_org_name: "rectorado",
+	dataset: {
+		name: "planilla-docente-ficticia",
+		title: "Planilla docente ficticia — Datos ficticios para demostración",
+		notes:
+			"Datos ficticios para demostración. Nómina docente inventada para probar las vistas de " +
+			"gráficos: los nombres y apellidos son inventados y no corresponden a personas reales.\n\n" +
+			"Columnas: `turno` (mañana, tarde, noche), `cargo`, `departamento`, `facultad`, `horas_mes`, " +
+			"`bs_hora`, `salario` (siempre `horas_mes` × `bs_hora`) y `fecha_ingreso` (1995–2025). " +
+			"`turno` y `fecha_ingreso` traen algunos vacíos a propósito, para ver el grupo sin dato.\n\n" +
+			"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+		license_id: "cc-by",
+		author: "Equipo ODP (datos sintéticos)",
+		maintainer: "Equipo ODP",
+		tags: [
+			{ name: "docentes" },
+			{ name: "planilla" },
+			{ name: "salarios" },
+			{ name: "demostración" },
+		],
+	},
+	resource: {
+		name: "planilla-docente-ficticia.csv",
+		description:
+			"Datos ficticios para demostración: 2.500 filas de una planilla docente inventada, " +
+			"pensadas para graficar.",
+		format: "CSV",
+		path: resolve(HERE, "data", "planilla-docente-ficticia.csv"),
+	},
+};
+
+// `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
+// campo `upload` no existe, el recurso queda url-only y el DataPusher no tiene qué cargar.
+async function uploadResource(token, packageId, resource, bytes) {
+	const form = new FormData();
+	form.set("package_id", packageId);
+	form.set("name", resource.name);
+	form.set("description", resource.description);
+	form.set("format", resource.format);
+	// El nombre del archivo viaja en el `filename` del Blob; CKAN lo usa para `url_type: upload`.
+	form.append("upload", new Blob([bytes], { type: "text/csv" }), basename(resource.path));
+
+	const res = await fetch(`${CKAN_URL}/api/3/action/resource_create`, {
+		method: "POST",
+		// Sin `Content-Type` a mano: `fetch` pone el boundary del multipart.
+		headers: { Authorization: token },
+		body: form,
+	});
+	return res.json();
+}
+
+async function seedDemoDataset(token, orgIdByName) {
+	const orgId = orgIdByName.get(DEMO.owner_org_name);
+	if (!orgId) {
+		console.error(
+			`✗ ${DEMO.dataset.name}: organización ${DEMO.owner_org_name} no creada, se salta.`,
+		);
+		return { created: false, skipped: true };
+	}
+
+	let bytes;
+	try {
+		bytes = readFileSync(DEMO.resource.path);
+	} catch {
+		console.error(
+			`✗ ${DEMO.dataset.name}: falta ${DEMO.resource.path}. Genérelo con \`node scripts/generate-demo-csv.mjs\`.`,
+		);
+		return { created: false, skipped: true };
+	}
+
+	// Idempotencia: el dataset se salta por `name`; el recurso, por `name` dentro de él.
+	// Así una corrida que falló a mitad (dataset creado, subida no) se completa sin duplicar.
+	const existing = await api(token, "package_show", { id: DEMO.dataset.name });
+	// El dataset como lo devuelve CKAN (`id`, `state`): es lo que mira `publishDataset`.
+	// Queda `null` mientras no exista.
+	let pkg = existing.success ? existing.result : null;
+	// ¿Falta publicar? Lo que ya está público no se pide de nuevo; lo que se crea acá sí,
+	// porque nace privado.
+	const needsPublication = pkg ? pkg.private === true : true;
+	let created = false;
+
+	if (pkg) {
+		const uploaded = (pkg.resources ?? []).some((resource) => resource.name === DEMO.resource.name);
+		if (uploaded) {
+			console.log(`· dataset existente: ${DEMO.dataset.name} (recurso ya subido, se salta)`);
+			// La corrida anterior pudo morir entre la subida y la aprobación: con el archivo
+			// puesto, lo único que falta es publicar.
+			if (needsPublication) await publishDataset(token, pkg);
+			return { created: false, skipped: true };
+		}
+		console.log(`· dataset existente: ${DEMO.dataset.name} (le falta el recurso, se sube)`);
+	} else {
+		const result = await api(token, "package_create", {
+			...DEMO.dataset,
+			owner_org: orgId,
+			// Nace **privado**: la pared rechaza nacer público, y publicarlo antes de subir el
+			// archivo dejaría un dataset público y vacío si la subida fallara.
+			private: true,
+		});
+		if (!result.success) {
+			console.error(`✗ package_create ${DEMO.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
+			return { created: false, skipped: true };
+		}
+		pkg = result.result;
+		created = true;
+		console.log(`✓ dataset: ${DEMO.dataset.name} (privado)`);
+	}
+
+	const result = await uploadResource(token, pkg.id, DEMO.resource, bytes);
+	if (!result.success) {
+		console.error(`✗ resource_create ${DEMO.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
+		return { created, skipped: false };
+	}
+
+	const resource = result.result;
+	console.log(
+		`✓ recurso subido: ${resource.id} (${bytes.length} bytes, url_type=${resource.url_type ?? "?"})`,
+	);
+	// La subida va con el dataset **todavía privado**: el permiso para subir es de la
+	// organización, no de la visibilidad, y así un fallo de la subida deja el dataset privado
+	// —la corrida siguiente ve el archivo y sólo completa la publicación— en vez de un dataset
+	// público y vacío, que es lo que la demo no puede mostrar.
+	if (needsPublication) await publishDataset(token, pkg);
+	// El seed **no espera** al DataPusher: encola la carga del CSV y sigue de largo.
+	console.log(
+		`  Carga pendiente en el DataStore (DataPusher). Para comprobarla: ` +
+			`curl -s "${CKAN_URL}/api/3/action/resource_show?id=${resource.id}" | grep -o '"datastore_active": *[a-z]*'`,
+	);
+	return { created, skipped: false };
+}
+
 // ── Main ──
 
 async function main() {
 	console.log(`Seed CKAN → ${CKAN_URL}`);
-	const { jar, csrf, token, jti } = await login();
-	console.log("Login OK, token minteado.\n");
+	const { token, jar, csrf, jti, ownsToken } = await resolveCredentials();
+	if (ownsToken) console.log("Login OK, token minteado.\n");
 
 	try {
 		const orgIdByName = new Map();
@@ -364,6 +665,9 @@ async function main() {
 			if (existing.success) {
 				skippedCount++;
 				console.log(`· dataset existente: ${ds.name}`);
+				// Público ya está hecho; privado quedó a mitad de camino en una corrida anterior,
+				// así que se termina su publicación en vez de dejarlo invisible.
+				if (existing.result.private === true) await publishDataset(token, existing.result);
 				continue;
 			}
 			const owner = orgIdByName.get(ds.owner_org_name);
@@ -371,7 +675,9 @@ async function main() {
 				console.error(`✗ ${ds.name}: organización ${ds.owner_org_name} no creada, se salta.`);
 				continue;
 			}
-			const payload = { ...ds, owner_org: owner, private: false };
+			// `private: true` porque la pared rechaza nacer público. El `state` no se manda: CKAN
+			// lo crea `active`, que es lo que el flujo necesita para dejar el dataset legible.
+			const payload = { ...ds, owner_org: owner, private: true };
 			delete payload.owner_org_name;
 			const created = await api(token, "package_create", payload);
 			if (!created.success) {
@@ -379,12 +685,19 @@ async function main() {
 				continue;
 			}
 			createdCount++;
-			console.log(`✓ dataset: ${ds.name}`);
+			console.log(`✓ dataset: ${ds.name} (privado)`);
+			await publishDataset(token, created.result);
 		}
+
+		const demo = await seedDemoDataset(token, orgIdByName);
+		if (demo.created) createdCount++;
+		if (demo.skipped) skippedCount++;
 
 		console.log(`\nListo. Creados ${createdCount} datasets, ${skippedCount} ya existían.`);
 	} finally {
-		// Revocar el token de seed (best-effort y **por `jti`**).
+		// Revocar el token de seed (best-effort y **por `jti`**), sólo si lo minteó este
+		// proceso. Con `CKAN_API_TOKEN` el token es del llamador: revocarlo sería robarle
+		// la credencial, así que no se toca.
 		//
 		// Trampas medidas, las dos del mismo tipo: `api_token_revoke {token}` es un
 		// **no-op silencioso** (CKAN intenta decodificar un JWT, el id no lo es, el
@@ -392,7 +705,9 @@ async function main() {
 		// `jti` que no matchea ningún token también responde `success: true`. O sea que
 		// **`success: true` no es evidencia de revocación**: acá sólo se informa lo que
 		// devolvió la llamada, sin afirmar que el token ya no existe.
-		if (!jti) {
+		if (!ownsToken) {
+			console.log("Token propio (CKAN_API_TOKEN): no se revoca.");
+		} else if (!jti) {
 			console.log("Token de seed: sin `jti` no hay nada que revocar.");
 		} else {
 			try {
