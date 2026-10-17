@@ -7,6 +7,7 @@
 // mensaje genérico.
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { flushSync } from "svelte";
 import { describe, expect, it, vi } from "vitest";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
@@ -75,14 +76,30 @@ function renderForm(api: Pick<ChartApi, "preview" | "createView">) {
 	});
 }
 
-const guardar = () => screen.getByRole("button", { name: "Guardar" });
-const vistaPrevia = () => screen.getByRole("button", { name: /Vista previa/ });
+const saveButton = () => screen.getByRole("button", { name: "Guardar" });
+const previewButton = () => screen.getByRole("button", { name: /Vista previa/ });
+
+/**
+ * Abre un selector de `bits-ui` y elige la opción siguiente con el teclado. Con puntero no se puede:
+ * jsdom no implementa la captura de puntero que el `Select.Trigger` usa al abrirse.
+ *
+ * La última tecla **no** se espera a propósito: es el cambio de estado que el test mide.
+ */
+async function pickNextOption(label: string) {
+	const trigger = screen.getByRole("button", { name: label });
+	trigger.focus();
+	await fireEvent.keyDown(trigger, { key: "Enter" });
+	await screen.findAllByRole("option");
+	const focused = document.activeElement ?? trigger;
+	await fireEvent.keyDown(focused, { key: "ArrowDown" });
+	fireEvent.keyDown(document.activeElement ?? focused, { key: "Enter" });
+}
 
 describe("ChartForm — no se guarda lo que no se vio", () => {
 	it("arranca con «Guardar» deshabilitado", () => {
 		renderForm(makeApi());
 
-		expect(guardar()).toBeDisabled();
+		expect(saveButton()).toBeDisabled();
 	});
 
 	it("pide la vista previa con la configuración normalizada y recién entonces habilita «Guardar»", async () => {
@@ -90,33 +107,122 @@ describe("ChartForm — no se guarda lo que no se vio", () => {
 		const api = makeApi({ preview });
 		renderForm(api);
 
-		await fireEvent.click(vistaPrevia());
+		await fireEvent.click(previewButton());
 
-		await waitFor(() => expect(guardar()).toBeEnabled());
+		await waitFor(() => expect(saveButton()).toBeEnabled());
 		expect(preview).toHaveBeenCalledWith("recurso-1", EMPTY_DATA.config);
 	});
 
 	it("un cambio posterior a la vista previa vuelve a deshabilitar «Guardar»", async () => {
 		renderForm(makeApi());
-		await fireEvent.click(vistaPrevia());
-		await waitFor(() => expect(guardar()).toBeEnabled());
+		await fireEvent.click(previewButton());
+		await waitFor(() => expect(saveButton()).toBeEnabled());
 
 		await fireEvent.click(screen.getByLabelText(/Mostrar las filas sin dato/));
 
-		expect(guardar()).toBeDisabled();
+		expect(saveButton()).toBeDisabled();
 	});
 
 	it("guardar usa la configuración previsualizada", async () => {
 		const createView = okCreateView();
 		const api = makeApi({ createView });
 		renderForm(api);
-		await fireEvent.click(vistaPrevia());
-		await waitFor(() => expect(guardar()).toBeEnabled());
+		await fireEvent.click(previewButton());
+		await waitFor(() => expect(saveButton()).toBeEnabled());
 
-		await fireEvent.click(guardar());
+		await fireEvent.click(saveButton());
 
 		await waitFor(() => expect(createView).toHaveBeenCalled());
 		expect(await screen.findByText("Vista guardada.")).toBeInTheDocument();
+	});
+});
+
+describe("ChartForm — el cambio de columna reconcilia en el mismo render", () => {
+	// Lo que el autor reportó como «retraso» (L21): con la reconciliación en un `$effect`, cada cambio de
+	// selector renderiza dos veces. El primero deja la agrupación que la columna nueva ya no admite —el
+	// selector pierde su etiqueta («Seleccione una opción») y el paso sigue a la vista—, y recién el segundo,
+	// el que dispara el efecto, la corrige. Se mide sobre las escrituras del DOM: un cambio, una escritura.
+	const TWO_COLUMNS: DatastoreField[] = [
+		{ id: "_id", type: "int4" },
+		{ id: "salario", type: "numeric" },
+		{ id: "turno", type: "text" },
+	];
+
+	it("pasar de una columna numérica con rangos a una de texto deja la agrupación en «Valor tal cual» en una sola escritura", async () => {
+		render(ChartForm, {
+			props: {
+				fields: TWO_COLUMNS,
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig: {
+					x_field: "salario",
+					x_bucket: "number_step",
+					x_step: "5000",
+					y_agg: "count",
+				},
+			},
+		});
+
+		const grouping = () => screen.getByRole("button", { name: "Agrupación del eje horizontal" });
+
+		// El estado de partida: rangos numéricos sobre `salario`, con su paso a la vista.
+		expect(grouping()).toHaveTextContent("Rangos numéricos");
+		expect(screen.getByLabelText("Tamaño del rango")).toBeInTheDocument();
+
+		// Cada valor que la etiqueta de la agrupación mostró, en orden: `oldValue` de cada escritura y el
+		// valor final. Un solo cambio del eje X no puede pasar por un rótulo que no aplique.
+		const labels: string[] = [];
+		const observer = new MutationObserver((records) => {
+			for (const record of records) {
+				if (record.type === "characterData" && record.oldValue !== null) {
+					labels.push(record.oldValue);
+				}
+			}
+		});
+		observer.observe(grouping(), {
+			subtree: true,
+			childList: true,
+			characterData: true,
+			characterDataOldValue: true,
+		});
+
+		await pickNextOption("Columna del eje horizontal");
+		flushSync();
+		await Promise.resolve();
+		observer.disconnect();
+		labels.push(grouping().textContent?.trim() ?? "");
+
+		// «texto» sólo admite «valor tal cual»: la agrupación se reconcilia en el mismo render y el paso se va.
+		expect(labels).toEqual(["Rangos numéricos", "Valor tal cual"]);
+		expect(screen.queryByLabelText("Tamaño del rango")).toBeNull();
+	});
+});
+
+describe("ChartForm — el paso del rango", () => {
+	// El `<input type="number">` entrega un número (o `null`), no el texto que el borrador guarda: sin
+	// normalizarlo, escribir el paso reventaba el formulario en `draft.x_step.trim`.
+	it("escribir el paso deja el formulario lejos y lo lee como número", async () => {
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig: {
+					x_field: "salario",
+					x_bucket: "number_step",
+					x_step: "",
+					y_agg: "count",
+				},
+			},
+		});
+
+		// El paso vacío trae su error, y el texto del error también cuelga de la etiqueta: de ahí la regex.
+		await fireEvent.input(screen.getByLabelText(/Tamaño del rango/), {
+			target: { value: "5000" },
+		});
+
+		expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(5000);
+		expect(previewButton()).toBeEnabled();
 	});
 });
 
@@ -140,7 +246,7 @@ describe("ChartForm — el borrador inicial", () => {
 			},
 		});
 
-		await waitFor(() => expect(vistaPrevia()).toBeEnabled());
+		await waitFor(() => expect(previewButton()).toBeEnabled());
 	});
 });
 
@@ -157,12 +263,12 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 		});
 		renderForm(api);
 
-		await fireEvent.click(vistaPrevia());
+		await fireEvent.click(previewButton());
 
 		// El campo muestra el texto del portal para la clave; el del servidor no es copy de la interfaz (L18).
 		expect(await screen.findByText(FIELD_MESSAGES.y_field)).toBeInTheDocument();
 		expect(screen.queryByText("La columna del eje vertical debe ser numérica.")).toBeNull();
-		expect(guardar()).toBeDisabled();
+		expect(saveButton()).toBeDisabled();
 	});
 
 	it("una negativa de permiso se dice con el texto del catálogo, no como error de un campo", async () => {
@@ -173,7 +279,7 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 		});
 		renderForm(api);
 
-		await fireEvent.click(vistaPrevia());
+		await fireEvent.click(previewButton());
 
 		expect(await screen.findByText("No se pudo confirmar el acceso")).toBeInTheDocument();
 		expect(screen.getByText("Código 403")).toBeInTheDocument();

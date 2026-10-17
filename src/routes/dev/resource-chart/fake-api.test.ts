@@ -27,7 +27,8 @@ async function preview(
 	return api(options).preview("recurso-demo", config);
 }
 
-const COUNT_BY_TURNO: ChartConfig = {
+/** Cuenta filas por `turno`. */
+const COUNT_BY_SHIFT: ChartConfig = {
 	version: 1,
 	chart_type: "bar",
 	x_field: "turno",
@@ -35,35 +36,35 @@ const COUNT_BY_TURNO: ChartConfig = {
 	y_agg: "count",
 };
 
-const esBlanco = (value: unknown) =>
+const isBlank = (value: unknown) =>
 	value === null || value === undefined || String(value).trim() === "";
 
 describe("el doble agrupa como el contrato", () => {
 	it("cuenta filas por turno, con las filas sin dato en un grupo propio al final", async () => {
-		const data: ChartData = await preview(COUNT_BY_TURNO);
+		const data: ChartData = await preview(COUNT_BY_SHIFT);
 
-		const sinTurno = TABLE.records.filter((row) => esBlanco(row.turno)).length;
-		expect(sinTurno).toBeGreaterThan(0);
+		const withoutShift = TABLE.records.filter((row) => isBlank(row.turno)).length;
+		expect(withoutShift).toBeGreaterThan(0);
 
 		expect(data.groups.map((g) => g.key)).toEqual(["mañana", "noche", "tarde", null]);
-		expect(data.groups.at(-1)?.value).toBe(sinTurno);
+		expect(data.groups.at(-1)?.value).toBe(withoutShift);
 		expect(data.groups.reduce((sum, g) => sum + g.value, 0)).toBe(TABLE.total);
 	});
 
 	it("`total_rows` son las filas de la tabla, no las que entraron en grupos", async () => {
-		const data = await preview(COUNT_BY_TURNO);
+		const data = await preview(COUNT_BY_SHIFT);
 		expect(data.total_rows).toBe(TABLE.total);
 	});
 
 	it("con `include_null: false` el grupo nulo no se devuelve", async () => {
-		const data = await preview({ ...COUNT_BY_TURNO, include_null: false });
+		const data = await preview({ ...COUNT_BY_SHIFT, include_null: false });
 
 		expect(data.groups.some((g) => g.key === null)).toBe(false);
 		expect(data.groups.reduce((sum, g) => sum + g.value, 0)).toBeLessThan(TABLE.total);
 	});
 
 	it("devuelve la configuración normalizada, con los valores por defecto aplicados", async () => {
-		const data = await preview(COUNT_BY_TURNO);
+		const data = await preview(COUNT_BY_SHIFT);
 
 		expect(data.version).toBe(1);
 		expect(data.config).toEqual({
@@ -89,7 +90,7 @@ describe("el doble agrupa como el contrato", () => {
 
 		for (const group of data.groups) {
 			const rows = TABLE.records.filter((row) =>
-				group.key === null ? esBlanco(row.turno) : row.turno === group.key,
+				group.key === null ? isBlank(row.turno) : row.turno === group.key,
 			);
 			const expected =
 				Math.round((rows.reduce((sum, row) => sum + Number(row.salario), 0) / rows.length) * 100) /
@@ -131,7 +132,7 @@ describe("el doble agrupa como el contrato", () => {
 		).toBe(true);
 		expect(year.groups.at(-1)?.key).toBeNull();
 		expect(year.groups.at(-1)?.value).toBe(
-			TABLE.records.filter((row) => esBlanco(row.fecha_ingreso)).length,
+			TABLE.records.filter((row) => isBlank(row.fecha_ingreso)).length,
 		);
 
 		const quarter = await preview({
@@ -163,7 +164,7 @@ describe("el doble agrupa como el contrato", () => {
 });
 
 describe("L17 — en una columna de texto, una cadena vacía es «sin dato»", () => {
-	const chica: DemoTable = {
+	const smallTable: DemoTable = {
 		fields: [
 			{ id: "_id", type: "int" },
 			{ id: "letra", type: "text" },
@@ -181,7 +182,7 @@ describe("L17 — en una columna de texto, una cadena vacía es «sin dato»", (
 	it("las cadenas vacías y de sólo espacios forman el grupo nulo", async () => {
 		const data = await preview(
 			{ version: 1, chart_type: "bar", x_field: "letra", x_bucket: "value", y_agg: "count" },
-			{ table: chica },
+			{ table: smallTable },
 		);
 
 		expect(data.groups).toEqual([
@@ -203,7 +204,7 @@ describe("L17 — en una columna de texto, una cadena vacía es «sin dato»", (
 				y_field: "letra",
 				include_null: false,
 			},
-			{ table: chica },
+			{ table: smallTable },
 		);
 
 		for (const group of data.groups) {
@@ -221,7 +222,7 @@ describe("L17 — en una columna de texto, una cadena vacía es «sin dato»", (
 				x_fold_case: true,
 				y_agg: "count",
 			},
-			{ table: chica },
+			{ table: smallTable },
 		);
 
 		expect(data.groups).toEqual([
@@ -234,10 +235,10 @@ describe("L17 — en una columna de texto, una cadena vacía es «sin dato»", (
 
 describe("el tope de grupos y los errores", () => {
 	it("corta en MAX_CHART_GROUPS grupos y lo declara", async () => {
-		const mucha = demoTable(MAX_CHART_GROUPS + 100);
+		const bigTable = demoTable(MAX_CHART_GROUPS + 100);
 		const data = await preview(
 			{ version: 1, chart_type: "bar", x_field: "n", x_bucket: "value", y_agg: "count" },
-			{ table: mucha },
+			{ table: bigTable },
 		);
 
 		expect(data.groups).toHaveLength(MAX_CHART_GROUPS);
@@ -246,7 +247,7 @@ describe("el tope de grupos y los errores", () => {
 	});
 
 	it("no declara truncado cuando los grupos entran", async () => {
-		const data = await preview(COUNT_BY_TURNO);
+		const data = await preview(COUNT_BY_SHIFT);
 		expect(data.truncated).toBe(false);
 	});
 
@@ -269,7 +270,7 @@ describe("el tope de grupos y los errores", () => {
 	});
 
 	it("el caso «error del servidor» devuelve un ValidationError aunque la configuración sea válida", async () => {
-		const error = await preview(COUNT_BY_TURNO, { scenario: "server-error" }).catch(
+		const error = await preview(COUNT_BY_SHIFT, { scenario: "server-error" }).catch(
 			(err: unknown) => err,
 		);
 
@@ -280,7 +281,7 @@ describe("el tope de grupos y los errores", () => {
 	});
 
 	it("el caso «sin permiso» devuelve NotAuthorized", async () => {
-		const error = await preview(COUNT_BY_TURNO, { scenario: "not-authorized" }).catch(
+		const error = await preview(COUNT_BY_SHIFT, { scenario: "not-authorized" }).catch(
 			(err: unknown) => err,
 		);
 

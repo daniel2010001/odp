@@ -5,16 +5,15 @@
 	**doble** del servidor (`fake-api.ts`): la acción `umss_chart_data` todavía no existe en vivo, así que acá
 	se revisa el formulario contra la respuesta del contrato y no contra un catálogo que no puede contestar.
 
-	El panel global es **liviano** y sólo tiene presets de caso; el único interruptor de variante —el rótulo
-	de los rangos numéricos, que el autor tiene que decidir (L12)— está en la sección que cambia, al lado de
-	la vista previa, y no en el panel.
+	El panel global es **liviano** y sólo tiene presets de caso: no queda ningún interruptor de variante. El
+	rótulo de los rangos numéricos ya está decidido (L21): el eje escribe «0–5000» y la tabla el intervalo
+	exacto «[0, 5000)», sin nada que elegir.
 
 	La hoja es material de revisión y se borra al promover el formulario: la compuerta de producción está en
 	`+page.ts`.
 -->
 <script lang="ts">
 import { page } from "$app/state";
-import type { RangeLabelStyle, XBucket } from "$lib/charts/contract";
 import type { ChartDraft } from "$lib/charts/form";
 import ChartForm from "$lib/components/resource/chart/ChartForm.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -82,7 +81,7 @@ const PRESETS: Preset[] = [
 	{
 		id: "paso-numerico",
 		label: "Salario por rango",
-		note: "Rangos numéricos de 5.000: acá se mira el interruptor del rótulo de los rangos.",
+		note: "Rangos numéricos de 5.000: el eje los escribe «0–5000» y la tabla, «[0, 5000)» (L21).",
 		scenario: "ok",
 		title: "Docentes por rango de salario",
 		description: "Cantidad de docentes según el rango de salario mensual.",
@@ -127,28 +126,15 @@ const PRESETS: Preset[] = [
 ];
 
 // Sólo para abrir un caso directo; mover un control no reescribe la URL (regla 8).
-const initialPreset = page.url.searchParams.get("caso");
+const initialPreset = page.url.searchParams.get("case");
 let presetId = $state<PresetId>(
 	PRESETS.some((preset) => preset.id === initialPreset)
 		? (initialPreset as PresetId)
 		: "turno-salario",
 );
-/** La variante que el autor tiene que decidir: cómo se escribe un rango numérico (L12). */
-let rangeStyle = $state<RangeLabelStyle>(
-	page.url.searchParams.get("rangos") === "dash" ? "dash" : "interval",
-);
-
 const TABLE = demoTable();
 const preset = $derived(PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0]);
 const api = $derived(createFakeChartApi({ table: TABLE, scenario: preset.scenario }));
-
-const RANGE_STYLES: { value: RangeLabelStyle; label: string; example: string }[] = [
-	{ value: "interval", label: "Intervalo", example: "[0, 5000)" },
-	{ value: "dash", label: "Guion", example: "0–5000" },
-];
-
-const bucketOf = (config: Partial<ChartDraft>): XBucket =>
-	(config.x_bucket as XBucket | undefined) ?? "value";
 </script>
 
 <svelte:head><title>Playground · gráfico del recurso</title></svelte:head>
@@ -201,7 +187,7 @@ const bucketOf = (config: Partial<ChartDraft>): XBucket =>
 		</div>
 
 		<div class="p-5">
-			{#key presetId + rangeStyle}
+			{#key presetId}
 				<ChartForm
 					fields={TABLE.fields}
 					{api}
@@ -209,33 +195,7 @@ const bucketOf = (config: Partial<ChartDraft>): XBucket =>
 					initialTitle={preset.title}
 					initialDescription={preset.description}
 					initialConfig={preset.config}
-					{rangeStyle}
-				>
-					{#snippet previewControls()}
-						<!-- Variante del autor (L12), al lado del gráfico que cambia. -->
-						<div class="mr-1 flex items-center gap-2 rounded-md border border-input bg-background px-2 py-1">
-							<span class="text-xs font-semibold text-foreground">Rótulo de los rangos</span>
-							<div class="flex gap-1" role="group" aria-label="Rótulo de los rangos numéricos">
-								{#each RANGE_STYLES as style (style.value)}
-									<button
-										type="button"
-										aria-pressed={rangeStyle === style.value}
-										onclick={() => (rangeStyle = style.value)}
-										class="cursor-pointer rounded-sm px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none {rangeStyle ===
-										style.value
-											? 'bg-primary text-primary-foreground'
-											: 'text-foreground hover:bg-accent'}"
-									>
-										{style.label} <span class="font-mono">{style.example}</span>
-									</button>
-								{/each}
-							</div>
-							{#if bucketOf(preset.config) !== "number_step"}
-								<span class="text-xs text-muted-foreground">(se ve en «Salario por rango»)</span>
-							{/if}
-						</div>
-					{/snippet}
-				</ChartForm>
+				/>
 			{/key}
 		</div>
 	</Card>

@@ -17,6 +17,7 @@ import {
 	fieldFamily,
 	foldCaseAvailable,
 	groupLabel,
+	groupLabels,
 	MAX_CHART_GROUPS,
 	type NormalizedChartConfig,
 	NULL_GROUP_LABEL,
@@ -70,11 +71,11 @@ describe("el contrato — constantes", () => {
 
 describe("validateChartConfig — una configuración válida", () => {
 	it("no deja errores y devuelve la configuración normalizada", () => {
-		const resultado = validate();
+		const result = validate();
 
-		expect(resultado.valid).toBe(true);
-		expect(resultado.errors).toEqual({});
-		expect(resultado.config).toEqual({
+		expect(result.valid).toBe(true);
+		expect(result.errors).toEqual({});
+		expect(result.config).toEqual({
 			version: 1,
 			chart_type: "bar",
 			x_field: "departamento",
@@ -93,18 +94,18 @@ describe("validateChartConfig — una configuración válida", () => {
 	});
 
 	it("respeta los valores explícitos de x_fold_case e include_null", () => {
-		const resultado = validate({ x_fold_case: true, include_null: false });
+		const result = validate({ x_fold_case: true, include_null: false });
 
-		expect(resultado.valid).toBe(true);
-		expect(resultado.config?.x_fold_case).toBe(true);
-		expect(resultado.config?.include_null).toBe(false);
+		expect(result.valid).toBe(true);
+		expect(result.config?.x_fold_case).toBe(true);
+		expect(result.config?.include_null).toBe(false);
 	});
 
 	it("una configuración inválida no devuelve configuración normalizada", () => {
-		const resultado = validate({ chart_type: "donut" });
+		const result = validate({ chart_type: "donut" });
 
-		expect(resultado.valid).toBe(false);
-		expect(resultado.config).toBeNull();
+		expect(result.valid).toBe(false);
+		expect(result.config).toBeNull();
 	});
 });
 
@@ -126,8 +127,8 @@ describe("validateChartConfig — chart_type", () => {
 	});
 
 	it("sólo admite bar, line o pie", () => {
-		for (const tipo of ["bar", "line", "pie"]) {
-			expect(errors({ chart_type: tipo })).not.toHaveProperty("chart_type");
+		for (const type of ["bar", "line", "pie"]) {
+			expect(errors({ chart_type: type })).not.toHaveProperty("chart_type");
 		}
 		expect(errors({ chart_type: "donut" })).toHaveProperty("chart_type");
 	});
@@ -149,13 +150,13 @@ describe("validateChartConfig — x_bucket", () => {
 	});
 
 	it("sólo admite value, number_step, year, quarter o month", () => {
-		const caso = (bucket: string) => {
+		const configForBucket = (bucket: string) => {
 			if (bucket === "number_step") return { x_bucket: bucket, x_field: "monto", x_step: 5 };
 			if (bucket === "value") return { x_bucket: bucket };
 			return { x_bucket: bucket, x_field: "fecha" };
 		};
 		for (const bucket of ["value", "number_step", "year", "quarter", "month"]) {
-			expect(errors(caso(bucket))).not.toHaveProperty("x_bucket");
+			expect(errors(configForBucket(bucket))).not.toHaveProperty("x_bucket");
 		}
 		expect(errors({ x_bucket: "day" })).toHaveProperty("x_bucket");
 	});
@@ -173,8 +174,8 @@ describe("validateChartConfig — x_bucket", () => {
 	});
 
 	it("number_step acepta la familia numérica completa del backend", () => {
-		for (const campo of ["monto", "entero", "flotante"]) {
-			expect(errors({ x_bucket: "number_step", x_field: campo, x_step: 5 })).not.toHaveProperty(
+		for (const field of ["monto", "entero", "flotante"]) {
+			expect(errors({ x_bucket: "number_step", x_field: field, x_step: 5 })).not.toHaveProperty(
 				"x_bucket",
 			);
 		}
@@ -196,8 +197,8 @@ describe("validateChartConfig — x_bucket", () => {
 
 	it("year, quarter y month aceptan la familia de fechas completa del backend", () => {
 		for (const bucket of ["year", "quarter", "month"]) {
-			for (const campo of ["fecha", "fecha_dia", "fecha_hora"]) {
-				expect(errors({ x_bucket: bucket, x_field: campo })).not.toHaveProperty("x_bucket");
+			for (const field of ["fecha", "fecha_dia", "fecha_hora"]) {
+				expect(errors({ x_bucket: bucket, x_field: field })).not.toHaveProperty("x_bucket");
 			}
 		}
 	});
@@ -210,8 +211,8 @@ describe("validateChartConfig — x_step", () => {
 
 	it("tiene que ser un número mayor que cero", () => {
 		const base = { x_bucket: "number_step", x_field: "monto" };
-		for (const paso of [0, -1, Number.NaN]) {
-			expect(errors({ ...base, x_step: paso })).toHaveProperty("x_step");
+		for (const step of [0, -1, Number.NaN]) {
+			expect(errors({ ...base, x_step: step })).toHaveProperty("x_step");
 		}
 		expect(errors({ ...base, x_step: "5" })).toHaveProperty("x_step");
 		expect(errors({ ...base, x_step: 0.5 })).not.toHaveProperty("x_step");
@@ -219,8 +220,8 @@ describe("validateChartConfig — x_step", () => {
 
 	it("está prohibida con el resto de las agrupaciones", () => {
 		for (const bucket of ["value", "year", "quarter", "month"]) {
-			const campo = bucket === "value" ? "departamento" : "fecha";
-			expect(errors({ x_bucket: bucket, x_field: campo, x_step: 5 })).toHaveProperty("x_step");
+			const field = bucket === "value" ? "departamento" : "fecha";
+			expect(errors({ x_bucket: bucket, x_field: field, x_step: 5 })).toHaveProperty("x_step");
 		}
 	});
 });
@@ -253,8 +254,8 @@ describe("validateChartConfig — y_agg", () => {
 
 	it("sólo admite los seis cálculos del contrato", () => {
 		for (const agg of ["count", "count_distinct", "sum", "avg", "min", "max"]) {
-			const campo = agg === "count" ? undefined : agg === "count_distinct" ? "codigo" : "monto";
-			expect(errors({ y_agg: agg, y_field: campo })).not.toHaveProperty("y_agg");
+			const field = agg === "count" ? undefined : agg === "count_distinct" ? "codigo" : "monto";
+			expect(errors({ y_agg: agg, y_field: field })).not.toHaveProperty("y_agg");
 		}
 		expect(errors({ y_agg: "median" })).toHaveProperty("y_agg");
 	});
@@ -285,8 +286,8 @@ describe("validateChartConfig — y_field", () => {
 			expect(errors({ y_agg: agg, y_field: "departamento" })).toHaveProperty("y_field");
 			expect(errors({ y_agg: agg, y_field: "fecha" })).toHaveProperty("y_field");
 			expect(errors({ y_agg: agg, y_field: "alias_raro" })).toHaveProperty("y_field");
-			for (const campo of ["monto", "entero", "flotante"]) {
-				expect(errors({ y_agg: agg, y_field: campo })).not.toHaveProperty("y_field");
+			for (const field of ["monto", "entero", "flotante"]) {
+				expect(errors({ y_agg: agg, y_field: field })).not.toHaveProperty("y_field");
 			}
 		}
 	});
@@ -302,45 +303,45 @@ describe("validateChartConfig — include_null", () => {
 describe("validateChartConfig — la forma de los errores", () => {
 	it("una clave culpable, un mensaje: no se apilan mensajes sobre la misma clave", () => {
 		// `number_step` sobre texto con paso inválido: dos claves culpables, un mensaje en cada una.
-		const resultado = errors({ x_bucket: "number_step", x_field: "departamento", x_step: 0 });
+		const result = errors({ x_bucket: "number_step", x_field: "departamento", x_step: 0 });
 
-		expect(resultado.x_bucket).toBeTruthy();
-		expect(resultado.x_step).toBeTruthy();
-		expect(Object.keys(resultado).sort()).toEqual(["x_bucket", "x_step"]);
+		expect(result.x_bucket).toBeTruthy();
+		expect(result.x_step).toBeTruthy();
+		expect(Object.keys(result).sort()).toEqual(["x_bucket", "x_step"]);
 	});
 
 	it("los mensajes están en español formal y explican qué corregir", () => {
-		const mensajes = [
+		const messages = [
 			errors({ x_field: undefined }).x_field,
 			errors({ y_agg: "sum", y_field: "departamento" }).y_field,
 			errors({ y_agg: "count", y_field: "monto" }).y_field,
 			errors({ version: 2 }).version,
 		];
 
-		for (const mensaje of mensajes) {
-			expect(typeof mensaje).toBe("string");
-			expect(mensaje).toMatch(/^[A-ZÁÉÍÓÚÑ]/);
-			expect(mensaje).toMatch(/\.$/);
+		for (const message of messages) {
+			expect(typeof message).toBe("string");
+			expect(message).toMatch(/^[A-ZÁÉÍÓÚÑ]/);
+			expect(message).toMatch(/\.$/);
 		}
 	});
 });
 
 describe("validateChartConfig — entradas que no son un objeto", () => {
 	it("no revienta y reporta las claves obligatorias", () => {
-		for (const entrada of [null, undefined, "config", 42, [1, 2]]) {
-			const resultado = validateChartConfig(entrada, FIELDS);
-			expect(resultado.valid).toBe(false);
-			expect(resultado.errors).toHaveProperty("version");
-			expect(resultado.errors).toHaveProperty("chart_type");
-			expect(resultado.errors).toHaveProperty("x_field");
-			expect(resultado.errors).toHaveProperty("y_agg");
+		for (const input of [null, undefined, "config", 42, [1, 2]]) {
+			const result = validateChartConfig(input, FIELDS);
+			expect(result.valid).toBe(false);
+			expect(result.errors).toHaveProperty("version");
+			expect(result.errors).toHaveProperty("chart_type");
+			expect(result.errors).toHaveProperty("x_field");
+			expect(result.errors).toHaveProperty("y_agg");
 		}
 	});
 });
 
 describe("pickChartConfig — la config guardada, que el catálogo devuelve plana", () => {
 	it("toma las claves del contrato que están al tope del diccionario de la vista", () => {
-		const vista = {
+		const view = {
 			id: "v1",
 			resource_id: "res-1",
 			title: "Empleo por turno",
@@ -357,7 +358,7 @@ describe("pickChartConfig — la config guardada, que el catálogo devuelve plan
 			order: 0,
 		};
 
-		expect(pickChartConfig(vista)).toEqual({
+		expect(pickChartConfig(view)).toEqual({
 			version: 1,
 			chart_type: "bar",
 			x_field: "turno",
@@ -415,7 +416,7 @@ describe("groupLabel — el rótulo que el portal pone a cada key cruda", () => 
 		expect(groupLabel(0, { bucket: "number_step", step: 0.5 })).toBe("[0, 0.5)");
 	});
 
-	it("number_step admite el rótulo «0–5» en vez de «[0, 5)» (la variante la decide el autor, L12)", () => {
+	it("number_step admite el rótulo «0–5» en vez de «[0, 5)»: cada superficie usa el suyo (L21)", () => {
 		expect(groupLabel(0, { bucket: "number_step", step: 5, rangeStyle: "dash" })).toBe("0–5");
 		expect(groupLabel(-5, { bucket: "number_step", step: 5, rangeStyle: "dash" })).toBe("-5–0");
 		expect(groupLabel(1500, { bucket: "number_step", step: 500, rangeStyle: "dash" })).toBe(
@@ -455,22 +456,47 @@ describe("groupLabel — el rótulo que el portal pone a cada key cruda", () => 
 	});
 });
 
+describe("groupLabels — el eje y el dato exacto, cada uno en su forma (L21)", () => {
+	it("un rango numérico va con guion en el eje y como intervalo semiabierto en el tooltip y la tabla", () => {
+		expect(groupLabels(1500, { bucket: "number_step", step: 5000 })).toEqual({
+			axis: "1500–6500",
+			interval: "[1500, 6500)",
+		});
+		expect(groupLabels(0, { bucket: "number_step", step: 5000 })).toEqual({
+			axis: "0–5000",
+			interval: "[0, 5000)",
+		});
+	});
+
+	it("las demás agrupaciones se escriben igual en los dos lugares: no hay rango que distinguir", () => {
+		for (const bucket of ["value", "year", "quarter", "month"] as const) {
+			const key = bucket === "value" ? "turno" : bucket === "year" ? "2024" : "2024-Q1";
+			const labels = groupLabels(key, { bucket });
+			expect(labels.axis).toBe(labels.interval);
+		}
+		expect(groupLabels(null, { bucket: "number_step", step: 5000 })).toEqual({
+			axis: NULL_GROUP_LABEL,
+			interval: NULL_GROUP_LABEL,
+		});
+	});
+});
+
 describe("validateChartConfig — `_id` es interna del catálogo y no se grafica", () => {
 	it("rechaza `_id` como columna del eje X", () => {
-		const resultado = validateChartConfig({ ...VALID, x_field: "_id" }, FIELDS);
-		expect(resultado.valid).toBe(false);
-		expect(resultado.errors.x_field).toBe(
+		const result = validateChartConfig({ ...VALID, x_field: "_id" }, FIELDS);
+		expect(result.valid).toBe(false);
+		expect(result.errors.x_field).toBe(
 			"La columna «_id» es interna del catálogo y no se puede graficar.",
 		);
 	});
 
 	it("rechaza `_id` como columna del eje Y", () => {
-		const resultado = validateChartConfig(
+		const result = validateChartConfig(
 			{ ...VALID, y_agg: "count_distinct", y_field: "_id" },
 			FIELDS,
 		);
-		expect(resultado.valid).toBe(false);
-		expect(resultado.errors.y_field).toBe(
+		expect(result.valid).toBe(false);
+		expect(result.errors.y_field).toBe(
 			"La columna «_id» es interna del catálogo y no se puede graficar.",
 		);
 	});
@@ -517,11 +543,11 @@ describe("las familias de tipos y lo que cada una habilita en el formulario", ()
 	});
 
 	it("contar distintos ofrece cualquier columna, la interna incluida nunca", () => {
-		const columnas = yColumnsFor(FIELDS, "count_distinct");
+		const columns = yColumnsFor(FIELDS, "count_distinct");
 
-		expect(columnas).toContain("codigo");
-		expect(columnas).toContain("fecha");
-		expect(columnas).not.toContain("_id");
+		expect(columns).toContain("codigo");
+		expect(columns).toContain("fecha");
+		expect(columns).not.toContain("_id");
 	});
 
 	it("sumar, promediar, mínimo y máximo ofrecen sólo columnas numéricas", () => {
