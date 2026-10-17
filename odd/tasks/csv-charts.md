@@ -44,12 +44,12 @@ CKAN guarda en `config` sólo lo que el `schema` del plugin declara:
 |---|---|---|
 | `version` | `1` | obligatoria |
 | `chart_type` | `bar` · `line` · `pie` | obligatoria |
-| `x_field` | id de una columna de la tabla | obligatoria; tiene que existir en los `fields` del DataStore |
-| `x_bucket` | `value` · `number_step` · `year` · `quarter` · `month` | `number_step` exige una columna `numeric`; `year`/`quarter`/`month`, una `timestamp` |
+| `x_field` | id de una columna de la tabla | obligatoria; tiene que existir en los `fields` del DataStore; nunca `_id` (L12) |
+| `x_bucket` | `value` · `number_step` · `year` · `quarter` · `month` | **obligatoria, sin valor por defecto** (L12); `number_step` exige una columna `numeric`; `year`/`quarter`/`month`, una `timestamp` |
 | `x_step` | número > 0 | obligatoria sólo con `number_step`; prohibida con el resto |
 | `x_fold_case` | booleano, por defecto `false` | sólo con `value` sobre una columna `text` |
 | `y_agg` | `count` · `count_distinct` · `sum` · `avg` · `min` · `max` | obligatoria |
-| `y_field` | id de una columna | prohibida con `count` (cuenta filas); cualquier tipo con `count_distinct`; `numeric` con `sum`/`avg`/`min`/`max` |
+| `y_field` | id de una columna (nunca `_id`, L12) | prohibida con `count` (cuenta filas); cualquier tipo con `count_distinct`; `numeric` con `sum`/`avg`/`min`/`max` |
 | `include_null` | booleano, por defecto `true` | si es `true`, las filas con X nulo forman un grupo propio |
 
 El título y la descripción son los campos propios de la vista (`title`, `description`), no de `config`.
@@ -108,7 +108,7 @@ Respuesta:
 | O1 | **Prueba primero:** plugin `umss_chart` mínimo; crear una vista y leerla de vuelta con la configuración completa — **hecha** (L11) | S6 | sesión `odp-docker` | `odp-docker` `f02dc78` (rama local `feat/csv-charts`) |
 | O2 | La acción `umss_chart_data` según el contrato, con tests de las dos formas de llamada y de cada error | S6, S7 | sesión `odp-docker` | — |
 | O3 | Verificación independiente de O1 y O2 (toca seguridad) | S6 | sesión `odp-docker` | — |
-| P1 | El puente: sumar las acciones del contrato | S6 | inline | — |
+| P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
@@ -240,3 +240,16 @@ Respuesta:
   nada. Lo más probable es que en la 2.10 faltara el plugin con ese nombre, o que las claves fueran anidadas. La vista
   la implementa el plugin `umss` que ya existe, así que `ckan.plugins` no cambia. Las precisiones del contrato quedan en
   su sección. Se le pasaron al worker de P1 mientras trabajaba.
+- **L12 (2026-10-17, P1 entregada y cinco ambigüedades del contrato que señaló el worker):** el contrato quedó como
+  tipos y validador en `src/lib/charts/contract.ts` (46 tests), el cliente en `src/lib/api/charts.ts` (9) y el puente
+  con las cinco acciones (`9486aeb`, en su propio commit porque toca una guarda; verificación independiente en curso).
+  El padre verificó 93/93, `pnpm check` sin errores y Biome limpio. `pnpm lint` falla en esta máquina porque el
+  envoltorio de Biome se cae; el binario directo (`…/@biomejs/cli-linux-x64/biome check .`) da 219 archivos y salida 0.
+  Decisiones sobre las ambigüedades:
+  1. **`x_bucket` es obligatoria, sin valor por defecto.** Contrato actualizado.
+  2. **`_id` no se grafica en ningún eje.** Es la columna que numera CKAN. Contrato actualizado, y el validador lo
+     rechaza con mensaje propio (RED observado: sin el cambio, el validador lo aceptaba; GREEN 95/95).
+  3. La forma del error (el servidor devuelve un arreglo por clave, el portal un texto) la resuelve un adaptador en P2.
+  4. El tope de 500 grupos pasa a una constante del portal en P2.
+  5. Una vista con una `version` que el portal no conoce no se dibuja: P3 muestra un aviso, sin migración.
+  El rótulo de los rangos numéricos (`[0, 5)` o «0–5») lo decide el autor al revisar P2.

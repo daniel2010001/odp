@@ -115,6 +115,13 @@ function isPositiveNumber(value: unknown): value is number {
 }
 
 /**
+ * La columna que CKAN numera por su cuenta en cada tabla del DataStore. No es un dato del recurso, así que no se
+ * grafica en ningún eje (contrato v1, L12).
+ */
+export const INTERNAL_FIELD_ID = "_id";
+const INTERNAL_FIELD_MESSAGE = "La columna «_id» es interna del catálogo y no se puede graficar.";
+
+/**
  * Valida una configuración contra las reglas del contrato v1, **con los `fields` del DataStore a la vista**.
  *
  * Las reglas condicionales (tipo de columna) sólo se evalúan cuando la clave de la que dependen ya es
@@ -153,6 +160,8 @@ export function validateChartConfig(
 	const xFieldDef = typeof xField === "string" ? fieldsById.get(xField) : undefined;
 	if (absent(xField)) {
 		errors.x_field = "Elija la columna del eje X.";
+	} else if (xField === INTERNAL_FIELD_ID) {
+		errors.x_field = INTERNAL_FIELD_MESSAGE;
 	} else if (!xFieldDef) {
 		errors.x_field = `La columna «${String(xField)}» no existe en la tabla del recurso.`;
 	}
@@ -225,6 +234,8 @@ export function validateChartConfig(
 			}
 		} else if (absent(yField)) {
 			errors.y_field = "Elija la columna del eje Y.";
+		} else if (yField === INTERNAL_FIELD_ID) {
+			errors.y_field = INTERNAL_FIELD_MESSAGE;
 		} else if (!yFieldDef) {
 			errors.y_field = `La columna «${String(yField)}» no existe en la tabla del recurso.`;
 		} else if (yAgg !== "count_distinct" && !NUMERIC_TYPES.has(yFieldDef.type)) {

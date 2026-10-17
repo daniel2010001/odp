@@ -436,3 +436,24 @@ describe("groupLabel — el rótulo que el portal pone a cada key cruda", () => 
 		expect(groupLabel("2024-Q9", { bucket: "quarter" })).toBe("2024-Q9");
 	});
 });
+
+describe("validateChartConfig — `_id` es interna del catálogo y no se grafica", () => {
+	it("rechaza `_id` como columna del eje X", () => {
+		const resultado = validateChartConfig({ ...VALID, x_field: "_id" }, FIELDS);
+		expect(resultado.valid).toBe(false);
+		expect(resultado.errors.x_field).toBe(
+			"La columna «_id» es interna del catálogo y no se puede graficar.",
+		);
+	});
+
+	it("rechaza `_id` como columna del eje Y", () => {
+		const resultado = validateChartConfig(
+			{ ...VALID, y_agg: "count_distinct", y_field: "_id" },
+			FIELDS,
+		);
+		expect(resultado.valid).toBe(false);
+		expect(resultado.errors.y_field).toBe(
+			"La columna «_id» es interna del catálogo y no se puede graficar.",
+		);
+	});
+});
