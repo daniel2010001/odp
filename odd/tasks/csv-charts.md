@@ -359,8 +359,8 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   - **Rangos:** *«Los dos (Recomendado)»*. «0–5000» en el eje y el intervalo exacto «[0, 5000)» en el tooltip y en la
     tabla accesible. Se aclaró que lo correcto es el intervalo semiabierto: con `[0, 5000]`, el 5000 caería en dos
     grupos. El interruptor del playground se retira, porque ya está decidido.
-  - **Dónde vive el formulario:** *«Página propia (Recomendado)»*, con `…/resource/<recurso>/graficos/nuevo` y
-    `…/graficos/<vista>/editar`, y un botón «Crear gráfico» en la página del recurso para quien puede editar. El padre
+  - **Dónde vive el formulario:** *«Página propia (Recomendado)»*, con `…/resource/[resourceId]/charts/new` y
+    `…/charts/[viewId]/edit` (rutas en inglés, corregido en L22), y un botón «Crear gráfico» en la página del recurso para quien puede editar. El padre
     había recomendado antes la página del recurso; cambió de opinión por la experiencia del autor en `ckan-frontend`
     y porque una página propia sirve para crear y para editar.
   - **«Edición de resources»:** *«Las dos»*. (a) **Editar o borrar un gráfico ya guardado** entra en esta feature,
@@ -370,3 +370,13 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     borrador **después** del render, y eso da un segundo render en cada cambio. Svelte 5 desaconseja escribir estado
     en un `$effect`. Se corrige en el mismo cambio, y el autor vuelve a mirarlo.
 - Tras guardar, el publicador vuelve a la página del recurso con el gráfico visible (L20, punto 3).
+- **L22 (2026-10-17, corrección del autor, textual):** «respecto a las rutas, hay una instrucción dicienedo que las
+  rutas, nombres de variables y algunas otras cosas estén en ingles, no olvides esto». Tiene razón: la regla está en el
+  `BACKLOG` («Nomenclatura del código»: identificadores en inglés, comentarios en español), y las rutas existentes la
+  siguen (`/dashboard/datasets/new`, `/dataset/[id]/resource/[resourceId]`). L21 decía `graficos/nuevo`; se corrigió a
+  **`/dataset/[id]/resource/[resourceId]/charts/new`** y **`/charts/[viewId]/edit`**. Además, el código nuevo de esta
+  feature tenía identificadores en español, algunos escritos por el padre (`resultado`, `sobrantes`) y otros por los
+  workers (`vistaPrevia`, `guardar`, `campo`, y en el generador `fechaIngreso`, `turno`, `CARGOS`, …). Se renombran
+  en dos workers con superficies disjuntas. **No** se renombran: los nombres de columna y los valores del CSV, que son
+  datos (el sha256 no cambia), los textos visibles, los títulos de los tests, ni los identificadores que ya existían
+  antes de esta rama, cuyo barrido el autor dejó para `v1`.
