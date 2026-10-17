@@ -2978,6 +2978,19 @@ después del cierre que describe el encabezado de esta sección; medición compl
 
 ## v1 — producto usable en producción
 
+- [ ] **[v1] Evaluar un cargador del DataStore que normalice valores** (pedido del autor, 2026-10-17, en
+  `odd/tasks/csv-charts.md` L14). Hoy corre DataPusher 0.0.21. Infiere `numeric`, `timestamp` y `text`, pero no
+  normaliza booleanos («1/0», «true/false», «sí/no») y pierde los ceros a la izquierda de un código (L9). El autor
+  recuerda haber usado en otro proyecto uno que sí normalizaba, quizás xloader. **A medir antes de decidir:** xloader
+  carga todo como texto salvo que se fijen los tipos en el diccionario de datos, así que el candidato más probable es
+  **DataPusher+** (`datapusher-plus`), que infiere tipos y normaliza fechas. Es una decisión de infraestructura de
+  `odp-docker`.
+- [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
+  generador arma palabras y oraciones, un randomizador produce números y fechas, y una inserción por lotes con un ORM
+  de TypeScript (cree que Drizzle) cargaba ~3 millones de filas en 30 minutos. Ofreció buscarlo en su backup de
+  Windows, en un proyecto de comercio electrónico. Sirve para pruebas de volumen del DataStore y de `umss_chart_data`.
+  El CSV chico de la demo es otra cosa: T6 de `csv-charts`.
+
 - [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
   dedicada sobre la superficie del portal y su frontera con CKAN — **no** un ítem por síntoma. Es un
   **paraguas**: los agujeros ya conocidos tienen su propia entrada y **no se repiten acá** — el **token de

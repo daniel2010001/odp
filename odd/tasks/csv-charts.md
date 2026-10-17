@@ -262,3 +262,24 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   la expresión y se agregó la prueba inversa: toda acción permitida la usa el cliente. Hubo RED en las dos (sobraba
   `datastore_search` por el escaneo, y las dos lecturas eran `GET`), y GREEN 270/270 en `src/lib`. **Incidente de
   alcance:** el verificador citó código del plugin en `odp-docker`, así que leyó ese repo sin autorización.
+- **L14 (2026-10-17, mensaje del autor, textual):** «respecto a lo que mencionas: 1: no, no pude crear el plugin en el
+  2.10 y por eso no podía guardar, no era que faltaba ponerlo en el .env, pero es una buena observación, si agregamos
+  una nueva extención deberíamos ponerlo ahí, no? o lo de las nuevas vistas iran junto con el plugin que tenemos? ese
+  ckanext-umss? 2: lo de "normalización" de datos croe que deberíamos dejarlo al datapusher/datastore, en el 2.19 que te
+  mencioné no usaba el datapusher, sino otro que normalizaba las entradas, como pasar de 1-0/true-false/si-no/etc a
+  bool, normalizar fechas a YYYY-MM-DD:HH-MM o el formato que queramos, no recuerdo si era xloader o algo así. 3:
+  podemos hacer un csv de prueba? algo útil que pueda servir durante todo el desarrollo o incluso en la demo, esto me
+  recuerda a un tema que aun no tocamos y es sobre la ingesta de datos, recuerdo que mencioné que te contaría cómo lo
+  hacía, ahora creo que es buen momento para contarte cómo lo hacía mientras haces tus cosas: usaba un generador de uuid
+  para crear "palabras", estas palabras las usaba para crear oraciones o párrafos enteros, si era números, fechas u otro
+  valor usaba un randomizador, luego creaba fila por fila las entidades y las subia a la db usando una fuction
+  modificada que podía cargar cientos de filas a la vez, si quieres puedes buscarlo en el backup de windows, creo que
+  era sobre un proyecto de comercio electrónico, no recuerdo del todo, pero usabamos una librería llamada drysle, o algo
+  así, es un orm en ts. recuerdo haber hecho muchas cosas son estos generadores, creo que en 30 min cargaba 3M de filas»
+  **Respuestas y decisiones:** (1) la vista vive en el plugin `umss` que ya existe, así que `ckan.plugins` no cambia; una
+  extensión **nueva** sí tendría que sumarse a `ckan.plugins` (`CKAN__PLUGINS`). (2) Son dos cosas distintas. La
+  **normalización de valores** al cargar (booleanos, formato de fechas) es del cargador, y se anota en el `BACKLOG` para
+  evaluar después; la **agrupación por rangos** del gráfico (paso, trimestre, nulos) es de la consulta y sigue en
+  `umss_chart_data`. (3) **T6 en marcha:** generador determinista + subida de un CSV real desde el seed, en un worker.
+  La ingesta masiva (millones de filas, el método del autor con Drizzle) es otro tema y va al `BACKLOG`; no se busca
+  ahora en el backup.
