@@ -3,21 +3,40 @@
 //
 // Puebla el CKAN de dev con contenido realista (organizaciones + datasets)
 // espejado de src/lib/mock/data.ts, para que el portal muestre datos reales
-// en lugar de listas vacías. No sube bytes: los recursos son enlaces (url-only).
+// en lugar de listas vacías. Casi todos los recursos son enlaces (url-only); la
+// excepción es el dataset ficticio de la demo (`planilla-docente-ficticia`), que se
+// **sube** como archivo para que el DataPusher lo cargue en el DataStore. Sin eso la
+// demo de gráficos no tiene nada que graficar (L4 de odd/tasks/csv-charts.md, T6).
 //
-// Uso:
+// Uso con la contraseña del sysadmin (flujo original):
 //   CKAN_URL=http://localhost:5000 \
 //   CKAN_SYSADMIN_NAME=ckan_admin \
 //   CKAN_SYSADMIN_PASSWORD=... \
 //   node scripts/seed-ckan.mjs
 //
-// Idempotente: si una organización o dataset ya existe (por `name`), lo salta.
-// El token de seed se revoca al terminar (best-effort). No se guarda ninguna
-// credencial en el repo: la contraseña se lee del entorno en cada corrida.
+// Uso con un token propio, sin login por contraseña:
+//   CKAN_URL=http://localhost:5000 \
+//   CKAN_API_TOKEN=... \
+//   node scripts/seed-ckan.mjs
+//
+// Con `CKAN_API_TOKEN` no se hace login, no se mintea ningún token y **no se revoca
+// nada al terminar**: el token es del llamador y sigue vigente. Sin esa variable, el
+// seed mintea un token de seed y lo revoca (best-effort) al final, como antes.
+//
+// Idempotente: si una organización o dataset ya existe (por `name`), lo salta; si el
+// dataset de la demo ya existe pero le falta el recurso, sube sólo el recurso.
+// No se guarda ninguna credencial en el repo: se leen del entorno en cada corrida.
+
+import { readFileSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 const CKAN_URL = (process.env.CKAN_URL ?? "http://localhost:5000").replace(/\/+$/, "");
 const ADMIN_NAME = process.env.CKAN_SYSADMIN_NAME ?? "ckan_admin";
 const ADMIN_PASSWORD = process.env.CKAN_SYSADMIN_PASSWORD;
+const CKAN_API_TOKEN = process.env.CKAN_API_TOKEN?.trim() || null;
 
 // El plugin `expire_api_token` (presente en `CKAN__PLUGINS`) hace **obligatorios**
 // `expires_in` y `unit` en `api_token_create`: sin ellos CKAN responde 409 con
@@ -25,9 +44,21 @@ const ADMIN_PASSWORD = process.env.CKAN_SYSADMIN_PASSWORD;
 // Mismos valores que el portal (`src/lib/server/ckan-auth.ts`, `TOKEN_TTL`).
 const TOKEN_TTL = { expires_in: 1, unit: 86400 };
 
-if (!ADMIN_PASSWORD) {
-	console.error("Falta CKAN_SYSADMIN_PASSWORD. Exportala antes de correr el seed.");
-	process.exit(2);
+// ── Credenciales: token del llamador o login por contraseña ──
+
+async function resolveCredentials() {
+	if (CKAN_API_TOKEN) {
+		console.log("Credencial: CKAN_API_TOKEN del llamador (sin login y sin revocar al final).");
+		return { token: CKAN_API_TOKEN, jar: null, csrf: null, jti: null, ownsToken: false };
+	}
+	if (!ADMIN_PASSWORD) {
+		console.error(
+			"Falta CKAN_SYSADMIN_PASSWORD o CKAN_API_TOKEN. Exporte una de las dos antes de correr el seed.",
+		);
+		process.exit(2);
+	}
+	const { jar, csrf, token, jti } = await login();
+	return { token, jar, csrf, jti, ownsToken: true };
 }
 
 // ── Mini jar de cookies (mismo flujo validado que src/lib/server/ckan-auth.ts) ──
@@ -331,12 +362,140 @@ const SHOWCASE = {
 	],
 };
 
+// ── Dataset ficticio de la demo de gráficos (T6 de odd/tasks/csv-charts.md) ──
+//
+// Lo genera `scripts/generate-demo-csv.mjs` con semilla fija (mismas filas y mismo
+// sha256 en cada corrida). Es el **único** recurso del catálogo sembrado que se sube
+// como archivo en vez de enlace, porque el DataPusher sólo carga lo que tiene bytes.
+// Organización: `rectorado`. Una planilla de personal docente es administración
+// central, no investigación de una facultad, y las cinco organizaciones del catálogo
+// ya describen su contenido (fcyt/fcs/fca publican datos de sus disciplinas).
+const DEMO = {
+	owner_org_name: "rectorado",
+	dataset: {
+		name: "planilla-docente-ficticia",
+		title: "Planilla docente ficticia — Datos ficticios para demostración",
+		notes:
+			"Datos ficticios para demostración. Nómina docente inventada para probar las vistas de " +
+			"gráficos: los nombres y apellidos son inventados y no corresponden a personas reales.\n\n" +
+			"Columnas: `turno` (mañana, tarde, noche), `cargo`, `departamento`, `facultad`, `horas_mes`, " +
+			"`bs_hora`, `salario` (siempre `horas_mes` × `bs_hora`) y `fecha_ingreso` (1995–2025). " +
+			"`turno` y `fecha_ingreso` traen algunos vacíos a propósito, para ver el grupo sin dato.\n\n" +
+			"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+		license_id: "cc-by",
+		author: "Equipo ODP (datos sintéticos)",
+		maintainer: "Equipo ODP",
+		tags: [
+			{ name: "docentes" },
+			{ name: "planilla" },
+			{ name: "salarios" },
+			{ name: "demostración" },
+		],
+	},
+	resource: {
+		name: "planilla-docente-ficticia.csv",
+		description:
+			"Datos ficticios para demostración: 2.500 filas de una planilla docente inventada, " +
+			"pensadas para graficar.",
+		format: "CSV",
+		path: resolve(HERE, "data", "planilla-docente-ficticia.csv"),
+	},
+};
+
+// `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
+// campo `upload` no existe, el recurso queda url-only y el DataPusher no tiene qué cargar.
+async function uploadResource(token, packageId, resource, bytes) {
+	const form = new FormData();
+	form.set("package_id", packageId);
+	form.set("name", resource.name);
+	form.set("description", resource.description);
+	form.set("format", resource.format);
+	// El nombre del archivo viaja en el `filename` del Blob; CKAN lo usa para `url_type: upload`.
+	form.append("upload", new Blob([bytes], { type: "text/csv" }), basename(resource.path));
+
+	const res = await fetch(`${CKAN_URL}/api/3/action/resource_create`, {
+		method: "POST",
+		// Sin `Content-Type` a mano: `fetch` pone el boundary del multipart.
+		headers: { Authorization: token },
+		body: form,
+	});
+	return res.json();
+}
+
+async function seedDemoDataset(token, orgIdByName) {
+	const orgId = orgIdByName.get(DEMO.owner_org_name);
+	if (!orgId) {
+		console.error(
+			`✗ ${DEMO.dataset.name}: organización ${DEMO.owner_org_name} no creada, se salta.`,
+		);
+		return { created: false, skipped: true };
+	}
+
+	let bytes;
+	try {
+		bytes = readFileSync(DEMO.resource.path);
+	} catch {
+		console.error(
+			`✗ ${DEMO.dataset.name}: falta ${DEMO.resource.path}. Genérelo con \`node scripts/generate-demo-csv.mjs\`.`,
+		);
+		return { created: false, skipped: true };
+	}
+
+	// Idempotencia: el dataset se salta por `name`; el recurso, por `name` dentro de él.
+	// Así una corrida que falló a mitad (dataset creado, subida no) se completa sin duplicar.
+	const existing = await api(token, "package_show", { id: DEMO.dataset.name });
+	let packageId;
+	let created = false;
+
+	if (existing.success) {
+		packageId = existing.result.id;
+		const uploaded = (existing.result.resources ?? []).some(
+			(resource) => resource.name === DEMO.resource.name,
+		);
+		if (uploaded) {
+			console.log(`· dataset existente: ${DEMO.dataset.name} (recurso ya subido, se salta)`);
+			return { created: false, skipped: true };
+		}
+		console.log(`· dataset existente: ${DEMO.dataset.name} (le falta el recurso, se sube)`);
+	} else {
+		const result = await api(token, "package_create", {
+			...DEMO.dataset,
+			owner_org: orgId,
+			private: false,
+		});
+		if (!result.success) {
+			console.error(`✗ package_create ${DEMO.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
+			return { created: false, skipped: true };
+		}
+		packageId = result.result.id;
+		created = true;
+		console.log(`✓ dataset: ${DEMO.dataset.name}`);
+	}
+
+	const result = await uploadResource(token, packageId, DEMO.resource, bytes);
+	if (!result.success) {
+		console.error(`✗ resource_create ${DEMO.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
+		return { created, skipped: false };
+	}
+
+	const resource = result.result;
+	console.log(
+		`✓ recurso subido: ${resource.id} (${bytes.length} bytes, url_type=${resource.url_type ?? "?"})`,
+	);
+	// El seed **no espera** al DataPusher: encola la carga del CSV y sigue de largo.
+	console.log(
+		`  Carga pendiente en el DataStore (DataPusher). Para comprobarla: ` +
+			`curl -s "${CKAN_URL}/api/3/action/resource_show?id=${resource.id}" | grep -o '"datastore_active": *[a-z]*'`,
+	);
+	return { created, skipped: false };
+}
+
 // ── Main ──
 
 async function main() {
 	console.log(`Seed CKAN → ${CKAN_URL}`);
-	const { jar, csrf, token, jti } = await login();
-	console.log("Login OK, token minteado.\n");
+	const { token, jar, csrf, jti, ownsToken } = await resolveCredentials();
+	if (ownsToken) console.log("Login OK, token minteado.\n");
 
 	try {
 		const orgIdByName = new Map();
@@ -382,9 +541,15 @@ async function main() {
 			console.log(`✓ dataset: ${ds.name}`);
 		}
 
+		const demo = await seedDemoDataset(token, orgIdByName);
+		if (demo.created) createdCount++;
+		if (demo.skipped) skippedCount++;
+
 		console.log(`\nListo. Creados ${createdCount} datasets, ${skippedCount} ya existían.`);
 	} finally {
-		// Revocar el token de seed (best-effort y **por `jti`**).
+		// Revocar el token de seed (best-effort y **por `jti`**), sólo si lo minteó este
+		// proceso. Con `CKAN_API_TOKEN` el token es del llamador: revocarlo sería robarle
+		// la credencial, así que no se toca.
 		//
 		// Trampas medidas, las dos del mismo tipo: `api_token_revoke {token}` es un
 		// **no-op silencioso** (CKAN intenta decodificar un JWT, el id no lo es, el
@@ -392,7 +557,9 @@ async function main() {
 		// `jti` que no matchea ningún token también responde `success: true`. O sea que
 		// **`success: true` no es evidencia de revocación**: acá sólo se informa lo que
 		// devolvió la llamada, sin afirmar que el token ya no existe.
-		if (!jti) {
+		if (!ownsToken) {
+			console.log("Token propio (CKAN_API_TOKEN): no se revoca.");
+		} else if (!jti) {
 			console.log("Token de seed: sin `jti` no hay nada que revocar.");
 		} else {
 			try {
