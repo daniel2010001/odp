@@ -33,6 +33,9 @@ export const INLINE_TYPES = [
 	"text/plain",
 	"text/csv",
 	"application/json",
+	// GeoJSON es JSON (RFC 7946): el navegador lo muestra como texto, igual que `application/json`, y `nosniff`
+	// impide leerlo como otra cosa. Sin él, la vista previa de un `.geojson` quedaba en blanco (demo, 2026-10-18).
+	"application/geo+json",
 ] as const;
 
 /** Las únicas cabeceras del catálogo que vuelven al navegador (G3). */

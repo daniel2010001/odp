@@ -314,6 +314,8 @@ describe("la descarga — qué vuelve al cliente", () => {
 		"text/plain",
 		"text/csv",
 		"application/json",
+		// GeoJSON es JSON: sin él, la vista previa de un `.geojson` quedaba en blanco (demo, 2026-10-18).
+		"application/geo+json",
 	])("%s va inline", async (tipo) => {
 		const upstream = new Response("x", { headers: { "content-type": tipo } });
 		const res = await descarga(makeFetcher(resourceShow(UPLOAD), upstream));
