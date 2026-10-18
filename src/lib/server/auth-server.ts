@@ -8,33 +8,79 @@
 import { type LoginInput, loginSchema } from "$lib/schemas/auth";
 import { CkanAuthError, type CkanAuthErrorCode, ckanLogin } from "$lib/server/ckan-auth";
 
-/** Máximo de intentos de login por IP dentro de la ventana. */
+/** Máximo de intentos fallidos de login por IP dentro de la ventana. */
 export const LOGIN_MAX_ATTEMPTS = 5;
 /** Ventana de limitación (15 minutos) en milisegundos. */
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
+/** Reserva de un intento en vuelo. Debe cerrarse con `fail()` o `release()`; cerrarla dos veces no tiene efecto. */
+export interface LoginAttempt {
+	/** CKAN rechazó las credenciales: la reserva pasa a ser un fallo contado (caduca con la ventana). */
+	fail(): void;
+	/** El intento terminó sin que las credenciales fueran rechazadas: devuelve el cupo. */
+	release(): void;
+}
+
 export interface RateLimiter {
-	/** Devuelve `true` si el intento está permitido y lo registra. */
-	check(key: string): boolean;
+	/**
+	 * Reserva un cupo de forma síncrona (atómica en JS): devuelve `null` si los fallos contados más las
+	 * reservas en vuelo ya alcanzan el máximo en la ventana. No consume cupo hasta que se cierre con `fail()`.
+	 */
+	reserve(key: string): LoginAttempt | null;
+	/** Devuelve `true` si la clave ya no admite más reservas. Sólo lectura. */
+	isBlocked(key: string): boolean;
 }
 
 /**
  * Rate limiter en memoria (por clave, p. ej. IP). Simple, por instancia:
- * acumula timestamps y descarta los que caen fuera de la ventana.
+ * acumula los timestamps de los **fallos** y descarta los que caen fuera de
+ * la ventana. Las reservas en vuelo ocupan cupo mientras CKAN responde, para
+ * que una ráfaga concurrente no pase del máximo antes de registrarse los
+ * fallos. Los éxitos no se registran ni limpian el conteo: detrás de un
+ * proxy compartido, limpiarlo permitiría reiniciar el contador entrando con
+ * una cuenta propia. Los fallos sólo caducan por la ventana.
  */
 export function createRateLimiter(max: number, windowMs: number): RateLimiter {
-	const attempts = new Map<string, number[]>();
+	const failures = new Map<string, number[]>();
+	const pending = new Map<string, number>();
+	const used = (key: string, now: number) => {
+		const current = (failures.get(key) ?? []).filter((t) => now - t < windowMs);
+		if (current.length === 0) {
+			failures.delete(key);
+		} else {
+			failures.set(key, current);
+		}
+		return current;
+	};
+	const adjustPending = (key: string, delta: number) => {
+		const next = (pending.get(key) ?? 0) + delta;
+		if (next <= 0) {
+			pending.delete(key);
+		} else {
+			pending.set(key, next);
+		}
+	};
+	const blocked = (key: string) => used(key, Date.now()).length + (pending.get(key) ?? 0) >= max;
 	return {
-		check(key: string): boolean {
-			const now = Date.now();
-			const recent = (attempts.get(key) ?? []).filter((t) => now - t < windowMs);
-			if (recent.length >= max) {
-				attempts.set(key, recent);
-				return false;
-			}
-			recent.push(now);
-			attempts.set(key, recent);
-			return true;
+		isBlocked: blocked,
+		reserve(key: string): LoginAttempt | null {
+			if (blocked(key)) return null;
+			adjustPending(key, 1);
+			let open = true;
+			return {
+				fail() {
+					if (!open) return;
+					open = false;
+					adjustPending(key, -1);
+					const now = Date.now();
+					failures.set(key, [...used(key, now), now]);
+				},
+				release() {
+					if (!open) return;
+					open = false;
+					adjustPending(key, -1);
+				},
+			};
 		},
 	};
 }
@@ -90,8 +136,12 @@ export function parseLoginBody(raw: unknown): ParseLoginResult {
 const defaultLimiter = createRateLimiter(LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
 
 /**
- * Orquesta una petición de login: rate limit → parseo → flujo CKAN → mapeo
- * de errores. La contraseña nunca se expone en la respuesta.
+ * Orquesta una petición de login: parseo → reserva de cupo → flujo CKAN →
+ * mapeo de errores. La reserva es síncrona y precede a la llamada a CKAN; si
+ * la clave ya agotó el cupo (fallos + intentos en vuelo) responde 429 sin
+ * contactar a CKAN. Sólo cuentan las credenciales rechazadas por CKAN; los
+ * cuerpos inválidos (que no toman reserva), los éxitos y las fallas del
+ * upstream devuelven el cupo. La contraseña nunca se expone en la respuesta.
  */
 export async function handleLogin(
 	baseUrl: string,
@@ -99,13 +149,14 @@ export async function handleLogin(
 	rawBody: unknown,
 	limiter: RateLimiter = defaultLimiter,
 ): Promise<LoginHandlerResponse> {
-	if (!limiter.check(address)) {
-		return { status: 429, body: { error: "Demasiados intentos. Espere un momento." } };
-	}
-
 	const parsed = parseLoginBody(rawBody);
 	if (!parsed.ok) {
 		return { status: parsed.status, body: parsed.body };
+	}
+
+	const attempt = limiter.reserve(address);
+	if (!attempt) {
+		return { status: 429, body: { error: "Demasiados intentos. Espere un momento." } };
 	}
 
 	try {
@@ -113,9 +164,15 @@ export async function handleLogin(
 		return { status: 200, body: result };
 	} catch (error) {
 		if (error instanceof CkanAuthError) {
+			if (error.code === "INVALID_CREDENTIALS") {
+				attempt.fail();
+			}
 			const mapped = loginErrorResponse(error);
 			return { status: mapped.status, body: mapped.body };
 		}
 		return { status: 500, body: { error: "Error interno del servidor." } };
+	} finally {
+		// No-op si ya se cerró con `fail()`; en cualquier otra salida devuelve el cupo.
+		attempt.release();
 	}
 }
