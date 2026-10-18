@@ -123,6 +123,8 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
 | P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | padre (inline) — **hecha** (L38) | `8b7fb55` |
 | P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
+| T7 | 3 CSV más para la demo: matrícula por facultad y gestión, ejecución presupuestaria mensual y producción de investigación; generadores deterministas con su mapa de tipos, y alta en el seed por el flujo (L42). El paso de tipos de xloader (L36) va aparte, cuando se haga el cambio — **hecha salvo correr el seed** (L43) | S5 | worker | `aeedd42` |
+| T7b | El seed declara los tipos con xloader (`datastore_create` `force` + `type_override`, y después `xloader_submit`), medido en vivo después del cambio de `odp-docker` (L36) | S5 | por definir | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -644,3 +646,19 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   árbol compartido. El stash quedó vacío y el worker de P6b confirmó que sus archivos estaban intactos. **Sin medir:** el
   aspecto en un navegador y el panel fijo del estilo buscador. **Desvío de la regla 8 en P6b:** los tres interruptores
   quedaron en una sola barra, aunque «banda del encabezado» cambia otra región.
+- **L42 (2026-10-17, temas de los CSV de la demo, elección del autor, rótulos textuales):** «Matrícula por facultad y
+  gestión», «Ejecución presupuestaria mensual» y «Producción de investigación». Todos son ficticios y deterministas, como
+  la planilla. Cumplen las reglas de L36: punto decimal, fechas ISO, celdas vacías para «sin dato» y nunca `NA`, `-` ni
+  `s/d`. Hoy el seed los carga con DataPusher, que les asigna los tipos solo. El paso de tipos de xloader queda en T7b,
+  porque depende del cambio de `odp-docker`.
+- **L43 (2026-10-17, T7 entregada):** tres generadores sobre un módulo común (`scripts/generate-csv-common.mjs`). La
+  planilla no se tocó.
+  - **Los archivos:** matrícula, 1.568 filas (`1ba5339d…`); presupuesto, 1.329 (`c79878cd…`); investigación, 1.054
+    (`59ab2c4f…`). Dos corridas dan los mismos bytes.
+  - **Tipos y organizaciones:** `gestion` y `anio` son enteros, porque una gestión es una etiqueta de año y no un
+    instante; las agrupaciones por año, trimestre y mes las cubre `fecha_registro`. Matrícula y presupuesto van a
+    `rectorado`; investigación, a `direccion-investigacion`. Cada generador exporta su mapa `TYPES` para T7b.
+  - **Verificación del padre:** 79/79 en `node --test scripts/`, y Biome limpio según el worker. **No hubo RED
+    separado:** los tests se escribieron con el código.
+  - **Sin correr:** el seed. Con el cambio a xloader en curso, los CSV nuevos entrarían como texto, así que se corre
+    junto con T7b. Riesgo menor: las descripciones del seed llevan el número de filas escrito a mano.
