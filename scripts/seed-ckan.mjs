@@ -4,10 +4,14 @@
 // Puebla el CKAN de dev con contenido realista (organizaciones + datasets)
 // espejado de src/lib/mock/data.ts, para que el portal muestre datos reales
 // en lugar de listas vacías. Casi todos los recursos son enlaces (url-only); la
-// excepción son los datasets ficticios de la demo (`DEMOS`: `planilla-docente-ficticia` y los
-// tres de T7), que se **suben** como archivo para que xloader lo cargue en el DataStore. Sin eso la
-// demo de gráficos no tiene nada que graficar (L4 de odd/tasks/csv-charts.md, T6). xloader carga todo
-// como texto, así que después de la carga el seed declara los tipos (`ensureTyped`, L36).
+// excepción son los datasets ficticios de la demo (`DEMOS`), que se **suben** como archivo:
+//   · los CSV (`planilla-docente-ficticia` y los tres de T7), para que xloader los cargue en el
+//     DataStore. Sin eso la demo de gráficos no tiene nada que graficar (L4 de
+//     odd/tasks/csv-charts.md, T6). xloader carga todo como texto, así que después de la carga el
+//     seed declara los tipos (`ensureTyped`, L36).
+//   · `informe-matricula-ficticio`, un PDF generado, para que la vista previa del PDF funcione
+//     en la laptop de la demo, sin internet (los PDF del catálogo son enlaces a
+//     `data.umss.edu.bo`). No es tabular: no pasa por xloader ni por los tipos.
 //
 // Uso con la contraseña del sysadmin (flujo original):
 //   CKAN_URL=http://localhost:5000 \
@@ -512,7 +516,8 @@ const SHOWCASE = {
 // producción de investigación va a `direccion-investigacion`, que es lo que esa dirección
 // coordina.
 //
-// `types` es el `TYPES` del generador: el seed lo declara como `type_override` (L36).
+// `types` es el `TYPES` del generador: el seed lo declara como `type_override` (L36). Un
+// recurso **sin `types`** no es tabular (el PDF): el seed no espera a xloader ni declara tipos.
 const DEMOS = [
 	{
 		owner_org_name: "rectorado",
@@ -648,6 +653,39 @@ const DEMOS = [
 			path: resolve(HERE, "data", "produccion-investigacion-ficticia.csv"),
 		},
 	},
+	{
+		owner_org_name: "rectorado",
+		generator: "generate-informe-pdf.mjs",
+		dataset: {
+			name: "informe-matricula-ficticio",
+			title: "Informe de matrícula 2015–2025 ficticio — Datos ficticios para demostración",
+			notes:
+				"Datos ficticios para demostración. Informe inventado de tres páginas con la matrícula " +
+				"de ocho facultades, gestiones 2015–2025, para probar la vista previa de documentos PDF " +
+				"sin conexión a internet.\n\n" +
+				"Contiene un cuadro por gestión, otro por facultad y otro por modalidad; sus cifras " +
+				"resumen el dataset «Matrícula por facultad y gestión ficticia».\n\n" +
+				"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+			license_id: "cc-by",
+			author: "Equipo ODP (datos sintéticos)",
+			maintainer: "Equipo ODP",
+			tags: [
+				{ name: "matrícula" },
+				{ name: "informes" },
+				{ name: "documentos" },
+				{ name: "demostración" },
+			],
+		},
+		resource: {
+			name: "informe-matricula-ficticio.pdf",
+			description:
+				"Datos ficticios para demostración: informe inventado de tres páginas sobre la " +
+				"matrícula 2015–2025, pensado para la vista previa del PDF.",
+			format: "PDF",
+			mime: "application/pdf",
+			path: resolve(HERE, "data", "informe-matricula-ficticio.pdf"),
+		},
+	},
 ];
 
 // ── Tipos de columna con xloader (L36, L44) ──
@@ -767,7 +805,11 @@ async function uploadResource(token, packageId, resource, bytes) {
 	form.set("description", resource.description);
 	form.set("format", resource.format);
 	// El nombre del archivo viaja en el `filename` del Blob; CKAN lo usa para `url_type: upload`.
-	form.append("upload", new Blob([bytes], { type: "text/csv" }), basename(resource.path));
+	form.append(
+		"upload",
+		new Blob([bytes], { type: resource.mime ?? "text/csv" }),
+		basename(resource.path),
+	);
 
 	const res = await fetch(`${CKAN_URL}/api/3/action/resource_create`, {
 		method: "POST",
@@ -801,7 +843,8 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 		return { created: false, skipped: true };
 	}
 
-	const rowCount = parseCsv(bytes.toString("utf8")).length - 1;
+	// Sólo los recursos tabulares (con `types`) tienen filas que verificar.
+	const rowCount = demo.types ? parseCsv(bytes.toString("utf8")).length - 1 : null;
 
 	// Idempotencia: el dataset se salta por `name`; el recurso, por `name` dentro de él.
 	// Así una corrida que falló a mitad (dataset creado, subida no) se completa sin duplicar.
@@ -819,11 +862,11 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 		if (uploaded) {
 			console.log(`· dataset existente: ${demo.dataset.name} (recurso ya subido, se salta)`);
 			// La corrida anterior pudo morir entre la subida y la aprobación: con el archivo
-			// puesto, falta comprobar los tipos (no recarga si ya están) y publicar. Lo ya público
-			// no se toca.
+			// puesto, falta comprobar los tipos (no recarga si ya están; el PDF no los tiene) y
+			// publicar. Lo ya público no se toca.
 			if (needsPublication) {
 				const resourceId = pkg.resources.find((r) => r.name === demo.resource.name).id;
-				const typed = await ensureTyped(token, resourceId, demo, rowCount);
+				const typed = demo.types ? await ensureTyped(token, resourceId, demo, rowCount) : true;
 				if (typed) await publishDataset(token, pkg);
 				else leftPrivate(demo.dataset.name);
 			}
@@ -861,7 +904,7 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 	// organización, no de la visibilidad, y así un fallo de la subida o de los tipos deja el
 	// dataset privado —la corrida siguiente ve el archivo y sólo completa lo que falta— en vez
 	// de un dataset público, vacío o sin tipos, que es lo que la demo no puede mostrar.
-	const typed = await ensureTyped(token, resource.id, demo, rowCount);
+	const typed = demo.types ? await ensureTyped(token, resource.id, demo, rowCount) : true;
 	if (!typed) leftPrivate(demo.dataset.name);
 	else if (needsPublication) await publishDataset(token, pkg);
 	return { created, skipped: false };
