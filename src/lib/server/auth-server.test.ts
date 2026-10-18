@@ -23,6 +23,10 @@ const userDict: CkanUser = {
 	state: "active",
 };
 
+const TOO_MANY = { error: "Demasiados intentos. Espere un momento." };
+const GOOD = { username: "jdoe", password: "secret123" };
+const BAD = { username: "jdoe", password: "wrongpass1" };
+
 function freshLimiter() {
 	return createRateLimiter(100, 60_000);
 }
@@ -36,33 +40,69 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-describe("createRateLimiter (límite por IP)", () => {
-	it("permite hasta max intentos y bloquea el siguiente", () => {
+describe("createRateLimiter (límite por IP, sólo fallos)", () => {
+	it("bloquea una vez que los fallos registrados alcanzan el máximo", () => {
 		const limiter = createRateLimiter(2, 60_000);
 
-		expect(limiter.check("1.2.3.4")).toBe(true);
-		expect(limiter.check("1.2.3.4")).toBe(true);
-		expect(limiter.check("1.2.3.4")).toBe(false);
+		limiter.reserve("1.2.3.4")?.fail();
+		expect(limiter.isBlocked("1.2.3.4")).toBe(false);
+		limiter.reserve("1.2.3.4")?.fail();
+		expect(limiter.isBlocked("1.2.3.4")).toBe(true);
+		expect(limiter.reserve("1.2.3.4")).toBeNull();
+	});
+
+	it("las reservas en vuelo ocupan cupo hasta que se liberan", () => {
+		const limiter = createRateLimiter(2, 60_000);
+
+		const a = limiter.reserve("ip");
+		const b = limiter.reserve("ip");
+
+		expect(a).not.toBeNull();
+		expect(b).not.toBeNull();
+		expect(limiter.reserve("ip")).toBeNull();
+		a?.release();
+		expect(limiter.reserve("ip")).not.toBeNull();
+	});
+
+	it("liberar o resolver dos veces la misma reserva no libera cupo ajeno", () => {
+		const limiter = createRateLimiter(2, 60_000);
+		const a = limiter.reserve("ip");
+		limiter.reserve("ip");
+
+		a?.release();
+		a?.release();
+
+		expect(limiter.reserve("ip")).not.toBeNull();
+		expect(limiter.reserve("ip")).toBeNull();
+	});
+
+	it("liberar una reserva no consume cupo", () => {
+		const limiter = createRateLimiter(1, 60_000);
+
+		for (let i = 0; i < 10; i++) limiter.reserve("ip")?.release();
+
+		expect(limiter.isBlocked("ip")).toBe(false);
 	});
 
 	it("vuelve a permitir una vez que expira la ventana", () => {
 		vi.useFakeTimers();
 		const limiter = createRateLimiter(1, 1000);
 
-		expect(limiter.check("ip")).toBe(true);
-		expect(limiter.check("ip")).toBe(false);
+		limiter.reserve("ip")?.fail();
+		expect(limiter.isBlocked("ip")).toBe(true);
 
 		vi.advanceTimersByTime(1001);
 
-		expect(limiter.check("ip")).toBe(true);
+		expect(limiter.isBlocked("ip")).toBe(false);
 	});
 
 	it("aisla el límite por clave (IP distinta)", () => {
 		const limiter = createRateLimiter(1, 60_000);
 
-		expect(limiter.check("1.1.1.1")).toBe(true);
-		expect(limiter.check("2.2.2.2")).toBe(true);
-		expect(limiter.check("1.1.1.1")).toBe(false);
+		limiter.reserve("1.1.1.1")?.fail();
+
+		expect(limiter.isBlocked("1.1.1.1")).toBe(true);
+		expect(limiter.isBlocked("2.2.2.2")).toBe(false);
 	});
 
 	it("expone constantes coherentes con el diseño (5 intentos / 15 min)", () => {
@@ -130,7 +170,7 @@ describe("loginErrorResponse (mapeo de errores a español)", () => {
 describe("handleLogin (orquestación del handler)", () => {
 	it("devuelve 429 sin llamar a CKAN cuando el límite por IP está agotado", async () => {
 		const limiter = createRateLimiter(1, 60_000);
-		limiter.check("1.2.3.4"); // consume el único intento
+		limiter.reserve("1.2.3.4")?.fail(); // consume el único fallo permitido
 
 		const result = await handleLogin(
 			"http://ckan.test",
@@ -139,10 +179,7 @@ describe("handleLogin (orquestación del handler)", () => {
 			limiter,
 		);
 
-		expect(result).toEqual({
-			status: 429,
-			body: { error: "Demasiados intentos. Espere un momento." },
-		});
+		expect(result).toEqual({ status: 429, body: TOO_MANY });
 		expect(ckanLogin).not.toHaveBeenCalled();
 	});
 
@@ -194,5 +231,172 @@ describe("handleLogin (orquestación del handler)", () => {
 		);
 
 		expect(result).toEqual({ status: 500, body: { error: "Error interno del servidor." } });
+	});
+
+	describe("sólo los intentos fallidos cuentan", () => {
+		function limiter() {
+			return createRateLimiter(LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
+		}
+		function failAll(l: ReturnType<typeof limiter>, n: number) {
+			vi.mocked(ckanLogin).mockRejectedValue(new CkanAuthError("INVALID_CREDENTIALS", "bad"));
+			return Promise.all(
+				Array.from({ length: n }, () => handleLogin("http://ckan.test", "ip", BAD, l)),
+			);
+		}
+
+		it("permite más de 5 logins exitosos seguidos", async () => {
+			const l = limiter();
+			vi.mocked(ckanLogin).mockResolvedValue({ token: "jwt-1", user: userDict });
+
+			for (let i = 0; i < LOGIN_MAX_ATTEMPTS + 3; i++) {
+				const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+				expect(result).toEqual({ status: 200, body: { token: "jwt-1", user: userDict } });
+			}
+		});
+
+		it("tras 5 fallos responde 429 aun con credenciales correctas, sin llamar a CKAN", async () => {
+			const l = limiter();
+			const failed = await failAll(l, LOGIN_MAX_ATTEMPTS);
+			for (const r of failed) {
+				expect(r).toEqual({ status: 401, body: { error: "Usuario o contraseña incorrectos" } });
+			}
+			vi.mocked(ckanLogin).mockReset();
+			vi.mocked(ckanLogin).mockResolvedValue({ token: "jwt-1", user: userDict });
+
+			const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+
+			expect(result).toEqual({ status: 429, body: TOO_MANY });
+			expect(ckanLogin).not.toHaveBeenCalled();
+		});
+
+		it("los fallos fuera de la ventana ya no bloquean", async () => {
+			vi.useFakeTimers();
+			const l = limiter();
+			await failAll(l, LOGIN_MAX_ATTEMPTS);
+			vi.mocked(ckanLogin).mockReset();
+			vi.mocked(ckanLogin).mockResolvedValue({ token: "jwt-1", user: userDict });
+
+			vi.advanceTimersByTime(LOGIN_WINDOW_MS + 1);
+			const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+
+			expect(result).toEqual({ status: 200, body: { token: "jwt-1", user: userDict } });
+		});
+
+		it("un cuerpo malformado (400) no cuenta", async () => {
+			const l = limiter();
+			for (let i = 0; i < LOGIN_MAX_ATTEMPTS + 2; i++) {
+				const result = await handleLogin("http://ckan.test", "ip", null, l);
+				expect(result).toEqual({
+					status: 400,
+					body: { error: "Cuerpo de la solicitud inválido." },
+				});
+			}
+			expect(l.isBlocked("ip")).toBe(false);
+			expect(ckanLogin).not.toHaveBeenCalled();
+		});
+
+		it("un error de CKAN o de red (502) no cuenta", async () => {
+			const l = limiter();
+			vi.mocked(ckanLogin).mockRejectedValue(new CkanAuthError("NETWORK_ERROR", "down"));
+			for (let i = 0; i < LOGIN_MAX_ATTEMPTS + 2; i++) {
+				const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+				expect(result).toEqual({ status: 502, body: { error: "No se pudo conectar con CKAN." } });
+			}
+			expect(l.isBlocked("ip")).toBe(false);
+		});
+
+		// Sólo `INVALID_CREDENTIALS` prueba una contraseña; el resto de los códigos son fallas del camino hacia CKAN.
+		it.each([
+			"TIMEOUT",
+			"CSRF_UNAVAILABLE",
+			"TOKEN_CREATION_FAILED",
+			"USER_RESOLUTION_FAILED",
+		] as const)("un error %s de CKAN no cuenta", async (code) => {
+			const l = limiter();
+			vi.mocked(ckanLogin).mockRejectedValue(new CkanAuthError(code, "detail"));
+			for (let i = 0; i < LOGIN_MAX_ATTEMPTS + 2; i++) {
+				const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+				expect(result.status).not.toBe(429);
+			}
+			expect(l.isBlocked("ip")).toBe(false);
+		});
+
+		it("con la clave bloqueada, un cuerpo malformado responde 400 sin contactar a CKAN", async () => {
+			// El parseo va antes de la reserva para que un 400 no ocupe cupo: no prueba ninguna contraseña.
+			const l = limiter();
+			await failAll(l, LOGIN_MAX_ATTEMPTS);
+			vi.mocked(ckanLogin).mockReset();
+			const result = await handleLogin("http://ckan.test", "ip", null, l);
+			expect(result.status).toBe(400);
+			expect(ckanLogin).not.toHaveBeenCalled();
+			expect(l.isBlocked("ip")).toBe(true);
+		});
+
+		it("un login exitoso no reinicia el conteo de fallos", async () => {
+			const l = limiter();
+			await failAll(l, LOGIN_MAX_ATTEMPTS - 1);
+			vi.mocked(ckanLogin).mockReset();
+			vi.mocked(ckanLogin).mockResolvedValue({ token: "jwt-1", user: userDict });
+			expect((await handleLogin("http://ckan.test", "ip", GOOD, l)).status).toBe(200);
+
+			vi.mocked(ckanLogin).mockRejectedValue(new CkanAuthError("INVALID_CREDENTIALS", "bad"));
+			expect((await handleLogin("http://ckan.test", "ip", BAD, l)).status).toBe(401);
+
+			// 4 fallos + éxito + 1 fallo = 5 fallos: el éxito no los borró.
+			vi.mocked(ckanLogin).mockReset();
+			const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+			expect(result).toEqual({ status: 429, body: TOO_MANY });
+			expect(ckanLogin).not.toHaveBeenCalled();
+		});
+
+		it("una ráfaga concurrente de 6 intentos fallidos deja pasar sólo 5 a CKAN", async () => {
+			const l = limiter();
+			const release: Array<() => void> = [];
+			vi.mocked(ckanLogin).mockImplementation(
+				() =>
+					new Promise((_, reject) => {
+						release.push(() => reject(new CkanAuthError("INVALID_CREDENTIALS", "bad")));
+					}),
+			);
+
+			const burst = Array.from({ length: LOGIN_MAX_ATTEMPTS + 1 }, () =>
+				handleLogin("http://ckan.test", "ip", BAD, l),
+			);
+			// El 6.º se rechaza de forma síncrona, antes de que CKAN responda a ninguno.
+			expect(await burst[LOGIN_MAX_ATTEMPTS]).toEqual({ status: 429, body: TOO_MANY });
+			expect(ckanLogin).toHaveBeenCalledTimes(LOGIN_MAX_ATTEMPTS);
+			for (const r of release) r();
+			const settled = await Promise.all(burst.slice(0, LOGIN_MAX_ATTEMPTS));
+			for (const r of settled) {
+				expect(r).toEqual({ status: 401, body: { error: "Usuario o contraseña incorrectos" } });
+			}
+			expect(ckanLogin).toHaveBeenCalledTimes(LOGIN_MAX_ATTEMPTS);
+			expect(l.isBlocked("ip")).toBe(true);
+		});
+
+		it("logins exitosos concurrentes no se bloquean entre sí al liberar su reserva", async () => {
+			const l = limiter();
+			vi.mocked(ckanLogin).mockResolvedValue({ token: "jwt-1", user: userDict });
+
+			for (let i = 0; i < LOGIN_MAX_ATTEMPTS + 3; i++) {
+				const [a, b] = await Promise.all([
+					handleLogin("http://ckan.test", "ip", GOOD, l),
+					handleLogin("http://ckan.test", "ip", GOOD, l),
+				]);
+				expect(a.status).toBe(200);
+				expect(b.status).toBe(200);
+			}
+		});
+
+		it("un CKAN que lanza libera su reserva", async () => {
+			const l = limiter();
+			vi.mocked(ckanLogin).mockRejectedValue(new Error("boom"));
+			for (let i = 0; i < LOGIN_MAX_ATTEMPTS + 2; i++) {
+				const result = await handleLogin("http://ckan.test", "ip", GOOD, l);
+				expect(result).toEqual({ status: 500, body: { error: "Error interno del servidor." } });
+			}
+			expect(l.isBlocked("ip")).toBe(false);
+			expect(ckanLogin).toHaveBeenCalledTimes(LOGIN_MAX_ATTEMPTS + 2);
+		});
 	});
 });
