@@ -3,15 +3,19 @@
 //
 // Puebla el CKAN de dev con contenido realista (organizaciones + datasets)
 // espejado de src/lib/mock/data.ts, para que el portal muestre datos reales
-// en lugar de listas vacías. Casi todos los recursos son enlaces (url-only); la
-// excepción son los datasets ficticios de la demo (`DEMOS`), que se **suben** como archivo:
+// en lugar de listas vacías. **Todo recurso es un archivo subido** (`url_type: upload`) cuyos
+// bytes coinciden con su formato, para que el portal muestre un archivo real con su vista previa
+// sin conexión y no un enlace con un formato inventado (odd/tasks/demo-honest-data.md, S4):
+//   · los 15 datasets base y el del Observatorio de Movilidad (`SHOWCASE`) suben un CSV, XLSX,
+//     PDF, JSON o GeoJSON generado en memoria al sembrar (`generate-demo-files.mjs`, sin archivos
+//     versionados). Son datos ficticios y no pasan por xloader ni por los tipos.
+//   · los datasets ficticios de la demo (`DEMOS`) se **suben** desde `scripts/data`:
 //   · los CSV (`planilla-docente-ficticia` y los tres de T7), para que xloader los cargue en el
 //     DataStore. Sin eso la demo de gráficos no tiene nada que graficar (L4 de
 //     odd/tasks/csv-charts.md, T6). xloader carga todo como texto, así que después de la carga el
 //     seed declara los tipos (`ensureTyped`, L36).
 //   · `informe-matricula-ficticio`, un PDF generado, para que la vista previa del PDF funcione
-//     en la laptop de la demo, sin internet (los PDF del catálogo son enlaces a
-//     `data.umss.edu.bo`). No es tabular: no pasa por xloader ni por los tipos.
+//     en la laptop de la demo, sin internet. No es tabular: no pasa por xloader ni por los tipos.
 //
 // Uso con la contraseña del sysadmin (flujo original):
 //   CKAN_URL=http://localhost:5000 \
@@ -39,16 +43,17 @@
 // Idempotente: si una organización ya existe (por `name`), se salta; si un dataset ya
 // existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
 // corrida anterior murió entre crear y aprobar), se reusa la solicitud pendiente o se pide
-// una nueva, y se termina la publicación. Si a un dataset de la demo le falta el recurso, se
-// sube sólo el recurso. Un dataset de la demo ya público no se toca (tampoco su tabla).
+// una nueva, y se termina la publicación. Si a cualquier dataset le falta un recurso (por
+// nombre), se sube sólo ese recurso. Un dataset de la demo ya público no se toca (tampoco su tabla).
 // No se guarda ninguna credencial en el repo: se leen del entorno en cada corrida.
 
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { parseCsv } from "./generate-csv-common.mjs";
 import { TYPES as PLANILLA_TYPES } from "./generate-demo-csv.mjs";
+import { FORMAT_INFO, generateFile } from "./generate-demo-files.mjs";
 import { TYPES as INVESTIGACION_TYPES } from "./generate-investigacion-csv.mjs";
 import { TYPES as MATRICULA_TYPES } from "./generate-matricula-csv.mjs";
 import { TYPES as PRESUPUESTO_TYPES } from "./generate-presupuesto-csv.mjs";
@@ -306,7 +311,7 @@ async function publishDataset(token, pkg) {
 
 // ── Datos espejados de src/lib/mock/data.ts ──
 
-const ORGS = [
+export const ORGS = [
 	{
 		name: "fcyt",
 		title: "Facultad de Ciencias y Tecnología",
@@ -389,6 +394,26 @@ const TAG_POOL = [
 ];
 
 const FORMATS = ["CSV", "XLSX", "PDF", "JSON", "GeoJSON"];
+
+// Nota que lleva todo dataset y recurso sembrado: ninguno es oficial.
+const FICTITIOUS = "Datos ficticios para demostración: no son datos oficiales de la UMSS.";
+
+// Un recurso sembrado es un archivo real: `bytes()` lo genera en memoria (determinista por
+// dataset + formato + recurso), `filename` y `mime` salen del formato. `profile` es la clave de
+// `PROFILES` (`generate-demo-files.mjs`) que fija las columnas del archivo.
+function fileResource({ datasetName, title, profile, name, description, format, filename }) {
+	const { mime, ext } = FORMAT_INFO[format];
+	return {
+		name,
+		description: `${FICTITIOUS} ${description}`,
+		format,
+		mime,
+		filename: `${filename}.${ext}`,
+		profile,
+		bytes: () =>
+			generateFile({ datasetName, resourceName: name, title, description, profile, format }),
+	};
+}
 const LICENSES = ["cc-by", "cc-by-sa", "cc-zero", "odc-odbl"];
 
 function slugify(text) {
@@ -401,7 +426,7 @@ function slugify(text) {
 		.slice(0, 100);
 }
 
-function buildBaseDatasets() {
+export function buildBaseDatasets() {
 	const datasets = [];
 	for (let i = 0; i < BASE_NAMES.length; i++) {
 		const org = ORGS[i % ORGS.length];
@@ -416,13 +441,17 @@ function buildBaseDatasets() {
 			.map((t) => ({ name: t }));
 
 		const resourceCount = 1 + (i % 3);
-		const resources = Array.from({ length: resourceCount }, (_, ri) => ({
-			name: `${title}${ri > 0 ? ` — parte ${ri + 1}` : ""}`,
-			description: `Archivo de datos ${ri + 1} de ${resourceCount}`,
-			format: FORMATS[(i + ri) % FORMATS.length],
-			url: `https://data.umss.edu.bo/dataset/${name}/resource/${name}-${ri + 1}`,
-			size: 10_000 + ((i * 7919 + ri * 104_729) % 5_000_000),
-		}));
+		const resources = Array.from({ length: resourceCount }, (_, ri) =>
+			fileResource({
+				datasetName: name,
+				title,
+				profile: name,
+				name: `${title}${ri > 0 ? ` — parte ${ri + 1}` : ""}`,
+				description: `Archivo de muestra ${ri + 1} de ${resourceCount} sobre «${title.toLowerCase()}».`,
+				format: FORMATS[(i + ri) % FORMATS.length],
+				filename: `${name}-${ri + 1}`,
+			}),
+		);
 
 		datasets.push({
 			name,
@@ -430,7 +459,7 @@ function buildBaseDatasets() {
 			owner_org_name: org.name,
 			// `notes` es markdown (RF-39): texto plano con párrafos separados por línea en blanco.
 			// No se escribe HTML acá a propósito — el render no interpreta HTML crudo.
-			notes: `${DESCS[i]}\n\nDatos de la gestión 2025. Para consultas técnicas contactar a la unidad de transparencia de la ${org.title}.`,
+			notes: `${DESCS[i]}\n\n${FICTITIOUS} Los archivos son de muestra y no reproducen cifras reales de la ${org.title}.`,
 			license_id: LICENSES[i % LICENSES.length],
 			tags,
 			resources,
@@ -439,12 +468,16 @@ function buildBaseDatasets() {
 	return datasets;
 }
 
-const SHOWCASE = {
-	name: "observatorio-de-movilidad-urbana-cochabamba",
-	title: "Observatorio de Movilidad Urbana — Cochabamba",
+const SHOWCASE_NAME = "observatorio-de-movilidad-urbana-cochabamba";
+const SHOWCASE_TITLE = "Observatorio de Movilidad Urbana — Cochabamba";
+
+export const SHOWCASE = {
+	name: SHOWCASE_NAME,
+	title: SHOWCASE_TITLE,
 	owner_org_name: "fcyt",
 	notes:
-		"El Observatorio de Movilidad Urbana de Cochabamba recopila, procesa y publica datos abiertos sobre movilidad urbana en el área metropolitana de Kanata: flujos vehiculares, encuestas de origen-destino, transporte público y accidentalidad vial.\n\nLos datos cubren el período 2019–2025 y se actualizan trimestralmente.",
+		"El Observatorio de Movilidad Urbana de Cochabamba recopila, procesa y publica datos abiertos sobre movilidad urbana en el área metropolitana de Kanata: flujos vehiculares, encuestas de origen-destino, transporte público y accidentalidad vial.\n\nLos archivos de este conjunto son de muestra. " +
+		FICTITIOUS,
 	license_id: "cc-by",
 	author: "Centro de Investigación en Movilidad Urbana (CIMU-FCyT)",
 	maintainer: "Ing. María Elena Vargas Quiroga",
@@ -458,55 +491,63 @@ const SHOWCASE = {
 		{ name: "transporte-público" },
 	],
 	resources: [
-		{
+		fileResource({
+			datasetName: SHOWCASE_NAME,
+			title: SHOWCASE_TITLE,
+			profile: "observatorio-flujos-vehiculares",
 			name: "Flujos vehiculares por punto de conteo (2019–2025)",
 			description:
-				"Serie temporal de flujos vehiculares horarios en los 47 puntos de conteo automatizados. Datos agregados por dirección, tipo de vehículo y día de la semana.",
+				"Muestra de flujos vehiculares horarios por punto de conteo, sentido y tipo de vehículo.",
 			format: "CSV",
-			size: 12_450_000,
-			url: "https://data.umss.edu.bo/resource/flujos-vehiculares.csv",
-		},
-		{
+			filename: "flujos-vehiculares",
+		}),
+		fileResource({
+			datasetName: SHOWCASE_NAME,
+			title: SHOWCASE_TITLE,
+			profile: "observatorio-encuesta-origen-destino",
 			name: "Encuesta de origen-destino 2024",
 			description:
-				"Resultados de la encuesta de origen-destino realizada en el área metropolitana. Muestra: 8,500 hogares, cobertura geográfica: 12 distritos.",
+				"Muestra de hogares encuestados con su distrito, modo principal de viaje, motivo y tiempo de viaje.",
 			format: "XLSX",
-			size: 3_800_000,
-			url: "https://data.umss.edu.bo/resource/encuesta-origen-destino-2024.xlsx",
-		},
-		{
+			filename: "encuesta-origen-destino-2024",
+		}),
+		fileResource({
+			datasetName: SHOWCASE_NAME,
+			title: SHOWCASE_TITLE,
+			profile: "observatorio-transporte-publico",
 			name: "Rutas y paradas del transporte público (GeoJSON)",
-			description:
-				"Geometrías de líneas y paradas del sistema de transporte público metropolitano. Incluye 63 líneas, 1,240 paradas y 8 terminales.",
+			description: "Líneas y paradas inventadas del transporte público, en el área de Cochabamba.",
 			format: "GeoJSON",
-			size: 28_000_000,
-			url: "https://data.umss.edu.bo/resource/transporte-publico.geojson",
-		},
-		{
+			filename: "transporte-publico",
+		}),
+		fileResource({
+			datasetName: SHOWCASE_NAME,
+			title: SHOWCASE_TITLE,
+			profile: "observatorio-accidentalidad-vial",
 			name: "Accidentalidad vial (2019–2025)",
 			description:
-				"Registro de accidentes de tránsito con clasificación por tipo, gravedad, horario y ubicación georreferenciada.",
+				"Muestra de accidentes de tránsito con tipo, gravedad, distrito y ubicación (latitud y longitud).",
 			format: "CSV",
-			size: 5_200_000,
-			url: "https://data.umss.edu.bo/resource/accidentalidad-vial.csv",
-		},
-		{
+			filename: "accidentalidad-vial",
+		}),
+		fileResource({
+			datasetName: SHOWCASE_NAME,
+			title: SHOWCASE_TITLE,
+			profile: "observatorio-informe-metodologico",
 			name: "Informe metodológico y diccionario de datos",
 			description:
-				"Documento PDF con la metodología de recolección, definición de variables, criterios de calidad y notas técnicas.",
+				"Documento PDF de muestra con un diccionario de variables y criterios de calidad.",
 			format: "PDF",
-			size: 1_800_000,
-			url: "https://data.umss.edu.bo/resource/informe-metodologico.pdf",
-		},
+			filename: "informe-metodologico",
+		}),
 	],
 };
 
 // ── Datasets ficticios de la demo de gráficos (T6 y T7 de odd/tasks/csv-charts.md) ──
 //
 // Cada CSV lo genera un script de `scripts/` con semilla fija (mismas filas y mismo
-// sha256 en cada corrida). Son los **únicos** recursos del catálogo sembrado que se suben
-// como archivo en vez de enlace, porque el DataPusher sólo carga lo que tiene bytes.
-// El archivo se sube **antes** de publicar, con el dataset privado: si la subida falla,
+// sha256 en cada corrida). A diferencia de los datasets base, se leen de `scripts/data` y el
+// CSV pasa por xloader (el DataPusher sólo carga lo que tiene bytes). El archivo se sube **antes** de publicar, con el dataset privado: si la subida falla,
 // el dataset no queda público y vacío (ver `seedDemoDataset`).
 //
 // Organización de cada uno, entre las que el seed ya crea: `rectorado` para la planilla, la
@@ -518,7 +559,7 @@ const SHOWCASE = {
 //
 // `types` es el `TYPES` del generador: el seed lo declara como `type_override` (L36). Un
 // recurso **sin `types`** no es tabular (el PDF): el seed no espera a xloader ni declara tipos.
-const DEMOS = [
+export const DEMOS = [
 	{
 		owner_org_name: "rectorado",
 		generator: "generate-demo-csv.mjs",
@@ -797,7 +838,7 @@ async function ensureTyped(token, resourceId, demo, rowCount) {
 }
 
 // `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
-// campo `upload` no existe, el recurso queda url-only y el DataPusher no tiene qué cargar.
+// campo `upload` no existe y el recurso queda url-only (sin archivo que mostrar ni cargar).
 async function uploadResource(token, packageId, resource, bytes) {
 	const form = new FormData();
 	form.set("package_id", packageId);
@@ -808,7 +849,7 @@ async function uploadResource(token, packageId, resource, bytes) {
 	form.append(
 		"upload",
 		new Blob([bytes], { type: resource.mime ?? "text/csv" }),
-		basename(resource.path),
+		resource.filename ?? basename(resource.path),
 	);
 
 	const res = await fetch(`${CKAN_URL}/api/3/action/resource_create`, {
@@ -820,8 +861,8 @@ async function uploadResource(token, packageId, resource, bytes) {
 	return res.json();
 }
 
-function leftPrivate(name) {
-	console.error(`  ${name} queda privado: no se publica sin sus tipos. Corra el seed de nuevo.`);
+function leftPrivate(name, missing = "sus tipos") {
+	console.error(`  ${name} queda privado: no se publica sin ${missing}. Corra el seed de nuevo.`);
 }
 
 async function seedDemoDataset(token, orgIdByName, demo) {
@@ -910,6 +951,70 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 	return { created, skipped: false };
 }
 
+// Siembra un dataset base o el `SHOWCASE`: todos sus recursos se suben como archivo.
+//
+// Nace **privado** y sin recursos; los archivos se suben antes de publicar, así que si una
+// subida falla el dataset no queda público y vacío. Idempotente: lo que ya está público con
+// todos sus recursos se salta; si existe y le falta un recurso (por nombre), se sube sólo ese; si
+// sigue privado, se termina su publicación.
+async function seedFileDataset(token, orgIdByName, ds) {
+	const owner = orgIdByName.get(ds.owner_org_name);
+	if (!owner) {
+		console.error(`✗ ${ds.name}: organización ${ds.owner_org_name} no creada, se salta.`);
+		return { created: false, skipped: true };
+	}
+
+	const existing = await api(token, "package_show", { id: ds.name });
+	let pkg = existing.success ? existing.result : null;
+	let created = false;
+	if (pkg) {
+		console.log(`· dataset existente: ${ds.name}`);
+	} else {
+		// `private: true` porque la pared rechaza nacer público. El `state` no se manda: CKAN lo
+		// crea `active`, que es lo que el flujo necesita para dejar el dataset legible.
+		const { resources: _files, owner_org_name: _org, ...fields } = ds;
+		const result = await api(token, "package_create", {
+			...fields,
+			owner_org: owner,
+			private: true,
+		});
+		if (!result.success) {
+			console.error(`✗ package_create ${ds.name}: ${JSON.stringify(result.error ?? {})}`);
+			return { created: false, skipped: true };
+		}
+		pkg = result.result;
+		created = true;
+		console.log(`✓ dataset: ${ds.name} (privado)`);
+	}
+
+	// Un dataset recién creado aún no tiene recursos; uno existente puede tener sólo algunos.
+	const present = new Set((pkg.resources ?? []).map((resource) => resource.name));
+	let failed = false;
+	let uploadedAny = false;
+	for (const resource of ds.resources) {
+		if (present.has(resource.name)) continue;
+		const bytes = resource.bytes();
+		const result = await uploadResource(token, pkg.id, resource, bytes);
+		if (!result.success) {
+			console.error(`✗ resource_create ${ds.name}: ${JSON.stringify(result.error ?? {})}`);
+			failed = true;
+			continue;
+		}
+		uploadedAny = true;
+		console.log(
+			`✓ recurso subido: ${result.result.id} (${resource.format}, ${bytes.length} bytes, url_type=${result.result.url_type ?? "?"})`,
+		);
+	}
+
+	// Público ya está hecho; privado (recién creado o a mitad de camino en una corrida anterior)
+	// se publica, salvo que una subida haya fallado: sin sus archivos no se publica.
+	if (pkg.private === true) {
+		if (failed) leftPrivate(ds.name, "sin todos sus archivos");
+		else await publishDataset(token, pkg);
+	}
+	return { created, skipped: !created && !uploadedAny };
+}
+
 // ── Main ──
 
 async function main() {
@@ -939,32 +1044,9 @@ async function main() {
 		let createdCount = 0;
 		let skippedCount = 0;
 		for (const ds of all) {
-			const existing = await api(token, "package_show", { id: ds.name });
-			if (existing.success) {
-				skippedCount++;
-				console.log(`· dataset existente: ${ds.name}`);
-				// Público ya está hecho; privado quedó a mitad de camino en una corrida anterior,
-				// así que se termina su publicación en vez de dejarlo invisible.
-				if (existing.result.private === true) await publishDataset(token, existing.result);
-				continue;
-			}
-			const owner = orgIdByName.get(ds.owner_org_name);
-			if (!owner) {
-				console.error(`✗ ${ds.name}: organización ${ds.owner_org_name} no creada, se salta.`);
-				continue;
-			}
-			// `private: true` porque la pared rechaza nacer público. El `state` no se manda: CKAN
-			// lo crea `active`, que es lo que el flujo necesita para dejar el dataset legible.
-			const payload = { ...ds, owner_org: owner, private: true };
-			delete payload.owner_org_name;
-			const created = await api(token, "package_create", payload);
-			if (!created.success) {
-				console.error(`✗ package_create ${ds.name}: ${JSON.stringify(created.error ?? {})}`);
-				continue;
-			}
-			createdCount++;
-			console.log(`✓ dataset: ${ds.name} (privado)`);
-			await publishDataset(token, created.result);
+			const outcome = await seedFileDataset(token, orgIdByName, ds);
+			if (outcome.created) createdCount++;
+			if (outcome.skipped) skippedCount++;
 		}
 
 		for (const spec of DEMOS) {
@@ -1013,7 +1095,12 @@ async function main() {
 	}
 }
 
-main().catch((err) => {
-	console.error("Seed abortado:", err.message);
-	process.exit(1);
-});
+// Importar el módulo (los tests, el cuadro de recursos) no siembra nada.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+	main().catch((err) => {
+		console.error("Seed abortado:", err.message);
+		process.exit(1);
+	});
+}
