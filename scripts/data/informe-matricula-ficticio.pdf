@@ -1,0 +1,275 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<< /Type /Pages
+/Kids [6 0 R 8 0 R 10 0 R]
+/Count 3
+>>
+endobj
+3 0 obj
+<< /Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+>>
+endobj
+4 0 obj
+<< /Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+>>
+endobj
+5 0 obj
+<< /Title (Informe de matrícula 2015-2025 - Datos ficticios para demostración)
+/Author (Equipo ODP \(datos sintéticos\))
+/Subject (Datos ficticios para demostración: no son datos oficiales de la UMSS.)
+/Producer (scripts/generate-informe-pdf.mjs)
+>>
+endobj
+6 0 obj
+<< /Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595 842]
+/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >>
+/Contents 7 0 R
+>>
+endobj
+7 0 obj
+<< /Length 3458 >>
+stream
+BT 0.35 g /F1 9 Tf 56 802 Td (UMSS · Portal de Datos Abiertos) Tj ET
+0.6 G 0.5 w 56 794 m 539 794 l S
+0.6 G 0.5 w 56 52 m 539 52 l S
+BT 0.35 g /F1 8.5 Tf 56 38 Td (Datos ficticios para demostración · no son datos oficiales de la UMSS) Tj ET
+BT 0.35 g /F1 8.5 Tf 484.65 38 Td (Página 1 de 3) Tj ET
+BT 0 g /F2 22 Tf 56 742 Td (Informe de matrícula 2015–2025) Tj ET
+BT 0.35 g /F1 13 Tf 56 718 Td (Datos ficticios para demostración) Tj ET
+0.93 g 56 668 483 30 re f
+BT 0 g /F2 10 Tf 66 679 Td (Datos ficticios para demostración: no son datos oficiales de la UMSS.) Tj ET
+BT 0 g /F2 14 Tf 56 634 Td (1. Introducción) Tj ET
+BT 0 g /F1 11 Tf 56 610 Td (Este informe resume la matrícula inventada de ocho facultades entre las gestiones) Tj ET
+BT 0 g /F1 11 Tf 56 594 Td (2015 y 2025. Sirve para probar la vista previa de documentos del portal sin conexión) Tj ET
+BT 0 g /F1 11 Tf 56 578 Td (a internet: las cifras provienen del mismo conjunto de datos ficticios que alimenta) Tj ET
+BT 0 g /F1 11 Tf 56 562 Td (las vistas de gráficos y no describen a la universidad real.) Tj ET
+BT 0 g /F2 14 Tf 56 522 Td (2. Inscritos por gestión) Tj ET
+0.9 g 56 487 483 19 re f
+0 G 1 w 56 506 m 539 506 l S
+BT 0 g /F2 10 Tf 64 493 Td (Gestión) Tj ET
+BT 0 g /F2 10 Tf 249.96 493 Td (Inscritos) Tj ET
+BT 0 g /F2 10 Tf 450.38 493 Td (Variación anual) Tj ET
+0 G 1 w 56 487 m 539 487 l S
+BT 0 g /F1 10 Tf 64 474 Td (2015) Tj ET
+BT 0 g /F1 10 Tf 274.98 474 Td (7.217) Tj ET
+BT 0 g /F1 10 Tf 525.44 474 Td (—) Tj ET
+0.6 G 0.25 w 56 468 m 539 468 l S
+BT 0 g /F1 10 Tf 64 455 Td (2016) Tj ET
+BT 0 g /F1 10 Tf 274.98 455 Td (7.687) Tj ET
+BT 0 g /F1 10 Tf 502.37 455 Td (+6,5%) Tj ET
+0.6 G 0.25 w 56 449 m 539 449 l S
+BT 0 g /F1 10 Tf 64 436 Td (2017) Tj ET
+BT 0 g /F1 10 Tf 274.98 436 Td (7.899) Tj ET
+BT 0 g /F1 10 Tf 502.37 436 Td (+2,8%) Tj ET
+0.6 G 0.25 w 56 430 m 539 430 l S
+BT 0 g /F1 10 Tf 64 417 Td (2018) Tj ET
+BT 0 g /F1 10 Tf 274.98 417 Td (8.364) Tj ET
+BT 0 g /F1 10 Tf 502.37 417 Td (+5,9%) Tj ET
+0.6 G 0.25 w 56 411 m 539 411 l S
+BT 0 g /F1 10 Tf 64 398 Td (2019) Tj ET
+BT 0 g /F1 10 Tf 274.98 398 Td (8.789) Tj ET
+BT 0 g /F1 10 Tf 502.37 398 Td (+5,1%) Tj ET
+0.6 G 0.25 w 56 392 m 539 392 l S
+BT 0 g /F1 10 Tf 64 379 Td (2020) Tj ET
+BT 0 g /F1 10 Tf 274.98 379 Td (7.883) Tj ET
+BT 0 g /F1 10 Tf 499.32 379 Td (-10,3%) Tj ET
+0.6 G 0.25 w 56 373 m 539 373 l S
+BT 0 g /F1 10 Tf 64 360 Td (2021) Tj ET
+BT 0 g /F1 10 Tf 274.98 360 Td (8.858) Tj ET
+BT 0 g /F1 10 Tf 496.81 360 Td (+12,4%) Tj ET
+0.6 G 0.25 w 56 354 m 539 354 l S
+BT 0 g /F1 10 Tf 64 341 Td (2022) Tj ET
+BT 0 g /F1 10 Tf 274.98 341 Td (9.863) Tj ET
+BT 0 g /F1 10 Tf 496.81 341 Td (+11,3%) Tj ET
+0.6 G 0.25 w 56 335 m 539 335 l S
+BT 0 g /F1 10 Tf 64 322 Td (2023) Tj ET
+BT 0 g /F1 10 Tf 269.42 322 Td (10.118) Tj ET
+BT 0 g /F1 10 Tf 502.37 322 Td (+2,6%) Tj ET
+0.6 G 0.25 w 56 316 m 539 316 l S
+BT 0 g /F1 10 Tf 64 303 Td (2024) Tj ET
+BT 0 g /F1 10 Tf 269.42 303 Td (10.409) Tj ET
+BT 0 g /F1 10 Tf 502.37 303 Td (+2,9%) Tj ET
+0.6 G 0.25 w 56 297 m 539 297 l S
+BT 0 g /F1 10 Tf 64 284 Td (2025) Tj ET
+BT 0 g /F1 10 Tf 269.42 284 Td (10.848) Tj ET
+BT 0 g /F1 10 Tf 502.37 284 Td (+4,2%) Tj ET
+0.6 G 0.25 w 56 278 m 539 278 l S
+0 G 1 w 56 278 m 539 278 l S
+BT 0 g /F2 10 Tf 64 265 Td (Total) Tj ET
+BT 0 g /F2 10 Tf 269.42 265 Td (97.935) Tj ET
+BT 0 g /F2 10 Tf 531 265 Td () Tj ET
+0 G 1 w 56 259 m 539 259 l S
+BT 0.35 g /F1 8.5 Tf 56 241 Td (Cuadro 1. Inscritos por gestión, todas las facultades. Datos ficticios.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595 842]
+/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >>
+/Contents 9 0 R
+>>
+endobj
+9 0 obj
+<< /Length 3025 >>
+stream
+BT 0.35 g /F1 9 Tf 56 802 Td (UMSS · Portal de Datos Abiertos) Tj ET
+0.6 G 0.5 w 56 794 m 539 794 l S
+0.6 G 0.5 w 56 52 m 539 52 l S
+BT 0.35 g /F1 8.5 Tf 56 38 Td (Datos ficticios para demostración · no son datos oficiales de la UMSS) Tj ET
+BT 0.35 g /F1 8.5 Tf 484.65 38 Td (Página 2 de 3) Tj ET
+BT 0 g /F2 14 Tf 56 742 Td (3. Inscritos por facultad) Tj ET
+0.9 g 56 702 483 22 re f
+0 G 1 w 56 724 m 539 724 l S
+BT 0 g /F2 10 Tf 64 708 Td (Facultad) Tj ET
+BT 0 g /F2 10 Tf 317.76 708 Td (2015) Tj ET
+BT 0 g /F2 10 Tf 387.76 708 Td (2025) Tj ET
+BT 0 g /F2 10 Tf 458.72 708 Td (Participación) Tj ET
+0 G 1 w 56 702 m 539 702 l S
+BT 0 g /F1 10 Tf 64 686 Td (Ciencias y Tecnología) Tj ET
+BT 0 g /F1 10 Tf 314.98 686 Td (1.484) Tj ET
+BT 0 g /F1 10 Tf 384.98 686 Td (2.234) Tj ET
+BT 0 g /F1 10 Tf 502.65 686 Td (20,6%) Tj ET
+0.6 G 0.25 w 56 680 m 539 680 l S
+BT 0 g /F1 10 Tf 64 664 Td (Ciencias de la Salud) Tj ET
+BT 0 g /F1 10 Tf 314.98 664 Td (1.410) Tj ET
+BT 0 g /F1 10 Tf 384.98 664 Td (2.180) Tj ET
+BT 0 g /F1 10 Tf 502.65 664 Td (20,1%) Tj ET
+0.6 G 0.25 w 56 658 m 539 658 l S
+BT 0 g /F1 10 Tf 64 642 Td (Ciencias Económicas) Tj ET
+BT 0 g /F1 10 Tf 314.98 642 Td (1.358) Tj ET
+BT 0 g /F1 10 Tf 384.98 642 Td (1.934) Tj ET
+BT 0 g /F1 10 Tf 502.65 642 Td (17,8%) Tj ET
+0.6 G 0.25 w 56 636 m 539 636 l S
+BT 0 g /F1 10 Tf 64 620 Td (Ciencias Sociales) Tj ET
+BT 0 g /F1 10 Tf 323.32 620 Td (650) Tj ET
+BT 0 g /F1 10 Tf 384.98 620 Td (1.088) Tj ET
+BT 0 g /F1 10 Tf 502.65 620 Td (10,0%) Tj ET
+0.6 G 0.25 w 56 614 m 539 614 l S
+BT 0 g /F1 10 Tf 64 598 Td (Ciencias Jurídicas y Políticas) Tj ET
+BT 0 g /F1 10 Tf 323.32 598 Td (774) Tj ET
+BT 0 g /F1 10 Tf 384.98 598 Td (1.055) Tj ET
+BT 0 g /F1 10 Tf 508.21 598 Td (9,7%) Tj ET
+0.6 G 0.25 w 56 592 m 539 592 l S
+BT 0 g /F1 10 Tf 64 576 Td (Humanidades y Ciencias de la Educación) Tj ET
+BT 0 g /F1 10 Tf 323.32 576 Td (676) Tj ET
+BT 0 g /F1 10 Tf 393.32 576 Td (902) Tj ET
+BT 0 g /F1 10 Tf 508.21 576 Td (8,3%) Tj ET
+0.6 G 0.25 w 56 570 m 539 570 l S
+BT 0 g /F1 10 Tf 64 554 Td (Arquitectura y Ciencias del Hábitat) Tj ET
+BT 0 g /F1 10 Tf 323.32 554 Td (354) Tj ET
+BT 0 g /F1 10 Tf 393.32 554 Td (732) Tj ET
+BT 0 g /F1 10 Tf 508.21 554 Td (6,7%) Tj ET
+0.6 G 0.25 w 56 548 m 539 548 l S
+BT 0 g /F1 10 Tf 64 532 Td (Ciencias Agrícolas) Tj ET
+BT 0 g /F1 10 Tf 323.32 532 Td (511) Tj ET
+BT 0 g /F1 10 Tf 393.32 532 Td (723) Tj ET
+BT 0 g /F1 10 Tf 508.21 532 Td (6,7%) Tj ET
+0.6 G 0.25 w 56 526 m 539 526 l S
+BT 0.35 g /F1 8.5 Tf 56 508 Td (Cuadro 2. Inscritos por facultad, gestiones 2015 y 2025. Datos ficticios.) Tj ET
+BT 0 g /F2 14 Tf 56 470 Td (4. Lectura de las cifras) Tj ET
+BT 0 g /F1 11 Tf 56 446 Td (Entre 2015 y 2025 la matrícula ficticia crece 50,3%. Ciencias y Tecnología y) Tj ET
+BT 0 g /F1 11 Tf 56 430 Td (Ciencias de la Salud concentran la mayor parte de los inscritos, y Ciencias) Tj ET
+BT 0 g /F1 11 Tf 56 414 Td (Agrícolas queda al final. En 2020 la matrícula cae 10,3% respecto de 2019, y ese año) Tj ET
+BT 0 g /F1 11 Tf 56 398 Td (aparece la modalidad virtual.) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595 842]
+/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >>
+/Contents 11 0 R
+>>
+endobj
+11 0 obj
+<< /Length 2632 >>
+stream
+BT 0.35 g /F1 9 Tf 56 802 Td (UMSS · Portal de Datos Abiertos) Tj ET
+0.6 G 0.5 w 56 794 m 539 794 l S
+0.6 G 0.5 w 56 52 m 539 52 l S
+BT 0.35 g /F1 8.5 Tf 56 38 Td (Datos ficticios para demostración · no son datos oficiales de la UMSS) Tj ET
+BT 0.35 g /F1 8.5 Tf 484.65 38 Td (Página 3 de 3) Tj ET
+BT 0 g /F2 14 Tf 56 742 Td (5. Inscritos por modalidad) Tj ET
+0.9 g 56 702 483 22 re f
+0 G 1 w 56 724 m 539 724 l S
+BT 0 g /F2 10 Tf 64 708 Td (Modalidad) Tj ET
+BT 0 g /F2 10 Tf 247.76 708 Td (2015) Tj ET
+BT 0 g /F2 10 Tf 302.76 708 Td (2019) Tj ET
+BT 0 g /F2 10 Tf 357.76 708 Td (2020) Tj ET
+BT 0 g /F2 10 Tf 412.76 708 Td (2022) Tj ET
+BT 0 g /F2 10 Tf 467.76 708 Td (2025) Tj ET
+0 G 1 w 56 702 m 539 702 l S
+BT 0 g /F1 10 Tf 64 686 Td (Presencial) Tj ET
+BT 0 g /F1 10 Tf 244.98 686 Td (5.977) Tj ET
+BT 0 g /F1 10 Tf 299.98 686 Td (7.297) Tj ET
+BT 0 g /F1 10 Tf 363.32 686 Td (801) Tj ET
+BT 0 g /F1 10 Tf 409.98 686 Td (5.845) Tj ET
+BT 0 g /F1 10 Tf 464.98 686 Td (6.496) Tj ET
+0.6 G 0.25 w 56 680 m 539 680 l S
+BT 0 g /F1 10 Tf 64 664 Td (Semipresencial) Tj ET
+BT 0 g /F1 10 Tf 244.98 664 Td (1.110) Tj ET
+BT 0 g /F1 10 Tf 299.98 664 Td (1.403) Tj ET
+BT 0 g /F1 10 Tf 354.98 664 Td (1.566) Tj ET
+BT 0 g /F1 10 Tf 409.98 664 Td (1.394) Tj ET
+BT 0 g /F1 10 Tf 464.98 664 Td (2.640) Tj ET
+0.6 G 0.25 w 56 658 m 539 658 l S
+BT 0 g /F1 10 Tf 64 642 Td (Virtual) Tj ET
+BT 0 g /F1 10 Tf 264.44 642 Td (0) Tj ET
+BT 0 g /F1 10 Tf 319.44 642 Td (0) Tj ET
+BT 0 g /F1 10 Tf 354.98 642 Td (5.488) Tj ET
+BT 0 g /F1 10 Tf 409.98 642 Td (2.601) Tj ET
+BT 0 g /F1 10 Tf 464.98 642 Td (1.503) Tj ET
+0.6 G 0.25 w 56 636 m 539 636 l S
+BT 0.35 g /F1 8.5 Tf 56 618 Td (Cuadro 3. Inscritos por modalidad, gestiones seleccionadas. Datos ficticios.) Tj ET
+BT 0 g /F2 14 Tf 56 580 Td (6. Notas metodológicas) Tj ET
+BT 0 g /F1 11 Tf 56 556 Td (•) Tj ET
+BT 0 g /F1 11 Tf 70 556 Td (Las filas del conjunto de origen son inscritos por carrera, gestión, sexo y) Tj ET
+BT 0 g /F1 11 Tf 70 540 Td (modalidad; algunas celdas de sexo y modalidad están vacías a propósito y no) Tj ET
+BT 0 g /F1 11 Tf 70 524 Td (entran en el Cuadro 3.) Tj ET
+BT 0 g /F1 11 Tf 56 502 Td (•) Tj ET
+BT 0 g /F1 11 Tf 70 502 Td (Los valores se generan con una semilla fija: el mismo comando produce siempre) Tj ET
+BT 0 g /F1 11 Tf 70 486 Td (el mismo documento.) Tj ET
+BT 0 g /F1 11 Tf 56 464 Td (•) Tj ET
+BT 0 g /F1 11 Tf 70 464 Td (Los nombres de facultades y carreras son plausibles, pero las cifras son) Tj ET
+BT 0 g /F1 11 Tf 70 448 Td (inventadas.) Tj ET
+0.93 g 56 382 483 30 re f
+BT 0 g /F2 10 Tf 66 393 Td (Datos ficticios para demostración: no son datos oficiales de la UMSS.) Tj ET
+endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000134 00000 n 
+0000000231 00000 n 
+0000000333 00000 n 
+0000000598 00000 n 
+0000000734 00000 n 
+0000004243 00000 n 
+0000004379 00000 n 
+0000007455 00000 n 
+0000007593 00000 n 
+trailer
+<< /Size 12
+/Root 1 0 R
+/Info 5 0 R
+>>
+startxref
+10277
+%%EOF
