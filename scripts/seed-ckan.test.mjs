@@ -86,6 +86,11 @@ test("readJson informa status, URL y comienzo del cuerpo cuando la respuesta no 
 });
 
 test("readJson devuelve el cuerpo parseado cuando la respuesta es JSON", async () => {
-	const ok = new Response(JSON.stringify({ success: true, result: { token: "t" } }), { status: 200 });
-	assert.deepEqual(await readJson(ok, "api_token_create"), { success: true, result: { token: "t" } });
+	const ok = new Response(JSON.stringify({ success: true, result: { token: "t" } }), {
+		status: 200,
+	});
+	assert.deepEqual(await readJson(ok, "api_token_create"), {
+		success: true,
+		result: { token: "t" },
+	});
 });
