@@ -30,6 +30,7 @@ import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
+import CreateChartLink from "$lib/components/resource/views/CreateChartLink.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -561,7 +562,7 @@ async function handleCopyResourceLink() {
 				     `ml-auto`, que lo alinea aunque no haya botón, y en anchos cortos envuelve a su propia línea
 				     sin perder esa alineación. La banda se renderiza sólo si tiene algún hijo, así que sin
 				     acción y sin salto no queda una fila vacía. -->
-				{#if downloadUrl || hasJump}
+				{#if downloadUrl || hasJump || canEditCharts}
 					<div class="mt-5 flex flex-wrap items-center gap-3">
 						{#if downloadUrl}
 							<a
@@ -578,6 +579,15 @@ async function handleCopyResourceLink() {
 									Descargar recurso
 								{/if}
 							</a>
+						{/if}
+
+						<!-- «Crear gráfico» en la banda de acciones del hero, como las acciones del dataset: sólo para
+						     quien puede editar (`canEditCharts` ya exige `datastore_active`). El servidor exige
+						     `resource_update` de todos modos. -->
+						{#if canEditCharts}
+							<CreateChartLink
+								href="/dataset/{datasetId}/resource/{resource.id}/charts/new"
+							/>
 						{/if}
 
 						<!-- Navegación entre recursos: dos controles rotulados —«‹ Anterior» y «Siguiente ›»— con el
@@ -638,40 +648,48 @@ async function handleCopyResourceLink() {
 
 		<!-- Preview + metadata content -->
 		<section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-			<Card class="overflow-hidden border-primary/20">
-				<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
-				</div>
-				{#if isLink}
-					<!-- Nota compacta. La CAJA era el problema, no el texto: 220px de alto mínimo, 40px de padding
-					     y un círculo de 64px para una sola oración. El copy se conserva palabra por palabra porque
-					     los tests lo anclan, y sin ícono: no agregaba información al lado de una oración. -->
-					<div class="space-y-1 p-5">
-						<p class="font-heading text-base font-bold text-foreground">
-							Este recurso es un enlace externo
-						</p>
-						<p class="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-							Su contenido está en el sitio de origen, no en el portal, así que no hay nada que
-							previsualizar aquí.
-						</p>
-					</div>
-				{:else}
-					<ResourcePreview resource={resource} datastore={datastoreApi} />
+			{#snippet previewCard()}
+				{#if resource}
+					<Card class="overflow-hidden border-primary/20">
+						<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
+						</div>
+						{#if isLink}
+							<!-- Nota compacta. La CAJA era el problema, no el texto: 220px de alto mínimo, 40px de padding
+							     y un círculo de 64px para una sola oración. El copy se conserva palabra por palabra porque
+							     los tests lo anclan, y sin ícono: no agregaba información al lado de una oración. -->
+							<div class="space-y-1 p-5">
+								<p class="font-heading text-base font-bold text-foreground">
+									Este recurso es un enlace externo
+								</p>
+								<p class="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+									Su contenido está en el sitio de origen, no en el portal, así que no hay nada que
+									previsualizar aquí.
+								</p>
+							</div>
+						{:else}
+							<ResourcePreview resource={resource} datastore={datastoreApi} />
+						{/if}
+					</Card>
 				{/if}
-			</Card>
+			{/snippet}
 
-		<!-- Gráficos: las vistas `umss_chart` del recurso. Sólo existen con una tabla en el DataStore, y es el
-		     mismo marcador que gobierna la vista previa y la sección de la API. -->
-		{#if resource.datastore_active === true}
-			{#key resource.id}
-				<ResourceCharts
-					resourceId={resource.id}
-					datasetId={datasetId ?? ""}
-					api={chartApi}
-					canEdit={canEditCharts}
-				/>
-			{/key}
-		{/if}
+			<!-- Con tabla en el DataStore la vista previa es la pestaña «Tabla» y cada gráfico `umss_chart` tiene la
+			     suya. Es el mismo marcador que gobierna la vista previa y la sección de la API. Sin tabla no hay
+			     pestañas: queda la vista previa sola. -->
+			{#if resource.datastore_active === true}
+				{#key resource.id}
+					<ResourceCharts
+						resourceId={resource.id}
+						datasetId={datasetId ?? ""}
+						api={chartApi}
+						canEdit={canEditCharts}
+						table={previewCard}
+					/>
+				{/key}
+			{:else}
+				{@render previewCard()}
+			{/if}
 
 		<!-- API content -->
 		<!-- El gate es `datastore_active`, no `resource_type`: `resource_type` es un campo heredado que

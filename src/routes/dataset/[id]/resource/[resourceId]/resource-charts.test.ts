@@ -2,7 +2,7 @@
 // cada gráfico (versión desconocida, borrado con confirmación, números) lo fija `ResourceCharts.test.ts`; acá
 // se mide lo que sólo la página decide: cuándo aparece la sección y a quién se le ofrecen las acciones.
 
-import { render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "$app/stores";
 import type { ChartView } from "$lib/api/charts";
@@ -121,28 +121,60 @@ beforeEach(() => {
 
 afterEach(() => auth.reset());
 
+const openChart = async () =>
+	fireEvent.click(await screen.findByRole("tab", { name: "Salario por turno" }));
+const heroBand = () =>
+	screen.getByRole("link", { name: "Descargar recurso" }).parentElement as HTMLElement;
+
 describe("Página de recurso — gráficos", () => {
-	it("un visitante anónimo ve los gráficos del recurso y ninguna acción", async () => {
+	it("un visitante anónimo ve las pestañas con íconos, el gráfico y ninguna acción", async () => {
 		render(ResourcePage);
 
+		const tabs = await screen.findAllByRole("tab");
+		expect(tabs.map((t) => t.textContent?.trim())).toEqual(["Tabla", "Salario por turno"]);
+		for (const tab of tabs) expect(tab.querySelector("svg")).not.toBeNull();
+		await openChart();
 		expect(await screen.findByRole("heading", { name: "Salario por turno" })).toBeInTheDocument();
 		await waitFor(() => expect(mocks.data).toHaveBeenCalledWith("view-1"));
+		expect(screen.getByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 		expect(screen.queryByRole("link", { name: /Editar el gráfico/ })).toBeNull();
 		expect(screen.queryByRole("button", { name: /Eliminar el gráfico/ })).toBeNull();
 		expect(mocks.updatableOrganizations).not.toHaveBeenCalled();
 	});
 
-	it("quien puede editar el dataset ve «Crear gráfico», «Editar» y «Eliminar»", async () => {
+	it("la pestaña «Tabla» aloja la vista previa de hoy", async () => {
+		render(ResourcePage);
+
+		await screen.findAllByRole("tab");
+		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
+		expect(screen.getByText("Vista previa")).toBeInTheDocument();
+	});
+
+	it("quien puede editar ve «Crear gráfico» en el encabezado, y «Editar» y «Eliminar» en el gráfico", async () => {
 		auth.setUser(user);
 		render(ResourcePage);
 
-		expect(await screen.findByRole("link", { name: /Crear gráfico/ })).toHaveAttribute(
-			"href",
-			"/dataset/planilla/resource/res-1/charts/new",
-		);
-		expect(screen.getByRole("link", { name: /Editar el gráfico/ })).toBeInTheDocument();
+		const create = await screen.findByRole("link", { name: /Crear gráfico/ });
+		expect(create).toHaveAttribute("href", "/dataset/planilla/resource/res-1/charts/new");
+		// Vive en la banda de acciones del encabezado, junto a la descarga, y es el único.
+		expect(heroBand()).toContainElement(create);
+		expect(screen.getAllByRole("link", { name: /Crear gráfico/ })).toHaveLength(1);
+		await openChart();
+		expect(await screen.findByRole("link", { name: /Editar el gráfico/ })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /Eliminar el gráfico/ })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
+	});
+
+	it("«Copiar enlace del recurso» sigue donde estaba, junto al título", async () => {
+		auth.setUser(user);
+		render(ResourcePage);
+
+		await screen.findByRole("link", { name: /Crear gráfico/ });
+		const title = screen.getByRole("heading", { level: 1, name: "Planilla docente" });
+		expect(title.parentElement).toContainElement(
+			screen.getByRole("button", { name: "Copiar enlace del recurso" }),
+		);
 	});
 
 	it("un usuario con sesión que no puede editar ese dataset no ve ninguna acción", async () => {
@@ -150,6 +182,7 @@ describe("Página de recurso — gráficos", () => {
 		mocks.updatableOrganizations.mockResolvedValue({ state: "known", ids: ["otra-org"] });
 		render(ResourcePage);
 
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
 		await waitFor(() => expect(mocks.updatableOrganizations).toHaveBeenCalled());
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
@@ -157,13 +190,37 @@ describe("Página de recurso — gráficos", () => {
 		expect(screen.queryByRole("button", { name: /Eliminar el gráfico/ })).toBeNull();
 	});
 
-	it("un recurso sin tabla en el DataStore no tiene sección de gráficos ni ofrece crear uno", async () => {
+	it("sin gráficos hay una sola vista: sin pestañas, con el aviso, y quien edita sigue viendo «Crear gráfico»", async () => {
+		auth.setUser(user);
+		mocks.listViews.mockResolvedValue([]);
+		render(ResourcePage);
+
+		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		expect(screen.getByText(/Cree el primero/)).toBeInTheDocument();
+		expect(screen.getByText("Vista previa")).toBeInTheDocument();
+		expect(screen.queryByRole("tab")).toBeNull();
+		expect(await screen.findByRole("link", { name: /Crear gráfico/ })).toBeInTheDocument();
+	});
+
+	it("sin gráficos, el visitante ve el aviso y ni pestañas ni botón", async () => {
+		mocks.listViews.mockResolvedValue([]);
+		render(ResourcePage);
+
+		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		expect(screen.getByText(/Cuando quien publica el recurso configure uno/)).toBeInTheDocument();
+		expect(screen.queryByRole("tab")).toBeNull();
+		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
+	});
+
+	it("un recurso sin tabla en el DataStore no tiene pestañas ni gráficos ni ofrece crear uno, y conserva su vista previa", async () => {
 		auth.setUser(user);
 		mocks.showResource.mockResolvedValue(resource({ datastore_active: false }));
 		render(ResourcePage);
 
 		await screen.findByRole("heading", { level: 1, name: "Planilla docente" });
-		expect(screen.queryByRole("heading", { name: "Gráficos del recurso" })).toBeNull();
+		expect(screen.getByText("Vista previa")).toBeInTheDocument();
+		expect(screen.queryByRole("tab")).toBeNull();
+		expect(screen.queryByRole("tablist")).toBeNull();
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 		expect(mocks.listViews).not.toHaveBeenCalled();
 	});

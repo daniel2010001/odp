@@ -2,6 +2,7 @@
 // borrado con confirmación. El servidor es un doble del cliente de la API (`createChartApi`).
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { createRawSnippet } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import type { ChartData, NormalizedChartConfig } from "$lib/charts/contract";
@@ -67,6 +68,11 @@ function renderCharts(api: Api, canEdit = false) {
 	});
 }
 
+// La tabla es la primera pestaña: el gráfico se ve al elegir la suya.
+async function openChart(name = "Salario por turno") {
+	await fireEvent.click(await screen.findByRole("tab", { name }));
+}
+
 beforeEach(() => auth.reset());
 afterEach(() => auth.reset());
 
@@ -75,6 +81,7 @@ describe("ResourceCharts — el visitante", () => {
 		const api = makeApi();
 		renderCharts(api);
 
+		await openChart();
 		expect(await screen.findByRole("heading", { name: "Salario por turno" })).toBeInTheDocument();
 		expect(screen.getByText("Promedio mensual del salario.")).toBeInTheDocument();
 		await waitFor(() => expect(screen.getByRole("img")).toBeInTheDocument());
@@ -84,9 +91,10 @@ describe("ResourceCharts — el visitante", () => {
 		expect(screen.getByRole("table")).toHaveTextContent("8.496,75");
 	});
 
-	it("un visitante no ve «Crear gráfico», «Editar» ni «Eliminar»", async () => {
+	it("un visitante no ve «Editar» ni «Eliminar»", async () => {
 		renderCharts(makeApi(), false);
 
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 		expect(screen.queryByRole("link", { name: /Editar/ })).toBeNull();
@@ -103,6 +111,7 @@ describe("ResourceCharts — el visitante", () => {
 		renderCharts(makeApi({ listViews: vi.fn(async () => []) }));
 
 		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		expect(screen.getByText(/Cuando quien publica el recurso configure uno/)).toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 	});
 
@@ -118,6 +127,7 @@ describe("ResourceCharts — el visitante", () => {
 
 		await fireEvent.click(screen.getByRole("button", { name: "Intentar nuevamente" }));
 
+		await openChart();
 		expect(await screen.findByRole("heading", { name: "Salario por turno" })).toBeInTheDocument();
 	});
 
@@ -131,8 +141,10 @@ describe("ResourceCharts — el visitante", () => {
 		});
 		renderCharts(api);
 
+		await openChart();
 		expect(await screen.findByText("No se pudo mostrar este gráfico")).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Otra vista" })).toBeInTheDocument();
+		await openChart("Otra vista");
+		expect(await screen.findByRole("heading", { name: "Otra vista" })).toBeInTheDocument();
 		await waitFor(() => expect(screen.getAllByRole("img")).toHaveLength(1));
 	});
 
@@ -142,6 +154,7 @@ describe("ResourceCharts — el visitante", () => {
 		});
 		renderCharts(api);
 
+		await openChart();
 		expect(
 			await screen.findByText(/versión del formato que el portal no reconoce/),
 		).toBeInTheDocument();
@@ -154,6 +167,7 @@ describe("ResourceCharts — el visitante", () => {
 		const api = makeApi({ data: vi.fn(async () => ({ ...DATA, version: 7 })) });
 		renderCharts(api);
 
+		await openChart();
 		expect(
 			await screen.findByText(/versión del formato que el portal no reconoce/),
 		).toBeInTheDocument();
@@ -162,24 +176,23 @@ describe("ResourceCharts — el visitante", () => {
 });
 
 describe("ResourceCharts — quien puede editar", () => {
-	it("ve «Crear gráfico» hacia la página propia, y «Editar» y «Eliminar» en cada gráfico", async () => {
+	it("ve «Editar» y «Eliminar» en cada gráfico, y «Crear gráfico» ya no es de este componente", async () => {
 		renderCharts(makeApi(), true);
 
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
-		expect(screen.getByRole("link", { name: /Crear gráfico/ })).toHaveAttribute(
-			"href",
-			"/dataset/planilla/resource/res-1/charts/new",
-		);
 		expect(screen.getByRole("link", { name: /Editar el gráfico/ })).toHaveAttribute(
 			"href",
 			"/dataset/planilla/resource/res-1/charts/view-1/edit",
 		);
 		expect(screen.getByRole("button", { name: /Eliminar el gráfico/ })).toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 	});
 
 	it("«Eliminar» pregunta antes: cancelar no borra nada", async () => {
 		const api = makeApi();
 		renderCharts(api, true);
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
 
 		await fireEvent.click(screen.getByRole("button", { name: /Eliminar el gráfico/ }));
@@ -198,6 +211,7 @@ describe("ResourceCharts — quien puede editar", () => {
 		const listViews = vi.fn().mockResolvedValueOnce([makeView()]).mockResolvedValueOnce([]);
 		const api = makeApi({ listViews });
 		renderCharts(api, true);
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
 
 		await fireEvent.click(screen.getByRole("button", { name: /Eliminar el gráfico/ }));
@@ -206,6 +220,7 @@ describe("ResourceCharts — quien puede editar", () => {
 
 		await waitFor(() => expect(api.deleteView).toHaveBeenCalledWith("view-1"));
 		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		expect(screen.queryByRole("tablist")).toBeNull();
 		expect(listViews).toHaveBeenCalledTimes(2);
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});
@@ -217,6 +232,7 @@ describe("ResourceCharts — quien puede editar", () => {
 			}),
 		});
 		renderCharts(api, true);
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
 
 		await fireEvent.click(screen.getByRole("button", { name: /Eliminar el gráfico/ }));
@@ -229,19 +245,82 @@ describe("ResourceCharts — quien puede editar", () => {
 	});
 });
 
-describe("ResourceCharts — los valores por defecto son la página de hoy", () => {
-	it("apilado: sin pestañas, con el título de la sección y «Crear gráfico» a su derecha, y sin tarjeta punteada", async () => {
-		const { container } = renderCharts(makeApi(), true);
+describe("ResourceCharts — las pestañas", () => {
+	const TABLE = createRawSnippet(() => ({ render: () => "<p>Contenido de la tabla</p>" }));
 
-		const heading = await screen.findByRole("heading", { name: "Gráficos del recurso", level: 2 });
-		await screen.findByRole("heading", { name: "Salario por turno", level: 3 });
+	function renderTabs(api: Api, canEdit = false) {
+		return render(ResourceCharts, {
+			props: { resourceId: "res-1", datasetId: "planilla", api, canEdit, table: TABLE },
+		});
+	}
+
+	it("con gráficos hay una barra con «Tabla» primero y una pestaña por gráfico, cada una con su ícono", async () => {
+		const api = makeApi({
+			listViews: vi.fn(async () => [
+				makeView(),
+				makeView({ id: "view-2", title: "Evolución", config: { ...CONFIG, chart_type: "line" } }),
+				makeView({ id: "view-3", title: "Reparto", config: { ...CONFIG, chart_type: "pie" } }),
+			]),
+		});
+		renderTabs(api);
+
+		const tabs = await screen.findAllByRole("tab");
+		expect(tabs.map((t) => t.textContent?.trim())).toEqual([
+			"Tabla",
+			"Salario por turno",
+			"Evolución",
+			"Reparto",
+		]);
+		for (const tab of tabs) expect(tab.querySelector("svg")).not.toBeNull();
+		expect(tabs[1].querySelector("svg")).toHaveClass("lucide-chart-column");
+		expect(tabs[2].querySelector("svg")).toHaveClass("lucide-chart-line");
+		expect(tabs[3].querySelector("svg")).toHaveClass("lucide-chart-pie");
+		// La tabla es lo que se ve primero; el gráfico espera a su pestaña.
+		expect(screen.getByText("Contenido de la tabla")).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: "Salario por turno" })).toBeNull();
+	});
+
+	it("la pestaña de un gráfico muestra el gráfico y la de «Tabla» vuelve a la tabla", async () => {
+		renderTabs(makeApi());
+
+		await fireEvent.click(await screen.findByRole("tab", { name: "Salario por turno" }));
+		expect(await screen.findByRole("heading", { name: "Salario por turno" })).toBeInTheDocument();
+		await waitFor(() => expect(screen.getByText("Contenido de la tabla")).not.toBeVisible());
+
+		await fireEvent.click(screen.getByRole("tab", { name: "Tabla" }));
+		await waitFor(() => expect(screen.getByText("Contenido de la tabla")).toBeVisible());
+	});
+
+	it("sin gráficos no hay barra: la tabla va sola y debajo el aviso, para el visitante", async () => {
+		renderTabs(makeApi({ listViews: vi.fn(async () => []) }), false);
+
+		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		expect(screen.getByText("Contenido de la tabla")).toBeInTheDocument();
 		expect(screen.queryByRole("tablist")).toBeNull();
-		expect(screen.queryByRole("tab")).toBeNull();
-		// El enlace comparte la fila del título (hijo del mismo contenedor flex), no la lista ni una tarjeta.
-		const row = heading.parentElement?.parentElement as HTMLElement;
-		expect(within(row).getByRole("link", { name: /Crear gráfico/ })).toBeInTheDocument();
-		expect(container.querySelector(".border-dashed")).toBeNull();
-		expect(screen.getAllByRole("link", { name: /Crear gráfico/ })).toHaveLength(1);
+		expect(screen.getByText(/Cuando quien publica el recurso configure uno/)).toBeInTheDocument();
+	});
+
+	it("sin gráficos, a quien edita el aviso lo invita a crear el primero (el botón vive en el encabezado)", async () => {
+		renderTabs(makeApi({ listViews: vi.fn(async () => []) }), true);
+
+		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		expect(screen.getByText(/Cree el primero/)).toBeInTheDocument();
+		expect(screen.queryByRole("tablist")).toBeNull();
+		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
+	});
+
+	it("mientras carga y si falla, la tabla sigue visible sin barra", async () => {
+		const { unmount } = renderTabs(
+			makeApi({ listViews: vi.fn(() => new Promise<ChartView[]>(() => {})) }),
+		);
+		expect(screen.getByText("Contenido de la tabla")).toBeInTheDocument();
+		expect(screen.queryByRole("tablist")).toBeNull();
+		unmount();
+
+		renderTabs(makeApi({ listViews: vi.fn().mockRejectedValue(new CkanApiError("x", 500)) }));
+		expect(await screen.findByText("No se pudieron cargar los gráficos")).toBeInTheDocument();
+		expect(screen.getByText("Contenido de la tabla")).toBeInTheDocument();
+		expect(screen.queryByRole("tablist")).toBeNull();
 	});
 });
 
@@ -252,39 +331,25 @@ describe("ResourceCharts — «Insertar»", () => {
 		});
 		const { unmount } = renderCharts(api, false);
 
-		await screen.findByRole("heading", { name: "Otra vista" });
-		expect(screen.getAllByRole("button", { name: /^Insertar el gráfico/ })).toHaveLength(2);
+		await openChart("Otra vista");
+		expect(await screen.findByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: /Editar/ })).toBeNull();
 		unmount();
 
 		renderCharts(api, true);
-		await screen.findByRole("heading", { name: "Otra vista" });
-		expect(screen.getAllByRole("button", { name: /^Insertar el gráfico/ })).toHaveLength(2);
-		expect(screen.getAllByRole("link", { name: /Editar/ })).toHaveLength(2);
+		await openChart("Otra vista");
+		expect(await screen.findByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /Editar/ })).toBeInTheDocument();
 	});
 
 	it("abre el diálogo con el código del gráfico elegido", async () => {
 		renderCharts(makeApi());
+		await openChart();
 		await screen.findByRole("heading", { name: "Salario por turno" });
 
 		await fireEvent.click(screen.getByRole("button", { name: /^Insertar el gráfico/ }));
 
 		const code = (await screen.findByLabelText("Código para insertar")) as HTMLTextAreaElement;
 		expect(code.value).toContain("/embed/charts/view-1");
-	});
-
-	it("también está con la disposición en pestañas", async () => {
-		render(ResourceCharts, {
-			props: {
-				resourceId: "res-1",
-				datasetId: "planilla",
-				api: makeApi(),
-				canEdit: false,
-				layout: "tabs",
-			},
-		});
-		await fireEvent.click(await screen.findByRole("tab", { name: "Salario por turno" }));
-
-		expect(await screen.findByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
 	});
 });
