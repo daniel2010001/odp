@@ -228,3 +228,19 @@ describe("ResourceCharts — quien puede editar", () => {
 		expect(api.listViews).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe("ResourceCharts — los valores por defecto son la página de hoy", () => {
+	it("apilado: sin pestañas, con el título de la sección y «Crear gráfico» a su derecha, y sin tarjeta punteada", async () => {
+		const { container } = renderCharts(makeApi(), true);
+
+		const heading = await screen.findByRole("heading", { name: "Gráficos del recurso", level: 2 });
+		await screen.findByRole("heading", { name: "Salario por turno", level: 3 });
+		expect(screen.queryByRole("tablist")).toBeNull();
+		expect(screen.queryByRole("tab")).toBeNull();
+		// El enlace comparte la fila del título (hijo del mismo contenedor flex), no la lista ni una tarjeta.
+		const row = heading.parentElement?.parentElement as HTMLElement;
+		expect(within(row).getByRole("link", { name: /Crear gráfico/ })).toBeInTheDocument();
+		expect(container.querySelector(".border-dashed")).toBeNull();
+		expect(screen.getAllByRole("link", { name: /Crear gráfico/ })).toHaveLength(1);
+	});
+});
