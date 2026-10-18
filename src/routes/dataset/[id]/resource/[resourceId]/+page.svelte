@@ -26,6 +26,7 @@ import {
 } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
 import { canEditResourceCharts } from "$lib/charts/permission";
+import { ACCION_BASE } from "$lib/components/dataset/action-class";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
@@ -569,13 +570,19 @@ async function handleCopyResourceLink() {
 								href={downloadUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+								class={cn(
+									ACCION_BASE,
+									"border-transparent bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+								)}
 							>
+								<!-- La forma de las acciones del hero del dataset, la misma que «Crear gráfico», con el color
+								     coral de siempre para que descargar resalte (decisiones del autor, 2026-10-18). `cn`
+								     resuelve el choque: el fondo coral reemplaza al `bg-background` de la base. -->
 								{#if isLink}
-									<ExternalLink class="size-4" />
+									<ExternalLink class="size-4" aria-hidden="true" />
 									Abrir enlace
 								{:else}
-									<Download class="size-4" />
+									<Download class="size-4" aria-hidden="true" />
 									Descargar recurso
 								{/if}
 							</a>
