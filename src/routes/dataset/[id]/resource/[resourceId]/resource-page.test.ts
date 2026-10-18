@@ -19,10 +19,11 @@ const mocks = vi.hoisted(() => ({
 	showDataset: vi.fn(),
 	check: vi.fn(),
 	fetch: vi.fn(),
+	env: { CKAN_URL: "http://localhost:5000" },
 }));
 
 vi.mock("$lib/env", () => ({
-	env: { CKAN_URL: "http://localhost:5000" },
+	env: mocks.env,
 }));
 vi.mock("$lib/api/resources", () => ({
 	createResourceApi: () => ({ show: mocks.showResource }),
@@ -117,6 +118,7 @@ function renderedCodeBlocks(container: HTMLElement): string[] {
 beforeEach(() => {
 	vi.clearAllMocks();
 	auth.reset();
+	mocks.env.CKAN_URL = "http://localhost:5000";
 	setParams({ id: "matricula-2026", resourceId: "res-1" });
 	mocks.showResource.mockResolvedValue(makeResource());
 	mocks.showDataset.mockResolvedValue(makeDataset());
@@ -526,6 +528,32 @@ describe("Página de recurso — la sección de acceso por API", () => {
 		expect(curl).toContain("datastore_search");
 		expect(curl).toContain('"resource_id": "res-1"');
 		expect(codeBlocks.some((block) => block.includes("resource_show"))).toBe(false);
+	});
+
+	it("sin `PUBLIC_CKAN_URL` (la configuración real del stack), la dirección y el curl llevan el origen del portal", async () => {
+		// TODO del autor (2026-10-18): la dirección era un path, `/api/3/action/…`, y el curl copiado no
+		// funcionaba. El proxy del portal publica `/api/` hacia CKAN, así que el origen del portal es una
+		// dirección completa que funciona copiada tal cual.
+		mocks.env.CKAN_URL = "";
+		pageStore.set({
+			params: { id: "matricula-2026", resourceId: "res-1" },
+			url: new URL(`https://odp.hs.lan${RESOURCE_PATH}`),
+		});
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
+
+		const { container } = render(ResourcePage);
+
+		await screen.findByRole("heading", { name: /Acceso por API/i });
+		const codeBlocks = renderedCodeBlocks(container);
+		expect(codeBlocks).toContain(
+			"https://odp.hs.lan/api/3/action/datastore_search?resource_id=res-1",
+		);
+		const curl = codeBlocks.find((block) => block.startsWith("curl -X POST")) ?? "";
+		expect(curl.split("\n")[0]).toBe(
+			"curl -X POST https://odp.hs.lan/api/3/action/datastore_search \\",
+		);
 	});
 
 	it("un archivo alojado sin tabla (`datastore_active: false`) no muestra la sección ni ningún endpoint de datos", async () => {
