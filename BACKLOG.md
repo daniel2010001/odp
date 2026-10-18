@@ -2952,6 +2952,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   vuelva a desincronizar. Se cruza con P6 de `csv-charts`: el autor quiere guardar la banda del encabezado del recurso
   «para otras acciones».
 
+- [ ] **El breadcrumb de las páginas de gráficos, en una sola línea** (duda del autor, 2026-10-18, `csv-charts` L49,
+  textual: «antes mencioné algo como "truncar" un poco los titles para que entren todos en una sola línea»). En
+  `…/charts/new` y `…/charts/[viewId]/edit` la miga es la más larga del portal: inicio, organización, dataset, recurso
+  y la página. `Breadcrumb.svelte` ya trunca cada etiqueta (`truncate`, `min-w-0`) y en el teléfono se pliega a un chip
+  con menú. **Primero medir** en 1280 y 1440 px, con nombres reales largos, si ocupa más de una línea. Si la ocupa,
+  **decidir** entre un tope de ancho por etiqueta (con el texto completo en `title`) y plegar las del medio en «…».
+  _Es visual; el autor acepta hacerlo ahora o después._
+
 - [ ] **Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
   previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
   (`PRD.md:259`, «primeras 20 filas»). El autor la revisó con los 2.500 de la planilla y eligió **paginación**: anterior

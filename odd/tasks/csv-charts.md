@@ -125,6 +125,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
 | T7 | 3 CSV más para la demo: matrícula por facultad y gestión, ejecución presupuestaria mensual y producción de investigación; generadores deterministas con su mapa de tipos, y alta en el seed por el flujo (L42). El paso de tipos de xloader (L36) va aparte, cuando se haga el cambio — **hecha salvo correr el seed** (L43) | S5 | worker | `aeedd42` |
 | T7b | El seed declara los tipos con xloader (`datastore_create` `force` + `type_override`, y después `xloader_submit`), medido en vivo después del cambio de `odp-docker` (L36) — **hecha y corrida en vivo** (L45) | S5 | worker + verificación del padre | `0773a1e` |
+| P6d | Promover lo elegido en L49 a las páginas reales y borrar los dos playgrounds: el editor en tarjetas separadas con el panel a la derecha y un paso de rango por defecto; el recurso en pestañas con línea e íconos, y «Crear gráfico» en el hero | S1, S4 | dos workers | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -748,3 +749,24 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   - **Verificación del padre:** los tests de los dos playgrounds y de los componentes de gráficos pasan; los dos
     playgrounds responden 200.
   - **Sin medir:** el aspecto en un navegador, en particular el *sticky* y el espacio de 6 px.
+- **L49 (2026-10-18, decisiones del autor sobre P6c, textual):** «definitivamente tarjetas separadas. aprobado! una
+  cosa que quisiera es que en el input de los rangos usaramos un valor por default, 1 quisas, esto porque al cambiar y
+  mostrar ese input con un "error" da un poco de mala vista; junto con derecha. resource-view: botón en el hero, arriba.
+  pestañas lineales, pero con los íconos, esto me gustaba de la anterior versión, pero ahora veo que esa es pequeña en
+  comparación con la primera, mejor dejar la primera/nueva, pero podemos probar con íconos? creo que esto es todo. Una
+  duda que tengo es sobre el tema del breadcrum de las nuevas pages, cómo le hacemos? antes mencioné algo como "truncar"
+  un poco los titles para que entren todos en una sola línea, quisas ahora sea un buen momento de ver esto también, o lo
+  dejamos como un TODO? por mi cualquiera de los dos, es más visual que otra cosa. algo que me esté olvidando? merge
+  completo»
+  - **El editor:** el estilo `split`, con el panel a la derecha, pasa a ser el único, y se quitan los props de
+    variante. **El paso del rango por defecto, precisión del agente:** un paso fijo de `1` sobre `salario` (3.000 a
+    10.000) daría miles de grupos, y el servidor corta en 500 (`truncated`), lo que también se ve mal. Por eso el paso
+    por defecto se calcula con el mínimo y el máximo de la columna, para unos 10 rangos con un número redondo, y cae a
+    `1` si no se puede leer.
+  - **El recurso:** pestañas con línea, ahora con íconos, y «Crear gráfico» en el hero. Los íconos sobre la pestaña con
+    línea son la prueba que pidió el autor, y él la revisa sobre la página real.
+  - **El breadcrumb:** queda como TODO en el `BACKLOG.md`, con una medición previa. El componente ya trunca cada
+    etiqueta y en el teléfono se pliega a un chip, pero nadie midió si las páginas nuevas entran en una línea en el
+    escritorio.
+  - **El #89 está mergeado** (`3e6351f`). `main` se integró en `feat/chart-embed` (`daa3de6`) sin conflictos, y sin
+    duplicar el ítem del cargador.
