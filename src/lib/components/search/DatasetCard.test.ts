@@ -8,8 +8,11 @@ function makeTag(index: number): CkanTag {
 	return { id: name, name, display_name: name, state: "active" };
 }
 
-function makeResource(format: string): CkanResource {
+// Por defecto un archivo subido (`url_type: "upload"`): sólo un archivo conserva su formato en el chip;
+// un enlace (sin `url_type`) aporta «Enlace».
+function makeResource(format: string, kind: "upload" | "link" = "upload"): CkanResource {
 	return {
+		...(kind === "upload" ? { url_type: "upload" } : {}),
 		id: `res-${format}`,
 		package_id: "pkg-1",
 		name: `recurso-${format}`,
@@ -25,9 +28,12 @@ function makeResource(format: string): CkanResource {
 function makeDataset({
 	tags = 0,
 	formats = [],
+	links = [],
 }: {
 	tags?: number;
 	formats?: string[];
+	/** Formatos declarados por recursos que son enlaces externos. */
+	links?: string[];
 } = {}): CkanPackage {
 	return {
 		id: "pkg-1",
@@ -35,7 +41,10 @@ function makeDataset({
 		title: "Matrícula 2026",
 		private: false,
 		state: "active",
-		resources: formats.map(makeResource),
+		resources: [
+			...links.map((format) => makeResource(format, "link")),
+			...formats.map((format) => makeResource(format)),
+		],
 		tags: Array.from({ length: tags }, (_, index) => makeTag(index + 1)),
 		groups: [],
 		extras: [],
@@ -52,6 +61,25 @@ function cardLink(): HTMLAnchorElement {
 	if (link.tagName !== "A") throw new Error(`Se esperaba un <a> y llegó <${link.tagName}>`);
 	return link as HTMLAnchorElement;
 }
+
+describe("DatasetCard — un enlace no inventa formato", () => {
+	it("un enlace CSV y un PDF subido muestran «Enlace» y «PDF», sin «CSV»", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ links: ["CSV"], formats: ["PDF"] }) } });
+
+		expect(screen.getByText("Enlace")).toBeInTheDocument();
+		expect(screen.getByText("PDF")).toBeInTheDocument();
+		expect(screen.queryByText("CSV")).not.toBeInTheDocument();
+	});
+
+	it("si todos los recursos son enlaces, el único chip es «Enlace»", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ links: ["CSV", "JSON", "PDF"] }) } });
+
+		expect(screen.getAllByText("Enlace")).toHaveLength(1);
+		for (const formato of ["CSV", "JSON", "PDF"]) {
+			expect(screen.queryByText(formato)).not.toBeInTheDocument();
+		}
+	});
+});
 
 describe("DatasetCard — recorte de tags y formatos", () => {
 	it("con 5 tags muestra 3 y un `+2` pelado", () => {
