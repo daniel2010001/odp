@@ -662,3 +662,11 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     separado:** los tests se escribieron con el código.
   - **Sin correr:** el seed. Con el cambio a xloader en curso, los CSV nuevos entrarían como texto, así que se corre
     junto con T7b. Riesgo menor: las descripciones del seed llevan el número de filas escrito a mano.
+- **L44 (2026-10-17, el stack dev corre con xloader, aviso de `odp-docker` y verificación del padre):** `status_show`:
+  CKAN 2.12.0 con `xloader` (sin `datapusher`). Corre `ckan-worker-dev` y el contenedor del DataPusher ya no existe; el
+  DataStore da `SHOW datestyle` = `ISO, DMY`. `odp-docker` comparó en Postgres la tabla de la planilla antes y después:
+  mismos tipos y las mismas 2.500 filas. **El padre lo verificó por el puente, sin sesión:** `umss_chart_data` con
+  `view_id` de la vista guardada devuelve mañana 8.496,75, noche 3.986,38, tarde 6.217,84 y «Sin dato» 6.397,76
+  (`total_rows` 2.500), los mismos valores que L15. La forma de editor sin sesión responde `Authorization Error`, como
+  debe. **Para T7b:** un `xloader_submit` sobre un archivo que no cambió se salta por el hash, así que después del
+  `type_override` va con `ignore_hash: true`.
