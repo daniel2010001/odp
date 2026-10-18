@@ -9,7 +9,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PROFILES } from "./generate-demo-files.mjs";
-import { buildBaseDatasets, DEMOS, readJson, SHOWCASE, sessionHeaders } from "./seed-ckan.mjs";
+import {
+	buildBaseDatasets,
+	DEMOS,
+	readJson,
+	SHOWCASE,
+	sessionHeaders,
+	uploadForm,
+} from "./seed-ckan.mjs";
 
 const datasets = [...buildBaseDatasets(), SHOWCASE];
 const resources = datasets.flatMap((ds) => ds.resources.map((resource) => ({ ds, resource })));
@@ -105,4 +112,25 @@ test("sessionHeaders manda el token CSRF, la cookie y un Referer del mismo orige
 	assert.equal(headers["Content-Type"], "application/json");
 	assert.equal(headers.Referer, "https://api.demo.odp.hs.lan/");
 	assert.equal(new URL(headers.Referer).origin, "https://api.demo.odp.hs.lan");
+});
+
+// CKAN sólo adivina el `mimetype` por la extensión, y `.geojson` no la conoce: quedaba vacío, el archivo se
+// servía como `application/octet-stream` y el iframe de la vista previa quedaba en blanco (demo, 2026-10-18).
+// Con `mimetype` explícito, CKAN lo guarda (update.py:339) y lo usa como `Content-Type` (resource.py:202).
+test("uploadForm declara el mimetype del formato, y el GeoJSON como application/geo+json", () => {
+	const geo = [...buildBaseDatasets(), SHOWCASE]
+		.flatMap((ds) => ds.resources)
+		.find((resource) => resource.format === "GeoJSON");
+	const form = uploadForm("pkg-1", geo, new Uint8Array([123, 125]));
+	assert.equal(form.get("mimetype"), "application/geo+json");
+	assert.equal(form.get("format"), "GeoJSON");
+	assert.equal(form.get("package_id"), "pkg-1");
+	assert.equal(form.get("upload").type, "application/geo+json");
+});
+
+test("uploadForm no declara mimetype para un recurso sin `mime` (los CSV de DEMOS siguen igual)", () => {
+	const csv = DEMOS.find((demo) => demo.resource.format === "CSV").resource;
+	const form = uploadForm("pkg-1", csv, new Uint8Array([97]));
+	assert.equal(form.get("mimetype"), null);
+	assert.equal(form.get("upload").type, "text/csv");
 });

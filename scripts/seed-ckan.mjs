@@ -860,18 +860,29 @@ async function ensureTyped(token, resourceId, demo, rowCount) {
 
 // `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
 // campo `upload` no existe y el recurso queda url-only (sin archivo que mostrar ni cargar).
-async function uploadResource(token, packageId, resource, bytes) {
+//
+// El `mimetype` va explícito cuando el recurso lo declara: CKAN sólo lo adivina por la extensión, y
+// `.geojson` no la conoce. Quedaba vacío, el archivo se servía como `application/octet-stream` y el
+// iframe de la vista previa quedaba en blanco (demo, 2026-10-18). Con el campo, CKAN lo guarda
+// (`update.py:339`) y lo usa como `Content-Type` al servir el archivo (`views/resource.py:202`).
+export function uploadForm(packageId, resource, bytes) {
 	const form = new FormData();
 	form.set("package_id", packageId);
 	form.set("name", resource.name);
 	form.set("description", resource.description);
 	form.set("format", resource.format);
+	if (resource.mime) form.set("mimetype", resource.mime);
 	// El nombre del archivo viaja en el `filename` del Blob; CKAN lo usa para `url_type: upload`.
 	form.append(
 		"upload",
 		new Blob([bytes], { type: resource.mime ?? "text/csv" }),
 		resource.filename ?? basename(resource.path),
 	);
+	return form;
+}
+
+async function uploadResource(token, packageId, resource, bytes) {
+	const form = uploadForm(packageId, resource, bytes);
 
 	const res = await fetch(`${CKAN_URL}/api/3/action/resource_create`, {
 		method: "POST",
