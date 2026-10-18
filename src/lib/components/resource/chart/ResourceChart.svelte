@@ -2,7 +2,7 @@
 import { Area, AreaChart, BarChart, Bars, Labels, LinearGradient, PieChart } from "layerchart";
 import { type ChartGroup, type ChartType, groupLabels, type XBucket } from "$lib/charts/contract";
 import { formatChartNumber } from "$lib/charts/format";
-import { type BarValueLabels, barValueFormatter, valueLabelsFit } from "$lib/charts/value-labels";
+import { formatCompactNumber, valueLabelsFit } from "$lib/charts/value-labels";
 
 // El gráfico en sí: dibuja los grupos que le dan, ya agregados por el servidor.
 //
@@ -23,7 +23,6 @@ let {
 	xLabel,
 	yLabel,
 	showTable = true,
-	valueLabels = { mode: "off", placement: "outside", format: "full" },
 }: {
 	groups: ChartGroup[];
 	chartType: ChartType;
@@ -32,11 +31,7 @@ let {
 	xLabel: string;
 	yLabel: string;
 	showTable?: boolean;
-	/** Los valores sobre las barras: en prueba en `/dev/chart-values` (regla 8); apagado por defecto. */
-	valueLabels?: BarValueLabels;
 } = $props();
-
-const formatBarValue = $derived(barValueFormatter(valueLabels.format));
 
 const PALETTE = [
 	"var(--chart-1)",
@@ -149,8 +144,10 @@ const name = $derived(
 );
 </script>
 
-<!-- Las barras con su valor: mismas barras y mismo atenuado al resaltar que las de la biblioteca, más los
-     rótulos. «Sólo si caben» compara el ancho de cada barra con el del rótulo más largo. -->
+<!-- Las barras con su valor encima, en formato compacto y sólo si caben (elección del autor, 2026-10-18): mismas
+     barras y mismo atenuado al resaltar que las de la biblioteca, más los rótulos. «Si caben» compara el ancho de
+     cada barra con el del rótulo más largo; si alguno no cabe, no se escribe ninguno y quedan el tooltip y la tabla,
+     que dan el valor exacto. -->
 {#snippet barMarks({ context }: { context: any })}
 	<Bars
 		seriesKey="value"
@@ -159,13 +156,13 @@ const name = $derived(
 		radius={6}
 		opacity={(d: any) => (context.series.isHighlighted(context.cKey(d) ?? "value", true) ? 1 : 0.1)}
 	/>
-	{#if valueLabels.mode === "on" || valueLabelsFit(context.xScale.bandwidth?.() ?? 0, points.map((p) => formatBarValue(p.value)))}
+	{#if valueLabelsFit(context.xScale.bandwidth?.() ?? 0, points.map((p) => formatCompactNumber(p.value)))}
 		<g class="bar-value-labels" aria-hidden="true">
 			<Labels
 				seriesKey="value"
-				placement={valueLabels.placement}
-				format={formatBarValue}
-				fill={valueLabels.placement === "inside" ? "var(--primary-foreground)" : "var(--foreground)"}
+				placement="outside"
+				format={formatCompactNumber}
+				fill="var(--foreground)"
 				class="text-[11px] font-medium tabular-nums"
 			/>
 		</g>
@@ -183,7 +180,7 @@ const name = $derived(
 					series={[{ key: "value", label: yLabel, color: "var(--chart-1)" }]}
 					padding={{
 						// El valor encima de la barra más alta necesita aire para no recortarse contra el borde.
-						top: valueLabels.mode !== "off" && valueLabels.placement === "outside" ? 22 : 8,
+						top: 22,
 						right: 8,
 						bottom: 64,
 						left: 48,
@@ -191,9 +188,8 @@ const name = $derived(
 					grid={{ x: false, y: { stroke: "var(--border)", strokeWidth: 1, opacity: 0.7 } }}
 					rule={false}
 					{motion}
-					marks={valueLabels.mode === "off" ? undefined : barMarks}
+					marks={barMarks}
 					props={{
-						bars: { stroke: "none", rounded: "all", radius: 6 },
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
 						xAxis: { tickMarks: false, ticks: barTicks, format: axisLabelAt, tickLabelProps: mutedTicks },
 						yAxis: { tickMarks: false, format: formatChartNumber, tickLabelProps: mutedTicks },

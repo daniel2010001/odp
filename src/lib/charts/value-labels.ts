@@ -1,41 +1,38 @@
-// Los valores escritos sobre las barras: en prueba en `/dev/chart-values` (regla 8), apagados por defecto.
-//
-// Dos decisiones viven acá para que el componente y el playground digan lo mismo: cómo se abrevia un número
-// largo y cuándo un rótulo no cabe sobre su barra.
+// Los valores escritos sobre las barras (elección del autor, 2026-10-18): encima, en formato compacto y sólo si
+// caben. Dos decisiones viven acá: cómo se abrevia un número largo y cuándo un rótulo no cabe sobre su barra.
 
 import { formatChartNumber } from "./format";
 
-export type ValueLabelsMode = "off" | "on" | "fit";
-export type ValueLabelsPlacement = "outside" | "inside";
-export type ValueLabelsFormat = "full" | "compact";
+const SIGNIFICANT_DIGITS = 3;
+const SIGNIFICANT = new Intl.NumberFormat("es-BO", {
+	maximumSignificantDigits: SIGNIFICANT_DIGITS,
+});
 
-export interface BarValueLabels {
-	mode: ValueLabelsMode;
-	placement: ValueLabelsPlacement;
-	format: ValueLabelsFormat;
-}
-
-const ONE_DECIMAL = new Intl.NumberFormat("es-BO", { maximumFractionDigits: 1 });
+const UNITS = [
+	{ size: 1_000_000_000, suffix: "mil M" },
+	{ size: 1_000_000, suffix: "M" },
+	{ size: 1_000, suffix: "mil" },
+];
 
 /**
  * La abreviatura es propia y no `notation: "compact"`: en es-BO, `Intl` escribe «1,2 K» y «45,2 k» (medido el
  * 2026-10-18), dos unidades distintas para la misma magnitud.
+ *
+ * Tres cifras significativas y no un decimal fijo: con un decimal, 1.049 se leía «1 mil», un 4,7 % menos (duda del
+ * autor sobre el redondeo, 2026-10-18). Con tres, el error queda por debajo del 0,5 %, y el valor exacto sigue en el
+ * tooltip y en la tabla. La unidad se elige sobre el valor **ya redondeado**, para que 999.950 sea «1 M» y no
+ * «1.000 mil». Por debajo de mil no se abrevia.
  */
-function formatCompact(value: number | string | null | undefined): string {
+export function formatCompactNumber(value: number | string | null | undefined): string {
 	const number = typeof value === "number" ? value : Number(value);
 	if (value === null || value === undefined || value === "" || !Number.isFinite(number)) {
 		return formatChartNumber(value);
 	}
-	const abs = Math.abs(number);
-	if (abs >= 1_000_000) return `${ONE_DECIMAL.format(number / 1_000_000)} M`;
-	if (abs >= 1_000) return `${ONE_DECIMAL.format(number / 1_000)} mil`;
-	return formatChartNumber(number);
-}
-
-export function barValueFormatter(
-	format: ValueLabelsFormat,
-): (value: number | string | null | undefined) => string {
-	return format === "compact" ? formatCompact : formatChartNumber;
+	const rounded = Number(Math.abs(number).toPrecision(SIGNIFICANT_DIGITS));
+	const unit = UNITS.find((u) => rounded >= u.size);
+	return unit
+		? `${SIGNIFICANT.format(number / unit.size)} ${unit.suffix}`
+		: formatChartNumber(number);
 }
 
 /** El ancho medio de un carácter del rótulo (11 px, cifras tabulares) y el aire a cada lado. */
