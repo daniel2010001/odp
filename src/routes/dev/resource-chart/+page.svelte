@@ -5,10 +5,9 @@
 	**doble** del servidor (`fake-api.ts`): la acción `umss_chart_data` todavía no existe en vivo, así que acá
 	se revisa el formulario contra la respuesta del contrato y no contra un catálogo que no puede contestar.
 
-	El panel global es **liviano** y sólo tiene presets de caso: los interruptores de variante —«Estilo del
-gráfico» y «Paleta»— viven al lado del gráfico, que es lo que cambia (regla 8). El rótulo de los rangos
-numéricos ya está decidido (L21): el eje escribe «0–5000» y la tabla el intervalo exacto «[0, 5000)», sin nada
-que elegir.
+	El panel global es **liviano** y sólo tiene presets de caso. El estilo del gráfico («Nuevo», L28) y la paleta
+	(«De la marca», `--chart-1..5` de `src/app.css`, L32) ya están decididos y no hay interruptores. El rótulo de
+	los rangos numéricos también (L21): el eje escribe «0–5000» y la tabla el intervalo exacto «[0, 5000)».
 
 	La vista previa tiene dos niveles (L28): tipo de gráfico, título y descripción se aplican al instante, y las
 	opciones de datos piden los grupos solas. No hay botón «Vista previa» que pulsar ni que bajar a buscar.
@@ -19,12 +18,10 @@ que elegir.
 <script lang="ts">
 import { page } from "$app/state";
 import type { ChartDraft } from "$lib/charts/form";
-import { findPalette, type PaletteId, paletteStyle } from "$lib/charts/palettes";
 import ChartForm from "$lib/components/resource/chart/ChartForm.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { createFakeChartApi, type FakeScenario } from "./fake-api";
 import { demoTable } from "./fixtures";
-import PaletteSwitch from "./PaletteSwitch.svelte";
 
 type PresetId =
 	| "turno-salario"
@@ -154,40 +151,12 @@ let presetId = $state<PresetId>(
 		? (initialPreset as PresetId)
 		: "turno-salario",
 );
-// Igual que `?case=`: `?palette=` sólo es el estado inicial; el interruptor no reescribe la URL.
-let paletteId = $state<PaletteId>(findPalette(page.url.searchParams.get("palette")).id);
-const palette = $derived(findPalette(paletteId));
-// «Actual» no toca nada: los tokens de `src/app.css` llegan tal cual.
-const chartScope = $derived(
-	palette.id === "current"
-		? undefined
-		: { class: "playground-palette", style: paletteStyle(palette) },
-);
 const TABLE = demoTable();
 const preset = $derived(PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0]);
 const api = $derived(createFakeChartApi({ table: TABLE, scenario: preset.scenario }));
 </script>
 
 <svelte:head><title>Playground · gráfico del recurso</title></svelte:head>
-
-<style>
-	/* Las paletas candidatas pisan `--chart-1..5` sólo dentro del contenedor del gráfico; claro y oscuro
-	   salen de las variables `--palette-*` que llegan en línea (src/lib/charts/palettes.ts). */
-	:global(.playground-palette) {
-		--chart-1: var(--palette-light-1);
-		--chart-2: var(--palette-light-2);
-		--chart-3: var(--palette-light-3);
-		--chart-4: var(--palette-light-4);
-		--chart-5: var(--palette-light-5);
-	}
-	:global(.dark .playground-palette) {
-		--chart-1: var(--palette-dark-1);
-		--chart-2: var(--palette-dark-2);
-		--chart-3: var(--palette-dark-3);
-		--chart-4: var(--palette-dark-4);
-		--chart-5: var(--palette-dark-5);
-	}
-</style>
 
 <div class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
 	<header>
@@ -245,12 +214,7 @@ const api = $derived(createFakeChartApi({ table: TABLE, scenario: preset.scenari
 					initialTitle={preset.title}
 					initialDescription={preset.description}
 					initialConfig={preset.config}
-					{chartScope}
-				>
-					{#snippet chartTools()}
-						<PaletteSwitch selected={palette} onselect={(id) => (paletteId = id)} />
-					{/snippet}
-				</ChartForm>
+				/>
 			{/key}
 		</div>
 	</Card>

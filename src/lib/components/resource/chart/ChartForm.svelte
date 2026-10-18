@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Loader2 } from "@lucide/svelte";
-import { type Snippet, untrack } from "svelte";
+import { untrack } from "svelte";
 import type { ChartApi } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
 import { describeFailure } from "$lib/api/failure";
@@ -29,7 +29,7 @@ import { xAxisLabel, yAxisLabel } from "$lib/charts/labels";
 import { adaptServerValidation } from "$lib/charts/validation";
 import Button from "$lib/components/ui/button/button.svelte";
 import ChartSelect from "./ChartSelect.svelte";
-import ResourceChart, { type ChartStyle } from "./ResourceChart.svelte";
+import ResourceChart from "./ResourceChart.svelte";
 
 // El formulario con el que **quien publica** configura el gráfico de un recurso (S1, S7).
 //
@@ -53,8 +53,6 @@ let {
 	initialTitle = "",
 	initialDescription = "",
 	initialConfig,
-	chartScope,
-	chartTools,
 }: {
 	fields: DatastoreField[];
 	api: Pick<ChartApi, "preview" | "createView">;
@@ -63,10 +61,6 @@ let {
 	initialDescription?: string;
 	/** El borrador de arranque; el playground lo usa para abrir cada caso ya configurado. */
 	initialConfig?: Partial<ChartDraft>;
-	/** Clase y variables en línea del contenedor del gráfico: el playground las usa para probar paletas. */
-	chartScope?: { class?: string; style?: string };
-	/** Controles de revisión que van al lado del gráfico, junto al interruptor de estilo (regla 8). */
-	chartTools?: Snippet;
 } = $props();
 
 const TYPE_OPTIONS: { value: ChartType; label: string }[] = [
@@ -92,15 +86,6 @@ const AGG_OPTIONS: { value: YAggregate; label: string }[] = [
 	{ value: "max", label: "Máximo" },
 ];
 
-/**
- * Los dos estilos del gráfico, para comparar en el playground (L28, decisión 3). Vive al lado del gráfico y
- * no en el panel global porque es una variante de lo que se está mirando, no del caso de prueba.
- */
-const STYLE_OPTIONS: { value: ChartStyle; label: string }[] = [
-	{ value: "current", label: "Actual" },
-	{ value: "new", label: "Nuevo" },
-];
-
 /** La pausa de las opciones de datos antes de pedir la vista previa (L28, decisión 1). */
 const PREVIEW_DEBOUNCE_MS = 400;
 
@@ -119,9 +104,6 @@ let draft = $state<ChartDraft>(
 /** El estado con el que abrió, para que «Cancelar» tenga a dónde volver mientras el formulario vive acá. */
 const initialDraft = untrack(() => draft);
 const initialText = untrack(() => ({ title, description }));
-
-/** El estilo que el autor evalúa; arranca en «Nuevo» para que sea lo primero que ve. */
-let chartStyle = $state<ChartStyle>("new");
 
 /**
  * El borrador **ya reconciliado** con las columnas vigentes. Es una derivación y no un efecto que reescribe
@@ -531,8 +513,7 @@ async function save() {
 	<section
 		aria-labelledby="{uid}-chart"
 		aria-busy={busy}
-		class="min-w-0 space-y-3 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:flex-1 {chartScope?.class ?? ''}"
-		style={chartScope?.style}
+		class="min-w-0 space-y-3 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:flex-1"
 	>
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<div>
@@ -543,29 +524,7 @@ async function save() {
 					Se calcula con los datos cargados del recurso.
 				</p>
 			</div>
-
-			<div
-				role="group"
-				aria-label="Estilo del gráfico"
-				class="inline-flex rounded-md border border-input bg-background p-0.5"
-			>
-				{#each STYLE_OPTIONS as option (option.value)}
-					<button
-						type="button"
-						aria-pressed={chartStyle === option.value}
-						onclick={() => (chartStyle = option.value)}
-						class="cursor-pointer rounded-sm px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none {chartStyle ===
-						option.value
-							? 'bg-primary text-primary-foreground'
-							: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
-					>
-						{option.label}
-					</button>
-				{/each}
-			</div>
 		</div>
-
-		{@render chartTools?.()}
 
 		{#if busy}
 			<p class="flex items-center gap-2 text-sm text-muted-foreground" role="status">
@@ -604,7 +563,6 @@ async function save() {
 						step={shown.config.x_step}
 						{xLabel}
 						{yLabel}
-						variant={chartStyle}
 					/>
 				{/if}
 			</div>

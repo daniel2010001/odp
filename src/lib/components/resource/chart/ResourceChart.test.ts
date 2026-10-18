@@ -69,16 +69,11 @@ describe("ResourceChart — los rangos numéricos se escriben de las dos formas 
 	});
 });
 
-describe("ResourceChart — el estilo nuevo (L28, decisión 3)", () => {
-	// Los dos estilos viven en el mismo componente: `variant` elige cuál se dibuja, así que promover el nuevo
-	// es cambiar su valor por defecto. Lo que se fija acá es lo que el estilo nuevo agrega —la dona con el
-	// total en el centro— y lo que **no** puede perder: los rótulos de los rangos decididos en L21.
+describe("ResourceChart — el estilo del gráfico (L28, decisión 3)", () => {
+	// Lo que el estilo agrega —la dona con el total en el centro— y lo que **no** puede perder: los rótulos de
+	// los rangos decididos en L21.
 
-	function renderStyled(
-		groups: ChartGroup[],
-		chartType: "bar" | "pie",
-		variant: "current" | "new",
-	) {
+	function renderStyled(groups: ChartGroup[], chartType: "bar" | "pie") {
 		return render(ResourceChart, {
 			props: {
 				groups,
@@ -87,28 +82,20 @@ describe("ResourceChart — el estilo nuevo (L28, decisión 3)", () => {
 				step: 5000,
 				xLabel: "salario",
 				yLabel: "Cantidad de filas",
-				variant,
 			},
 		});
 	}
 
 	it("el pastel es una dona con el total en el centro, y el total también está en la etiqueta accesible", () => {
-		renderStyled(GROUPS, "pie", "new");
+		renderStyled(GROUPS, "pie");
 
 		expect(screen.getByText("Total")).toBeInTheDocument();
 		expect(screen.getByText("11")).toBeInTheDocument();
 		expect(screen.getByRole("img")).toHaveAccessibleName(/Total: 11/);
 	});
 
-	it("el estilo actual no dibuja la dona ni el total", () => {
-		renderStyled(GROUPS, "pie", "current");
-
-		expect(screen.queryByText("Total")).toBeNull();
-		expect(screen.getByRole("img")).not.toHaveAccessibleName(/Total/);
-	});
-
-	it("el estilo nuevo conserva los dos rótulos del rango: el eje «0–5000» y la tabla «[0, 5000)»", () => {
-		renderStyled(GROUPS, "bar", "new");
+	it("conserva los dos rótulos del rango: el eje «0–5000» y la tabla «[0, 5000)»", () => {
+		renderStyled(GROUPS, "bar");
 
 		expect(within(axis()).getByText("0–5000")).toBeInTheDocument();
 		const rows = within(table()).getAllByRole("row").slice(1);
