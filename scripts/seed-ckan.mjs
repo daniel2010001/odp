@@ -172,7 +172,7 @@ async function login() {
 			csrf = await csrfToken(jar);
 			continue;
 		}
-		const payload = await mint.json();
+		const payload = await readJson(mint, "api_token_create");
 		if (!payload.success || !payload.result?.token) {
 			throw new Error(`api_token_create falló: ${JSON.stringify(payload.error ?? {})}`);
 		}
@@ -183,13 +183,28 @@ async function login() {
 	return { jar, csrf, token, jti };
 }
 
+/**
+ * El cuerpo JSON de una respuesta de CKAN. Si no es JSON —una página de error HTML de CKAN o del proxy—
+ * se informa con su status, su URL y el comienzo del cuerpo, en vez del «Unexpected token '<'» del
+ * parseo, que no dice qué pedido falló (demo, 2026-10-18).
+ */
+export async function readJson(res, label) {
+	const text = await res.text();
+	try {
+		return JSON.parse(text);
+	} catch {
+		const start = text.slice(0, 200).replace(/\s+/g, " ").trim();
+		throw new Error(`${label}: HTTP ${res.status} ${res.url} no respondió JSON: ${start}`);
+	}
+}
+
 async function api(token, action, data) {
 	const res = await fetch(`${CKAN_URL}/api/3/action/${action}`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json", Authorization: token },
 		body: JSON.stringify(data),
 	});
-	return res.json();
+	return readJson(res, action);
 }
 
 // ── Publicación: el seed publica por el flujo, como lo haría una persona ──
@@ -858,7 +873,7 @@ async function uploadResource(token, packageId, resource, bytes) {
 		headers: { Authorization: token },
 		body: form,
 	});
-	return res.json();
+	return readJson(res, "resource_create");
 }
 
 function leftPrivate(name, missing = "sus tipos") {

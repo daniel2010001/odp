@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PROFILES } from "./generate-demo-files.mjs";
-import { buildBaseDatasets, DEMOS, SHOWCASE } from "./seed-ckan.mjs";
+import { buildBaseDatasets, DEMOS, readJson, SHOWCASE } from "./seed-ckan.mjs";
 
 const datasets = [...buildBaseDatasets(), SHOWCASE];
 const resources = datasets.flatMap((ds) => ds.resources.map((resource) => ({ ds, resource })));
@@ -67,4 +67,25 @@ test("los recursos de DEMOS siguen siendo subidas desde scripts/data con su ruta
 	assert.equal(DEMOS.length, 5);
 	for (const demo of DEMOS) assert.match(demo.resource.path, /scripts[\\/]data[\\/]/);
 	assert.equal(DEMOS.filter((demo) => demo.types).length, 4);
+});
+
+// Una respuesta que no es JSON (una página de error HTML de CKAN o del proxy) se informa con su status,
+// su URL y el comienzo del cuerpo, en vez del «Unexpected token '<'» del parseo (demo, 2026-10-18).
+test("readJson informa status, URL y comienzo del cuerpo cuando la respuesta no es JSON", async () => {
+	const html = new Response("<!DOCTYPE html><html><title>400 Bad Request</title></html>", {
+		status: 400,
+		headers: { "Content-Type": "text/html" },
+	});
+	Object.defineProperty(html, "url", { value: "https://ckan.test/api/3/action/api_token_create" });
+	await assert.rejects(readJson(html, "api_token_create"), (error) => {
+		assert.match(error.message, /^api_token_create: HTTP 400 /);
+		assert.match(error.message, /https:\/\/ckan\.test\/api\/3\/action\/api_token_create/);
+		assert.match(error.message, /<!DOCTYPE html><html><title>400 Bad Request/);
+		return true;
+	});
+});
+
+test("readJson devuelve el cuerpo parseado cuando la respuesta es JSON", async () => {
+	const ok = new Response(JSON.stringify({ success: true, result: { token: "t" } }), { status: 200 });
+	assert.deepEqual(await readJson(ok, "api_token_create"), { success: true, result: { token: "t" } });
 });
