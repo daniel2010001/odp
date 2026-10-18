@@ -1,5 +1,5 @@
 <script lang="ts">
-import { BarChart3, Pencil, Plus, Trash2 } from "@lucide/svelte";
+import { BarChart3, Pencil, Plus, Table, Trash2 } from "@lucide/svelte";
 import { Dialog, Tabs } from "bits-ui";
 import type { Snippet } from "svelte";
 import type { ChartApi, ChartView } from "$lib/api/charts";
@@ -7,7 +7,7 @@ import { describeFailure } from "$lib/api/failure";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import CreateChartLink from "../views/CreateChartLink.svelte";
-import type { ChartsLayout, CreatePlacement } from "../views/types";
+import type { ChartsLayout, CreatePlacement, TabStyle } from "../views/types";
 import ChartViewBody from "./ChartViewBody.svelte";
 import EmbedChartDialog from "./EmbedChartDialog.svelte";
 
@@ -17,15 +17,18 @@ import EmbedChartDialog from "./EmbedChartDialog.svelte";
 //
 // `canEdit` sólo decide qué se **ofrece**: el servidor exige `resource_update` de todos modos.
 //
-// `layout`, `createPlacement` y `table` son variantes en revisión (`/dev/resource-views`); sus valores por
+// `layout`, `tabStyle`, `createPlacement` y `table` son variantes en revisión (`/dev/resource-views`); sus valores por
 // defecto son la página de hoy. Con `layout="tabs"` la primera pestaña muestra `table` (la vista previa, que
-// vive fuera de este componente) y cada gráfico tiene la suya.
+// vive fuera de este componente) y cada gráfico tiene la suya. `tabStyle` elige cómo se dibujan: `underline` (barra
+// con línea, la tabla y los gráficos en tarjetas propias) o `segmented` (el diseño anterior a `ce8670a`: control
+// segmentado con íconos en la banda de una sola tarjeta; en ese caso `table` es sólo el contenido de la tabla).
 let {
 	resourceId,
 	datasetId,
 	api,
 	canEdit,
 	layout = "stacked",
+	tabStyle = "underline",
 	createPlacement = "heading",
 	table,
 }: {
@@ -34,6 +37,7 @@ let {
 	api: Pick<ChartApi, "listViews" | "data" | "deleteView">;
 	canEdit: boolean;
 	layout?: ChartsLayout;
+	tabStyle?: TabStyle;
 	createPlacement?: CreatePlacement;
 	table?: Snippet;
 } = $props();
@@ -122,12 +126,26 @@ $effect(() => {
 	}
 });
 
+const tabItems = $derived([
+	{ id: "table", title: "Tabla", icon: Table },
+	...(list.status === "ready"
+		? list.views.map((v) => ({ id: v.id, title: viewTitle(v), icon: BarChart3 }))
+		: []),
+]);
+const segmented = $derived(tabStyle === "segmented");
+
 const actionClass =
 	"inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
 </script>
 
 {#snippet chartCard(view: ChartView)}
 	<Card class="space-y-4 p-5 sm:p-6">
+		{@render chartBody(view)}
+	</Card>
+{/snippet}
+
+{#snippet chartBody(view: ChartView)}
+	<div class="space-y-4">
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div class="min-w-0">
 				<h3 class="font-heading text-lg font-bold text-foreground">{viewTitle(view)}</h3>
@@ -162,7 +180,7 @@ const actionClass =
 			</div>
 		</div>
 		<ChartViewBody {view} {api} />
-	</Card>
+	</div>
 {/snippet}
 
 {#snippet addCard()}
@@ -207,32 +225,76 @@ const actionClass =
 	{#if tabbed}
 		<h2 id="resource-charts-heading" class="sr-only">Vista previa y gráficos del recurso</h2>
 		<Tabs.Root bind:value={activeTab}>
-			<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border">
-				<Tabs.List class="-mb-px flex flex-wrap gap-1" aria-label="Vistas del recurso">
-					{#each [{ id: "table", title: "Tabla" }, ...(list.status === "ready" ? list.views.map((v) => ({ id: v.id, title: viewTitle(v) })) : [])] as tab (tab.id)}
-						<Tabs.Trigger
-							value={tab.id}
-							class="inline-flex h-10 cursor-pointer items-center border-b-2 border-transparent px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-primary motion-reduce:transition-none"
-						>
-							{tab.title}
-						</Tabs.Trigger>
-					{/each}
-				</Tabs.List>
-				{#if canEdit && place === "tabs"}
-					<div class="pb-1">
-						<CreateChartLink href="{basePath}/new" compact />
+			{#if segmented}
+				<Card class="overflow-hidden border-primary/20">
+					<div
+						class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3"
+					>
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+							{activeTab === "table" ? "Vista previa" : "Gráfico"}
+						</p>
+						<div class="flex flex-wrap items-center gap-3">
+							<Tabs.List
+								class="flex flex-wrap items-center gap-1 rounded-md border border-border bg-background p-0.5"
+								aria-label="Vistas del recurso"
+							>
+								{#each tabItems as tab (tab.id)}
+									{@const Icon = tab.icon}
+									<Tabs.Trigger
+										value={tab.id}
+										class="inline-flex max-w-56 cursor-pointer items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground motion-reduce:transition-none"
+									>
+										<Icon class="size-3.5 shrink-0" aria-hidden="true" />
+										<span class="truncate">{tab.title}</span>
+									</Tabs.Trigger>
+								{/each}
+							</Tabs.List>
+							{#if canEdit && place === "tabs"}
+								<CreateChartLink href="{basePath}/new" compact />
+							{/if}
+						</div>
 					</div>
-				{/if}
-			</div>
-			<Tabs.Content value="table" class="pt-4">
-				{@render table?.()}
-			</Tabs.Content>
-			{#if list.status === "ready"}
-				{#each list.views as view (view.id)}
-					<Tabs.Content value={view.id} class="pt-4">
-						{@render chartCard(view)}
+					<Tabs.Content value="table">
+						{@render table?.()}
 					</Tabs.Content>
-				{/each}
+					{#if list.status === "ready"}
+						{#each list.views as view (view.id)}
+							<Tabs.Content value={view.id} class="p-5 sm:p-6">
+								{@render chartBody(view)}
+							</Tabs.Content>
+						{/each}
+					{/if}
+				</Card>
+			{:else}
+				<!-- El botón queda centrado en la barra, con holgura sobre la línea: la barra mide lo que la pestaña
+				     (h-12) y el botón (h-9) deja 6 px arriba y abajo; nunca toca el borde. -->
+				<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border">
+					<Tabs.List class="-mb-px flex flex-wrap gap-1" aria-label="Vistas del recurso">
+						{#each tabItems as tab (tab.id)}
+							<Tabs.Trigger
+								value={tab.id}
+								class="inline-flex h-12 cursor-pointer items-center border-b-2 border-transparent px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-primary motion-reduce:transition-none"
+							>
+								{tab.title}
+							</Tabs.Trigger>
+						{/each}
+					</Tabs.List>
+					{#if canEdit && place === "tabs"}
+						<div class="py-1.5">
+							<CreateChartLink href="{basePath}/new" compact />
+						</div>
+					{/if}
+				</div>
+				<Tabs.Content value="table" class="pt-4">
+					{@render table?.()}
+				</Tabs.Content>
+				{#if list.status === "ready"}
+					{#each list.views as view (view.id)}
+						<Tabs.Content value={view.id} class="pt-4">
+							{@render chartCard(view)}
+						</Tabs.Content>
+					{/each}
+				{/if}
 			{/if}
 		</Tabs.Root>
 		{#if list.status !== "ready" || list.views.length === 0}
