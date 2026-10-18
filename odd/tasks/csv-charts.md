@@ -770,3 +770,9 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     escritorio.
   - **El #89 está mergeado** (`3e6351f`). `main` se integró en `feat/chart-embed` (`daa3de6`) sin conflictos, y sin
     duplicar el ítem del cargador.
+- **L50 (2026-10-18, medición de formatos de `odp-docker`):** en un stack aislado con xloader 2.6.0, `DateStyle 'ISO,
+  DMY'` y recargas por el camino (b). El resumen y lo que queda por decidir están en el ítem del cargador del
+  `BACKLOG.md`. **Para esta feature:** los mapas `TYPES` del seed sólo usan `text`, `numeric` y `timestamp`, y el seed
+  comprueba los tipos después de recargar (`checkTypes`), que es el paso que atrapa el fallo más silencioso: una
+  columna `date`, `int` o `bool` que pasa a otro tipo sin avisar. **Aparte**, `odp-docker` encontró un problema de
+  seguridad en xloader y se lo reportó al autor; el arreglo espera su decisión. El seed no se ve afectado.
