@@ -803,3 +803,9 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   reinicio:** :8082 responde 200, y `umss_chart_data` de la vista guardada de la planilla da los mismos grupos que L44
   (2.500 filas). **El puente del portal nunca expuso `xloader_status`:** responde 404 «Acción no disponible». El seed lo
   llama directo a CKAN con el token del sysadmin y sólo lee `status`.
+- **L53 (2026-10-18, la banda de acciones del hero del recurso, decisiones del autor):** «Descargar recurso» y «Crear
+  gráfico» no coincidían. Se tomó la forma del botón nuevo (`ACCION_BASE`, la de las acciones del dataset) y, a pedido
+  del autor, la descarga **conserva su color coral** («esto hacía resaltar el hecho de poder descargar los archivos»).
+  Las dos cosas se combinan con `cn`, y `twMerge` reemplaza el fondo de la base. Test con RED observado. El autor validó
+  con *throttling* que la barra de pestañas que aparece al cargar no molesta, y aprobó los íconos por tipo. Suite
+  completa 1530/1530 y `pnpm check` sin errores.
