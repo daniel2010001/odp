@@ -202,6 +202,15 @@ async function loadCurrentRequest() {
 // `/dev/publication` muestra la misma tarjeta para decidir dónde va el control de decidir, y tiene que
 // renderizar **esta** frase, no una copia que puede quedar vieja.
 
+// La tarjeta sólo existe mientras hay algo que decir de la solicitud: pendiente, o rechazada (el
+// dataset sigue privado). Una aprobada ya es un dataset público y no la muestra, para nadie — así las
+// fichas públicas quedan iguales entre sí (decisión del autor, 2026-10-18); una cancelada o anulada
+// tampoco tiene nada en curso. Es una lista positiva: un estado nuevo no dibuja la tarjeta hasta
+// nombrarlo acá.
+const tarjetaDeSolicitudVisible = $derived(
+	solicitudVigente?.status === "pending" || solicitudVigente?.status === "rejected",
+);
+
 /**
  * La insignia del estado de la solicitud, para la fila de insignias del hero: **una** por estado y
  * **exhaustiva** igual que `estadoDeLaSolicitud` — si la tabla gana un estado, esto no compila hasta
@@ -808,7 +817,7 @@ async function handleCopyLink() {
 					     revisor no tiene otro camino hasta él. El control es el **mismo** de la cola
 					     (`PublicationDecision`), así que las reglas no se duplican en ningún lado. La acción de
 					     **pedir** o cancelar sigue en el hero, que es la del solicitante. -->
-					{#if solicitudVigente}
+					{#if tarjetaDeSolicitudVisible && solicitudVigente}
 						<Card class="p-6 sm:p-8">
 							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 								Solicitud de publicación

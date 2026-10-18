@@ -871,6 +871,40 @@ describe("Página de dataset — la solicitud de publicación", () => {
 		);
 	});
 
+	it("una solicitud aprobada no muestra la tarjeta, para nadie: la ficha pública queda igual a las demás", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: false }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.canAdministerOrganization.mockResolvedValue("may");
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ dataset_id: "pkg-1", status: "approved", approved_by_name: "coordinacion" }),
+		]);
+		auth.setUser(makeUser());
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listRequests).toHaveBeenCalled());
+		expect(screen.queryByTestId("estado-solicitud")).not.toBeInTheDocument();
+		expect(screen.queryByText("Solicitud de publicación")).not.toBeInTheDocument();
+	});
+
+	it("una solicitud cancelada tampoco muestra la tarjeta", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1", status: "cancelled" })]);
+		auth.setUser(makeUser());
+
+		render(DatasetPage);
+
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listRequests).toHaveBeenCalled());
+		expect(screen.queryByTestId("estado-solicitud")).not.toBeInTheDocument();
+	});
+
 	it("no muestra la solicitud de **otro** dataset: el filtro es por id, no «alguna fila»", async () => {
 		mocks.showDataset.mockResolvedValue(
 			makeDataset({ id: "pkg-1", owner_org: "org-1", private: true }),
@@ -1176,7 +1210,9 @@ describe("Página de dataset — decidir la solicitud desde la ficha", () => {
 		await waitFor(() => expect(mocks.decideRequest).toHaveBeenCalledWith("req-1", true, undefined));
 		// La confirmación relee el dataset **de la fila**, por su id — no el parámetro de la ruta.
 		await waitFor(() => expect(mocks.showDataset).toHaveBeenCalledWith("pkg-1"));
-		expect(screen.getByTestId("estado-solicitud")).toHaveTextContent("Publicada.");
+		// Aprobada, la solicitud ya no tiene nada en curso: la tarjeta se retira (2026-10-18) y la ficha
+		// queda igual a las demás fichas públicas.
+		await waitFor(() => expect(screen.queryByTestId("estado-solicitud")).not.toBeInTheDocument());
 		// El efecto de la visibilidad, sin ambigüedad: la aprobación confirmada hizo público el dataset, así
 		// que **ya no queda ningún «Privado»** en la ficha (la insignia del hero y la fila «Visibilidad» de
 		// la tarjeta de metadatos dicen lo mismo, y por eso no se afirma sobre «Público»).
