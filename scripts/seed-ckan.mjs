@@ -4,8 +4,8 @@
 // Puebla el CKAN de dev con contenido realista (organizaciones + datasets)
 // espejado de src/lib/mock/data.ts, para que el portal muestre datos reales
 // en lugar de listas vacías. Casi todos los recursos son enlaces (url-only); la
-// excepción es el dataset ficticio de la demo (`planilla-docente-ficticia`), que se
-// **sube** como archivo para que el DataPusher lo cargue en el DataStore. Sin eso la
+// excepción son los datasets ficticios de la demo (`DEMOS`: `planilla-docente-ficticia` y los
+// tres de T7), que se **suben** como archivo para que el DataPusher lo cargue en el DataStore. Sin eso la
 // demo de gráficos no tiene nada que graficar (L4 de odd/tasks/csv-charts.md, T6).
 //
 // Uso con la contraseña del sysadmin (flujo original):
@@ -34,7 +34,7 @@
 // Idempotente: si una organización ya existe (por `name`), se salta; si un dataset ya
 // existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
 // corrida anterior murió entre crear y aprobar), se reusa la solicitud pendiente o se pide
-// una nueva, y se termina la publicación. Si al dataset de la demo le falta el recurso, se
+// una nueva, y se termina la publicación. Si a un dataset de la demo le falta el recurso, se
 // sube sólo el recurso.
 // No se guarda ninguna credencial en el repo: se leen del entorno en cada corrida.
 
@@ -490,47 +490,155 @@ const SHOWCASE = {
 	],
 };
 
-// ── Dataset ficticio de la demo de gráficos (T6 de odd/tasks/csv-charts.md) ──
+// ── Datasets ficticios de la demo de gráficos (T6 y T7 de odd/tasks/csv-charts.md) ──
 //
-// Lo genera `scripts/generate-demo-csv.mjs` con semilla fija (mismas filas y mismo
-// sha256 en cada corrida). Es el **único** recurso del catálogo sembrado que se sube
+// Cada CSV lo genera un script de `scripts/` con semilla fija (mismas filas y mismo
+// sha256 en cada corrida). Son los **únicos** recursos del catálogo sembrado que se suben
 // como archivo en vez de enlace, porque el DataPusher sólo carga lo que tiene bytes.
 // El archivo se sube **antes** de publicar, con el dataset privado: si la subida falla,
 // el dataset no queda público y vacío (ver `seedDemoDataset`).
-// Organización: `rectorado`. Una planilla de personal docente es administración
-// central, no investigación de una facultad, y las cinco organizaciones del catálogo
-// ya describen su contenido (fcyt/fcs/fca publican datos de sus disciplinas).
-const DEMO = {
-	owner_org_name: "rectorado",
-	dataset: {
-		name: "planilla-docente-ficticia",
-		title: "Planilla docente ficticia — Datos ficticios para demostración",
-		notes:
-			"Datos ficticios para demostración. Nómina docente inventada para probar las vistas de " +
-			"gráficos: los nombres y apellidos son inventados y no corresponden a personas reales.\n\n" +
-			"Columnas: `turno` (mañana, tarde, noche), `cargo`, `departamento`, `facultad`, `horas_mes`, " +
-			"`bs_hora`, `salario` (siempre `horas_mes` × `bs_hora`) y `fecha_ingreso` (1995–2025). " +
-			"`turno` y `fecha_ingreso` traen algunos vacíos a propósito, para ver el grupo sin dato.\n\n" +
-			"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
-		license_id: "cc-by",
-		author: "Equipo ODP (datos sintéticos)",
-		maintainer: "Equipo ODP",
-		tags: [
-			{ name: "docentes" },
-			{ name: "planilla" },
-			{ name: "salarios" },
-			{ name: "demostración" },
-		],
+//
+// Organización de cada uno, entre las que el seed ya crea: `rectorado` para la planilla, la
+// matrícula y la ejecución presupuestaria. Son administración central, no datos de una
+// facultad: ninguna es dueña de la nómina universitaria, de la matrícula de todas ni del
+// presupuesto de todas las unidades, y fcyt/fcs/fca publican datos de sus disciplinas. La
+// producción de investigación va a `direccion-investigacion`, que es lo que esa dirección
+// coordina.
+//
+// TODO(T7b): hoy el DataPusher tipa las columnas solo. Cuando el seed declare los tipos con
+// xloader (L36), saldrán del `TYPES` de cada generador.
+const DEMOS = [
+	{
+		owner_org_name: "rectorado",
+		generator: "generate-demo-csv.mjs",
+		dataset: {
+			name: "planilla-docente-ficticia",
+			title: "Planilla docente ficticia — Datos ficticios para demostración",
+			notes:
+				"Datos ficticios para demostración. Nómina docente inventada para probar las vistas de " +
+				"gráficos: los nombres y apellidos son inventados y no corresponden a personas reales.\n\n" +
+				"Columnas: `turno` (mañana, tarde, noche), `cargo`, `departamento`, `facultad`, `horas_mes`, " +
+				"`bs_hora`, `salario` (siempre `horas_mes` × `bs_hora`) y `fecha_ingreso` (1995–2025). " +
+				"`turno` y `fecha_ingreso` traen algunos vacíos a propósito, para ver el grupo sin dato.\n\n" +
+				"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+			license_id: "cc-by",
+			author: "Equipo ODP (datos sintéticos)",
+			maintainer: "Equipo ODP",
+			tags: [
+				{ name: "docentes" },
+				{ name: "planilla" },
+				{ name: "salarios" },
+				{ name: "demostración" },
+			],
+		},
+		resource: {
+			name: "planilla-docente-ficticia.csv",
+			description:
+				"Datos ficticios para demostración: 2.500 filas de una planilla docente inventada, " +
+				"pensadas para graficar.",
+			format: "CSV",
+			path: resolve(HERE, "data", "planilla-docente-ficticia.csv"),
+		},
 	},
-	resource: {
-		name: "planilla-docente-ficticia.csv",
-		description:
-			"Datos ficticios para demostración: 2.500 filas de una planilla docente inventada, " +
-			"pensadas para graficar.",
-		format: "CSV",
-		path: resolve(HERE, "data", "planilla-docente-ficticia.csv"),
+	{
+		owner_org_name: "rectorado",
+		generator: "generate-matricula-csv.mjs",
+		dataset: {
+			name: "matricula-facultad-gestion-ficticia",
+			title: "Matrícula por facultad y gestión ficticia — Datos ficticios para demostración",
+			notes:
+				"Datos ficticios para demostración. Matrícula inventada de carreras de ocho facultades, " +
+				"gestiones 2015–2025, para probar las vistas de gráficos.\n\n" +
+				"Columnas: `facultad`, `carrera`, `gestion` (año, número entero), `sexo`, `modalidad` " +
+				"(presencial, semipresencial, virtual) e `inscritos`. `sexo` y `modalidad` traen algunos " +
+				"vacíos a propósito, para ver el grupo sin dato.\n\n" +
+				"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+			license_id: "cc-by",
+			author: "Equipo ODP (datos sintéticos)",
+			maintainer: "Equipo ODP",
+			tags: [
+				{ name: "matrícula" },
+				{ name: "estudiantes" },
+				{ name: "facultades" },
+				{ name: "demostración" },
+			],
+		},
+		resource: {
+			name: "matricula-facultad-gestion-ficticia.csv",
+			description:
+				"Datos ficticios para demostración: 1.568 filas de matrícula inventada por carrera, " +
+				"gestión, sexo y modalidad, pensadas para graficar.",
+			format: "CSV",
+			path: resolve(HERE, "data", "matricula-facultad-gestion-ficticia.csv"),
+		},
 	},
-};
+	{
+		owner_org_name: "rectorado",
+		generator: "generate-presupuesto-csv.mjs",
+		dataset: {
+			name: "ejecucion-presupuestaria-ficticia",
+			title: "Ejecución presupuestaria mensual ficticia — Datos ficticios para demostración",
+			notes:
+				"Datos ficticios para demostración. Registros mensuales inventados de ejecución " +
+				"presupuestaria de doce unidades, 2024–2025, para probar las vistas de gráficos.\n\n" +
+				"Columnas: `unidad`, `partida`, `fecha_registro` (AAAA-MM-DD), `monto_programado` y " +
+				"`monto_ejecutado` (bolivianos). `partida`, `fecha_registro` y `monto_ejecutado` traen " +
+				"algunos vacíos a propósito, para ver el grupo sin dato.\n\n" +
+				"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+			license_id: "cc-by",
+			author: "Equipo ODP (datos sintéticos)",
+			maintainer: "Equipo ODP",
+			tags: [
+				{ name: "presupuesto" },
+				{ name: "ejecución presupuestaria" },
+				{ name: "finanzas" },
+				{ name: "demostración" },
+			],
+		},
+		resource: {
+			name: "ejecucion-presupuestaria-ficticia.csv",
+			description:
+				"Datos ficticios para demostración: 1.329 registros de ejecución presupuestaria " +
+				"inventados, pensados para graficar.",
+			format: "CSV",
+			path: resolve(HERE, "data", "ejecucion-presupuestaria-ficticia.csv"),
+		},
+	},
+	{
+		owner_org_name: "direccion-investigacion",
+		generator: "generate-investigacion-csv.mjs",
+		dataset: {
+			name: "produccion-investigacion-ficticia",
+			title: "Producción de investigación ficticia — Datos ficticios para demostración",
+			notes:
+				"Datos ficticios para demostración. Productos de investigación inventados (artículos, " +
+				"libros, tesis, patentes) de doce departamentos, 2015–2025, para probar las vistas de " +
+				"gráficos.\n\n" +
+				"Columnas: `departamento`, `tipo_producto`, `anio` (número entero), " +
+				"`fuente_financiamiento`, `proyecto_id` (un proyecto da varios productos) y `autores`. " +
+				"`proyecto_id` y `fuente_financiamiento` traen algunos vacíos a propósito, para ver el " +
+				"grupo sin dato.\n\n" +
+				"Datos ficticios para demostración: no son datos oficiales de la UMSS.",
+			license_id: "cc-by",
+			author: "Equipo ODP (datos sintéticos)",
+			maintainer: "Equipo ODP",
+			tags: [
+				{ name: "investigación" },
+				{ name: "producción científica" },
+				{ name: "publicaciones" },
+				{ name: "demostración" },
+			],
+		},
+		resource: {
+			name: "produccion-investigacion-ficticia.csv",
+			description:
+				"Datos ficticios para demostración: 1.054 productos de investigación inventados, " +
+				"pensados para graficar.",
+			format: "CSV",
+			path: resolve(HERE, "data", "produccion-investigacion-ficticia.csv"),
+		},
+	},
+];
 
 // `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
 // campo `upload` no existe, el recurso queda url-only y el DataPusher no tiene qué cargar.
@@ -552,28 +660,28 @@ async function uploadResource(token, packageId, resource, bytes) {
 	return res.json();
 }
 
-async function seedDemoDataset(token, orgIdByName) {
-	const orgId = orgIdByName.get(DEMO.owner_org_name);
+async function seedDemoDataset(token, orgIdByName, demo) {
+	const orgId = orgIdByName.get(demo.owner_org_name);
 	if (!orgId) {
 		console.error(
-			`✗ ${DEMO.dataset.name}: organización ${DEMO.owner_org_name} no creada, se salta.`,
+			`✗ ${demo.dataset.name}: organización ${demo.owner_org_name} no creada, se salta.`,
 		);
 		return { created: false, skipped: true };
 	}
 
 	let bytes;
 	try {
-		bytes = readFileSync(DEMO.resource.path);
+		bytes = readFileSync(demo.resource.path);
 	} catch {
 		console.error(
-			`✗ ${DEMO.dataset.name}: falta ${DEMO.resource.path}. Genérelo con \`node scripts/generate-demo-csv.mjs\`.`,
+			`✗ ${demo.dataset.name}: falta ${demo.resource.path}. Genérelo con \`node scripts/${demo.generator}\`.`,
 		);
 		return { created: false, skipped: true };
 	}
 
 	// Idempotencia: el dataset se salta por `name`; el recurso, por `name` dentro de él.
 	// Así una corrida que falló a mitad (dataset creado, subida no) se completa sin duplicar.
-	const existing = await api(token, "package_show", { id: DEMO.dataset.name });
+	const existing = await api(token, "package_show", { id: demo.dataset.name });
 	// El dataset como lo devuelve CKAN (`id`, `state`): es lo que mira `publishDataset`.
 	// Queda `null` mientras no exista.
 	let pkg = existing.success ? existing.result : null;
@@ -583,35 +691,35 @@ async function seedDemoDataset(token, orgIdByName) {
 	let created = false;
 
 	if (pkg) {
-		const uploaded = (pkg.resources ?? []).some((resource) => resource.name === DEMO.resource.name);
+		const uploaded = (pkg.resources ?? []).some((resource) => resource.name === demo.resource.name);
 		if (uploaded) {
-			console.log(`· dataset existente: ${DEMO.dataset.name} (recurso ya subido, se salta)`);
+			console.log(`· dataset existente: ${demo.dataset.name} (recurso ya subido, se salta)`);
 			// La corrida anterior pudo morir entre la subida y la aprobación: con el archivo
 			// puesto, lo único que falta es publicar.
 			if (needsPublication) await publishDataset(token, pkg);
 			return { created: false, skipped: true };
 		}
-		console.log(`· dataset existente: ${DEMO.dataset.name} (le falta el recurso, se sube)`);
+		console.log(`· dataset existente: ${demo.dataset.name} (le falta el recurso, se sube)`);
 	} else {
 		const result = await api(token, "package_create", {
-			...DEMO.dataset,
+			...demo.dataset,
 			owner_org: orgId,
 			// Nace **privado**: la pared rechaza nacer público, y publicarlo antes de subir el
 			// archivo dejaría un dataset público y vacío si la subida fallara.
 			private: true,
 		});
 		if (!result.success) {
-			console.error(`✗ package_create ${DEMO.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
+			console.error(`✗ package_create ${demo.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
 			return { created: false, skipped: true };
 		}
 		pkg = result.result;
 		created = true;
-		console.log(`✓ dataset: ${DEMO.dataset.name} (privado)`);
+		console.log(`✓ dataset: ${demo.dataset.name} (privado)`);
 	}
 
-	const result = await uploadResource(token, pkg.id, DEMO.resource, bytes);
+	const result = await uploadResource(token, pkg.id, demo.resource, bytes);
 	if (!result.success) {
-		console.error(`✗ resource_create ${DEMO.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
+		console.error(`✗ resource_create ${demo.dataset.name}: ${JSON.stringify(result.error ?? {})}`);
 		return { created, skipped: false };
 	}
 
@@ -689,9 +797,11 @@ async function main() {
 			await publishDataset(token, created.result);
 		}
 
-		const demo = await seedDemoDataset(token, orgIdByName);
-		if (demo.created) createdCount++;
-		if (demo.skipped) skippedCount++;
+		for (const spec of DEMOS) {
+			const outcome = await seedDemoDataset(token, orgIdByName, spec);
+			if (outcome.created) createdCount++;
+			if (outcome.skipped) skippedCount++;
+		}
 
 		console.log(`\nListo. Creados ${createdCount} datasets, ${skippedCount} ya existían.`);
 	} finally {

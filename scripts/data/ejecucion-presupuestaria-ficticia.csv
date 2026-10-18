@@ -1,0 +1,1330 @@
+unidad,partida,fecha_registro,monto_programado,monto_ejecutado
+Facultad de Ciencias y Tecnología,Servicios personales,2024-01-18,281195.72,206876.38
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-01-21,37889.09,19349.96
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-01-01,22097.22,12166.57
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-01-18,6624.59,3146.77
+Facultad de Ciencias Económicas,Servicios personales,2024-01-30,187912.50,125614.71
+Facultad de Ciencias Económicas,Servicios no personales,2024-01-22,35539.46,22366.16
+Facultad de Ciencias Económicas,Activos reales,2024-01-27,172944.52,77610.04
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-01-29,30936.48,11557.97
+Facultad de Ciencias de la Salud,Servicios personales,2024-01-31,228531.80,155741.35
+Facultad de Ciencias de la Salud,Servicios no personales,2024-01-03,36016.54,20627.83
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-01-16,26620.71,13467.24
+Facultad de Ciencias de la Salud,Becas y transferencias,2024-01-03,42463.18,28374.68
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2024-01-03,46277.64,21429.53
+Facultad de Ciencias Agrícolas,Servicios personales,2024-01-19,160837.78,105639.07
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-01-26,12900.23,7777.13
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2024-01-28,26974.62,10971.67
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-01-16,50353.30,
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-01-24,18050.73,12298.68
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2024-01-15,29879.98,16123.10
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-01-30,105632.55,71495.12
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-01-25,10045.72,5724.20
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2024-01-22,13958.10,7471.19
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2024-01-17,9951.05,5601.28
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2024-01-22,18292.81,8220.60
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-01-07,85665.91,67503.97
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-01-02,8072.70,4564.66
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-01-17,4064.42,2667.08
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2024-01-15,15537.31,5708.61
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2024-01-07,26209.62,14404.22
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2024-01-19,5757.78,2680.47
+Dirección Administrativa y Financiera,Servicios personales,2024-01-28,77868.07,56097.28
+Dirección Administrativa y Financiera,Servicios no personales,2024-01-18,24368.61,14387.31
+Dirección Administrativa y Financiera,Activos reales,2024-01-11,64814.20,28065.82
+Dirección Administrativa y Financiera,Investigación y desarrollo,2024-01-29,49863.72,20583.49
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-01-06,4476.30,2693.70
+Dirección de Investigación,Servicios personales,2024-01-28,75471.92,55774.40
+Dirección de Investigación,Servicios no personales,2024-01-04,13127.69,8231.27
+Dirección de Investigación,Becas y transferencias,2024-01-15,7746.36,5556.37
+Dirección de Investigación,Investigación y desarrollo,2024-01-07,8184.23,3833.37
+Dirección de Investigación,Mantenimiento de infraestructura,2024-01-29,4254.69,2334.32
+Dirección de Bienestar Estudiantil,Servicios personales,2024-01-27,48732.46,38945.07
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-01-04,4845.48,2701.66
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-01-18,2335.54,1190.54
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-01-29,3444.19,2108.76
+Dirección de Infraestructura,Servicios personales,2024-01-21,161401.43,113605.41
+Dirección de Infraestructura,Materiales y suministros,2024-01-10,17947.96,9954.45
+Dirección de Infraestructura,Pasajes y viáticos,2024-01-13,1211.31,643.51
+Rectorado,Servicios personales,2024-01-26,221361.51,154404.17
+Rectorado,Servicios no personales,2024-01-13,47634.55,29081.04
+Rectorado,Materiales y suministros,2024-01-20,4017.88,2302.48
+Rectorado,Investigación y desarrollo,2024-01-22,22946.60,8754.26
+Rectorado,Pasajes y viáticos,2024-01-01,11222.69,5332.89
+Facultad de Ciencias y Tecnología,Servicios personales,2024-02-09,169422.43,107950.77
+Facultad de Ciencias y Tecnología,Servicios no personales,2024-02-01,24991.64,18069.20
+Facultad de Ciencias y Tecnología,Becas y transferencias,2024-02-22,15260.42,10540.01
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2024-02-04,40246.06,19500.97
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-02-11,14225.36,8854.98
+Facultad de Ciencias Económicas,Servicios personales,,115816.56,73541.82
+Facultad de Ciencias Económicas,Servicios no personales,2024-02-03,35670.02,23857.42
+Facultad de Ciencias Económicas,Materiales y suministros,2024-02-24,14010.25,9626.85
+Facultad de Ciencias Económicas,Activos reales,2024-02-24,203785.25,74369.10
+Facultad de Ciencias Económicas,Becas y transferencias,2024-02-12,42472.22,28236.91
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-02-17,66005.87,29193.02
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-02-15,20755.15,12628.35
+Facultad de Ciencias Económicas,Pasajes y viáticos,2024-02-24,4411.80,2550.62
+Facultad de Ciencias de la Salud,Servicios personales,2024-02-01,235299.90,190759.85
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-02-28,32554.39,21286.55
+Facultad de Ciencias Agrícolas,Servicios personales,2024-02-02,114793.08,88437.65
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-02-25,13261.60,9503.52
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-02-09,22194.05,12836.77
+Facultad de Ciencias Agrícolas,Becas y transferencias,2024-02-27,8610.20,5319.96
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2024-02-12,24231.20,13062.11
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2024-02-03,4823.00,2705.48
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-02-09,58179.40,42162.70
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-02-14,26040.87,19077.13
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-02-04,13515.62,8181.50
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-02-11,14697.29,9373.54
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2024-02-24,45458.71,19196.66
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2024-02-03,2505.20,1484.95
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-02-24,100176.12,65921.56
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-02-27,20192.52,11951.06
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2024-02-18,19138.52,8242.90
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,,74395.38,56461.05
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-02-05,2933.91,1907.39
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-02-17,20569.02,10035.80
+Dirección Administrativa y Financiera,Servicios personales,2024-02-14,80985.94,59130.72
+Dirección Administrativa y Financiera,Servicios no personales,2024-02-14,16647.42,10491.17
+Dirección Administrativa y Financiera,Materiales y suministros,2024-02-21,3156.11,1887.96
+Dirección Administrativa y Financiera,Activos reales,2024-02-28,42837.05,19775.49
+Dirección de Investigación,Servicios personales,2024-02-09,85446.99,62875.87
+Dirección de Investigación,Servicios no personales,2024-02-27,18345.55,12132.68
+Dirección de Investigación,Materiales y suministros,2024-02-22,11528.97,7338.87
+Dirección de Investigación,Becas y transferencias,2024-02-15,21873.21,15206.98
+Dirección de Bienestar Estudiantil,Servicios personales,2024-02-09,81234.77,
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-02-23,3220.83,2157.05
+Dirección de Bienestar Estudiantil,Activos reales,2024-02-01,115526.90,44217.53
+Dirección de Bienestar Estudiantil,Becas y transferencias,2024-02-18,18995.09,12173.17
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-02-18,4428.68,2809.66
+Dirección de Infraestructura,Servicios personales,2024-02-20,163531.65,110367.81
+Dirección de Infraestructura,Servicios no personales,2024-02-18,34302.79,23586.69
+Dirección de Infraestructura,Investigación y desarrollo,2024-02-12,22405.99,11475.35
+Rectorado,Servicios personales,2024-02-02,222095.62,147295.92
+Rectorado,Materiales y suministros,2024-02-24,14381.01,7936.64
+Rectorado,Investigación y desarrollo,2024-02-03,36769.08,17475.42
+Rectorado,Mantenimiento de infraestructura,2024-02-13,10714.46,
+Rectorado,Pasajes y viáticos,2024-02-01,5297.61,3036.08
+Facultad de Ciencias y Tecnología,Servicios personales,2024-03-13,172972.74,129900.43
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-03-14,33834.47,22050.71
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2024-03-21,91724.86,42830.67
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-03-08,27502.29,17112.66
+Facultad de Ciencias Económicas,Servicios personales,2024-03-02,246828.80,180343.49
+Facultad de Ciencias Económicas,Servicios no personales,2024-03-27,30139.35,18953.48
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-03-29,20909.00,8476.11
+Facultad de Ciencias Económicas,Pasajes y viáticos,2024-03-03,7047.87,3705.65
+Facultad de Ciencias de la Salud,Servicios personales,2024-03-15,303719.36,218665.46
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-03-28,13913.84,7686.69
+Facultad de Ciencias de la Salud,Becas y transferencias,2024-03-12,46379.14,29050.88
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2024-03-07,10067.06,4711.03
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2024-03-22,13637.30,8860.12
+Facultad de Ciencias Agrícolas,Servicios personales,2024-03-07,195632.90,165889.75
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-03-09,27048.35,17297.43
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-03-29,12986.38,8682.40
+Facultad de Ciencias Agrícolas,Activos reales,2024-03-24,135754.95,58853.30
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2024-03-23,9056.63,3810.00
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2024-03-27,11296.22,6981.05
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2024-03-21,7603.84,4193.02
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-03-01,113453.21,88890.92
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-03-04,16852.26,11771.12
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-03-23,19324.75,14524.08
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2024-03-07,23276.04,12388.57
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-03-17,83269.16,68813.71
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-03-01,9686.28,6874.57
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2024-03-06,15487.42,9436.09
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2024-03-07,101117.88,42175.57
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2024-03-08,3265.40,1995.64
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-03-30,80098.15,61717.20
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-03-09,10458.44,7176.97
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-03-07,20848.59,12502.02
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-03-23,28209.60,21898.29
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-03-05,23195.57,9358.99
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2024-03-24,3080.17,1937.71
+Dirección Administrativa y Financiera,,2024-03-20,143396.82,110978.60
+Dirección Administrativa y Financiera,Servicios no personales,2024-03-20,15087.17,9837.49
+Dirección Administrativa y Financiera,Becas y transferencias,2024-03-11,21166.46,13746.00
+Dirección Administrativa y Financiera,Investigación y desarrollo,2024-03-28,16256.70,6483.39
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2024-03-03,40945.04,24995.50
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-03-24,2815.36,1610.32
+Dirección de Investigación,Servicios personales,2024-03-30,56042.75,43868.01
+Dirección de Investigación,Servicios no personales,2024-03-10,34752.28,22669.38
+Dirección de Investigación,Materiales y suministros,2024-03-09,3459.26,2201.71
+Dirección de Investigación,Becas y transferencias,2024-03-12,8561.64,5519.03
+Dirección de Investigación,Pasajes y viáticos,2024-03-04,7146.13,3697.15
+Dirección de Bienestar Estudiantil,Servicios personales,2024-03-28,56387.28,47521.28
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-03-07,15276.91,9382.24
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-03-09,7342.85,4745.74
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2024-03-17,25062.99,13443.49
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-03-26,2068.36,1321.01
+Dirección de Infraestructura,Servicios personales,2024-03-30,206537.69,158476.46
+Dirección de Infraestructura,Investigación y desarrollo,2024-03-19,75013.89,39937.22
+Dirección de Infraestructura,Mantenimiento de infraestructura,2024-03-22,22538.27,13406.07
+Rectorado,Servicios personales,2024-03-18,134475.59,109061.42
+Rectorado,Materiales y suministros,2024-03-21,25305.79,13684.93
+Rectorado,Activos reales,2024-03-02,111643.43,53240.55
+Rectorado,Investigación y desarrollo,2024-03-28,9697.65,4327.48
+Rectorado,Mantenimiento de infraestructura,2024-03-04,48475.70,24961.74
+Rectorado,Pasajes y viáticos,2024-03-16,2391.31,1504.68
+Facultad de Ciencias y Tecnología,Servicios personales,2024-04-10,229931.04,164734.78
+Facultad de Ciencias y Tecnología,Servicios no personales,2024-04-29,22781.49,16151.74
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-04-08,14071.39,9246.91
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2024-04-06,74110.78,35441.05
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-04-23,52068.85,31536.16
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-04-08,11209.55,
+Facultad de Ciencias Económicas,Servicios personales,2024-04-30,179116.94,162978.39
+Facultad de Ciencias Económicas,Servicios no personales,2024-04-03,45070.20,34053.39
+Facultad de Ciencias Económicas,Activos reales,2024-04-23,138000.00,65214.67
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-04-28,36666.10,16332.25
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-04-01,20777.42,12752.39
+Facultad de Ciencias Económicas,Pasajes y viáticos,2024-04-24,9108.24,5411.95
+Facultad de Ciencias de la Salud,Servicios personales,2024-04-03,152731.30,135870.13
+Facultad de Ciencias de la Salud,Servicios no personales,2024-04-30,54011.30,37084.39
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-04-22,14986.51,10787.90
+Facultad de Ciencias de la Salud,,2024-04-15,9721.98,6678.95
+Facultad de Ciencias Agrícolas,Servicios personales,2024-04-06,93308.34,73429.85
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-04-02,24503.24,15870.37
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-04-23,10653.28,6782.64
+Facultad de Ciencias Agrícolas,Activos reales,2024-04-23,179974.09,69139.04
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2024-04-18,2671.70,1490.79
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-04-02,49122.12,39697.48
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-04-21,26646.25,16731.83
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-04-30,7248.70,4575.52
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-04-24,36050.61,30606.34
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-04-15,13195.99,10395.29
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2024-04-12,130101.90,61941.73
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-04-23,94437.15,81649.82
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-04-25,9524.34,6760.59
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-04-03,11070.22,8089.57
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-04-14,12210.10,5705.91
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2024-04-05,4461.18,2748.83
+Dirección Administrativa y Financiera,Servicios personales,2024-04-10,157710.93,127090.59
+Dirección Administrativa y Financiera,Materiales y suministros,2024-04-29,14112.11,10263.92
+Dirección Administrativa y Financiera,Becas y transferencias,2024-04-29,11391.33,7529.83
+Dirección Administrativa y Financiera,Investigación y desarrollo,2024-04-03,49527.49,21000.59
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2024-04-26,21500.73,11325.60
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-04-20,7047.88,4264.43
+Dirección de Investigación,Servicios personales,2024-04-28,69511.17,57125.91
+Dirección de Investigación,Becas y transferencias,2024-04-01,26298.31,19800.46
+Dirección de Investigación,Investigación y desarrollo,2024-04-08,31884.59,13741.47
+Dirección de Investigación,Mantenimiento de infraestructura,2024-04-16,12534.21,7095.10
+Dirección de Investigación,Pasajes y viáticos,2024-04-14,1919.12,1200.21
+Dirección de Bienestar Estudiantil,Servicios personales,2024-04-20,87323.29,70393.69
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-04-10,5949.77,3793.83
+Dirección de Bienestar Estudiantil,Investigación y desarrollo,2024-04-04,4056.57,1763.14
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2024-04-07,8594.37,4272.82
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-04-26,974.30,655.64
+Dirección de Infraestructura,Servicios personales,2024-04-03,111647.22,91137.54
+Dirección de Infraestructura,Servicios no personales,2024-04-23,39510.22,23733.16
+Dirección de Infraestructura,,2024-04-16,25378.18,20141.33
+Dirección de Infraestructura,Mantenimiento de infraestructura,2024-04-21,41603.16,22605.42
+Dirección de Infraestructura,Pasajes y viáticos,2024-04-06,9715.27,5520.53
+Rectorado,Servicios personales,2024-04-22,112459.28,92168.75
+Rectorado,Materiales y suministros,2024-04-21,18465.89,13328.88
+Rectorado,,2024-04-27,46501.61,21985.40
+Rectorado,Becas y transferencias,2024-04-24,16236.16,12636.79
+Rectorado,Investigación y desarrollo,2024-04-11,72939.16,38285.10
+Rectorado,Mantenimiento de infraestructura,2024-04-08,52659.52,28455.84
+Rectorado,Pasajes y viáticos,2024-04-18,2190.17,1269.42
+Facultad de Ciencias y Tecnología,Servicios personales,2024-05-28,146999.42,122781.86
+Facultad de Ciencias y Tecnología,Servicios no personales,2024-05-15,42056.44,27544.24
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-05-04,6807.79,3914.43
+Facultad de Ciencias Económicas,Servicios personales,2024-05-25,104428.70,87130.88
+Facultad de Ciencias Económicas,Materiales y suministros,2024-05-09,18205.58,10447.37
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-05-03,23556.67,11264.01
+Facultad de Ciencias de la Salud,Servicios personales,2024-05-19,166774.99,120817.74
+Facultad de Ciencias de la Salud,Servicios no personales,2024-05-13,36956.88,29644.17
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-05-05,18194.04,11396.33
+Facultad de Ciencias de la Salud,Becas y transferencias,2024-05-27,26839.41,22674.54
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2024-05-04,23374.32,12218.57
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2024-05-14,11019.97,7120.72
+Facultad de Ciencias Agrícolas,Servicios personales,2024-05-24,131366.14,123717.88
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-05-29,20381.19,11853.19
+Facultad de Ciencias Agrícolas,Activos reales,2024-05-14,112133.79,44951.24
+Facultad de Ciencias Agrícolas,Becas y transferencias,2024-05-23,6754.12,4878.83
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2024-05-14,28792.53,18086.99
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-05-11,70225.84,55832.79
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-05-11,22694.60,16726.51
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-05-16,7923.69,
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2024-05-07,23683.39,11852.64
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2024-05-19,30361.30,19584.73
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-05-22,63189.08,47801.28
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2024-05-21,13017.60,9513.04
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2024-05-28,66392.40,34707.16
+Facultad de Arquitectura y Ciencias del Hábitat,,2024-05-01,23104.97,11919.68
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2024-05-06,15935.64,10021.67
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-05-26,93456.97,87851.96
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-05-26,9111.94,6128.63
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-05-27,6656.39,4368.33
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2024-05-10,97362.77,39800.79
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2024-05-11,10343.87,6163.55
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2024-05-05,4405.00,2870.94
+Dirección Administrativa y Financiera,Servicios personales,2024-05-18,168890.07,146286.24
+Dirección Administrativa y Financiera,Servicios no personales,2024-05-09,25930.44,18104.38
+Dirección Administrativa y Financiera,Materiales y suministros,2024-05-29,6078.63,4354.14
+Dirección Administrativa y Financiera,Becas y transferencias,2024-05-20,38715.92,31411.97
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2024-05-15,41384.00,26676.88
+Dirección de Investigación,Servicios personales,2024-05-17,91904.49,67734.12
+Dirección de Investigación,Servicios no personales,2024-05-02,22063.53,17679.31
+Dirección de Investigación,Materiales y suministros,2024-05-28,15878.49,11880.21
+Dirección de Investigación,Pasajes y viáticos,2024-05-31,2468.78,1357.42
+Dirección de Bienestar Estudiantil,Servicios personales,2024-05-23,88168.30,63214.63
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-05-29,10386.62,8454.22
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-05-19,4632.35,3245.46
+Dirección de Bienestar Estudiantil,Activos reales,2024-05-06,14523.71,6066.04
+Dirección de Bienestar Estudiantil,Investigación y desarrollo,2024-05-04,25617.43,12468.60
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2024-05-26,19741.51,10284.09
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-05-01,3374.50,1795.74
+Dirección de Infraestructura,Servicios personales,2024-05-24,141996.03,131801.95
+Dirección de Infraestructura,Materiales y suministros,2024-05-20,24485.62,14970.82
+Dirección de Infraestructura,Mantenimiento de infraestructura,2024-05-20,6716.87,4293.84
+Rectorado,Servicios personales,2024-05-04,227399.81,187319.54
+Rectorado,Servicios no personales,2024-05-12,51663.41,33492.45
+Rectorado,Materiales y suministros,2024-05-10,10319.76,6969.09
+Rectorado,Investigación y desarrollo,2024-05-20,17152.82,8412.61
+Rectorado,Mantenimiento de infraestructura,2024-05-08,47692.12,31938.47
+Facultad de Ciencias y Tecnología,Servicios personales,2024-06-22,143817.51,108177.90
+Facultad de Ciencias y Tecnología,Activos reales,2024-06-06,174466.09,93261.47
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2024-06-12,82051.96,38745.07
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-06-24,30681.73,16517.52
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-06-02,6545.99,4609.77
+Facultad de Ciencias Económicas,Servicios personales,2024-06-20,197245.31,153769.23
+Facultad de Ciencias Económicas,Servicios no personales,2024-06-17,24631.74,16073.74
+Facultad de Ciencias Económicas,Materiales y suministros,2024-06-15,21472.02,14288.65
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-06-09,38090.18,26767.87
+Facultad de Ciencias de la Salud,Servicios personales,2024-06-13,170834.50,131013.02
+Facultad de Ciencias de la Salud,Servicios no personales,2024-06-26,40052.07,30700.01
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-06-06,25416.91,16070.31
+Facultad de Ciencias de la Salud,Activos reales,2024-06-02,213207.73,100109.17
+Facultad de Ciencias de la Salud,Becas y transferencias,2024-06-29,32310.63,27028.27
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2024-06-08,38938.14,19492.54
+Facultad de Ciencias Agrícolas,Servicios personales,2024-06-14,128542.29,122882.32
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-06-22,35228.25,29091.49
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-06-29,18971.72,12304.48
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2024-06-08,21489.81,10930.00
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-06-08,125100.19,100266.56
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-06-11,23269.74,16140.04
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2024-06-09,1864.16,1367.81
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-06-02,53865.26,49078.70
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-06-19,12536.09,8218.16
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2024-06-29,18490.99,15955.86
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2024-06-24,19928.63,11789.06
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-06-28,86140.84,64684.46
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-06-23,18895.30,13276.92
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-06-23,14300.36,10813.63
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2024-06-02,44155.72,19028.99
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-06-03,5929.16,3954.29
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2024-06-02,4530.56,3117.32
+Dirección Administrativa y Financiera,,2024-06-10,101792.55,80742.70
+Dirección Administrativa y Financiera,Servicios no personales,2024-06-27,32336.85,20961.97
+Dirección Administrativa y Financiera,Activos reales,2024-06-29,191628.76,96463.02
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-06-03,3765.80,2462.02
+Dirección de Investigación,Servicios personales,2024-06-22,92817.78,71361.73
+Dirección de Investigación,Servicios no personales,2024-06-17,27984.79,20425.79
+Dirección de Investigación,Materiales y suministros,2024-06-05,15428.44,10122.38
+Dirección de Investigación,Mantenimiento de infraestructura,2024-06-11,15792.52,9707.39
+Dirección de Investigación,Pasajes y viáticos,2024-06-19,1799.19,1247.73
+Dirección de Bienestar Estudiantil,Servicios personales,2024-06-04,41910.58,30606.08
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-06-01,12310.43,8531.85
+Dirección de Bienestar Estudiantil,Becas y transferencias,2024-06-16,2990.62,2446.88
+Dirección de Bienestar Estudiantil,Investigación y desarrollo,2024-06-25,11243.54,5864.25
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2024-06-04,8822.52,5730.24
+Dirección de Infraestructura,Servicios personales,2024-06-09,194543.37,148031.77
+Dirección de Infraestructura,Materiales y suministros,2024-06-17,20433.44,12100.19
+Dirección de Infraestructura,Activos reales,2024-06-01,235847.38,105985.90
+Dirección de Infraestructura,Becas y transferencias,2024-06-21,18992.94,12976.33
+Dirección de Infraestructura,Pasajes y viáticos,,7919.59,5428.80
+Rectorado,Servicios personales,2024-06-12,156413.61,123393.06
+Rectorado,Servicios no personales,2024-06-12,41810.53,34119.17
+Rectorado,Materiales y suministros,2024-06-27,18896.14,11554.53
+Rectorado,Becas y transferencias,2024-06-11,40009.87,29248.45
+Rectorado,Investigación y desarrollo,2024-06-13,28349.05,16432.03
+Facultad de Ciencias y Tecnología,Servicios personales,2024-07-31,230453.73,216816.43
+Facultad de Ciencias y Tecnología,Servicios no personales,2024-07-06,36430.21,27421.15
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-07-07,20684.18,15089.18
+Facultad de Ciencias y Tecnología,Activos reales,2024-07-04,289795.86,145619.56
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2024-07-12,21947.16,11288.89
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-07-31,27465.97,16127.78
+Facultad de Ciencias Económicas,Servicios personales,2024-07-01,84377.42,76699.86
+Facultad de Ciencias Económicas,Servicios no personales,2024-07-21,20125.37,13572.83
+Facultad de Ciencias Económicas,,2024-07-04,25673.93,19678.79
+Facultad de Ciencias Económicas,Becas y transferencias,2024-07-22,44749.61,35201.69
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-07-29,51754.47,27140.63
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-07-28,8753.96,4742.70
+Facultad de Ciencias de la Salud,Servicios personales,2024-07-21,166551.26,152324.32
+Facultad de Ciencias de la Salud,Servicios no personales,2024-07-10,24473.87,19425.24
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2024-07-21,2943.38,2056.45
+Facultad de Ciencias Agrícolas,Servicios personales,2024-07-04,94410.19,93295.16
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-07-28,9011.88,6632.07
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-07-03,8512.83,5770.43
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2024-07-06,14065.60,
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2024-07-03,18953.39,12140.54
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-07-03,61154.31,60341.51
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-07-01,26337.47,18716.30
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-07-21,11491.70,6916.34
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-07-05,12973.97,10146.09
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2024-07-25,18854.59,9775.14
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-07-13,88089.01,79827.10
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,,19396.08,15611.60
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2024-07-30,14923.85,11559.09
+Facultad de Arquitectura y Ciencias del Hábitat,,2024-07-15,22401.35,18988.16
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2024-07-02,2737.88,1611.76
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-07-03,49714.43,38973.41
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-07-27,8049.68,6611.04
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-07-24,8578.71,5884.27
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-07-07,18141.65,14556.24
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2024-07-17,2690.48,1539.87
+Dirección Administrativa y Financiera,Servicios personales,2024-07-31,110314.27,86183.67
+Dirección Administrativa y Financiera,Becas y transferencias,2024-07-30,15654.54,13661.14
+Dirección Administrativa y Financiera,Investigación y desarrollo,2024-07-08,32696.71,16510.18
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2024-07-01,17840.83,10111.44
+Dirección de Investigación,Servicios personales,2024-07-16,65730.85,50353.60
+Dirección de Investigación,Servicios no personales,2024-07-09,7769.20,5694.71
+Dirección de Investigación,Materiales y suministros,2024-07-18,3359.36,2625.14
+Dirección de Investigación,Activos reales,2024-07-27,159060.77,84339.73
+Dirección de Investigación,Investigación y desarrollo,2024-07-19,27051.38,13768.62
+Dirección de Bienestar Estudiantil,Servicios personales,2024-07-31,78619.50,70512.95
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-07-20,10013.10,7880.33
+Dirección de Bienestar Estudiantil,Activos reales,2024-07-22,108282.38,50766.72
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2024-07-29,18573.32,12141.05
+Dirección de Infraestructura,Servicios personales,2024-07-18,115373.35,87804.58
+Dirección de Infraestructura,Materiales y suministros,2024-07-26,25410.34,20572.07
+Dirección de Infraestructura,Activos reales,2024-07-12,257998.66,106722.66
+Dirección de Infraestructura,Becas y transferencias,2024-07-29,31099.14,26878.98
+Dirección de Infraestructura,Investigación y desarrollo,2024-07-19,15675.30,8118.41
+Rectorado,Servicios personales,2024-07-13,226057.11,179385.09
+Rectorado,Servicios no personales,2024-07-15,35040.26,28025.26
+Rectorado,Materiales y suministros,2024-07-28,19499.32,13627.34
+Facultad de Ciencias y Tecnología,Servicios personales,2024-08-05,304745.57,233379.90
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-08-19,42132.90,27700.10
+Facultad de Ciencias y Tecnología,Becas y transferencias,2024-08-01,64401.80,49541.25
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2024-08-28,49155.14,24204.20
+Facultad de Ciencias Económicas,Servicios personales,2024-08-20,238723.11,225202.17
+Facultad de Ciencias Económicas,Servicios no personales,2024-08-17,59377.59,40605.64
+Facultad de Ciencias Económicas,Materiales y suministros,2024-08-11,34025.85,22230.93
+Facultad de Ciencias Económicas,Becas y transferencias,2024-08-14,59221.42,
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-08-01,69202.70,41783.17
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-08-18,13197.20,7594.51
+Facultad de Ciencias Económicas,Pasajes y viáticos,2024-08-21,2692.54,2061.78
+Facultad de Ciencias de la Salud,Servicios personales,2024-08-29,189946.63,154558.21
+Facultad de Ciencias de la Salud,Activos reales,2024-08-03,129503.17,60304.88
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2024-08-29,14180.42,6735.60
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2024-08-08,11328.84,7652.90
+Facultad de Ciencias Agrícolas,Servicios personales,2024-08-27,100867.77,95291.05
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-08-03,12623.55,9421.53
+Facultad de Ciencias Agrícolas,Becas y transferencias,2024-08-29,42070.59,29258.58
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2024-08-29,23571.61,
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2024-08-29,26941.04,15302.74
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2024-08-11,1200.33,710.53
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-08-01,119763.49,105056.78
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-08-19,24623.64,20292.66
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-08-06,23850.48,19644.01
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-08-22,31649.98,26848.10
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2024-08-17,29030.63,16992.18
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2024-08-21,6941.36,5398.33
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-08-03,128022.08,113400.10
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-08-29,8362.37,7007.99
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2024-08-04,6959.00,4483.48
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2024-08-12,113249.64,62747.19
+Facultad de Arquitectura y Ciencias del Hábitat,Investigación y desarrollo,2024-08-19,28704.69,14661.36
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2024-08-05,6082.36,3647.94
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-08-10,87249.10,88231.90
+Facultad de Ciencias Jurídicas y Políticas,,2024-08-05,27738.87,24258.08
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2024-08-15,206121.20,105449.33
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-08-16,32029.47,29325.23
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-08-11,46036.48,24402.76
+Dirección Administrativa y Financiera,Servicios personales,2024-08-30,75288.98,77700.13
+Dirección Administrativa y Financiera,Servicios no personales,2024-08-14,32989.45,22174.74
+Dirección Administrativa y Financiera,Materiales y suministros,2024-08-19,24291.33,19540.63
+Dirección Administrativa y Financiera,Becas y transferencias,2024-08-07,31161.29,25397.15
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-08-17,4655.62,
+Dirección de Investigación,Servicios personales,2024-08-21,147872.12,146529.56
+Dirección de Investigación,Servicios no personales,2024-08-03,30438.27,23751.70
+Dirección de Investigación,Activos reales,2024-08-24,117203.19,60361.47
+Dirección de Investigación,Investigación y desarrollo,2024-08-21,47456.55,24201.23
+Dirección de Investigación,Pasajes y viáticos,2024-08-12,1090.20,784.72
+Dirección de Bienestar Estudiantil,Servicios personales,2024-08-12,43440.30,35593.89
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-08-21,18561.32,13983.06
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-08-12,15299.74,9950.38
+Dirección de Bienestar Estudiantil,Activos reales,2024-08-31,119570.55,51007.63
+Dirección de Bienestar Estudiantil,Becas y transferencias,,22217.49,16010.74
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-08-20,1809.55,1317.94
+Dirección de Infraestructura,Servicios personales,2024-08-02,240993.49,187407.35
+Dirección de Infraestructura,Servicios no personales,2024-08-28,21969.42,16604.13
+Dirección de Infraestructura,Becas y transferencias,2024-08-05,21142.60,16816.92
+Dirección de Infraestructura,Pasajes y viáticos,2024-08-07,6451.06,
+Rectorado,Servicios personales,2024-08-28,178540.12,151286.71
+Rectorado,Materiales y suministros,2024-08-14,17673.97,13006.36
+Rectorado,Activos reales,2024-08-01,259549.91,145640.52
+Rectorado,Becas y transferencias,2024-08-07,18276.28,16644.81
+Rectorado,Mantenimiento de infraestructura,2024-08-04,47393.62,27043.46
+Rectorado,Pasajes y viáticos,2024-08-16,7175.75,5568.80
+Facultad de Ciencias y Tecnología,Servicios personales,2024-09-27,221815.50,209534.77
+Facultad de Ciencias y Tecnología,Servicios no personales,2024-09-01,45001.97,33389.55
+Facultad de Ciencias y Tecnología,Materiales y suministros,2024-09-15,17241.69,11210.36
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-09-26,58804.08,38214.02
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-09-28,4681.69,3689.17
+Facultad de Ciencias Económicas,Servicios personales,2024-09-29,171107.47,155853.38
+Facultad de Ciencias Económicas,Servicios no personales,2024-09-26,31222.12,27011.13
+Facultad de Ciencias Económicas,Materiales y suministros,2024-09-02,29614.53,22865.15
+Facultad de Ciencias Económicas,Becas y transferencias,2024-09-24,45971.09,34049.46
+Facultad de Ciencias de la Salud,Servicios personales,2024-09-09,244340.33,225910.19
+Facultad de Ciencias de la Salud,Servicios no personales,2024-09-01,11693.60,9870.90
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-09-21,22050.74,18649.66
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2024-09-25,6514.98,4843.03
+Facultad de Ciencias Agrícolas,Servicios personales,2024-09-21,109425.50,101940.72
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-09-14,21550.44,16478.99
+Facultad de Ciencias Agrícolas,,2024-09-14,13484.71,8641.00
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-09-06,77340.11,70824.51
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-09-24,29693.69,22828.88
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-09-13,11986.29,10856.02
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2024-09-28,42314.61,23523.89
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-09-12,72125.63,65929.11
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-09-14,12771.02,9482.41
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2024-09-25,12661.46,9088.11
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2024-09-22,1864.11,1379.53
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-09-01,52112.51,54197.01
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-09-17,22379.68,18164.18
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-09-29,17045.80,11821.30
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-09-12,13397.38,12304.77
+Dirección Administrativa y Financiera,Servicios personales,2024-09-30,72124.06,62038.89
+Dirección Administrativa y Financiera,Materiales y suministros,2024-09-30,17594.75,12131.82
+Dirección Administrativa y Financiera,Activos reales,2024-09-15,108507.18,58294.87
+Dirección Administrativa y Financiera,Investigación y desarrollo,2024-09-07,44500.77,24572.21
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2024-09-19,28115.27,17432.78
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-09-26,1491.02,1078.46
+Dirección de Investigación,Servicios personales,2024-09-25,106798.05,85196.21
+Dirección de Investigación,Materiales y suministros,2024-09-07,14075.22,12044.34
+Dirección de Investigación,Activos reales,2024-09-30,168292.21,88998.46
+Dirección de Investigación,Becas y transferencias,2024-09-09,5557.78,4546.55
+Dirección de Investigación,Mantenimiento de infraestructura,2024-09-28,10341.79,7675.50
+Dirección de Bienestar Estudiantil,Servicios personales,2024-09-16,56285.50,54848.51
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-09-28,19238.92,15300.15
+Dirección de Infraestructura,Servicios personales,2024-09-20,156175.32,125787.85
+Dirección de Infraestructura,Materiales y suministros,2024-09-28,5190.72,4145.52
+Dirección de Infraestructura,Becas y transferencias,2024-09-23,22126.80,20408.83
+Dirección de Infraestructura,Mantenimiento de infraestructura,2024-09-13,45280.05,28052.09
+Dirección de Infraestructura,Pasajes y viáticos,2024-09-11,9290.50,5582.72
+Rectorado,Servicios personales,2024-09-05,157148.23,160608.64
+Rectorado,Servicios no personales,2024-09-02,49922.28,42918.56
+Rectorado,Materiales y suministros,2024-09-18,4833.19,3229.51
+Rectorado,Activos reales,2024-09-04,222164.61,131045.21
+Rectorado,Becas y transferencias,2024-09-14,6501.07,4811.30
+Rectorado,Investigación y desarrollo,2024-09-08,39517.65,23636.84
+Rectorado,Mantenimiento de infraestructura,2024-09-08,15179.23,10825.34
+Facultad de Ciencias y Tecnología,Servicios personales,2024-10-13,237414.65,219689.86
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-10-07,27937.25,19516.12
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-10-05,12233.95,9310.19
+Facultad de Ciencias Económicas,Servicios personales,2024-10-09,212303.58,204075.66
+Facultad de Ciencias Económicas,Activos reales,2024-10-19,365102.04,217587.00
+Facultad de Ciencias Económicas,Investigación y desarrollo,2024-10-19,68246.68,43907.44
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-10-04,46660.70,36786.21
+Facultad de Ciencias Económicas,Pasajes y viáticos,2024-10-20,8024.77,6329.50
+Facultad de Ciencias de la Salud,Servicios personales,2024-10-01,191722.62,199391.52
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-10-15,17275.62,12427.93
+Facultad de Ciencias de la Salud,Becas y transferencias,2024-10-05,9822.80,9425.20
+Facultad de Ciencias Agrícolas,Servicios personales,2024-10-12,61550.61,61974.17
+Facultad de Ciencias Agrícolas,Materiales y suministros,2024-10-21,11598.17,
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2024-10-02,17552.41,10168.90
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2024-10-10,17209.09,12142.28
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-10-01,49436.27,46242.74
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-10-05,20577.36,
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-10-10,19249.56,13189.14
+Facultad de Humanidades y Ciencias de la Educación,Activos reales,2024-10-31,99639.36,58138.80
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2024-10-17,21752.88,13196.95
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2024-10-23,15297.36,11436.22
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2024-10-21,2073.32,1696.86
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-10-21,73601.81,76545.88
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-10-21,14488.15,13471.23
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2024-10-18,3248.65,2559.91
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-10-23,79909.42,83105.80
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-10-27,13136.39,11079.30
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-10-05,10241.54,5936.91
+Dirección Administrativa y Financiera,Servicios personales,2024-10-16,109786.71,114178.18
+Dirección Administrativa y Financiera,Servicios no personales,2024-10-27,38581.26,36360.05
+Dirección Administrativa y Financiera,Materiales y suministros,2024-10-28,3226.18,2450.24
+Dirección Administrativa y Financiera,Becas y transferencias,2024-10-30,24066.13,19760.06
+Dirección de Investigación,Servicios personales,,73508.51,68586.92
+Dirección de Investigación,Pasajes y viáticos,2024-10-16,4936.63,3209.99
+Dirección de Bienestar Estudiantil,Servicios personales,2024-10-05,85393.66,88809.41
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-10-18,12058.13,11314.29
+Dirección de Bienestar Estudiantil,Investigación y desarrollo,2024-10-10,20400.00,10927.10
+Dirección de Infraestructura,Servicios personales,2024-10-05,181348.09,166531.49
+Dirección de Infraestructura,Servicios no personales,2024-10-19,37647.19,30690.19
+Dirección de Infraestructura,Becas y transferencias,2024-10-30,31550.70,31280.30
+Dirección de Infraestructura,Pasajes y viáticos,2024-10-09,1761.82,1367.23
+Rectorado,Servicios personales,2024-10-02,228893.70,195658.98
+Rectorado,Servicios no personales,2024-10-13,49015.16,46284.26
+Rectorado,Materiales y suministros,2024-10-23,30630.26,23170.53
+Rectorado,Becas y transferencias,2024-10-01,15493.50,11898.61
+Rectorado,Investigación y desarrollo,2024-10-05,49753.32,27881.06
+Rectorado,Mantenimiento de infraestructura,2024-10-07,9209.90,7301.99
+Facultad de Ciencias y Tecnología,Servicios personales,2024-11-03,197422.51,192947.86
+Facultad de Ciencias y Tecnología,Servicios no personales,2024-11-01,58989.15,46675.19
+Facultad de Ciencias y Tecnología,Activos reales,2024-11-22,489851.82,250360.85
+Facultad de Ciencias y Tecnología,Becas y transferencias,2024-11-04,12100.07,11258.84
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2024-11-21,67883.77,42232.63
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2024-11-23,12602.14,8179.52
+Facultad de Ciencias Económicas,Servicios personales,2024-11-01,163896.82,153775.36
+Facultad de Ciencias Económicas,Servicios no personales,2024-11-18,24225.51,19695.31
+Facultad de Ciencias Económicas,Materiales y suministros,2024-11-19,11359.63,7692.82
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2024-11-17,23392.37,17493.83
+Facultad de Ciencias de la Salud,Servicios personales,2024-11-07,141684.11,122009.74
+Facultad de Ciencias de la Salud,Servicios no personales,2024-11-04,51016.19,38468.85
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-11-30,9107.55,7393.30
+Facultad de Ciencias de la Salud,Activos reales,2024-11-28,227374.56,110315.67
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2024-11-25,72524.82,47700.10
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2024-11-26,55873.02,34957.50
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2024-11-03,3991.70,3021.06
+Facultad de Ciencias Agrícolas,Servicios personales,2024-11-22,76095.86,79139.69
+Facultad de Ciencias Agrícolas,Servicios no personales,2024-11-15,17066.89,14370.64
+Facultad de Ciencias Agrícolas,Becas y transferencias,2024-11-30,18501.13,14304.83
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2024-11-10,7590.71,5221.61
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-11-05,120222.55,102291.74
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-11-02,15387.89,13643.13
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-11-13,2549.71,2023.95
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-11-28,16857.58,13904.84
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2024-11-15,28920.28,18736.20
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-11-03,43608.84,37718.84
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-11-27,9572.17,7996.75
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-11-20,43836.94,45587.20
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-11-16,12985.38,12021.54
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-11-03,4422.35,
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-11-14,24849.99,23051.51
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-11-17,32360.95,18997.41
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2024-11-09,25078.01,17824.56
+Dirección Administrativa y Financiera,Servicios personales,2024-11-27,151225.91,132060.74
+Dirección Administrativa y Financiera,Servicios no personales,2024-11-02,26533.08,
+Dirección Administrativa y Financiera,Becas y transferencias,2024-11-06,18207.76,14375.71
+Dirección Administrativa y Financiera,Investigación y desarrollo,2024-11-09,5445.86,3220.66
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,,27007.48,18671.31
+Dirección Administrativa y Financiera,Pasajes y viáticos,2024-11-13,5269.74,3705.33
+Dirección de Investigación,Servicios personales,2024-11-15,47378.42,40482.80
+Dirección de Investigación,Servicios no personales,2024-11-18,20822.49,19033.01
+Dirección de Investigación,Becas y transferencias,2024-11-27,16838.28,17222.94
+Dirección de Investigación,Investigación y desarrollo,2024-11-30,8407.41,5120.69
+Dirección de Investigación,Pasajes y viáticos,2024-11-20,3412.13,2462.56
+Dirección de Bienestar Estudiantil,Servicios personales,2024-11-15,63996.38,62778.08
+Dirección de Bienestar Estudiantil,Materiales y suministros,2024-11-12,11133.22,7877.64
+Dirección de Bienestar Estudiantil,Becas y transferencias,2024-11-12,14775.78,11855.95
+Dirección de Infraestructura,Servicios personales,2024-11-14,73015.47,
+Dirección de Infraestructura,Materiales y suministros,2024-11-17,17823.16,12756.34
+Dirección de Infraestructura,Becas y transferencias,2024-11-09,43500.01,33753.45
+Rectorado,Servicios personales,2024-11-16,118702.99,102351.65
+Rectorado,Servicios no personales,2024-11-22,48812.95,45563.74
+Rectorado,Becas y transferencias,2024-11-21,18740.91,16964.42
+Rectorado,Investigación y desarrollo,2024-11-12,15404.27,8533.07
+Rectorado,Mantenimiento de infraestructura,2024-11-04,37215.78,24099.40
+Rectorado,Pasajes y viáticos,2024-11-11,7865.89,6229.23
+Facultad de Ciencias y Tecnología,,2024-12-29,119545.81,124327.64
+Facultad de Ciencias y Tecnología,Becas y transferencias,2024-12-30,29612.71,30447.69
+Facultad de Ciencias y Tecnología,,2024-12-22,6642.57,
+Facultad de Ciencias Económicas,Servicios personales,2024-12-29,193027.61,200748.71
+Facultad de Ciencias Económicas,Servicios no personales,2024-12-01,35570.62,28434.56
+Facultad de Ciencias Económicas,,2024-12-12,24096.37,19329.86
+Facultad de Ciencias Económicas,Pasajes y viáticos,2024-12-28,5804.15,4490.98
+Facultad de Ciencias de la Salud,Servicios personales,2024-12-29,204330.58,193568.75
+Facultad de Ciencias de la Salud,Servicios no personales,2024-12-10,55347.69,43105.78
+Facultad de Ciencias de la Salud,Materiales y suministros,2024-12-03,6018.87,4273.37
+Facultad de Ciencias de la Salud,Becas y transferencias,2024-12-31,40460.45,31841.89
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2024-12-05,24834.13,
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2024-12-12,42427.68,30373.60
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2024-12-01,9715.17,6464.55
+Facultad de Ciencias Agrícolas,Servicios personales,2024-12-14,97923.08,86286.68
+Facultad de Ciencias Agrícolas,Activos reales,2024-12-02,215176.41,137784.84
+Facultad de Ciencias Agrícolas,Becas y transferencias,2024-12-01,8448.96,8641.66
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2024-12-19,107157.93,107026.53
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2024-12-24,30074.63,25333.16
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2024-12-29,6271.61,5273.11
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2024-12-26,6273.60,5010.08
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2024-12-20,47678.14,26164.26
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2024-12-22,5183.61,4157.83
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2024-12-08,68029.07,64723.85
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2024-12-04,10921.69,10270.07
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2024-12-08,4383.23,2860.38
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2024-12-25,103171.27,101263.30
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2024-12-18,13573.03,11004.35
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2024-12-07,3397.63,3109.00
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2024-12-21,21880.42,17130.42
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2024-12-13,37846.21,20026.42
+Dirección Administrativa y Financiera,Servicios personales,2024-12-08,107843.61,98163.08
+Dirección Administrativa y Financiera,Servicios no personales,2024-12-11,12503.31,10738.72
+Dirección Administrativa y Financiera,Materiales y suministros,2024-12-23,22009.03,17612.84
+Dirección Administrativa y Financiera,Becas y transferencias,2024-12-19,30803.44,24673.82
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2024-12-15,22337.96,15468.02
+Dirección de Investigación,Servicios personales,2024-12-30,55802.57,47969.42
+Dirección de Investigación,Servicios no personales,2024-12-23,26632.79,24298.75
+Dirección de Investigación,Materiales y suministros,2024-12-10,13667.75,12713.39
+Dirección de Investigación,Investigación y desarrollo,,16602.29,8659.76
+Dirección de Investigación,Mantenimiento de infraestructura,2024-12-29,29506.64,21075.82
+Dirección de Investigación,Pasajes y viáticos,2024-12-05,5085.61,3977.71
+Dirección de Bienestar Estudiantil,Servicios personales,2024-12-19,40365.07,35029.85
+Dirección de Bienestar Estudiantil,Servicios no personales,2024-12-22,5166.13,4883.17
+Dirección de Bienestar Estudiantil,Activos reales,2024-12-17,156043.28,84681.38
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2024-12-29,4290.32,2979.60
+Dirección de Infraestructura,Servicios personales,2024-12-03,110840.97,107884.69
+Dirección de Infraestructura,Materiales y suministros,2024-12-05,24172.79,
+Dirección de Infraestructura,Activos reales,2024-12-23,390271.32,222883.93
+Dirección de Infraestructura,Investigación y desarrollo,2024-12-11,11163.31,6528.00
+Dirección de Infraestructura,Mantenimiento de infraestructura,2024-12-30,20851.91,16084.63
+Rectorado,Servicios personales,2024-12-24,194886.36,199400.24
+Rectorado,Servicios no personales,2024-12-21,18752.89,15764.22
+Rectorado,Materiales y suministros,2024-12-31,7599.55,6138.34
+Rectorado,Activos reales,2024-12-18,239823.91,145325.03
+Rectorado,Investigación y desarrollo,2024-12-22,50812.69,29625.02
+Facultad de Ciencias y Tecnología,Servicios personales,2025-01-03,303711.87,216479.38
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-01-12,30471.93,19154.62
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-01-04,17782.45,11226.63
+Facultad de Ciencias y Tecnología,Activos reales,2025-01-14,71708.85,27827.22
+Facultad de Ciencias Económicas,Servicios personales,2025-01-29,191885.89,152334.54
+Facultad de Ciencias Económicas,Materiales y suministros,2025-01-22,16669.38,10384.76
+Facultad de Ciencias Económicas,Pasajes y viáticos,2025-01-11,6645.51,3572.55
+Facultad de Ciencias de la Salud,Servicios personales,2025-01-05,230393.56,187886.74
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-01-23,11496.07,5781.51
+Facultad de Ciencias de la Salud,Becas y transferencias,2025-01-15,42772.30,27110.54
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2025-01-10,47776.78,22609.33
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2025-01-12,8103.92,4642.50
+Facultad de Ciencias Agrícolas,Servicios personales,2025-01-26,147546.03,118214.22
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-01-05,31762.72,17798.13
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-01-20,6018.63,3487.67
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-01-08,41508.18,23559.31
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-01-05,56263.96,41210.28
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-01-28,9188.36,4954.12
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-01-06,12275.45,6094.68
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-01-18,46012.13,17758.43
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-01-30,109362.54,80417.29
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-01-09,20300.70,12245.71
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2025-01-27,2986.70,1594.42
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2025-01-27,17559.01,9342.47
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-01-07,88428.64,69451.24
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-01-25,26462.00,13307.96
+Dirección Administrativa y Financiera,Servicios personales,2025-01-25,143664.37,110547.29
+Dirección Administrativa y Financiera,Activos reales,2025-01-29,35016.54,12652.95
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2025-01-10,15037.51,8154.19
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-01-02,2429.05,1136.84
+Dirección de Investigación,Servicios personales,2025-01-31,101602.78,82344.85
+Dirección de Investigación,Materiales y suministros,2025-01-22,11512.23,6947.11
+Dirección de Investigación,Becas y transferencias,2025-01-01,26744.35,18741.19
+Dirección de Bienestar Estudiantil,Servicios personales,2025-01-14,92373.65,67224.50
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-01-26,11081.40,6775.84
+Dirección de Bienestar Estudiantil,Materiales y suministros,2025-01-24,5990.53,3751.33
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-01-25,10739.77,7835.54
+Dirección de Bienestar Estudiantil,,2025-01-21,18757.24,7642.43
+Dirección de Infraestructura,Servicios personales,2025-01-22,159968.76,109895.14
+Dirección de Infraestructura,Servicios no personales,2025-01-26,13338.98,7964.30
+Dirección de Infraestructura,Materiales y suministros,2025-01-21,12538.27,7975.14
+Dirección de Infraestructura,Becas y transferencias,2025-01-11,17074.58,10286.11
+Rectorado,Servicios personales,2025-01-21,100225.05,72450.73
+Rectorado,Servicios no personales,2025-01-01,37435.46,21968.46
+Rectorado,Mantenimiento de infraestructura,2025-01-16,47438.60,26246.72
+Facultad de Ciencias y Tecnología,Servicios personales,2025-02-27,298410.96,187734.59
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-02-08,21492.58,14739.85
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,,8520.49,5359.09
+Facultad de Ciencias Económicas,Servicios personales,2025-02-23,118643.89,81115.76
+Facultad de Ciencias Económicas,Materiales y suministros,2025-02-28,9844.13,6531.20
+Facultad de Ciencias Económicas,Becas y transferencias,2025-02-13,8721.91,5560.60
+Facultad de Ciencias Económicas,Investigación y desarrollo,2025-02-19,32774.49,13084.09
+Facultad de Ciencias Económicas,Pasajes y viáticos,2025-02-06,1277.75,692.12
+Facultad de Ciencias de la Salud,Servicios personales,2025-02-13,195990.07,164823.45
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-02-08,23730.55,16098.59
+Facultad de Ciencias de la Salud,Activos reales,2025-02-08,114076.12,45448.81
+Facultad de Ciencias de la Salud,Becas y transferencias,2025-02-14,43964.94,33008.57
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2025-02-27,62215.09,31532.83
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2025-02-26,4470.01,2788.92
+Facultad de Ciencias Agrícolas,Servicios personales,2025-02-26,158240.28,132982.70
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-02-16,34095.19,21140.47
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-02-21,19278.78,11458.23
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-02-05,10572.91,5610.40
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2025-02-28,2802.14,1496.82
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-02-05,90450.16,62581.10
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-02-25,19024.90,10028.39
+Facultad de Humanidades y Ciencias de la Educación,Activos reales,2025-02-27,134918.53,59744.01
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2025-02-10,21625.79,14560.04
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-02-26,12276.15,6019.93
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-02-27,110951.73,74848.87
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-02-04,19174.40,11278.17
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2025-02-04,14160.67,7449.40
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2025-02-14,151929.53,57563.01
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-02-03,6136.24,3898.90
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-02-03,99059.83,69910.93
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-02-23,22495.92,16366.37
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-02-17,18349.85,11261.98
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2025-02-09,122237.59,45974.65
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2025-02-26,24729.11,18877.29
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-02-12,7287.74,4025.92
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2025-02-26,3927.22,2494.38
+Dirección Administrativa y Financiera,Servicios personales,2025-02-18,104360.37,83367.57
+Dirección Administrativa y Financiera,Servicios no personales,2025-02-10,24785.07,15464.78
+Dirección Administrativa y Financiera,Becas y transferencias,2025-02-28,13365.88,9233.20
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2025-02-13,18718.83,10057.03
+Dirección de Investigación,Servicios personales,2025-02-13,81949.13,62694.51
+Dirección de Investigación,Servicios no personales,2025-02-13,23939.55,16836.44
+Dirección de Investigación,Materiales y suministros,2025-02-22,5204.84,3065.70
+Dirección de Investigación,Investigación y desarrollo,2025-02-02,22106.18,10181.47
+Dirección de Investigación,Mantenimiento de infraestructura,2025-02-26,18326.07,10413.20
+Dirección de Investigación,Pasajes y viáticos,2025-02-10,5134.62,3000.65
+Dirección de Bienestar Estudiantil,Servicios personales,2025-02-01,83793.49,68945.89
+Dirección de Bienestar Estudiantil,Activos reales,2025-02-05,49239.39,18969.42
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-02-06,16500.01,10464.12
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2025-02-01,4717.53,
+Dirección de Infraestructura,Servicios personales,2025-02-24,195523.28,137851.75
+Dirección de Infraestructura,Servicios no personales,2025-02-28,20674.32,11908.39
+Dirección de Infraestructura,Materiales y suministros,2025-02-12,26830.57,15792.42
+Dirección de Infraestructura,Becas y transferencias,2025-02-19,29749.47,21881.98
+Dirección de Infraestructura,Pasajes y viáticos,2025-02-05,6161.76,3695.30
+Rectorado,Servicios personales,2025-02-28,94615.49,66408.55
+Rectorado,Servicios no personales,2025-02-26,27370.56,15159.70
+Rectorado,Materiales y suministros,2025-02-26,6325.56,3940.71
+Rectorado,Becas y transferencias,2025-02-15,38605.88,24678.05
+Rectorado,Pasajes y viáticos,2025-02-07,3238.79,1922.68
+Facultad de Ciencias y Tecnología,Servicios personales,2025-03-20,192462.59,156291.92
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2025-03-28,117378.53,53742.38
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2025-03-20,51631.60,29665.82
+Facultad de Ciencias Económicas,Servicios personales,2025-03-22,121243.74,79066.40
+Facultad de Ciencias Económicas,Servicios no personales,2025-03-17,13796.78,9011.72
+Facultad de Ciencias Económicas,Activos reales,2025-03-16,96626.67,39652.51
+Facultad de Ciencias Económicas,Becas y transferencias,2025-03-21,55812.79,39109.14
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-03-21,57176.30,33012.96
+Facultad de Ciencias de la Salud,Servicios personales,2025-03-23,169943.59,121727.27
+Facultad de Ciencias de la Salud,Servicios no personales,2025-03-22,56727.28,43202.37
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-03-05,46193.67,28945.28
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2025-03-30,29429.32,14060.46
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2025-03-22,21725.26,12812.31
+Facultad de Ciencias Agrícolas,Servicios personales,2025-03-02,207457.56,175245.56
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-03-29,16290.65,10871.22
+Facultad de Ciencias Agrícolas,Activos reales,2025-03-05,34139.48,16177.61
+Facultad de Ciencias Agrícolas,Becas y transferencias,2025-03-03,12369.91,
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-03-10,21995.94,10463.60
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-03-03,149048.84,119119.71
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-03-22,35852.06,20962.55
+Facultad de Humanidades y Ciencias de la Educación,Activos reales,2025-03-23,197314.65,80997.52
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2025-03-22,24386.66,17471.41
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-03-15,55928.39,28240.29
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-03-21,32775.98,18406.91
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-03-19,7645.05,4163.69
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-03-31,131954.62,91956.01
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-03-28,21152.90,12096.50
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2025-03-18,19795.68,9375.53
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-03-15,4954.93,3668.69
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-03-20,3860.89,2341.05
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-03-27,118819.10,84623.25
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-03-28,15303.49,10908.10
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-03-03,9432.84,4991.50
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-03-31,29732.76,14802.37
+Dirección Administrativa y Financiera,Servicios personales,2025-03-01,108830.46,85483.04
+Dirección Administrativa y Financiera,Servicios no personales,2025-03-13,14291.88,9079.77
+Dirección Administrativa y Financiera,Materiales y suministros,2025-03-27,5018.61,3562.15
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-03-22,5225.68,2939.99
+Dirección de Investigación,Servicios personales,2025-03-16,78848.30,59049.31
+Dirección de Investigación,Servicios no personales,2025-03-23,9662.37,5767.19
+Dirección de Investigación,Materiales y suministros,2025-03-21,11537.87,8114.05
+Dirección de Investigación,Becas y transferencias,2025-03-27,10024.88,7284.74
+Dirección de Investigación,Pasajes y viáticos,2025-03-31,7429.04,4021.37
+Dirección de Bienestar Estudiantil,Servicios personales,2025-03-23,114495.33,92775.59
+Dirección de Bienestar Estudiantil,Materiales y suministros,2025-03-19,3412.67,2337.04
+Dirección de Bienestar Estudiantil,Activos reales,2025-03-12,148428.94,59993.95
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-03-13,7135.80,5195.48
+Dirección de Infraestructura,Servicios personales,2025-03-04,257768.48,201180.39
+Dirección de Infraestructura,Servicios no personales,2025-03-30,43607.56,29661.34
+Dirección de Infraestructura,Activos reales,2025-03-30,66445.29,25119.85
+Dirección de Infraestructura,Mantenimiento de infraestructura,2025-03-29,33692.59,20610.74
+Dirección de Infraestructura,Pasajes y viáticos,2025-03-08,11951.88,6507.38
+Rectorado,Servicios personales,2025-03-19,204453.10,144974.26
+Rectorado,Becas y transferencias,2025-03-13,61917.02,36756.43
+Rectorado,Mantenimiento de infraestructura,2025-03-09,20565.28,11068.51
+Rectorado,Pasajes y viáticos,2025-03-03,5907.77,3567.87
+Facultad de Ciencias y Tecnología,Servicios personales,2025-04-16,111544.10,79248.00
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-04-19,67760.39,51530.13
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-04-16,16525.02,9155.45
+Facultad de Ciencias y Tecnología,Activos reales,2025-04-28,110408.39,47990.71
+Facultad de Ciencias y Tecnología,Becas y transferencias,2025-04-07,41836.84,31331.75
+Facultad de Ciencias y Tecnología,,2025-04-30,14037.56,7271.45
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2025-04-20,74795.42,46357.13
+Facultad de Ciencias Económicas,Servicios personales,2025-04-26,204524.49,165423.18
+Facultad de Ciencias Económicas,Servicios no personales,2025-04-04,22789.67,15651.60
+Facultad de Ciencias Económicas,Materiales y suministros,2025-04-06,29406.57,20928.32
+Facultad de Ciencias Económicas,Pasajes y viáticos,2025-04-07,6784.51,4220.29
+Facultad de Ciencias de la Salud,Servicios personales,2025-04-24,266890.43,207922.09
+Facultad de Ciencias de la Salud,Servicios no personales,2025-04-23,25315.13,19298.24
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-04-25,26486.49,15706.88
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2025-04-20,86232.25,40855.08
+Facultad de Ciencias Agrícolas,Servicios personales,2025-04-22,154966.23,138480.12
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-04-09,13770.52,9335.33
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-04-03,21578.58,15274.36
+Facultad de Ciencias Agrícolas,Activos reales,2025-04-07,38890.48,16119.94
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2025-04-28,23804.98,10895.06
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-04-03,106899.65,88370.55
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-04-13,6472.66,4470.33
+Facultad de Humanidades y Ciencias de la Educación,Activos reales,2025-04-29,113578.14,57378.45
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-04-28,34047.69,17752.13
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-04-18,2638.90,1420.04
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-04-22,64940.76,57976.86
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-04-08,16969.01,10913.81
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2025-04-30,13918.81,7622.30
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2025-04-26,51538.34,21193.26
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-04-13,11984.41,7682.85
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-04-21,5362.11,2857.78
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-04-01,108076.20,87660.99
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-04-05,11448.03,8330.58
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-04-23,11269.18,6912.12
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2025-04-01,60942.17,23367.74
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2025-04-28,29352.43,22831.24
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2025-04-05,15676.05,7988.31
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-04-25,13688.29,8264.71
+Dirección Administrativa y Financiera,Servicios personales,2025-04-05,142199.73,116582.51
+Dirección Administrativa y Financiera,Materiales y suministros,2025-04-25,24909.06,15512.45
+Dirección Administrativa y Financiera,Becas y transferencias,2025-04-20,7213.98,5964.22
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-04-12,8180.48,5399.62
+Dirección de Investigación,Servicios personales,2025-04-29,47291.21,34145.35
+Dirección de Investigación,Activos reales,2025-04-27,59573.91,23589.55
+Dirección de Investigación,Becas y transferencias,2025-04-07,24374.85,17035.98
+Dirección de Investigación,Investigación y desarrollo,2025-04-03,26033.31,14286.82
+Dirección de Bienestar Estudiantil,Servicios personales,2025-04-30,86701.37,67802.11
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-04-25,15110.83,10792.46
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-04-06,15676.42,10963.91
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2025-04-29,1835.89,1184.98
+Dirección de Infraestructura,Servicios personales,2025-04-27,155219.80,136869.50
+Dirección de Infraestructura,Materiales y suministros,2025-04-19,16969.39,11991.83
+Dirección de Infraestructura,Mantenimiento de infraestructura,2025-04-23,11134.62,6487.55
+Rectorado,Servicios personales,2025-04-16,89345.33,66147.77
+Rectorado,Servicios no personales,2025-04-27,18342.33,13519.69
+Rectorado,Materiales y suministros,2025-04-01,33822.46,19620.35
+Rectorado,Mantenimiento de infraestructura,2025-04-27,58586.86,30128.96
+Rectorado,Pasajes y viáticos,2025-04-24,5015.51,3127.55
+Facultad de Ciencias y Tecnología,Servicios personales,2025-05-17,122152.10,113793.45
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-05-25,46520.62,31710.32
+Facultad de Ciencias y Tecnología,Becas y transferencias,2025-05-10,11060.12,7125.78
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2025-05-12,13656.43,8194.66
+Facultad de Ciencias Económicas,Servicios personales,2025-05-03,115504.98,107690.16
+Facultad de Ciencias Económicas,Servicios no personales,2025-05-11,19026.34,12552.93
+Facultad de Ciencias Económicas,Materiales y suministros,2025-05-01,23348.62,16290.37
+Facultad de Ciencias Económicas,Becas y transferencias,2025-05-30,45915.38,36500.68
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-05-30,21336.93,14593.89
+Facultad de Ciencias de la Salud,Servicios personales,2025-05-27,204573.35,188473.88
+Facultad de Ciencias de la Salud,Servicios no personales,2025-05-27,34323.34,23950.43
+Facultad de Ciencias de la Salud,Becas y transferencias,2025-05-15,19140.30,14787.72
+Facultad de Ciencias Agrícolas,Servicios personales,2025-05-24,65864.06,56924.13
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-05-11,5853.17,3521.06
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-05-12,18878.78,10471.99
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2025-05-09,1938.79,1162.46
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-05-10,137370.68,123276.00
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-05-25,19024.08,13529.80
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-05-08,27600.75,13094.35
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-05-07,5923.88,3194.16
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,,46530.89,33509.17
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-05-24,10684.53,7706.43
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2025-05-29,72525.22,33237.75
+Facultad de Arquitectura y Ciencias del Hábitat,Investigación y desarrollo,2025-05-21,34141.19,18075.06
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2025-05-16,24885.75,12671.39
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-05-30,3331.12,1859.45
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-05-20,112601.87,100362.78
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-05-26,16008.91,10670.86
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-05-27,23222.24,13889.30
+Dirección Administrativa y Financiera,Servicios personales,2025-05-23,183004.30,162962.66
+Dirección Administrativa y Financiera,Servicios no personales,2025-05-04,22507.77,13727.70
+Dirección Administrativa y Financiera,Becas y transferencias,2025-05-24,35985.56,26495.05
+Dirección Administrativa y Financiera,Investigación y desarrollo,2025-05-17,45366.84,20742.56
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,,21573.84,12269.46
+Dirección de Investigación,Servicios personales,2025-05-18,100895.48,84049.02
+Dirección de Investigación,Activos reales,2025-05-09,108000.93,56187.13
+Dirección de Investigación,Becas y transferencias,2025-05-18,4372.60,3374.35
+Dirección de Investigación,Mantenimiento de infraestructura,2025-05-10,11859.19,7929.14
+Dirección de Investigación,Pasajes y viáticos,2025-05-19,2056.40,1290.00
+Dirección de Bienestar Estudiantil,Servicios personales,2025-05-11,73636.45,
+Dirección de Bienestar Estudiantil,Materiales y suministros,2025-05-10,8875.46,5983.06
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2025-05-17,3894.11,2671.65
+Dirección de Infraestructura,Servicios personales,2025-05-25,182926.59,150207.74
+Dirección de Infraestructura,Servicios no personales,2025-05-01,17805.29,13359.92
+Dirección de Infraestructura,Materiales y suministros,2025-05-12,4308.00,2440.65
+Dirección de Infraestructura,Investigación y desarrollo,,36711.11,18794.46
+Dirección de Infraestructura,Mantenimiento de infraestructura,2025-05-01,46643.14,24697.03
+Dirección de Infraestructura,Pasajes y viáticos,2025-05-17,8340.36,5261.18
+Rectorado,Servicios personales,2025-05-10,83037.22,58891.89
+Rectorado,Materiales y suministros,2025-05-19,4610.50,2815.83
+Facultad de Ciencias y Tecnología,Servicios personales,2025-06-01,175135.16,148235.57
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-06-26,27465.46,17742.26
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-06-17,11064.25,7937.31
+Facultad de Ciencias y Tecnología,Activos reales,2025-06-16,289787.77,138758.43
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,,73121.66,35070.24
+Facultad de Ciencias Económicas,Servicios personales,2025-06-19,185241.79,179738.22
+Facultad de Ciencias Económicas,Activos reales,2025-06-04,93636.09,50591.28
+Facultad de Ciencias Económicas,Becas y transferencias,,35883.46,25663.30
+Facultad de Ciencias Económicas,Pasajes y viáticos,2025-06-16,2377.92,1512.79
+Facultad de Ciencias de la Salud,Servicios personales,2025-06-09,258795.32,186986.80
+Facultad de Ciencias de la Salud,Servicios no personales,2025-06-27,21836.73,16289.52
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2025-06-26,60961.08,37420.32
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2025-06-01,2507.19,1423.86
+Facultad de Ciencias Agrícolas,Servicios personales,2025-06-25,156896.41,141123.26
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-06-23,9535.06,7142.55
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-06-09,12573.40,9529.97
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-06-28,27171.93,19164.61
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2025-06-07,1938.53,1137.61
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-06-22,99962.35,89224.99
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-06-05,3950.63,2660.53
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-06-02,33904.82,19940.70
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-06-05,23578.86,13514.84
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-06-14,5411.17,
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-06-28,43279.77,32768.46
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2025-06-24,15562.51,9889.42
+Facultad de Arquitectura y Ciencias del Hábitat,Investigación y desarrollo,2025-06-28,36221.80,17860.74
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-06-27,1629.82,909.45
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-06-20,45362.36,33340.39
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-06-25,25204.35,19104.19
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-06-21,3073.90,2096.98
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2025-06-15,32754.07,19089.78
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-06-25,15481.17,8615.76
+Dirección Administrativa y Financiera,Servicios personales,2025-06-12,158836.43,132297.06
+Dirección Administrativa y Financiera,Materiales y suministros,2025-06-30,18082.08,12860.70
+Dirección Administrativa y Financiera,Becas y transferencias,2025-06-22,18176.71,12055.79
+Dirección Administrativa y Financiera,Investigación y desarrollo,2025-06-17,41997.37,22529.18
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-06-12,2657.58,1704.68
+Dirección de Investigación,Servicios personales,2025-06-01,121366.02,96363.25
+Dirección de Investigación,Activos reales,2025-06-20,93986.14,39847.44
+Dirección de Investigación,Becas y transferencias,2025-06-05,7029.35,5554.97
+Dirección de Bienestar Estudiantil,Servicios personales,2025-06-16,93850.37,82605.36
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-06-27,15707.35,12408.25
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2025-06-18,6308.52,4103.37
+Dirección de Infraestructura,,2025-06-13,152296.99,116852.88
+Dirección de Infraestructura,Materiales y suministros,2025-06-07,15129.36,10234.64
+Dirección de Infraestructura,Activos reales,2025-06-19,141927.36,59121.15
+Dirección de Infraestructura,Investigación y desarrollo,2025-06-03,61373.28,33425.25
+Dirección de Infraestructura,Mantenimiento de infraestructura,2025-06-30,20500.21,11403.10
+Rectorado,Servicios personales,2025-06-16,138467.61,101606.36
+Rectorado,Servicios no personales,2025-06-17,39075.90,32101.54
+Rectorado,Becas y transferencias,2025-06-04,17774.50,12452.61
+Facultad de Ciencias y Tecnología,Servicios personales,2025-07-06,254749.22,229655.41
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-07-13,56687.51,49366.91
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-07-02,15109.18,10851.23
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2025-07-09,16937.28,9571.23
+Facultad de Ciencias Económicas,Servicios personales,2025-07-18,224923.45,188123.29
+Facultad de Ciencias Económicas,Materiales y suministros,2025-07-16,8757.52,6345.56
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-07-28,47150.31,34382.07
+Facultad de Ciencias Económicas,Pasajes y viáticos,2025-07-12,3511.03,2240.04
+Facultad de Ciencias de la Salud,Servicios personales,2025-07-15,206036.55,186971.51
+Facultad de Ciencias de la Salud,Servicios no personales,2025-07-01,26040.00,19379.20
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-07-08,4895.75,3366.38
+Facultad de Ciencias de la Salud,Becas y transferencias,2025-07-31,57683.02,51953.28
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2025-07-28,54887.05,30307.47
+Facultad de Ciencias Agrícolas,Servicios personales,2025-07-24,122888.63,107506.97
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-07-22,17656.00,14433.70
+Facultad de Ciencias Agrícolas,Becas y transferencias,2025-07-10,36227.88,29277.49
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-07-26,28485.33,16726.20
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-07-08,145446.31,127378.47
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-07-28,24119.98,19163.43
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-07-14,19132.89,12428.53
+Facultad de Humanidades y Ciencias de la Educación,Activos reales,2025-07-27,91093.60,46281.24
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,,41644.66,21405.58
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-07-08,14598.97,
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-07-16,7247.77,4185.98
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-07-17,38222.83,36353.42
+Facultad de Arquitectura y Ciencias del Hábitat,,2025-07-29,12042.51,10090.28
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2025-07-31,4030.48,2562.06
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-07-28,21549.90,17425.68
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2025-07-16,25321.27,18079.46
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-07-13,3739.82,2141.03
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-07-26,97189.60,91503.97
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-07-31,17257.15,14299.22
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-07-24,15053.89,11619.62
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2025-07-03,4847.09,3267.08
+Dirección Administrativa y Financiera,Servicios personales,2025-07-27,127094.20,103913.70
+Dirección Administrativa y Financiera,Materiales y suministros,2025-07-01,7127.72,5197.26
+Dirección Administrativa y Financiera,Activos reales,2025-07-26,96502.00,44234.33
+Dirección Administrativa y Financiera,Becas y transferencias,2025-07-08,38918.65,27529.22
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2025-07-06,16574.05,10892.54
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-07-10,8208.87,5082.32
+Dirección de Investigación,Servicios personales,2025-07-23,113144.57,95930.10
+Dirección de Investigación,Servicios no personales,2025-07-02,29375.34,24808.16
+Dirección de Investigación,Materiales y suministros,2025-07-31,6360.71,4522.44
+Dirección de Investigación,Becas y transferencias,2025-07-17,24697.28,18156.63
+Dirección de Investigación,Investigación y desarrollo,2025-07-08,34543.58,17175.77
+Dirección de Bienestar Estudiantil,Servicios personales,2025-07-31,80324.66,70255.45
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-07-08,10179.27,7827.62
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-07-25,20113.30,13741.59
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2025-07-26,1179.54,744.98
+Dirección de Infraestructura,Servicios personales,2025-07-25,182067.59,152096.66
+Dirección de Infraestructura,Materiales y suministros,2025-07-05,17285.79,11721.87
+Dirección de Infraestructura,Becas y transferencias,2025-07-06,35992.22,31505.42
+Dirección de Infraestructura,Pasajes y viáticos,2025-07-10,8613.58,6305.22
+Rectorado,Servicios personales,2025-07-26,179943.59,162469.30
+Rectorado,Servicios no personales,2025-07-15,15733.24,13345.55
+Rectorado,Activos reales,2025-07-22,180240.48,90669.25
+Facultad de Ciencias y Tecnología,Servicios personales,2025-08-27,317527.19,317398.08
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-08-16,26494.67,23014.83
+Facultad de Ciencias y Tecnología,Materiales y suministros,,45234.16,34396.86
+Facultad de Ciencias y Tecnología,Activos reales,2025-08-04,78340.44,43826.62
+Facultad de Ciencias y Tecnología,Becas y transferencias,2025-08-31,71645.69,63097.65
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2025-08-20,80001.06,57744.96
+Facultad de Ciencias Económicas,Servicios personales,2025-08-01,141189.88,130628.96
+Facultad de Ciencias Económicas,Materiales y suministros,2025-08-11,9254.08,6073.74
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-08-09,65405.12,44888.52
+Facultad de Ciencias de la Salud,Servicios personales,2025-08-27,239272.76,193567.18
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-08-23,45027.57,30906.78
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2025-08-30,10784.37,5276.61
+Facultad de Ciencias Agrícolas,Servicios personales,2025-08-10,141293.87,136736.40
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-08-16,20550.62,17650.95
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-08-04,26110.14,17316.66
+Facultad de Ciencias Agrícolas,Activos reales,2025-08-17,272931.29,127975.90
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-08-30,37851.17,22996.25
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2025-08-04,7783.96,4796.16
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-08-12,181776.05,151370.69
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-08-08,28202.98,20875.21
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-08-18,5189.79,4331.63
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2025-08-27,19902.47,16560.65
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-08-15,26846.50,14299.71
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-08-26,41319.77,29734.49
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-08-14,6808.94,5254.69
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-08-20,115875.51,98474.94
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2025-08-03,15917.03,9003.47
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-08-01,25127.96,21796.64
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-08-30,165596.11,160360.66
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-08-04,11605.15,7725.73
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-08-15,4920.22,3539.69
+Dirección Administrativa y Financiera,Servicios personales,2025-08-28,147543.33,129069.29
+Dirección Administrativa y Financiera,Materiales y suministros,2025-08-09,9098.13,7250.55
+Dirección Administrativa y Financiera,Activos reales,2025-08-12,270410.24,136154.04
+Dirección Administrativa y Financiera,Becas y transferencias,2025-08-05,32512.73,24449.25
+Dirección de Investigación,Servicios personales,2025-08-17,113659.17,97244.90
+Dirección de Investigación,Servicios no personales,2025-08-25,14275.82,12630.13
+Dirección de Investigación,Materiales y suministros,2025-08-20,22152.68,14528.10
+Dirección de Investigación,Mantenimiento de infraestructura,2025-08-24,18837.61,12269.27
+Dirección de Bienestar Estudiantil,Servicios personales,2025-08-21,81255.70,82957.21
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-08-29,16631.88,
+Dirección de Bienestar Estudiantil,Activos reales,2025-08-21,122373.98,67059.29
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-08-05,16552.58,14135.81
+Dirección de Infraestructura,Servicios personales,2025-08-27,222422.12,180010.62
+Dirección de Infraestructura,Servicios no personales,2025-08-07,17561.01,13548.28
+Dirección de Infraestructura,Materiales y suministros,2025-08-27,29920.79,23240.71
+Dirección de Infraestructura,Mantenimiento de infraestructura,2025-08-03,55226.82,38741.27
+Rectorado,Servicios personales,2025-08-29,233818.23,203263.54
+Rectorado,Servicios no personales,2025-08-08,51270.44,35641.79
+Rectorado,Materiales y suministros,,42564.36,32613.40
+Rectorado,Becas y transferencias,2025-08-12,8733.39,8199.51
+Rectorado,Pasajes y viáticos,2025-08-08,4801.61,3191.78
+Facultad de Ciencias y Tecnología,Servicios personales,2025-09-01,165967.61,131240.92
+Facultad de Ciencias Económicas,,2025-09-03,97235.14,92739.44
+Facultad de Ciencias Económicas,Materiales y suministros,2025-09-13,19700.94,13829.61
+Facultad de Ciencias Económicas,Activos reales,2025-09-20,139977.23,71675.32
+Facultad de Ciencias Económicas,Investigación y desarrollo,2025-09-21,73495.89,36250.31
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-09-08,54424.74,37750.46
+Facultad de Ciencias de la Salud,Servicios personales,2025-09-21,107195.35,108350.81
+Facultad de Ciencias de la Salud,Servicios no personales,2025-09-13,49265.75,37112.80
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-09-22,7752.12,5083.89
+Facultad de Ciencias de la Salud,Investigación y desarrollo,2025-09-25,24018.87,12610.63
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2025-09-27,43629.63,
+Facultad de Ciencias Agrícolas,Servicios personales,2025-09-04,169076.53,148199.30
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-09-09,6344.19,5228.08
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-09-13,101692.42,96279.39
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-09-21,22870.22,20523.35
+Facultad de Humanidades y Ciencias de la Educación,Materiales y suministros,2025-09-29,20453.47,16709.82
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2025-09-03,28488.58,25031.43
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-09-13,8623.66,4793.04
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-09-18,1962.13,1541.02
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-09-19,67223.91,
+Facultad de Arquitectura y Ciencias del Hábitat,Materiales y suministros,2025-09-28,7974.47,5992.94
+Facultad de Arquitectura y Ciencias del Hábitat,Activos reales,2025-09-13,32176.01,18097.58
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,,11247.57,10821.96
+Facultad de Arquitectura y Ciencias del Hábitat,Investigación y desarrollo,2025-09-24,35070.35,20795.75
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2025-09-28,21442.52,15754.86
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-09-12,3779.45,3029.87
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-09-25,129544.80,108727.32
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-09-20,13115.38,10015.93
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-09-04,14868.45,11241.39
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-09-13,29300.14,18021.17
+Dirección Administrativa y Financiera,Servicios personales,2025-09-27,165147.72,145170.02
+Dirección Administrativa y Financiera,Servicios no personales,2025-09-04,31961.37,29478.96
+Dirección Administrativa y Financiera,Activos reales,2025-09-27,40683.20,22828.32
+Dirección Administrativa y Financiera,Becas y transferencias,2025-09-28,36092.63,
+Dirección Administrativa y Financiera,Investigación y desarrollo,2025-09-14,25235.32,14764.56
+Dirección Administrativa y Financiera,Mantenimiento de infraestructura,2025-09-27,18206.51,13697.42
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-09-19,2351.61,1782.66
+Dirección de Investigación,Servicios personales,2025-09-20,94007.91,97768.23
+Dirección de Investigación,Servicios no personales,2025-09-01,11546.35,10509.28
+Dirección de Investigación,Materiales y suministros,2025-09-18,13406.60,9478.83
+Dirección de Investigación,Activos reales,2025-09-13,167995.06,98411.31
+Dirección de Investigación,Becas y transferencias,2025-09-03,19866.78,16565.01
+Dirección de Investigación,Mantenimiento de infraestructura,,14920.60,9826.96
+Dirección de Bienestar Estudiantil,Servicios personales,2025-09-26,83217.59,82138.47
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-09-09,6238.57,5059.11
+Dirección de Bienestar Estudiantil,Materiales y suministros,2025-09-19,11621.00,8281.82
+Dirección de Bienestar Estudiantil,Becas y transferencias,2025-09-27,6079.03,4539.82
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2025-09-09,9230.50,7005.85
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2025-09-20,1658.51,1031.86
+Dirección de Infraestructura,Servicios personales,2025-09-28,101726.63,90167.81
+Dirección de Infraestructura,Materiales y suministros,2025-09-06,21587.79,14059.96
+Dirección de Infraestructura,Becas y transferencias,2025-09-15,42515.91,39609.73
+Rectorado,Servicios personales,2025-09-27,99366.00,
+Rectorado,Servicios no personales,2025-09-10,28641.52,20311.99
+Rectorado,Materiales y suministros,2025-09-18,13558.38,11182.45
+Rectorado,Investigación y desarrollo,2025-09-09,75102.16,45853.23
+Rectorado,Mantenimiento de infraestructura,2025-09-21,37468.92,25972.45
+Rectorado,Pasajes y viáticos,2025-09-17,8991.06,6431.83
+Facultad de Ciencias y Tecnología,Servicios personales,2025-10-09,161064.62,167507.20
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-10-13,40144.04,34080.65
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-10-29,34977.62,25435.41
+Facultad de Ciencias y Tecnología,Investigación y desarrollo,2025-10-26,85146.86,42754.69
+Facultad de Ciencias y Tecnología,Pasajes y viáticos,2025-10-06,6284.05,4086.79
+Facultad de Ciencias Económicas,Servicios personales,2025-10-17,81989.05,78567.97
+Facultad de Ciencias Económicas,Servicios no personales,2025-10-10,36646.93,
+Facultad de Ciencias Económicas,Materiales y suministros,2025-10-27,5862.93,4236.73
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-10-07,43495.01,30098.16
+Facultad de Ciencias de la Salud,Servicios personales,2025-10-15,98826.35,92690.73
+Facultad de Ciencias de la Salud,Servicios no personales,2025-10-27,15649.35,12855.11
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-10-01,17492.53,13957.53
+Facultad de Ciencias de la Salud,Activos reales,2025-10-19,453449.49,232441.15
+Facultad de Ciencias de la Salud,Becas y transferencias,2025-10-05,23170.85,19004.84
+Facultad de Ciencias Agrícolas,Servicios personales,2025-10-13,69538.54,59560.06
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-10-29,19242.43,14280.69
+Facultad de Ciencias Agrícolas,Becas y transferencias,2025-10-19,36096.79,31630.12
+Facultad de Ciencias Agrícolas,Investigación y desarrollo,2025-10-29,50789.31,31096.39
+Facultad de Ciencias Agrícolas,Mantenimiento de infraestructura,2025-10-30,28942.39,17567.32
+Facultad de Ciencias Agrícolas,Pasajes y viáticos,2025-10-31,3032.59,2155.64
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-10-17,106795.25,110275.35
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-10-25,27064.57,20703.66
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-10-22,21856.71,13579.40
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-10-11,76935.41,71141.06
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-10-10,15756.81,11926.85
+Facultad de Arquitectura y Ciencias del Hábitat,,,61256.48,34601.04
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-10-03,23866.36,19778.37
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2025-10-20,25481.00,20055.05
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-10-31,2112.37,1569.39
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-10-06,67658.79,64508.39
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-10-10,19567.44,16251.66
+Facultad de Ciencias Jurídicas y Políticas,Materiales y suministros,2025-10-06,14384.84,9747.12
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2025-10-23,39470.80,20582.98
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2025-10-15,4056.36,2950.66
+Dirección Administrativa y Financiera,Servicios personales,2025-10-28,110418.33,110069.28
+Dirección Administrativa y Financiera,Servicios no personales,2025-10-08,26482.86,18702.89
+Dirección Administrativa y Financiera,Materiales y suministros,2025-10-01,17356.78,14671.87
+Dirección Administrativa y Financiera,Activos reales,2025-10-26,77236.76,46693.22
+Dirección Administrativa y Financiera,Becas y transferencias,2025-10-17,10103.98,9183.09
+Dirección Administrativa y Financiera,Investigación y desarrollo,2025-10-23,24658.13,
+Dirección de Investigación,Servicios personales,2025-10-08,104804.58,106713.93
+Dirección de Investigación,Materiales y suministros,2025-10-26,15482.73,12735.66
+Dirección de Investigación,Activos reales,2025-10-01,219842.91,130249.78
+Dirección de Investigación,Becas y transferencias,2025-10-05,11333.96,9532.35
+Dirección de Investigación,Mantenimiento de infraestructura,2025-10-10,24318.86,14615.66
+Dirección de Investigación,Pasajes y viáticos,2025-10-18,769.65,499.78
+Dirección de Bienestar Estudiantil,Servicios personales,2025-10-22,75040.24,69712.20
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2025-10-25,21196.99,16130.14
+Dirección de Bienestar Estudiantil,Pasajes y viáticos,2025-10-12,4016.83,2990.48
+Dirección de Infraestructura,Servicios personales,2025-10-18,177135.98,151361.18
+Dirección de Infraestructura,Servicios no personales,2025-10-23,16209.68,12133.07
+Dirección de Infraestructura,Materiales y suministros,2025-10-14,16305.81,14169.14
+Dirección de Infraestructura,Activos reales,2025-10-28,136758.44,68044.87
+Dirección de Infraestructura,Pasajes y viáticos,2025-10-10,8265.89,6019.08
+Rectorado,Servicios personales,2025-10-16,236849.92,234512.77
+Rectorado,Materiales y suministros,2025-10-25,23462.71,15560.03
+Rectorado,Activos reales,2025-10-19,300901.95,156463.38
+Rectorado,Investigación y desarrollo,2025-10-13,67057.63,39549.50
+Rectorado,Mantenimiento de infraestructura,2025-10-28,38652.18,27997.33
+Rectorado,Pasajes y viáticos,2025-10-12,5519.85,4415.15
+Facultad de Ciencias y Tecnología,Servicios personales,2025-11-16,289883.74,258929.58
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-11-22,13268.05,11206.62
+Facultad de Ciencias y Tecnología,Activos reales,2025-11-06,175310.87,96755.06
+Facultad de Ciencias y Tecnología,Becas y transferencias,2025-11-30,59430.83,56285.86
+Facultad de Ciencias Económicas,Servicios personales,2025-11-20,205549.14,208504.75
+Facultad de Ciencias Económicas,Servicios no personales,2025-11-20,15324.04,14886.78
+Facultad de Ciencias Económicas,Materiales y suministros,2025-11-10,3928.79,3468.77
+Facultad de Ciencias Económicas,Becas y transferencias,2025-11-10,21670.02,21247.07
+Facultad de Ciencias Económicas,Investigación y desarrollo,2025-11-03,58018.17,35249.87
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-11-29,50681.54,38763.19
+Facultad de Ciencias de la Salud,Servicios personales,2025-11-17,255844.41,257642.42
+Facultad de Ciencias de la Salud,Servicios no personales,2025-11-10,54353.52,40455.92
+Facultad de Ciencias de la Salud,Materiales y suministros,2025-11-26,8830.06,7779.91
+Facultad de Ciencias de la Salud,Activos reales,2025-11-01,464693.72,224194.89
+Facultad de Ciencias de la Salud,Becas y transferencias,2025-11-03,48354.10,40973.55
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2025-11-22,12386.24,8921.52
+Facultad de Ciencias Agrícolas,Servicios personales,2025-11-11,128461.53,124252.31
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-11-01,27543.06,24007.40
+Facultad de Ciencias Agrícolas,Materiales y suministros,2025-11-13,7189.78,6385.84
+Facultad de Ciencias Agrícolas,Becas y transferencias,2025-11-26,13793.65,10951.93
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-11-24,117611.91,111865.79
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2025-11-26,24408.69,19741.63
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-11-16,46018.76,47859.51
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-11-30,23410.32,17425.14
+Facultad de Arquitectura y Ciencias del Hábitat,Becas y transferencias,2025-11-11,14342.95,12473.39
+Facultad de Arquitectura y Ciencias del Hábitat,Investigación y desarrollo,2025-11-17,12709.80,7292.48
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-11-14,4251.03,3080.22
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-11-01,106583.47,
+Facultad de Ciencias Jurídicas y Políticas,Servicios no personales,2025-11-18,28557.85,24326.97
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2025-11-13,6360.00,4243.95
+Dirección Administrativa y Financiera,Servicios personales,2025-11-28,111926.23,98885.17
+Dirección Administrativa y Financiera,Servicios no personales,2025-11-04,31756.90,23118.74
+Dirección Administrativa y Financiera,Materiales y suministros,2025-11-09,22982.25,15518.53
+Dirección Administrativa y Financiera,Becas y transferencias,2025-11-25,11618.54,11391.91
+Dirección Administrativa y Financiera,Pasajes y viáticos,2025-11-07,3990.35,3182.60
+Dirección de Investigación,Servicios personales,2025-11-26,48098.44,50022.38
+Dirección de Investigación,Activos reales,,167979.60,81133.21
+Dirección de Investigación,Becas y transferencias,2025-11-03,20142.33,15403.91
+Dirección de Investigación,Mantenimiento de infraestructura,2025-11-27,10378.10,7270.84
+Dirección de Investigación,Pasajes y viáticos,2025-11-18,4042.82,3339.95
+Dirección de Bienestar Estudiantil,Servicios personales,2025-11-02,62434.02,64674.03
+Dirección de Bienestar Estudiantil,Materiales y suministros,2025-11-07,1983.10,1454.74
+Dirección de Infraestructura,Servicios personales,2025-11-14,158927.00,165284.08
+Dirección de Infraestructura,Servicios no personales,2025-11-18,23684.79,20581.01
+Dirección de Infraestructura,Materiales y suministros,2025-11-26,9780.84,6674.66
+Dirección de Infraestructura,Activos reales,2025-11-12,309214.87,177471.24
+Dirección de Infraestructura,Mantenimiento de infraestructura,2025-11-10,9255.53,6582.78
+Rectorado,Servicios personales,2025-11-30,217474.45,208636.66
+Rectorado,Materiales y suministros,2025-11-10,30306.94,26578.55
+Rectorado,Activos reales,2025-11-03,229893.06,114710.83
+Rectorado,Investigación y desarrollo,2025-11-25,47232.78,27740.61
+Rectorado,Mantenimiento de infraestructura,2025-11-24,51995.53,32651.78
+Rectorado,Pasajes y viáticos,2025-11-23,9404.89,7947.02
+Facultad de Ciencias y Tecnología,Servicios personales,2025-12-18,230492.31,239712.00
+Facultad de Ciencias y Tecnología,Servicios no personales,2025-12-02,39042.88,34061.89
+Facultad de Ciencias y Tecnología,Materiales y suministros,2025-12-06,33111.74,28702.35
+Facultad de Ciencias y Tecnología,Activos reales,2025-12-07,657337.52,398177.90
+Facultad de Ciencias y Tecnología,Mantenimiento de infraestructura,2025-12-19,70467.88,54325.81
+Facultad de Ciencias Económicas,Servicios personales,2025-12-22,165309.59,151199.26
+Facultad de Ciencias Económicas,Servicios no personales,2025-12-07,22282.69,
+Facultad de Ciencias Económicas,Becas y transferencias,2025-12-24,28423.71,22229.74
+Facultad de Ciencias Económicas,Mantenimiento de infraestructura,2025-12-11,26235.20,19826.99
+Facultad de Ciencias Económicas,Pasajes y viáticos,2025-12-29,9305.03,7686.35
+Facultad de Ciencias de la Salud,Servicios personales,2025-12-09,144149.12,149915.08
+Facultad de Ciencias de la Salud,Servicios no personales,2025-12-22,32176.98,28408.04
+Facultad de Ciencias de la Salud,Mantenimiento de infraestructura,2025-12-17,9951.88,7330.52
+Facultad de Ciencias de la Salud,Pasajes y viáticos,2025-12-15,3048.78,2188.20
+Facultad de Ciencias Agrícolas,Servicios personales,2025-12-03,163430.02,162262.75
+Facultad de Ciencias Agrícolas,Servicios no personales,2025-12-16,32717.65,26464.46
+Facultad de Ciencias Agrícolas,Becas y transferencias,2025-12-12,36262.04,36057.65
+Facultad de Humanidades y Ciencias de la Educación,Servicios personales,2025-12-25,113341.20,113401.54
+Facultad de Humanidades y Ciencias de la Educación,Servicios no personales,2025-12-21,29349.38,29265.34
+Facultad de Humanidades y Ciencias de la Educación,Becas y transferencias,2025-12-14,8331.48,7505.97
+Facultad de Humanidades y Ciencias de la Educación,Investigación y desarrollo,2025-12-21,6245.47,4191.13
+Facultad de Humanidades y Ciencias de la Educación,Mantenimiento de infraestructura,2025-12-17,37251.96,28243.63
+Facultad de Humanidades y Ciencias de la Educación,Pasajes y viáticos,2025-12-24,6622.13,4753.50
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios personales,2025-12-17,113340.41,105967.33
+Facultad de Arquitectura y Ciencias del Hábitat,Servicios no personales,2025-12-23,22618.41,21362.28
+Facultad de Arquitectura y Ciencias del Hábitat,Investigación y desarrollo,2025-12-29,32230.69,17194.58
+Facultad de Arquitectura y Ciencias del Hábitat,Mantenimiento de infraestructura,2025-12-10,6867.78,5571.86
+Facultad de Arquitectura y Ciencias del Hábitat,Pasajes y viáticos,2025-12-21,4895.79,3627.65
+Facultad de Ciencias Jurídicas y Políticas,Servicios personales,2025-12-28,65310.48,61787.02
+Facultad de Ciencias Jurídicas y Políticas,Activos reales,2025-12-19,306840.31,160118.86
+Facultad de Ciencias Jurídicas y Políticas,Becas y transferencias,2025-12-26,12692.86,11837.32
+Facultad de Ciencias Jurídicas y Políticas,Investigación y desarrollo,2025-12-24,6031.10,3710.67
+Facultad de Ciencias Jurídicas y Políticas,Mantenimiento de infraestructura,2025-12-07,12173.63,8518.01
+Facultad de Ciencias Jurídicas y Políticas,Pasajes y viáticos,2025-12-26,1264.55,1065.75
+Dirección Administrativa y Financiera,Servicios personales,2025-12-05,83662.28,72320.48
+Dirección Administrativa y Financiera,Servicios no personales,2025-12-11,38462.77,32735.89
+Dirección Administrativa y Financiera,Materiales y suministros,2025-12-09,12403.26,9141.11
+Dirección de Investigación,Servicios personales,2025-12-18,97223.92,98150.07
+Dirección de Investigación,Servicios no personales,2025-12-15,15749.76,15037.61
+Dirección de Investigación,Materiales y suministros,2025-12-28,5998.43,5435.05
+Dirección de Investigación,Investigación y desarrollo,2025-12-27,28233.05,17145.21
+Dirección de Bienestar Estudiantil,Servicios personales,2025-12-06,65747.90,68377.82
+Dirección de Bienestar Estudiantil,Servicios no personales,2025-12-28,9187.74,7960.52
+Dirección de Bienestar Estudiantil,Materiales y suministros,2025-12-13,12447.99,11159.09
+Dirección de Bienestar Estudiantil,,2025-12-29,159670.82,82017.22
+Dirección de Bienestar Estudiantil,Mantenimiento de infraestructura,2025-12-01,22255.92,18325.53
+Dirección de Infraestructura,Servicios personales,2025-12-27,105281.26,93683.07
+Dirección de Infraestructura,Servicios no personales,2025-12-02,13628.93,10748.80
+Dirección de Infraestructura,Activos reales,2025-12-20,513024.32,318918.95
+Dirección de Infraestructura,Becas y transferencias,2025-12-29,40639.09,36009.22
+Dirección de Infraestructura,Investigación y desarrollo,2025-12-22,54456.08,31845.62
+Dirección de Infraestructura,Pasajes y viáticos,2025-12-25,3020.71,1966.23
+Rectorado,Servicios personales,2025-12-05,224073.38,201790.77
+Rectorado,Servicios no personales,2025-12-24,40284.20,32775.68
+Rectorado,Materiales y suministros,2025-12-07,16497.12,14977.01
+Rectorado,Activos reales,2025-12-28,154997.36,74124.50
+Rectorado,Becas y transferencias,2025-12-05,52966.06,44066.96
+Rectorado,Pasajes y viáticos,2025-12-04,4015.65,3462.65
