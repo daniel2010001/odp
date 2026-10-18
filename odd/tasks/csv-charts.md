@@ -121,7 +121,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) — **hecha salvo la prueba en vivo con editor** (L34) | S1, S4, S7 | worker + padre | `11f2801`, `f27483a` |
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
 | P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
-| P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | por definir | — |
+| P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | padre (inline) — **hecha** (L38) | `8b7fb55` |
 | P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | por definir; playground (regla 8) | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
@@ -604,3 +604,36 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   (`ChartForm.svelte:486-498`). (4) Ya es un ítem `[v1]` del `BACKLOG.md` («Evaluar un cargador del DataStore que
   normalice valores»), con mediciones de DataPusher; falta sumarle xloader y los formatos de fecha del autor.
   **Tareas nuevas:** P5 (puntos 6, 8 y 9) y P6 (puntos 1, 3, 5, 7 y 10).
+- **L38 (2026-10-17, decisiones del autor sobre L37, rótulos elegidos):** (1) «Merge de #89 ya; P5/P6 en rama nueva
+  (Recomendado)»: el commit de documentación se subió a #89, el merge lo hace el autor, y P5 avanza en
+  `feat/chart-form-fixes`, apilada sobre `feat/chart-pages`. (2) La tabla de 20 filas: «Paginación en la vista previa».
+  Queda como ítem del `BACKLOG.md`, después de los gráficos, y cambia RF-31. (3) El punto 6: «Sí, la misma regla para
+  todos». **Precisión del agente:** «Contar valores distintos» acepta cualquier columna, así que «Cálculo del eje
+  vertical» casi nunca queda con una sola opción. Lo que cambia es que, sin columnas numéricas, no ofrece sumar,
+  promediar, mínimo ni máximo, y un cálculo guardado que la tabla ya no admite vuelve a contar filas.
+- **L39 (2026-10-17, `odp-docker` tomó la medición de formatos):** quedó en su `odd/tasks/loader-value-formats.md`, con
+  el ejemplo del autor textual y la lista de formatos numéricos, y empieza cuando cierre el cambio a xloader. Mide **los
+  dos caminos** de xloader: el `COPY` tipado, que interpreta Postgres bajo DMY, y el respaldo con tabulator cuando ese
+  `COPY` falla, que interpreta las fechas con dateutil y `dayfirst`. Por formato informará si se acepta, cómo se guarda
+  y si hace fallar el cambio de tipo; la factibilidad y el costo de un normalizado previo vienen con esos resultados.
+- **L40 (2026-10-17, alcance de P6, propuesto por el agente según la regla 8):** son dos playgrounds que duplican las
+  páginas reales, con dobles de la API y las columnas de la planilla. Los parámetros de la URL guardan cada variante.
+  Los presets van en un panel global liviano; cada interruptor de variante va **en la sección donde aplica**.
+  - **P6a, `/dev/chart-editor`** (puntos 5, 7 y 10): duplica `…/charts/new` con `ChartForm`.
+    - **Presets:** la planilla completa, sólo columnas de texto y una sola columna numérica.
+    - **Lado del panel:** izquierda (hoy) o derecha.
+    - **Separación entre Datos y Presentación:** línea (hoy), una tarjeta por sección, o pasos numerados con banda de
+      encabezado.
+    - **Estilo del panel:** columna (hoy), acordeón (cada sección se pliega, con `Accordion` de bits-ui) o el de la
+      barra de filtros del buscador (tarjeta `rounded-xl` con encabezado en mayúsculas coral y fija al hacer scroll,
+      `src/routes/search/+page.svelte:624-690`), para tener un estilo común de la plataforma.
+    - Las variantes entran a `ChartForm` como props con el valor de hoy por defecto, así que la página real no cambia
+      hasta promoverlas.
+  - **P6b, `/dev/resource-views`** (puntos 1 y 3): duplica la vista previa y los gráficos de la página del recurso.
+    - **Presets:** 0, 1 y 3 gráficos; quien puede editar o un visitante.
+    - **Disposición:** apilado (hoy: la tabla y debajo los gráficos) o pestañas (`Tabla | <gráfico 1> | <gráfico 2>`,
+      con `Tabs` de bits-ui), la idea de las pestañas que se quitaron en `ce8670a`, ahora con contenido real.
+    - **Lugar de «Crear gráfico»:** a la derecha del encabezado de la sección (hoy), al final de la barra de pestañas
+      (sólo con pestañas), en la banda de acciones del encabezado del recurso, o como tarjeta punteada al final de la
+      lista.
+  - El autor elige en cada playground; recién entonces se promueve a la página real y se borra el playground.

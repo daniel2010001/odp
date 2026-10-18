@@ -2937,6 +2937,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
+  previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
+  (`PRD.md:259`, «primeras 20 filas»). El autor la revisó con los 2.500 de la planilla y eligió **paginación**: anterior
+  y siguiente sobre el DataStore, de 20 en 20, con `offset`. **Cambia RF-31**, así que el PRD se actualiza con la
+  implementación. **Cuándo:** después de los gráficos de la demo. Se cruza con el ítem anterior: si la tabla pagina,
+  su alto queda acotado por la página y ya no crece con las filas.
+
 - [ ] **[v1+]** **Una promesa descartada en el sondeo, y el límite declarado de los avisos informativos.** La compuerta del PR
   de la sesión (linaje `review-1d91289cfb043d06`) devolvió un aviso **verdadero y verificado contra el código**:
   `+layout.svelte` llama `void validateStoredSession(client)` y esa función espera `check()` **sin atrapar**, así que un
