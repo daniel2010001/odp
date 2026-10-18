@@ -323,6 +323,16 @@ describe("la descarga — qué vuelve al cliente", () => {
 		expect(res.headers.get("content-security-policy")).toBeNull();
 	});
 
+	it("Application/Geo+JSON; charset=utf-8 va inline con nosniff y sin sandbox", async () => {
+		const upstream = new Response("x", {
+			headers: { "content-type": "Application/Geo+JSON; charset=utf-8" },
+		});
+		const res = await descarga(makeFetcher(resourceShow(UPLOAD), upstream));
+		expect(res.headers.get("content-disposition")).toBeNull();
+		expect(res.headers.get("content-security-policy")).toBeNull();
+		expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+	});
+
 	it("compara el tipo sin parámetros y sin distinguir mayúsculas", async () => {
 		const upstream = new Response("x", { headers: { "content-type": "Text/CSV; charset=utf-8" } });
 		const res = await descarga(makeFetcher(resourceShow(UPLOAD), upstream));
