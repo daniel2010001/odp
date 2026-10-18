@@ -118,7 +118,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | O3 | Verificación independiente de O1 y O2 (toca seguridad) — **PASS** (L23) | S6 | sesión `odp-docker` | `odp-docker` `b083f85` (endurecimiento) |
 | P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
-| P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) | S1, S4, S7 | worker, rama `feat/chart-pages` apilada sobre `feat/chart-palette` | — |
+| P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) — **hecha salvo la prueba en vivo con editor** (L34) | S1, S4, S7 | worker + padre | `11f2801`, `f27483a` |
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
 | P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
@@ -518,3 +518,26 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   color: **es intencional**. En barras, el color codifica la serie, no la categoría; los otros colores sirven para el
   pastel, para varias series (`v1`) o para resaltar un valor. La iteración del estilo sigue sobre la página real, con
   datos reales (formato es-BO de los números, valores sobre las barras), después de P3.
+- **L34 (2026-10-17, P3 entregada, y traspaso de la sesión):**
+  - **Páginas propias:** `…/charts/new` y `…/charts/[viewId]/edit` montan `ChartEditorPage` (recurso, dataset, permiso,
+    columnas con `datastore_search` `limit: 0`, verificado en vivo, y la vista al editar). Estados sin formulario: fallo
+    del catálogo, sesión muerta, sin permiso, sin tabla, vista inexistente y versión desconocida.
+  - **Página del recurso:** `ResourceCharts` muestra los gráficos guardados a cualquier visitante. Quien puede editar
+    ve «Crear gráfico», «Editar» y «Eliminar»; este último pide confirmación con un `Dialog`. La sección sólo existe
+    con `datastore_active`.
+  - **Números en es-BO:** `formatChartNumber`, con máximo 2 decimales, en el tooltip, la tabla, el total de la dona y
+    el eje Y.
+  - **El playground se borró** (regla 8). Al worker se le bloqueó el `rm -r` y el padre lo hizo con `git rm`.
+  - **Verificación del padre:** 343/343 en la feature, la suite completa 1396/1396, `pnpm check` sin errores, Biome
+    limpio; `200` en la página del recurso y en `…/charts/new`, y `404` en `/dev/resource-chart`. **No hubo RED
+    separado** para `permission.ts`, `ResourceCharts` y `ChartEditorPage`: sus tests se escribieron con el código.
+  - **Sin probar en vivo:** guardar, editar y borrar con una sesión de editor (sólo se probó con dobles), y el aspecto
+    a ojo (diálogo, modo oscuro, tooltips).
+  - **Traspaso para la próxima sesión, en orden:**
+    1. La prueba en vivo con el autor y el merge del PR de P3.
+    2. 2 o 3 CSV más para la demo, según el reparto aceptado (portal: generadores y seed; `odp-docker`: aprovisionamiento,
+       xloader y volumen).
+    3. P4, insertar con bloqueo del *framing*, con verificación independiente.
+    4. Pulir el estilo sobre la página real: valores sobre las barras.
+    5. T5, el guion de la presentación.
+    6. RF-37/38.
