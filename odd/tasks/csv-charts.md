@@ -736,3 +736,15 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
       descartan.
     - **Las vistas del recurso:** pestañas, con el diseño anterior al lado para comparar. «Crear gráfico» va al final de
       las pestañas, sin tocar la línea de separación.
+- **L48 (2026-10-17, P6c entregada a revisión):**
+  - **El editor** (`16952b4`): el *sticky* del gráfico va con `top-[calc(var(--header-h)+1rem)]`, y esto **también
+    cambia la página real**. Hay un estilo nuevo, `split`, que es el que abre el playground: «Datos», «Presentación» y
+    el gráfico en tarjetas separadas, con encabezados en mayúsculas coral, sin scroll interno, y «Guardar» y
+    «Cancelar» fuera de las tarjetas, como en `DatasetForm`. Los pasos numerados se quitaron.
+  - **Las vistas** (`4b3bd0d`): las pestañas son lo que abre el playground, con dos estilos: con línea, y segmentadas, que
+    es el diseño anterior de `ce8670a^` en una sola tarjeta, con íconos y el activo en `bg-primary`. «Crear gráfico» va
+    al final de la barra y ya no toca la línea (`h-12` y `py-1.5`). La ubicación en el encabezado del recurso es
+    ahora un interruptor en esa banda, y cada interruptor está en su sección: se corrige el desvío de la regla 8 de L41.
+  - **Verificación del padre:** los tests de los dos playgrounds y de los componentes de gráficos pasan; los dos
+    playgrounds responden 200.
+  - **Sin medir:** el aspecto en un navegador, en particular el *sticky* y el espacio de 6 px.
