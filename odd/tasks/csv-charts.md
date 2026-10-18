@@ -121,6 +121,8 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) — **hecha salvo la prueba en vivo con editor** (L34) | S1, S4, S7 | worker + padre | `11f2801`, `f27483a` |
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
 | P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
+| P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | por definir | — |
+| P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | por definir; playground (regla 8) | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -541,3 +543,64 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     4. Pulir el estilo sobre la página real: valores sobre las barras.
     5. T5, el guion de la presentación.
     6. RF-37/38.
+- **L35 (2026-10-17, estado de `odp-docker` respecto de xloader, mensaje de esa sesión):** el árbol del CKAN dev está en
+  `feat/xloader` (cortada de `master` `350edef`), que ya sirve `umss_chart` y `umss_chart_data` y no toca
+  `ckanext-umss`. El stack dev sigue con DataPusher 0.0.21 y `DateStyle` por defecto (MDY). El cambio a xloader requiere
+  el OK del autor, reinicia `ckan-dev` y recrea los volúmenes `home_dir`, `site_packages_py314` y `local_bin` (los datos
+  no se tocan); no se hará durante la prueba en vivo de P3 y `odp-docker` avisa antes. **Consecuencia para los CSV de la
+  demo:** después del cambio, xloader carga **toda columna como `text`** salvo que sus tipos estén declarados en el
+  Data Dictionary. Como `umss_chart_data` sólo agrega columnas numéricas, un CSV cargado sin tipos no tiene eje Y: **el
+  seed tiene que declarar los tipos** (numéricos, `timestamp`, y `timestamptz` para columnas con desfase UTC). Las
+  fechas dd/mm se interpretan bien una vez tipadas (`DateStyle 'ISO, DMY'` y `parse_dates_dayfirst`). Pendiente de
+  `odp-docker`: con qué mecanismo se declaran los tipos.
+- **L36 (2026-10-17, cómo se declaran los tipos con xloader, respuesta de `odp-docker`, leída del código de xloader
+  2.6.0, `loader.py:395-463`, y medida en sus corridas 4-5 del loader-eval):**
+  - **Camino soportado (b):** subir el archivo y dejar que xloader lo cargue como `text`; después declarar el Data
+    Dictionary con `datastore_create` `force=true` y `fields: [{id, info: {type_override: "numeric" | "timestamp" |
+    "timestamptz" | "text"}}]` (el mismo `info` que escribe el formulario de edición), y llamar a `xloader_submit`. Al
+    recargar, el tipo de cada columna es `info.type_override`, o `text` si no hay, y se empareja por el nombre **exacto**
+    del encabezado del CSV.
+  - **No soportados:** (a) declarar antes de subir, porque crear el recurso ya dispara xloader (`after_resource_create`)
+    y compite, sin medir; (c) `use_type_guessing`, que es el comportamiento de DataPusher que se reemplazó y queda
+    apagado.
+  - **Reglas para el seed y los generadores:** (1) todo valor de una columna declarada numérica o fecha tiene que
+    interpretarse. Un cambio de tipo fallido da error y puede borrar la tabla o dejarla a medias (S4 de `odp-docker`,
+    medido en su corrida 4: `1,5` como `numeric` y la tabla desapareció). Las celdas vacías pasan a `NULL` y no rompen;
+    `NA`, `-`, `s/d` y la coma decimal sí. Las fechas dd/mm se interpretan bien con DMY. (2) Columna con desfase UTC →
+    `timestamptz`.
+  - **`planilla-docente-ficticia`:** el cambio a xloader no toca la tabla (no se recrea `pg_data`), pero la **próxima
+    recarga** (cambio de archivo o URL, o un `xloader_submit`) la reconstruye como `text`, porque los tipos de DataPusher
+    viven en la columna de Postgres y no en `info.type_override`. Si el seed la vuelve a publicar, declara sus tipos como
+    en (b). El CSV actual ya cumple la regla (1): punto decimal y fechas ISO.
+  - **Consecuencia para el seed:** crear privado → subir → esperar la carga de xloader → `datastore_create` con los tipos
+    → `xloader_submit` → esperar → publicar por el flujo. Cada CSV de la demo lleva su mapa de tipos junto al generador.
+- **L37 (2026-10-17, revisión en vivo de P3 por el autor, textual):** «Observaciones: el botón de "crear gráfico" no
+  termina de gustarme dónde está puesto. 2: la tabla solo muestra 20 primeras filas de 2500, esto es intencional? 3:
+  cuando estabamos desarrollando la ficha de los resources tenemos algo así como "ventanas" para las vistas, ahora
+  estamos usando otro método que es mostrar el gráfico debajo de la tabla, qué paso con esa forma? 4: respecto al csv-
+  creo que ahora mismo estamos "controlando" los valores, pero cuando esté en prod no creo que sea así de conveniente,
+  cómo vamos con la normalización? eg: las fechas ahora mismo es en perfecto ISO, quisas los csv no sean así sino algo
+  como "2000-01-01", "01/01/2000" "2000 1 1", quisas esto no sea el tema atratar ahora mismo pero quisiera que lo
+  anotaras, o quisas pasarle esto a odp-docker si crees que es mejor que lo trabaje. 5: no termina de gustar que el
+  panel esté del lado izquierdo, podemos probarlo poner en el otro lado? 6: veo que cuando seleccionamos una columna del
+  eje h la opción agrupación se queda o con dos o con un solo valor, quisiera ocultar todos los selects que solo tengan
+  una opción y que si cambia de opción de actualice, se puede? lo mismo para otros valores, por ejempo lo de
+  min-max-etc de los numbers. 7: respecto a lo de las partes del form, creo que sería mejor separar o hacerlo más
+  notorio la separación entre las sections de datos y presentación, 8: el error al enviar datos incompletos, como el
+  title, se ve feo y está en ingles, quisas la api esté en ingles, pero esto ya es para mostrar al user en la ui, no me
+  gustaría que la ui esté en ingles unas partes y otras no, corregir. 9: la descripción opcional pero se puede saber qué
+  es opcional y qué no, de esta forma parece que ambos o son obligatorios o son opcionales, también decir que los
+  inputs no tienen min-max como otros forms, ni otros detalles como el n/max de los textarea del form de
+  dataset-create. 10: antes, cuando preguntaste sobre la dispocisión del las opciones, elegí la recomendación que me
+  hiciste, eso de tenerlo como sidebar o algo así, pero también habia otra que era tenerlo como despleable o algo así,
+  te referías a algo así como un acordeon? no recuerdo muy bien, con esto quiero decir que podemos probar otros
+  estilos, como el estilo que tenemos en el sidebar del search, así tenemos algo así como un "estilo" global para la
+  plataforma. revise: crud funcional. los 8 pasos hechos y todos ok.»
+  **Lo medido para responder:** (2) es intencional: RF-31 dice «primeras 20 filas» (`PRD.md:259`), la vista previa
+  pide `limit: 20` (`ResourcePreview.svelte:87`) y la tabla lo dice («Mostrando 20 de 2500 filas»). (3) Las pestañas
+  `Tabla`/`Gráfico`/`Mapa` eran **simuladas** y se quitaron en `ce8670a` (2026-09-23, bloque D): dos de las tres eran
+  relleno. Con gráficos reales, la idea puede volver con contenido de verdad. (8) El título vacío llega al servidor, que
+  lo rechaza, y la página muestra el aviso general más el «Detalle técnico» crudo del servidor, en inglés
+  (`ChartForm.svelte:486-498`). (4) Ya es un ítem `[v1]` del `BACKLOG.md` («Evaluar un cargador del DataStore que
+  normalice valores»), con mediciones de DataPusher; falta sumarle xloader y los formatos de fecha del autor.
+  **Tareas nuevas:** P5 (puntos 6, 8 y 9) y P6 (puntos 1, 3, 5, 7 y 10).

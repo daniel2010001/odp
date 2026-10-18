@@ -3044,6 +3044,16 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   graficar un dataset borrado de forma lógica (`csv-charts` L23). La organización y el dataset de prueba ya se
   borraron, verificados en Postgres, Solr y disco. Registro: `odp-docker/odd/tasks/loader-eval.md` (Run 3 y
   Cleanup).
+  **Con xloader (camino elegido por `odp-docker`, 2026-10-17, `csv-charts` L35–L36):** todo entra como texto y los
+  tipos se fijan después en el diccionario de datos (`type_override`) con una recarga. Postgres interpreta cada valor
+  con `DateStyle 'ISO, DMY'`, así que `dd/mm` deja de ser ambiguo, pero **un solo valor que no se pueda interpretar
+  hace fallar el cambio de tipo**, y la tabla puede desaparecer o quedar a medias (S4 de `odp-docker`, medido con
+  `1,5` como `numeric`). **El pedido del autor (2026-10-17, L37), textual:** «cuando esté en prod no creo que sea así de
+  conveniente, cómo vamos con la normalización? eg: las fechas ahora mismo es en perfecto ISO, quisas los csv no sean
+  así sino algo como "2000-01-01", "01/01/2000" "2000 1 1"». Los CSV de la demo están controlados; los de un
+  publicador real no. **Falta medir** qué formatos de fecha y número acepta Postgres bajo DMY y cuáles hacen fallar la
+  recarga. Esa medición se le pasó a `odp-docker`, que es dueña del cargador. Del lado del portal quedan la pantalla
+  para corregir tipos y el aviso antes de aplicar un tipo que no todos los valores cumplen.
 - [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
   ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
   es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
