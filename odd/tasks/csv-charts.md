@@ -796,3 +796,10 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     índice. Como los commits no estaban subidos, se separó con `reset --soft`: la documentación quedó en `2be8699` y los
     borrados en `89efc69`. **Regla:** con un worker activo, revisar `git diff --cached --stat` antes de commitear.
   - **Sin ver en un navegador:** los íconos, la altura de la barra y el hero.
+- **L52 (2026-10-18, rotación de tokens de `odp-docker` y verificación del padre):** sin el arreglo, `xloader_status`
+  devolvía `task_info.api_key`, el token de servicio de xloader, que es de `ckan_admin`. El arreglo es una cadena de
+  `umss` que quita esa clave (PR #30 de `odp-docker`). Se revocaron el token viejo de xloader y 14 tokens de DataPusher
+  que habían quedado; el sysadmin conserva el del portal y uno nuevo de xloader. **El padre verificó después del
+  reinicio:** :8082 responde 200, y `umss_chart_data` de la vista guardada de la planilla da los mismos grupos que L44
+  (2.500 filas). **El puente del portal nunca expuso `xloader_status`:** responde 404 «Acción no disponible». El seed lo
+  llama directo a CKAN con el token del sysadmin y sólo lee `status`.
