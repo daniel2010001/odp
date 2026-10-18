@@ -3148,6 +3148,22 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   portal**; para audio y video, el portal tendría que dibujarlos él mismo, como ya hace con PDF e imagen. Lo que sí
   aporta habilitarlas es que la vista exista en los metadatos del recurso. `ckanext-charts` queda descartado: no está
   en el issue de la 2.12, pide Redis 7+ (usamos 6) y se superpone con `umss_chart`.
+  **Recomendaciones aceptadas por el autor (2026-10-17), para futuras features:**
+  - **Audio y video:** los dibuja el portal con `<audio>` y `<video>`, como el PDF; no hace falta el plugin de CKAN.
+  - **`webpage_view`:** sólo documentado, porque choca con la política de *framing* de P4.
+  - **`pdfview`:** no hace falta.
+  - **`geoview`:** candidato a `v1+` si aparecen datos espaciales (GeoJSON, KML, WMS, shapefiles), con el mapa
+    dibujado por el portal (Leaflet o MapLibre), igual que los gráficos.
+  - **`ckanext-charts`:** descartado. Dibuja dentro de CKAN, toma las primeras N filas sin `GROUP BY`, exige
+    `scheming`, no declara soporte para la 2.12 y es AGPL.
+
+- [ ] **[v1] Antes de desplegar, revisar las versiones de todos los servicios** (decisión del autor, 2026-10-17): se
+  comparan las actuales con las nuevas y se decide qué entra. **Línea base medida el 2026-10-17** (es una referencia,
+  no un pin): CKAN 2.12.0 · Python 3.14.7 · Postgres 16.15 · Solr 9.9.0 · Redis 6.2.24 · nginx 1.31.5 · Node 20.20.2.
+  Incluye los ítems de Node y del tag de CKAN. **Reparto aceptado por el autor:** `odp-docker` se encarga del
+  aprovisionamiento de la instalación de la demo, del cambio a xloader y de la infraestructura de la ingesta masiva;
+  el portal, de los generadores de CSV y del seed por API. Pendientes de `odp-docker`:
+  `odp-docker/odd/tasks/NEXT-SESSION.md` (local).
 
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
   generador arma palabras y oraciones, un randomizador produce números y fechas, y una inserción por lotes con un ORM
