@@ -170,13 +170,13 @@ describe("Crear un gráfico (…/charts/new)", () => {
 			await screen.findByRole("heading", { name: "Nuevo gráfico", level: 1 }),
 		).toBeInTheDocument();
 		expect(mocks.search).toHaveBeenCalledWith("res-1", { limit: 0 });
-		expect(await screen.findByLabelText("Título de la vista")).toBeInTheDocument();
+		expect(await screen.findByLabelText(/Título de la vista/)).toBeInTheDocument();
 	});
 
 	it("«Guardar» llama a createView con la configuración plana y vuelve a la página del recurso", async () => {
 		render(NewPage);
-		await screen.findByLabelText("Título de la vista");
-		await fireEvent.input(screen.getByLabelText("Título de la vista"), {
+		await screen.findByLabelText(/Título de la vista/);
+		await fireEvent.input(screen.getByLabelText(/Título de la vista/), {
 			target: { value: "Docentes por turno" },
 		});
 		await waitFor(() => expect(saveButton()).toBeEnabled());
@@ -199,7 +199,7 @@ describe("Crear un gráfico (…/charts/new)", () => {
 
 	it("«Cancelar» vuelve al recurso sin guardar nada", async () => {
 		render(NewPage);
-		await screen.findByLabelText("Título de la vista");
+		await screen.findByLabelText(/Título de la vista/);
 
 		await fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
 
@@ -210,7 +210,7 @@ describe("Crear un gráfico (…/charts/new)", () => {
 	it("el breadcrumb vuelve al recurso y nombra la página", async () => {
 		render(NewPage);
 
-		await screen.findByLabelText("Título de la vista");
+		await screen.findByLabelText(/Título de la vista/);
 		const links = Array.from(document.querySelectorAll("a[href]")).map((a) =>
 			a.getAttribute("href"),
 		);
@@ -228,16 +228,16 @@ describe("Editar un gráfico (…/charts/[viewId]/edit)", () => {
 		expect(
 			await screen.findByRole("heading", { name: "Editar gráfico", level: 1 }),
 		).toBeInTheDocument();
-		expect(await screen.findByLabelText("Título de la vista")).toHaveValue("Salario por turno");
-		expect(screen.getByLabelText("Descripción de la vista")).toHaveValue("Promedio mensual.");
+		expect(await screen.findByLabelText(/Título de la vista/)).toHaveValue("Salario por turno");
+		expect(screen.getByLabelText(/Descripción de la vista/)).toHaveValue("Promedio mensual.");
 		expect(mocks.listViews).toHaveBeenCalledWith("res-1");
 		await waitFor(() => expect(mocks.preview).toHaveBeenCalledWith("res-1", CONFIG));
 	});
 
 	it("«Guardar» llama a updateView con el id de la vista y vuelve al recurso", async () => {
 		render(EditPage);
-		await screen.findByLabelText("Título de la vista");
-		await fireEvent.input(screen.getByLabelText("Título de la vista"), {
+		await screen.findByLabelText(/Título de la vista/);
+		await fireEvent.input(screen.getByLabelText(/Título de la vista/), {
 			target: { value: "Otro título" },
 		});
 		await waitFor(() => expect(saveButton()).toBeEnabled());

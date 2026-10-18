@@ -174,10 +174,10 @@ describe("ChartForm — la vista previa en dos niveles (L28)", () => {
 		preview.mockClear();
 
 		await pickNextOption("Tipo de gráfico");
-		await fireEvent.input(screen.getByLabelText("Título de la vista"), {
+		await fireEvent.input(screen.getByLabelText(/Título de la vista/), {
 			target: { value: "Otro título" },
 		});
-		await fireEvent.input(screen.getByLabelText("Descripción de la vista"), {
+		await fireEvent.input(screen.getByLabelText(/Descripción de la vista/), {
 			target: { value: "Otra descripción" },
 		});
 		flushSync();
@@ -322,11 +322,19 @@ describe("ChartForm — no se guarda lo que no se vio", () => {
 		const createView = okCreateView();
 		renderForm(makeApi({ createView }));
 		await waitFor(() => expect(saveButton()).toBeEnabled());
+		await fireEvent.input(screen.getByLabelText(/Título de la vista/), {
+			target: { value: "Salario por turno" },
+		});
 
 		await fireEvent.click(saveButton());
 
 		await waitFor(() => expect(createView).toHaveBeenCalled());
-		expect(createView).toHaveBeenCalledWith("recurso-1", "", "", NORMALIZED_CONFIG);
+		expect(createView).toHaveBeenCalledWith(
+			"recurso-1",
+			"Salario por turno",
+			"",
+			NORMALIZED_CONFIG,
+		);
 		expect(await screen.findByText("Vista guardada.")).toBeInTheDocument();
 	});
 });
@@ -346,11 +354,19 @@ describe("ChartForm — crear, editar y cancelar (P3)", () => {
 			},
 		});
 		await waitFor(() => expect(saveButton()).toBeEnabled());
+		await fireEvent.input(screen.getByLabelText(/Título de la vista/), {
+			target: { value: "Salario por turno" },
+		});
 
 		await fireEvent.click(saveButton());
 
 		await waitFor(() => expect(onsaved).toHaveBeenCalledTimes(1));
-		expect(createView).toHaveBeenCalledWith("recurso-1", "", "", NORMALIZED_CONFIG);
+		expect(createView).toHaveBeenCalledWith(
+			"recurso-1",
+			"Salario por turno",
+			"",
+			NORMALIZED_CONFIG,
+		);
 		expect(updateView).not.toHaveBeenCalled();
 	});
 
@@ -370,8 +386,8 @@ describe("ChartForm — crear, editar y cancelar (P3)", () => {
 				onsaved,
 			},
 		});
-		expect(screen.getByLabelText("Título de la vista")).toHaveValue("Salario por turno");
-		expect(screen.getByLabelText("Descripción de la vista")).toHaveValue("Promedio mensual.");
+		expect(screen.getByLabelText(/Título de la vista/)).toHaveValue("Salario por turno");
+		expect(screen.getByLabelText(/Descripción de la vista/)).toHaveValue("Promedio mensual.");
 		await waitFor(() => expect(saveButton()).toBeEnabled());
 
 		await fireEvent.click(saveButton());
@@ -395,6 +411,7 @@ describe("ChartForm — crear, editar y cancelar (P3)", () => {
 				fields: FIELDS,
 				api: makeApi({ createView }),
 				resourceId: "recurso-1",
+				initialTitle: "Salario por turno",
 				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
 				onsaved,
 			},
@@ -482,10 +499,12 @@ describe("ChartForm — el cambio de columna reconcilia en el mismo render", () 
 		flushSync();
 		await Promise.resolve();
 		observer.disconnect();
-		labels.push(grouping().textContent?.trim() ?? "");
 
-		// «texto» sólo admite «valor tal cual»: la agrupación se reconcilia en el mismo render y el paso se va.
-		expect(labels).toEqual(["Rangos numéricos", "Valor tal cual"]);
+		// «texto» sólo admite «valor tal cual»: la agrupación se reconcilia en el mismo render, así que su
+		// selector —que ya no tiene nada que preguntar (L37, punto 6)— se va sin pasar por otro rótulo, y el
+		// paso se va con él.
+		expect(labels).toEqual([]);
+		expect(screen.queryByRole("button", { name: "Agrupación del eje horizontal" })).toBeNull();
 		expect(screen.queryByLabelText("Tamaño del rango")).toBeNull();
 	});
 });
@@ -572,5 +591,205 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 
 		expect(await screen.findByText("No se pudo confirmar el acceso")).toBeInTheDocument();
 		expect(screen.getByText("Código 403")).toBeInTheDocument();
+	});
+});
+
+describe("ChartForm — un selector con una sola opción no se muestra (L37, punto 6)", () => {
+	const button = (name: string) => screen.queryByRole("button", { name });
+
+	it("la agrupación aparece sólo cuando la columna ofrece más de una, y se actualiza al cambiar de columna", async () => {
+		renderForm(makeApi());
+
+		// `turno` es texto: sólo admite «Valor tal cual», así que no hay nada que elegir.
+		expect(button("Agrupación del eje horizontal")).toBeNull();
+
+		// La columna siguiente es `horas_mes`, numérica: valor o rangos.
+		await pickNextOption("Columna del eje horizontal");
+
+		await waitFor(() => expect(button("Agrupación del eje horizontal")).not.toBeNull());
+		expect(button("Agrupación del eje horizontal")).toHaveTextContent("Valor tal cual");
+	});
+
+	it("el cálculo no ofrece sumar, promediar, mínimo ni máximo si no hay columnas numéricas", async () => {
+		render(ChartForm, {
+			props: {
+				fields: [
+					{ id: "_id", type: "int4" },
+					{ id: "turno", type: "text" },
+					{ id: "facultad", type: "text" },
+				],
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "count" },
+			},
+		});
+
+		const trigger = screen.getByRole("button", { name: "Cálculo del eje vertical" });
+		trigger.focus();
+		await fireEvent.keyDown(trigger, { key: "Enter" });
+		const options = await screen.findAllByRole("option");
+
+		expect(options.map((option) => option.textContent?.trim())).toEqual([
+			"Contar filas",
+			"Contar valores distintos",
+		]);
+	});
+
+	it("un cálculo guardado que la tabla ya no admite vuelve a contar filas", () => {
+		render(ChartForm, {
+			props: {
+				fields: [
+					{ id: "_id", type: "int4" },
+					{ id: "turno", type: "text" },
+				],
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+			},
+		});
+
+		expect(screen.getByRole("button", { name: "Cálculo del eje vertical" })).toHaveTextContent(
+			"Contar filas",
+		);
+	});
+
+	it("con una sola columna numérica, la columna del eje vertical no se pregunta", () => {
+		render(ChartForm, {
+			props: {
+				fields: [
+					{ id: "_id", type: "int4" },
+					{ id: "turno", type: "text" },
+					{ id: "salario", type: "numeric" },
+				],
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+			},
+		});
+
+		expect(button("Columna del eje vertical")).toBeNull();
+	});
+
+	it("con más de una columna numérica, la columna del eje vertical sí se pregunta", () => {
+		renderForm(makeApi());
+
+		expect(button("Columna del eje vertical")).toHaveTextContent("salario");
+	});
+
+	it("con una sola columna, el eje horizontal no se pregunta", () => {
+		render(ChartForm, {
+			props: {
+				fields: [
+					{ id: "_id", type: "int4" },
+					{ id: "turno", type: "text" },
+				],
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "count" },
+			},
+		});
+
+		expect(button("Columna del eje horizontal")).toBeNull();
+	});
+});
+
+describe("ChartForm — el título y la descripción (L37, puntos 8 y 9)", () => {
+	const titleInput = () => screen.getByLabelText(/Título de la vista/);
+	const descriptionInput = () => screen.getByLabelText(/Descripción de la vista/);
+
+	it("el título es obligatorio: sin él no se guarda, y el error se dice en español en su campo", async () => {
+		const createView = okCreateView();
+		renderForm(makeApi({ createView }));
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		await fireEvent.input(titleInput(), { target: { value: "   " } });
+		await fireEvent.click(saveButton());
+
+		expect(await screen.findByText("Escriba un título para la vista.")).toBeInTheDocument();
+		expect(titleInput()).toHaveAttribute("aria-invalid", "true");
+		expect(titleInput()).toHaveFocus();
+		expect(createView).not.toHaveBeenCalled();
+	});
+
+	it("el título no puede pasar de 120 caracteres", async () => {
+		const createView = okCreateView();
+		renderForm(makeApi({ createView }));
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		await fireEvent.input(titleInput(), { target: { value: "a".repeat(121) } });
+		await fireEvent.click(saveButton());
+
+		expect(
+			await screen.findByText("El título no puede superar los 120 caracteres."),
+		).toBeInTheDocument();
+		expect(screen.getByText("121/120")).toBeInTheDocument();
+		expect(createView).not.toHaveBeenCalled();
+	});
+
+	it("la descripción es opcional, de varias líneas, con su tope de 500 caracteres", async () => {
+		const createView = okCreateView();
+		renderForm(makeApi({ createView }));
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		expect(descriptionInput().tagName).toBe("TEXTAREA");
+		expect(screen.getByText("0/500")).toBeInTheDocument();
+		expect(screen.getByText("(opcional)")).toBeInTheDocument();
+
+		await fireEvent.input(titleInput(), { target: { value: "Salario por turno" } });
+		await fireEvent.input(descriptionInput(), { target: { value: "b".repeat(501) } });
+		await fireEvent.click(saveButton());
+
+		expect(
+			await screen.findByText("La descripción no puede superar los 500 caracteres."),
+		).toBeInTheDocument();
+		expect(createView).not.toHaveBeenCalled();
+	});
+
+	it("el título lleva la marca de obligatorio y un contador", () => {
+		renderForm(makeApi());
+
+		const label = screen.getByText(/Título de la vista/);
+		expect(label.textContent).toContain("*");
+		expect(screen.getByText("0/120")).toBeInTheDocument();
+	});
+
+	it("el título y la descripción se guardan sin los espacios de los bordes", async () => {
+		const createView = okCreateView();
+		renderForm(makeApi({ createView }));
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		await fireEvent.input(titleInput(), { target: { value: "  Salario por turno  " } });
+		await fireEvent.input(descriptionInput(), { target: { value: " Promedio. " } });
+		await fireEvent.click(saveButton());
+
+		await waitFor(() =>
+			expect(createView).toHaveBeenCalledWith(
+				"recurso-1",
+				"Salario por turno",
+				"Promedio.",
+				NORMALIZED_CONFIG,
+			),
+		);
+	});
+
+	it("un rechazo del servidor no muestra su texto técnico en inglés", async () => {
+		const api = makeApi({
+			preview: vi.fn(async () => {
+				throw new CkanApiError("HTTP 409", 409, "Validation Error", {
+					__type: "Validation Error",
+					message: "Bad request",
+					title: ["Missing value"],
+				});
+			}),
+		});
+		renderForm(api);
+
+		expect(
+			await screen.findByText(
+				"El catálogo rechazó esta configuración. Revise los campos marcados.",
+			),
+		).toBeInTheDocument();
+		expect(screen.queryByText(/Missing value/)).toBeNull();
+		expect(screen.queryByText(/Detalle técnico/)).toBeNull();
 	});
 });

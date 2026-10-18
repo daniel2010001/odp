@@ -23,11 +23,16 @@ import {
 	canonicalDataKey,
 	chartConfigFromDraft,
 	emptyChartDraft,
+	MAX_VIEW_DESCRIPTION_LENGTH,
+	MAX_VIEW_TITLE_LENGTH,
 	reconcileChartDraft,
+	validateViewText,
+	yAggregatesFor,
 } from "$lib/charts/form";
 import { xAxisLabel, yAxisLabel } from "$lib/charts/labels";
 import { adaptServerValidation } from "$lib/charts/validation";
 import Button from "$lib/components/ui/button/button.svelte";
+import { cn } from "$lib/utils";
 import ChartSelect from "./ChartSelect.svelte";
 import ResourceChart from "./ResourceChart.svelte";
 
@@ -105,6 +110,13 @@ const uid = $props.id();
 
 let title = $state(untrack(() => initialTitle));
 let description = $state(untrack(() => initialDescription));
+// Como en el formulario del dataset: el error de un campo de texto se muestra al dejarlo o al intentar
+// guardar, no mientras se escribe por primera vez.
+let titleTouched = $state(false);
+let descriptionTouched = $state(false);
+let saveAttempted = $state(false);
+let titleInput = $state<HTMLInputElement | null>(null);
+let descriptionInput = $state<HTMLTextAreaElement | null>(null);
 // `untrack`: es el valor de arranque, no una derivación — si el anfitrión remonta con otro caso, se remonta
 // el componente (la página lo hace con `{#key}`). Se reconcilia una vez, al crearlo.
 let draft = $state<ChartDraft>(
@@ -170,6 +182,12 @@ const shown = $derived(drawn?.data ?? null);
 
 const canSave = $derived(chartMatches && !saving);
 
+const textErrors = $derived(validateViewText(title, description));
+const titleError = $derived(titleTouched || saveAttempted ? textErrors.title : undefined);
+const descriptionError = $derived(
+	descriptionTouched || saveAttempted ? textErrors.description : undefined,
+);
+
 const snapshot = $derived(JSON.stringify([title, description, currentKey]));
 const justSaved = $derived(saved !== null && saved === snapshot);
 const saveError = $derived(
@@ -185,6 +203,10 @@ const bucketOptions = $derived(
 		label: BUCKET_LABELS[bucket],
 	})),
 );
+const aggOptions = $derived.by(() => {
+	const available = yAggregatesFor(fields);
+	return AGG_OPTIONS.filter((option) => available.includes(option.value));
+});
 const yOptions = $derived(yColumnsFor(fields, view.y_agg));
 const showFoldCase = $derived(foldCaseAvailable(selectedField, view.x_bucket));
 
@@ -227,6 +249,7 @@ async function requestPreview() {
 				notices: adapted.notices,
 				technical: adapted.technical,
 			};
+			logTechnical(adapted.technical);
 			previewStatus = "rejected";
 			return;
 		}
@@ -266,17 +289,32 @@ $effect(() => {
 	return () => clearTimeout(timer);
 });
 
+/** Lo que el servidor dijo al rechazar: no es copy de la interfaz, sólo se deja para quien diagnostica. */
+function logTechnical(technical: string[]) {
+	if (import.meta.env.DEV && technical.length > 0) {
+		console.warn("El catálogo rechazó la configuración del gráfico:", technical.join(" · "));
+	}
+}
+
 async function save() {
 	const config = validation.config;
 	if (!config || !chartMatches) return;
+	if (textErrors.title || textErrors.description) {
+		// No se manda lo que el servidor rechazaría: se marca el campo y se lleva el foco al primero.
+		saveAttempted = true;
+		(textErrors.title ? titleInput : descriptionInput)?.focus();
+		return;
+	}
+	const cleanTitle = title.trim();
+	const cleanDescription = description.trim();
 	const savingSnapshot = snapshot;
 	saving = true;
 	saveFailure = null;
 	try {
 		if (viewId) {
-			await api.updateView(viewId, { title, description, config });
+			await api.updateView(viewId, { title: cleanTitle, description: cleanDescription, config });
 		} else {
-			await api.createView(resourceId, title, description, config);
+			await api.createView(resourceId, cleanTitle, cleanDescription, config);
 		}
 		saved = savingSnapshot;
 		onsaved?.();
@@ -289,6 +327,7 @@ async function save() {
 				notices: adapted.notices,
 				technical: adapted.technical,
 			};
+			logTechnical(adapted.technical);
 		} else {
 			const described = describeFailure(err, "resource", "unknown");
 			saveFailure = {
@@ -302,6 +341,25 @@ async function save() {
 	}
 }
 </script>
+
+{#snippet counter(value: string, max: number, id: string)}
+	<!-- El contador «X/Y» del formulario del dataset: neutro, aviso desde el 80 % del tope y error al pasarse. -->
+	{@const length = value.trim().length}
+	<span
+		{id}
+		aria-live="polite"
+		class={cn(
+			"shrink-0 text-[11px] font-normal tabular-nums",
+			length > max
+				? "font-semibold text-destructive"
+				: length >= max * 0.8
+					? "text-destructive/70"
+					: "text-muted-foreground",
+		)}
+	>
+		{length}/{max}
+	</span>
+{/snippet}
 
 {#snippet fieldError(key: keyof ChartConfigErrors)}
 	{#if errors[key]}
@@ -327,21 +385,30 @@ async function save() {
 			</div>
 
 			<div class="flex flex-col gap-4">
+				<!--
+					Un selector con una sola opción no es una pregunta: no se muestra, y esa opción queda elegida
+					sola (L37, punto 6). Vuelve a aparecer cuando otra elección le da más de una. El error de su
+					campo se sigue mostrando aunque el selector no esté.
+				-->
 				<div class="flex flex-col gap-1.5">
-					<ChartSelect
-						label="Columna del eje horizontal"
-						options={xOptions}
-						bind:value={() => view.x_field, (value) => setDraft({ x_field: value })}
-					/>
+					{#if xOptions.length > 1}
+						<ChartSelect
+							label="Columna del eje horizontal"
+							options={xOptions}
+							bind:value={() => view.x_field, (value) => setDraft({ x_field: value })}
+						/>
+					{/if}
 					{@render fieldError("x_field")}
 				</div>
 
 				<div class="flex flex-col gap-1.5">
-					<ChartSelect
-						label="Agrupación del eje horizontal"
-						options={bucketOptions}
-						bind:value={() => view.x_bucket, (value) => setDraft({ x_bucket: value as XBucket })}
-					/>
+					{#if bucketOptions.length > 1}
+						<ChartSelect
+							label="Agrupación del eje horizontal"
+							options={bucketOptions}
+							bind:value={() => view.x_bucket, (value) => setDraft({ x_bucket: value as XBucket })}
+						/>
+					{/if}
 					{@render fieldError("x_bucket")}
 				</div>
 
@@ -363,21 +430,25 @@ async function save() {
 				{/if}
 
 				<div class="flex flex-col gap-1.5">
-					<ChartSelect
-						label="Cálculo del eje vertical"
-						options={AGG_OPTIONS}
-						bind:value={() => view.y_agg, (value) => setDraft({ y_agg: value as YAggregate })}
-					/>
+					{#if aggOptions.length > 1}
+						<ChartSelect
+							label="Cálculo del eje vertical"
+							options={aggOptions}
+							bind:value={() => view.y_agg, (value) => setDraft({ y_agg: value as YAggregate })}
+						/>
+					{/if}
 					{@render fieldError("y_agg")}
 				</div>
 
 				{#if view.y_agg !== "count"}
 					<div class="flex flex-col gap-1.5">
-						<ChartSelect
-							label="Columna del eje vertical"
-							options={yColumnOptions}
-							bind:value={() => view.y_field, (value) => setDraft({ y_field: value })}
-						/>
+						{#if yColumnOptions.length > 1}
+							<ChartSelect
+								label="Columna del eje vertical"
+								options={yColumnOptions}
+								bind:value={() => view.y_field, (value) => setDraft({ y_field: value })}
+							/>
+						{/if}
 						{@render fieldError("y_field")}
 					</div>
 				{/if}
@@ -439,25 +510,57 @@ async function save() {
 					{@render fieldError("chart_type")}
 				</div>
 
-				<label class="flex flex-col gap-1.5">
-					<span class="text-sm font-medium text-foreground">Título de la vista</span>
+				<div class="flex flex-col gap-1.5">
+					<div class="flex items-baseline justify-between gap-2">
+						<label for="{uid}-title" class="text-sm font-medium text-foreground">
+							Título de la vista <span class="text-destructive" aria-hidden="true">*</span>
+						</label>
+						{@render counter(title, MAX_VIEW_TITLE_LENGTH, `${uid}-title-count`)}
+					</div>
 					<input
+						id="{uid}-title"
 						type="text"
+						bind:this={titleInput}
 						bind:value={title}
+						onblur={() => (titleTouched = true)}
+						required
+						aria-invalid={titleError ? "true" : undefined}
+						aria-describedby={titleError ? `${uid}-title-count ${uid}-title-error` : `${uid}-title-count`}
 						placeholder="Salario promedio por turno"
 						class={inputClass}
 					/>
-				</label>
+					{#if titleError}
+						<p id="{uid}-title-error" class="text-xs leading-relaxed text-destructive">{titleError}</p>
+					{/if}
+				</div>
 
-				<label class="flex flex-col gap-1.5">
-					<span class="text-sm font-medium text-foreground">Descripción de la vista</span>
-					<input
-						type="text"
+				<div class="flex flex-col gap-1.5">
+					<div class="flex items-baseline justify-between gap-2">
+						<label for="{uid}-description" class="text-sm font-medium text-foreground">
+							Descripción de la vista
+							<span class="font-normal text-muted-foreground">(opcional)</span>
+						</label>
+						{@render counter(description, MAX_VIEW_DESCRIPTION_LENGTH, `${uid}-description-count`)}
+					</div>
+					<textarea
+						id="{uid}-description"
+						rows="3"
+						bind:this={descriptionInput}
 						bind:value={description}
+						onblur={() => (descriptionTouched = true)}
+						aria-invalid={descriptionError ? "true" : undefined}
+						aria-describedby={descriptionError
+							? `${uid}-description-count ${uid}-description-error`
+							: `${uid}-description-count`}
 						placeholder="Promedio del salario mensual según el turno del docente."
-						class={inputClass}
-					/>
-				</label>
+						class={cn(inputClass, "h-auto min-h-20 resize-y leading-relaxed")}
+					></textarea>
+					{#if descriptionError}
+						<p id="{uid}-description-error" class="text-xs leading-relaxed text-destructive">
+							{descriptionError}
+						</p>
+					{/if}
+				</div>
 			</div>
 		</section>
 
@@ -483,11 +586,10 @@ async function save() {
 				{#each rejection.notices as notice (notice)}
 					<p class="text-xs leading-relaxed text-muted-foreground">{notice}</p>
 				{/each}
-				{#if rejection.technical.length > 0}
-					<p class="font-mono text-xs text-muted-foreground">
-						Detalle técnico: {rejection.technical.join(" · ")}
-					</p>
-				{/if}
+				<!--
+					Lo que dijo el servidor no se muestra: llega en inglés y no es copy de la interfaz (L37, punto 8).
+					Queda en la consola de desarrollo, para quien diagnostica.
+				-->
 			</div>
 		{/if}
 
