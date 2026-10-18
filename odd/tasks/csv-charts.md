@@ -122,7 +122,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
 | P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
 | P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | padre (inline) — **hecha** (L38) | `8b7fb55` |
-| P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | por definir; playground (regla 8) | — |
+| P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -637,3 +637,10 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
       (sólo con pestañas), en la banda de acciones del encabezado del recurso, o como tarjeta punteada al final de la
       lista.
   - El autor elige en cada playground; recién entonces se promueve a la página real y se borra el playground.
+- **L41 (2026-10-17, P6 entregado a revisión):** `/dev/chart-editor` (`90f532e`) y `/dev/resource-views` (`d8b39e4`). Las
+  variantes entran como props opcionales con los valores de hoy por defecto, y la página real no cambia. Verificación
+  del padre: 355/355 en los playgrounds, los componentes de recurso, `src/lib/charts` y las rutas de dataset;
+  `pnpm check` sin errores; Biome limpio. **Incidente:** el worker de P6a corrió `git stash` y `git stash pop` en el
+  árbol compartido. El stash quedó vacío y el worker de P6b confirmó que sus archivos estaban intactos. **Sin medir:** el
+  aspecto en un navegador y el panel fijo del estilo buscador. **Desvío de la regla 8 en P6b:** los tres interruptores
+  quedaron en una sola barra, aunque «banda del encabezado» cambia otra región.
