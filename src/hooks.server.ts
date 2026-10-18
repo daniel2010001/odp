@@ -9,6 +9,7 @@
 import type { Handle } from "@sveltejs/kit";
 import { dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
+import { applyFramingHeaders } from "$lib/charts/embed";
 import { resolveRequestSession } from "$lib/server/request-session";
 import { resolveSessionSecret, SESSION_COOKIE_NAME } from "$lib/server/session";
 
@@ -28,5 +29,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.cookies.delete(SESSION_COOKIE_NAME, { path: "/" });
 	}
 
-	return resolve(event);
+	// El bloqueo del *framing* (P4, Risk ítem 2) va sobre **toda** respuesta —páginas, errores y redirecciones—, con
+	// la excepción de `/embed/**`. La política vive en `$lib/charts/embed`, que es donde se prueba.
+	return applyFramingHeaders(await resolve(event), event.url.pathname);
 };

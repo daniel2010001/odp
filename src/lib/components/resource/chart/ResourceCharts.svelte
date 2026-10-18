@@ -9,6 +9,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import CreateChartLink from "../views/CreateChartLink.svelte";
 import type { ChartsLayout, CreatePlacement } from "../views/types";
 import ChartViewBody from "./ChartViewBody.svelte";
+import EmbedChartDialog from "./EmbedChartDialog.svelte";
 
 // Los gráficos de un recurso en su página (S1): el visitante los ve; quien puede editar, además, crea, edita y
 // elimina. La configuración la guardó quien publica y la agregación la hace el servidor: acá sólo se lista, se
@@ -136,8 +137,10 @@ const actionClass =
 					</p>
 				{/if}
 			</div>
-			{#if canEdit}
-				<div class="flex shrink-0 gap-2">
+			<div class="flex shrink-0 flex-wrap gap-2">
+				<!-- Insertar es una lectura: lo ve cualquier visitante, no sólo quien edita. -->
+				<EmbedChartDialog view={{ id: view.id, title: viewTitle(view) }} />
+				{#if canEdit}
 					<a
 						href="{basePath}/{view.id}/edit"
 						aria-label="Editar el gráfico «{viewTitle(view)}»"
@@ -155,8 +158,8 @@ const actionClass =
 						<Trash2 class="size-4" aria-hidden="true" />
 						Eliminar
 					</button>
-				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
 		<ChartViewBody {view} {api} />
 	</Card>

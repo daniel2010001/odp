@@ -244,3 +244,47 @@ describe("ResourceCharts — los valores por defecto son la página de hoy", () 
 		expect(screen.getAllByRole("link", { name: /Crear gráfico/ })).toHaveLength(1);
 	});
 });
+
+describe("ResourceCharts — «Insertar»", () => {
+	it("cualquier visitante ve «Insertar» en cada gráfico, y quien edita lo ve junto a Editar y Eliminar", async () => {
+		const api = makeApi({
+			listViews: vi.fn(async () => [makeView(), makeView({ id: "view-2", title: "Otra vista" })]),
+		});
+		const { unmount } = renderCharts(api, false);
+
+		await screen.findByRole("heading", { name: "Otra vista" });
+		expect(screen.getAllByRole("button", { name: /^Insertar el gráfico/ })).toHaveLength(2);
+		expect(screen.queryByRole("link", { name: /Editar/ })).toBeNull();
+		unmount();
+
+		renderCharts(api, true);
+		await screen.findByRole("heading", { name: "Otra vista" });
+		expect(screen.getAllByRole("button", { name: /^Insertar el gráfico/ })).toHaveLength(2);
+		expect(screen.getAllByRole("link", { name: /Editar/ })).toHaveLength(2);
+	});
+
+	it("abre el diálogo con el código del gráfico elegido", async () => {
+		renderCharts(makeApi());
+		await screen.findByRole("heading", { name: "Salario por turno" });
+
+		await fireEvent.click(screen.getByRole("button", { name: /^Insertar el gráfico/ }));
+
+		const code = (await screen.findByLabelText("Código para insertar")) as HTMLTextAreaElement;
+		expect(code.value).toContain("/embed/charts/view-1");
+	});
+
+	it("también está con la disposición en pestañas", async () => {
+		render(ResourceCharts, {
+			props: {
+				resourceId: "res-1",
+				datasetId: "planilla",
+				api: makeApi(),
+				canEdit: false,
+				layout: "tabs",
+			},
+		});
+		await fireEvent.click(await screen.findByRole("tab", { name: "Salario por turno" }));
+
+		expect(await screen.findByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
+	});
+});

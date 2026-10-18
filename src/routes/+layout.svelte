@@ -2,6 +2,7 @@
 import "../app.css";
 import { Menu, Monitor, Moon, Sun, X } from "@lucide/svelte";
 import { onDestroy, onMount } from "svelte";
+import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
 import UserMenu from "$lib/components/auth/UserMenu.svelte";
 import ThemePlayground from "$lib/components/ThemePlayground.svelte";
@@ -22,6 +23,12 @@ $effect.pre(() => {
 });
 
 // `window` sólo existe en el navegador (`$app/environment` no resuelve en Vitest, y esto no lo necesita).
+// ─── Las páginas incrustables no llevan la envoltura del sitio ────────
+// `/embed/**` se muestra dentro de un `<iframe>` ajeno: sin encabezado, sin pie y sin lo que ellos montan o piden
+// (el sondeo de sesión, el observer del encabezado, el playground de temas). La decisión sale de la ruta, no
+// del `pathname`, para que una URL escrita de otra forma no la cambie.
+const embedded = $derived($page.route?.id?.startsWith("/embed/") === true);
+
 const inBrowser = typeof window !== "undefined";
 
 // En el SSR el store está vacío, así que el encabezado se dibuja con la identidad que trajo el servidor; en
@@ -45,6 +52,7 @@ onDestroy(unsub);
 // anónimo. Las pantallas que sí necesitan los datos del usuario conservan su `endInvalidSession`
 // con redirección.
 onMount(() => {
+	if (embedded) return;
 	void validateStoredSession(createPortalClient());
 });
 
@@ -78,7 +86,7 @@ const SHRINK_AFTER_PX = 48;
 let headerSentinel: HTMLDivElement | undefined = $state();
 
 $effect(() => {
-	if (!headerSentinel) return;
+	if (embedded || !headerSentinel) return;
 	if (typeof IntersectionObserver === "undefined") return;
 
 	const sentinel = headerSentinel;
@@ -101,6 +109,7 @@ $effect(() => {
 </script>
 
 <div class="flex min-h-screen flex-col">
+	{#if !embedded}
 	<!-- Centinela del tope: su salida de la vista es lo que achica el encabezado. Mide 1px y el margen
 	     negativo lo compensa, así que no ocupa lugar ni mueve el layout. -->
 	<div bind:this={headerSentinel} data-header-sentinel aria-hidden="true" class="-mb-px h-px"></div>
@@ -249,12 +258,14 @@ $effect(() => {
 			</div>
 		{/if}
 	</header>
+	{/if}
 
 	<!-- Main content -->
 	<main class="flex-1">
 		{@render children()}
 	</main>
 
+	{#if !embedded}
 	<!-- Footer -->
 	<footer class="bg-footer text-footer-foreground">
 		<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
@@ -357,5 +368,6 @@ $effect(() => {
 	<!-- Theme Playground (dev only) -->
 	{#if import.meta.env.DEV}
 		<ThemePlayground />
+	{/if}
 	{/if}
 </div>
