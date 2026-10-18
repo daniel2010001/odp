@@ -794,21 +794,34 @@ describe("ChartForm — el título y la descripción (L37, puntos 8 y 9)", () =>
 	});
 });
 
-describe("ChartForm — la disposición por defecto es la de hoy (L37, puntos 5, 7 y 10)", () => {
-	it("sin props de disposición: panel a la izquierda, secciones separadas por una línea, sin acordeón ni tarjeta", () => {
+describe("ChartForm — la disposición: tarjetas separadas, panel a la derecha (L47, L49)", () => {
+	it("cada sección y el gráfico son tarjetas propias, sin un contenedor común y con el panel a la derecha", () => {
 		renderForm(makeApi());
 
 		const datos = screen.getByRole("heading", { name: "Datos" }).closest("section");
 		const presentacion = screen.getByRole("heading", { name: "Presentación" }).closest("section");
-		const raiz = datos?.parentElement?.parentElement;
+		const grafico = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+		const panel = datos?.parentElement;
+		const raiz = panel?.parentElement;
 
-		expect(raiz?.className).toContain("lg:flex-row");
-		expect(raiz?.className).not.toContain("flex-row-reverse");
-		expect(datos?.className).not.toContain("border");
-		expect(presentacion?.className).toContain("border-t");
-		expect(screen.queryByRole("button", { name: "Datos" })).toBeNull();
-		expect(screen.queryByRole("heading", { name: "Opciones del gráfico" })).toBeNull();
-		expect(datos?.parentElement?.className).not.toContain("rounded-xl");
+		for (const tarjeta of [datos, presentacion, grafico]) {
+			expect(tarjeta?.className).toContain("rounded-xl");
+			expect(tarjeta?.className).toContain("border");
+		}
+		expect(panel?.contains(presentacion ?? null)).toBe(true);
+		expect(panel?.contains(grafico ?? null)).toBe(false);
+		expect(panel?.className).not.toContain("border");
+		expect(raiz?.className).toContain("lg:flex-row-reverse");
+	});
+
+	it("las acciones quedan fuera de las tarjetas, apiladas", () => {
+		renderForm(makeApi());
+
+		const acciones = screen.getByTestId("chart-actions");
+
+		expect(acciones.closest("section")).toBeNull();
+		expect(within(acciones).getByRole("button", { name: "Guardar" })).toBeInTheDocument();
+		expect(within(acciones).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
 	});
 
 	it("el gráfico se pega debajo del encabezado del portal con `--header-h`, no con un número suelto", () => {
@@ -819,5 +832,83 @@ describe("ChartForm — la disposición por defecto es la de hoy (L37, puntos 5,
 		expect(grafico?.className).toContain("lg:sticky");
 		expect(grafico?.className).toContain("lg:top-[calc(var(--header-h)+1rem)]");
 		expect(grafico?.className).not.toContain("lg:top-6");
+	});
+});
+
+describe("ChartForm — el paso por defecto de los rangos (L49)", () => {
+	const renderWithRange = (
+		readColumnRange: (column: string) => Promise<{ min: number; max: number } | null>,
+		initialConfig: Partial<ChartDraft> = { x_field: "salario", y_agg: "count" },
+	) =>
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi(),
+				resourceId: "recurso-1",
+				initialConfig,
+				readColumnRange,
+			},
+		});
+
+	// Con «Valor tal cual» elegido, la opción siguiente de una columna numérica es «Rangos numéricos».
+	const chooseRanges = async () => {
+		await pickNextOption("Agrupación del eje horizontal");
+		await waitFor(() => expect(screen.getByLabelText(/Tamaño del rango/)).toBeInTheDocument());
+	};
+
+	it("al agrupar por rangos con el paso vacío lo llena con un número redondo, sin pasar por el error", async () => {
+		const read = vi.fn(async () => ({ min: 3000, max: 10000 }));
+		renderWithRange(read);
+
+		await chooseRanges();
+
+		expect(screen.queryByText("Indique el paso del eje X.")).toBeNull();
+		await waitFor(() => expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(1000));
+		expect(read).toHaveBeenCalledWith("salario");
+		expect(screen.queryByText("Indique el paso del eje X.")).toBeNull();
+	});
+
+	it("si la lectura falla, el paso es 1", async () => {
+		renderWithRange(async () => {
+			throw new Error("sin red");
+		});
+
+		await chooseRanges();
+
+		await waitFor(() => expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(1));
+	});
+
+	it("si no se pudo leer el rango, el paso es 1", async () => {
+		renderWithRange(async () => null);
+
+		await chooseRanges();
+
+		await waitFor(() => expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(1));
+	});
+
+	it("no pisa el paso de una vista guardada", async () => {
+		const read = vi.fn(async () => ({ min: 0, max: 1 }));
+		renderWithRange(read, {
+			x_field: "salario",
+			x_bucket: "number_step",
+			x_step: "500",
+			y_agg: "count",
+		});
+
+		await Promise.resolve();
+
+		expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(500);
+		expect(read).not.toHaveBeenCalled();
+	});
+
+	it("no pisa lo que el publicador escribió mientras se leía el rango", async () => {
+		let resolve: (range: { min: number; max: number }) => void = () => {};
+		renderWithRange(() => new Promise((done) => (resolve = done)));
+
+		await chooseRanges();
+		await fireEvent.input(screen.getByLabelText(/Tamaño del rango/), { target: { value: "250" } });
+		resolve({ min: 0, max: 1 });
+
+		await waitFor(() => expect(screen.getByLabelText(/Tamaño del rango/)).toHaveValue(250));
 	});
 });

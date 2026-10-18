@@ -1,12 +1,5 @@
-<script lang="ts" module>
-export type PanelSide = "left" | "right";
-export type SectionDivider = "line" | "cards";
-export type PanelStyle = "column" | "accordion" | "sidebar" | "split";
-</script>
-
 <script lang="ts">
-import { ChevronDown, Loader2 } from "@lucide/svelte";
-import { Accordion } from "bits-ui";
+import { Loader2 } from "@lucide/svelte";
 import { type Snippet, untrack } from "svelte";
 import type { ChartApi } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
@@ -37,6 +30,7 @@ import {
 	yAggregatesFor,
 } from "$lib/charts/form";
 import { xAxisLabel, yAxisLabel } from "$lib/charts/labels";
+import { defaultRangeStep, FALLBACK_STEP } from "$lib/charts/step";
 import { adaptServerValidation } from "$lib/charts/validation";
 import Button from "$lib/components/ui/button/button.svelte";
 import { cn } from "$lib/utils";
@@ -68,9 +62,7 @@ let {
 	viewId,
 	onsaved,
 	oncancel,
-	panelSide = "left",
-	sectionDivider = "line",
-	panelStyle = "column",
+	readColumnRange,
 }: {
 	fields: DatastoreField[];
 	api: Pick<ChartApi, "preview" | "createView" | "updateView">;
@@ -85,17 +77,11 @@ let {
 	onsaved?: () => void;
 	/** «Cancelar»: la página decide a dónde volver; el formulario no guarda nada. */
 	oncancel?: () => void;
-	/** Variantes de disposición (L37, puntos 5, 7 y 10): el valor por defecto es el de hoy. */
-	/** De qué lado del gráfico va el panel de opciones. */
-	panelSide?: PanelSide;
-	/** Cómo se separan «Datos» y «Presentación»: línea o una tarjeta por sección. */
-	sectionDivider?: SectionDivider;
 	/**
-	 * El estilo del panel: columna, acordeón, el de la barra de filtros del buscador, o `split` (L47): una
-	 * tarjeta por sección y otra para el gráfico, sin contenedor común, con las acciones fuera de las
-	 * tarjetas y sin scroll interno.
+	 * El mínimo y el máximo de una columna numérica, o `null` si no se pudieron leer. Con ellos se propone el
+	 * paso de «Rangos numéricos» (L49); sin esta función, o si falla, el paso por defecto es `1`.
 	 */
-	panelStyle?: PanelStyle;
+	readColumnRange?: (column: string) => Promise<{ min: number; max: number } | null>;
 } = $props();
 
 const TYPE_OPTIONS: { value: ChartType; label: string }[] = [
@@ -135,24 +121,10 @@ const PRESENTATION_INTRO =
 	"Cómo se ve lo que ya está calculado. Estos cambios se aplican al instante.";
 
 /**
- * Dónde se pegan el gráfico y el panel fijo: debajo del encabezado del portal, cuyo alto sale del token
+ * Dónde se pega el gráfico: debajo del encabezado del portal, cuyo alto sale del token
  * `--header-h` (`src/app.css`), más el aire que usan el resto de los pegados.
  */
 const STICKY_TOP = "lg:top-[calc(var(--header-h)+1rem)]";
-
-/** Las secciones abiertas del acordeón: las dos, al arrancar. */
-let openSections = $state<string[]>(["data", "presentation"]);
-
-/** La caja de cada sección según cómo se separen; la línea es la de hoy. */
-function shellClass(index: number): string {
-	if (panelStyle === "split") {
-		return "space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm";
-	}
-	if (sectionDivider === "cards") {
-		return "space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm";
-	}
-	return index === 0 ? "space-y-4" : "space-y-4 border-t border-border pt-5";
-}
 
 let title = $state(untrack(() => initialTitle));
 let description = $state(untrack(() => initialDescription));
@@ -183,7 +155,35 @@ const view = $derived(reconcileChartDraft(draft, fields));
  * type="number">` entrega un número (o `null`) y el borrador lo guarda como texto.
  */
 function setDraft(change: Partial<ChartDraft>) {
-	draft = reconcileChartDraft({ ...view, ...change }, fields);
+	const before = view;
+	draft = reconcileChartDraft({ ...before, ...change }, fields);
+	// Al pasar a «Rangos numéricos» con el paso vacío, el campo no se abre en error: se propone uno.
+	if (before.x_bucket !== "number_step" && view.x_bucket === "number_step" && view.x_step === "") {
+		void prefillStep(view.x_field);
+	}
+}
+
+/** Mientras se lee el rango de la columna, el paso vacío no se marca como error: ya se está llenando. */
+let stepPending = $state(false);
+
+/**
+ * El paso por defecto (L49): un número redondo para unos 10 rangos entre el mínimo y el máximo de la
+ * columna, o `1` si no se pudo leer o no hay rango. Nunca pisa un paso que el publicador ya escribió, ni
+ * llega a una agrupación o columna que ya cambiaron.
+ */
+async function prefillStep(column: string) {
+	stepPending = true;
+	let step = FALLBACK_STEP;
+	try {
+		const range = (await readColumnRange?.(column)) ?? null;
+		if (range) step = defaultRangeStep(range.min, range.max);
+	} catch {
+		// Una lectura fallida no es un error del formulario: cae al paso de siempre.
+	}
+	stepPending = false;
+	if (view.x_bucket === "number_step" && view.x_field === column && view.x_step === "") {
+		setDraft({ x_step: String(step) });
+	}
 }
 
 /**
@@ -219,7 +219,11 @@ const chartMatches = $derived(drawn !== null && drawnKey === currentDataKey);
 const previewErrors = $derived(
 	rejection !== null && rejection.key === currentDataKey ? rejection.errors : {},
 );
-const errors = $derived<ChartConfigErrors>({ ...validation.errors, ...previewErrors });
+const errors = $derived<ChartConfigErrors>({
+	...validation.errors,
+	...previewErrors,
+	...(stepPending ? { x_step: undefined } : {}),
+});
 
 const busy = $derived(previewStatus === "loading");
 /** El gráfico de una configuración que ya no está en pantalla: se muestra, pero atenuado y dicho. */
@@ -586,120 +590,43 @@ async function save() {
 
 {#snippet sectionShell(
 	key: "data" | "presentation",
-	index: number,
 	title: string,
 	intro: string,
 	body: Snippet,
 )}
-	{#if panelStyle === "accordion"}
-		<Accordion.Item value={key} class={shellClass(index)}>
-			<Accordion.Header level={2}>
-				<Accordion.Trigger
-					class="group flex w-full cursor-pointer items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-				>
-					<span class="flex-1 font-heading text-lg font-bold text-foreground">{title}</span>
-					<ChevronDown
-						class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-						aria-hidden="true"
-					/>
-				</Accordion.Trigger>
-			</Accordion.Header>
-			<Accordion.Content>
-				<div class="space-y-4 pt-3">
-					<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
-					{@render body()}
-				</div>
-			</Accordion.Content>
-		</Accordion.Item>
-	{:else}
-		<section aria-labelledby="{uid}-{key}" class={shellClass(index)}>
-			{#if panelStyle === "split"}
-				<!-- El encabezado de la tarjeta de filtros del buscador: mayúsculas coral y una línea debajo. -->
-				<div class="space-y-2 border-b border-border pb-3">
-					<h2
-						id="{uid}-{key}"
-						class="text-sm font-bold uppercase tracking-[0.14em] text-destructive"
-					>
-						{title}
-					</h2>
-					<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
-				</div>
-			{:else}
-				<div>
-					<h2 id="{uid}-{key}" class="font-heading text-lg font-bold text-foreground">{title}</h2>
-					<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{intro}</p>
-				</div>
-			{/if}
-			{@render body()}
-		</section>
-	{/if}
-{/snippet}
-
-{#snippet sections()}
-	{@render sectionShell("data", 0, "Datos", DATA_INTRO, dataBody)}
-	{@render sectionShell("presentation", 1, "Presentación", PRESENTATION_INTRO, presentationBody)}
+	<section
+		aria-labelledby="{uid}-{key}"
+		class="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
+	>
+		<!-- El encabezado de la tarjeta de filtros del buscador: mayúsculas coral y una línea debajo. -->
+		<div class="space-y-2 border-b border-border pb-3">
+			<h2 id="{uid}-{key}" class="text-sm font-bold uppercase tracking-[0.14em] text-destructive">
+				{title}
+			</h2>
+			<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
+		</div>
+		{@render body()}
+	</section>
 {/snippet}
 
 <!--
-	Dos columnas (L28, decisión 2): a la izquierda las opciones —Datos y Presentación, con las acciones al
-	pie—, a la derecha el gráfico grande, que se queda a la vista mientras se configura. En el teléfono se
-	apilan, sin scroll horizontal.
+	Dos columnas (L28, decisión 2; tarjetas separadas, L47 y L49): a la izquierda el gráfico grande, que se queda
+	a la vista mientras se configura, y a la derecha el panel con una tarjeta por sección —Datos y
+	Presentación— y las acciones fuera de las tarjetas, apiladas como las del formulario del dataset. No hay
+	un contenedor común ni scroll interno. En el teléfono se apilan —primero el panel—, sin scroll horizontal.
 -->
-<div
-	class={cn(
-		"flex flex-col gap-6 lg:items-start lg:gap-8",
-		panelSide === "right" ? "lg:flex-row-reverse" : "lg:flex-row",
-	)}
->
-	<div
-		class={cn(
-			"w-full min-w-0 space-y-6 lg:w-[340px] lg:shrink-0",
-			panelStyle === "sidebar" &&
-				"rounded-xl border border-border bg-card p-6 shadow-sm lg:sticky lg:max-h-[calc(100vh-var(--header-h)-2rem)] lg:overflow-y-auto",
-			panelStyle === "sidebar" && STICKY_TOP,
-		)}
-	>
-		{#if panelStyle === "sidebar"}
-			<h2
-				class="border-b border-border pb-3 text-sm font-bold uppercase tracking-[0.14em] text-destructive"
-			>
-				Opciones del gráfico
-			</h2>
-		{/if}
+<div class="flex flex-col gap-6 lg:flex-row-reverse lg:items-start lg:gap-8">
+	<div class="w-full min-w-0 space-y-6 lg:w-[340px] lg:shrink-0">
+		{@render sectionShell("data", "Datos", DATA_INTRO, dataBody)}
+		{@render sectionShell("presentation", "Presentación", PRESENTATION_INTRO, presentationBody)}
 
-		{#if panelStyle === "accordion"}
-			<Accordion.Root
-				type="multiple"
-				bind:value={openSections}
-				class={sectionDivider === "line" ? "space-y-5" : "space-y-6"}
-			>
-				{@render sections()}
-			</Accordion.Root>
-		{:else}
-			{@render sections()}
-		{/if}
-
-		<!-- En `split` las acciones quedan fuera de las tarjetas, apiladas como las del formulario del dataset. -->
-		<div
-			class={panelStyle === "split"
-				? "grid gap-2"
-				: "flex flex-wrap gap-2 border-t border-border pt-5"}
-			data-testid="chart-actions"
-		>
-			<Button
-				type="button"
-				class={panelStyle === "split" ? "w-full" : ""}
-				disabled={!canSave}
-				onclick={save}
-			>
+		<div class="grid gap-2" data-testid="chart-actions">
+			<Button type="button" class="w-full" disabled={!canSave} onclick={save}>
 				{saving ? "Guardando…" : "Guardar"}
 			</Button>
-			<Button
-				type="button"
-				variant="outline"
-				class={panelStyle === "split" ? "w-full" : ""}
-				onclick={() => oncancel?.()}>Cancelar</Button
-			>
+			<Button type="button" variant="outline" class="w-full" onclick={() => oncancel?.()}>
+				Cancelar
+			</Button>
 		</div>
 
 		{#if !validation.valid}
@@ -751,9 +678,8 @@ async function save() {
 		aria-labelledby="{uid}-chart"
 		aria-busy={busy}
 		class={cn(
-			"min-w-0 space-y-3 border border-border bg-card transition-[top] duration-200 ease-out lg:sticky lg:flex-1",
+			"min-w-0 space-y-3 rounded-xl border border-border bg-card p-6 shadow-sm transition-[top] duration-200 ease-out lg:sticky lg:flex-1",
 			STICKY_TOP,
-			panelStyle === "split" ? "rounded-xl p-6 shadow-sm" : "rounded-lg p-4 sm:p-5",
 		)}
 	>
 		<div class="flex flex-wrap items-center justify-between gap-3">
