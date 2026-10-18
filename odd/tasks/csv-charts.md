@@ -125,7 +125,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
 | T7 | 3 CSV más para la demo: matrícula por facultad y gestión, ejecución presupuestaria mensual y producción de investigación; generadores deterministas con su mapa de tipos, y alta en el seed por el flujo (L42). El paso de tipos de xloader (L36) va aparte, cuando se haga el cambio — **hecha salvo correr el seed** (L43) | S5 | worker | `aeedd42` |
 | T7b | El seed declara los tipos con xloader (`datastore_create` `force` + `type_override`, y después `xloader_submit`), medido en vivo después del cambio de `odp-docker` (L36) — **hecha y corrida en vivo** (L45) | S5 | worker + verificación del padre | `0773a1e` |
-| P6d | Promover lo elegido en L49 a las páginas reales y borrar los dos playgrounds: el editor en tarjetas separadas con el panel a la derecha y un paso de rango por defecto; el recurso en pestañas con línea e íconos, y «Crear gráfico» en el hero | S1, S4 | dos workers | — |
+| P6d | Promover lo elegido en L49 a las páginas reales y borrar los dos playgrounds: el editor en tarjetas separadas con el panel a la derecha y un paso de rango por defecto; el recurso en pestañas con línea e íconos, y «Crear gráfico» en el hero — **hecha** (L51) | S1, S4 | dos workers + padre | `acea742` (editor), `89efc69` (recurso) |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -776,3 +776,23 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   comprueba los tipos después de recargar (`checkTypes`), que es el paso que atrapa el fallo más silencioso: una
   columna `date`, `int` o `bool` que pasa a otro tipo sin avisar. **Aparte**, `odp-docker` encontró un problema de
   seguridad en xloader y se lo reportó al autor; el arreglo espera su decisión. El seed no se ve afectado.
+- **L51 (2026-10-18, P6d hecha, los dos playgrounds borrados):**
+  - **El editor** (`acea742`): `split` con el panel a la derecha es el único layout. El paso del rango se propone con
+    `defaultRangeStep` (`src/lib/charts/step.ts`, regla 1/2/5×10ⁿ, 17 tests con RED observado) sobre el mínimo y el
+    máximo que lee `readColumnRange` (`src/lib/charts/column-range.ts`, 5 tests con RED observado).
+  - **Corrección del padre sobre el worker:** la lectura del máximo saltaba los nulos con `filters: {col: null}`, y ese
+    filtro de CKAN cuenta 0 sobre una columna con vacíos (medido en `monto_ejecutado`). El paso habría caído siempre a
+    1. Se reemplazó por `sort: "\"col\" desc nulls last"`, que CKAN acepta (medido: 398.177,9). En `salario` propone
+    2.000.
+  - **El recurso** (`89efc69`): pestañas con línea e íconos por tipo de gráfico (un solo mapa `CHART_ICONS`, fácil de
+    quitar), y «Crear gráfico» en la banda de acciones del hero, con `ACCION_BASE`. Sin `datastore_active` no hay
+    pestañas. **Con 0 gráficos tampoco hay barra:** una sola pestaña no deja elegir nada, así que se ve la tabla y debajo
+    el aviso (invitación para el editor). El costo, sin medir, es que la tabla baja 48 px cuando la barra aparece al
+    cargar.
+  - **Verificación del padre:** 219/219 en los componentes de recurso y las rutas de dataset. La página del recurso
+    responde 200 y `/dev/chart-editor` y `/dev/resource-views` responden 404. El worker corrió la suite completa con
+    1529/1529 y `pnpm check` sin errores.
+  - **Incidente del padre:** un `git commit` de documentación se llevó los `git rm` que el worker había dejado en el
+    índice. Como los commits no estaban subidos, se separó con `reset --soft`: la documentación quedó en `2be8699` y los
+    borrados en `89efc69`. **Regla:** con un worker activo, revisar `git diff --cached --stat` antes de commitear.
+  - **Sin ver en un navegador:** los íconos, la altura de la barra y el hero.
