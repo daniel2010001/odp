@@ -29,7 +29,7 @@ import { xAxisLabel, yAxisLabel } from "$lib/charts/labels";
 import { adaptServerValidation } from "$lib/charts/validation";
 import Button from "$lib/components/ui/button/button.svelte";
 import ChartSelect from "./ChartSelect.svelte";
-import ResourceChart, { type ChartStyle } from "./ResourceChart.svelte";
+import ResourceChart from "./ResourceChart.svelte";
 
 // El formulario con el que **quien publica** configura el gráfico de un recurso (S1, S7).
 //
@@ -86,15 +86,6 @@ const AGG_OPTIONS: { value: YAggregate; label: string }[] = [
 	{ value: "max", label: "Máximo" },
 ];
 
-/**
- * Los dos estilos del gráfico, para comparar en el playground (L28, decisión 3). Vive al lado del gráfico y
- * no en el panel global porque es una variante de lo que se está mirando, no del caso de prueba.
- */
-const STYLE_OPTIONS: { value: ChartStyle; label: string }[] = [
-	{ value: "current", label: "Actual" },
-	{ value: "new", label: "Nuevo" },
-];
-
 /** La pausa de las opciones de datos antes de pedir la vista previa (L28, decisión 1). */
 const PREVIEW_DEBOUNCE_MS = 400;
 
@@ -113,9 +104,6 @@ let draft = $state<ChartDraft>(
 /** El estado con el que abrió, para que «Cancelar» tenga a dónde volver mientras el formulario vive acá. */
 const initialDraft = untrack(() => draft);
 const initialText = untrack(() => ({ title, description }));
-
-/** El estilo que el autor evalúa; arranca en «Nuevo» para que sea lo primero que ve. */
-let chartStyle = $state<ChartStyle>("new");
 
 /**
  * El borrador **ya reconciliado** con las columnas vigentes. Es una derivación y no un efecto que reescribe
@@ -536,26 +524,6 @@ async function save() {
 					Se calcula con los datos cargados del recurso.
 				</p>
 			</div>
-
-			<div
-				role="group"
-				aria-label="Estilo del gráfico"
-				class="inline-flex rounded-md border border-input bg-background p-0.5"
-			>
-				{#each STYLE_OPTIONS as option (option.value)}
-					<button
-						type="button"
-						aria-pressed={chartStyle === option.value}
-						onclick={() => (chartStyle = option.value)}
-						class="cursor-pointer rounded-sm px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none {chartStyle ===
-						option.value
-							? 'bg-primary text-primary-foreground'
-							: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
-					>
-						{option.label}
-					</button>
-				{/each}
-			</div>
 		</div>
 
 		{#if busy}
@@ -595,7 +563,6 @@ async function save() {
 						step={shown.config.x_step}
 						{xLabel}
 						{yLabel}
-						variant={chartStyle}
 					/>
 				{/if}
 			</div>

@@ -5,10 +5,9 @@
 	**doble** del servidor (`fake-api.ts`): la acción `umss_chart_data` todavía no existe en vivo, así que acá
 	se revisa el formulario contra la respuesta del contrato y no contra un catálogo que no puede contestar.
 
-	El panel global es **liviano** y sólo tiene presets de caso: el único interruptor de variante —«Estilo del
-gráfico», actual o nuevo— vive al lado del gráfico, que es lo que cambia (regla 8). El rótulo de los rangos
-numéricos ya está decidido (L21): el eje escribe «0–5000» y la tabla el intervalo exacto «[0, 5000)», sin nada
-que elegir.
+	El panel global es **liviano** y sólo tiene presets de caso. El estilo del gráfico («Nuevo», L28) y la paleta
+	(«De la marca», `--chart-1..5` de `src/app.css`, L32) ya están decididos y no hay interruptores. El rótulo de
+	los rangos numéricos también (L21): el eje escribe «0–5000» y la tabla el intervalo exacto «[0, 5000)».
 
 	La vista previa tiene dos niveles (L28): tipo de gráfico, título y descripción se aplican al instante, y las
 	opciones de datos piden los grupos solas. No hay botón «Vista previa» que pulsar ni que bajar a buscar.

@@ -499,3 +499,22 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   completa (1342) y el build. **No se verificó a ojo:** el aspecto del estilo nuevo (sólo se midió el DOM y los
   estilos computados con Chromium), el modo oscuro, los tooltips de líneas y dona, y que las animaciones se apaguen
   con `prefers-reduced-motion`. Eso queda para la revisión del autor.
+- **L32 (2026-10-17, colores de los gráficos):** el autor, textual: «me gusta más el nuevo estilo, pero como que algo
+  sigue sin gustarme, quisas sean los colores, pero veo que estamos usando los tokens del proyecto, asique no quisiera
+  modificarlo tanto, aun así quisiera intentarlo.» **Medido:** los `--chart-1..5` actuales, con croma 0.07–0.08,
+  **fallan WCAG 1.4.11 (3:1) en modo claro en 4 de 5 colores**. Contra `--background` dan 1.70–3.37, y contra
+  `--card`, que es donde se dibuja el gráfico, 1.81–3.59 (calculado por el padre). Además, `--chart-2` es ámbar
+  (tono 60), no el coral de la marca. Se sumaron dos paletas candidatas, limitadas al playground (`src/lib/charts/palettes.ts`), con un
+  interruptor «Paleta» y un medidor de contraste: **«Mismos tonos, más vivos»** y **«De la marca»** (azul, coral,
+  turquesa, ámbar y violeta). Las dos pasan 3:1 en claro y en oscuro, contra `--background` y contra `--card`.
+  `src/app.css` no cambió: la paleta que elija el autor pasa a los tokens después. Verificado: 149/149, `pnpm check`
+  sin errores, Biome limpio y `200` con `?palette=brand` y `?palette=vivid`. No se miró a ojo.
+- **L33 (2026-10-17, decisión del autor, textual):** «me gusta más "de la marca", y con el nuevo estilo se ve mucho
+  mejor, por mi usamos esta config». **Promovido:** «De la marca» queda en los tokens `--chart-1..5` de `src/app.css`,
+  en claro y en oscuro, y «Nuevo» es el único estilo; los interruptores se retiraron (regla 8). **Guarda permanente:**
+  `src/lib/charts/tokens.test.ts` lee `app.css` y exige 3:1 contra `--card` y `--background` en los dos modos. El padre
+  la corrió contra los tokens anteriores (RED, 4 fallos) y contra los nuevos (GREEN, 10/10). Además: 150/150 en la
+  feature, `pnpm check` sin errores, Biome limpio y `200`. Pregunta del autor sobre por qué las barras van de un solo
+  color: **es intencional**. En barras, el color codifica la serie, no la categoría; los otros colores sirven para el
+  pastel, para varias series (`v1`) o para resaltar un valor. La iteración del estilo sigue sobre la página real, con
+  datos reales (formato es-BO de los números, valores sobre las barras), después de P3.
