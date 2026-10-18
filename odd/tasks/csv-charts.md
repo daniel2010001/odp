@@ -809,3 +809,15 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   Las dos cosas se combinan con `cn`, y `twMerge` reemplaza el fondo de la base. Test con RED observado. El autor validó
   con *throttling* que la barra de pestañas que aparece al cargar no molesta, y aprobó los íconos por tipo. Suite
   completa 1530/1530 y `pnpm check` sin errores.
+- **L54 (2026-10-18, valores sobre las barras: playground y elección del autor):** el ítem venía del traspaso de L34,
+  punto 4. El autor lo quiso probar («Sí, a probar») y se armó `/dev/chart-values` (`9393a5d`) con el componente real,
+  cuatro juegos de datos, tres anchos e interruptores de modo, posición y formato. Decisión del autor, textual: «me
+  encanta, mis preferencias son: solo cuando caben, encima y compacto, pero este compacto es correcto? tengo miedo de que
+  digamos algo como que 3.14159 (pi) es igual a 3, es un ejemplo ilustrativo, me refiero a que tengo miedo del
+  redondeo». **Medido:** el compacto de un decimal se equivocaba hasta un 4,7 % (1.049 se leía «1 mil») y escribía
+  «1.000 mil» para 999.950. **Corregido** con tres cifras significativas: 1.049 → «1,05 mil», 1.234.567 → «1,23 M»,
+  999.950 → «1 M», y los miles de millones como «mil M». El error queda por debajo del 0,5 %. Por debajo de mil no se
+  abrevia: pi se escribe «3,14», con los mismos dos decimales que el tooltip, la tabla y el eje (L23). El valor exacto
+  sigue en el tooltip y en la tabla. **Promovido** a `ResourceChart`, de modo que aparece en la página del recurso, en el
+  editor y en `/embed`, y el playground se borró. En vivo sobre `/embed/charts/…`: a 1280 px se escriben los 12 valores,
+  y a 390 px no caben y no se escribe ninguno.

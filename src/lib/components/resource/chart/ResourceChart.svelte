@@ -1,7 +1,8 @@
 <script lang="ts">
-import { Area, AreaChart, BarChart, LinearGradient, PieChart } from "layerchart";
+import { Area, AreaChart, BarChart, Bars, Labels, LinearGradient, PieChart } from "layerchart";
 import { type ChartGroup, type ChartType, groupLabels, type XBucket } from "$lib/charts/contract";
 import { formatChartNumber } from "$lib/charts/format";
+import { formatCompactNumber, valueLabelsFit } from "$lib/charts/value-labels";
 
 // El gráfico en sí: dibuja los grupos que le dan, ya agregados por el servidor.
 //
@@ -143,6 +144,31 @@ const name = $derived(
 );
 </script>
 
+<!-- Las barras con su valor encima, en formato compacto y sólo si caben (elección del autor, 2026-10-18): mismas
+     barras y mismo atenuado al resaltar que las de la biblioteca, más los rótulos. «Si caben» compara el ancho de
+     cada barra con el del rótulo más largo; si alguno no cabe, no se escribe ninguno y quedan el tooltip y la tabla,
+     que dan el valor exacto. -->
+{#snippet barMarks({ context }: { context: any })}
+	<Bars
+		seriesKey="value"
+		stroke="none"
+		rounded="all"
+		radius={6}
+		opacity={(d: any) => (context.series.isHighlighted(context.cKey(d) ?? "value", true) ? 1 : 0.1)}
+	/>
+	{#if valueLabelsFit(context.xScale.bandwidth?.() ?? 0, points.map((p) => formatCompactNumber(p.value)))}
+		<g class="bar-value-labels" aria-hidden="true">
+			<Labels
+				seriesKey="value"
+				placement="outside"
+				format={formatCompactNumber}
+				fill="var(--foreground)"
+				class="text-[11px] font-medium tabular-nums"
+			/>
+		</g>
+	{/if}
+{/snippet}
+
 <div class="space-y-3">
 	<div class="relative">
 		<div role="img" aria-label={name} class="resource-chart h-80 w-full min-w-0 text-foreground">
@@ -152,12 +178,18 @@ const name = $derived(
 					x="index"
 					y="value"
 					series={[{ key: "value", label: yLabel, color: "var(--chart-1)" }]}
-					padding={{ top: 8, right: 8, bottom: 64, left: 48 }}
+					padding={{
+						// El valor encima de la barra más alta necesita aire para no recortarse contra el borde.
+						top: 22,
+						right: 8,
+						bottom: 64,
+						left: 48,
+					}}
 					grid={{ x: false, y: { stroke: "var(--border)", strokeWidth: 1, opacity: 0.7 } }}
 					rule={false}
 					{motion}
+					marks={barMarks}
 					props={{
-						bars: { stroke: "none", rounded: "all", radius: 6 },
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
 						xAxis: { tickMarks: false, ticks: barTicks, format: axisLabelAt, tickLabelProps: mutedTicks },
 						yAxis: { tickMarks: false, format: formatChartNumber, tickLabelProps: mutedTicks },
