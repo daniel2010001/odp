@@ -2937,11 +2937,20 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
-- [ ] **Copiar el enlace de un recurso, como en los datasets** (TODO del autor, 2026-10-17, `csv-charts` L47, textual:
-  «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar esto»). **Antes de empezar,
-  preguntar qué se quiere** (regla 9): la página del recurso **ya tiene** un botón de ícono «Copiar enlace del recurso»
-  al lado del título (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:503-517`). Puede que el autor se
-  refiera a otra cosa: la lista de recursos en la página del dataset, o un botón con texto como el del dataset.
+- [ ] **El botón «Copiar enlace» del recurso no sigue la disposición del dataset** (TODO del autor, 2026-10-17,
+  `csv-charts` L47, textual: «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar
+  esto»). **Precisión del autor, textual:** «sí lo tiene, pero está situado en una posición diferente a la del datasets,
+  creo que al cambiar la posición en una sesión pasada no lo hicimos para el caso de los resources, me refiero a que en
+  los dataset está al lado superior derecho y abajo si se puede editar, mientras que el resource aun lo mantiene en el
+  lado izquiedo del title, nunca sincronizamos esto». **Hoy:**
+  - **En el dataset** (`src/routes/dataset/[id]/+page.svelte:620-665`), el botón está en el snippet `heroActions`, junto
+    a «Editar» y a la acción de publicación. Ese grupo va arriba a la derecha y cambia de fila según la regla
+    condicional del hero.
+  - **En el recurso** (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:503-517`), el botón sigue como
+    ícono a la izquierda del `h1`.
+  **Lo que hay que hacer:** llevar el recurso al reparto del dataset, con las mismas piezas en vez de una copia que se
+  vuelva a desincronizar. Se cruza con P6 de `csv-charts`: el autor quiere guardar la banda del encabezado del recurso
+  «para otras acciones».
 
 - [ ] **Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
   previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
