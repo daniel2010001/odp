@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Area, AreaChart, BarChart, LinearGradient, PieChart } from "layerchart";
 import { type ChartGroup, type ChartType, groupLabels, type XBucket } from "$lib/charts/contract";
+import { formatChartNumber } from "$lib/charts/format";
 
 // El gráfico en sí: dibuja los grupos que le dan, ya agregados por el servidor.
 //
@@ -71,6 +72,8 @@ const chartTooltip = {
 				"rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md",
 		},
 	},
+	// Los valores se escriben en es-BO y con a lo sumo dos decimales: el servidor no redondea (L23).
+	item: { format: formatChartNumber },
 };
 const mutedTicks = { fill: "var(--muted-foreground)", fontSize: 11 };
 
@@ -85,9 +88,7 @@ const points = $derived<Point[]>(
 const total = $derived(
 	points.reduce((sum, point) => sum + (Number.isFinite(point.value) ? point.value : 0), 0),
 );
-const totalLabel = $derived(
-	new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(total),
-);
+const totalLabel = $derived(formatChartNumber(total));
 
 /**
  * Las transiciones suaves son un adorno: con `prefers-reduced-motion` se apagan (regla 7 de `AGENTS.md`).
@@ -159,7 +160,7 @@ const name = $derived(
 						bars: { stroke: "none", rounded: "all", radius: 6 },
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
 						xAxis: { tickMarks: false, ticks: barTicks, format: axisLabelAt, tickLabelProps: mutedTicks },
-						yAxis: { tickMarks: false, tickLabelProps: mutedTicks },
+						yAxis: { tickMarks: false, format: formatChartNumber, tickLabelProps: mutedTicks },
 					}}
 				/>
 			{:else if chartType === "line"}
@@ -178,7 +179,7 @@ const name = $derived(
 					props={{
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
 						xAxis: { tickMarks: false, ticks: lineTicks, format: axisLabelAt, tickLabelProps: mutedTicks },
-						yAxis: { tickMarks: false, tickLabelProps: mutedTicks },
+						yAxis: { tickMarks: false, format: formatChartNumber, tickLabelProps: mutedTicks },
 					}}
 				>
 					{#snippet marks({ context })}
@@ -251,7 +252,7 @@ const name = $derived(
 						{#each points as point, i (i)}
 							<tr class="border-b border-border/60 last:border-0">
 								<td class="px-3 py-1.5 text-muted-foreground">{point.intervalLabel}</td>
-								<td class="px-3 py-1.5 text-muted-foreground">{point.value}</td>
+								<td class="px-3 py-1.5 text-muted-foreground">{formatChartNumber(point.value)}</td>
 							</tr>
 						{/each}
 					</tbody>

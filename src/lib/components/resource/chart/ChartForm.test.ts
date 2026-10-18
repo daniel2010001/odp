@@ -1,5 +1,5 @@
-// Contrato del formulario del publicador, montado solo: es la pieza que el autor revisa en el playground y la
-// que después vive en la página real.
+// Contrato del formulario del publicador, montado solo: es la pieza que viven las páginas de crear y editar un
+// gráfico.
 //
 // Lo que se fija acá no es cómo se ve, es lo que **promete**:
 //  · la vista previa tiene **dos niveles** (L28, decisión 1): la presentación se aplica al instante sin
@@ -67,6 +67,17 @@ function makeData(groups: ChartGroup[] = [], totalRows = 200): ChartData {
 
 const okPreview = () =>
 	vi.fn(async (_id: string, _config: ChartConfig): Promise<ChartData> => makeData());
+const okUpdateView = () =>
+	vi.fn(
+		async (): Promise<ChartView> => ({
+			id: "vista-1",
+			resource_id: "recurso-1",
+			view_type: "umss_chart",
+			title: "",
+			description: "",
+			config: {},
+		}),
+	);
 const okCreateView = () =>
 	vi.fn(
 		async (): Promise<ChartView> => ({
@@ -79,17 +90,18 @@ const okCreateView = () =>
 		}),
 	);
 
-function makeApi(
-	overrides: Partial<Pick<ChartApi, "preview" | "createView">> = {},
-): Pick<ChartApi, "preview" | "createView"> {
+type FormApi = Pick<ChartApi, "preview" | "createView" | "updateView">;
+
+function makeApi(overrides: Partial<FormApi> = {}): FormApi {
 	return {
 		preview: (overrides.preview as ReturnType<typeof okPreview>) ?? okPreview(),
 		createView: (overrides.createView as ReturnType<typeof okCreateView>) ?? okCreateView(),
+		updateView: (overrides.updateView as ReturnType<typeof okUpdateView>) ?? okUpdateView(),
 	};
 }
 
 function renderForm(
-	api: Pick<ChartApi, "preview" | "createView">,
+	api: FormApi,
 	initialConfig: Partial<ChartDraft> = {
 		x_field: "turno",
 		y_agg: "avg",
@@ -316,6 +328,104 @@ describe("ChartForm — no se guarda lo que no se vio", () => {
 		await waitFor(() => expect(createView).toHaveBeenCalled());
 		expect(createView).toHaveBeenCalledWith("recurso-1", "", "", NORMALIZED_CONFIG);
 		expect(await screen.findByText("Vista guardada.")).toBeInTheDocument();
+	});
+});
+
+describe("ChartForm — crear, editar y cancelar (P3)", () => {
+	it("crear: «Guardar» llama a createView con la configuración plana y avisa a la página", async () => {
+		const createView = okCreateView();
+		const updateView = okUpdateView();
+		const onsaved = vi.fn();
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi({ createView, updateView }),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+				onsaved,
+			},
+		});
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		await fireEvent.click(saveButton());
+
+		await waitFor(() => expect(onsaved).toHaveBeenCalledTimes(1));
+		expect(createView).toHaveBeenCalledWith("recurso-1", "", "", NORMALIZED_CONFIG);
+		expect(updateView).not.toHaveBeenCalled();
+	});
+
+	it("editar: abre con el título, la descripción y la configuración guardados, y «Guardar» llama a updateView", async () => {
+		const createView = okCreateView();
+		const updateView = okUpdateView();
+		const onsaved = vi.fn();
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi({ createView, updateView }),
+				resourceId: "recurso-1",
+				viewId: "vista-9",
+				initialTitle: "Salario por turno",
+				initialDescription: "Promedio mensual.",
+				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+				onsaved,
+			},
+		});
+		expect(screen.getByLabelText("Título de la vista")).toHaveValue("Salario por turno");
+		expect(screen.getByLabelText("Descripción de la vista")).toHaveValue("Promedio mensual.");
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		await fireEvent.click(saveButton());
+
+		await waitFor(() => expect(onsaved).toHaveBeenCalledTimes(1));
+		expect(updateView).toHaveBeenCalledWith("vista-9", {
+			title: "Salario por turno",
+			description: "Promedio mensual.",
+			config: NORMALIZED_CONFIG,
+		});
+		expect(createView).not.toHaveBeenCalled();
+	});
+
+	it("un guardado rechazado no avisa a la página: el publicador se queda en el formulario", async () => {
+		const createView = vi.fn(async (): Promise<ChartView> => {
+			throw new CkanApiError("Authorization Error", 403, "Authorization Error");
+		});
+		const onsaved = vi.fn();
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi({ createView }),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+				onsaved,
+			},
+		});
+		await waitFor(() => expect(saveButton()).toBeEnabled());
+
+		await fireEvent.click(saveButton());
+
+		expect(await screen.findByRole("alert")).toBeInTheDocument();
+		expect(onsaved).not.toHaveBeenCalled();
+	});
+
+	it("«Cancelar» avisa a la página y no guarda nada", async () => {
+		const createView = okCreateView();
+		const updateView = okUpdateView();
+		const oncancel = vi.fn();
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi({ createView, updateView }),
+				resourceId: "recurso-1",
+				initialConfig: { x_field: "turno", y_agg: "avg", y_field: "salario" },
+				oncancel,
+			},
+		});
+
+		await fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+		expect(oncancel).toHaveBeenCalledTimes(1);
+		expect(createView).not.toHaveBeenCalled();
+		expect(updateView).not.toHaveBeenCalled();
 	});
 });
 

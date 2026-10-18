@@ -152,3 +152,15 @@ export function canonicalDataKey(config: Partial<ChartConfig> | null | undefined
 	if (!config) return null;
 	return JSON.stringify(CHART_DATA_KEYS.map((key) => config[key] ?? null));
 }
+
+/**
+ * La configuración guardada de una vista → el borrador con el que abre el formulario de edición.
+ *
+ * El paso vuelve del servidor como número y el borrador lo guarda como texto. Lo que la vista no trae no se
+ * inventa: quien arma el formulario completa el resto con `emptyChartDraft` y lo reconcilia contra las
+ * columnas vigentes.
+ */
+export function draftFromConfig(config: Partial<ChartConfig>): Partial<ChartDraft> {
+	const { x_step, ...rest } = config;
+	return x_step === undefined ? rest : { ...rest, x_step: String(x_step) };
+}

@@ -53,14 +53,23 @@ let {
 	initialTitle = "",
 	initialDescription = "",
 	initialConfig,
+	viewId,
+	onsaved,
+	oncancel,
 }: {
 	fields: DatastoreField[];
-	api: Pick<ChartApi, "preview" | "createView">;
+	api: Pick<ChartApi, "preview" | "createView" | "updateView">;
 	resourceId: string;
 	initialTitle?: string;
 	initialDescription?: string;
-	/** El borrador de arranque; el playground lo usa para abrir cada caso ya configurado. */
+	/** El borrador de arranque; en la página de edición, la configuración guardada de la vista. */
 	initialConfig?: Partial<ChartDraft>;
+	/** La vista que se edita. Sin ella, «Guardar» crea una vista nueva. */
+	viewId?: string;
+	/** Se llama una vez que el catálogo guardó la vista: la página decide a dónde ir. */
+	onsaved?: () => void;
+	/** «Cancelar»: la página decide a dónde volver; el formulario no guarda nada. */
+	oncancel?: () => void;
 } = $props();
 
 const TYPE_OPTIONS: { value: ChartType; label: string }[] = [
@@ -97,13 +106,10 @@ const uid = $props.id();
 let title = $state(untrack(() => initialTitle));
 let description = $state(untrack(() => initialDescription));
 // `untrack`: es el valor de arranque, no una derivación — si el anfitrión remonta con otro caso, se remonta
-// el componente (el playground lo hace con `{#key}`). Se reconcilia una vez, al crearlo.
+// el componente (la página lo hace con `{#key}`). Se reconcilia una vez, al crearlo.
 let draft = $state<ChartDraft>(
 	untrack(() => reconcileChartDraft({ ...emptyChartDraft(fields), ...initialConfig }, fields)),
 );
-/** El estado con el que abrió, para que «Cancelar» tenga a dónde volver mientras el formulario vive acá. */
-const initialDraft = untrack(() => draft);
-const initialText = untrack(() => ({ title, description }));
 
 /**
  * El borrador **ya reconciliado** con las columnas vigentes. Es una derivación y no un efecto que reescribe
@@ -260,13 +266,6 @@ $effect(() => {
 	return () => clearTimeout(timer);
 });
 
-/** Vuelve al estado con el que abrió. En la página real esto será una navegación de vuelta al recurso. */
-function cancel() {
-	draft = { ...initialDraft };
-	title = initialText.title;
-	description = initialText.description;
-}
-
 async function save() {
 	const config = validation.config;
 	if (!config || !chartMatches) return;
@@ -274,8 +273,13 @@ async function save() {
 	saving = true;
 	saveFailure = null;
 	try {
-		await api.createView(resourceId, title, description, config);
+		if (viewId) {
+			await api.updateView(viewId, { title, description, config });
+		} else {
+			await api.createView(resourceId, title, description, config);
+		}
 		saved = savingSnapshot;
+		onsaved?.();
 	} catch (err) {
 		const adapted = adaptServerValidation(err);
 		if (adapted) {
@@ -461,7 +465,7 @@ async function save() {
 			<Button type="button" disabled={!canSave} onclick={save}>
 				{saving ? "Guardando…" : "Guardar"}
 			</Button>
-			<Button type="button" variant="outline" onclick={cancel}>Cancelar</Button>
+			<Button type="button" variant="outline" onclick={() => oncancel?.()}>Cancelar</Button>
 		</div>
 
 		{#if !validation.valid}

@@ -18,6 +18,7 @@ import {
 	foldCaseAvailable,
 	groupLabel,
 	groupLabels,
+	isSupportedChartVersion,
 	MAX_CHART_GROUPS,
 	type NormalizedChartConfig,
 	NULL_GROUP_LABEL,
@@ -565,5 +566,19 @@ describe("las familias de tipos y lo que cada una habilita en el formulario", ()
 
 	it("el tope de grupos del contrato es una constante del portal", () => {
 		expect(MAX_CHART_GROUPS).toBe(500);
+	});
+});
+
+describe("isSupportedChartVersion — una vista de una versión que el portal no conoce no se dibuja (L12, punto 5)", () => {
+	it("acepta la versión del contrato", () => {
+		expect(isSupportedChartVersion(CHART_CONTRACT_VERSION)).toBe(true);
+	});
+
+	it("rechaza otra versión, una ausente y lo que no es un número de versión", () => {
+		expect(isSupportedChartVersion(CHART_CONTRACT_VERSION + 1)).toBe(false);
+		expect(isSupportedChartVersion(0)).toBe(false);
+		expect(isSupportedChartVersion(undefined)).toBe(false);
+		expect(isSupportedChartVersion(null)).toBe(false);
+		expect(isSupportedChartVersion(String(CHART_CONTRACT_VERSION))).toBe(false);
 	});
 });
