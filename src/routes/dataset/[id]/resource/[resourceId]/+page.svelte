@@ -11,6 +11,7 @@ import {
 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
+import { createChartApi } from "$lib/api/charts";
 import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createDatastoreApi } from "$lib/api/datastore";
@@ -24,7 +25,9 @@ import {
 	statusFor,
 } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
+import { canEditResourceCharts } from "$lib/charts/permission";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
+import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -47,6 +50,8 @@ import { safeExternalUrl } from "$lib/utils/external-url";
 // puente del portal, que pone la credencial de la sesión: sin ella, el `datastore_search` de un recurso
 // de un dataset privado responde 403 y el dueño ve la ficha pero nunca sus filas.
 const datastoreApi = createDatastoreApi(createPortalClient());
+// Los gráficos del recurso (S1): el visitante los ve, quien puede editar los administra. Mismo puente.
+const chartApi = createChartApi(createPortalClient());
 
 /** Fallo del catálogo con el contexto de sesión que le da sentido al texto. */
 type ResourceFailure = {
@@ -68,6 +73,10 @@ let invalidParams = $state(false);
 // El camino único de expulsión ya limpió la sesión y navegó: no se renderiza nada más ni se
 // vuelve a navegar.
 let expelled = $state(false);
+
+// Si el usuario puede crear, editar y eliminar los gráficos de este recurso. Sólo decide qué se ofrece: el
+// servidor exige `resource_update` de todos modos. Hasta que la respuesta llega es `false` (falla cerrado).
+let canEditCharts = $state(false);
 
 let endpointCopied = $state(false);
 let copiedLink = $state(false);
@@ -96,6 +105,7 @@ async function loadData() {
 	failure = null;
 	resource = null;
 	dataset = null;
+	canEditCharts = false;
 
 	const user = get(auth).user;
 	// El puente del portal pone la credencial de la sesión. Sin ella, `resource_show` de un recurso de un
@@ -163,6 +173,14 @@ async function loadData() {
 	}
 
 	loading = false;
+
+	// Los permisos no frenan la ficha: se preguntan aparte, y sólo si hay algo que administrar (una tabla) y
+	// alguien con sesión. Si el usuario ya navegó a otro recurso, la respuesta vieja se descarta.
+	if (resource?.datastore_active === true && user) {
+		const loadedFor = resourceId;
+		const allowed = await canEditResourceCharts(client, dataset);
+		if (loadedFor === resourceId) canEditCharts = allowed;
+	}
 }
 
 // ─── Effect: load on mount ──────────────────────────────────────
@@ -641,6 +659,19 @@ async function handleCopyResourceLink() {
 					<ResourcePreview resource={resource} datastore={datastoreApi} />
 				{/if}
 			</Card>
+
+		<!-- Gráficos: las vistas `umss_chart` del recurso. Sólo existen con una tabla en el DataStore, y es el
+		     mismo marcador que gobierna la vista previa y la sección de la API. -->
+		{#if resource.datastore_active === true}
+			{#key resource.id}
+				<ResourceCharts
+					resourceId={resource.id}
+					datasetId={datasetId ?? ""}
+					api={chartApi}
+					canEdit={canEditCharts}
+				/>
+			{/key}
+		{/if}
 
 		<!-- API content -->
 		<!-- El gate es `datastore_active`, no `resource_type`: `resource_type` es un campo heredado que

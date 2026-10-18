@@ -24,6 +24,14 @@ export const CHART_VIEW_TYPE = "umss_chart";
 export const CHART_CONTRACT_VERSION = 1;
 
 /**
+ * ¿Es una versión que el portal sabe dibujar? Una vista de otra versión no se dibuja ni se migra (L12,
+ * punto 5): se avisa, porque dibujarla con las reglas de otro contrato mostraría un gráfico que miente.
+ */
+export function isSupportedChartVersion(version: unknown): boolean {
+	return version === CHART_CONTRACT_VERSION;
+}
+
+/**
  * El tope de grupos de una respuesta: el contrato corta en **500 grupos** y lo declara con
  * `truncated: true`. Es una constante del portal (L12, punto 4) porque el formulario tiene que poder
  * explicar el recorte sin pedirlo.

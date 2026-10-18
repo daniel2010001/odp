@@ -106,3 +106,55 @@ describe("ResourceChart — el estilo del gráfico (L28, decisión 3)", () => {
 		]);
 	});
 });
+
+describe("ResourceChart — los números se escriben en es-BO, con a lo sumo dos decimales (P3)", () => {
+	// El servidor devuelve los promedios sin redondear (`8496.754044…`, L23).
+	const AVERAGES: ChartGroup[] = [
+		{ key: "mañana", value: 8496.754044 },
+		{ key: "noche", value: 3986.38 },
+		{ key: null, value: 1266 },
+	];
+
+	it("la tabla accesible redondea y separa los millares", () => {
+		renderChart(AVERAGES, "value");
+
+		const rows = within(table()).getAllByRole("row").slice(1);
+		expect(rows.map((row) => row.lastElementChild?.textContent)).toEqual([
+			"8.496,75",
+			"3.986,38",
+			"1.266",
+		]);
+		expect(within(table()).queryByText(/8496/)).toBeNull();
+	});
+
+	it("el total de la dona usa el mismo formato", () => {
+		render(ResourceChart, {
+			props: {
+				groups: AVERAGES,
+				chartType: "pie",
+				bucket: "value",
+				xLabel: "turno",
+				yLabel: "Promedio de salario",
+			},
+		});
+
+		expect(screen.getByText("13.749,13")).toBeInTheDocument();
+	});
+
+	it("los rótulos del eje vertical usan el mismo formato", () => {
+		// jsdom no mide el layout: sin un tamaño, la escala vertical no tiene marcas que rotular.
+		const size = { configurable: true, get: () => 400 };
+		Object.defineProperty(HTMLElement.prototype, "clientWidth", size);
+		Object.defineProperty(HTMLElement.prototype, "clientHeight", size);
+		try {
+			renderChart([{ key: "mañana", value: 12345.678 }], "value");
+		} finally {
+			Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+			Reflect.deleteProperty(HTMLElement.prototype, "clientHeight");
+		}
+
+		const ticks = Array.from(axis().querySelectorAll("text")).map((node) => node.textContent);
+		expect(ticks.some((text) => /^\d{1,3}(\.\d{3})+$/.test(text ?? ""))).toBe(true);
+		expect(ticks.some((text) => /^\d{4,}$/.test(text ?? ""))).toBe(false);
+	});
+});

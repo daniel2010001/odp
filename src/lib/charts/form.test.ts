@@ -15,6 +15,7 @@ import {
 	canonicalConfigKey,
 	canonicalDataKey,
 	chartConfigFromDraft,
+	draftFromConfig,
 	emptyChartDraft,
 	reconcileChartDraft,
 } from "./form";
@@ -256,5 +257,57 @@ describe("canonicalDataKey — los datos que hay que pedirle al servidor", () =>
 
 	it("una configuración ausente no tiene clave", () => {
 		expect(canonicalDataKey(null)).toBeNull();
+	});
+});
+
+describe("draftFromConfig — la configuración guardada abre el formulario de edición (P3)", () => {
+	it("pasa las claves tal cual y el paso numérico a texto, que es lo que hay en un <input>", () => {
+		expect(
+			draftFromConfig({
+				version: 1,
+				chart_type: "line",
+				x_field: "salario",
+				x_bucket: "number_step",
+				x_step: 5000,
+				x_fold_case: false,
+				y_agg: "count",
+				include_null: false,
+			}),
+		).toEqual({
+			version: 1,
+			chart_type: "line",
+			x_field: "salario",
+			x_bucket: "number_step",
+			x_step: "5000",
+			x_fold_case: false,
+			y_agg: "count",
+			include_null: false,
+		});
+	});
+
+	it("no inventa las claves que la vista guardada no trae", () => {
+		const draft = draftFromConfig({ chart_type: "bar", x_field: "turno" });
+
+		expect(draft).toEqual({ chart_type: "bar", x_field: "turno" });
+		expect("x_step" in draft).toBe(false);
+	});
+
+	it("el borrador de una vista guardada vuelve a ser la misma configuración", () => {
+		const config = {
+			version: 1,
+			chart_type: "bar" as const,
+			x_field: "turno",
+			x_bucket: "value" as const,
+			x_fold_case: false,
+			y_agg: "avg" as const,
+			y_field: "salario",
+			include_null: true,
+		};
+		const draft = reconcileChartDraft(
+			{ ...emptyChartDraft(FIELDS), ...draftFromConfig(config) },
+			FIELDS,
+		);
+
+		expect(chartConfigFromDraft(draft, FIELDS).config).toEqual(config);
 	});
 });

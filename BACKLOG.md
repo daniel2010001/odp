@@ -3057,9 +3057,17 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   aplica el offset. **Sigue abierto:** un cambio de tipo que falla deja la tabla a medias o la borra.
   **DECISIÓN DEL AUTOR (2026-10-17), textual:** «por mí podemos usar xloader, ya lo usé en otro proyecto muy similar y
   sí veía los cambios respecto a datapusher». **Para `v1`: xloader con `DateStyle ISO, DMY` y
-  `parse_dates_dayfirst=true`.** El cambio de cargador es de `odp-docker`. El dev quedó restaurado con DataPusher,
-  verificado. DataPusher+ queda descartado por los choques medidos. El aviso de carga fallida (ítem siguiente) sigue
+  `parse_dates_dayfirst=true`.** El cambio de cargador es de `odp-docker`; el dev corre xloader desde el
+  2026-10-17 (`csv-charts` L44). DataPusher+ queda descartado por los choques medidos. El aviso de carga fallida (ítem siguiente) sigue
   siendo necesario con xloader.
+  **El camino de tipos con xloader** (`csv-charts` L35–L36): todo entra como texto y los tipos se fijan después en el
+  diccionario de datos (`type_override`) con una recarga, así que **un solo valor que no se pueda interpretar hace
+  fallar el cambio de tipo**. **El pedido del autor (2026-10-17, L37), textual:** «cuando esté en prod no creo que sea
+  así de conveniente, cómo vamos con la normalización? eg: las fechas ahora mismo es en perfecto ISO, quisas los csv no
+  sean así sino algo como "2000-01-01", "01/01/2000" "2000 1 1"». Los CSV de la demo están controlados; los de un
+  publicador real no. **Falta medir** qué formatos de fecha y número aceptan los dos caminos de xloader y cuáles hacen
+  fallar la recarga; lo tomó `odp-docker` (`csv-charts` L39). Del lado del portal quedan la pantalla para corregir
+  tipos y el aviso antes de aplicar un tipo que no todos los valores cumplen.
 - [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
   ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
   es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
