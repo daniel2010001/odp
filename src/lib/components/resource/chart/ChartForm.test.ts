@@ -793,3 +793,21 @@ describe("ChartForm — el título y la descripción (L37, puntos 8 y 9)", () =>
 		expect(screen.queryByText(/Detalle técnico/)).toBeNull();
 	});
 });
+
+describe("ChartForm — la disposición por defecto es la de hoy (L37, puntos 5, 7 y 10)", () => {
+	it("sin props de disposición: panel a la izquierda, secciones separadas por una línea, sin acordeón ni tarjeta", () => {
+		renderForm(makeApi());
+
+		const datos = screen.getByRole("heading", { name: "Datos" }).closest("section");
+		const presentacion = screen.getByRole("heading", { name: "Presentación" }).closest("section");
+		const raiz = datos?.parentElement?.parentElement;
+
+		expect(raiz?.className).toContain("lg:flex-row");
+		expect(raiz?.className).not.toContain("flex-row-reverse");
+		expect(datos?.className).not.toContain("border");
+		expect(presentacion?.className).toContain("border-t");
+		expect(screen.queryByRole("button", { name: "Datos" })).toBeNull();
+		expect(screen.queryByRole("heading", { name: "Opciones del gráfico" })).toBeNull();
+		expect(datos?.parentElement?.className).not.toContain("rounded-xl");
+	});
+});

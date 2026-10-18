@@ -1,6 +1,13 @@
+<script lang="ts" module>
+export type PanelSide = "left" | "right";
+export type SectionDivider = "line" | "cards" | "steps";
+export type PanelStyle = "column" | "accordion" | "sidebar";
+</script>
+
 <script lang="ts">
-import { Loader2 } from "@lucide/svelte";
-import { untrack } from "svelte";
+import { ChevronDown, Loader2 } from "@lucide/svelte";
+import { Accordion } from "bits-ui";
+import { type Snippet, untrack } from "svelte";
 import type { ChartApi } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
 import { describeFailure } from "$lib/api/failure";
@@ -61,6 +68,9 @@ let {
 	viewId,
 	onsaved,
 	oncancel,
+	panelSide = "left",
+	sectionDivider = "line",
+	panelStyle = "column",
 }: {
 	fields: DatastoreField[];
 	api: Pick<ChartApi, "preview" | "createView" | "updateView">;
@@ -75,6 +85,13 @@ let {
 	onsaved?: () => void;
 	/** «Cancelar»: la página decide a dónde volver; el formulario no guarda nada. */
 	oncancel?: () => void;
+	/** Variantes de disposición (L37, puntos 5, 7 y 10): el valor por defecto es el de hoy. */
+	/** De qué lado del gráfico va el panel de opciones. */
+	panelSide?: PanelSide;
+	/** Cómo se separan «Datos» y «Presentación»: línea, una tarjeta por sección o pasos numerados. */
+	sectionDivider?: SectionDivider;
+	/** El estilo del panel: columna, acordeón o el de la barra de filtros del buscador. */
+	panelStyle?: PanelStyle;
 } = $props();
 
 const TYPE_OPTIONS: { value: ChartType; label: string }[] = [
@@ -107,6 +124,26 @@ const inputClass =
 	"h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
 const uid = $props.id();
+
+const DATA_INTRO =
+	"Qué se agrupa y qué se mide. El gráfico se actualiza solo al terminar de cambiar estas opciones.";
+const PRESENTATION_INTRO =
+	"Cómo se ve lo que ya está calculado. Estos cambios se aplican al instante.";
+
+/** La banda del encabezado de cada sección cuando van numeradas (variante «pasos»). */
+const STEP_BAND = "flex items-center gap-3 border-b border-border bg-muted/60 px-4 py-3";
+
+/** Las secciones abiertas del acordeón: las dos, al arrancar. */
+let openSections = $state<string[]>(["data", "presentation"]);
+
+/** La caja de cada sección según cómo se separen; la línea es la de hoy. */
+function shellClass(index: number): string {
+	if (sectionDivider === "cards") {
+		return "space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm";
+	}
+	if (sectionDivider === "steps") return "overflow-hidden rounded-lg border border-border bg-card";
+	return index === 0 ? "space-y-4" : "space-y-4 border-t border-border pt-5";
+}
 
 let title = $state(untrack(() => initialTitle));
 let description = $state(untrack(() => initialDescription));
@@ -367,202 +404,279 @@ async function save() {
 	{/if}
 {/snippet}
 
+{#snippet dataBody()}
+	<div class="flex flex-col gap-4">
+		<!--
+			Un selector con una sola opción no es una pregunta: no se muestra, y esa opción queda elegida
+			sola (L37, punto 6). Vuelve a aparecer cuando otra elección le da más de una. El error de su
+			campo se sigue mostrando aunque el selector no esté.
+		-->
+		<div class="flex flex-col gap-1.5">
+			{#if xOptions.length > 1}
+				<ChartSelect
+					label="Columna del eje horizontal"
+					options={xOptions}
+					bind:value={() => view.x_field, (value) => setDraft({ x_field: value })}
+				/>
+			{/if}
+			{@render fieldError("x_field")}
+		</div>
+
+		<div class="flex flex-col gap-1.5">
+			{#if bucketOptions.length > 1}
+				<ChartSelect
+					label="Agrupación del eje horizontal"
+					options={bucketOptions}
+					bind:value={() => view.x_bucket, (value) => setDraft({ x_bucket: value as XBucket })}
+				/>
+			{/if}
+			{@render fieldError("x_bucket")}
+		</div>
+
+		{#if view.x_bucket === "number_step"}
+			<label class="flex flex-col gap-1.5">
+				<span class="text-sm font-medium text-foreground">Tamaño del rango</span>
+				<input
+					type="number"
+					min="0"
+					step="any"
+					inputmode="decimal"
+					bind:value={() => view.x_step, (value) => setDraft({ x_step: value === null ? "" : String(value) })}
+					aria-invalid={errors.x_step ? "true" : undefined}
+					aria-describedby={errors.x_step ? `${uid}-x_step-error` : undefined}
+					class={inputClass}
+				/>
+				{@render fieldError("x_step")}
+			</label>
+		{/if}
+
+		<div class="flex flex-col gap-1.5">
+			{#if aggOptions.length > 1}
+				<ChartSelect
+					label="Cálculo del eje vertical"
+					options={aggOptions}
+					bind:value={() => view.y_agg, (value) => setDraft({ y_agg: value as YAggregate })}
+				/>
+			{/if}
+			{@render fieldError("y_agg")}
+		</div>
+
+		{#if view.y_agg !== "count"}
+			<div class="flex flex-col gap-1.5">
+				{#if yColumnOptions.length > 1}
+					<ChartSelect
+						label="Columna del eje vertical"
+						options={yColumnOptions}
+						bind:value={() => view.y_field, (value) => setDraft({ y_field: value })}
+					/>
+				{/if}
+				{@render fieldError("y_field")}
+			</div>
+		{/if}
+	</div>
+
+	<div class="flex flex-col gap-2">
+		{#if showFoldCase}
+			<label class="flex cursor-pointer items-start gap-2 text-sm text-foreground">
+				<input
+					type="checkbox"
+					bind:checked={() => view.x_fold_case, (checked) => setDraft({ x_fold_case: checked })}
+					class="mt-0.5 size-4 cursor-pointer accent-primary"
+				/>
+				<span>
+					Unificar mayúsculas y minúsculas
+					<span class="block text-xs text-muted-foreground">
+						«Cochabamba» y «cochabamba» pasan a ser el mismo grupo.
+					</span>
+				</span>
+			</label>
+		{:else}
+			{@render fieldError("x_fold_case")}
+		{/if}
+
+		<label class="flex cursor-pointer items-start gap-2 text-sm text-foreground">
+			<input
+				type="checkbox"
+				bind:checked={() => view.include_null, (checked) => setDraft({ include_null: checked })}
+				class="mt-0.5 size-4 cursor-pointer accent-primary"
+			/>
+			<span>
+				Mostrar las filas sin dato como un grupo propio
+				<span class="block text-xs text-muted-foreground">
+					Aparecen al final, rotuladas «{NULL_GROUP_LABEL}».
+				</span>
+			</span>
+		</label>
+	</div>
+{/snippet}
+
+{#snippet presentationBody()}
+	<div class="flex flex-col gap-4">
+		<div class="flex flex-col gap-1.5">
+			<ChartSelect
+				label="Tipo de gráfico"
+				options={TYPE_OPTIONS}
+				bind:value={() => view.chart_type, (value) => setDraft({ chart_type: value as ChartType })}
+			/>
+			{@render fieldError("chart_type")}
+		</div>
+
+		<div class="flex flex-col gap-1.5">
+			<div class="flex items-baseline justify-between gap-2">
+				<label for="{uid}-title" class="text-sm font-medium text-foreground">
+					Título de la vista <span class="text-destructive" aria-hidden="true">*</span>
+				</label>
+				{@render counter(title, MAX_VIEW_TITLE_LENGTH, `${uid}-title-count`)}
+			</div>
+			<input
+				id="{uid}-title"
+				type="text"
+				bind:this={titleInput}
+				bind:value={title}
+				onblur={() => (titleTouched = true)}
+				required
+				aria-invalid={titleError ? "true" : undefined}
+				aria-describedby={titleError ? `${uid}-title-count ${uid}-title-error` : `${uid}-title-count`}
+				placeholder="Salario promedio por turno"
+				class={inputClass}
+			/>
+			{#if titleError}
+				<p id="{uid}-title-error" class="text-xs leading-relaxed text-destructive">{titleError}</p>
+			{/if}
+		</div>
+
+		<div class="flex flex-col gap-1.5">
+			<div class="flex items-baseline justify-between gap-2">
+				<label for="{uid}-description" class="text-sm font-medium text-foreground">
+					Descripción de la vista
+					<span class="font-normal text-muted-foreground">(opcional)</span>
+				</label>
+				{@render counter(description, MAX_VIEW_DESCRIPTION_LENGTH, `${uid}-description-count`)}
+			</div>
+			<textarea
+				id="{uid}-description"
+				rows="3"
+				bind:this={descriptionInput}
+				bind:value={description}
+				onblur={() => (descriptionTouched = true)}
+				aria-invalid={descriptionError ? "true" : undefined}
+				aria-describedby={descriptionError
+					? `${uid}-description-count ${uid}-description-error`
+					: `${uid}-description-count`}
+				placeholder="Promedio del salario mensual según el turno del docente."
+				class={cn(inputClass, "h-auto min-h-20 resize-y leading-relaxed")}
+			></textarea>
+			{#if descriptionError}
+				<p id="{uid}-description-error" class="text-xs leading-relaxed text-destructive">
+					{descriptionError}
+				</p>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
+{#snippet sectionShell(
+	key: "data" | "presentation",
+	index: number,
+	title: string,
+	intro: string,
+	body: Snippet,
+)}
+	{@const steps = sectionDivider === "steps"}
+	{#if panelStyle === "accordion"}
+		<Accordion.Item value={key} class={shellClass(index)}>
+			<Accordion.Header level={2} class={steps ? STEP_BAND : ""}>
+				<Accordion.Trigger
+					class="group flex w-full cursor-pointer items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					{#if steps}{@render stepBadge(index)}{/if}
+					<span class="flex-1 font-heading text-lg font-bold text-foreground">{title}</span>
+					<ChevronDown
+						class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 motion-reduce:transition-none"
+						aria-hidden="true"
+					/>
+				</Accordion.Trigger>
+			</Accordion.Header>
+			<Accordion.Content>
+				<div class={steps ? "space-y-4 p-4" : "space-y-4 pt-3"}>
+					<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
+					{@render body()}
+				</div>
+			</Accordion.Content>
+		</Accordion.Item>
+	{:else}
+		<section aria-labelledby="{uid}-{key}" class={shellClass(index)}>
+			{#if steps}
+				<div class={STEP_BAND}>
+					{@render stepBadge(index)}
+					<h2 id="{uid}-{key}" class="font-heading text-lg font-bold text-foreground">{title}</h2>
+				</div>
+				<div class="space-y-4 p-4">
+					<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
+					{@render body()}
+				</div>
+			{:else}
+				<div>
+					<h2 id="{uid}-{key}" class="font-heading text-lg font-bold text-foreground">{title}</h2>
+					<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{intro}</p>
+				</div>
+				{@render body()}
+			{/if}
+		</section>
+	{/if}
+{/snippet}
+
+{#snippet stepBadge(index: number)}
+	<span
+		class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+		aria-hidden="true"
+	>
+		{index + 1}
+	</span>
+{/snippet}
+
+{#snippet sections()}
+	{@render sectionShell("data", 0, "Datos", DATA_INTRO, dataBody)}
+	{@render sectionShell("presentation", 1, "Presentación", PRESENTATION_INTRO, presentationBody)}
+{/snippet}
+
 <!--
 	Dos columnas (L28, decisión 2): a la izquierda las opciones —Datos y Presentación, con las acciones al
 	pie—, a la derecha el gráfico grande, que se queda a la vista mientras se configura. En el teléfono se
 	apilan, sin scroll horizontal.
 -->
-<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-	<div class="w-full min-w-0 space-y-6 lg:w-[340px] lg:shrink-0">
-		<!-- ── Datos ───────────────────────────────────────────────── -->
-		<section aria-labelledby="{uid}-data" class="space-y-4">
-			<div>
-				<h2 id="{uid}-data" class="font-heading text-lg font-bold text-foreground">Datos</h2>
-				<p class="mt-1 text-sm leading-relaxed text-muted-foreground">
-					Qué se agrupa y qué se mide. El gráfico se actualiza solo al terminar de cambiar estas
-					opciones.
-				</p>
-			</div>
+<div
+	class={cn(
+		"flex flex-col gap-6 lg:items-start lg:gap-8",
+		panelSide === "right" ? "lg:flex-row-reverse" : "lg:flex-row",
+	)}
+>
+	<div
+		class={cn(
+			"w-full min-w-0 space-y-6 lg:w-[340px] lg:shrink-0",
+			panelStyle === "sidebar" &&
+				"rounded-xl border border-border bg-card p-6 shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto",
+		)}
+	>
+		{#if panelStyle === "sidebar"}
+			<h2
+				class="border-b border-border pb-3 text-sm font-bold uppercase tracking-[0.14em] text-destructive"
+			>
+				Opciones del gráfico
+			</h2>
+		{/if}
 
-			<div class="flex flex-col gap-4">
-				<!--
-					Un selector con una sola opción no es una pregunta: no se muestra, y esa opción queda elegida
-					sola (L37, punto 6). Vuelve a aparecer cuando otra elección le da más de una. El error de su
-					campo se sigue mostrando aunque el selector no esté.
-				-->
-				<div class="flex flex-col gap-1.5">
-					{#if xOptions.length > 1}
-						<ChartSelect
-							label="Columna del eje horizontal"
-							options={xOptions}
-							bind:value={() => view.x_field, (value) => setDraft({ x_field: value })}
-						/>
-					{/if}
-					{@render fieldError("x_field")}
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					{#if bucketOptions.length > 1}
-						<ChartSelect
-							label="Agrupación del eje horizontal"
-							options={bucketOptions}
-							bind:value={() => view.x_bucket, (value) => setDraft({ x_bucket: value as XBucket })}
-						/>
-					{/if}
-					{@render fieldError("x_bucket")}
-				</div>
-
-				{#if view.x_bucket === "number_step"}
-					<label class="flex flex-col gap-1.5">
-						<span class="text-sm font-medium text-foreground">Tamaño del rango</span>
-						<input
-							type="number"
-							min="0"
-							step="any"
-							inputmode="decimal"
-							bind:value={() => view.x_step, (value) => setDraft({ x_step: value === null ? "" : String(value) })}
-							aria-invalid={errors.x_step ? "true" : undefined}
-							aria-describedby={errors.x_step ? `${uid}-x_step-error` : undefined}
-							class={inputClass}
-						/>
-						{@render fieldError("x_step")}
-					</label>
-				{/if}
-
-				<div class="flex flex-col gap-1.5">
-					{#if aggOptions.length > 1}
-						<ChartSelect
-							label="Cálculo del eje vertical"
-							options={aggOptions}
-							bind:value={() => view.y_agg, (value) => setDraft({ y_agg: value as YAggregate })}
-						/>
-					{/if}
-					{@render fieldError("y_agg")}
-				</div>
-
-				{#if view.y_agg !== "count"}
-					<div class="flex flex-col gap-1.5">
-						{#if yColumnOptions.length > 1}
-							<ChartSelect
-								label="Columna del eje vertical"
-								options={yColumnOptions}
-								bind:value={() => view.y_field, (value) => setDraft({ y_field: value })}
-							/>
-						{/if}
-						{@render fieldError("y_field")}
-					</div>
-				{/if}
-			</div>
-
-			<div class="flex flex-col gap-2">
-				{#if showFoldCase}
-					<label class="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-						<input
-							type="checkbox"
-							bind:checked={() => view.x_fold_case, (checked) => setDraft({ x_fold_case: checked })}
-							class="mt-0.5 size-4 cursor-pointer accent-primary"
-						/>
-						<span>
-							Unificar mayúsculas y minúsculas
-							<span class="block text-xs text-muted-foreground">
-								«Cochabamba» y «cochabamba» pasan a ser el mismo grupo.
-							</span>
-						</span>
-					</label>
-				{:else}
-					{@render fieldError("x_fold_case")}
-				{/if}
-
-				<label class="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-					<input
-						type="checkbox"
-						bind:checked={() => view.include_null, (checked) => setDraft({ include_null: checked })}
-						class="mt-0.5 size-4 cursor-pointer accent-primary"
-					/>
-					<span>
-						Mostrar las filas sin dato como un grupo propio
-						<span class="block text-xs text-muted-foreground">
-							Aparecen al final, rotuladas «{NULL_GROUP_LABEL}».
-						</span>
-					</span>
-				</label>
-			</div>
-		</section>
-
-		<!-- ── Presentación ────────────────────────────────────────── -->
-		<section aria-labelledby="{uid}-presentation" class="space-y-4 border-t border-border pt-5">
-			<div>
-				<h2 id="{uid}-presentation" class="font-heading text-lg font-bold text-foreground">
-					Presentación
-				</h2>
-				<p class="mt-1 text-sm leading-relaxed text-muted-foreground">
-					Cómo se ve lo que ya está calculado. Estos cambios se aplican al instante.
-				</p>
-			</div>
-
-			<div class="flex flex-col gap-4">
-				<div class="flex flex-col gap-1.5">
-					<ChartSelect
-						label="Tipo de gráfico"
-						options={TYPE_OPTIONS}
-						bind:value={() => view.chart_type, (value) => setDraft({ chart_type: value as ChartType })}
-					/>
-					{@render fieldError("chart_type")}
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<div class="flex items-baseline justify-between gap-2">
-						<label for="{uid}-title" class="text-sm font-medium text-foreground">
-							Título de la vista <span class="text-destructive" aria-hidden="true">*</span>
-						</label>
-						{@render counter(title, MAX_VIEW_TITLE_LENGTH, `${uid}-title-count`)}
-					</div>
-					<input
-						id="{uid}-title"
-						type="text"
-						bind:this={titleInput}
-						bind:value={title}
-						onblur={() => (titleTouched = true)}
-						required
-						aria-invalid={titleError ? "true" : undefined}
-						aria-describedby={titleError ? `${uid}-title-count ${uid}-title-error` : `${uid}-title-count`}
-						placeholder="Salario promedio por turno"
-						class={inputClass}
-					/>
-					{#if titleError}
-						<p id="{uid}-title-error" class="text-xs leading-relaxed text-destructive">{titleError}</p>
-					{/if}
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<div class="flex items-baseline justify-between gap-2">
-						<label for="{uid}-description" class="text-sm font-medium text-foreground">
-							Descripción de la vista
-							<span class="font-normal text-muted-foreground">(opcional)</span>
-						</label>
-						{@render counter(description, MAX_VIEW_DESCRIPTION_LENGTH, `${uid}-description-count`)}
-					</div>
-					<textarea
-						id="{uid}-description"
-						rows="3"
-						bind:this={descriptionInput}
-						bind:value={description}
-						onblur={() => (descriptionTouched = true)}
-						aria-invalid={descriptionError ? "true" : undefined}
-						aria-describedby={descriptionError
-							? `${uid}-description-count ${uid}-description-error`
-							: `${uid}-description-count`}
-						placeholder="Promedio del salario mensual según el turno del docente."
-						class={cn(inputClass, "h-auto min-h-20 resize-y leading-relaxed")}
-					></textarea>
-					{#if descriptionError}
-						<p id="{uid}-description-error" class="text-xs leading-relaxed text-destructive">
-							{descriptionError}
-						</p>
-					{/if}
-				</div>
-			</div>
-		</section>
+		{#if panelStyle === "accordion"}
+			<Accordion.Root
+				type="multiple"
+				bind:value={openSections}
+				class={sectionDivider === "line" ? "space-y-5" : "space-y-6"}
+			>
+				{@render sections()}
+			</Accordion.Root>
+		{:else}
+			{@render sections()}
+		{/if}
 
 		<div class="flex flex-wrap gap-2 border-t border-border pt-5">
 			<Button type="button" disabled={!canSave} onclick={save}>
