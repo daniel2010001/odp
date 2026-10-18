@@ -148,6 +148,14 @@ The header MUST render a user menu when authenticated and an "Iniciar Sesión" a
 - WHEN the header renders
 - THEN it shows the user's display name and dashboard/logout actions
 
+#### Scenario: Requests entry only for who can request or decide a publication
+
+- GIVEN an authenticated session
+- WHEN the user menu is open
+- THEN the "Solicitudes" entry (`/dashboard/requests`) is shown only to a sysadmin or to a user with the `update_dataset` capacity in at least one organization (editor or organization admin)
+- AND a member without that capacity does not see it
+- AND while the capacity is unknown, or when looking it up fails, the entry stays hidden
+
 #### Scenario: Anonymous header
 
 - GIVEN no authenticated session
