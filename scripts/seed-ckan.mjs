@@ -112,6 +112,20 @@ function readSetCookies(headers) {
 	return raw ? [raw] : [];
 }
 
+/**
+ * Los encabezados de una llamada con la cookie de sesión. Por HTTPS, el chequeo CSRF de CKAN (Flask-WTF, SSL
+ * estricto) exige además un `Referer` del mismo origen; sin él responde 400 «The referrer header is missing.»
+ * (log de la demo, 2026-10-18). Por HTTP no se exige, y por eso el seed andaba contra el CKAN de dev.
+ */
+export function sessionHeaders(cookie, csrf, ckanUrl = CKAN_URL) {
+	return {
+		"Content-Type": "application/json",
+		"X-CSRFToken": csrf,
+		Cookie: cookie,
+		Referer: `${ckanUrl}/`,
+	};
+}
+
 async function csrfToken(jar) {
 	const res = await fetch(`${CKAN_URL}/user/${ADMIN_NAME}`, {
 		headers: { Cookie: jar.toString() },
@@ -143,11 +157,7 @@ async function login() {
 	const tokenIds = async () => {
 		const res = await fetch(`${CKAN_URL}/api/3/action/api_token_list`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRFToken": csrf,
-				Cookie: jar.toString(),
-			},
+			headers: sessionHeaders(jar.toString(), csrf),
 			body: JSON.stringify({ user_id: ADMIN_NAME }),
 		});
 		const payload = await res.json().catch(() => null);
@@ -161,18 +171,14 @@ async function login() {
 	for (let attempt = 0; attempt < 2; attempt++) {
 		const mint = await fetch(`${CKAN_URL}/api/3/action/api_token_create`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRFToken": csrf,
-				Cookie: jar.toString(),
-			},
+			headers: sessionHeaders(jar.toString(), csrf),
 			body: JSON.stringify({ user: ADMIN_NAME, name: "odp-seed", ...TOKEN_TTL }),
 		});
 		if (mint.status === 400 && attempt === 0) {
 			csrf = await csrfToken(jar);
 			continue;
 		}
-		const payload = await mint.json();
+		const payload = await readJson(mint, "api_token_create");
 		if (!payload.success || !payload.result?.token) {
 			throw new Error(`api_token_create falló: ${JSON.stringify(payload.error ?? {})}`);
 		}
@@ -183,13 +189,28 @@ async function login() {
 	return { jar, csrf, token, jti };
 }
 
+/**
+ * El cuerpo JSON de una respuesta de CKAN. Si no es JSON —una página de error HTML de CKAN o del proxy—
+ * se informa con su status, su URL y el comienzo del cuerpo, en vez del «Unexpected token '<'» del
+ * parseo, que no dice qué pedido falló (demo, 2026-10-18).
+ */
+export async function readJson(res, label) {
+	const text = await res.text();
+	try {
+		return JSON.parse(text);
+	} catch {
+		const start = text.slice(0, 200).replace(/\s+/g, " ").trim();
+		throw new Error(`${label}: HTTP ${res.status} ${res.url} no respondió JSON: ${start}`);
+	}
+}
+
 async function api(token, action, data) {
 	const res = await fetch(`${CKAN_URL}/api/3/action/${action}`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json", Authorization: token },
 		body: JSON.stringify(data),
 	});
-	return res.json();
+	return readJson(res, action);
 }
 
 // ── Publicación: el seed publica por el flujo, como lo haría una persona ──
@@ -839,18 +860,29 @@ async function ensureTyped(token, resourceId, demo, rowCount) {
 
 // `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
 // campo `upload` no existe y el recurso queda url-only (sin archivo que mostrar ni cargar).
-async function uploadResource(token, packageId, resource, bytes) {
+//
+// El `mimetype` va explícito cuando el recurso lo declara: CKAN sólo lo adivina por la extensión, y
+// `.geojson` no la conoce. Quedaba vacío, el archivo se servía como `application/octet-stream` y el
+// iframe de la vista previa quedaba en blanco (demo, 2026-10-18). Con el campo, CKAN lo guarda
+// (`update.py:339`) y lo usa como `Content-Type` al servir el archivo (`views/resource.py:202`).
+export function uploadForm(packageId, resource, bytes) {
 	const form = new FormData();
 	form.set("package_id", packageId);
 	form.set("name", resource.name);
 	form.set("description", resource.description);
 	form.set("format", resource.format);
+	if (resource.mime) form.set("mimetype", resource.mime);
 	// El nombre del archivo viaja en el `filename` del Blob; CKAN lo usa para `url_type: upload`.
 	form.append(
 		"upload",
 		new Blob([bytes], { type: resource.mime ?? "text/csv" }),
 		resource.filename ?? basename(resource.path),
 	);
+	return form;
+}
+
+async function uploadResource(token, packageId, resource, bytes) {
+	const form = uploadForm(packageId, resource, bytes);
 
 	const res = await fetch(`${CKAN_URL}/api/3/action/resource_create`, {
 		method: "POST",
@@ -858,7 +890,7 @@ async function uploadResource(token, packageId, resource, bytes) {
 		headers: { Authorization: token },
 		body: form,
 	});
-	return res.json();
+	return readJson(res, "resource_create");
 }
 
 function leftPrivate(name, missing = "sus tipos") {
@@ -1075,11 +1107,7 @@ async function main() {
 			try {
 				const revoke = await fetch(`${CKAN_URL}/api/3/action/api_token_revoke`, {
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"X-CSRFToken": csrf,
-						Cookie: jar.toString(),
-					},
+					headers: sessionHeaders(jar.toString(), csrf),
 					body: JSON.stringify({ jti }),
 				});
 				const payload = await revoke.json().catch(() => null);
