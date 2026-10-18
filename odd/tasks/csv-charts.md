@@ -120,7 +120,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) — **hecha salvo la prueba en vivo con editor** (L34) | S1, S4, S7 | worker + padre | `11f2801`, `f27483a` |
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
-| P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
+| P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) — **hecha y verificada: PASS** (L46) | S5 | worker + `gentle-ai-verify` | `7648eb1` (puente, commit propio por riesgo), `ee24087` |
 | P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | padre (inline) — **hecha** (L38) | `8b7fb55` |
 | P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
 | T7 | 3 CSV más para la demo: matrícula por facultad y gestión, ejecución presupuestaria mensual y producción de investigación; generadores deterministas con su mapa de tipos, y alta en el seed por el flujo (L42). El paso de tipos de xloader (L36) va aparte, cuando se haga el cambio — **hecha salvo correr el seed** (L43) | S5 | worker | `aeedd42` |
@@ -684,3 +684,19 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     `fecha_registro` `timestamp` y los dos montos `numeric`. Cero tokens `seed*` restantes en la CLI, y 80/80 en
     `node --test scripts/`.
   - **Sin ejercitar en vivo:** la recuperación de un dataset subido pero privado. **Sin RED separado.**
+- **L46 (2026-10-17, P4 entregada y verificada):** página `/embed/charts/[viewId]`, diálogo «Insertar» con el
+  `<iframe>` listo para copiar en todas las disposiciones, y el *framing* bloqueado en todo lo que sirve SvelteKit
+  (`frame-ancestors 'self'` y `X-Frame-Options: SAMEORIGIN`), salvo `/embed/**` (`frame-ancestors *`).
+  - **Dos decisiones del padre sobre atajos del worker:** (1) el layout raíz no dibuja el encabezado ni el pie en
+    `/embed`, en vez de ocultarlos con CSS; (2) la vista se lee por el puente, con `resource_view_show` permitida como
+    lectura por `POST` (commit propio por riesgo), en vez de un cliente directo a CKAN.
+  - **Verificación independiente: PASS, sin bloqueos.** Las cabeceras se midieron en vivo sobre páginas, errores, `__data.json`
+    y los endpoints del puente. Ningún intento de evasión pasó: mayúsculas, `//`, `%2e%2e`, `%2f`, `%5c` y doble
+    codificación. El `%252e%252e` abierto es correcto: SvelteKit lo enruta a la página de inserción. `resource_view_show`
+    sólo funciona por `POST`, y por `GET` da 405. El código del `<iframe>` escapa la URL y el título. Queda **UNPROVEN**
+    la negativa sobre la vista de un dataset privado, porque no había ninguno con vista; esa negativa la aplica CKAN.
+  - **Lo que el verificador dejó como aviso:** se sumaron al test los tres casos de evasión que faltaban (37/37).
+    `static/` sin cabeceras, el hook sin montar en un test y `sessionUser` en el payload de `/embed` van como ítem del
+    `BACKLOG.md`.
+  - **Checks del worker:** suite completa 1519/1519 y `pnpm check` sin errores. **Sin RED** en los tests del layout y
+    del puente: se escribieron después del código.

@@ -3077,14 +3077,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Windows, en un proyecto de comercio electrónico. Sirve para pruebas de volumen del DataStore y de `umss_chart_data`.
   El CSV chico de la demo es otra cosa: T6 de `csv-charts`.
 
-- [ ] **[v0] El portal no bloquea que lo metan en un `<iframe>` ajeno** (medido el 2026-10-17, en
-  `odd/tasks/csv-charts.md` L28). No envía `frame-ancestors` ni `X-Frame-Options`: no aparecen en `src/` ni en la
-  configuración del proxy de `odp-docker`. El riesgo práctico es bajo, porque la cookie de sesión es `SameSite=Lax` y
-  no viaja a un `<iframe>` de otro sitio, pero es una protección estándar que falta. **Se cierra con P4 de
-  `csv-charts`:** se bloquea el *framing* en todo lo que sirve SvelteKit y se permite sólo en `/embed`, con
-  verificación independiente. **No cubre `/api/`:** esas respuestas las sirve CKAN a través de `frontend-proxy`, no
-  SvelteKit. Es JSON y no se dibuja en un `<iframe>`, así que no importa. El proxy no agrega ni borra cabeceras de
-  *framing*; lo midió la sesión de `odp-docker` el 2026-10-17 (`csv-charts` L30).
+- [ ] **[v1] Dos huecos menores que dejó P4 de `csv-charts`, el bloqueo del *framing*** (verificación independiente,
+  2026-10-17, `odd/tasks/csv-charts.md` L46). El bloqueo en sí está hecho y verificado. **(1) Los archivos de `static/`
+  no llevan las cabeceras:** en dev el hook no los ve, y en producción `adapter-node` (sirv) los sirve antes del hook.
+  No son páginas, así que el riesgo es nulo en la práctica, pero no se midió un build de producción. **(2) El hook no se
+  monta en un test:** `hooks.server.test.ts` lee su texto fuente, porque Vitest no resuelve `$app/environment` ni
+  `$env/dynamic/private`. Un alias en `vitest.config.ts`, o una prueba contra el portal levantado (curl a `/`, `/nope` y
+  `/embed/charts/x`), cerraría el hueco. Aparte, `+layout.server.ts` sigue mandando `sessionUser` a `/embed`. Nada lo
+  dibuja y un sitio de otro origen no lo puede leer, pero sobra.
 
 - [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
   dedicada sobre la superficie del portal y su frontera con CKAN — **no** un ítem por síntoma. Es un

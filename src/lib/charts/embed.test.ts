@@ -46,6 +46,8 @@ describe("isEmbedPath", () => {
 		"/embed/charts/x/",
 		"/embed/charts/x/__data.json",
 		"/embed/anything",
+		// Doble codificación: SvelteKit la enruta a la página como `viewId="%2e%2e"`, no como `..` (verificador de P4).
+		"/embed/charts/%252e%252e",
 	])("%s es incrustable", (path) => {
 		expect(isEmbedPath(path)).toBe(true);
 	});
@@ -72,6 +74,8 @@ describe("isEmbedPath", () => {
 		"/%65mbed/charts/x",
 		"/embed/..%2Fdataset/x",
 		"/embed/charts%5Cx",
+		"/embed/charts/..%5cx",
+		"/embed/charts/%2e%2e%2fx",
 		"/embed/%00",
 		"/embed/%zz",
 		"",
