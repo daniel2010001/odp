@@ -700,3 +700,39 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
     `BACKLOG.md`.
   - **Checks del worker:** suite completa 1519/1519 y `pnpm check` sin errores. **Sin RED** en los tests del layout y
     del puente: se escribieron después del código.
+- **L47 (2026-10-17, revisión de los playgrounds por el autor, textual):** «dev/chart-editor: veo que en la parte del
+  gráfico estamos usando sticky, pero esto está mal configurado el top, se oculta bajo el header de la plataforma. 2:
+  creo que ya se lo que no termina de gustarme y no era eso de que esté izquierda o derecha, sino que era que ambos
+  estaban en una misma card, o sea que el container tiene ambos dontenidos, como usamos lode tener cards separadas en
+  todo lado no me había dado cuenta de esto y me slto el tok, esto lo noté gracias al estilo del panel 3 (buscador), me
+  gusta esto, pero no termina de gustarle el hecho de tener el scroll dentro, en ese sentido el actual es mejor, se puede
+  algo así como un merge entre ambos? los tres para ser más específico, pero los botones por fuera, como en el
+  dataset-create, como lo que muestra la 2 de "una tarjeta por section", descartado completamente eso de los pasos, no
+  termina de gustarme esos números, quisas si cambiamos el diseño/estilo, podemos probar. resource-views: me gusta más
+  el de pestañas, pero no es exactamente como lo recuerdo, pero me gusta, si puedes buscar cómo era antes el diseño para
+  compararlos te lo agradecería, me gusta mucho la opción de final de petañas, respecto a ponerlo en el encabesado, creo
+  que podemos usarlo en otras acciones, no está del todo descartado, también me gusta es lugar, pero si son excluyentes
+  entre sí pregiero lo de las pestañas, PERO no termina de gustarme cómo queda con la lína de saparación, esta por
+  tocarse, no me gusta del todo, el único punto malo, pero vaya que es malisimo, solo por eso lo cambiaría por el del
+  encabesado, TODO: los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar esto. NOTA:
+  como ya mencioné hace tiempo, en otras sesiones, los TODOs que indico no son necesarios resolverlos en el acto, sino
+  recordatorios para próximas sesiones, lo comento por si acaso. respecto al merge 89, hay conflictos! qué paso? puedes
+  revisarlo?»
+  - **El conflicto del #89 era de anclaje:** el #88 (`4f7d25a`, en `main`) y `9ab3ace` agregaron párrafos distintos en el
+    mismo punto del ítem del cargador del `BACKLOG.md`. Se resolvió con una sola copia, en el merge `d459190` subido a
+    `feat/chart-pages`: las mediciones 4 y 5 y la decisión de `main`, más el pedido del autor sin lo que ya decían.
+    También se corrigió «el dev quedó restaurado con DataPusher», que dejó de ser cierto con L44. El PR quedó
+    `MERGEABLE`.
+  - **El diseño anterior de las pestañas** (`ce8670a^`, `+page.svelte:528-550`): un control segmentado de botones
+    pequeños con ícono (`Tabla`, `Gráfico`, `Mapa`), a la derecha de la banda «Vista previa», **dentro de la misma
+    tarjeta** de la vista previa. El activo iba con `bg-primary`.
+  - **El TODO de copiar el enlace del recurso:** la página del recurso ya tiene un botón de ícono «Copiar enlace del
+    recurso», al lado del título (`resource/[resourceId]/+page.svelte:503-517`). Hay que preguntarle al autor a qué se
+    refiere antes de hacerlo (regla 9). Quedó en el `BACKLOG.md`.
+  - **P6c, la iteración**, tiene dos partes:
+    - **El editor:** las opciones y el gráfico van en tarjetas separadas, sin un contenedor común. Las secciones van
+      con el estilo de la barra del buscador, sin scroll interno. Los botones van fuera de las tarjetas, como en el
+      formulario del dataset. El *sticky* del gráfico tiene que quedar debajo del encabezado. Los pasos numerados se
+      descartan.
+    - **Las vistas del recurso:** pestañas, con el diseño anterior al lado para comparar. «Crear gráfico» va al final de
+      las pestañas, sin tocar la línea de separación.

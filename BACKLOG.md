@@ -2937,6 +2937,12 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **Copiar el enlace de un recurso, como en los datasets** (TODO del autor, 2026-10-17, `csv-charts` L47, textual:
+  «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar esto»). **Antes de empezar,
+  preguntar qué se quiere** (regla 9): la página del recurso **ya tiene** un botón de ícono «Copiar enlace del recurso»
+  al lado del título (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:503-517`). Puede que el autor se
+  refiera a otra cosa: la lista de recursos en la página del dataset, o un botón con texto como el del dataset.
+
 - [ ] **Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
   previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
   (`PRD.md:259`, «primeras 20 filas»). El autor la revisó con los 2.500 de la planilla y eligió **paginación**: anterior
