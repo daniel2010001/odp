@@ -2,13 +2,25 @@ import { describe, expect, it } from "vitest";
 import type { CkanResource } from "$lib/types/ckan";
 import { formatChips, normalizeFormats } from "./formats";
 
+type Chipable = Pick<CkanResource, "format" | "url_type">;
+
 /**
- * Fixture mínimo: `formatChips` sólo lee `format`, así que el resto del recurso no participa de la
- * decisión. Se construye con el tipo real (`Pick<CkanResource, "format">`) para que un cambio de
- * forma en CKAN rompa acá y no en silencio.
+ * Fixture mínimo: `formatChips` sólo lee `format` y `url_type`, así que el resto del recurso no
+ * participa de la decisión. Se construye con el tipo real para que un cambio de forma en CKAN rompa
+ * acá y no en silencio. Son archivos subidos (`url_type: "upload"`): sólo un archivo conserva su
+ * formato en el chip.
  */
-function withFormats(...formats: (string | undefined)[]): Pick<CkanResource, "format">[] {
-	return formats.map((format) => ({ format }));
+function withFormats(...formats: (string | undefined)[]): Chipable[] {
+	return formats.map((format) => ({ format, url_type: "upload" }));
+}
+
+/** Un enlace: la ausencia de `url_type` es la forma en que CKAN guarda una URL externa. */
+function link(format?: string): Chipable {
+	return { format };
+}
+
+function upload(format?: string): Chipable {
+	return { format, url_type: "upload" };
 }
 
 describe("normalizeFormats", () => {
@@ -95,5 +107,49 @@ describe("formatChips", () => {
 
 	it("un recurso sin formato no aporta chip ni cuenta como oculto", () => {
 		expect(formatChips(withFormats(undefined, "CSV"))).toEqual({ chips: ["CSV"], more: 0 });
+	});
+});
+
+describe("formatChips — un enlace aporta «Enlace», no su formato (2026-09-22)", () => {
+	it("un enlace CSV y un PDF subido dan «Enlace» y «PDF»", () => {
+		expect(formatChips([link("CSV"), upload("PDF")])).toEqual({
+			chips: ["Enlace", "PDF"],
+			more: 0,
+		});
+	});
+
+	it("si todos los recursos son enlaces, el único chip es «Enlace»", () => {
+		expect(formatChips([link("CSV"), link("JSON"), link("pdf")])).toEqual({
+			chips: ["Enlace"],
+			more: 0,
+		});
+	});
+
+	it("un enlace sin formato también es «Enlace»: lo decide el tipo, no el formato", () => {
+		expect(formatChips([link(), link(" ")])).toEqual({ chips: ["Enlace"], more: 0 });
+	});
+
+	it("la posición del chip es la de la primera aparición del recurso", () => {
+		expect(formatChips([upload("PDF"), link("CSV"), upload("CSV")])).toEqual({
+			chips: ["PDF", "Enlace", "CSV"],
+			more: 0,
+		});
+	});
+
+	it("un `url_type` vacío (subida que se limpió) es un enlace, como en `resourceKind`", () => {
+		expect(formatChips([{ format: "CSV", url_type: "" }])).toEqual({
+			chips: ["Enlace"],
+			more: 0,
+		});
+	});
+
+	it("«Enlace» cuenta como un chip más para el tope y para `more`", () => {
+		expect(
+			formatChips([link("CSV"), upload("PDF"), upload("JSON"), upload("XLSX"), upload("XML")]),
+		).toEqual({ chips: ["Enlace", "PDF", "JSON", "XLSX"], more: 1 });
+	});
+
+	it("normalizeFormats lista «Enlace» una sola vez, para el tooltip de lo oculto", () => {
+		expect(normalizeFormats([link("CSV"), upload("PDF"), link("JSON")])).toEqual(["Enlace", "PDF"]);
 	});
 });

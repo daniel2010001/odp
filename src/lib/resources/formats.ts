@@ -1,4 +1,10 @@
 import type { CkanResource } from "$lib/types/ckan";
+import { resourceKind } from "./kind";
+
+/** Chip que aporta un enlace: el mismo rótulo que la card y la página del recurso. */
+export const LINK_CHIP = "Enlace";
+
+type ChipSource = Pick<CkanResource, "format" | "url_type">;
 
 /** Resumen de formatos para los chips de una card de dataset. */
 export interface FormatChips {
@@ -12,7 +18,13 @@ export interface FormatChips {
 export const MAX_FORMAT_CHIPS = 4;
 
 /**
- * Formatos distintos de un dataset, normalizados: recorte, mayúsculas y dedupe en orden de aparición.
+ * Chips distintos de un dataset: recorte, mayúsculas y dedupe en orden de aparición.
+ *
+ * **Un enlace no aporta su formato, aporta «Enlace»** (decisión del autor, 2026-09-22, la misma que
+ * aplican la card y la página del recurso vía `resourceKind`): el `format` de una URL externa es lo
+ * que alguien declaró, no algo que el portal haya visto, y mostrarlo en la búsqueda para negarlo al
+ * entrar a la ficha era un dato falso (2026-10-18). Sólo un archivo subido conserva su formato. Un
+ * enlace sin formato también es «Enlace»: lo decide el tipo, y todos los enlaces son un solo chip.
  *
  * Es la **única** implementación del pipeline. `formatChips` la usa para recortar, y la card la usa
  * para saber qué formatos quedaron fuera del recorte: una sola verdad sobre cuándo dos formatos son
@@ -21,12 +33,14 @@ export const MAX_FORMAT_CHIPS = 4;
  * **Descarta los valores en blanco** en vez de listar un formato vacío (`" "` es *truthy*). El orden
  * es el de primera aparición: no se inventa un orden nuevo, se conserva el de los recursos.
  */
-export function normalizeFormats(resources: Pick<CkanResource, "format">[] | undefined): string[] {
+export function normalizeFormats(resources: ChipSource[] | undefined): string[] {
 	return [
 		...new Set(
 			(resources ?? [])
-				.map((resource) => resource.format?.trim().toUpperCase())
-				.filter((format): format is string => Boolean(format)),
+				.map((resource) =>
+					resourceKind(resource) === "link" ? LINK_CHIP : resource.format?.trim().toUpperCase(),
+				)
+				.filter((chip): chip is string => Boolean(chip)),
 		),
 	];
 }
@@ -46,7 +60,7 @@ export function normalizeFormats(resources: Pick<CkanResource, "format">[] | und
  *
  * El orden es el de primera aparición: no se inventa un orden nuevo, se conserva el de los recursos.
  */
-export function formatChips(resources: Pick<CkanResource, "format">[] | undefined): FormatChips {
+export function formatChips(resources: ChipSource[] | undefined): FormatChips {
 	const unique = normalizeFormats(resources);
 	const chips = unique.slice(0, MAX_FORMAT_CHIPS);
 
