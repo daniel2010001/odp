@@ -499,3 +499,13 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   completa (1342) y el build. **No se verificó a ojo:** el aspecto del estilo nuevo (sólo se midió el DOM y los
   estilos computados con Chromium), el modo oscuro, los tooltips de líneas y dona, y que las animaciones se apaguen
   con `prefers-reduced-motion`. Eso queda para la revisión del autor.
+- **L32 (2026-10-17, colores de los gráficos):** el autor, textual: «me gusta más el nuevo estilo, pero como que algo
+  sigue sin gustarme, quisas sean los colores, pero veo que estamos usando los tokens del proyecto, asique no quisiera
+  modificarlo tanto, aun así quisiera intentarlo.» **Medido:** los `--chart-1..5` actuales, con croma 0.07–0.08,
+  **fallan WCAG 1.4.11 (3:1) en modo claro en 4 de 5 colores**. Contra `--background` dan 1.70–3.37, y contra
+  `--card`, que es donde se dibuja el gráfico, 1.81–3.59 (calculado por el padre). Además, `--chart-2` es ámbar
+  (tono 60), no el coral de la marca. Se sumaron dos paletas candidatas, limitadas al playground (`src/lib/charts/palettes.ts`), con un
+  interruptor «Paleta» y un medidor de contraste: **«Mismos tonos, más vivos»** y **«De la marca»** (azul, coral,
+  turquesa, ámbar y violeta). Las dos pasan 3:1 en claro y en oscuro, contra `--background` y contra `--card`.
+  `src/app.css` no cambió: la paleta que elija el autor pasa a los tokens después. Verificado: 149/149, `pnpm check`
+  sin errores, Biome limpio y `200` con `?palette=brand` y `?palette=vivid`. No se miró a ojo.
