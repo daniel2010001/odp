@@ -118,7 +118,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | O3 | Verificación independiente de O1 y O2 (toca seguridad) — **PASS** (L23) | S6 | sesión `odp-docker` | `odp-docker` `b083f85` (endurecimiento) |
 | P1 | El puente: sumar las acciones del contrato — **hecha**, junto con el contrato en tipos y el cliente (L12) | S6 | worker | `0150e49`, `9486aeb` (puente, commit propio por riesgo) |
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
-| P3 | El visitante: la página del recurso muestra las vistas `umss_chart`; borrar el playground | S1, S7 | por definir | — |
+| P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) | S1, S4, S7 | worker, rama `feat/chart-pages` apilada sobre `feat/chart-palette` | — |
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
 | P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
