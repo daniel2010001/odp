@@ -24,7 +24,7 @@ describe("formatCompactNumber", () => {
 
 	it("no abrevia por debajo de mil: dos decimales, como el resto del gráfico", () => {
 		const compact = formatCompactNumber;
-		expect(compact(3.14159)).toBe("3,14");
+		expect(compact(Math.PI)).toBe("3,14");
 		expect(compact(0.456)).toBe("0,46");
 		expect(compact(999.4)).toBe("999,4");
 	});
