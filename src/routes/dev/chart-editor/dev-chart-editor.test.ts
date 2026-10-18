@@ -1,7 +1,7 @@
 // Tests del playground `/dev/chart-editor`: duplica la página de crear un gráfico con el `ChartForm` real y
 // deja comparar la disposición. Se protege que (1) renderiza, (2) cada interruptor cambia la disposición de
-// forma observable, (3) las variantes viajan en la URL y se leen de ella, y (4) el valor por defecto es el
-// de hoy.
+// forma observable, (3) las variantes viajan en la URL y se leen de ella, y (4) el valor por defecto es la
+// disposición de tarjetas separadas (L47); «columna» sigue disponible para comparar con la de hoy.
 
 import { fireEvent, render, screen, within } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -58,14 +58,61 @@ describe("playground del editor de gráficos", () => {
 		}
 	});
 
-	it("por defecto es la disposición de hoy: panel a la izquierda, línea, columna", () => {
+	it("por defecto son tarjetas separadas: cada sección y el gráfico en su tarjeta, sin contenedor común", () => {
 		abrir();
+
+		const [datos, presentacion] = Array.from(secciones());
+		const grafico = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+		expect(variantes().getByRole("button", { name: "Tarjetas separadas (nuevo)" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		for (const tarjeta of [datos, presentacion, grafico]) {
+			expect(tarjeta?.className).toContain("rounded-xl");
+			expect(tarjeta?.className).toContain("bg-card");
+		}
+		// Los encabezados son los de la barra del buscador, y no hay scroll interno.
+		const encabezado = screen.getByRole("heading", { name: "Datos" });
+		expect(encabezado.className).toContain("uppercase");
+		expect(encabezado.className).toContain("text-destructive");
+		// Ningún ancestro común de las tarjetas es una tarjeta: el contenedor de ambos no tiene caja.
+		const comun = datos.parentElement?.parentElement;
+		expect(comun?.contains(grafico)).toBe(true);
+		expect(comun?.className).not.toMatch(/\b(border|bg-card|rounded-\w+)\b/);
+		expect(screen.getByTestId("editor-card").className).not.toContain("border");
+		expect(screen.getByTestId("editor-card").querySelector("[class*='overflow-y']")).toBeNull();
+		expect(screen.getByTestId("editor-card").querySelector("[class*='max-h-']")).toBeNull();
+		// Las acciones quedan fuera de las tarjetas.
+		const acciones = screen.getByTestId("chart-actions");
+		for (const tarjeta of [datos, presentacion, grafico]) {
+			expect(tarjeta?.contains(acciones)).toBe(false);
+		}
+		expect(within(acciones).getByRole("button", { name: "Guardar" })).toBeInTheDocument();
+		expect(within(acciones).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+		// La separación entre secciones no aplica: ya son tarjetas.
+		expect(variantes().queryByText("Separación entre Datos y Presentación")).toBeNull();
+	});
+
+	it("el gráfico se pega debajo del encabezado del portal, con su token y sin números sueltos", () => {
+		abrir();
+
+		const grafico = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+		expect(grafico?.className).toContain("lg:sticky");
+		expect(grafico?.className).toContain("lg:top-[calc(var(--header-h)+1rem)]");
+		expect(grafico?.className).not.toContain("lg:top-6");
+	});
+
+	it("la disposición de columna sigue disponible y es la de hoy", async () => {
+		abrir();
+		await pulsar("Columna (hoy)");
 
 		expect(contenedor()?.parentElement?.className).toContain("lg:flex-row");
 		expect(contenedor()?.parentElement?.className).not.toContain("flex-row-reverse");
 		expect(secciones()[1].className).toContain("border-t");
 		expect(screen.queryByRole("heading", { name: "Opciones del gráfico" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Datos" })).toBeNull();
+		const grafico = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+		expect(grafico?.className).toContain("lg:top-[calc(var(--header-h)+1rem)]");
 	});
 
 	it("el lado del panel pasa a la derecha", async () => {
@@ -77,21 +124,13 @@ describe("playground del editor de gráficos", () => {
 
 	it("la separación en tarjetas pone cada sección en su caja, sin línea", async () => {
 		abrir();
+		await pulsar("Columna (hoy)");
 		await pulsar("Una tarjeta por sección");
 
 		for (const seccion of secciones()) {
 			expect(seccion.className).toContain("rounded-lg");
 			expect(seccion.className).not.toContain("border-t");
 		}
-	});
-
-	it("la separación en pasos numera las secciones con una banda de encabezado", async () => {
-		abrir();
-		await pulsar("Pasos numerados");
-
-		const [datos, presentacion] = Array.from(secciones());
-		expect(datos).toHaveTextContent(/^1\s*Datos/);
-		expect(presentacion).toHaveTextContent(/^2\s*Presentación/);
 	});
 
 	it("el acordeón pliega y despliega cada sección", async () => {
@@ -116,6 +155,8 @@ describe("playground del editor de gráficos", () => {
 		expect(encabezado.className).toContain("uppercase");
 		expect(encabezado.className).toContain("text-destructive");
 		expect(encabezado.parentElement?.className).toMatch(/rounded-xl.*sticky/);
+		expect(encabezado.parentElement?.className).toContain("lg:top-[calc(var(--header-h)+1rem)]");
+		expect(encabezado.parentElement?.className).toContain("var(--header-h)-2rem");
 	});
 
 	it("cambiar el caso cambia las columnas que el formulario ofrece", async () => {
@@ -130,12 +171,12 @@ describe("playground del editor de gráficos", () => {
 	it("las variantes viajan en la URL", async () => {
 		abrir();
 		await pulsar("Derecha");
-		await pulsar("Pasos numerados");
 		await pulsar("Acordeón");
+		await pulsar("Una tarjeta por sección");
 
 		const params = ultimaUrl().searchParams;
 		expect(params.get("lado")).toBe("right");
-		expect(params.get("separacion")).toBe("steps");
+		expect(params.get("separacion")).toBe("cards");
 		expect(params.get("panel")).toBe("accordion");
 		expect(params.get("caso")).toBe("planilla");
 	});
@@ -152,18 +193,25 @@ describe("playground del editor de gráficos", () => {
 		);
 	});
 
-	it("un valor inválido en la URL deja la disposición de hoy", () => {
+	it("el valor retirado «steps» de una URL vieja cae al valor por defecto", () => {
+		abrir({ separacion: "steps", panel: "column" });
+
+		expect(variantes().getByRole("button", { name: "Línea (hoy)" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		expect(screen.queryByRole("button", { name: "Pasos numerados" })).toBeNull();
+		expect(secciones()[0]).not.toHaveTextContent(/^1\s*Datos/);
+	});
+
+	it("un valor inválido en la URL deja la disposición por defecto", () => {
 		abrir({ lado: "arriba", separacion: "x", panel: "y" });
 
 		expect(variantes().getByRole("button", { name: "Izquierda (hoy)" })).toHaveAttribute(
 			"aria-pressed",
 			"true",
 		);
-		expect(variantes().getByRole("button", { name: "Línea (hoy)" })).toHaveAttribute(
-			"aria-pressed",
-			"true",
-		);
-		expect(variantes().getByRole("button", { name: "Columna (hoy)" })).toHaveAttribute(
+		expect(variantes().getByRole("button", { name: "Tarjetas separadas (nuevo)" })).toHaveAttribute(
 			"aria-pressed",
 			"true",
 		);

@@ -810,4 +810,14 @@ describe("ChartForm — la disposición por defecto es la de hoy (L37, puntos 5,
 		expect(screen.queryByRole("heading", { name: "Opciones del gráfico" })).toBeNull();
 		expect(datos?.parentElement?.className).not.toContain("rounded-xl");
 	});
+
+	it("el gráfico se pega debajo del encabezado del portal con `--header-h`, no con un número suelto", () => {
+		renderForm(makeApi());
+
+		const grafico = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+
+		expect(grafico?.className).toContain("lg:sticky");
+		expect(grafico?.className).toContain("lg:top-[calc(var(--header-h)+1rem)]");
+		expect(grafico?.className).not.toContain("lg:top-6");
+	});
 });

@@ -36,9 +36,9 @@ const SIDES: Option<PanelSide>[] = [
 const DIVIDERS: Option<SectionDivider>[] = [
 	{ id: "line", label: "Línea (hoy)" },
 	{ id: "cards", label: "Una tarjeta por sección" },
-	{ id: "steps", label: "Pasos numerados" },
 ];
 const STYLES: Option<PanelStyle>[] = [
+	{ id: "split", label: "Tarjetas separadas (nuevo)" },
 	{ id: "column", label: "Columna (hoy)" },
 	{ id: "accordion", label: "Acordeón" },
 	{ id: "sidebar", label: "Como los filtros del buscador" },
@@ -69,7 +69,7 @@ let style = $state<PanelStyle>(
 	paramOr(
 		"panel",
 		STYLES.map((o) => o.id),
-		"column",
+		"split",
 	),
 );
 
@@ -173,17 +173,20 @@ function pickStyle(id: PanelStyle) {
 			</p>
 		</header>
 
-		<Card class="p-5 lg:overflow-visible" data-testid="editor-card">
-			<!-- Las variantes de disposición viven dentro de la tarjeta que cambian. -->
-			<div
-				class="mb-5 flex flex-wrap gap-x-8 gap-y-4 border-b border-dashed border-border pb-5"
-				data-testid="layout-variants"
-			>
-				{@render toggle("Lado del panel", SIDES, side, pickSide)}
+		<!-- Las variantes de disposición van pegadas al editor que cambian. La separación sólo aplica a los
+		     estilos en que las secciones no son ya tarjetas propias. -->
+		<div
+			class="flex flex-wrap gap-x-8 gap-y-4 border-b border-dashed border-border pb-5"
+			data-testid="layout-variants"
+		>
+			{@render toggle("Estilo del panel", STYLES, style, pickStyle)}
+			{@render toggle("Lado del panel", SIDES, side, pickSide)}
+			{#if style !== "split"}
 				{@render toggle("Separación entre Datos y Presentación", DIVIDERS, divider, pickDivider)}
-				{@render toggle("Estilo del panel", STYLES, style, pickStyle)}
-			</div>
+			{/if}
+		</div>
 
+		{#snippet editor()}
 			{#key presetId}
 				<ChartForm
 					fields={preset.fields}
@@ -197,6 +200,15 @@ function pickStyle(id: PanelStyle) {
 					panelStyle={style}
 				/>
 			{/key}
-		</Card>
+		{/snippet}
+
+		<!-- Con `split` no hay tarjeta común: el formulario pone sus propias tarjetas sobre la página. -->
+		{#if style === "split"}
+			<div data-testid="editor-card">{@render editor()}</div>
+		{:else}
+			<Card class="p-5 lg:overflow-visible" data-testid="editor-card">
+				{@render editor()}
+			</Card>
+		{/if}
 	</section>
 </div>

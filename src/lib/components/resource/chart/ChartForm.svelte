@@ -1,7 +1,7 @@
 <script lang="ts" module>
 export type PanelSide = "left" | "right";
-export type SectionDivider = "line" | "cards" | "steps";
-export type PanelStyle = "column" | "accordion" | "sidebar";
+export type SectionDivider = "line" | "cards";
+export type PanelStyle = "column" | "accordion" | "sidebar" | "split";
 </script>
 
 <script lang="ts">
@@ -88,9 +88,13 @@ let {
 	/** Variantes de disposición (L37, puntos 5, 7 y 10): el valor por defecto es el de hoy. */
 	/** De qué lado del gráfico va el panel de opciones. */
 	panelSide?: PanelSide;
-	/** Cómo se separan «Datos» y «Presentación»: línea, una tarjeta por sección o pasos numerados. */
+	/** Cómo se separan «Datos» y «Presentación»: línea o una tarjeta por sección. */
 	sectionDivider?: SectionDivider;
-	/** El estilo del panel: columna, acordeón o el de la barra de filtros del buscador. */
+	/**
+	 * El estilo del panel: columna, acordeón, el de la barra de filtros del buscador, o `split` (L47): una
+	 * tarjeta por sección y otra para el gráfico, sin contenedor común, con las acciones fuera de las
+	 * tarjetas y sin scroll interno.
+	 */
 	panelStyle?: PanelStyle;
 } = $props();
 
@@ -130,18 +134,23 @@ const DATA_INTRO =
 const PRESENTATION_INTRO =
 	"Cómo se ve lo que ya está calculado. Estos cambios se aplican al instante.";
 
-/** La banda del encabezado de cada sección cuando van numeradas (variante «pasos»). */
-const STEP_BAND = "flex items-center gap-3 border-b border-border bg-muted/60 px-4 py-3";
+/**
+ * Dónde se pegan el gráfico y el panel fijo: debajo del encabezado del portal, cuyo alto sale del token
+ * `--header-h` (`src/app.css`), más el aire que usan el resto de los pegados.
+ */
+const STICKY_TOP = "lg:top-[calc(var(--header-h)+1rem)]";
 
 /** Las secciones abiertas del acordeón: las dos, al arrancar. */
 let openSections = $state<string[]>(["data", "presentation"]);
 
 /** La caja de cada sección según cómo se separen; la línea es la de hoy. */
 function shellClass(index: number): string {
+	if (panelStyle === "split") {
+		return "space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm";
+	}
 	if (sectionDivider === "cards") {
 		return "space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm";
 	}
-	if (sectionDivider === "steps") return "overflow-hidden rounded-lg border border-border bg-card";
 	return index === 0 ? "space-y-4" : "space-y-4 border-t border-border pt-5";
 }
 
@@ -582,14 +591,12 @@ async function save() {
 	intro: string,
 	body: Snippet,
 )}
-	{@const steps = sectionDivider === "steps"}
 	{#if panelStyle === "accordion"}
 		<Accordion.Item value={key} class={shellClass(index)}>
-			<Accordion.Header level={2} class={steps ? STEP_BAND : ""}>
+			<Accordion.Header level={2}>
 				<Accordion.Trigger
 					class="group flex w-full cursor-pointer items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				>
-					{#if steps}{@render stepBadge(index)}{/if}
 					<span class="flex-1 font-heading text-lg font-bold text-foreground">{title}</span>
 					<ChevronDown
 						class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 motion-reduce:transition-none"
@@ -598,7 +605,7 @@ async function save() {
 				</Accordion.Trigger>
 			</Accordion.Header>
 			<Accordion.Content>
-				<div class={steps ? "space-y-4 p-4" : "space-y-4 pt-3"}>
+				<div class="space-y-4 pt-3">
 					<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
 					{@render body()}
 				</div>
@@ -606,33 +613,26 @@ async function save() {
 		</Accordion.Item>
 	{:else}
 		<section aria-labelledby="{uid}-{key}" class={shellClass(index)}>
-			{#if steps}
-				<div class={STEP_BAND}>
-					{@render stepBadge(index)}
-					<h2 id="{uid}-{key}" class="font-heading text-lg font-bold text-foreground">{title}</h2>
-				</div>
-				<div class="space-y-4 p-4">
+			{#if panelStyle === "split"}
+				<!-- El encabezado de la tarjeta de filtros del buscador: mayúsculas coral y una línea debajo. -->
+				<div class="space-y-2 border-b border-border pb-3">
+					<h2
+						id="{uid}-{key}"
+						class="text-sm font-bold uppercase tracking-[0.14em] text-destructive"
+					>
+						{title}
+					</h2>
 					<p class="text-sm leading-relaxed text-muted-foreground">{intro}</p>
-					{@render body()}
 				</div>
 			{:else}
 				<div>
 					<h2 id="{uid}-{key}" class="font-heading text-lg font-bold text-foreground">{title}</h2>
 					<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{intro}</p>
 				</div>
-				{@render body()}
 			{/if}
+			{@render body()}
 		</section>
 	{/if}
-{/snippet}
-
-{#snippet stepBadge(index: number)}
-	<span
-		class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
-		aria-hidden="true"
-	>
-		{index + 1}
-	</span>
 {/snippet}
 
 {#snippet sections()}
@@ -655,7 +655,8 @@ async function save() {
 		class={cn(
 			"w-full min-w-0 space-y-6 lg:w-[340px] lg:shrink-0",
 			panelStyle === "sidebar" &&
-				"rounded-xl border border-border bg-card p-6 shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto",
+				"rounded-xl border border-border bg-card p-6 shadow-sm lg:sticky lg:max-h-[calc(100vh-var(--header-h)-2rem)] lg:overflow-y-auto",
+			panelStyle === "sidebar" && STICKY_TOP,
 		)}
 	>
 		{#if panelStyle === "sidebar"}
@@ -678,11 +679,27 @@ async function save() {
 			{@render sections()}
 		{/if}
 
-		<div class="flex flex-wrap gap-2 border-t border-border pt-5">
-			<Button type="button" disabled={!canSave} onclick={save}>
+		<!-- En `split` las acciones quedan fuera de las tarjetas, apiladas como las del formulario del dataset. -->
+		<div
+			class={panelStyle === "split"
+				? "grid gap-2"
+				: "flex flex-wrap gap-2 border-t border-border pt-5"}
+			data-testid="chart-actions"
+		>
+			<Button
+				type="button"
+				class={panelStyle === "split" ? "w-full" : ""}
+				disabled={!canSave}
+				onclick={save}
+			>
 				{saving ? "Guardando…" : "Guardar"}
 			</Button>
-			<Button type="button" variant="outline" onclick={() => oncancel?.()}>Cancelar</Button>
+			<Button
+				type="button"
+				variant="outline"
+				class={panelStyle === "split" ? "w-full" : ""}
+				onclick={() => oncancel?.()}>Cancelar</Button
+			>
 		</div>
 
 		{#if !validation.valid}
@@ -733,7 +750,11 @@ async function save() {
 	<section
 		aria-labelledby="{uid}-chart"
 		aria-busy={busy}
-		class="min-w-0 space-y-3 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:flex-1"
+		class={cn(
+			"min-w-0 space-y-3 border border-border bg-card transition-[top] duration-200 ease-out lg:sticky lg:flex-1",
+			STICKY_TOP,
+			panelStyle === "split" ? "rounded-xl p-6 shadow-sm" : "rounded-lg p-4 sm:p-5",
+		)}
 	>
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<div>
