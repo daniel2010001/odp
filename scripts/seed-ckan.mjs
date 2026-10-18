@@ -112,6 +112,20 @@ function readSetCookies(headers) {
 	return raw ? [raw] : [];
 }
 
+/**
+ * Los encabezados de una llamada con la cookie de sesión. Por HTTPS, el chequeo CSRF de CKAN (Flask-WTF, SSL
+ * estricto) exige además un `Referer` del mismo origen; sin él responde 400 «The referrer header is missing.»
+ * (log de la demo, 2026-10-18). Por HTTP no se exige, y por eso el seed andaba contra el CKAN de dev.
+ */
+export function sessionHeaders(cookie, csrf, ckanUrl = CKAN_URL) {
+	return {
+		"Content-Type": "application/json",
+		"X-CSRFToken": csrf,
+		Cookie: cookie,
+		Referer: `${ckanUrl}/`,
+	};
+}
+
 async function csrfToken(jar) {
 	const res = await fetch(`${CKAN_URL}/user/${ADMIN_NAME}`, {
 		headers: { Cookie: jar.toString() },
@@ -143,11 +157,7 @@ async function login() {
 	const tokenIds = async () => {
 		const res = await fetch(`${CKAN_URL}/api/3/action/api_token_list`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRFToken": csrf,
-				Cookie: jar.toString(),
-			},
+			headers: sessionHeaders(jar.toString(), csrf),
 			body: JSON.stringify({ user_id: ADMIN_NAME }),
 		});
 		const payload = await res.json().catch(() => null);
@@ -161,11 +171,7 @@ async function login() {
 	for (let attempt = 0; attempt < 2; attempt++) {
 		const mint = await fetch(`${CKAN_URL}/api/3/action/api_token_create`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRFToken": csrf,
-				Cookie: jar.toString(),
-			},
+			headers: sessionHeaders(jar.toString(), csrf),
 			body: JSON.stringify({ user: ADMIN_NAME, name: "odp-seed", ...TOKEN_TTL }),
 		});
 		if (mint.status === 400 && attempt === 0) {
@@ -1090,11 +1096,7 @@ async function main() {
 			try {
 				const revoke = await fetch(`${CKAN_URL}/api/3/action/api_token_revoke`, {
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"X-CSRFToken": csrf,
-						Cookie: jar.toString(),
-					},
+					headers: sessionHeaders(jar.toString(), csrf),
 					body: JSON.stringify({ jti }),
 				});
 				const payload = await revoke.json().catch(() => null);

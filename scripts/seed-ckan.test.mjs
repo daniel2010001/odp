@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PROFILES } from "./generate-demo-files.mjs";
-import { buildBaseDatasets, DEMOS, readJson, SHOWCASE } from "./seed-ckan.mjs";
+import { buildBaseDatasets, DEMOS, readJson, SHOWCASE, sessionHeaders } from "./seed-ckan.mjs";
 
 const datasets = [...buildBaseDatasets(), SHOWCASE];
 const resources = datasets.flatMap((ds) => ds.resources.map((resource) => ({ ds, resource })));
@@ -93,4 +93,16 @@ test("readJson devuelve el cuerpo parseado cuando la respuesta es JSON", async (
 		success: true,
 		result: { token: "t" },
 	});
+});
+
+// Por HTTPS, el chequeo CSRF de CKAN (Flask-WTF, SSL estricto) exige un `Referer` del mismo origen en las
+// llamadas con cookie de sesión; sin él responde 400 «The referrer header is missing.» (log de la demo,
+// 2026-10-18).
+test("sessionHeaders manda el token CSRF, la cookie y un Referer del mismo origen que CKAN", () => {
+	const headers = sessionHeaders("cookie=1", "csrf-1", "https://api.demo.odp.hs.lan");
+	assert.equal(headers["X-CSRFToken"], "csrf-1");
+	assert.equal(headers.Cookie, "cookie=1");
+	assert.equal(headers["Content-Type"], "application/json");
+	assert.equal(headers.Referer, "https://api.demo.odp.hs.lan/");
+	assert.equal(new URL(headers.Referer).origin, "https://api.demo.odp.hs.lan");
 });
