@@ -131,6 +131,40 @@ describe("createChartApi.listViews", () => {
 	});
 });
 
+describe("createChartApi.getView", () => {
+	it("pide resource_view_show con el id de la vista y devuelve la vista con la config tipada", async () => {
+		const { client, post } = makeClient({
+			id: "v1",
+			resource_id: "res-1",
+			view_type: "umss_chart",
+			title: "T",
+			description: "D",
+			...CONFIG,
+			plugin: "umss_chart",
+		});
+
+		const view = await createChartApi(client).getView("v1");
+
+		const { action, payload } = callAt(post);
+		expect(action).toBe("resource_view_show");
+		expect(payload).toEqual({ id: "v1" });
+		expect(view).toEqual({
+			id: "v1",
+			resource_id: "res-1",
+			view_type: "umss_chart",
+			title: "T",
+			description: "D",
+			config: CONFIG,
+		});
+	});
+
+	it("una vista que no es umss_chart es null: para la página incrustable no existe", async () => {
+		const { client } = makeClient({ id: "v2", view_type: "datatables_view", title: "Tabla" });
+
+		expect(await createChartApi(client).getView("v2")).toBeNull();
+	});
+});
+
 describe("createChartApi.data", () => {
 	it("pide umss_chart_data con view_id (la forma del visitante)", async () => {
 		const { client, post } = makeClient(DATA);

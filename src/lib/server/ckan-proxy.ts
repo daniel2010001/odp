@@ -56,6 +56,7 @@ export const ALLOWED_ACTIONS = [
 	"resource_view_create",
 	"resource_view_delete",
 	"resource_view_list",
+	"resource_view_show",
 	"resource_view_update",
 	"status_show",
 	"umss_chart_data",
@@ -86,9 +87,10 @@ const ALLOWED = new Set<string>(ALLOWED_ACTIONS);
  * de que CKAN rechace el `GET` de un mutador: se rechaza acá. Es la tercera pierna del anti-CSRF, junto con el
  * `SameSite` y la verificación de origen.
  *
- * `umss_chart_data` y `resource_view_list` son lecturas, pero **no** están acá: el cliente las pide por `POST`, y
- * habilitar `GET` sin un consumidor `GET` sería superficie sin uso (verificación independiente de `9486aeb`). El
- * formulario del editor, además, no se puede expresar por `GET`: su `config` es un objeto.
+ * `umss_chart_data`, `resource_view_list` y `resource_view_show` son lecturas, pero **no** están acá: el cliente
+ * las pide por `POST`, y habilitar `GET` sin un consumidor `GET` sería superficie sin uso (verificación
+ * independiente de `9486aeb`). El formulario del editor, además, no se puede expresar por `GET`: su `config` es
+ * un objeto.
  */
 export const READ_ACTIONS = [
 	"datastore_search",
