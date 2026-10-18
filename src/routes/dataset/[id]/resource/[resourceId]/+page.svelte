@@ -372,8 +372,14 @@ const apiExtraRows = $derived(
 	(resource?.extras ?? []).filter((e) => !API_EXTRA_CARD_KEYS.includes(e.key)),
 );
 
+// Sin `PUBLIC_CKAN_URL` (el caso del stack: el portal pide a CKAN por su propio `/api/`, que el proxy
+// publica), la dirección lleva el origen del portal: un path solo no funciona copiado tal cual.
 const apiBaseUrl = $derived(
-	(apiExtras.find((e) => e.key === "api_base_url")?.value ?? env.CKAN_URL ?? "").replace(/\/$/, ""),
+	(
+		apiExtras.find((e) => e.key === "api_base_url")?.value ||
+		env.CKAN_URL ||
+		$page.url.origin
+	).replace(/\/$/, ""),
 );
 
 const apiEndpoint = $derived(

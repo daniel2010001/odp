@@ -2960,15 +2960,18 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **decidir** entre un tope de ancho por etiqueta (con el texto completo en `title`) y plegar las del medio en «…».
   _Es visual; el autor acepta hacerlo ahora o después._
 
-- [ ] **«Acceso por API» del recurso muestra un path, no una URL** (TODO del autor, 2026-10-18, textual: «en la parte
-  de la consulta a la api veo que la "url" no es una url en sí, es un path, lo mismo para el ejemplo del curl, apuntan
-  al path, no a una url, y no funcionan»). La dirección y el `curl` se arman con `apiBaseUrl`
-  (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:374-390`). `apiBaseUrl` es el extra `api_base_url` del
-  recurso, o `env.CKAN_URL`, o `""`. Cuando los dos faltan, queda `/api/3/action/…` sin origen. **Antes de arreglar,
-  medir** qué vale `env.CKAN_URL` en el navegador del dev y del build. **Decidir** si la dirección pública es el origen
-  del portal (`window.location.origin` + `/api/…`, que el proxy pasa a CKAN) o una URL de CKAN configurada. El `curl`
-  de ejemplo tiene que funcionar copiado tal cual: es `POST` con JSON. Se cruza con el ítem del cliente que hace `GET`
-  a `/api/`.
+- [ ] **[v1] En producción, probar que la dirección de «Acceso por API» funciona copiada tal cual** (decisión del autor,
+  2026-10-18, textual: «por ahora al origin del portal puede servir para la demo, pero para prod tiene que funcionar, si
+  usamos el del origin del protal puede pasar como que funciona ya que no lo usaremos, pero en prod debemos probarlo,
+  anota esto»). La sección mostraba un path (`/api/3/action/…`) porque `PUBLIC_CKAN_URL` está vacío en el stack. Ahora,
+  sin esa variable ni el extra `api_base_url`, lleva el **origen del portal**. Medido el 2026-10-18: `POST` y `GET` a
+  `datastore_search` responden `200` en `https://odp.hs.lan/api/…`, en `https://api.odp.hs.lan/api/…` y en
+  `http://localhost:8082/api/…`. **En dev funciona porque el proxy del portal publica `/api/` hacia CKAN; en producción
+  eso no está probado.** Al desplegar hay que copiar la dirección y el `curl` desde la página de un recurso con tabla en
+  `data.umss.edu.bo` y correrlos. Si no responden, se elige entre publicar `/api/` en el proxy de producción o mostrar
+  `api.data.umss.edu.bo` con una variable **propia**. No se puede reusar `PUBLIC_CKAN_URL`: con esa variable, la
+  búsqueda y el inicio piden datos desde el navegador a otro dominio, y CKAN no manda CORS. `/catalog` no sirve para
+  esto: descarta el `Authorization` (la API Key de RF-38) y sólo admite su lista de acciones.
 - [ ] **Unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
   diferente a otros del mismo estilo, como el de copiar la id o hash de los resources, también quisiera corregir estos
   porque se ven un poco feos»). Hoy conviven por lo menos tres estilos en la misma página:
