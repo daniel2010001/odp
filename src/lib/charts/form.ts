@@ -25,9 +25,44 @@ import {
 	type XBucket,
 	xBucketsFor,
 	xColumnsFor,
+	Y_AGGREGATES,
 	type YAggregate,
 	yColumnsFor,
 } from "./contract";
+
+/** Los topes del título y la descripción de la vista. Son de UX del portal, como los del dataset: CKAN no los pone. */
+export const MAX_VIEW_TITLE_LENGTH = 120;
+export const MAX_VIEW_DESCRIPTION_LENGTH = 500;
+
+/** Los errores del título y la descripción de la vista; un campo sin error no aparece. */
+export interface ViewTextErrors {
+	title?: string;
+	description?: string;
+}
+
+/**
+ * El título es obligatorio y los dos tienen tope. Se valida en el portal y no se deja al servidor: su
+ * rechazo llega en inglés y sin campo («title: Missing value»), y el publicador no sabe qué corregir (L37).
+ * Se mide sobre el texto recortado, que es el que se guarda.
+ */
+export function validateViewText(title: string, description: string): ViewTextErrors {
+	const errors: ViewTextErrors = {};
+	const cleanTitle = title.trim();
+	if (cleanTitle === "") errors.title = "Escriba un título para la vista.";
+	else if (cleanTitle.length > MAX_VIEW_TITLE_LENGTH)
+		errors.title = `El título no puede superar los ${MAX_VIEW_TITLE_LENGTH} caracteres.`;
+	if (description.trim().length > MAX_VIEW_DESCRIPTION_LENGTH)
+		errors.description = `La descripción no puede superar los ${MAX_VIEW_DESCRIPTION_LENGTH} caracteres.`;
+	return errors;
+}
+
+/**
+ * Los cálculos que la tabla admite: contar filas siempre, y cada uno de los demás sólo si hay al menos una
+ * columna que lo acepte. Sin columnas numéricas, sumar o promediar no tienen sobre qué hacerse (L37, punto 6).
+ */
+export function yAggregatesFor(fields: readonly DatastoreField[]): YAggregate[] {
+	return Y_AGGREGATES.filter((agg) => agg === "count" || yColumnsFor(fields, agg).length > 0);
+}
 
 /** Lo que el formulario edita: todo lo que una `ChartConfig` tiene, con el paso como texto. */
 export interface ChartDraft {
@@ -72,19 +107,19 @@ export function reconcileChartDraft(
 		? draft.x_bucket
 		: (buckets[0] ?? "value");
 
-	const yColumns = yColumnsFor(fields, draft.y_agg);
+	// Un cálculo que la tabla no admite —por ejemplo, un promedio guardado cuando ya no hay columnas
+	// numéricas— vuelve a contar filas, que siempre se puede.
+	const y_agg = yAggregatesFor(fields).includes(draft.y_agg) ? draft.y_agg : "count";
+	const yColumns = yColumnsFor(fields, y_agg);
 	const y_field =
-		draft.y_agg === "count"
-			? ""
-			: yColumns.includes(draft.y_field)
-				? draft.y_field
-				: (yColumns[0] ?? "");
+		y_agg === "count" ? "" : yColumns.includes(draft.y_field) ? draft.y_field : (yColumns[0] ?? "");
 
 	return {
 		...draft,
 		x_bucket,
 		x_step: x_bucket === "number_step" ? draft.x_step : "",
 		x_fold_case: draft.x_fold_case && foldCaseAvailable(field, x_bucket),
+		y_agg,
 		y_field,
 	};
 }

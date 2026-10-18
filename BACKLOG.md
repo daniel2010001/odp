@@ -2937,6 +2937,54 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
+- [ ] **El botón «Copiar enlace» del recurso no sigue la disposición del dataset** (TODO del autor, 2026-10-17,
+  `csv-charts` L47, textual: «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar
+  esto»). **Precisión del autor, textual:** «sí lo tiene, pero está situado en una posición diferente a la del datasets,
+  creo que al cambiar la posición en una sesión pasada no lo hicimos para el caso de los resources, me refiero a que en
+  los dataset está al lado superior derecho y abajo si se puede editar, mientras que el resource aun lo mantiene en el
+  lado izquiedo del title, nunca sincronizamos esto». **Hoy:**
+  - **En el dataset** (`src/routes/dataset/[id]/+page.svelte:620-665`), el botón está en el snippet `heroActions`, junto
+    a «Editar» y a la acción de publicación. Ese grupo va arriba a la derecha y cambia de fila según la regla
+    condicional del hero.
+  - **En el recurso** (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:503-517`), el botón sigue como
+    ícono a la izquierda del `h1`.
+  **Lo que hay que hacer:** llevar el recurso al reparto del dataset, con las mismas piezas en vez de una copia que se
+  vuelva a desincronizar. Se cruza con P6 de `csv-charts`: el autor quiere guardar la banda del encabezado del recurso
+  «para otras acciones».
+
+- [ ] **El breadcrumb de las páginas de gráficos, en una sola línea** (duda del autor, 2026-10-18, `csv-charts` L49,
+  textual: «antes mencioné algo como "truncar" un poco los titles para que entren todos en una sola línea»). En
+  `…/charts/new` y `…/charts/[viewId]/edit` la miga es la más larga del portal: inicio, organización, dataset, recurso
+  y la página. `Breadcrumb.svelte` ya trunca cada etiqueta (`truncate`, `min-w-0`) y en el teléfono se pliega a un chip
+  con menú. **Primero medir** en 1280 y 1440 px, con nombres reales largos, si ocupa más de una línea. Si la ocupa,
+  **decidir** entre un tope de ancho por etiqueta (con el texto completo en `title`) y plegar las del medio en «…».
+  _Es visual; el autor acepta hacerlo ahora o después._
+
+- [ ] **«Acceso por API» del recurso muestra un path, no una URL** (TODO del autor, 2026-10-18, textual: «en la parte
+  de la consulta a la api veo que la "url" no es una url en sí, es un path, lo mismo para el ejemplo del curl, apuntan
+  al path, no a una url, y no funcionan»). La dirección y el `curl` se arman con `apiBaseUrl`
+  (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:374-390`). `apiBaseUrl` es el extra `api_base_url` del
+  recurso, o `env.CKAN_URL`, o `""`. Cuando los dos faltan, queda `/api/3/action/…` sin origen. **Antes de arreglar,
+  medir** qué vale `env.CKAN_URL` en el navegador del dev y del build. **Decidir** si la dirección pública es el origen
+  del portal (`window.location.origin` + `/api/…`, que el proxy pasa a CKAN) o una URL de CKAN configurada. El `curl`
+  de ejemplo tiene que funcionar copiado tal cual: es `POST` con JSON. Se cruza con el ítem del cliente que hace `GET`
+  a `/api/`.
+- [ ] **Unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
+  diferente a otros del mismo estilo, como el de copiar la id o hash de los resources, también quisiera corregir estos
+  porque se ven un poco feos»). Hoy conviven por lo menos tres estilos en la misma página:
+  - el de la dirección de la API, una píldora con texto y `bg-primary/10` (`resource/[resourceId]/+page.svelte:712-725`);
+  - el del hash y el id, un cuadrado de ícono `size-7` (`:804-815`);
+  - el de «Copiar enlace», un cuadrado `size-9` al lado del título.
+  A esos se suma «Copiar código» del diálogo «Insertar». **Propuesta:** un solo componente `CopyButton` con dos tamaños
+  (ícono y con texto), probado en un playground según la regla 8. Se cruza con el ítem de «Copiar enlace» del recurso.
+
+- [ ] **Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
+  previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
+  (`PRD.md:259`, «primeras 20 filas»). El autor la revisó con los 2.500 de la planilla y eligió **paginación**: anterior
+  y siguiente sobre el DataStore, de 20 en 20, con `offset`. **Cambia RF-31**, así que el PRD se actualiza con la
+  implementación. **Cuándo:** después de los gráficos de la demo. Se cruza con el ítem anterior: si la tabla pagina,
+  su alto queda acotado por la página y ya no crece con las filas.
+
 - [ ] **[v1+]** **Una promesa descartada en el sondeo, y el límite declarado de los avisos informativos.** La compuerta del PR
   de la sesión (linaje `review-1d91289cfb043d06`) devolvió un aviso **verdadero y verificado contra el código**:
   `+layout.svelte` llama `void validateStoredSession(client)` y esa función espera `check()` **sin atrapar**, así que un
@@ -3065,9 +3113,23 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   fallar el cambio de tipo**. **El pedido del autor (2026-10-17, L37), textual:** «cuando esté en prod no creo que sea
   así de conveniente, cómo vamos con la normalización? eg: las fechas ahora mismo es en perfecto ISO, quisas los csv no
   sean así sino algo como "2000-01-01", "01/01/2000" "2000 1 1"». Los CSV de la demo están controlados; los de un
-  publicador real no. **Falta medir** qué formatos de fecha y número aceptan los dos caminos de xloader y cuáles hacen
-  fallar la recarga; lo tomó `odp-docker` (`csv-charts` L39). Del lado del portal quedan la pantalla para corregir
-  tipos y el aviso antes de aplicar un tipo que no todos los valores cumplen.
+  publicador real no. **Medido por `odp-docker`** (2026-10-18, `csv-charts` L50; datos crudos en
+  `odp-docker/odd/tasks/loader-value-formats/`):
+  - **Fechas que se aceptan:** `2000-01-01`, `01/01/2000`, `1/1/2000`, `2000 1 1`, `01-01-2000`, `01.01.2000`,
+    `20000101`, `Jan 1 2000`, y dd/mm primero.
+  - **Fechas que se rechazan:** meses en español, `2000-01`, años sueltos, seriales de Excel y fechas inválidas.
+  - **Números:** se rechaza toda coma decimal, todo separador de miles, la moneda, el porcentaje y las unidades.
+  - **Vacíos:** sólo una celda vacía o sólo con espacios es `NULL`. `NA`, `-`, `s/d` y `null` nunca lo son.
+  - **Un valor malo:** en `numeric` o `timestamp`, si el archivo tiene 100 filas o menos, **borra la tabla**. Con
+    `date`, `int` o `bool`, la columna **pasa a otro tipo sin avisar**.
+  **Reglas:** sólo los tipos `text`, `numeric` y `timestamp`/`timestamptz`; los valores se limpian antes de subir; y
+  se comprueban los tipos después de recargar. El seed del portal ya las cumple.
+  **Lo que queda abierto, todo por decidir del autor:**
+  - **(a) Un ensayo exacto en el servidor**, antes de aplicar un tipo: una acción de lectura de `umss` con
+    `pg_input_is_valid` bajo el `DateStyle` real, que lista las filas que no cumplen. Son unas 60 a 100 líneas.
+  - **(b) Un normalizador atómico** (`ALTER COLUMN … TYPE … USING normalizer(v)`). Son unas 250 a 400 líneas.
+  - **(c) En el portal:** la convención decimal se declara por columna, porque coma frente a punto no se puede adivinar
+    valor por valor. Eso va en la pantalla para corregir tipos.
 - [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
   ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
   es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
@@ -3093,14 +3155,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   Windows, en un proyecto de comercio electrónico. Sirve para pruebas de volumen del DataStore y de `umss_chart_data`.
   El CSV chico de la demo es otra cosa: T6 de `csv-charts`.
 
-- [ ] **[v0] El portal no bloquea que lo metan en un `<iframe>` ajeno** (medido el 2026-10-17, en
-  `odd/tasks/csv-charts.md` L28). No envía `frame-ancestors` ni `X-Frame-Options`: no aparecen en `src/` ni en la
-  configuración del proxy de `odp-docker`. El riesgo práctico es bajo, porque la cookie de sesión es `SameSite=Lax` y
-  no viaja a un `<iframe>` de otro sitio, pero es una protección estándar que falta. **Se cierra con P4 de
-  `csv-charts`:** se bloquea el *framing* en todo lo que sirve SvelteKit y se permite sólo en `/embed`, con
-  verificación independiente. **No cubre `/api/`:** esas respuestas las sirve CKAN a través de `frontend-proxy`, no
-  SvelteKit. Es JSON y no se dibuja en un `<iframe>`, así que no importa. El proxy no agrega ni borra cabeceras de
-  *framing*; lo midió la sesión de `odp-docker` el 2026-10-17 (`csv-charts` L30).
+- [ ] **[v1] Dos huecos menores que dejó P4 de `csv-charts`, el bloqueo del *framing*** (verificación independiente,
+  2026-10-17, `odd/tasks/csv-charts.md` L46). El bloqueo en sí está hecho y verificado. **(1) Los archivos de `static/`
+  no llevan las cabeceras:** en dev el hook no los ve, y en producción `adapter-node` (sirv) los sirve antes del hook.
+  No son páginas, así que el riesgo es nulo en la práctica, pero no se midió un build de producción. **(2) El hook no se
+  monta en un test:** `hooks.server.test.ts` lee su texto fuente, porque Vitest no resuelve `$app/environment` ni
+  `$env/dynamic/private`. Un alias en `vitest.config.ts`, o una prueba contra el portal levantado (curl a `/`, `/nope` y
+  `/embed/charts/x`), cerraría el hueco. Aparte, `+layout.server.ts` sigue mandando `sessionUser` a `/embed`. Nada lo
+  dibuja y un sitio de otro origen no lo puede leer, pero sobra.
 
 - [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
   dedicada sobre la superficie del portal y su frontera con CKAN — **no** un ítem por síntoma. Es un

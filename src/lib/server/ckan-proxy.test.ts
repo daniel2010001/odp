@@ -81,6 +81,14 @@ describe("la allowlist del proxy — atada al código real", () => {
 		// Mínimo privilegio (verificación de `9486aeb`): habilitar GET sin un consumidor GET es superficie sin uso.
 		expect(isReadAction("umss_chart_data")).toBe(false);
 		expect(isReadAction("resource_view_list")).toBe(false);
+		// La página incrustable lee una vista por su id: mismo trato que `resource_view_list`.
+		expect(isAllowedAction("resource_view_show")).toBe(true);
+		expect(isReadAction("resource_view_show")).toBe(false);
+	});
+
+	it("resource_view_show no es de escritura: no se agrega a los mutadores ni a las subidas", () => {
+		expect(UPLOAD_ACTIONS).not.toContain("resource_view_show");
+		expect(READ_ACTIONS).not.toContain("resource_view_show");
 	});
 
 	it("las tres acciones de tokens NO están permitidas: el navegador no puede acuñar ni revocar tokens", () => {

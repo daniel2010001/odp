@@ -120,9 +120,12 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P2 | El formulario del publicador (desde el playground): vista previa con `umss_chart_data` y guardado con `resource_view_create` | S1, S4, S7 | por definir | — |
 | P3 | Páginas reales: `…/charts/new` y `…/charts/[viewId]/edit` con la acción real, borrar vista, la página del recurso muestra las vistas `umss_chart` al visitante, versión desconocida, números en es-BO; borrar el playground (L20–L22, L33) — **hecha salvo la prueba en vivo con editor** (L34) | S1, S4, S7 | worker + padre | `11f2801`, `f27483a` |
 | P2b | Vista previa en dos niveles, formulario en dos columnas y estilo nuevo de los gráficos, en el playground (L28) | S1, S4, S7 | worker | — |
-| P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) | S5 | por definir; verificación independiente | — |
-| P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | por definir | — |
-| P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | por definir; playground (regla 8) | — |
+| P4 | Gráficos insertables: `/embed/charts/[viewId]`, botón «Insertar» y bloqueo del *framing* en el resto del portal (L28) — **hecha y verificada: PASS** (L46) | S5 | worker + `gentle-ai-verify` | `7648eb1` (puente, commit propio por riesgo), `ee24087` |
+| P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | padre (inline) — **hecha** (L38) | `8b7fb55` |
+| P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
+| T7 | 3 CSV más para la demo: matrícula por facultad y gestión, ejecución presupuestaria mensual y producción de investigación; generadores deterministas con su mapa de tipos, y alta en el seed por el flujo (L42). El paso de tipos de xloader (L36) va aparte, cuando se haga el cambio — **hecha salvo correr el seed** (L43) | S5 | worker | `aeedd42` |
+| T7b | El seed declara los tipos con xloader (`datastore_create` `force` + `type_override`, y después `xloader_submit`), medido en vivo después del cambio de `odp-docker` (L36) — **hecha y corrida en vivo** (L45) | S5 | worker + verificación del padre | `0773a1e` |
+| P6d | Promover lo elegido en L49 a las páginas reales y borrar los dos playgrounds: el editor en tarjetas separadas con el panel a la derecha y un paso de rango por defecto; el recurso en pestañas con línea e íconos, y «Crear gráfico» en el hero — **hecha** (L51) | S1, S4 | dos workers + padre | `acea742` (editor), `89efc69` (recurso) |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -604,3 +607,205 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   (`ChartForm.svelte:486-498`). (4) Ya es un ítem `[v1]` del `BACKLOG.md` («Evaluar un cargador del DataStore que
   normalice valores»), con mediciones de DataPusher; falta sumarle xloader y los formatos de fecha del autor.
   **Tareas nuevas:** P5 (puntos 6, 8 y 9) y P6 (puntos 1, 3, 5, 7 y 10).
+- **L38 (2026-10-17, decisiones del autor sobre L37, rótulos elegidos):** (1) «Merge de #89 ya; P5/P6 en rama nueva
+  (Recomendado)»: el commit de documentación se subió a #89, el merge lo hace el autor, y P5 avanza en
+  `feat/chart-form-fixes`, apilada sobre `feat/chart-pages`. (2) La tabla de 20 filas: «Paginación en la vista previa».
+  Queda como ítem del `BACKLOG.md`, después de los gráficos, y cambia RF-31. (3) El punto 6: «Sí, la misma regla para
+  todos». **Precisión del agente:** «Contar valores distintos» acepta cualquier columna, así que «Cálculo del eje
+  vertical» casi nunca queda con una sola opción. Lo que cambia es que, sin columnas numéricas, no ofrece sumar,
+  promediar, mínimo ni máximo, y un cálculo guardado que la tabla ya no admite vuelve a contar filas.
+- **L39 (2026-10-17, `odp-docker` tomó la medición de formatos):** quedó en su `odd/tasks/loader-value-formats.md`, con
+  el ejemplo del autor textual y la lista de formatos numéricos, y empieza cuando cierre el cambio a xloader. Mide **los
+  dos caminos** de xloader: el `COPY` tipado, que interpreta Postgres bajo DMY, y el respaldo con tabulator cuando ese
+  `COPY` falla, que interpreta las fechas con dateutil y `dayfirst`. Por formato informará si se acepta, cómo se guarda
+  y si hace fallar el cambio de tipo; la factibilidad y el costo de un normalizado previo vienen con esos resultados.
+- **L40 (2026-10-17, alcance de P6, propuesto por el agente según la regla 8):** son dos playgrounds que duplican las
+  páginas reales, con dobles de la API y las columnas de la planilla. Los parámetros de la URL guardan cada variante.
+  Los presets van en un panel global liviano; cada interruptor de variante va **en la sección donde aplica**.
+  - **P6a, `/dev/chart-editor`** (puntos 5, 7 y 10): duplica `…/charts/new` con `ChartForm`.
+    - **Presets:** la planilla completa, sólo columnas de texto y una sola columna numérica.
+    - **Lado del panel:** izquierda (hoy) o derecha.
+    - **Separación entre Datos y Presentación:** línea (hoy), una tarjeta por sección, o pasos numerados con banda de
+      encabezado.
+    - **Estilo del panel:** columna (hoy), acordeón (cada sección se pliega, con `Accordion` de bits-ui) o el de la
+      barra de filtros del buscador (tarjeta `rounded-xl` con encabezado en mayúsculas coral y fija al hacer scroll,
+      `src/routes/search/+page.svelte:624-690`), para tener un estilo común de la plataforma.
+    - Las variantes entran a `ChartForm` como props con el valor de hoy por defecto, así que la página real no cambia
+      hasta promoverlas.
+  - **P6b, `/dev/resource-views`** (puntos 1 y 3): duplica la vista previa y los gráficos de la página del recurso.
+    - **Presets:** 0, 1 y 3 gráficos; quien puede editar o un visitante.
+    - **Disposición:** apilado (hoy: la tabla y debajo los gráficos) o pestañas (`Tabla | <gráfico 1> | <gráfico 2>`,
+      con `Tabs` de bits-ui), la idea de las pestañas que se quitaron en `ce8670a`, ahora con contenido real.
+    - **Lugar de «Crear gráfico»:** a la derecha del encabezado de la sección (hoy), al final de la barra de pestañas
+      (sólo con pestañas), en la banda de acciones del encabezado del recurso, o como tarjeta punteada al final de la
+      lista.
+  - El autor elige en cada playground; recién entonces se promueve a la página real y se borra el playground.
+- **L41 (2026-10-17, P6 entregado a revisión):** `/dev/chart-editor` (`90f532e`) y `/dev/resource-views` (`d8b39e4`). Las
+  variantes entran como props opcionales con los valores de hoy por defecto, y la página real no cambia. Verificación
+  del padre: 355/355 en los playgrounds, los componentes de recurso, `src/lib/charts` y las rutas de dataset;
+  `pnpm check` sin errores; Biome limpio. **Incidente:** el worker de P6a corrió `git stash` y `git stash pop` en el
+  árbol compartido. El stash quedó vacío y el worker de P6b confirmó que sus archivos estaban intactos. **Sin medir:** el
+  aspecto en un navegador y el panel fijo del estilo buscador. **Desvío de la regla 8 en P6b:** los tres interruptores
+  quedaron en una sola barra, aunque «banda del encabezado» cambia otra región.
+- **L42 (2026-10-17, temas de los CSV de la demo, elección del autor, rótulos textuales):** «Matrícula por facultad y
+  gestión», «Ejecución presupuestaria mensual» y «Producción de investigación». Todos son ficticios y deterministas, como
+  la planilla. Cumplen las reglas de L36: punto decimal, fechas ISO, celdas vacías para «sin dato» y nunca `NA`, `-` ni
+  `s/d`. Hoy el seed los carga con DataPusher, que les asigna los tipos solo. El paso de tipos de xloader queda en T7b,
+  porque depende del cambio de `odp-docker`.
+- **L43 (2026-10-17, T7 entregada):** tres generadores sobre un módulo común (`scripts/generate-csv-common.mjs`). La
+  planilla no se tocó.
+  - **Los archivos:** matrícula, 1.568 filas (`1ba5339d…`); presupuesto, 1.329 (`c79878cd…`); investigación, 1.054
+    (`59ab2c4f…`). Dos corridas dan los mismos bytes.
+  - **Tipos y organizaciones:** `gestion` y `anio` son enteros, porque una gestión es una etiqueta de año y no un
+    instante; las agrupaciones por año, trimestre y mes las cubre `fecha_registro`. Matrícula y presupuesto van a
+    `rectorado`; investigación, a `direccion-investigacion`. Cada generador exporta su mapa `TYPES` para T7b.
+  - **Verificación del padre:** 79/79 en `node --test scripts/`, y Biome limpio según el worker. **No hubo RED
+    separado:** los tests se escribieron con el código.
+  - **Sin correr:** el seed. Con el cambio a xloader en curso, los CSV nuevos entrarían como texto, así que se corre
+    junto con T7b. Riesgo menor: las descripciones del seed llevan el número de filas escrito a mano.
+- **L44 (2026-10-17, el stack dev corre con xloader, aviso de `odp-docker` y verificación del padre):** `status_show`:
+  CKAN 2.12.0 con `xloader` (sin `datapusher`). Corre `ckan-worker-dev` y el contenedor del DataPusher ya no existe; el
+  DataStore da `SHOW datestyle` = `ISO, DMY`. `odp-docker` comparó en Postgres la tabla de la planilla antes y después:
+  mismos tipos y las mismas 2.500 filas. **El padre lo verificó por el puente, sin sesión:** `umss_chart_data` con
+  `view_id` de la vista guardada devuelve mañana 8.496,75, noche 3.986,38, tarde 6.217,84 y «Sin dato» 6.397,76
+  (`total_rows` 2.500), los mismos valores que L15. La forma de editor sin sesión responde `Authorization Error`, como
+  debe. **Para T7b:** un `xloader_submit` sobre un archivo que no cambió se salta por el hash, así que después del
+  `type_override` va con `ignore_hash: true`.
+- **L45 (2026-10-17, T7b hecha y el seed corrido en vivo):**
+  - **El paso nuevo, `ensureTyped`, para cada dataset de la demo:** subir con el dataset todavía privado, esperar la
+    primera carga (`xloader_status` hasta `complete`), `datastore_create` con `force` y `info: {type_override, label,
+    notes}`, `xloader_submit` con `ignore_hash`, esperar, verificar los tipos y el total, y recién entonces publicar por
+    el flujo. Un fallo o un timeout (120 s) deja ese dataset privado, con una línea ✗, sin abortar el seed.
+  - **Idempotencia:** un dataset ya público no se toca. La segunda corrida dio «Creados 0 datasets, 20 ya existían».
+  - **Lo que se leyó de xloader 2.6.0 en el contenedor:** `xloader_submit` en `action.py:25`, `xloader_status` en
+    `action.py:304`, sus estados en `action.py:246-252`, y el tipo al recargar en `loader.py:449-455`.
+  - **Resultado:** los tres datasets están publicados y tipados, con 1.568, 1.329 y 1.054 filas. La planilla quedó
+    intacta.
+  - **Verificación del padre, como anónimo por el puente:** `datastore_search` del presupuesto da 1.329 filas, con
+    `fecha_registro` `timestamp` y los dos montos `numeric`. Cero tokens `seed*` restantes en la CLI, y 80/80 en
+    `node --test scripts/`.
+  - **Sin ejercitar en vivo:** la recuperación de un dataset subido pero privado. **Sin RED separado.**
+- **L46 (2026-10-17, P4 entregada y verificada):** página `/embed/charts/[viewId]`, diálogo «Insertar» con el
+  `<iframe>` listo para copiar en todas las disposiciones, y el *framing* bloqueado en todo lo que sirve SvelteKit
+  (`frame-ancestors 'self'` y `X-Frame-Options: SAMEORIGIN`), salvo `/embed/**` (`frame-ancestors *`).
+  - **Dos decisiones del padre sobre atajos del worker:** (1) el layout raíz no dibuja el encabezado ni el pie en
+    `/embed`, en vez de ocultarlos con CSS; (2) la vista se lee por el puente, con `resource_view_show` permitida como
+    lectura por `POST` (commit propio por riesgo), en vez de un cliente directo a CKAN.
+  - **Verificación independiente: PASS, sin bloqueos.** Las cabeceras se midieron en vivo sobre páginas, errores, `__data.json`
+    y los endpoints del puente. Ningún intento de evasión pasó: mayúsculas, `//`, `%2e%2e`, `%2f`, `%5c` y doble
+    codificación. El `%252e%252e` abierto es correcto: SvelteKit lo enruta a la página de inserción. `resource_view_show`
+    sólo funciona por `POST`, y por `GET` da 405. El código del `<iframe>` escapa la URL y el título. Queda **UNPROVEN**
+    la negativa sobre la vista de un dataset privado, porque no había ninguno con vista; esa negativa la aplica CKAN.
+  - **Lo que el verificador dejó como aviso:** se sumaron al test los tres casos de evasión que faltaban (37/37).
+    `static/` sin cabeceras, el hook sin montar en un test y `sessionUser` en el payload de `/embed` van como ítem del
+    `BACKLOG.md`.
+  - **Checks del worker:** suite completa 1519/1519 y `pnpm check` sin errores. **Sin RED** en los tests del layout y
+    del puente: se escribieron después del código.
+- **L47 (2026-10-17, revisión de los playgrounds por el autor, textual):** «dev/chart-editor: veo que en la parte del
+  gráfico estamos usando sticky, pero esto está mal configurado el top, se oculta bajo el header de la plataforma. 2:
+  creo que ya se lo que no termina de gustarme y no era eso de que esté izquierda o derecha, sino que era que ambos
+  estaban en una misma card, o sea que el container tiene ambos dontenidos, como usamos lode tener cards separadas en
+  todo lado no me había dado cuenta de esto y me slto el tok, esto lo noté gracias al estilo del panel 3 (buscador), me
+  gusta esto, pero no termina de gustarle el hecho de tener el scroll dentro, en ese sentido el actual es mejor, se puede
+  algo así como un merge entre ambos? los tres para ser más específico, pero los botones por fuera, como en el
+  dataset-create, como lo que muestra la 2 de "una tarjeta por section", descartado completamente eso de los pasos, no
+  termina de gustarme esos números, quisas si cambiamos el diseño/estilo, podemos probar. resource-views: me gusta más
+  el de pestañas, pero no es exactamente como lo recuerdo, pero me gusta, si puedes buscar cómo era antes el diseño para
+  compararlos te lo agradecería, me gusta mucho la opción de final de petañas, respecto a ponerlo en el encabesado, creo
+  que podemos usarlo en otras acciones, no está del todo descartado, también me gusta es lugar, pero si son excluyentes
+  entre sí pregiero lo de las pestañas, PERO no termina de gustarme cómo queda con la lína de saparación, esta por
+  tocarse, no me gusta del todo, el único punto malo, pero vaya que es malisimo, solo por eso lo cambiaría por el del
+  encabesado, TODO: los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar esto. NOTA:
+  como ya mencioné hace tiempo, en otras sesiones, los TODOs que indico no son necesarios resolverlos en el acto, sino
+  recordatorios para próximas sesiones, lo comento por si acaso. respecto al merge 89, hay conflictos! qué paso? puedes
+  revisarlo?»
+  - **El conflicto del #89 era de anclaje:** el #88 (`4f7d25a`, en `main`) y `9ab3ace` agregaron párrafos distintos en el
+    mismo punto del ítem del cargador del `BACKLOG.md`. Se resolvió con una sola copia, en el merge `d459190` subido a
+    `feat/chart-pages`: las mediciones 4 y 5 y la decisión de `main`, más el pedido del autor sin lo que ya decían.
+    También se corrigió «el dev quedó restaurado con DataPusher», que dejó de ser cierto con L44. El PR quedó
+    `MERGEABLE`.
+  - **El diseño anterior de las pestañas** (`ce8670a^`, `+page.svelte:528-550`): un control segmentado de botones
+    pequeños con ícono (`Tabla`, `Gráfico`, `Mapa`), a la derecha de la banda «Vista previa», **dentro de la misma
+    tarjeta** de la vista previa. El activo iba con `bg-primary`.
+  - **El TODO de copiar el enlace del recurso:** la página del recurso ya tiene un botón de ícono «Copiar enlace del
+    recurso», al lado del título (`resource/[resourceId]/+page.svelte:503-517`). Hay que preguntarle al autor a qué se
+    refiere antes de hacerlo (regla 9). Quedó en el `BACKLOG.md`.
+  - **P6c, la iteración**, tiene dos partes:
+    - **El editor:** las opciones y el gráfico van en tarjetas separadas, sin un contenedor común. Las secciones van
+      con el estilo de la barra del buscador, sin scroll interno. Los botones van fuera de las tarjetas, como en el
+      formulario del dataset. El *sticky* del gráfico tiene que quedar debajo del encabezado. Los pasos numerados se
+      descartan.
+    - **Las vistas del recurso:** pestañas, con el diseño anterior al lado para comparar. «Crear gráfico» va al final de
+      las pestañas, sin tocar la línea de separación.
+- **L48 (2026-10-17, P6c entregada a revisión):**
+  - **El editor** (`16952b4`): el *sticky* del gráfico va con `top-[calc(var(--header-h)+1rem)]`, y esto **también
+    cambia la página real**. Hay un estilo nuevo, `split`, que es el que abre el playground: «Datos», «Presentación» y
+    el gráfico en tarjetas separadas, con encabezados en mayúsculas coral, sin scroll interno, y «Guardar» y
+    «Cancelar» fuera de las tarjetas, como en `DatasetForm`. Los pasos numerados se quitaron.
+  - **Las vistas** (`4b3bd0d`): las pestañas son lo que abre el playground, con dos estilos: con línea, y segmentadas, que
+    es el diseño anterior de `ce8670a^` en una sola tarjeta, con íconos y el activo en `bg-primary`. «Crear gráfico» va
+    al final de la barra y ya no toca la línea (`h-12` y `py-1.5`). La ubicación en el encabezado del recurso es
+    ahora un interruptor en esa banda, y cada interruptor está en su sección: se corrige el desvío de la regla 8 de L41.
+  - **Verificación del padre:** los tests de los dos playgrounds y de los componentes de gráficos pasan; los dos
+    playgrounds responden 200.
+  - **Sin medir:** el aspecto en un navegador, en particular el *sticky* y el espacio de 6 px.
+- **L49 (2026-10-18, decisiones del autor sobre P6c, textual):** «definitivamente tarjetas separadas. aprobado! una
+  cosa que quisiera es que en el input de los rangos usaramos un valor por default, 1 quisas, esto porque al cambiar y
+  mostrar ese input con un "error" da un poco de mala vista; junto con derecha. resource-view: botón en el hero, arriba.
+  pestañas lineales, pero con los íconos, esto me gustaba de la anterior versión, pero ahora veo que esa es pequeña en
+  comparación con la primera, mejor dejar la primera/nueva, pero podemos probar con íconos? creo que esto es todo. Una
+  duda que tengo es sobre el tema del breadcrum de las nuevas pages, cómo le hacemos? antes mencioné algo como "truncar"
+  un poco los titles para que entren todos en una sola línea, quisas ahora sea un buen momento de ver esto también, o lo
+  dejamos como un TODO? por mi cualquiera de los dos, es más visual que otra cosa. algo que me esté olvidando? merge
+  completo»
+  - **El editor:** el estilo `split`, con el panel a la derecha, pasa a ser el único, y se quitan los props de
+    variante. **El paso del rango por defecto, precisión del agente:** un paso fijo de `1` sobre `salario` (3.000 a
+    10.000) daría miles de grupos, y el servidor corta en 500 (`truncated`), lo que también se ve mal. Por eso el paso
+    por defecto se calcula con el mínimo y el máximo de la columna, para unos 10 rangos con un número redondo, y cae a
+    `1` si no se puede leer.
+  - **El recurso:** pestañas con línea, ahora con íconos, y «Crear gráfico» en el hero. Los íconos sobre la pestaña con
+    línea son la prueba que pidió el autor, y él la revisa sobre la página real.
+  - **El breadcrumb:** queda como TODO en el `BACKLOG.md`, con una medición previa. El componente ya trunca cada
+    etiqueta y en el teléfono se pliega a un chip, pero nadie midió si las páginas nuevas entran en una línea en el
+    escritorio.
+  - **El #89 está mergeado** (`3e6351f`). `main` se integró en `feat/chart-embed` (`daa3de6`) sin conflictos, y sin
+    duplicar el ítem del cargador.
+- **L50 (2026-10-18, medición de formatos de `odp-docker`):** en un stack aislado con xloader 2.6.0, `DateStyle 'ISO,
+  DMY'` y recargas por el camino (b). El resumen y lo que queda por decidir están en el ítem del cargador del
+  `BACKLOG.md`. **Para esta feature:** los mapas `TYPES` del seed sólo usan `text`, `numeric` y `timestamp`, y el seed
+  comprueba los tipos después de recargar (`checkTypes`), que es el paso que atrapa el fallo más silencioso: una
+  columna `date`, `int` o `bool` que pasa a otro tipo sin avisar. **Aparte**, `odp-docker` encontró un problema de
+  seguridad en xloader y se lo reportó al autor; el arreglo espera su decisión. El seed no se ve afectado.
+- **L51 (2026-10-18, P6d hecha, los dos playgrounds borrados):**
+  - **El editor** (`acea742`): `split` con el panel a la derecha es el único layout. El paso del rango se propone con
+    `defaultRangeStep` (`src/lib/charts/step.ts`, regla 1/2/5×10ⁿ, 17 tests con RED observado) sobre el mínimo y el
+    máximo que lee `readColumnRange` (`src/lib/charts/column-range.ts`, 5 tests con RED observado).
+  - **Corrección del padre sobre el worker:** la lectura del máximo saltaba los nulos con `filters: {col: null}`, y ese
+    filtro de CKAN cuenta 0 sobre una columna con vacíos (medido en `monto_ejecutado`). El paso habría caído siempre a
+    1. Se reemplazó por `sort: "\"col\" desc nulls last"`, que CKAN acepta (medido: 398.177,9). En `salario` propone
+    2.000.
+  - **El recurso** (`89efc69`): pestañas con línea e íconos por tipo de gráfico (un solo mapa `CHART_ICONS`, fácil de
+    quitar), y «Crear gráfico» en la banda de acciones del hero, con `ACCION_BASE`. Sin `datastore_active` no hay
+    pestañas. **Con 0 gráficos tampoco hay barra:** una sola pestaña no deja elegir nada, así que se ve la tabla y debajo
+    el aviso (invitación para el editor). El costo, sin medir, es que la tabla baja 48 px cuando la barra aparece al
+    cargar.
+  - **Verificación del padre:** 219/219 en los componentes de recurso y las rutas de dataset. La página del recurso
+    responde 200 y `/dev/chart-editor` y `/dev/resource-views` responden 404. El worker corrió la suite completa con
+    1529/1529 y `pnpm check` sin errores.
+  - **Incidente del padre:** un `git commit` de documentación se llevó los `git rm` que el worker había dejado en el
+    índice. Como los commits no estaban subidos, se separó con `reset --soft`: la documentación quedó en `2be8699` y los
+    borrados en `89efc69`. **Regla:** con un worker activo, revisar `git diff --cached --stat` antes de commitear.
+  - **Sin ver en un navegador:** los íconos, la altura de la barra y el hero.
+- **L52 (2026-10-18, rotación de tokens de `odp-docker` y verificación del padre):** sin el arreglo, `xloader_status`
+  devolvía `task_info.api_key`, el token de servicio de xloader, que es de `ckan_admin`. El arreglo es una cadena de
+  `umss` que quita esa clave (PR #30 de `odp-docker`). Se revocaron el token viejo de xloader y 14 tokens de DataPusher
+  que habían quedado; el sysadmin conserva el del portal y uno nuevo de xloader. **El padre verificó después del
+  reinicio:** :8082 responde 200, y `umss_chart_data` de la vista guardada de la planilla da los mismos grupos que L44
+  (2.500 filas). **El puente del portal nunca expuso `xloader_status`:** responde 404 «Acción no disponible». El seed lo
+  llama directo a CKAN con el token del sysadmin y sólo lee `status`.
+- **L53 (2026-10-18, la banda de acciones del hero del recurso, decisiones del autor):** «Descargar recurso» y «Crear
+  gráfico» no coincidían. Se tomó la forma del botón nuevo (`ACCION_BASE`, la de las acciones del dataset) y, a pedido
+  del autor, la descarga **conserva su color coral** («esto hacía resaltar el hecho de poder descargar los archivos»).
+  Las dos cosas se combinan con `cn`, y `twMerge` reemplaza el fondo de la base. Test con RED observado. El autor validó
+  con *throttling* que la barra de pestañas que aparece al cargar no molesta, y aprobó los íconos por tipo. Suite
+  completa 1530/1530 y `pnpm check` sin errores.

@@ -1,27 +1,36 @@
 <script lang="ts">
-import { BarChart3, Pencil, Plus, Trash2 } from "@lucide/svelte";
-import { Dialog } from "bits-ui";
+import { BarChart3, ChartColumn, ChartLine, ChartPie, Pencil, Table, Trash2 } from "@lucide/svelte";
+import { Dialog, Tabs } from "bits-ui";
+import type { Snippet } from "svelte";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import { describeFailure } from "$lib/api/failure";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import ChartViewBody from "./ChartViewBody.svelte";
+import EmbedChartDialog from "./EmbedChartDialog.svelte";
 
 // Los gráficos de un recurso en su página (S1): el visitante los ve; quien puede editar, además, crea, edita y
 // elimina. La configuración la guardó quien publica y la agregación la hace el servidor: acá sólo se lista, se
 // dibuja y se pregunta antes de borrar.
 //
 // `canEdit` sólo decide qué se **ofrece**: el servidor exige `resource_update` de todos modos.
+//
+// La página del recurso es una barra de pestañas con línea: «Tabla» (la vista previa, que vive fuera de este
+// componente y llega en `table`) y una pestaña por gráfico. «Crear gráfico» no está acá: lo ofrece el encabezado
+// del recurso. Con 0 gráficos no hay barra (una sola pestaña no elige nada): la tabla va sola y, debajo, el
+// aviso de que no hay gráficos, que a quien edita lo invita a crear el primero.
 let {
 	resourceId,
 	datasetId,
 	api,
 	canEdit,
+	table,
 }: {
 	resourceId: string;
 	datasetId: string;
 	api: Pick<ChartApi, "listViews" | "data" | "deleteView">;
 	canEdit: boolean;
+	table?: Snippet;
 } = $props();
 
 type ListState =
@@ -86,29 +95,75 @@ async function confirmDelete() {
 	}
 }
 
+let activeTab = $state("table");
+// Si la pestaña activa era un gráfico que ya no existe (se eliminó), se vuelve a la tabla.
+$effect(() => {
+	if (
+		list.status === "ready" &&
+		activeTab !== "table" &&
+		!list.views.some((v) => v.id === activeTab)
+	) {
+		activeTab = "table";
+	}
+});
+
+// Los íconos de las pestañas son una prueba del autor (L49): se quitan borrando este mapa y el `<Icon>` del
+// disparador de la pestaña.
+const CHART_ICONS = { bar: ChartColumn, line: ChartLine, pie: ChartPie } as const;
+const chartIcon = (view: ChartView) =>
+	CHART_ICONS[view.config.chart_type as keyof typeof CHART_ICONS] ?? BarChart3;
+
+// La barra existe sólo cuando hay algo que elegir: la tabla y al menos un gráfico.
+const views = $derived(list.status === "ready" ? list.views : []);
+const tabbed = $derived(views.length > 0);
+
+const triggerClass =
+	"inline-flex h-12 cursor-pointer items-center gap-2 border-b-2 border-transparent px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-primary motion-reduce:transition-none";
+
 const actionClass =
 	"inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
 </script>
 
-<section aria-labelledby="resource-charts-heading" class="space-y-4">
-	<div class="flex flex-wrap items-end justify-between gap-3">
-		<div>
-			<p class="text-xs font-medium uppercase tracking-wider text-destructive">Gráficos</p>
-			<h2 id="resource-charts-heading" class="mt-1 font-heading text-xl font-bold text-primary">
-				Gráficos del recurso
-			</h2>
+{#snippet chartCard(view: ChartView)}
+	<Card class="space-y-4 p-5 sm:p-6">
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div class="min-w-0">
+				<h3 class="font-heading text-lg font-bold text-foreground">{viewTitle(view)}</h3>
+				{#if view.description.trim()}
+					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+						{view.description}
+					</p>
+				{/if}
+			</div>
+			<div class="flex shrink-0 flex-wrap gap-2">
+				<!-- Insertar es una lectura: lo ve cualquier visitante, no sólo quien edita. -->
+				<EmbedChartDialog view={{ id: view.id, title: viewTitle(view) }} />
+				{#if canEdit}
+					<a
+						href="{basePath}/{view.id}/edit"
+						aria-label="Editar el gráfico «{viewTitle(view)}»"
+						class={actionClass}
+					>
+						<Pencil class="size-4" aria-hidden="true" />
+						Editar
+					</a>
+					<button
+						type="button"
+						aria-label="Eliminar el gráfico «{viewTitle(view)}»"
+						onclick={() => askToDelete(view)}
+						class="{actionClass} cursor-pointer text-destructive hover:text-destructive"
+					>
+						<Trash2 class="size-4" aria-hidden="true" />
+						Eliminar
+					</button>
+				{/if}
+			</div>
 		</div>
-		{#if canEdit}
-			<a
-				href="{basePath}/new"
-				class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none"
-			>
-				<Plus class="size-4" aria-hidden="true" />
-				Crear gráfico
-			</a>
-		{/if}
-	</div>
+		<ChartViewBody {view} {api} />
+	</Card>
+{/snippet}
 
+{#snippet states()}
 	{#if list.status === "loading"}
 		<Card class="p-5">
 			<div class="h-48 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" role="status">
@@ -133,45 +188,40 @@ const actionClass =
 					: "Cuando quien publica el recurso configure uno, aparecerá aquí."}
 			</p>
 		</Card>
-	{:else}
-		<div class="space-y-6">
-			{#each list.views as view (view.id)}
-				<Card class="space-y-4 p-5 sm:p-6">
-					<div class="flex flex-wrap items-start justify-between gap-3">
-						<div class="min-w-0">
-							<h3 class="font-heading text-lg font-bold text-foreground">{viewTitle(view)}</h3>
-							{#if view.description.trim()}
-								<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-									{view.description}
-								</p>
-							{/if}
-						</div>
-						{#if canEdit}
-							<div class="flex shrink-0 gap-2">
-								<a
-									href="{basePath}/{view.id}/edit"
-									aria-label="Editar el gráfico «{viewTitle(view)}»"
-									class={actionClass}
-								>
-									<Pencil class="size-4" aria-hidden="true" />
-									Editar
-								</a>
-								<button
-									type="button"
-									aria-label="Eliminar el gráfico «{viewTitle(view)}»"
-									onclick={() => askToDelete(view)}
-									class="{actionClass} cursor-pointer text-destructive hover:text-destructive"
-								>
-									<Trash2 class="size-4" aria-hidden="true" />
-									Eliminar
-								</button>
-							</div>
-						{/if}
-					</div>
-					<ChartViewBody {view} {api} />
-				</Card>
+	{/if}
+{/snippet}
+
+<section aria-labelledby="resource-charts-heading" class="space-y-4">
+	<h2 id="resource-charts-heading" class="sr-only">Vista previa y gráficos del recurso</h2>
+	{#if tabbed}
+		<Tabs.Root bind:value={activeTab}>
+			<div class="border-b border-border">
+				<Tabs.List class="-mb-px flex flex-wrap gap-1" aria-label="Vistas del recurso">
+					<Tabs.Trigger value="table" class={triggerClass}>
+						<Table class="size-4 shrink-0" aria-hidden="true" />
+						Tabla
+					</Tabs.Trigger>
+					{#each views as view (view.id)}
+						{@const Icon = chartIcon(view)}
+						<Tabs.Trigger value={view.id} class="{triggerClass} max-w-64">
+							<Icon class="size-4 shrink-0" aria-hidden="true" />
+							<span class="truncate">{viewTitle(view)}</span>
+						</Tabs.Trigger>
+					{/each}
+				</Tabs.List>
+			</div>
+			<Tabs.Content value="table" class="pt-4">
+				{@render table?.()}
+			</Tabs.Content>
+			{#each views as view (view.id)}
+				<Tabs.Content value={view.id} class="pt-4">
+					{@render chartCard(view)}
+				</Tabs.Content>
 			{/each}
-		</div>
+		</Tabs.Root>
+	{:else}
+		{@render table?.()}
+		{@render states()}
 	{/if}
 </section>
 

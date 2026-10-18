@@ -15,7 +15,14 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { COLUMNS, formatCsv, generateCsv, OUTPUT_PATH, ROW_COUNT } from "./generate-demo-csv.mjs";
+import {
+	COLUMNS,
+	formatCsv,
+	generateCsv,
+	OUTPUT_PATH,
+	ROW_COUNT,
+	TYPES,
+} from "./generate-demo-csv.mjs";
 
 // ── Parser RFC 4180 mínimo, para no depender de `papaparse` en un test de scripts ──
 
@@ -211,4 +218,16 @@ test("el CSV versionado en scripts/data/ coincide con el generador", () => {
 		csv,
 		"el CSV versionado no coincide con el generador: corra `node scripts/generate-demo-csv.mjs`",
 	);
+});
+
+test("las claves del mapa de tipos son exactamente los encabezados del CSV (L36)", () => {
+	const [header] = csv.split("\n");
+	assert.deepEqual(Object.keys(TYPES).sort(), header.split(",").sort());
+	assert.deepEqual(
+		Object.keys(TYPES).filter((column) => TYPES[column] !== "text"),
+		["n", "horas_mes", "bs_hora", "salario", "fecha_ingreso"],
+	);
+	assert.equal(TYPES.fecha_ingreso, "timestamp");
+	for (const type of Object.values(TYPES))
+		assert.ok(["numeric", "timestamp", "text"].includes(type));
 });

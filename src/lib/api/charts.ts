@@ -79,6 +79,16 @@ export function createChartApi(client: CkanClient) {
 			return views.filter((view) => view.view_type === CHART_VIEW_TYPE).map(toChartView);
 		},
 
+		/**
+		 * Una vista por su id (la página incrustable sólo conoce el id de la vista, no el del recurso). Devuelve
+		 * `null` si lo que el catálogo guardó con ese id no es una vista `umss_chart`: para esta página es lo mismo
+		 * que no existir.
+		 */
+		async getView(viewId: string): Promise<ChartView | null> {
+			const view = await client.post<CkanChartView>("resource_view_show", { id: viewId });
+			return view.view_type === CHART_VIEW_TYPE ? toChartView(view) : null;
+		},
+
 		/** Los grupos de una vista **guardada** (la llamada del visitante). */
 		async data(viewId: string): Promise<ChartData> {
 			return client.post<ChartData>("umss_chart_data", { view_id: viewId });

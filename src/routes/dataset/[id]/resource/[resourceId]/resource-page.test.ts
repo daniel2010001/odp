@@ -720,6 +720,29 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		return { band: band as HTMLElement, titleRow: titleRow as HTMLElement };
 	}
 
+	it("la acción del recurso tiene la forma de las acciones del hero, con el color de la descarga (2026-10-18)", async () => {
+		const { band } = await renderHero();
+		const action = within(band).getByRole("link", { name: /Abrir enlace|Descargar recurso/i });
+
+		// La forma es la de «Crear gráfico» y la de «Editar» en la ficha del dataset (`ACCION_BASE`): mismo alto,
+		// radio, relleno y texto. El color coral se conserva para que descargar resalte (decisión del autor).
+		for (const token of [
+			"inline-flex",
+			"h-9",
+			"rounded-lg",
+			"px-3",
+			"text-sm",
+			"font-medium",
+			"gap-2",
+		]) {
+			expect(action.classList).toContain(token);
+		}
+		expect(action.classList).toContain("bg-destructive");
+		expect(action.classList).toContain("text-destructive-foreground");
+		expect(action.classList).not.toContain("bg-background");
+		expect(action.classList).not.toContain("py-2.5");
+	});
+
 	it("los dos controles rotulados viven en la banda de la acción, con el contador en el medio", async () => {
 		const { band } = await renderHero();
 		const action = within(band).getByRole("link", { name: /Abrir enlace|Descargar recurso/i });

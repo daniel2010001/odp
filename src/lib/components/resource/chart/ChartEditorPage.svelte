@@ -16,13 +16,13 @@ import {
 	statusFor,
 } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
+import { readColumnRange } from "$lib/charts/column-range";
 import { isSupportedChartVersion } from "$lib/charts/contract";
 import { draftFromConfig } from "$lib/charts/form";
 import { canEditResourceCharts } from "$lib/charts/permission";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
-import Card from "$lib/components/ui/card/card.svelte";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanPackage, CkanResource } from "$lib/types/ckan";
@@ -178,6 +178,11 @@ $effect(() => {
 // El formulario habla con el mismo puente que el resto de la página.
 const chartApi = createChartApi(createPortalClient());
 
+/** El mínimo y el máximo de una columna, para proponer el paso de los rangos (L49). */
+function columnRange(column: string) {
+	return readColumnRange(createPortalClient(), resource?.id ?? resourceId ?? "", column);
+}
+
 function backToResource() {
 	void goto(resourcePath);
 }
@@ -311,21 +316,21 @@ const failureActionsFor = $derived(
 				</p>
 			</header>
 
-			<Card class="p-5 lg:overflow-visible">
-				{#key outcome.view?.id ?? "new"}
-					<ChartForm
-						fields={outcome.fields}
-						api={chartApi}
-						resourceId={resource?.id ?? resourceId ?? ""}
-						viewId={outcome.view?.id}
-						initialTitle={outcome.view?.title ?? ""}
-						initialDescription={outcome.view?.description ?? ""}
-						initialConfig={outcome.view ? draftFromConfig(outcome.view.config) : undefined}
-						onsaved={backToResource}
-						oncancel={backToResource}
-					/>
-				{/key}
-			</Card>
+			<!-- Sin tarjeta propia: el formulario trae sus tarjetas separadas y el gráfico (L49). -->
+			{#key outcome.view?.id ?? "new"}
+				<ChartForm
+					fields={outcome.fields}
+					api={chartApi}
+					resourceId={resource?.id ?? resourceId ?? ""}
+					viewId={outcome.view?.id}
+					initialTitle={outcome.view?.title ?? ""}
+					initialDescription={outcome.view?.description ?? ""}
+					initialConfig={outcome.view ? draftFromConfig(outcome.view.config) : undefined}
+					onsaved={backToResource}
+					oncancel={backToResource}
+					readColumnRange={columnRange}
+				/>
+			{/key}
 		</section>
 	{:else}
 		{@const copy = STATE_COPY[outcome.kind]}
