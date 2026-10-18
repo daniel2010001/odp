@@ -124,7 +124,7 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
 | P5 | Correcciones del formulario sobre la página real: ocultar los selectores con una sola opción y actualizarlos al cambiar la columna, título obligatorio validado en el portal con mensaje en español, obligatorio/opcional marcado, topes y contador como en el formulario del dataset (L37, puntos 6, 8 y 9) | S4 | padre (inline) — **hecha** (L38) | `8b7fb55` |
 | P6 | Playground de disposición: lado del panel, separación Datos/Presentación, estilo del panel (columna, acordeón, el de la barra del buscador), pestañas de vistas en la página del recurso y lugar de «Crear gráfico» (L37, puntos 1, 3, 5, 7 y 10) | S1, S4 | workers; playground (regla 8) — **playgrounds listos, falta la elección del autor** (L40) | `90f532e` (P6a), `d8b39e4` (P6b) |
 | T7 | 3 CSV más para la demo: matrícula por facultad y gestión, ejecución presupuestaria mensual y producción de investigación; generadores deterministas con su mapa de tipos, y alta en el seed por el flujo (L42). El paso de tipos de xloader (L36) va aparte, cuando se haga el cambio — **hecha salvo correr el seed** (L43) | S5 | worker | `aeedd42` |
-| T7b | El seed declara los tipos con xloader (`datastore_create` `force` + `type_override`, y después `xloader_submit`), medido en vivo después del cambio de `odp-docker` (L36) | S5 | por definir | — |
+| T7b | El seed declara los tipos con xloader (`datastore_create` `force` + `type_override`, y después `xloader_submit`), medido en vivo después del cambio de `odp-docker` (L36) — **hecha y corrida en vivo** (L45) | S5 | worker + verificación del padre | `0773a1e` |
 | T5 | Sumar la feature al guion de la presentación | S5 | inline | — |
 | T6 | Datos para la demo: al menos un CSV real subido y cargado en el DataStore — **hecha** (L15, L16) | S5 | worker + verificación en vivo del padre | `d4597d5` y el commit del seed por el flujo |
 
@@ -670,3 +670,17 @@ las cinco acciones a las permitidas, y **ninguna a las de lectura** (`GET`): el 
   (`total_rows` 2.500), los mismos valores que L15. La forma de editor sin sesión responde `Authorization Error`, como
   debe. **Para T7b:** un `xloader_submit` sobre un archivo que no cambió se salta por el hash, así que después del
   `type_override` va con `ignore_hash: true`.
+- **L45 (2026-10-17, T7b hecha y el seed corrido en vivo):**
+  - **El paso nuevo, `ensureTyped`, para cada dataset de la demo:** subir con el dataset todavía privado, esperar la
+    primera carga (`xloader_status` hasta `complete`), `datastore_create` con `force` y `info: {type_override, label,
+    notes}`, `xloader_submit` con `ignore_hash`, esperar, verificar los tipos y el total, y recién entonces publicar por
+    el flujo. Un fallo o un timeout (120 s) deja ese dataset privado, con una línea ✗, sin abortar el seed.
+  - **Idempotencia:** un dataset ya público no se toca. La segunda corrida dio «Creados 0 datasets, 20 ya existían».
+  - **Lo que se leyó de xloader 2.6.0 en el contenedor:** `xloader_submit` en `action.py:25`, `xloader_status` en
+    `action.py:304`, sus estados en `action.py:246-252`, y el tipo al recargar en `loader.py:449-455`.
+  - **Resultado:** los tres datasets están publicados y tipados, con 1.568, 1.329 y 1.054 filas. La planilla quedó
+    intacta.
+  - **Verificación del padre, como anónimo por el puente:** `datastore_search` del presupuesto da 1.329 filas, con
+    `fecha_registro` `timestamp` y los dos montos `numeric`. Cero tokens `seed*` restantes en la CLI, y 80/80 en
+    `node --test scripts/`.
+  - **Sin ejercitar en vivo:** la recuperación de un dataset subido pero privado. **Sin RED separado.**
