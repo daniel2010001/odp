@@ -5,8 +5,9 @@
 // espejado de src/lib/mock/data.ts, para que el portal muestre datos reales
 // en lugar de listas vacías. Casi todos los recursos son enlaces (url-only); la
 // excepción son los datasets ficticios de la demo (`DEMOS`: `planilla-docente-ficticia` y los
-// tres de T7), que se **suben** como archivo para que el DataPusher lo cargue en el DataStore. Sin eso la
-// demo de gráficos no tiene nada que graficar (L4 de odd/tasks/csv-charts.md, T6).
+// tres de T7), que se **suben** como archivo para que xloader lo cargue en el DataStore. Sin eso la
+// demo de gráficos no tiene nada que graficar (L4 de odd/tasks/csv-charts.md, T6). xloader carga todo
+// como texto, así que después de la carga el seed declara los tipos (`ensureTyped`, L36).
 //
 // Uso con la contraseña del sysadmin (flujo original):
 //   CKAN_URL=http://localhost:5000 \
@@ -35,12 +36,18 @@
 // existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
 // corrida anterior murió entre crear y aprobar), se reusa la solicitud pendiente o se pide
 // una nueva, y se termina la publicación. Si a un dataset de la demo le falta el recurso, se
-// sube sólo el recurso.
+// sube sólo el recurso. Un dataset de la demo ya público no se toca (tampoco su tabla).
 // No se guarda ninguna credencial en el repo: se leen del entorno en cada corrida.
 
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { parseCsv } from "./generate-csv-common.mjs";
+import { TYPES as PLANILLA_TYPES } from "./generate-demo-csv.mjs";
+import { TYPES as INVESTIGACION_TYPES } from "./generate-investigacion-csv.mjs";
+import { TYPES as MATRICULA_TYPES } from "./generate-matricula-csv.mjs";
+import { TYPES as PRESUPUESTO_TYPES } from "./generate-presupuesto-csv.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -505,12 +512,12 @@ const SHOWCASE = {
 // producción de investigación va a `direccion-investigacion`, que es lo que esa dirección
 // coordina.
 //
-// TODO(T7b): hoy el DataPusher tipa las columnas solo. Cuando el seed declare los tipos con
-// xloader (L36), saldrán del `TYPES` de cada generador.
+// `types` es el `TYPES` del generador: el seed lo declara como `type_override` (L36).
 const DEMOS = [
 	{
 		owner_org_name: "rectorado",
 		generator: "generate-demo-csv.mjs",
+		types: PLANILLA_TYPES,
 		dataset: {
 			name: "planilla-docente-ficticia",
 			title: "Planilla docente ficticia — Datos ficticios para demostración",
@@ -543,6 +550,7 @@ const DEMOS = [
 	{
 		owner_org_name: "rectorado",
 		generator: "generate-matricula-csv.mjs",
+		types: MATRICULA_TYPES,
 		dataset: {
 			name: "matricula-facultad-gestion-ficticia",
 			title: "Matrícula por facultad y gestión ficticia — Datos ficticios para demostración",
@@ -575,6 +583,7 @@ const DEMOS = [
 	{
 		owner_org_name: "rectorado",
 		generator: "generate-presupuesto-csv.mjs",
+		types: PRESUPUESTO_TYPES,
 		dataset: {
 			name: "ejecucion-presupuestaria-ficticia",
 			title: "Ejecución presupuestaria mensual ficticia — Datos ficticios para demostración",
@@ -607,6 +616,7 @@ const DEMOS = [
 	{
 		owner_org_name: "direccion-investigacion",
 		generator: "generate-investigacion-csv.mjs",
+		types: INVESTIGACION_TYPES,
 		dataset: {
 			name: "produccion-investigacion-ficticia",
 			title: "Producción de investigación ficticia — Datos ficticios para demostración",
@@ -640,6 +650,114 @@ const DEMOS = [
 	},
 ];
 
+// ── Tipos de columna con xloader (L36, L44) ──
+//
+// xloader carga todo como `text` salvo que el Data Dictionary declare `info.type_override`.
+// Camino soportado: esperar la primera carga (texto), declarar los tipos con `datastore_create`
+// `force`, recargar con `xloader_submit` (`ignore_hash`, porque el archivo no cambió) y esperar.
+// Acciones y forma de la respuesta: `ckanext-xloader` 2.6.0, `action.py` (`xloader_status`
+// devuelve `{status, job_id, error, ...}`; `status` es `submitting`, `pending`, `running`,
+// `running_but_viewable`, `complete` o `error`).
+
+const XLOADER_TIMEOUT_MS = Number(process.env.SEED_XLOADER_TIMEOUT_MS ?? 120_000);
+const XLOADER_POLL_MS = 1_000;
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
+// Espera a que xloader termine (`complete`) o falle (`error`). Devuelve `{ ok, detail }`.
+// Un `NotFound` al principio es normal: el trabajo se encola de forma asíncrona tras la subida.
+async function waitForXloader(token, resourceId, label) {
+	const deadline = Date.now() + XLOADER_TIMEOUT_MS;
+	let last = "sin tarea todavía";
+	while (Date.now() < deadline) {
+		const res = await api(token, "xloader_status", { resource_id: resourceId });
+		if (res.success) {
+			const { status, error } = res.result;
+			last = status;
+			if (status === "complete") return { ok: true, detail: status };
+			if (status === "error") {
+				return { ok: false, detail: `xloader terminó en error (${errorText(error)})` };
+			}
+		} else {
+			last = `xloader_status: ${errorText(res.error)}`;
+		}
+		await sleep(XLOADER_POLL_MS);
+	}
+	return {
+		ok: false,
+		detail: `tiempo agotado (${XLOADER_TIMEOUT_MS / 1000} s) esperando a xloader en «${label}»; último estado: ${last}`,
+	};
+}
+
+// Lee los tipos que informa el DataStore y los compara con los esperados. `limit: 0` trae los
+// `fields` y el `total` sin filas. Devuelve `{ ok, problems }`.
+async function checkTypes(token, resourceId, types, rowCount) {
+	const res = await api(token, "datastore_search", { resource_id: resourceId, limit: 0 });
+	if (!res.success) return { ok: false, problems: [`datastore_search: ${errorText(res.error)}`] };
+	const reported = new Map(res.result.fields.map((field) => [field.id, field.type]));
+	const problems = [];
+	for (const [column, expected] of Object.entries(types)) {
+		const actual = reported.get(column);
+		if (actual !== expected)
+			problems.push(`${column}: ${actual ?? "ausente"} (esperado ${expected})`);
+	}
+	if (res.result.total !== rowCount) {
+		problems.push(`total: ${res.result.total} (esperado ${rowCount})`);
+	}
+	return { ok: problems.length === 0, problems };
+}
+
+// Deja la tabla del recurso con los tipos del generador. Nunca lanza: informa ✓/✗ y devuelve
+// un booleano, para que un dataset fallido no aborte el seed. Idempotente: si la tabla ya
+// tiene los tipos, no recarga nada.
+async function ensureTyped(token, resourceId, demo, rowCount) {
+	const name = demo.dataset.name;
+	const fail = (why) => {
+		console.error(`✗ tipos ${name}: ${why}`);
+		return false;
+	};
+
+	console.log(`  Esperando la primera carga de xloader (${name})…`);
+	const first = await waitForXloader(token, resourceId, name);
+	if (!first.ok) return fail(first.detail);
+
+	const before = await checkTypes(token, resourceId, demo.types, rowCount);
+	if (before.ok) {
+		console.log(`✓ tipos ${name}: ya declarados (${rowCount} filas)`);
+		return true;
+	}
+
+	// Se parte de los campos que ya tiene la tabla (sin `_id`), con su `id` y su `type`,
+	// y el `info` tal como lo escribe el formulario del Data Dictionary (`dictionary_form.html`:
+	// `type_override`, `label` y `notes`).
+	const current = await api(token, "datastore_search", { resource_id: resourceId, limit: 0 });
+	if (!current.success) return fail(`datastore_search: ${errorText(current.error)}`);
+	const fields = current.result.fields
+		.filter((field) => !field.id.startsWith("_"))
+		.map((field) => ({
+			id: field.id,
+			type: field.type,
+			info: { type_override: demo.types[field.id] ?? "text", label: "", notes: "" },
+		}));
+	const create = await api(token, "datastore_create", {
+		resource_id: resourceId,
+		force: true,
+		fields,
+	});
+	if (!create.success) return fail(`datastore_create: ${errorText(create.error)}`);
+
+	const submit = await api(token, "xloader_submit", { resource_id: resourceId, ignore_hash: true });
+	if (!submit.success) return fail(`xloader_submit: ${errorText(submit.error)}`);
+	console.log(`  Tipos declarados; recargando con xloader (${name})…`);
+	const second = await waitForXloader(token, resourceId, name);
+	if (!second.ok) return fail(second.detail);
+
+	const after = await checkTypes(token, resourceId, demo.types, rowCount);
+	if (!after.ok) return fail(after.problems.join("; "));
+	const numeric = Object.values(demo.types).filter((type) => type !== "text").length;
+	console.log(`✓ tipos ${name}: ${numeric} columnas no texto verificadas, ${rowCount} filas`);
+	return true;
+}
+
 // `multipart/form-data` es la única forma de que CKAN guarde el archivo: con JSON el
 // campo `upload` no existe, el recurso queda url-only y el DataPusher no tiene qué cargar.
 async function uploadResource(token, packageId, resource, bytes) {
@@ -658,6 +776,10 @@ async function uploadResource(token, packageId, resource, bytes) {
 		body: form,
 	});
 	return res.json();
+}
+
+function leftPrivate(name) {
+	console.error(`  ${name} queda privado: no se publica sin sus tipos. Corra el seed de nuevo.`);
 }
 
 async function seedDemoDataset(token, orgIdByName, demo) {
@@ -679,6 +801,8 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 		return { created: false, skipped: true };
 	}
 
+	const rowCount = parseCsv(bytes.toString("utf8")).length - 1;
+
 	// Idempotencia: el dataset se salta por `name`; el recurso, por `name` dentro de él.
 	// Así una corrida que falló a mitad (dataset creado, subida no) se completa sin duplicar.
 	const existing = await api(token, "package_show", { id: demo.dataset.name });
@@ -695,8 +819,14 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 		if (uploaded) {
 			console.log(`· dataset existente: ${demo.dataset.name} (recurso ya subido, se salta)`);
 			// La corrida anterior pudo morir entre la subida y la aprobación: con el archivo
-			// puesto, lo único que falta es publicar.
-			if (needsPublication) await publishDataset(token, pkg);
+			// puesto, falta comprobar los tipos (no recarga si ya están) y publicar. Lo ya público
+			// no se toca.
+			if (needsPublication) {
+				const resourceId = pkg.resources.find((r) => r.name === demo.resource.name).id;
+				const typed = await ensureTyped(token, resourceId, demo, rowCount);
+				if (typed) await publishDataset(token, pkg);
+				else leftPrivate(demo.dataset.name);
+			}
 			return { created: false, skipped: true };
 		}
 		console.log(`· dataset existente: ${demo.dataset.name} (le falta el recurso, se sube)`);
@@ -728,15 +858,12 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 		`✓ recurso subido: ${resource.id} (${bytes.length} bytes, url_type=${resource.url_type ?? "?"})`,
 	);
 	// La subida va con el dataset **todavía privado**: el permiso para subir es de la
-	// organización, no de la visibilidad, y así un fallo de la subida deja el dataset privado
-	// —la corrida siguiente ve el archivo y sólo completa la publicación— en vez de un dataset
-	// público y vacío, que es lo que la demo no puede mostrar.
-	if (needsPublication) await publishDataset(token, pkg);
-	// El seed **no espera** al DataPusher: encola la carga del CSV y sigue de largo.
-	console.log(
-		`  Carga pendiente en el DataStore (DataPusher). Para comprobarla: ` +
-			`curl -s "${CKAN_URL}/api/3/action/resource_show?id=${resource.id}" | grep -o '"datastore_active": *[a-z]*'`,
-	);
+	// organización, no de la visibilidad, y así un fallo de la subida o de los tipos deja el
+	// dataset privado —la corrida siguiente ve el archivo y sólo completa lo que falta— en vez
+	// de un dataset público, vacío o sin tipos, que es lo que la demo no puede mostrar.
+	const typed = await ensureTyped(token, resource.id, demo, rowCount);
+	if (!typed) leftPrivate(demo.dataset.name);
+	else if (needsPublication) await publishDataset(token, pkg);
 	return { created, skipped: false };
 }
 

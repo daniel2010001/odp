@@ -12,8 +12,8 @@
 //   · `fecha_ingreso` (YYYY-MM-DD) → `x_bucket: year` / `quarter` / `month`
 //   · `turno` y `fecha_ingreso` traen vacíos a propósito → el grupo `null`
 //
-// Los tipos son los que el DataPusher infiere (L9: `numeric`, `timestamp`, `text`), así
-// que el CSV se sube tal cual, sin `type_override`.
+// Los tipos son los que el DataPusher inferiría (L9: `numeric`, `timestamp`, `text`); con
+// xloader (L36, L44) el seed los declara desde `TYPES` como `type_override`.
 //
 // La forma de los datos sale del ejemplo del autor (L7): nombres y apellidos que nunca
 // se repiten, `cargo` con poca frecuencia, tres `turno`, `horas_mes` agrupadas por turno,
@@ -53,6 +53,21 @@ export const COLUMNS = [
 	"salario",
 	"fecha_ingreso",
 ];
+
+/** Tipo de cada columna para xloader (`type_override`), por nombre exacto de encabezado. */
+export const TYPES = {
+	n: "numeric",
+	nombre: "text",
+	apellido: "text",
+	departamento: "text",
+	facultad: "text",
+	cargo: "text",
+	turno: "text",
+	horas_mes: "numeric",
+	bs_hora: "numeric",
+	salario: "numeric",
+	fecha_ingreso: "timestamp",
+};
 
 // ── PRNG determinista ──
 
