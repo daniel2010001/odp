@@ -1,7 +1,8 @@
 <script lang="ts">
-import { Area, AreaChart, BarChart, LinearGradient, PieChart } from "layerchart";
+import { Area, AreaChart, BarChart, Bars, Labels, LinearGradient, PieChart } from "layerchart";
 import { type ChartGroup, type ChartType, groupLabels, type XBucket } from "$lib/charts/contract";
 import { formatChartNumber } from "$lib/charts/format";
+import { type BarValueLabels, barValueFormatter, valueLabelsFit } from "$lib/charts/value-labels";
 
 // El gráfico en sí: dibuja los grupos que le dan, ya agregados por el servidor.
 //
@@ -22,6 +23,7 @@ let {
 	xLabel,
 	yLabel,
 	showTable = true,
+	valueLabels = { mode: "off", placement: "outside", format: "full" },
 }: {
 	groups: ChartGroup[];
 	chartType: ChartType;
@@ -30,7 +32,11 @@ let {
 	xLabel: string;
 	yLabel: string;
 	showTable?: boolean;
+	/** Los valores sobre las barras: en prueba en `/dev/chart-values` (regla 8); apagado por defecto. */
+	valueLabels?: BarValueLabels;
 } = $props();
+
+const formatBarValue = $derived(barValueFormatter(valueLabels.format));
 
 const PALETTE = [
 	"var(--chart-1)",
@@ -143,6 +149,29 @@ const name = $derived(
 );
 </script>
 
+<!-- Las barras con su valor: mismas barras y mismo atenuado al resaltar que las de la biblioteca, más los
+     rótulos. «Sólo si caben» compara el ancho de cada barra con el del rótulo más largo. -->
+{#snippet barMarks({ context }: { context: any })}
+	<Bars
+		seriesKey="value"
+		stroke="none"
+		rounded="all"
+		radius={6}
+		opacity={(d: any) => (context.series.isHighlighted(context.cKey(d) ?? "value", true) ? 1 : 0.1)}
+	/>
+	{#if valueLabels.mode === "on" || valueLabelsFit(context.xScale.bandwidth?.() ?? 0, points.map((p) => formatBarValue(p.value)))}
+		<g class="bar-value-labels" aria-hidden="true">
+			<Labels
+				seriesKey="value"
+				placement={valueLabels.placement}
+				format={formatBarValue}
+				fill={valueLabels.placement === "inside" ? "var(--primary-foreground)" : "var(--foreground)"}
+				class="text-[11px] font-medium tabular-nums"
+			/>
+		</g>
+	{/if}
+{/snippet}
+
 <div class="space-y-3">
 	<div class="relative">
 		<div role="img" aria-label={name} class="resource-chart h-80 w-full min-w-0 text-foreground">
@@ -152,10 +181,17 @@ const name = $derived(
 					x="index"
 					y="value"
 					series={[{ key: "value", label: yLabel, color: "var(--chart-1)" }]}
-					padding={{ top: 8, right: 8, bottom: 64, left: 48 }}
+					padding={{
+						// El valor encima de la barra más alta necesita aire para no recortarse contra el borde.
+						top: valueLabels.mode !== "off" && valueLabels.placement === "outside" ? 22 : 8,
+						right: 8,
+						bottom: 64,
+						left: 48,
+					}}
 					grid={{ x: false, y: { stroke: "var(--border)", strokeWidth: 1, opacity: 0.7 } }}
 					rule={false}
 					{motion}
+					marks={valueLabels.mode === "off" ? undefined : barMarks}
 					props={{
 						bars: { stroke: "none", rounded: "all", radius: 6 },
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
