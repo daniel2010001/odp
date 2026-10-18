@@ -3066,16 +3066,30 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   graficar un dataset borrado de forma lógica (`csv-charts` L23). La organización y el dataset de prueba ya se
   borraron, verificados en Postgres, Solr y disco. Registro: `odp-docker/odd/tasks/loader-eval.md` (Run 3 y
   Cleanup).
-  **Con xloader (camino elegido por `odp-docker`, 2026-10-17, `csv-charts` L35–L36):** todo entra como texto y los
-  tipos se fijan después en el diccionario de datos (`type_override`) con una recarga. Postgres interpreta cada valor
-  con `DateStyle 'ISO, DMY'`, así que `dd/mm` deja de ser ambiguo, pero **un solo valor que no se pueda interpretar
-  hace fallar el cambio de tipo**, y la tabla puede desaparecer o quedar a medias (S4 de `odp-docker`, medido con
-  `1,5` como `numeric`). **El pedido del autor (2026-10-17, L37), textual:** «cuando esté en prod no creo que sea así de
-  conveniente, cómo vamos con la normalización? eg: las fechas ahora mismo es en perfecto ISO, quisas los csv no sean
-  así sino algo como "2000-01-01", "01/01/2000" "2000 1 1"». Los CSV de la demo están controlados; los de un
-  publicador real no. **Falta medir** qué formatos de fecha y número acepta Postgres bajo DMY y cuáles hacen fallar la
-  recarga. Esa medición se le pasó a `odp-docker`, que es dueña del cargador. Del lado del portal quedan la pantalla
-  para corregir tipos y el aviso antes de aplicar un tipo que no todos los valores cumplen.
+  **Medición 4: xloader 2.6.0** (sesión de `odp-docker`, `loader-eval.md` Run 4).
+  - **Por defecto (`COPY`):** carga todo como `text`, completo, sin cortes ni corrupción. Recorta espacios, conserva
+    los ceros a la izquierda y guarda las celdas vacías como `NULL`.
+  - **Con tipos declarados en el diccionario de datos:**
+    - las fechas ambiguas quedan como mm/dd sin aviso, porque Postgres usa `DateStyle ISO, MDY`;
+    - `timestamptz` conserva bien el offset;
+    - una coma decimal declarada `numeric` falla, y **la tabla queda a medias o se borra**.
+  - **Requiere** `ckanext.xloader.site_url` y un `ckan jobs worker`.
+  **Medición 5:** con `DateStyle ISO, DMY` en la base del DataStore más `parse_dates_dayfirst=true`, **todas las fechas
+  quedan bien**, incluso una columna de puras ambiguas (`03/04/2024` → 3 de abril). Las ISO no cambian y `timestamptz`
+  aplica el offset. **Sigue abierto:** un cambio de tipo que falla deja la tabla a medias o la borra.
+  **DECISIÓN DEL AUTOR (2026-10-17), textual:** «por mí podemos usar xloader, ya lo usé en otro proyecto muy similar y
+  sí veía los cambios respecto a datapusher». **Para `v1`: xloader con `DateStyle ISO, DMY` y
+  `parse_dates_dayfirst=true`.** El cambio de cargador es de `odp-docker`; el dev corre xloader desde el
+  2026-10-17 (`csv-charts` L44). DataPusher+ queda descartado por los choques medidos. El aviso de carga fallida (ítem siguiente) sigue
+  siendo necesario con xloader.
+  **El camino de tipos con xloader** (`csv-charts` L35–L36): todo entra como texto y los tipos se fijan después en el
+  diccionario de datos (`type_override`) con una recarga, así que **un solo valor que no se pueda interpretar hace
+  fallar el cambio de tipo**. **El pedido del autor (2026-10-17, L37), textual:** «cuando esté en prod no creo que sea
+  así de conveniente, cómo vamos con la normalización? eg: las fechas ahora mismo es en perfecto ISO, quisas los csv no
+  sean así sino algo como "2000-01-01", "01/01/2000" "2000 1 1"». Los CSV de la demo están controlados; los de un
+  publicador real no. **Falta medir** qué formatos de fecha y número aceptan los dos caminos de xloader y cuáles hacen
+  fallar la recarga; lo tomó `odp-docker` (`csv-charts` L39). Del lado del portal quedan la pantalla para corregir
+  tipos y el aviso antes de aplicar un tipo que no todos los valores cumplen.
 - [ ] **[v1] El portal no le dice al publicador que la carga de su tabla falló** (consecuencia de la medición 2, en el
   ítem anterior). Con el DataPusher actual, una carga fallida deja la tabla **activa e incompleta**, y la única señal
   es `datapusher_status: error`, que el portal no consulta. **Propuesta:** mostrar el estado de la carga en la página
@@ -3086,6 +3100,15 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   archivo con datos sucios.
   **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
   demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
+- [ ] **[v1] Vistas de recurso de CKAN: qué sirve en un portal headless** (pedido del autor, 2026-10-17;
+  investigado por la sesión de `odp-docker`, `odd/tasks/resource-views-research.md`). Las vistas previas de PDF e imagen
+  que se ven hoy las dibuja **el portal** (`ResourcePreview.svelte`), no CKAN. `audio_view`, `video_view` y
+  `webpage_view` vienen con CKAN 2.12, y `ckanext-pdfview` y `ckanext-geoview` están confirmadas para la 2.12
+  (ckan/ckan#9364). **Ojo:** como el portal es dueño de la interfaz, habilitar una vista en CKAN **no la muestra en el
+  portal**; para audio y video, el portal tendría que dibujarlos él mismo, como ya hace con PDF e imagen. Lo que sí
+  aporta habilitarlas es que la vista exista en los metadatos del recurso. `ckanext-charts` queda descartado: no está
+  en el issue de la 2.12, pide Redis 7+ (usamos 6) y se superpone con `umss_chart`.
+
 - [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
   generador arma palabras y oraciones, un randomizador produce números y fechas, y una inserción por lotes con un ORM
   de TypeScript (cree que Drizzle) cargaba ~3 millones de filas en 30 minutos. Ofreció buscarlo en su backup de
