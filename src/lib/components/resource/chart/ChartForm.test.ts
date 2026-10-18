@@ -11,7 +11,7 @@
 //  · un rechazo del servidor aparece en el campo que lo causó en vez de en un mensaje genérico.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
-import { flushSync } from "svelte";
+import { createRawSnippet, flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
@@ -462,5 +462,30 @@ describe("ChartForm — los errores del servidor vuelven a su campo", () => {
 
 		expect(await screen.findByText("No se pudo confirmar el acceso")).toBeInTheDocument();
 		expect(screen.getByText("Código 403")).toBeInTheDocument();
+	});
+});
+
+describe("ChartForm — el contenedor del gráfico acepta un alcance y controles de revisión", () => {
+	it("aplica la clase y las variables al contenedor del gráfico y dibuja los controles junto a él", () => {
+		render(ChartForm, {
+			props: {
+				fields: FIELDS,
+				api: makeApi(),
+				resourceId: "recurso-1",
+				chartScope: { class: "alcance-de-prueba", style: "--chart-1: red" },
+				chartTools: createRawSnippet(() => ({ render: () => "<p>Controles de prueba</p>" })),
+			},
+		});
+		const section = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+		expect(section?.classList.contains("alcance-de-prueba")).toBe(true);
+		expect(section?.getAttribute("style")).toContain("--chart-1");
+		expect(within(section as HTMLElement).getByText("Controles de prueba")).toBeTruthy();
+	});
+
+	it("sin alcance ni controles el contenedor queda como estaba", () => {
+		renderForm(makeApi());
+		const section = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
+		expect(section?.getAttribute("style")).toBeNull();
+		expect(section?.className).not.toContain("alcance");
 	});
 });

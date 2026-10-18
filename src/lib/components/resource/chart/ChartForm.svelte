@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Loader2 } from "@lucide/svelte";
-import { untrack } from "svelte";
+import { type Snippet, untrack } from "svelte";
 import type { ChartApi } from "$lib/api/charts";
 import type { DatastoreField } from "$lib/api/datastore";
 import { describeFailure } from "$lib/api/failure";
@@ -53,6 +53,8 @@ let {
 	initialTitle = "",
 	initialDescription = "",
 	initialConfig,
+	chartScope,
+	chartTools,
 }: {
 	fields: DatastoreField[];
 	api: Pick<ChartApi, "preview" | "createView">;
@@ -61,6 +63,10 @@ let {
 	initialDescription?: string;
 	/** El borrador de arranque; el playground lo usa para abrir cada caso ya configurado. */
 	initialConfig?: Partial<ChartDraft>;
+	/** Clase y variables en línea del contenedor del gráfico: el playground las usa para probar paletas. */
+	chartScope?: { class?: string; style?: string };
+	/** Controles de revisión que van al lado del gráfico, junto al interruptor de estilo (regla 8). */
+	chartTools?: Snippet;
 } = $props();
 
 const TYPE_OPTIONS: { value: ChartType; label: string }[] = [
@@ -525,7 +531,8 @@ async function save() {
 	<section
 		aria-labelledby="{uid}-chart"
 		aria-busy={busy}
-		class="min-w-0 space-y-3 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:flex-1"
+		class="min-w-0 space-y-3 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-6 lg:flex-1 {chartScope?.class ?? ''}"
+		style={chartScope?.style}
 	>
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<div>
@@ -557,6 +564,8 @@ async function save() {
 				{/each}
 			</div>
 		</div>
+
+		{@render chartTools?.()}
 
 		{#if busy}
 			<p class="flex items-center gap-2 text-sm text-muted-foreground" role="status">
