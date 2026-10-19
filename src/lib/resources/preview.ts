@@ -25,8 +25,12 @@ const TABULAR_MIMETYPES = new Set([
 /** Extensiones que el navegador puede mostrar en un `<img>`. */
 const IMAGE_FORMATS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp"]);
 
-/** Extensiones que se muestran como texto plano, sin motor de render. */
-const TEXT_FORMATS = new Set(["txt", "json", "geojson"]);
+/**
+ * Extensiones que se muestran como texto plano, sin motor de render. GeoJSON **no** está (S6 de
+ * odd/tasks/demo-honest-data.md): la ruta de descarga lo sirve como adjunto, y Chrome descarga un adjunto dentro de un
+ * iframe, así que entrar a la ficha disparaba la descarga. Queda en «none», con su botón de descarga.
+ */
+const TEXT_FORMATS = new Set(["txt", "json"]);
 
 /** Minúsculas y sin espacios alrededor: `undefined` y `""` colapsan al mismo «no declarado». */
 function normalize(value: string | undefined): string {
@@ -45,7 +49,7 @@ function normalize(value: string | undefined): string {
  *    2026-09-23, el DataPusher carga `csv, xls, xlsx, tsv, ods` por defecto, así que un XLSX puede
  *    tener una tabla funcionando; el viejo filtro `format === "csv"` era un falso negativo nuestro.
  * 3. Si no hay tabla, el tipo lo decide el `format` normalizado: `pdf` → `pdf`, imagen → `image`,
- *    `txt | json | geojson` → `text`.
+ *    `txt | json` → `text` (GeoJSON no: va a `none`, ver `TEXT_FORMATS`).
  * 4. Cualquier otra cosa → `none`. Incluye `csv` **sin** tabla: RF-31 pide una tabla de las primeras
  *    20 filas vía `datastore_search`, y volcar el CSV crudo como texto no es eso. El último `none`
  *    también agrupa los formatos desconocidos; `Gráfico` y `Mapa` no son clases de vista previa
