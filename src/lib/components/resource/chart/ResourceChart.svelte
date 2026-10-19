@@ -3,6 +3,14 @@ import { Area, AreaChart, BarChart, Bars, Labels, LinearGradient, PieChart } fro
 import { type ChartGroup, type ChartType, groupLabels, type XBucket } from "$lib/charts/contract";
 import { formatChartNumber } from "$lib/charts/format";
 import { formatCompactNumber, valueLabelsFit } from "$lib/charts/value-labels";
+import {
+	fitLabel,
+	type MeasureText,
+	resolveAutoMode,
+	wrapLabel,
+	type XLabelMode,
+	xAxisLayout,
+} from "$lib/charts/x-axis-labels";
 
 // El gráfico en sí: dibuja los grupos que le dan, ya agregados por el servidor.
 //
@@ -41,8 +49,6 @@ const PALETTE = [
 	"var(--chart-5)",
 ];
 
-// Con muchas categorías los rótulos del eje X se pisan: se muestran a lo sumo ~8, repartidos parejo.
-const MAX_X_TICKS = 8;
 // La leyenda del pastel no se parte en renglones: pasadas estas porciones se omite y queda la tabla.
 const MAX_LEGEND = 8;
 
@@ -108,18 +114,101 @@ $effect(() => {
 });
 const motion = $derived(reduceMotion ? ("none" as const) : undefined);
 
-const tickStep = $derived(Math.max(1, Math.ceil(points.length / MAX_X_TICKS)));
+// ─── Los rótulos del eje X ───
+// El ancho útil del eje sale del ancho del gráfico menos los márgenes; los rótulos se miden con la fuente
+// real del eje en un canvas. Sin canvas (pruebas, servidor) se estima a 6 px por carácter.
+const PADDING_X = { left: 48, right: 8 };
+const BASE_HEIGHT = 320;
+const BASE_BOTTOM = 64;
+const AXIS_FONT_SIZE = 11;
+const LINE_HEIGHT = 13;
+const ROTATE_DEGREES = -40;
+// Girado, un rótulo puede ser largo, pero no tanto que se coma el gráfico: se recorta a este ancho.
+const ROTATE_MAX_WIDTH = 140;
+const WRAP_MAX_LINES = 3;
+
+let chartWidth = $state(0);
+let chartEl = $state<HTMLDivElement>();
+
+const measure = $derived.by<MeasureText>(() => {
+	const fallback: MeasureText = (text) => text.length * 6;
+	if (!chartEl || typeof document === "undefined") return fallback;
+	const context = document.createElement("canvas").getContext("2d");
+	if (!context) return fallback;
+	context.font = `${AXIS_FONT_SIZE}px ${getComputedStyle(chartEl).fontFamily}`;
+	return (text) => context.measureText(text).width;
+});
+
+const innerWidth = $derived(chartWidth - PADDING_X.left - PADDING_X.right);
+
+// La forma del eje se resuelve una vez (derechos, en renglones o girados) y de ahí en adelante todo trabaja
+// con ella. Sin ancho medido todavía quedan derechos y `xAxisLayout` saltea rótulos como antes.
+const mode = $derived<XLabelMode>(
+	resolveAutoMode(
+		points.map((p) => p.axisLabel),
+		innerWidth,
+		measure,
+		WRAP_MAX_LINES,
+	),
+);
+
+const layout = $derived(xAxisLayout(mode, points.length, innerWidth));
+const tickStep = $derived(layout.tickStep);
+
+/** El rótulo del eje que se escribe, ya partido o recortado según la forma. */
+const shownLabels = $derived(
+	points.map((p) => {
+		if (mode === "wrap" && layout.labelWidth > 0)
+			return wrapLabel(p.axisLabel, layout.labelWidth, WRAP_MAX_LINES, measure);
+		if (mode === "rotate") return fitLabel(p.axisLabel, ROTATE_MAX_WIDTH, measure);
+		return p.axisLabel;
+	}),
+);
+
+// Lo que el eje necesita por debajo, aparte del margen de hoy: girado, la proyección vertical del rótulo
+// más largo; partido, los renglones de más. El alto del gráfico crece lo mismo, así el área de dibujo
+// no se achica.
+const extraBottom = $derived.by(() => {
+	if (mode === "rotate") {
+		const widest = Math.max(0, ...shownLabels.map((label) => measure(label)));
+		return Math.max(0, Math.ceil(widest * Math.sin((-ROTATE_DEGREES * Math.PI) / 180)) - 24);
+	}
+	if (mode === "wrap") {
+		const lines = Math.max(1, ...shownLabels.map((label) => label.split("\n").length));
+		return (lines - 1) * LINE_HEIGHT;
+	}
+	return 0;
+});
+const bottom = $derived(BASE_BOTTOM + extraBottom);
+
+// Girado, el primer rótulo termina en su marca y se extiende hacia la izquierda: si su proyección horizontal
+// pasa el margen izquierdo más media categoría, el margen crece lo que falta para que no se salga.
+const left = $derived.by(() => {
+	if (mode !== "rotate" || shownLabels.length === 0) return PADDING_X.left;
+	const slot = (chartWidth - PADDING_X.left - PADDING_X.right) / shownLabels.length;
+	const reach = measure(shownLabels[0]) * Math.cos((-ROTATE_DEGREES * Math.PI) / 180);
+	return Math.max(PADDING_X.left, Math.ceil(reach - slot / 2 + 4));
+});
+
+const xTickLabelProps = $derived(
+	mode === "rotate"
+		? {
+				...mutedTicks,
+				rotate: ROTATE_DEGREES,
+				textAnchor: "end" as const,
+				verticalAnchor: "middle" as const,
+			}
+		: mode === "wrap"
+			? { ...mutedTicks, lineHeight: `${LINE_HEIGHT}px` }
+			: mutedTicks,
+);
 
 // Las líneas usan el índice del grupo como X (los rótulos son texto) y lo traducen al rótulo.
 const indexed = $derived(points.map((p, i) => ({ ...p, index: i })));
-const axisLabelAt = (i: unknown) => points[Number(i)]?.axisLabel ?? "";
+const axisLabelAt = (i: unknown) => shownLabels[Number(i)] ?? "";
 // El tooltip de barras y líneas recibe el índice del grupo como X; el rótulo exacto lo pone acá.
 const intervalLabelAt = (i: unknown) => points[Number(i)]?.intervalLabel ?? String(i);
-const lineTicks = $derived(
-	points.length <= MAX_X_TICKS
-		? points.map((_, i) => i)
-		: points.map((_, i) => i).filter((i) => i % tickStep === 0),
-);
+const lineTicks = $derived(points.map((_, i) => i).filter((i) => i % tickStep === 0));
 // Las barras usan el índice del grupo como categoría: una escala de bandas con los mismos rótulos
 // fusionaría dos grupos distintos.
 const barTicks = $derived((scale: { domain(): unknown[] }) =>
@@ -171,7 +260,14 @@ const name = $derived(
 
 <div class="space-y-3">
 	<div class="relative">
-		<div role="img" aria-label={name} class="resource-chart h-80 w-full min-w-0 text-foreground">
+		<div
+			role="img"
+			aria-label={name}
+			class="resource-chart w-full min-w-0 text-foreground"
+			style:height="{BASE_HEIGHT + (chartType === 'pie' ? 0 : extraBottom)}px"
+			bind:this={chartEl}
+			bind:clientWidth={chartWidth}
+		>
 			{#if chartType === "bar"}
 				<BarChart
 					data={barData}
@@ -181,9 +277,9 @@ const name = $derived(
 					padding={{
 						// El valor encima de la barra más alta necesita aire para no recortarse contra el borde.
 						top: 22,
-						right: 8,
-						bottom: 64,
-						left: 48,
+						right: PADDING_X.right,
+						bottom,
+						left,
 					}}
 					grid={{ x: false, y: { stroke: "var(--border)", strokeWidth: 1, opacity: 0.7 } }}
 					rule={false}
@@ -191,7 +287,7 @@ const name = $derived(
 					marks={barMarks}
 					props={{
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
-						xAxis: { tickMarks: false, ticks: barTicks, format: axisLabelAt, tickLabelProps: mutedTicks },
+						xAxis: { tickMarks: false, ticks: barTicks, format: axisLabelAt, tickLabelProps: xTickLabelProps },
 						yAxis: { tickMarks: false, format: formatChartNumber, tickLabelProps: mutedTicks },
 					}}
 				/>
@@ -203,14 +299,14 @@ const name = $derived(
 					x="index"
 					y="value"
 					series={[{ key: "value", label: yLabel, color: "var(--chart-1)" }]}
-					padding={{ top: 8, right: 12, bottom: 64, left: 48 }}
+					padding={{ top: 8, right: 12, bottom, left }}
 					highlight={{ lines: false, points: { r: 4, stroke: "var(--card)", strokeWidth: 2 } }}
 					grid={{ x: false, y: { stroke: "var(--border)", strokeWidth: 1, opacity: 0.7 } }}
 					rule={false}
 					{motion}
 					props={{
 						tooltip: { ...chartTooltip, header: { format: intervalLabelAt } },
-						xAxis: { tickMarks: false, ticks: lineTicks, format: axisLabelAt, tickLabelProps: mutedTicks },
+						xAxis: { tickMarks: false, ticks: lineTicks, format: axisLabelAt, tickLabelProps: xTickLabelProps },
 						yAxis: { tickMarks: false, format: formatChartNumber, tickLabelProps: mutedTicks },
 					}}
 				>
