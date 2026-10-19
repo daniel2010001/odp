@@ -2935,6 +2935,12 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   misma familia que el ítem del responsive del salto.
   **Los gráficos y mapas todavía no existen**: son el Módulo de Análisis, diferido a `v1+`, y los tabs simulados se
   quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
+  **Reiterado por el autor (2026-10-18, no urgente), textual:** «el tamaño predeterminado de las vistas previas quisiera
+  tocarlo, ahora mismo estoy en una pantalla fhd de 27 pulgadas y el espacio se de la vista previa es pequeño cuando
+  intento ver pdf, lo mismo pasaba con imágenes, pero cuando estoy en la pantalla de mi laptop sí que se ve bien el
+  alto, esto creo que solo pasa en las pantallas grandes como la de fhd de 27 pulgadas». Apunta al criterio
+  proporcional a la ventana, con un mínimo para la laptop. Medir en 1366×768 y 1920×1080 y probarlo en playground
+  (regla 8).
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
 - [ ] **El botón «Copiar enlace» del recurso no sigue la disposición del dataset** (TODO del autor, 2026-10-17,
@@ -2972,6 +2978,16 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   `api.data.umss.edu.bo` con una variable **propia**. No se puede reusar `PUBLIC_CKAN_URL`: con esa variable, la
   búsqueda y el inicio piden datos desde el navegador a otro dominio, y CKAN no manda CORS. `/catalog` no sirve para
   esto: descarta el `Authorization` (la API Key de RF-38) y sólo admite su lista de acciones.
+  **Avance (2026-10-18):** en la demo de v0, que corre el **stack de producción** (`https://demo.odp.hs.lan`, build
+  compilado y proxy de producción), la dirección se ve completa en el navegador (medido con Chromium) y el autor
+  confirmó, textual: «Respecto a lo de la url de la api, funciona correctamente, tanto la url como el ejemplo del
+  curl». Falta lo mismo en el despliegue real, detrás del proxy de UMSS.
+- [ ] **La presentación de la demo: guion actualizado y diapositivas** (decisión del autor, 2026-10-18, textual: «me
+  gustaría actualizar lo que tenemos y hacerlo con diapos […] pero esto luego, porque hacerlo ahora quisas haga quedar
+  desincronizado lo que tenemos con lo que presentaremos»). Se hace **después** de los arreglos de la demo: actualizar
+  el guion de `odd/tasks/backlog-prd-reconciliation.md` («El guion de la presentación») con gráficos, insertar, la API
+  y el flujo de publicación con los usuarios de la demo, y sumar unas pocas diapositivas de apertura y cierre. Incluye
+  T5 de `odd/tasks/csv-charts.md`.
 - [ ] **Unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
   diferente a otros del mismo estilo, como el de copiar la id o hash de los resources, también quisiera corregir estos
   porque se ven un poco feos»). Hoy conviven por lo menos tres estilos en la misma página:
