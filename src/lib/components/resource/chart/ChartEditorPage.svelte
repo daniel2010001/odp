@@ -268,7 +268,7 @@ const failureActionsFor = $derived(
 	{#if outcome.kind !== "loading" && outcome.kind !== "expelled"}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-				<Breadcrumb items={breadcrumbItems} icon={FileText} />
+				<Breadcrumb items={breadcrumbItems} icon={FileText} collapseMiddle />
 			</div>
 		</div>
 	{/if}

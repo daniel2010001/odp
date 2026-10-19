@@ -270,3 +270,88 @@ describe("Breadcrumb — el desplegable de hermanos en la miga actual (escritori
 		expect(within(list).getByText(items[3].label)).toHaveAttribute("aria-current", "page");
 	});
 });
+
+describe("Breadcrumb — plegar las migas del medio (collapseMiddle)", () => {
+	// Las páginas de gráficos: Datasets › Organización › Dataset › Recurso › Gráfico.
+	const chartItems: BreadcrumbItem[] = [
+		{ label: "Datasets", href: "/search", role: "Catálogo" },
+		{ label: "Observatorio de Movilidad Urbana", href: "/organization/obs", role: "Organización" },
+		{ label: "Encuesta de movilidad urbana 2026", href: "/dataset/encuesta", role: "Dataset" },
+		{ label: "viajes.csv", href: "/dataset/encuesta/resource/r1", role: "Recurso" },
+		{ label: "Nuevo gráfico", role: "Gráfico" },
+	];
+
+	it("con la opción, la fila muestra la primera miga, el «…» y las dos últimas", () => {
+		const { container } = render(Breadcrumb, {
+			props: { items: chartItems, collapseMiddle: true },
+		});
+		const list = trail(container);
+
+		expect(within(list).getByRole("link", { name: "Datasets" })).toBeInTheDocument();
+		expect(within(list).getByRole("link", { name: "viajes.csv" })).toBeInTheDocument();
+		expect(within(list).getByText("Nuevo gráfico")).toHaveAttribute("aria-current", "page");
+		expect(within(list).queryByText(chartItems[1].label)).toBeNull();
+		expect(within(list).queryByText(chartItems[2].label)).toBeNull();
+		expect(
+			within(list).getByRole("button", { name: "Mostrar las secciones ocultas de la ruta" }),
+		).toBeInTheDocument();
+	});
+
+	it("las migas plegadas son enlaces dentro del menú del «…»", async () => {
+		const { container } = render(Breadcrumb, {
+			props: { items: chartItems, collapseMiddle: true },
+		});
+		const list = trail(container);
+
+		await fireEvent.click(
+			within(list).getByRole("button", { name: "Mostrar las secciones ocultas de la ruta" }),
+		);
+
+		expect(
+			await screen.findByRole("link", { name: /Observatorio de Movilidad Urbana/ }),
+		).toHaveAttribute("href", "/organization/obs");
+		expect(screen.getByRole("link", { name: /Encuesta de movilidad urbana 2026/ })).toHaveAttribute(
+			"href",
+			"/dataset/encuesta",
+		);
+	});
+
+	it("el texto completo de cada miga visible va en `title`", () => {
+		const { container } = render(Breadcrumb, {
+			props: { items: chartItems, collapseMiddle: true },
+		});
+		const list = trail(container);
+
+		expect(within(list).getByRole("link", { name: "viajes.csv" })).toHaveAttribute(
+			"title",
+			"viajes.csv",
+		);
+		expect(within(list).getByText("Nuevo gráfico")).toHaveAttribute("title", "Nuevo gráfico");
+	});
+
+	it("la fila no se parte en líneas", () => {
+		const { container } = render(Breadcrumb, {
+			props: { items: chartItems, collapseMiddle: true },
+		});
+		expect(trail(container)).toHaveClass("lg:flex-nowrap");
+		expect(trail(container)).not.toHaveClass("lg:flex-wrap");
+	});
+
+	it("con tres migas o menos no hay nada que plegar", () => {
+		const { container } = render(Breadcrumb, {
+			props: { items: chartItems.slice(2), collapseMiddle: true },
+		});
+		expect(within(trail(container)).queryByRole("button")).toBeNull();
+	});
+
+	it("SIN la opción, las mismas migas se muestran todas (las demás páginas no cambian)", () => {
+		const { container } = render(Breadcrumb, { props: { items: chartItems } });
+		const list = trail(container);
+
+		for (const item of chartItems) {
+			expect(within(list).getByText(item.label)).toBeInTheDocument();
+		}
+		expect(within(list).queryByRole("button")).toBeNull();
+		expect(list).toHaveClass("lg:flex-wrap");
+	});
+});

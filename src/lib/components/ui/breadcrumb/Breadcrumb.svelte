@@ -18,7 +18,7 @@ export interface BreadcrumbGroup {
 </script>
 
 <script lang="ts">
-	import { ChevronDown, ChevronRight } from "@lucide/svelte";
+	import { ChevronDown, ChevronRight, Ellipsis } from "@lucide/svelte";
 	import { DropdownMenu } from "bits-ui";
 	import type { Component } from "svelte";
 
@@ -26,6 +26,7 @@ export interface BreadcrumbGroup {
 		items,
 		icon: Icon,
 		related,
+		collapseMiddle = false,
 	}: {
 		items: BreadcrumbItem[];
 		/** Ícono del nivel **actual** (un dataset, un recurso…). Sólo lo usa el disparador de móvil. */
@@ -35,11 +36,37 @@ export interface BreadcrumbGroup {
 		 * item **sin `href`** es el actual, y se marca como la página.
 		 */
 		related?: BreadcrumbGroup;
+		/**
+		 * Recorrido de escritorio en **una sola línea**: se conserva la primera miga y las dos últimas, y las de
+		 * en medio (organización, dataset…) se pliegan tras un «…» que las ofrece como enlaces en un
+		 * desplegable. Es opt-in: sin él, el recorrido se muestra completo y puede partirse en líneas. No
+		 * afecta al chip de móvil, que ya lista todo el recorrido.
+		 */
+		collapseMiddle?: boolean;
 	} = $props();
 
 	/** Todo menos la miga actual: el recorrido del que se viene. */
 	const ancestors = $derived(items.slice(0, -1));
 	const current = $derived(items[items.length - 1]);
+
+	const last = $derived(items.length - 1);
+	/** Migas plegadas tras el «…»: de la segunda a la antepenúltima. Con 3 o menos no hay nada que plegar. */
+	const folded = $derived(collapseMiddle && items.length > 3 ? items.slice(1, last - 1) : []);
+	const visible = $derived(
+		items
+			.map((item, index) => ({ item, index }))
+			.filter(({ index }) => !(folded.length > 0 && index >= 1 && index < last - 1)),
+	);
+
+	/**
+	 * Ancho de cada miga en la fila de una línea: la primera nunca se recorta; las de antes ceden primero
+	 * y la actual casi no cede, con un mínimo legible. Sin `collapseMiddle` no se añade nada.
+	 */
+	function width(index: number): string {
+		if (!collapseMiddle) return "";
+		if (index === 0) return "shrink-0";
+		return index === last ? "shrink-[0.2] min-w-[8rem]" : "shrink min-w-[3rem]";
+	}
 </script>
 
 <!-- Una fila del desplegable. Es un *snippet* porque la usan los dos grupos: antes estaba duplicada, y una
@@ -75,10 +102,34 @@ export interface BreadcrumbGroup {
 	<!-- Escritorio y tabletas: el recorrido completo. `min-w-0` en la raíz y en cada miga es lo que deja
 	     actuar al `truncate`: sin él, un item flexible no baja de su ancho de contenido y la fila desborda
 	     en horizontal en vez de recortar (lo encontró `review-5ab16f231f1adb49`). -->
-	<ol class="hidden items-center gap-1 text-sm lg:flex lg:flex-wrap">
-		{#each items as item, index (index)}
-			<li class="flex min-w-0 items-center gap-1">
-				{#if index > 0}
+	<ol
+		class="hidden items-center gap-1 text-sm lg:flex {collapseMiddle
+			? 'lg:flex-nowrap'
+			: 'lg:flex-wrap'}"
+	>
+		{#each visible as { item, index }, position (index)}
+			<li class="flex items-center gap-1 {width(index)} {index === 0 && collapseMiddle ? '' : 'min-w-0'}">
+				{#if position > 0}
+					<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+				{/if}
+				{#if folded.length > 0 && index === last - 1}
+					<!-- El «…» ocupa el lugar de las migas plegadas; el menú las ofrece con el mismo `row` del chip. -->
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger
+							class="inline-flex shrink-0 items-center rounded-sm px-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							aria-label="Mostrar las secciones ocultas de la ruta"
+						>
+							<Ellipsis class="size-4" aria-hidden="true" />
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content
+							class="z-50 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-popover p-1 shadow-md"
+							sideOffset={6}
+						>
+							{#each folded as hidden, hiddenIndex (hiddenIndex)}
+								{@render row(hidden)}
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 					<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 				{/if}
 				{#if index === items.length - 1 && related && related.items.length > 0}
@@ -115,12 +166,14 @@ export interface BreadcrumbGroup {
 				{:else if item.href && index < items.length - 1}
 					<a
 						href={item.href}
+						title={collapseMiddle ? item.label : undefined}
 						class="truncate text-muted-foreground transition-colors hover:text-foreground"
 					>
 						{item.label}
 					</a>
 				{:else}
 					<span
+						title={collapseMiddle ? item.label : undefined}
 						class={index === items.length - 1
 							? "truncate font-medium text-foreground"
 							: "truncate text-muted-foreground"}
