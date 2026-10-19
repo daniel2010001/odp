@@ -158,3 +158,18 @@ describe("ResourceChart — los números se escriben en es-BO, con a lo sumo dos
 		expect(ticks.some((text) => /^\d{4,}$/.test(text ?? ""))).toBe(false);
 	});
 });
+
+describe("ResourceChart — los rótulos del eje X sin ancho medido", () => {
+	it("jsdom no mide el layout: con 12 categorías se rotula una de cada dos", () => {
+		const groups = Array.from({ length: 12 }, (_, i) => ({
+			key: `Facultad ${i + 1}`,
+			value: i + 1,
+		}));
+		renderChart(groups, "value");
+
+		const labels = Array.from(axis().querySelectorAll("text"))
+			.map((text) => text.textContent?.trim() ?? "")
+			.filter((text) => text.startsWith("Facultad"));
+		expect(labels).toEqual([1, 3, 5, 7, 9, 11].map((n) => `Facultad ${n}`));
+	});
+});
