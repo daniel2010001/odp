@@ -190,24 +190,29 @@ describe("Página de recurso — gráficos", () => {
 		expect(screen.queryByRole("button", { name: /Eliminar el gráfico/ })).toBeNull();
 	});
 
-	it("sin gráficos hay una sola vista: sin pestañas, con el aviso, y quien edita sigue viendo «Crear gráfico»", async () => {
+	// S8 (odd/tasks/demo-honest-data.md): sin gráficos no hay aviso para nadie; quien edita tiene «Crear gráfico».
+	it("sin gráficos hay una sola vista: sin pestañas, sin aviso, y quien edita sigue viendo «Crear gráfico»", async () => {
 		auth.setUser(user);
 		mocks.listViews.mockResolvedValue([]);
 		render(ResourcePage);
 
-		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
-		expect(screen.getByText(/Cree el primero/)).toBeInTheDocument();
+		expect(await screen.findByRole("link", { name: /Crear gráfico/ })).toBeInTheDocument();
+		await waitFor(() => expect(mocks.listViews).toHaveBeenCalled());
+		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
+		expect(screen.queryByText(/Cree el primero/)).toBeNull();
 		expect(screen.getByText("Vista previa")).toBeInTheDocument();
 		expect(screen.queryByRole("tab")).toBeNull();
 		expect(await screen.findByRole("link", { name: /Crear gráfico/ })).toBeInTheDocument();
 	});
 
-	it("sin gráficos, el visitante ve el aviso y ni pestañas ni botón", async () => {
+	it("sin gráficos, el visitante no ve aviso, ni pestañas ni botón", async () => {
 		mocks.listViews.mockResolvedValue([]);
 		render(ResourcePage);
 
-		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
-		expect(screen.getByText(/Cuando quien publica el recurso configure uno/)).toBeInTheDocument();
+		await screen.findByText("Vista previa");
+		await waitFor(() => expect(mocks.listViews).toHaveBeenCalled());
+		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
+		expect(screen.queryByText(/Cuando quien publica el recurso configure uno/)).toBeNull();
 		expect(screen.queryByRole("tab")).toBeNull();
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 	});

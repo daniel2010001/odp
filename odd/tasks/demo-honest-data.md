@@ -26,6 +26,14 @@
 - **S5 — Resembrar la demo.** Decisión: «Sí, resembrar la demo — Cuando los cambios estén en main, odp-docker resetea
   odp-demo (odp-dev no se toca) y corre provisioning + seed».
 
+- **S6 — GeoJSON sin vista previa.** Textual: «no se tenia planeado aceptar el formato geojson, lo abrí por curiosidad y
+  tampoco se muestra el archivo, apenas entramos a la ficha del resource se intenta descargar el archivo, mejor
+  quitarlo, o al menos quitar eso de descargar automáticamente y poner que no tiene una vista previa».
+- **S7 — Gráficos de ejemplo en el seed.** Decisión: «Sí, 2-3 por dataset de demo (Recomendado) — Barras, líneas y
+  torta sobre los 4 CSV de DEMOS […], con títulos claros. Aparecen las pestañas y el botón Insertar.»
+- **S8 — Sin la card «Este recurso todavía no tiene gráficos».** Textual: «creo que nadie, porque da la impreción de que
+  ahí es donde debería ir el gráfico, o al menos cambiar dónde se dice que no hay gráficos para los que puedan crear».
+
 ## Tasks
 
 | ID | Tarea | Specs | Ruta | Commit |
@@ -34,6 +42,9 @@
 | T2 | Ficha: la card sólo con solicitud pendiente o rechazada | S2 | worker (mismo) | — |
 | T3 | Búsqueda: un enlace aporta el chip «Enlace», no su formato | S3 | worker (mismo) | — |
 | T4 | Seed: generadores deterministas de CSV, XLSX, PDF, JSON y GeoJSON, y todos los recursos del seed como archivos subidos | S4 | worker (rama apilada sobre `feat/demo-seed-pdf`, #94) | — |
+| T6 | GeoJSON → «sin vista previa»; cerrar #99 sin mergear | S6 | padre | — |
+| T7 | Seed: 2–3 vistas `umss_chart` por CSV de `DEMOS`, idempotentes por título | S7 | worker (worktree `../odp-seed-charts`) | — |
+| T8 | Quitar la card de estado vacío de los gráficos | S8 | padre | — |
 | T5 | Coordinar con `odp-docker` el reseteo de `odp-demo` y verificar en la demo con navegador | S5 | padre | — |
 
 ## Log
@@ -53,3 +64,23 @@
   `formatChips`, que lee el `format` de todos los recursos, enlaces incluidos: la regla del 2026-09-22 («un enlace
   muestra "Enlace" y no conserva su formato») no llegó a la card de la búsqueda.
 - **L3 (2026-10-18, decisiones del autor):** las cuatro recomendadas, citadas en S1–S5.
+- **L4 (2026-10-18, revisión del autor sobre la demo resembrada, textual):** «cosas que se colaron: no se tenia planeado
+  aceptar el formato geojson, lo abrí por curiosidad y tampoco se muestra el archivo, apenas entramos a la ficha del
+  resource se intenta descargar el archivo, mejor quitarlo, o al menos quitar eso de descargar automáticamente y poner
+  que no tiene una vista previa. TODO: el tamaño predeterminado de las vistas previas quisiera tocarlo, ahora mismo estoy
+  en una pantalla fhd de 27 pulgadas y el espacio se de la vista previa es pequeño cuando intento ver pdf, lo mismo
+  pasaba con imágenes, pero cuando estoy en la pantalla de mi laptop sí que se ve bien el alto, esto creo que solo pasa
+  en las pantallas grandes como la de fhd de 27 pulgadas, podríamos solucionarlo? esto no es urgente. TODO para ahora:
+  en la prd se menciona la visivilidad de archivos tipo texto creo, pero no era completamente necesario, ahora mismo sí
+  se puede ver, como no tenia planeado implementarlo para v0 sería bueno que lo anotaras como resuelto. TODO para ahora:
+  los gráficos no se pueden ver en ningún lado, algún dataset los tiene? […] Respecto a lo de la url de la api, funciona
+  correctamente, tanto la url como el ejemplo del curl. como estamos listos para la demo quisas sería bueno hacer una
+  presentación».
+- **L5 (2026-10-18, mediciones):** menú verificado en la demo con CDP: `miembro-fcyt` ve «Panel, Cerrar sesión»;
+  `editor-fcyt`, `editor-fcs` y `admin-fcyt` ven además «Solicitudes» (S1 PASS). La build de la demo está al día: sin
+  vistas `umss_chart` (0 en la demo, el seed no crea ninguna) no hay pestañas y se ve la card vacía bajo la tabla. El
+  GeoJSON se descargaba solo porque la ruta `/catalog/download` lo sirve como `attachment` y Chrome descarga un
+  `attachment` dentro de un iframe; #99 (inline) se cerró sin mergear.
+- **L6 (2026-10-18, decisiones del autor):** S7 y S8 citados arriba; la presentación (guion actualizado + diapositivas)
+  va **después**, textual: «hacerlo ahora quisas haga quedar desincronizado lo que tenemos con lo que presentaremos».
+

@@ -87,8 +87,14 @@ describe("previewKind — el tipo lo decide el formato (normalizado)", () => {
 		expect(previewKind(makeResource({ format: " Png " }))).toBe("image");
 	});
 
-	it.each(["txt", "json", "geojson"])("`format: %s` es «text»", (fmt) => {
+	it.each(["txt", "json"])("`format: %s` es «text»", (fmt) => {
 		expect(previewKind(makeResource({ format: fmt }))).toBe("text");
+	});
+
+	// S6 (odd/tasks/demo-honest-data.md): GeoJSON no tiene vista previa. La ruta de descarga lo sirve como adjunto y
+	// Chrome descarga un adjunto dentro de un iframe: entrar a la ficha disparaba la descarga.
+	it.each(["geojson", "GeoJSON", " geojson "])("`format: %s` es «none»", (fmt) => {
+		expect(previewKind(makeResource({ format: fmt }))).toBe("none");
 	});
 
 	it('`format: "JSON"` en mayúsculas es «text»', () => {

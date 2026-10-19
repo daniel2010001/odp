@@ -178,17 +178,9 @@ const actionClass =
 			</div>
 			<Button type="button" variant="outline" size="sm" onclick={load}>Intentar nuevamente</Button>
 		</Card>
-	{:else if list.views.length === 0}
-		<Card class="flex flex-col items-center gap-2 px-5 py-10 text-center">
-			<BarChart3 class="size-6 text-muted-foreground" aria-hidden="true" />
-			<p class="font-heading text-base font-bold text-foreground">Este recurso todavía no tiene gráficos</p>
-			<p class="max-w-md text-sm leading-relaxed text-muted-foreground">
-				{canEdit
-					? "Cree el primero para que quienes visitan el recurso vean sus datos de un vistazo."
-					: "Cuando quien publica el recurso configure uno, aparecerá aquí."}
-			</p>
-		</Card>
 	{/if}
+	<!-- Sin vistas no se dibuja nada (S8 de odd/tasks/demo-honest-data.md): un aviso de «todavía no tiene gráficos»
+	     daba la impresión de que ahí debía ir un gráfico. Quien edita tiene «Crear gráfico» en el hero. -->
 {/snippet}
 
 <section aria-labelledby="resource-charts-heading" class="space-y-4">
