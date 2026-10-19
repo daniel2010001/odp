@@ -810,44 +810,6 @@ async function handleCopyLink() {
 						{/if}
 					</Card>
 
-					<!-- La tarjeta del estado de la solicitud, **después de la información textual**.
-					     Muestra en qué está y, desde el 2026-10-14, también **deja decidirla** —cuando quien mira
-					     administra la organización dueña, la solicitud está pendiente y no es suya—: la gobernanza
-					     pide revisar **y** decidir, y el dataset está privado, así que no está en el catálogo y el
-					     revisor no tiene otro camino hasta él. El control es el **mismo** de la cola
-					     (`PublicationDecision`), así que las reglas no se duplican en ningún lado. La acción de
-					     **pedir** o cancelar sigue en el hero, que es la del solicitante. -->
-					{#if tarjetaDeSolicitudVisible && solicitudVigente}
-						<Card class="p-6 sm:p-8">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-								Solicitud de publicación
-							</p>
-							<p
-								class="mt-2 flex items-center gap-2 text-sm leading-relaxed text-foreground"
-								data-testid="estado-solicitud"
-							>
-								<Inbox class="size-4 shrink-0 text-primary" aria-hidden="true" />
-								{estadoDeLaSolicitud(solicitudVigente)}
-							</p>
-							{#if pendingRequestCount > 1}
-								<p
-									class="mt-1 text-xs text-muted-foreground"
-									data-testid="pending-requests-count"
-								>
-									Hay {pendingRequestCount} solicitudes pendientes para este dataset.
-								</p>
-							{/if}
-							{#if solicitudVigente.status === "pending" && puedeDecidirSolicitud}
-								<PublicationDecision
-									item={solicitudVigente}
-									decide={decidir}
-									readDataset={readStoredDataset}
-									ondecided={reflejarDecision}
-								/>
-							{/if}
-						</Card>
-					{/if}
-
 					<!-- Resources -->
 					<Card class="p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
@@ -917,6 +879,47 @@ async function handleCopyLink() {
 				<aside
 					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)]"
 				>
+					<!-- La tarjeta del estado de la solicitud **encabeza la columna lateral** (variante C de
+					     `/dev/requests-position`, elegida por el autor el 2026-10-19): la columna es pegajosa en
+					     escritorio, así que el aprobador decide sin bajar. Antes era la segunda de la columna
+					     principal, después de la información textual.
+					     Muestra en qué está y, desde el 2026-10-14, también **deja decidirla** —cuando quien mira
+					     administra la organización dueña, la solicitud está pendiente y no es suya—: la gobernanza
+					     pide revisar **y** decidir, y el dataset está privado, así que no está en el catálogo y el
+					     revisor no tiene otro camino hasta él. El control es el **mismo** de la cola
+					     (`PublicationDecision`), así que las reglas no se duplican en ningún lado. La acción de
+					     **pedir** o cancelar sigue en el hero, que es la del solicitante. -->
+					{#if tarjetaDeSolicitudVisible && solicitudVigente}
+						<Card class="p-6 sm:p-8">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+								Solicitud de publicación
+							</p>
+							<p
+								class="mt-2 flex items-center gap-2 text-sm leading-relaxed text-foreground"
+								data-testid="estado-solicitud"
+							>
+								<Inbox class="size-4 shrink-0 text-primary" aria-hidden="true" />
+								{estadoDeLaSolicitud(solicitudVigente)}
+							</p>
+							{#if pendingRequestCount > 1}
+								<p
+									class="mt-1 text-xs text-muted-foreground"
+									data-testid="pending-requests-count"
+								>
+									Hay {pendingRequestCount} solicitudes pendientes para este dataset.
+								</p>
+							{/if}
+							{#if solicitudVigente.status === "pending" && puedeDecidirSolicitud}
+								<PublicationDecision
+									item={solicitudVigente}
+									decide={decidir}
+									readDataset={readStoredDataset}
+									ondecided={reflejarDecision}
+								/>
+							{/if}
+						</Card>
+					{/if}
+
 					<!-- Cite card -->
 					<Card class="p-5">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
