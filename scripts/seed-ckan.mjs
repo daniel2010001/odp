@@ -40,23 +40,35 @@
 // paso una instalación nueva no siembra nada: los 17 datasets del catálogo dev están sólo
 // porque son anteriores a la pared (L15 de odd/tasks/csv-charts.md).
 //
+// Gráficos (S7 de odd/tasks/demo-honest-data.md): en un paso aparte, después de los datasets, crea 2–3
+// vistas `umss_chart` (barras, líneas y torta) sobre el CSV de cada dataset de `DEMOS`, con
+// `resource_view_create` (`scripts/seed-charts.mjs`). Corre también para los datasets ya públicos, porque
+// sin vistas no hay pestañas de gráfico ni botón «Insertar». Espera a que la tabla del DataStore exista y
+// valida cada configuración contra los campos reales de la tabla; si no está lista, informa y sigue.
+//
 // Idempotente: si una organización ya existe (por `name`), se salta; si un dataset ya
 // existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
 // corrida anterior murió entre crear y aprobar), se reusa la solicitud pendiente o se pide
 // una nueva, y se termina la publicación. Si a cualquier dataset le falta un recurso (por
-// nombre), se sube sólo ese recurso. Un dataset de la demo ya público no se toca (tampoco su tabla).
+// nombre), se sube sólo ese recurso. Un dataset de la demo ya público no se toca (tampoco su tabla), pero sí se le completan los gráficos que
+// le falten (por título).
 // No se guarda ninguna credencial en el repo: se leen del entorno en cada corrida.
 
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-
 import { parseCsv } from "./generate-csv-common.mjs";
 import { TYPES as PLANILLA_TYPES } from "./generate-demo-csv.mjs";
 import { FORMAT_INFO, generateFile } from "./generate-demo-files.mjs";
 import { TYPES as INVESTIGACION_TYPES } from "./generate-investigacion-csv.mjs";
 import { TYPES as MATRICULA_TYPES } from "./generate-matricula-csv.mjs";
 import { TYPES as PRESUPUESTO_TYPES } from "./generate-presupuesto-csv.mjs";
+import {
+	CHART_VIEWS,
+	chartViewPayload,
+	validateSeedConfig,
+	viewsToCreate,
+} from "./seed-charts.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -983,6 +995,77 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 	return { created, skipped: false };
 }
 
+// ── Gráficos de la demo ──
+
+const DATASTORE_TIMEOUT_MS = Number(process.env.SEED_DATASTORE_TIMEOUT_MS ?? 30_000);
+
+// Espera a que el recurso tenga su tabla en el DataStore (`datastore_active`), que es lo que lee la acción
+// de datos del gráfico. Devuelve `true` si la tabla existe antes de agotar el plazo.
+async function waitForDatastore(token, resourceId) {
+	const deadline = Date.now() + DATASTORE_TIMEOUT_MS;
+	while (true) {
+		const res = await api(token, "resource_show", { id: resourceId });
+		if (res.success && res.result.datastore_active === true) return true;
+		if (Date.now() >= deadline) return false;
+		await sleep(XLOADER_POLL_MS);
+	}
+}
+
+// Crea las vistas `umss_chart` que le faltan al recurso CSV de un dataset de `DEMOS`. Nunca lanza: informa
+// ✓/✗ y sigue, para que un dataset sin tabla no aborte el seed. Corre aunque el dataset ya sea público.
+async function seedDemoCharts(token, demo) {
+	const name = demo.dataset.name;
+	const desired = CHART_VIEWS[name] ?? [];
+	if (!demo.types || desired.length === 0) return { created: 0, failed: 0 };
+	const skip = (why) => {
+		console.error(`✗ gráficos ${name}: ${why}`);
+		return { created: 0, failed: desired.length };
+	};
+
+	const shown = await api(token, "package_show", { id: name });
+	if (!shown.success) return skip("el dataset no existe, se salta.");
+	const resource = (shown.result.resources ?? []).find((r) => r.name === demo.resource.name);
+	if (!resource) return skip(`falta el recurso ${demo.resource.name}, se salta.`);
+
+	if (!(await waitForDatastore(token, resource.id))) {
+		return skip(
+			`la tabla del DataStore no está lista (${DATASTORE_TIMEOUT_MS / 1000} s); corra el seed de nuevo.`,
+		);
+	}
+	// Los tipos reales de la tabla, no los esperados: si los tipos no quedaron declarados, el gráfico
+	// que suma o agrupa por fecha lo rechazaría el servidor, y acá se dice por qué.
+	const table = await api(token, "datastore_search", { resource_id: resource.id, limit: 0 });
+	if (!table.success) return skip(`datastore_search: ${errorText(table.error)}`);
+	const types = Object.fromEntries(table.result.fields.map((field) => [field.id, field.type]));
+
+	const listed = await api(token, "resource_view_list", { id: resource.id });
+	if (!listed.success) return skip(`resource_view_list: ${errorText(listed.error)}`);
+	const missing = viewsToCreate(desired, listed.result ?? []);
+	for (const view of desired) {
+		if (!missing.includes(view)) console.log(`· gráfico existente: ${name} → ${view.title}`);
+	}
+
+	let created = 0;
+	let failed = 0;
+	for (const view of missing) {
+		const problems = Object.values(validateSeedConfig(view.config, types));
+		if (problems.length > 0) {
+			console.error(`✗ gráfico ${name} → ${view.title}: ${problems.join("; ")}`);
+			failed++;
+			continue;
+		}
+		const result = await api(token, "resource_view_create", chartViewPayload(resource.id, view));
+		if (!result.success) {
+			console.error(`✗ gráfico ${name} → ${view.title}: ${errorText(result.error)}`);
+			failed++;
+			continue;
+		}
+		console.log(`✓ gráfico ${name} → ${view.title} (${view.config.chart_type})`);
+		created++;
+	}
+	return { created, failed };
+}
+
 // Siembra un dataset base o el `SHOWCASE`: todos sus recursos se suben como archivo.
 //
 // Nace **privado** y sin recursos; los archivos se suben antes de publicar, así que si una
@@ -1086,6 +1169,16 @@ async function main() {
 			if (outcome.created) createdCount++;
 			if (outcome.skipped) skippedCount++;
 		}
+
+		// Gráficos: paso aparte, también para los datasets de la demo que ya existían y son públicos.
+		let chartsCreated = 0;
+		let chartsFailed = 0;
+		for (const spec of DEMOS) {
+			const outcome = await seedDemoCharts(token, spec);
+			chartsCreated += outcome.created;
+			chartsFailed += outcome.failed;
+		}
+		console.log(`\nGráficos: ${chartsCreated} creados, ${chartsFailed} con problemas.`);
 
 		console.log(`\nListo. Creados ${createdCount} datasets, ${skippedCount} ya existían.`);
 	} finally {
