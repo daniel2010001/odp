@@ -786,11 +786,6 @@ Lo que salió del cierre de la rebanada 1b-B1 (el detalle y la evidencia viven e
 `openspec/changes/2026-10-02-dataset-edit-and-delete/`). Son cosas **encontradas** durante ese trabajo, no
 pedidos nuevos.
 
-- [ ] **[v1]** **`client.ts` traga el cuerpo del error cuando no es JSON.** `await response.json()` sin guarda:
-  un 409 con cuerpo no-JSON (HTML de un proxy o de un balanceador) lanza `SyntaxError`, se re-lanza como
-  `CkanApiError(…, 0)` y **pierde el status**. Un conflicto real se reporta así como fallo de transporte. No
-  hay pérdida de datos —la escritura no ocurre— pero clasifica mal en silencio, que es la dirección que este
-  proyecto no acepta.
 - [x] **[v1]** **`CkanPackage` no declara `owner_org`.** La ruta de edición lo lee por un cast, con respaldo en
   `organization.id`. El arreglo honesto es un campo en `src/lib/types/ckan.ts`.
   **CERRADO (2026-10-06): DONE** — `owner_org` ya está declarado en `src/lib/types/ckan.ts`.
@@ -3195,17 +3190,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
   nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
 
-- [ ] **[v1] Con el catálogo caído, el portal le muestra al usuario el error del parser, no una frase suya.**
-  Observado por el autor (2026-10-08): con CKAN caído, el aviso que se lee es «No se pudieron cargar sus
-  organizaciones. **JSON.parse: unexpected character at line 1 column 1 of the JSON data**». La primera mitad es
-  nuestra y está bien; **la segunda es del intérprete**, y contradice la política de copy del resto del portal (frase
-  humana primero, el código técnico como dato secundario y **nunca la prosa cruda**) — la misma familia que las cinco
-  alertas que `technicalDetail` vino a arreglar.
-  **Hipótesis a verificar antes de tocar** (declarada, **no medida**): con el catálogo caído la respuesta del proxy no
-  es JSON, así que `res.json()` falla **antes** de que exista un `CkanApiError` y lo que llega es el mensaje del parser.
-  Si es eso, el arreglo vive en el cliente (`src/lib/api/client.ts`: un fallo de parseo es un fallo de **transporte**,
-  no un texto para el usuario) y no en cada página.
-  **No bloquea `v0`** (decisión del autor).
 
 - [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
@@ -3306,15 +3290,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   solicitud es **estado**, no acción; la **columna derecha** es de metadatos y en móvil cae al final. **Tier (2026-10-19, autor): «Pendiente v1, con playground»**
   (regla 8 de `AGENTS.md`).
 
-- [ ] **[v1] El reintento de la página de error pierde la query y el fragmento** (aviso informativo del recibo
-  `review-13d22ebddf82eef0`, bloque B, anotado como TODO en el handoff del 2026-09-23 y **VIVO** al 2026-10-19: el reintento sigue
-  en `src/routes/+error.svelte:27`). El reintento usa `$page.url.pathname`, que **pierde la query y el fragmento**: un 5xx en
-  `/search?q=salud` reintenta `/search` y el usuario pierde su búsqueda. Arreglo: `pathname` + `search` (+ `hash` si corresponde).
 
-- [ ] **[v1] El test del ícono de la página de error toma el primer `<svg>`** (aviso informativo del recibo
-  `review-13d22ebddf82eef0`, bloque B; hoy en `src/lib/components/error/error-page.test.ts:248`). El estado 5xx renderiza **dos**
-  `<svg>` (el del estado y el de `Reintentar`), así que la aserción es frágil y el `aria-hidden` del segundo no queda cubierto.
-  Arreglo: acotar la consulta al ícono del estado.
 
 - [ ] **[v1] El estado `draft` («borrador»): qué hace el portal con él y si se adopta** (TODO anotado a pedido del autor; **decisión del autor, 2026-10-19: «Decidir en v1»**). Lo encontró al presionar por error «unpublish»
   en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
@@ -3677,6 +3653,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **El cliente traga un cuerpo que no es JSON: el catálogo caído mostraba el error del parser, y un error HTTP perdía su status** (dos ítems `[v1]`) | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T9). `src/lib/api/client.ts` envuelve el `response.json()`: un cuerpo ilegible se convierte en `CkanApiError` con una frase nuestra, «No se pudo completar la consulta al catálogo de datos.» (la misma de `unavailable` en `failure.ts`), y nunca en el mensaje del intérprete. Con un error HTTP conserva el status real (un 409 o un 502 ya no se leen como transporte); con un 200 ilegible no hay estado que citar y queda como transporte (status 0). Pruebas en `client.test.ts`: 502 no-JSON, 200 no-JSON, JSON válido y error JSON; RED antes del arreglo. |
+| **El reintento de la página de error perdía la query; su test del ícono tomaba el primer `<svg>`** (dos avisos informativos `[v1]`) | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T9). `src/routes/+error.svelte` reintenta a `pathname + search`; el fragmento queda afuera a propósito (el servidor nunca lo recibe y el `href` de servidor e hidratación diferirían). El ícono de estado lleva `data-error-icon` y los tests lo seleccionan por ahí; se verificó que fallan si el atributo va al ícono equivocado. Pruebas en `src/routes/error.test.ts` y `error-page.test.ts`. |
 | **Mejora del nombre del test del asistente: «no muestra el campo de visibilidad y crea siempre como privado»** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2); el autor eligió «Corregir el título ahora»). El aviso R3-001 del recibo `review-169119db13ffab2c` decía que el título prometía lo que el cuerpo no verificaba. El cuerpo sólo comprueba que no hay campo de visibilidad ni las opciones «Privada» y «Pública»; el `private: true` ya lo verifica el test del envío mínimo. El título pasó a «no muestra el campo de visibilidad ni las opciones Privada y Pública» (`src/routes/dashboard/datasets/new/wizard.test.ts`). 34 de 34 pasan. |
 | **Política de existencia (`404` ambiguo para el anónimo): la mitad de página** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2)). El ítem decía de sí mismo «DECIDIDO Y CERRADO EN PÁGINA (2026-09-20)»: `404` ambiguo para el anónimo y sin botón de iniciar sesión, honesto para el identificado («su cuenta no está autorizada»). Implementado en `src/lib/api/failure.ts` y los dos call sites; la spec se partió en `Unidentified Viewer Must Not Learn Existence` y `Authorization Failure Is Not a Missing Resource`; revisión nativa `review-249e073ef3489596` aprobada. **Consecuencia aceptada:** un usuario autenticado puede distinguir `403` de `404` en la página (no es una fuga nueva: la API se lo da a cualquiera); en móvil el camino de inicio de sesión queda dentro del menú hamburguesa (`layout-header.test.ts` prueba que el enlace existe). Medido el 2026-09-30: aterrizó la mitad de página. **Queda la mitad de la API como ítem `[v1]`** (decisión del autor: «Sí, la API como ítem v1»). |
 | **[v0.1.1] Los rótulos del eje X se pisan con categorías de nombre largo** | **Cerrado** (2026-10-19, rama `fix/chart-axis-labels`). Se iteró en la hoja `/dev/chart-axis` con cinco formas (hoy, girados, recortados con «…», en renglones y automática) y un instrumento que medía sobre el SVG real los rótulos escritos, pisados, recortados y fuera del borde. El autor eligió la **automática**, textual: «mejor, me quedo con la e, aprobado». La regla vale para el eje entero: los rótulos van derechos si caben todos; si no, en hasta 3 renglones si todos caben sin recortar; y si no, girados 40° (recortados a 140 px, con el nombre completo en el tooltip y en la tabla). Sin ancho medido, el eje se comporta como antes. En la hoja ninguna combinación de caso y ancho dejó rótulos pisados ni fuera del borde. Se cerró también el hallazgo de las barras sin rótulo: con 12 categorías ahora se rotulan las 12 cuando caben. La lógica vive en `src/lib/charts/x-axis-labels.ts` y la hoja se borró al promover. |

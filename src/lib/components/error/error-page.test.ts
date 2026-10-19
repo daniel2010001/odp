@@ -245,9 +245,14 @@ describe("ErrorPage — estructura y accesibilidad", () => {
 			const { container, unmount } = render(ErrorPage, { props: { status, path: "/search" } });
 
 			expect(container.querySelectorAll("h1")).toHaveLength(1);
-			const icon = container.querySelector("svg");
+			const icon = container.querySelector("[data-error-icon]");
 			expect(icon).not.toBeNull();
+			expect(icon?.tagName.toLowerCase()).toBe("svg");
 			expect(icon).toHaveAttribute("aria-hidden", "true");
+			// Todo `<svg>` de la página es decorativo (el del ícono del estado y el de «Reintentar»).
+			for (const svg of container.querySelectorAll("svg")) {
+				expect(svg).toHaveAttribute("aria-hidden", "true");
+			}
 			unmount();
 		});
 	}
@@ -255,12 +260,16 @@ describe("ErrorPage — estructura y accesibilidad", () => {
 	it("el 4xx usa FileQuestion y el 5xx TriangleAlert", () => {
 		for (const status of CLIENT_STATUSES) {
 			const { container, unmount } = render(ErrorPage, { props: { status } });
-			expect(container.querySelector("svg")?.getAttribute("class")).toMatch(/file-question/);
+			expect(container.querySelector("[data-error-icon]")?.getAttribute("class")).toMatch(
+				/file-question/,
+			);
 			unmount();
 		}
 		for (const status of SERVER_STATUSES) {
 			const { container, unmount } = render(ErrorPage, { props: { status, path: "/search" } });
-			expect(container.querySelector("svg")?.getAttribute("class")).toMatch(/triangle-alert/);
+			expect(container.querySelector("[data-error-icon]")?.getAttribute("class")).toMatch(
+				/triangle-alert/,
+			);
 			unmount();
 		}
 	});

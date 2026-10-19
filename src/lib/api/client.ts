@@ -22,6 +22,9 @@ function toQueryString(params?: Record<string, unknown>): string {
 	return text ? `?${text}` : "";
 }
 
+/** Lo que lee el usuario cuando la respuesta no es JSON; coincide con la frase de `failure.ts` para `unavailable`. */
+const UNREADABLE_RESPONSE_MESSAGE = "No se pudo completar la consulta al catálogo de datos.";
+
 /**
  * El cliente de `config.baseUrl` es el de CKAN; `actionUrl` lo abstrae para que el cliente del portal comparta
  * todo lo demás (errores, timeout, query de un `GET`) y sólo cambie a dónde apunta.
@@ -64,7 +67,15 @@ function buildClient(
 				signal: controller.signal,
 			});
 
-			const json = await response.json();
+			// Un cuerpo que no es JSON (el HTML de un 502 del proxy con el catálogo caído) no es una respuesta
+			// del catálogo: se traduce a una frase nuestra y nunca al mensaje del intérprete. Con un error HTTP
+			// se conserva el status; con un 200 ilegible no hay estado que citar y se clasifica como transporte.
+			let json: Awaited<ReturnType<typeof response.json>>;
+			try {
+				json = await response.json();
+			} catch {
+				throw new CkanApiError(UNREADABLE_RESPONSE_MESSAGE, response.ok ? 0 : response.status);
+			}
 
 			if (!response.ok || !json.success) {
 				throw new CkanApiError(
