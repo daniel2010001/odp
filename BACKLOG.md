@@ -2982,6 +2982,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   compilado y proxy de producción), la dirección se ve completa en el navegador (medido con Chromium) y el autor
   confirmó, textual: «Respecto a lo de la url de la api, funciona correctamente, tanto la url como el ejemplo del
   curl». Falta lo mismo en el despliegue real, detrás del proxy de UMSS.
+- [ ] **[v0.1.1] Los rótulos del eje X se pisan con categorías de nombre largo** (medido el 2026-10-19 al verificar la
+  demo de `v0.1.0`; el autor decidió no bloquear el release, textual: «Publicar v0.1.0 ahora — […] el defecto va al
+  BACKLOG y se arregla en la próxima sesión con su playground, como v0.1.1 antes de la presentación»). En
+  «Matrícula por facultad (2015–2025)», con 8 facultades, «Arquitectura y Ciencias del Hábitat» se monta sobre
+  «Ciencias Agrícolas», y lo mismo en toda la fila. `ResourceChart.svelte` reparte a lo sumo 8 rótulos
+  (`MAX_X_TICKS`) pero no mide su ancho. Opciones a probar en playground (regla 8): rótulos girados, recortados con
+  «…» y el nombre completo en el tooltip, o partidos en dos líneas. Va en las notas del release como problema conocido.
 - [ ] **[extra] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
   quede en "no se implementará", me refiero a que si alcansamos podemos probar hacerlo, pero no es bloqueantes, es más
   bien algo "plus", un agregado»). Hoy GeoJSON va a «sin vista previa» con su descarga (`preview.ts`,
