@@ -2982,6 +2982,14 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   compilado y proxy de producción), la dirección se ve completa en el navegador (medido con Chromium) y el autor
   confirmó, textual: «Respecto a lo de la url de la api, funciona correctamente, tanto la url como el ejemplo del
   curl». Falta lo mismo en el despliegue real, detrás del proxy de UMSS.
+- [ ] **[extra] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
+  quede en "no se implementará", me refiero a que si alcansamos podemos probar hacerlo, pero no es bloqueantes, es más
+  bien algo "plus", un agregado»). Hoy GeoJSON va a «sin vista previa» con su descarga (`preview.ts`,
+  `odd/tasks/demo-honest-data.md` S6), porque la ruta `/catalog/download` lo sirve como adjunto y Chrome descarga un
+  adjunto dentro de un iframe. Dos caminos medidos: (a) como texto, sumando `application/geo+json` a `INLINE_TYPES` de
+  `ckan-download.ts` (#99, cerrado sin mergear, tenía test y verificación independiente PASS) y volviendo a `text` en
+  `previewKind`; (b) un mapa dibujado por el portal (Leaflet o MapLibre), como el `geoview` de la recomendación del
+  2026-10-17. El seed ya declara `mimetype: application/geo+json` (#98). No bloquea nada.
 - [ ] **La presentación de la demo: guion actualizado y diapositivas** (decisión del autor, 2026-10-18, textual: «me
   gustaría actualizar lo que tenemos y hacerlo con diapos […] pero esto luego, porque hacerlo ahora quisas haga quedar
   desincronizado lo que tenemos con lo que presentaremos»). Se hace **después** de los arreglos de la demo: actualizar

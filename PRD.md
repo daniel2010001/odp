@@ -257,7 +257,8 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 ### Módulo de Previsualización y Exportación
 - RF-30: Los archivos PDF, imágenes, TXT y JSON se previsualizan en el navegador.
   **Estado (2026-10-18): cumplido** para PDF, imágenes, TXT y JSON, aunque no estaba previsto para v0 (anotado a pedido
-  del autor). GeoJSON **no** tiene vista previa: se descarga (decisión del autor, `odd/tasks/demo-honest-data.md`, S6).
+  del autor). GeoJSON **todavía no** tiene vista previa: se descarga (`odd/tasks/demo-honest-data.md`, S6). Una vista
+  previa de GeoJSON queda como extra opcional en el `BACKLOG`, no descartada.
 - RF-31: Para CSV sin análisis, se muestra una tabla con primeras 20 filas.
 - RF-32: Los gráficos generados en el módulo de análisis se pueden exportar como PNG o JPEG. Los datos de la tabla subyacente se pueden exportar como CSV.
 
