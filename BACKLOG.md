@@ -2682,21 +2682,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
-- [ ] **[v0.1.1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
-  texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
-  **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
-  arreglo son tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su
-  `--primary-foreground`, o ambos—, así que la decisión es del autor y no de una sesión. Reproducir:
-  `/dev/error?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
-  **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
-  texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
-  arbitrario: es el tamaño del texto.
-  *Tres caminos independientes dan el mismo veredicto:* el instrumento de la sesión paralela medido en el
-  navegador sobre el nodo real (**3.72**), su cálculo puro sobre los tokens (**3.733**) y este recomputo
-  (**3.733**); en modo claro los tres dan **5.284** y **pasa**, que es el control de que el cálculo no está
-  sesgado hacia abajo. **La diferencia de 0,01 no es discrepancia: es resolución de canal** — el navegador
-  serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión completa.
-  Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
 
 - [ ] **[v0.1.1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
@@ -3653,6 +3638,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **[v0.1.1] El botón primario en modo oscuro incumple la regla 7** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T3). Se comparó en la hoja `/dev/button-contrast`, con el botón real en los dos temas y el contraste medido sobre los colores computados. Hallazgo que el ítem no tenía: los **enlaces** oscuros usan `--primary` como color de texto y también incumplían (4,38:1 sobre el fondo, 3,69:1 sobre una tarjeta). El autor eligió la opción D (textual: «button-contrast?preset=D»): en `.dark`, `--primary: oklch(0.66 0.1 257)` y `--primary-foreground: oklch(0.2 0.03 257)`, relleno claro con texto oscuro como el coral oscuro. Medido: botón 5,81:1 (antes 3,73), enlaces 5,56:1 y 4,68:1. El tema claro no cambia. La hoja se borró al promover. |
 | **El cliente traga un cuerpo que no es JSON: el catálogo caído mostraba el error del parser, y un error HTTP perdía su status** (dos ítems `[v1]`) | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T9). `src/lib/api/client.ts` envuelve el `response.json()`: un cuerpo ilegible se convierte en `CkanApiError` con una frase nuestra, «No se pudo completar la consulta al catálogo de datos.» (la misma de `unavailable` en `failure.ts`), y nunca en el mensaje del intérprete. Con un error HTTP conserva el status real (un 409 o un 502 ya no se leen como transporte); con un 200 ilegible no hay estado que citar y queda como transporte (status 0). Pruebas en `client.test.ts`: 502 no-JSON, 200 no-JSON, JSON válido y error JSON; RED antes del arreglo. |
 | **El reintento de la página de error perdía la query; su test del ícono tomaba el primer `<svg>`** (dos avisos informativos `[v1]`) | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T9). `src/routes/+error.svelte` reintenta a `pathname + search`; el fragmento queda afuera a propósito (el servidor nunca lo recibe y el `href` de servidor e hidratación diferirían). El ícono de estado lleva `data-error-icon` y los tests lo seleccionan por ahí; se verificó que fallan si el atributo va al ícono equivocado. Pruebas en `src/routes/error.test.ts` y `error-page.test.ts`. |
 | **Mejora del nombre del test del asistente: «no muestra el campo de visibilidad y crea siempre como privado»** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2); el autor eligió «Corregir el título ahora»). El aviso R3-001 del recibo `review-169119db13ffab2c` decía que el título prometía lo que el cuerpo no verificaba. El cuerpo sólo comprueba que no hay campo de visibilidad ni las opciones «Privada» y «Pública»; el `private: true` ya lo verifica el test del envío mínimo. El título pasó a «no muestra el campo de visibilidad ni las opciones Privada y Pública» (`src/routes/dashboard/datasets/new/wizard.test.ts`). 34 de 34 pasan. |
