@@ -107,11 +107,16 @@ describe("ResourceCharts — el visitante", () => {
 		expect(screen.getByText("Cargando los gráficos…")).toBeInTheDocument();
 	});
 
-	it("sin vistas dice que el recurso todavía no tiene gráficos", async () => {
-		renderCharts(makeApi({ listViews: vi.fn(async () => []) }));
+	// S8 (odd/tasks/demo-honest-data.md): sin vistas no se dibuja ningún aviso, ni para el visitante ni para quien
+	// edita. El aviso daba la impresión de que ahí debía ir un gráfico; quien edita tiene «Crear gráfico» en el hero.
+	it("sin vistas no muestra ningún aviso de «todavía no tiene gráficos»", async () => {
+		const listViews = vi.fn(async () => []);
+		renderCharts(makeApi({ listViews }));
 
-		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
-		expect(screen.getByText(/Cuando quien publica el recurso configure uno/)).toBeInTheDocument();
+		await waitFor(() => expect(listViews).toHaveBeenCalled());
+		await waitFor(() => expect(screen.queryByText("Cargando los gráficos…")).toBeNull());
+		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
+		expect(screen.queryByText(/Cuando quien publica el recurso configure uno/)).toBeNull();
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 	});
 
@@ -219,9 +224,9 @@ describe("ResourceCharts — quien puede editar", () => {
 		await fireEvent.click(within(dialog).getByRole("button", { name: "Eliminar" }));
 
 		await waitFor(() => expect(api.deleteView).toHaveBeenCalledWith("view-1"));
-		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
-		expect(screen.queryByRole("tablist")).toBeNull();
-		expect(listViews).toHaveBeenCalledTimes(2);
+		await waitFor(() => expect(listViews).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(screen.queryByRole("tablist")).toBeNull());
+		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});
 
@@ -291,21 +296,19 @@ describe("ResourceCharts — las pestañas", () => {
 		await waitFor(() => expect(screen.getByText("Contenido de la tabla")).toBeVisible());
 	});
 
-	it("sin gráficos no hay barra: la tabla va sola y debajo el aviso, para el visitante", async () => {
-		renderTabs(makeApi({ listViews: vi.fn(async () => []) }), false);
+	it.each([
+		["el visitante", false],
+		["quien edita", true],
+	])("sin gráficos no hay barra ni aviso: la tabla va sola, para %s", async (_quien, canEdit) => {
+		const listViews = vi.fn(async () => []);
+		renderTabs(makeApi({ listViews }), canEdit);
 
-		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
+		await waitFor(() => expect(listViews).toHaveBeenCalled());
+		await waitFor(() => expect(screen.queryByText("Cargando los gráficos…")).toBeNull());
 		expect(screen.getByText("Contenido de la tabla")).toBeInTheDocument();
 		expect(screen.queryByRole("tablist")).toBeNull();
-		expect(screen.getByText(/Cuando quien publica el recurso configure uno/)).toBeInTheDocument();
-	});
-
-	it("sin gráficos, a quien edita el aviso lo invita a crear el primero (el botón vive en el encabezado)", async () => {
-		renderTabs(makeApi({ listViews: vi.fn(async () => []) }), true);
-
-		expect(await screen.findByText("Este recurso todavía no tiene gráficos")).toBeInTheDocument();
-		expect(screen.getByText(/Cree el primero/)).toBeInTheDocument();
-		expect(screen.queryByRole("tablist")).toBeNull();
+		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
+		expect(screen.queryByText(/Cree el primero/)).toBeNull();
 		expect(screen.queryByRole("link", { name: /Crear gráfico/ })).toBeNull();
 	});
 
