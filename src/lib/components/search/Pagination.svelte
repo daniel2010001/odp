@@ -69,7 +69,7 @@ const pages = $derived.by(() => {
 					class={cn(
 						'min-w-10',
 						page === current
-							? 'bg-primary text-white hover:bg-primary/80'
+							? 'bg-primary text-primary-foreground hover:bg-primary/80'
 							: 'text-primary hover:bg-accent hover:text-primary/80',
 					)}
 				>
