@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 	canCreateDataset: vi.fn(),
 	listUpdatableOrganizationIds: vi.fn(),
 	sessionCheck: vi.fn(),
+	publicationList: vi.fn(),
 }));
 
 vi.mock("$lib/env", () => ({
@@ -28,6 +29,9 @@ vi.mock("$lib/api/organizations", () => ({
 		canCreateDataset: mocks.canCreateDataset,
 		listUpdatableOrganizationIds: mocks.listUpdatableOrganizationIds,
 	}),
+}));
+vi.mock("$lib/api/publication", () => ({
+	createPublicationApi: () => ({ list: mocks.publicationList }),
 }));
 // La sonda de sesión se controla por test: su veredicto decide qué se carga y qué se ofrece.
 vi.mock("$lib/api/session", () => ({
@@ -119,6 +123,8 @@ beforeEach(() => {
 	// Por defecto la sesión vive y el llamador es el usuario autenticado; los tests que necesitan
 	// una sesión muerta o inconclusa pisan este veredicto.
 	mocks.sessionCheck.mockResolvedValue({ state: "alive", user: baseUser });
+	// Sin solicitudes pendientes por defecto.
+	mocks.publicationList.mockResolvedValue([]);
 });
 
 describe("Dashboard", () => {
@@ -738,5 +744,200 @@ describe("Acceso a la edición desde «Mis datasets»", () => {
 		expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(sinManejar).toHaveLength(0);
+	});
+});
+
+describe("Acciones del panel (T18)", () => {
+	const fila = (overrides: Record<string, unknown> = {}) => ({
+		id: "req-1",
+		dataset_id: "pkg-1",
+		status: "pending",
+		decidable_by_caller: false,
+		...overrides,
+	});
+
+	const mediaQuery = (movil: boolean) => (query: string) =>
+		({
+			matches: movil && query.includes("max-width: 768px"),
+			media: query,
+			onchange: null,
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			addListener: () => {},
+			removeListener: () => {},
+			dispatchEvent: () => false,
+		}) as unknown as MediaQueryList;
+
+	function setMovil(movil: boolean) {
+		Object.defineProperty(window, "matchMedia", {
+			value: mediaQuery(movil),
+			writable: true,
+			configurable: true,
+		});
+	}
+
+	// Restituye el stub de `test-setup.ts` (sin coincidencias).
+	afterEach(() => setMovil(false));
+
+	function grilla(container: HTMLElement) {
+		return container.querySelector<HTMLElement>("[data-action-grid]");
+	}
+
+	async function waitForGrid(container: HTMLElement) {
+		await waitFor(() => expect(grilla(container)).not.toBeNull());
+		return grilla(container) as HTMLElement;
+	}
+
+	it("la grilla usa 1/2/4 columnas y la tarjeta «Crear dataset» lleva su línea de estado", async () => {
+		mocks.listForUser.mockResolvedValue([
+			makeOrganization({ id: "o1", capacity: "editor" }),
+			makeOrganization({ id: "o2", name: "otra", capacity: "admin" }),
+			makeOrganization({ id: "o3", name: "tercera", capacity: "member" }),
+		]);
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		const tarjeta = await within(await waitForGrid(container)).findByRole("link", {
+			name: /crear dataset/i,
+		});
+		expect(tarjeta).toHaveAttribute("href", "/dashboard/datasets/new");
+		await waitFor(() => expect(tarjeta).toHaveTextContent("Disponible en 2 organizaciones"));
+		expect(grilla(container)?.className).toContain("sm:grid-cols-2");
+		expect(grilla(container)?.className).toContain("xl:grid-cols-4");
+	});
+
+	it("«Revisar solicitudes» aparece para quien puede editar, con su enlace y el estado propio", async () => {
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.publicationList.mockResolvedValue([fila()]);
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		const tarjeta = await within(await waitForGrid(container)).findByRole("link", {
+			name: /revisar solicitudes/i,
+		});
+		expect(tarjeta).toHaveAttribute("href", "/dashboard/requests");
+		await waitFor(() => expect(tarjeta).toHaveTextContent("1 solicitud suya en revisión"));
+		expect(mocks.publicationList).toHaveBeenCalledWith("pending");
+		// Sin filas decidibles no hay cuenta «pendientes».
+		expect(tarjeta.textContent).not.toMatch(/\d+ pendientes?/);
+	});
+
+	it("la cuenta «N pendientes» sale sólo de las filas con decidable_by_caller", async () => {
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.publicationList.mockResolvedValue([
+			fila({ id: "a", decidable_by_caller: true }),
+			fila({ id: "b", decidable_by_caller: true }),
+			fila({ id: "c", decidable_by_caller: true }),
+			fila({ id: "d", decidable_by_caller: false }),
+		]);
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		const tarjeta = await within(await waitForGrid(container)).findByRole("link", {
+			name: /revisar solicitudes/i,
+		});
+		await waitFor(() => expect(tarjeta).toHaveTextContent("3 pendientes de decisión"));
+		// Mismo dato en la barra pegajosa, con un nombre accesible que lo incluye.
+		const barra = container.querySelector("[data-sticky-actions]") as HTMLElement;
+		expect(
+			within(barra).getByRole("link", { name: "Revisar solicitudes, 3 pendientes" }),
+		).toHaveAttribute("href", "/dashboard/requests");
+	});
+
+	it("el superadministrador ve «Revisar solicitudes» sin depender de las organizaciones editables", async () => {
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
+		const admin = { ...baseUser, sysadmin: true };
+		mocks.sessionCheck.mockResolvedValue({ state: "alive", user: admin });
+		auth.setUser(admin);
+
+		const { container } = render(Dashboard);
+
+		expect(
+			await within(await waitForGrid(container)).findByRole("link", {
+				name: /revisar solicitudes/i,
+			}),
+		).toBeInTheDocument();
+	});
+
+	it("fail closed: sin respuesta afirmativa de permisos no se ofrece «Revisar solicitudes»", async () => {
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "unknown" });
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		await waitForGrid(container);
+		await screen.findByRole("link", { name: /matrícula estudiantil 2026/i });
+		expect(screen.queryByRole("link", { name: /revisar solicitudes/i })).not.toBeInTheDocument();
+		expect(mocks.publicationList).not.toHaveBeenCalled();
+	});
+
+	it("si la lista de solicitudes falla, la acción sigue sin línea de estado ni cuenta", async () => {
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.publicationList.mockRejectedValue(new Error("boom"));
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		const tarjeta = await within(await waitForGrid(container)).findByRole("link", {
+			name: /revisar solicitudes/i,
+		});
+		await waitFor(() => expect(mocks.publicationList).toHaveBeenCalled());
+		expect(tarjeta.textContent).not.toMatch(/pendiente|suya|Ninguna/);
+	});
+
+	it("un miembro sin otra capacidad no tiene sección de acciones", async () => {
+		mocks.canCreateDataset.mockResolvedValue(false);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: [] });
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		await screen.findByRole("link", { name: /facultad de ciencias/i });
+		expect(grilla(container)).toBeNull();
+		expect(screen.queryByRole("heading", { name: /acciones/i })).not.toBeInTheDocument();
+	});
+
+	it("sobre 768 px la barra lleva todas las acciones en línea cuando caben", async () => {
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		await waitForGrid(container);
+		const barra = container.querySelector("[data-sticky-actions]") as HTMLElement;
+		await waitFor(() => expect(within(barra).getAllByRole("link")).toHaveLength(2));
+		expect(within(barra).queryByRole("button", { name: "Más acciones" })).not.toBeInTheDocument();
+	});
+
+	it("hasta 768 px la barra es «principal + Más acciones» con objetivos de 44 px", async () => {
+		setMovil(true);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		await waitForGrid(container);
+		const barra = container.querySelector("[data-sticky-actions]") as HTMLElement;
+		const principal = await within(barra).findByRole("link", { name: /crear dataset/i });
+		expect(within(barra).getAllByRole("link")).toHaveLength(1);
+		expect(principal.className).toContain("h-11");
+		const mas = within(barra).getByRole("button", { name: "Más acciones" });
+		expect(mas.className).toContain("h-11");
+		expect(mas.className).toContain("min-w-11");
+	});
+
+	it("con una sola acción la barra móvil no ofrece «Más acciones»", async () => {
+		setMovil(true);
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		await waitForGrid(container);
+		const barra = container.querySelector("[data-sticky-actions]") as HTMLElement;
+		expect(within(barra).getAllByRole("link")).toHaveLength(1);
+		expect(within(barra).queryByRole("button", { name: "Más acciones" })).not.toBeInTheDocument();
 	});
 });
