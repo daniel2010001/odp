@@ -9,6 +9,10 @@
 //   · los 15 datasets base y el del Observatorio de Movilidad (`SHOWCASE`) suben un CSV, XLSX,
 //     PDF, JSON o GeoJSON generado en memoria al sembrar (`generate-demo-files.mjs`, sin archivos
 //     versionados). Son datos ficticios y no pasan por xloader ni por los tipos.
+//   · `buildMoreDatasets` agrega 30 datasets con nombres nuevos (6 por organización, con varias etiquetas
+//     y licencias, y los ocho formatos: además de los de arriba, PNG, JPG y TXT) para que el buscador
+//     pase de 21 a 51 datasets y el paginado (20 por página) llegue a tres páginas (S18 de
+//     odd/tasks/v0.1.1-polish.md). No se tocan los existentes: sólo se crea lo que no está.
 //   · los datasets ficticios de la demo (`DEMOS`) se **suben** desde `scripts/data`:
 //   · los CSV (`planilla-docente-ficticia` y los tres de T7), para que xloader los cargue en el
 //     DataStore. Sin eso la demo de gráficos no tiene nada que graficar (L4 de
@@ -46,7 +50,8 @@
 // sin vistas no hay pestañas de gráfico ni botón «Insertar». Espera a que la tabla del DataStore exista y
 // valida cada configuración contra los campos reales de la tabla; si no está lista, informa y sigue.
 //
-// Idempotente: si una organización ya existe (por `name`), se salta; si un dataset ya
+// Idempotente (también para los datasets adicionales: se identifican por su `name`, así que correr el
+// seed otra vez sólo lee, sin crear ni modificar nada): si una organización ya existe (por `name`), se salta; si un dataset ya
 // existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
 // corrida anterior murió entre crear y aprobar), se reusa la solicitud pendiente o se pide
 // una nueva, y se termina la publicación. Si a cualquier dataset le falta un recurso (por
@@ -499,6 +504,229 @@ export function buildBaseDatasets() {
 		});
 	}
 	return datasets;
+}
+
+// ── Datasets adicionales para probar el buscador y el paginado (S18 de odd/tasks/v0.1.1-polish.md) ──
+//
+// Con los 21 datasets que ya siembra el seed (15 base, el Observatorio y 5 de la demo), el buscador
+// (20 por página) no pasaba de dos páginas. Estos 30 llevan el catálogo a 51: tres páginas, la última
+// con 11. Se reparten por las cinco organizaciones (seis cada una), con varias etiquetas, licencias y
+// los ocho formatos. Todos tienen **nombre nuevo**: el seed no repite lo que ya existe, así que sembrarlos
+// no toca ningún dataset ni recurso previo, y volver a correrlo no hace nada.
+
+const MORE_LICENSES = [...LICENSES, "odc-by", "cc-nc", "odc-pddl"];
+const MORE_FORMATS = Object.keys(FORMAT_INFO);
+
+// [título, organización, etiquetas, descripción]
+const MORE_SPECS = [
+	[
+		"Inventario de equipos de cómputo por laboratorio",
+		"fcyt",
+		["tecnología", "infraestructura", "laboratorios"],
+		"Registro de los equipos de cómputo de los laboratorios de la facultad, con su tipo, año de adquisición y estado de operación.",
+	],
+	[
+		"Estaciones meteorológicas del campus",
+		"fcyt",
+		["clima", "ambiente", "series-temporales"],
+		"Mediciones diarias de temperatura, humedad y precipitación registradas por las estaciones meteorológicas de los campus universitarios.",
+	],
+	[
+		"Resultados de las olimpiadas de matemática y física",
+		"fcyt",
+		["educación", "estudiantes", "olimpiadas"],
+		"Participación y puntajes máximos de las olimpiadas científicas organizadas por la facultad, por gestión, disciplina y nivel.",
+	],
+	[
+		"Uso de la red inalámbrica del campus por facultad",
+		"fcyt",
+		["tecnología", "conectividad", "infraestructura"],
+		"Usuarios únicos, tráfico e incidencias de la red inalámbrica universitaria, agregados por mes y facultad.",
+	],
+	[
+		"Proyectos de grado defendidos en ingeniería",
+		"fcyt",
+		["educación", "titulación", "ingeniería"],
+		"Proyectos de grado, tesis y trabajos dirigidos defendidos en las carreras de ingeniería, con su modalidad y calificación.",
+	],
+	[
+		"Calidad del agua en puntos de muestreo del valle",
+		"fcyt",
+		["agua", "ambiente", "calidad"],
+		"Resultados fisicoquímicos y microbiológicos de los puntos de muestreo de agua monitoreados por los laboratorios de la facultad.",
+	],
+	[
+		"Atenciones del policlínico universitario por especialidad",
+		"fcs",
+		["salud", "atención-médica", "bienestar"],
+		"Atenciones mensuales del policlínico universitario según especialidad y población atendida.",
+	],
+	[
+		"Campañas de vacunación estudiantil",
+		"fcs",
+		["salud", "prevención", "estudiantes"],
+		"Dosis aplicadas en las campañas de vacunación dirigidas a la comunidad estudiantil, por vacuna y facultad.",
+	],
+	[
+		"Prácticas clínicas por centro de salud",
+		"fcs",
+		["salud", "prácticas", "convenios"],
+		"Estudiantes de ciencias de la salud que realizan prácticas clínicas en cada centro, con su carga horaria semanal.",
+	],
+	[
+		"Estado nutricional de estudiantes ingresantes",
+		"fcs",
+		["salud", "nutrición", "estudiantes"],
+		"Clasificación del estado nutricional de los estudiantes que ingresan a la universidad, por facultad y sexo.",
+	],
+	[
+		"Cobertura de seguro universitario de salud",
+		"fcs",
+		["salud", "seguro", "bienestar"],
+		"Afiliados, atenciones y porcentaje de cobertura del seguro universitario de salud por facultad y gestión.",
+	],
+	[
+		"Egresados de enfermería por gestión",
+		"fcs",
+		["salud", "egresados", "empleo"],
+		"Egresados de la carrera de enfermería por gestión y nivel, con el porcentaje que accede a un empleo en su primer año.",
+	],
+	[
+		"Producción de semillas nativas en estaciones experimentales",
+		"fca",
+		["agricultura", "semillas", "biodiversidad"],
+		"Producción de semilla de especies nativas en las estaciones experimentales, con su porcentaje de germinación.",
+	],
+	[
+		"Rendimiento de cultivos por parcela experimental",
+		"fca",
+		["agricultura", "cultivos", "investigación"],
+		"Superficie y rendimiento por hectárea de los cultivos establecidos en las parcelas experimentales de la facultad.",
+	],
+	[
+		"Estaciones experimentales y superficie cultivada",
+		"fca",
+		["agricultura", "infraestructura", "territorio"],
+		"Inventario de estaciones experimentales con su municipio, altitud, superficie y personal asignado.",
+	],
+	[
+		"Registro de especies forestales del vivero universitario",
+		"fca",
+		["bosques", "ambiente", "biodiversidad"],
+		"Especies forestales producidas en el vivero universitario, con su origen, cantidad de plantines y uso previsto.",
+	],
+	[
+		"Consumo de agua de riego en parcelas",
+		"fca",
+		["agua", "riego", "agricultura"],
+		"Volúmenes mensuales de agua de riego por parcela y sistema de riego, con su eficiencia de aplicación.",
+	],
+	[
+		"Ensayos de fertilización orgánica",
+		"fca",
+		["agricultura", "fertilización", "investigación"],
+		"Resultados de ensayos con abonos orgánicos en distintos cultivos, expresados como incremento porcentual del rendimiento.",
+	],
+	[
+		"Personal administrativo por unidad y cargo",
+		"rectorado",
+		["administración", "personal", "recursos"],
+		"Número de funcionarios administrativos por unidad, cargo y gestión, con su antigüedad promedio.",
+	],
+	[
+		"Ejecución del plan operativo anual por unidad",
+		"rectorado",
+		["planificación", "gestión", "calidad"],
+		"Actividades programadas y cumplidas del plan operativo anual de cada unidad administrativa.",
+	],
+	[
+		"Solicitudes de información pública atendidas",
+		"rectorado",
+		["transparencia", "acceso-a-la-información", "administración"],
+		"Solicitudes de información recibidas por la universidad, con su canal, tema y tiempo de respuesta en días.",
+	],
+	[
+		"Ingresos propios por concepto y gestión",
+		"rectorado",
+		["presupuesto", "finanzas", "recursos"],
+		"Ingresos propios de la universidad por concepto y gestión, con su variación respecto de la gestión anterior.",
+	],
+	[
+		"Contrataciones y adquisiciones por modalidad",
+		"rectorado",
+		["transparencia", "contrataciones", "presupuesto"],
+		"Procesos de contratación de bienes y servicios por gestión y modalidad, con su monto y estado.",
+	],
+	[
+		"Reclamos y sugerencias recibidos por canal",
+		"rectorado",
+		["calidad", "atención-al-usuario", "servicios"],
+		"Reclamos, sugerencias y felicitaciones recibidos por cada canal de atención y porcentaje resuelto.",
+	],
+	[
+		"Convocatorias de investigación y proyectos adjudicados",
+		"direccion-investigacion",
+		["investigación", "proyectos", "financiamiento"],
+		"Convocatorias internas de investigación, con sus postulaciones, proyectos adjudicados y monto asignado.",
+	],
+	[
+		"Grupos y centros de investigación registrados",
+		"direccion-investigacion",
+		["investigación", "investigadores", "organización"],
+		"Grupos y centros de investigación registrados, con su área, facultad, número de investigadores y año de creación.",
+	],
+	[
+		"Tesis de posgrado defendidas por programa",
+		"direccion-investigacion",
+		["posgrado", "tesis", "investigación"],
+		"Tesis de maestría, doctorado y especialidad defendidas por gestión y facultad, con su duración promedio.",
+	],
+	[
+		"Eventos científicos organizados por gestión",
+		"direccion-investigacion",
+		["investigación", "eventos", "divulgación"],
+		"Congresos, seminarios y talleres científicos organizados por la universidad, con sus asistentes y ponencias.",
+	],
+	[
+		"Patentes y registros de propiedad intelectual",
+		"direccion-investigacion",
+		["propiedad-intelectual", "innovación", "investigación"],
+		"Patentes, derechos de autor y otros registros de propiedad intelectual solicitados por la universidad.",
+	],
+	[
+		"Colaboraciones internacionales de investigación por país",
+		"direccion-investigacion",
+		["cooperación", "investigación", "convenios"],
+		"Proyectos y publicaciones conjuntas con instituciones de otros países, por área y gestión.",
+	],
+];
+
+export function buildMoreDatasets() {
+	return MORE_SPECS.map(([title, org, tags, description], i) => {
+		const name = slugify(title);
+		const resourceCount = 1 + (i % 3);
+		const resources = Array.from({ length: resourceCount }, (_, ri) =>
+			fileResource({
+				datasetName: name,
+				title,
+				profile: name,
+				name: `${title}${ri > 0 ? ` — parte ${ri + 1}` : ""}`,
+				description: `Archivo de muestra ${ri + 1} de ${resourceCount} sobre «${title.toLowerCase()}».`,
+				format: MORE_FORMATS[(i + ri) % MORE_FORMATS.length],
+				filename: `${name}-${ri + 1}`,
+			}),
+		);
+		const orgTitle = ORGS.find((o) => o.name === org).title;
+		return {
+			name,
+			title,
+			owner_org_name: org,
+			notes: `${description}\n\n${FICTITIOUS} Los archivos son de muestra y no reproducen cifras reales de la ${orgTitle}.`,
+			license_id: MORE_LICENSES[i % MORE_LICENSES.length],
+			tags: tags.map((tag) => ({ name: tag })),
+			resources,
+		};
+	});
 }
 
 const SHOWCASE_NAME = "observatorio-de-movilidad-urbana-cochabamba";
@@ -1072,7 +1300,7 @@ async function seedDemoCharts(token, demo) {
 // subida falla el dataset no queda público y vacío. Idempotente: lo que ya está público con
 // todos sus recursos se salta; si existe y le falta un recurso (por nombre), se sube sólo ese; si
 // sigue privado, se termina su publicación.
-async function seedFileDataset(token, orgIdByName, ds) {
+export async function seedFileDataset(token, orgIdByName, ds) {
 	const owner = orgIdByName.get(ds.owner_org_name);
 	if (!owner) {
 		console.error(`✗ ${ds.name}: organización ${ds.owner_org_name} no creada, se salta.`);
@@ -1155,7 +1383,7 @@ async function main() {
 			console.log(`✓ organización: ${org.name}`);
 		}
 
-		const all = [...buildBaseDatasets(), SHOWCASE];
+		const all = [...buildBaseDatasets(), SHOWCASE, ...buildMoreDatasets()];
 		let createdCount = 0;
 		let skippedCount = 0;
 		for (const ds of all) {

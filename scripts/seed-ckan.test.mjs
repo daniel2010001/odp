@@ -11,15 +11,21 @@ import { test } from "node:test";
 import { PROFILES } from "./generate-demo-files.mjs";
 import {
 	buildBaseDatasets,
+	buildMoreDatasets,
 	DEMOS,
+	ORGS,
 	readJson,
 	SHOWCASE,
+	seedFileDataset,
 	sessionHeaders,
 	uploadForm,
 } from "./seed-ckan.mjs";
 
 const datasets = [...buildBaseDatasets(), SHOWCASE];
-const resources = datasets.flatMap((ds) => ds.resources.map((resource) => ({ ds, resource })));
+const more = buildMoreDatasets();
+const resources = [...datasets, ...more].flatMap((ds) =>
+	ds.resources.map((resource) => ({ ds, resource })),
+);
 
 test("hay 15 datasets base más el Observatorio, y cada uno con recursos", () => {
 	assert.equal(datasets.length, 16);
@@ -34,11 +40,20 @@ test("ningún recurso trae URL ni tamaño inventados", () => {
 });
 
 test("cada recurso tiene perfil, nombre de archivo con la extensión de su formato y MIME", () => {
-	const ext = { CSV: "csv", XLSX: "xlsx", PDF: "pdf", JSON: "json", GeoJSON: "geojson" };
+	const ext = {
+		CSV: "csv",
+		XLSX: "xlsx",
+		PDF: "pdf",
+		JSON: "json",
+		GeoJSON: "geojson",
+		PNG: "png",
+		JPG: "jpg",
+		TXT: "txt",
+	};
 	for (const { resource } of resources) {
 		assert.ok(PROFILES[resource.profile], resource.name);
 		assert.ok(resource.filename.endsWith(`.${ext[resource.format]}`), resource.filename);
-		assert.match(resource.mime, /^(text|application)\//);
+		assert.match(resource.mime, /^(text|application|image)\//);
 	}
 });
 
@@ -49,6 +64,9 @@ test("los bytes de cada recurso coinciden con su formato y son deterministas", (
 		JSON: (b) => Array.isArray(JSON.parse(b.toString("utf8"))),
 		GeoJSON: (b) => JSON.parse(b.toString("utf8")).type === "FeatureCollection",
 		CSV: (b) => b.toString("utf8").split("\n")[0].includes(","),
+		PNG: (b) => b.subarray(1, 4).toString("latin1") === "PNG",
+		JPG: (b) => b[0] === 0xff && b[1] === 0xd8 && b.at(-2) === 0xff && b.at(-1) === 0xd9,
+		TXT: (b) => b.toString("utf8").includes("Datos ficticios"),
 	};
 	for (const { resource } of resources) {
 		const bytes = resource.bytes();
@@ -133,4 +151,145 @@ test("uploadForm no declara mimetype para un recurso sin `mime` (los CSV de DEMO
 	const form = uploadForm("pkg-1", csv, new Uint8Array([97]));
 	assert.equal(form.get("mimetype"), null);
 	assert.equal(form.get("upload").type, "text/csv");
+});
+
+// ── S18 de odd/tasks/v0.1.1-polish.md: más datasets para probar el buscador y el paginado ──
+
+const PAGE_SIZE = 20;
+const existingNames = [...datasets, ...DEMOS.map((demo) => demo.dataset)].map((ds) => ds.name);
+
+test("los datasets nuevos hacen que el catálogo sembrado llene al menos 3 páginas de 20", () => {
+	assert.equal(more.length, 30);
+	const total = existingNames.length + more.length;
+	assert.equal(existingNames.length, 21);
+	assert.ok(Math.ceil(total / PAGE_SIZE) >= 3, `${total} datasets`);
+	assert.ok(total > 2 * PAGE_SIZE);
+});
+
+test("los nombres nuevos son válidos para CKAN y no chocan con ninguno existente ni entre sí", () => {
+	const names = more.map((ds) => ds.name);
+	assert.equal(new Set(names).size, names.length);
+	for (const name of names) {
+		assert.match(name, /^[a-z0-9_-]{2,100}$/);
+		assert.ok(!existingNames.includes(name), name);
+	}
+	const titles = [...datasets, ...more].map((ds) => ds.title);
+	assert.equal(new Set(titles).size, titles.length);
+});
+
+test("los nuevos se reparten por todas las organizaciones, etiquetas, licencias y formatos", () => {
+	const orgs = new Map();
+	for (const ds of more) orgs.set(ds.owner_org_name, (orgs.get(ds.owner_org_name) ?? 0) + 1);
+	assert.deepEqual([...orgs.keys()].sort(), ORGS.map((o) => o.name).sort());
+	for (const count of orgs.values()) assert.ok(count >= 5);
+	assert.ok(new Set(more.flatMap((ds) => ds.tags.map((t) => t.name))).size >= 20);
+	for (const ds of more) assert.ok(ds.tags.length >= 2, ds.name);
+	assert.ok(new Set(more.map((ds) => ds.license_id)).size >= 5);
+	const formats = new Set(more.flatMap((ds) => ds.resources.map((r) => r.format)));
+	assert.deepEqual(
+		[...formats].sort(),
+		["CSV", "GeoJSON", "JPG", "JSON", "PDF", "PNG", "TXT", "XLSX"].sort(),
+	);
+});
+
+test("todo tipo de vista previa del portal (tabla, PDF, imagen, texto) tiene una muestra subida", () => {
+	const formats = new Set(resources.map(({ resource }) => resource.format));
+	for (const needed of ["CSV", "XLSX", "PDF", "PNG", "JPG", "TXT", "JSON"]) {
+		assert.ok(formats.has(needed), needed);
+	}
+});
+
+test("los datasets nuevos son datos ficticios, con título, descripción y un recurso como mínimo", () => {
+	for (const ds of more) {
+		assert.ok(ds.title.length > 10 && ds.notes.length > 80, ds.name);
+		assert.ok(ds.resources.length >= 1, ds.name);
+		const names = ds.resources.map((r) => r.name);
+		assert.equal(new Set(names).size, names.length, ds.name);
+	}
+});
+
+// CKAN falso en memoria: package_show / package_create / resource_create / publicación.
+function fakeCkan(initial = []) {
+	const packages = new Map(initial.map((pkg) => [pkg.name, pkg]));
+	const calls = [];
+	const json = (body) => new Response(JSON.stringify(body), { status: 200 });
+	const handler = async (url, init) => {
+		const action = String(url).split("/").pop();
+		calls.push(action);
+		if (action === "resource_create") {
+			const form = init.body;
+			const pkg = [...packages.values()].find((p) => p.id === form.get("package_id"));
+			const resource = { id: `r${calls.length}`, name: form.get("name"), url_type: "upload" };
+			pkg.resources.push(resource);
+			return json({ success: true, result: resource });
+		}
+		const data = JSON.parse(init.body);
+		if (action === "package_show") {
+			const pkg = packages.get(data.id) ?? [...packages.values()].find((p) => p.id === data.id);
+			return json(pkg ? { success: true, result: pkg } : { success: false, error: {} });
+		}
+		if (action === "package_create") {
+			const pkg = { ...data, id: `p${packages.size}`, state: "active", resources: [] };
+			packages.set(pkg.name, pkg);
+			return json({ success: true, result: pkg });
+		}
+		if (action === "publication_request_list") return json({ success: true, result: [] });
+		if (action === "publication_request_create")
+			return json({ success: true, result: { id: "q1" } });
+		if (action === "publication_request_decide") {
+			for (const pkg of packages.values()) pkg.private = false;
+			return json({ success: true, result: {} });
+		}
+		return json({ success: false, error: { message: action } });
+	};
+	return { packages, calls, handler };
+}
+
+async function withFakeFetch(fake, run) {
+	const realFetch = globalThis.fetch;
+	const realLog = console.log;
+	globalThis.fetch = fake.handler;
+	console.log = () => {};
+	try {
+		return await run();
+	} finally {
+		globalThis.fetch = realFetch;
+		console.log = realLog;
+	}
+}
+
+test("sembrar un dataset nuevo lo crea, sube todos sus archivos y lo publica; repetirlo no hace nada", async () => {
+	const ds = more[0];
+	const orgs = new Map(ORGS.map((o) => [o.name, `org-${o.name}`]));
+	const fake = fakeCkan();
+	const first = await withFakeFetch(fake, () => seedFileDataset("t", orgs, ds));
+	assert.equal(first.created, true);
+	const pkg = fake.packages.get(ds.name);
+	assert.equal(pkg.resources.length, ds.resources.length);
+	assert.equal(pkg.private, false);
+	assert.ok(pkg.resources.every((r) => r.url_type === "upload"));
+
+	fake.calls.length = 0;
+	const second = await withFakeFetch(fake, () => seedFileDataset("t", orgs, ds));
+	assert.equal(second.created, false);
+	assert.equal(second.skipped, true);
+	assert.deepEqual(fake.calls, ["package_show"], "la segunda corrida sólo lee");
+});
+
+test("sembrar los 30 nuevos no toca un dataset existente de otro nombre", async () => {
+	const orgs = new Map(ORGS.map((o) => [o.name, `org-${o.name}`]));
+	const old = {
+		id: "old-1",
+		name: datasets[0].name,
+		private: false,
+		state: "active",
+		resources: [{ id: "x", name: "intacto" }],
+	};
+	const before = JSON.stringify(old);
+	const fake = fakeCkan([old]);
+	await withFakeFetch(fake, async () => {
+		for (const ds of more) await seedFileDataset("t", orgs, ds);
+	});
+	assert.equal(JSON.stringify(fake.packages.get(old.name)), before);
+	assert.equal(fake.packages.size, 31);
 });
