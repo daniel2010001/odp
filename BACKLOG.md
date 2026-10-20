@@ -2690,7 +2690,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 > **Estado al cierre (2026-10-20):** nueve diseños y arreglos ya promovidos en la rama `fix/v011-small-fixes` (su PR).
 > **Para revisar en la sesión siguiente** —seis hojas en `/dev/` y las decisiones pendientes— está todo en el traspaso
-> **L35** de `odd/tasks/v0.1.1-polish.md`. Las hojas son borradores sin versionar en `src/routes/dev/`.
+> **L35–L36** de `odd/tasks/v0.1.1-polish.md`. Las hojas son borradores sin versionar en `src/routes/dev/`.
 
 
 
