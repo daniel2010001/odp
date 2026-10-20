@@ -101,6 +101,81 @@ describe("Solicitudes — la compuerta de sesión", () => {
 	});
 });
 
+describe("Solicitudes — pendientes y resueltas", () => {
+	it("pide todas las filas en **una** llamada sin estado y muestra Pendientes y después Resueltas", async () => {
+		auth.setUser(makeUser());
+		mocks.listRequests.mockResolvedValue([
+			makeRow({
+				id: "req-old",
+				dataset_title: "Viejo aprobado",
+				status: "approved",
+				approved_by_name: "admin.tecnologia",
+				decided_at: "2026-10-02T00:00:00.000000",
+			}),
+			makeRow({ id: "req-1", dataset_title: "Matrícula 2026" }),
+			makeRow({
+				id: "req-new",
+				dataset_title: "Nuevo rechazado",
+				status: "rejected",
+				approved_by_name: "admin.tecnologia",
+				decided_at: "2026-10-09T00:00:00.000000",
+			}),
+		]);
+
+		renderPage();
+
+		const pendientes = await screen.findByRole("heading", { name: "Pendientes 1" });
+		const resueltas = screen.getByRole("heading", { name: "Resueltas 2" });
+		expect(mocks.listRequests).toHaveBeenCalledTimes(1);
+		expect(mocks.listRequests).toHaveBeenCalledWith();
+		expect(
+			pendientes.compareDocumentPosition(resueltas) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		const grupo = resueltas.closest("section") as HTMLElement;
+		const filas = within(grupo).getAllByRole("listitem");
+		expect(filas[0]).toHaveTextContent("Nuevo rechazado");
+		expect(filas[1]).toHaveTextContent("Viejo aprobado");
+	});
+
+	it("el filtro por organización recorta las dos secciones", async () => {
+		auth.setUser(makeUser());
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ id: "a", dataset_title: "Pend Tec" }),
+			makeRow({
+				id: "b",
+				dataset_title: "Res Tec",
+				status: "approved",
+				approved_by_name: "admin.tecnologia",
+			}),
+			makeRow({
+				id: "c",
+				dataset_title: "Pend Eco",
+				organization_title: "Facultad de Ciencias Económicas",
+			}),
+			makeRow({
+				id: "d",
+				dataset_title: "Res Eco",
+				status: "rejected",
+				organization_title: "Facultad de Ciencias Económicas",
+				approved_by_name: "admin.economicas",
+			}),
+		]);
+
+		renderPage();
+
+		const filtro = await screen.findByRole("group", { name: "Filtrar por organización" });
+		await fireEvent.click(
+			within(filtro).getByRole("button", { name: "Facultad de Ciencias Económicas" }),
+		);
+
+		await waitFor(() => expect(screen.queryByText("Pend Tec")).not.toBeInTheDocument());
+		expect(screen.queryByText("Res Tec")).not.toBeInTheDocument();
+		expect(screen.getByText("Pend Eco")).toBeInTheDocument();
+		expect(screen.getByText("Res Eco")).toBeInTheDocument();
+		expect(mocks.listRequests).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("Solicitudes — el filtro por organización", () => {
 	it("con **una sola** organización no dibuja el selector: no hay nada que filtrar", async () => {
 		auth.setUser(makeUser());

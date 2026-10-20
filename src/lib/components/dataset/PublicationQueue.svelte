@@ -28,6 +28,8 @@ export interface PublicationQueueItem {
 	/** Nombre visible de quien decidió la solicitud; sólo lo traen las filas ya resueltas. */
 	approved_by_name?: string;
 	created_at?: string;
+	/** Cuándo se resolvió; ordena las resueltas. Ausente en las pendientes y en filas anteriores a la 0002. */
+	decided_at?: string;
 	status: PublicationRequestStatus;
 	comments?: string | null;
 }
@@ -177,7 +179,22 @@ function canDecide(item: PublicationQueueItem): boolean {
 let abiertos = $state<Record<string, boolean>>({});
 
 const pendientes = $derived(items.filter((item) => item.status === "pending"));
-const resueltas = $derived(items.filter((item) => item.status !== "pending"));
+// Las resueltas, la más nueva primero. Se ordena por la decisión y, si la fila no la trae (cancelaciones
+// anteriores a la 0002), por la creación. Una fecha ilegible cuenta como la más vieja.
+const resueltas = $derived(
+	items
+		.filter((item) => item.status !== "pending")
+		.map((item) => ({ item, t: new Date(item.decided_at ?? item.created_at ?? "").getTime() }))
+		.sort((a, b) => (Number.isNaN(b.t) ? -Infinity : b.t) - (Number.isNaN(a.t) ? -Infinity : a.t))
+		.map(({ item }) => item),
+);
+
+// Las resueltas crecen sin parar, las pendientes no: se ven las más nuevas y el resto queda tras «Ver más»,
+// el mismo patrón y el mismo límite del historial del dataset. Es lo más simple que acota la lista sin
+// agregar paginación ni una segunda llamada.
+const LIMITE_RESUELTAS = 5;
+let verTodas = $state(false);
+const resueltasVisibles = $derived(verTodas ? resueltas : resueltas.slice(0, LIMITE_RESUELTAS));
 
 // La fila que arranca abierta: la primera que quien mira **puede decidir**. Cuatro ojos: la propia
 // nunca —salvo que el catálogo haya concedido la excepción—, porque abrirla para decidir sería ofrecer
@@ -223,7 +240,9 @@ async function load() {
 	listError = null;
 
 	try {
-		items = await list("pending");
+		// Sin filtro: el catálogo ya acota las filas a las que quien mira puede ver, y la cola reparte
+		// pendientes y resueltas por su cuenta.
+		items = await list();
 	} catch (err) {
 		// La cola no cargada no se disfraza de cola vacía: son estados distintos. Se guarda el fallo
 		// —no su texto— porque el mensaje que el usuario lee es nuestro y el dato técnico se deriva.
@@ -431,8 +450,18 @@ function outcomeLine(item: PublicationQueueItem): string | null {
 					>
 				</h3>
 				<ul class="flex flex-col gap-3">
-					{#each resueltas as item (item.id)}{@render fila(item)}{/each}
+					{#each resueltasVisibles as item (item.id)}{@render fila(item)}{/each}
 				</ul>
+				{#if resueltas.length > LIMITE_RESUELTAS}
+					<button
+						type="button"
+						aria-expanded={verTodas}
+						onclick={() => (verTodas = !verTodas)}
+						class="inline-flex min-h-8 items-center self-start text-xs font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+					>
+						{verTodas ? "Ver menos" : `Ver ${resueltas.length - resueltasVisibles.length} más`}
+					</button>
+				{/if}
 			</section>
 		{/if}
 	{:else}

@@ -116,3 +116,39 @@ const MOTIVOS_DE_ANULACION: Record<string, string> = {
 export function motivoDeAnulacion(motivo: string | null | undefined): string {
 	return (motivo && MOTIVOS_DE_ANULACION[motivo]) || "La solicitud dejó de estar vigente.";
 }
+
+/** Cómo se rotula una entrada del historial: el estado, su color y la palabra de la línea de resolución. */
+export interface EstadoDelHistorial {
+	label: string;
+	tone: string;
+	/** El rótulo de la línea «resuelta»; `null` si el estado no se resolvió (pendiente o desconocido). */
+	resolvio: string | null;
+}
+
+const ESTADOS_DEL_HISTORIAL: Record<PublicationRequest["status"], EstadoDelHistorial> = {
+	pending: { label: "Pendiente", tone: "text-primary", resolvio: null },
+	approved: {
+		label: "Aprobada",
+		tone: "text-emerald-700 dark:text-emerald-400",
+		resolvio: "Aprobada",
+	},
+	rejected: { label: "Rechazada", tone: "text-destructive", resolvio: "Rechazada" },
+	cancelled: { label: "Retirada", tone: "text-muted-foreground", resolvio: "Retirada" },
+	annulled: { label: "Anulada", tone: "text-muted-foreground", resolvio: "Anulada" },
+};
+
+const ESTADO_DESCONOCIDO: EstadoDelHistorial = {
+	label: "Estado desconocido",
+	tone: "text-muted-foreground",
+	resolvio: null,
+};
+
+/**
+ * El rótulo de una entrada del historial. Un estado que el portal no conoce (el catálogo puede ganar uno
+ * antes que el portal) se lee neutral —«Estado desconocido», sin mostrar el token crudo— y nunca lanza.
+ */
+export function estadoDelHistorial(estado: PublicationRequest["status"]): EstadoDelHistorial {
+	return Object.hasOwn(ESTADOS_DEL_HISTORIAL, estado)
+		? ESTADOS_DEL_HISTORIAL[estado]
+		: ESTADO_DESCONOCIDO;
+}

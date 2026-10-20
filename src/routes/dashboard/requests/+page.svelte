@@ -89,6 +89,7 @@ function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
 		requested_by_name: fila.requested_by_name ?? undefined,
 		approved_by_name: fila.approved_by_name ?? undefined,
 		created_at: fila.created_at ?? undefined,
+		decided_at: fila.decided_at ?? undefined,
 		status: fila.status,
 		comments: fila.comments ?? null,
 		// La respuesta del catálogo sobre la excepción de cuatro ojos (#74): sin ella la cola aplica la regla
@@ -104,9 +105,10 @@ function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
  * que cambiar de organización no cuesta otra llamada ni puede mostrar dos listados distintos. El filtro se
  * aplica **acá** y no en el componente: la cola no sabe de organizaciones, recibe las filas que le tocan.
  */
-const list = async (status?: PublicationRequest["status"]): Promise<PublicationQueueItem[]> => {
+const list = async (): Promise<PublicationQueueItem[]> => {
 	if (filas === null) {
-		filas = await publicationApi.list(status);
+		// Sin estado: pendientes y resueltas en una sola llamada; el catálogo ya acota lo visible.
+		filas = await publicationApi.list();
 	}
 	const visibles =
 		orgElegida === null ? filas : filas.filter((fila) => fila.organization_title === orgElegida);
@@ -162,8 +164,8 @@ function elegirOrg(org: string | null) {
 					Solicitudes de publicación
 				</h1>
 				<p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-					Las solicitudes pendientes de las organizaciones donde usted administra. Revise cada una
-					para aprobarla, o para rechazarla con un motivo.
+					Las solicitudes de las organizaciones donde usted administra. Revise cada pendiente para
+					aprobarla, o para rechazarla con un motivo; las resueltas quedan a continuación.
 				</p>
 			</header>
 

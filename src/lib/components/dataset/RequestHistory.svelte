@@ -9,11 +9,11 @@
 	atribuir en `comments`, que se rotula «Comentario» a secas). Sin filas no dibuja nada.
 -->
 <script lang="ts">
-import { Ban, CircleCheck, CircleX, Clock, Undo2 } from "@lucide/svelte";
+import { Ban, CircleCheck, CircleHelp, CircleX, Clock, Undo2 } from "@lucide/svelte";
 import type { Component } from "svelte";
 import type { PublicationRequest } from "$lib/api/publication";
 import Card from "$lib/components/ui/card/card.svelte";
-import { motivoDeAnulacion, nombreDelHistorial } from "$lib/copy/publication";
+import { estadoDelHistorial, motivoDeAnulacion, nombreDelHistorial } from "$lib/copy/publication";
 import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
 import AnchorLink from "./AnchorLink.svelte";
@@ -26,31 +26,18 @@ let showAll = $state(false);
 const visibles = $derived(showAll ? rows : rows.slice(0, LIMITE));
 const ocultas = $derived(rows.length - visibles.length);
 
-const ESTADOS: Record<
-	PublicationRequest["status"],
-	{ icon: Component; tone: string; label: string; resolvio: string | null }
-> = {
-	pending: { icon: Clock, tone: "text-primary", label: "Pendiente", resolvio: null },
-	approved: {
-		icon: CircleCheck,
-		tone: "text-emerald-700 dark:text-emerald-400",
-		label: "Aprobada",
-		resolvio: "Aprobada",
-	},
-	rejected: {
-		icon: CircleX,
-		tone: "text-destructive",
-		label: "Rechazada",
-		resolvio: "Rechazada",
-	},
-	cancelled: {
-		icon: Undo2,
-		tone: "text-muted-foreground",
-		label: "Retirada",
-		resolvio: "Retirada",
-	},
-	annulled: { icon: Ban, tone: "text-muted-foreground", label: "Anulada", resolvio: "Anulada" },
+const ICONOS: Record<PublicationRequest["status"], Component> = {
+	pending: Clock,
+	approved: CircleCheck,
+	rejected: CircleX,
+	cancelled: Undo2,
+	annulled: Ban,
 };
+
+/** El icono del estado; uno desconocido cae a una interrogación neutral. */
+function icono(status: PublicationRequest["status"]): Component {
+	return Object.hasOwn(ICONOS, status) ? ICONOS[status] : CircleHelp;
+}
 
 /** «Pedida por Ana el 17 de octubre de 2026», con lo que haya: nombre y fecha son opcionales. */
 function frase(rotulo: string, nombre: string | null, fecha: string | null | undefined): string {
@@ -65,7 +52,7 @@ function pedida(r: PublicationRequest): string {
 
 /** `null` si no hay nada que decir: pendiente, o una fila vieja sin nombre ni fecha. */
 function resuelta(r: PublicationRequest): string | null {
-	const rotulo = ESTADOS[r.status].resolvio;
+	const rotulo = estadoDelHistorial(r.status).resolvio;
 	if (!rotulo) return null;
 	// Las aprobaciones y rechazos anteriores a la 0002 guardaron a quien decidió sólo en `approved_by_name`.
 	const antiguo = r.status === "approved" || r.status === "rejected" ? r.approved_by_name : null;
@@ -114,11 +101,12 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 		<ol class="relative mt-3">
 			<span class="absolute bottom-2 left-2.5 top-2 w-px bg-border" aria-hidden="true"></span>
 			{#each visibles as r (r.id)}
-				{@const e = ESTADOS[r.status]}
+				{@const e = estadoDelHistorial(r.status)}
+				{@const Icono = icono(r.status)}
 				{@const res = resuelta(r)}
 				<li class="relative flex gap-3 pb-4 last:pb-0" data-testid="historial-entrada">
 					<span class="relative z-10 mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-card">
-						<e.icon class={cn("size-4", e.tone)} aria-hidden="true" />
+						<Icono class={cn("size-4", e.tone)} aria-hidden="true" />
 					</span>
 					<div class="min-w-0 text-sm leading-snug">
 						<p class="font-semibold text-foreground">{e.label}</p>
