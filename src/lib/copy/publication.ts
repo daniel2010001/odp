@@ -44,3 +44,49 @@ export function estadoDeLaSolicitud(solicitud: PublicationRequest): string {
 		}
 	}
 }
+
+/** La insignia del estado de una solicitud: su rótulo y los colores de la forma de insignia. */
+export interface InsigniaDeSolicitud {
+	label: string;
+	tone: string;
+}
+
+/**
+ * La insignia del estado de la solicitud para el hero: **una** por estado y **exhaustiva** igual que
+ * `estadoDeLaSolicitud` — si la tabla gana un estado, esto no compila hasta nombrarlo. `null` para los
+ * estados que no son un estado visible en el hero (`approved` ya se lee como el dataset publicado, y
+ * `cancelled` vuelve a ofrecer la acción de pedir) y para la **ausencia** de solicitud (`undefined`).
+ *
+ * La usan las dos superficies que dibujan el estado: la unidad del hero (`RequestPublicationControl`) y la
+ * fila de insignias, cuando quien mira no puede pedir y por eso no hay unidad.
+ */
+export function insigniaDeLaSolicitud(
+	estado: PublicationRequest["status"] | undefined,
+): InsigniaDeSolicitud | null {
+	switch (estado) {
+		case "pending":
+			return {
+				label: "Solicitud pendiente",
+				tone: "border-primary/20 bg-primary/10 text-primary",
+			};
+		case "rejected":
+			return {
+				label: "Solicitud rechazada",
+				tone: "border-destructive/20 bg-destructive/10 text-destructive",
+			};
+		case "annulled":
+			return {
+				label: "Solicitud anulada",
+				tone: "border-border bg-muted text-muted-foreground",
+			};
+		case "approved":
+		case "cancelled":
+		case undefined:
+			return null;
+		default: {
+			const exhaustivo: never = estado;
+			void exhaustivo;
+			return null;
+		}
+	}
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowDownToLine, Download, ExternalLink, FileText, Maximize2 } from "@lucide/svelte";
+import { ArrowDownToLine, Download, ExternalLink, FileText, Maximize2, Plus } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createChartApi } from "$lib/api/charts";
@@ -18,12 +18,13 @@ import {
 import { createResourceApi } from "$lib/api/resources";
 import { canEditResourceCharts } from "$lib/charts/permission";
 import { ACCION_BASE } from "$lib/components/dataset/action-class";
+import MoreMenu from "$lib/components/dataset/MoreMenu.svelte";
+import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import ResourceStepper from "$lib/components/resource/ResourceStepper.svelte";
-import CreateChartLink from "$lib/components/resource/views/CreateChartLink.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -443,6 +444,7 @@ const docsUrl = $derived(safeExternalUrl(apiExtras.find((e) => e.key === "docs_u
 // conserva `resource.url`, que también viene de CKAN y se renderiza como `href`: el saneo en el
 // borde de salida (`fileUrl` → `safeExternalUrl`) es lo que impide un `javascript:` almacenado.
 const downloadUrl = $derived(resource ? fileUrl(resource) : null);
+const createChartHref = $derived(`/dataset/${datasetId}/resource/${resource?.id}/charts/new`);
 
 // La misma regla del chip decide la vista previa: una referencia externa no aloja contenido en el
 // portal, así que no hay nada que previsualizar. Derivarlo acá y no repetir la comparación en la
@@ -612,46 +614,66 @@ const resourceLink = $derived(
 					</a>
 				{/if}
 
-				<!-- Acción del recurso + salto secuencial (variante D, decisión del autor 2026-10-19). La banda
-				     es un contenedor de consultas: bajo 32 rem (`@lg`) la descarga y el control compacto van en dos
-				     filas de ancho completo; desde ahí, en una fila, con el control a la derecha (`@lg:ml-auto`,
-				     que lo alinea aunque no haya botón). La banda se renderiza sólo si tiene algún hijo, así que
-				     sin acción y sin salto no queda una fila vacía. -->
+				<!-- Banda de acciones C (T13, decisión del autor 2026-10-20; salto secuencial: variante D del
+				     2026-10-19). La banda es un contenedor de consultas: bajo 32 rem (`@lg`) las acciones y el
+				     control compacto van en dos filas de ancho completo —y «Crear gráfico» pasa al menú «Más
+				     acciones»—; desde ahí, en una fila, con el control a la derecha (`@lg:ml-auto`, que lo alinea
+				     aunque no haya botón). Todas las acciones miden 44 px y comparten forma; la descarga conserva
+				     el coral para que resalte. La banda se renderiza sólo si tiene algún hijo, así que sin acción y
+				     sin salto no queda una fila vacía. -->
 				{#if downloadUrl || hasJump || canEditCharts}
 					<div class="@container mt-5">
 					<div class="flex flex-col gap-2 @lg:flex-row @lg:items-center @lg:gap-3">
-						{#if downloadUrl}
-							<a
-								href={downloadUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								class={cn(
-									ACCION_BASE,
-									"h-11 w-full justify-center border-transparent bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 @lg:w-auto",
-								)}
-							>
-								<!-- La forma de las acciones del hero del dataset, la misma que «Crear gráfico», con el color
-								     coral de siempre para que descargar resalte (decisiones del autor, 2026-10-18). `cn`
-								     resuelve el choque: el fondo coral reemplaza al `bg-background` de la base. -->
-								{#if isLink}
-									<ExternalLink class="size-4" aria-hidden="true" />
-									Abrir enlace
-								{:else}
-									<Download class="size-4 shrink-0" aria-hidden="true" />
-									<!-- «recurso» sólo se oculta a la vista según el ancho de la banda (contenedor), no el de
-									     la ventana: el nombre accesible sigue siendo «Descargar recurso». -->
-									<span>Descargar{" "}<span class="sr-only @sm:not-sr-only">recurso</span></span>
+						{#if downloadUrl || canEditCharts}
+							<div class="flex items-center gap-2">
+								{#if downloadUrl}
+									<!-- «recurso» sólo se oculta a la vista según el ancho de la banda (contenedor), no el de la
+									     ventana: el nombre accesible sigue siendo «Descargar recurso». -->
+									{#if isLink}
+										<ResponsiveAction
+											icon={ExternalLink}
+											label="Abrir enlace"
+											href={downloadUrl}
+											external
+											tone="coral"
+											height="11"
+											class="flex-1 @lg:flex-none"
+										/>
+									{:else}
+										<ResponsiveAction
+											icon={Download}
+											label="Descargar recurso"
+											text="Descargar"
+											suffix="recurso"
+											suffixFrom="24rem"
+											href={downloadUrl}
+											external
+											tone="coral"
+											height="11"
+											class="flex-1 @lg:flex-none"
+										/>
+									{/if}
 								{/if}
-							</a>
-						{/if}
 
-						<!-- «Crear gráfico» en la banda de acciones del hero, como las acciones del dataset: sólo para
-						     quien puede editar (`canEditCharts` ya exige `datastore_active`). El servidor exige
-						     `resource_update` de todos modos. -->
-						{#if canEditCharts}
-							<CreateChartLink
-								href="/dataset/{datasetId}/resource/{resource.id}/charts/new"
-							/>
+								<!-- «Crear gráfico» en la banda de acciones del hero: sólo para quien puede editar
+								     (`canEditCharts` ya exige `datastore_active`). El servidor exige `resource_update` de
+								     todos modos. Bajo `@lg` pasa a «Más acciones» (si hay descarga con la que compartir fila). -->
+								{#if canEditCharts}
+									<ResponsiveAction
+										icon={Plus}
+										label="Crear gráfico"
+										href={createChartHref}
+										height="11"
+										class={downloadUrl ? "hidden @lg:inline-flex" : ""}
+									/>
+									{#if downloadUrl}
+										<MoreMenu
+											hideFrom="32rem"
+											items={[{ label: "Crear gráfico", icon: Plus, href: createChartHref }]}
+										/>
+									{/if}
+								{/if}
+							</div>
 						{/if}
 
 						<!-- Navegación entre recursos: un solo control compacto «‹ Recurso N de M ⇅ ›» (ver

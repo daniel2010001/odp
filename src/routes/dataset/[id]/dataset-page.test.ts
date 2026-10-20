@@ -411,16 +411,20 @@ describe("Página de dataset — el enlace de la organización", () => {
 		expect(crumb).toHaveAttribute("href", "/organization/facultad-de-ciencias");
 	});
 
-	it("la insignia del hero y la tarjeta lateral llevan la organización a su página", async () => {
+	it("la miga y la tarjeta lateral llevan la organización a su página; la insignia del hero, a su búsqueda", async () => {
 		await renderWithOrganization();
 
-		// La insignia del hero comparte el nombre con la miga del breadcrumb: se miden las dos, en orden
-		// de aparición, y ninguna puede quedar fuera del destino de la organización.
+		// Regla de las insignias (T13, L32): una insignia es enlace sólo si existe un filtro de búsqueda. El de la
+		// organización es `org`, así que la insignia del hero filtra el catálogo; la miga y la tarjeta lateral
+		// siguen yendo a la página de la organización.
 		const named = screen.getAllByRole("link", { name: "Facultad de Ciencias" });
 		expect(named.map((link) => link.getAttribute("href"))).toEqual([
 			"/organization/facultad-de-ciencias",
-			"/organization/facultad-de-ciencias",
 		]);
+		const badge = screen.getByRole("link", {
+			name: "Ver datasets de Facultad de Ciencias en el catálogo",
+		});
+		expect(badge).toHaveAttribute("href", "/search?org=facultad-de-ciencias");
 
 		const card = screen.getByRole("link", { name: "Ver los datasets de la organización" });
 		expect(card).toHaveAttribute("href", "/organization/facultad-de-ciencias");
@@ -471,13 +475,39 @@ describe("Página de dataset — el enlace de la organización", () => {
 		expect(hrefs.some((href) => href.includes("undefined"))).toBe(false);
 	});
 
-	it("ninguna superficie del dataset apunta a la búsqueda filtrada por organización", async () => {
+	it("sólo la insignia del hero apunta a la búsqueda filtrada por organización", async () => {
 		const container = await renderWithOrganization();
 
-		const hrefs = Array.from(container.querySelectorAll("a[href]")).map(
-			(anchor) => anchor.getAttribute("href") ?? "",
+		const hrefs = Array.from(container.querySelectorAll("a[href]"))
+			.map((anchor) => anchor.getAttribute("href") ?? "")
+			.filter((href) => href.includes("search?org="));
+		expect(hrefs).toEqual(["/search?org=facultad-de-ciencias"]);
+	});
+
+	it("codifica el `name` en la búsqueda de la insignia", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ organization: makeOrganization({ name: "facultad de ciencias/ñ" }) }),
 		);
-		expect(hrefs.some((href) => href.includes("search?org="))).toBe(false);
+
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		expect(
+			screen.getByRole("link", { name: "Ver datasets de Facultad de Ciencias en el catálogo" }),
+		).toHaveAttribute("href", "/search?org=facultad+de+ciencias%2F%C3%B1");
+	});
+
+	it("sin `name` la insignia del hero es texto: no hay filtro que ofrecer", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ organization: makeOrganization({ name: undefined }) }),
+		);
+
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		expect(screen.queryByRole("link", { name: /Ver datasets de/ })).toBeNull();
+		const hero = screen.getByRole("heading", { level: 1 }).closest("section") as HTMLElement;
+		expect(within(hero).getAllByText("Facultad de Ciencias").length).toBeGreaterThan(0);
 	});
 });
 
@@ -617,11 +647,15 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 			["Lo mantiene", "María Rojas"],
 			["Se actualiza", "Semestral"],
 			["Última actualización", "1 de enero de 2026"],
-			["Licencia", "Creative Commons Atribución 4.0"],
 		]) {
 			expect(within(summary).getByText(label).tagName).toBe("DT");
 			expect(within(summary).getByText(value).tagName).toBe("DD");
 		}
+		// La licencia es un dato más del resumen: su valor vive en el `dd` de su fila, aunque sea un enlace.
+		expect(within(summary).getByText("Licencia").tagName).toBe("DT");
+		expect(
+			within(summary).getByText("Creative Commons Atribución 4.0").closest("dd"),
+		).not.toBeNull();
 	});
 
 	it("«Lo mantiene» cae al autor y luego a la organización", async () => {
@@ -815,8 +849,11 @@ describe("Página de dataset — el hero: «Copiar enlace» a la izquierda del t
 		const { copy } = await renderHero();
 
 		expect(screen.queryByRole("link", { name: "Editar" })).toBeNull();
-		const fila = screen.getAllByRole("link", { name: "Facultad de Ciencias" })[0]
-			.parentElement as HTMLElement;
+		const fila = screen
+			.getByRole("link", {
+				name: "Ver datasets de Facultad de Ciencias en el catálogo",
+			})
+			.closest("[data-hero-row]") as HTMLElement;
 		expect(fila.contains(copy)).toBe(false);
 	});
 
@@ -833,11 +870,15 @@ describe("Página de dataset — el hero: «Copiar enlace» a la izquierda del t
 		const copy = screen.getByRole("button", { name: "Copiar enlace del dataset" });
 		const title = screen.getByRole("heading", { level: 1, name: "Matrícula 2026" });
 
-		// Copiar quedó con el título; «Editar» está con las insignias, a la derecha (`justify-between`).
+		// Copiar quedó con el título; «Editar» está con las insignias, a la derecha, en la misma fila sin envolver.
 		expect(title.parentElement).toContainElement(copy);
-		const fila = editar.parentElement?.parentElement as HTMLElement;
-		expect(fila.className).toContain("justify-between");
-		expect(within(fila).getByRole("link", { name: "Facultad de Ciencias" })).toBeTruthy();
+		const fila = editar.closest("[data-hero-row]") as HTMLElement;
+		expect(fila.className).toContain("flex-nowrap");
+		expect(
+			within(fila).getByRole("link", {
+				name: "Ver datasets de Facultad de Ciencias en el catálogo",
+			}),
+		).toBeTruthy();
 		expect(fila.contains(copy)).toBe(false);
 		expect(fila.contains(title)).toBe(false);
 	});
@@ -1358,5 +1399,223 @@ describe("Página de dataset — el camino directo ya no se ofrece", () => {
 		expect(
 			await screen.findByRole("button", { name: "Solicitar publicación" }),
 		).toBeInTheDocument();
+	});
+});
+
+// ─── Acciones responsivas del hero, insignias y términos de la licencia (T13, v0.1.1) ─────────────
+// Promovido desde `/dev/responsive-actions` con la elección del autor (L32, L37, L39, L42): hero C7 —«Editar»
+// como acción principal, «Más acciones» sólo si hay secundarias, y la solicitud junto a su estado bajo las
+// insignias, a la izquierda—, diseño móvil M1, la regla de las insignias (enlace sólo si hay un filtro de
+// búsqueda; «Público» y «Activo» no se muestran) y los términos de la licencia en su propia fila (L3).
+// jsdom no tiene layout: los umbrales responsivos se prueban por contrato de clases y se midieron en Chromium.
+describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
+	const heroOf = () => screen.getByRole("heading", { level: 1 }).closest("section") as HTMLElement;
+
+	function editorDataset(overrides: Partial<CkanPackage> = {}) {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({
+				id: "pkg-1",
+				owner_org: "org-1",
+				private: true,
+				organization: makeOrganization(),
+				...overrides,
+			}),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		auth.setUser(makeUser());
+	}
+
+	it("«Público» y «Activo» son los estados por defecto: el hero no los muestra", async () => {
+		mocks.showDataset.mockResolvedValue(makeDataset({ organization: makeOrganization() }));
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		const hero = within(heroOf());
+		expect(hero.queryByText("Público")).toBeNull();
+		expect(hero.queryByText("Activo")).toBeNull();
+	});
+
+	it("«Privado» y los estados que no son el de por defecto sí se muestran, como texto: informan, no filtran", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ private: true, state: "draft", organization: makeOrganization() }),
+		);
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		const hero = within(heroOf());
+		expect(hero.getByText("Privado")).toBeInTheDocument();
+		expect(hero.getByText("Borrador")).toBeInTheDocument();
+		expect(hero.queryByRole("link", { name: /Privado|Borrador/ })).toBeNull();
+	});
+
+	it("«Editar» es la acción principal y, sin acciones secundarias, no hay «Más acciones»", async () => {
+		editorDataset({ private: false });
+		render(DatasetPage);
+
+		const editar = await screen.findByRole("link", { name: "Editar" });
+		expect(editar).toHaveAttribute("href", "/dashboard/datasets/matricula-2026/edit");
+		// Responsivo: queda sólo en ícono bajo 32 rem de su contenedor, sin perder el nombre accesible.
+		expect(editar.className).toContain("size-11");
+		expect(editar.className).toContain("@[32rem]:h-9");
+		expect(screen.queryByRole("button", { name: "Más acciones" })).toBeNull();
+		expect(heroOf().querySelector(".\\@container")).not.toBeNull();
+	});
+
+	it("privado y sin solicitud: la unidad (estado + acción) va bajo las insignias, a la izquierda", async () => {
+		editorDataset();
+		mocks.listRequests.mockResolvedValue([]);
+		render(DatasetPage);
+
+		const pedir = await screen.findByRole("button", { name: "Solicitar publicación" });
+		const unidad = pedir.closest("[data-unit]") as HTMLElement;
+		expect(unidad).toHaveTextContent("Sin solicitud");
+		// Diseño M1: una fila en la tarjeta —etiqueta a la izquierda, botón a la derecha—, sin envolver.
+		expect(unidad.className).toContain("flex-nowrap");
+		expect(unidad.className).toContain("w-full");
+		expect(unidad.className).not.toContain("ml-auto");
+		// Bajo la fila de las insignias y de «Editar».
+		const fila = heroOf().querySelector("[data-hero-row]") as HTMLElement;
+		expect(fila.compareDocumentPosition(unidad) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(fila.contains(unidad)).toBe(false);
+	});
+
+	it("con una solicitud pendiente el estado vive en la unidad, junto a «Cancelar solicitud», y no se repite en las insignias", async () => {
+		editorDataset();
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
+		render(DatasetPage);
+
+		const cancelar = await screen.findByRole("button", { name: "Cancelar solicitud" });
+		const unidad = cancelar.closest("[data-unit]") as HTMLElement;
+		expect(unidad).toHaveTextContent("Solicitud pendiente");
+		expect(within(heroOf()).getAllByText("Solicitud pendiente")).toHaveLength(1);
+	});
+
+	it("con una solicitud rechazada la unidad ofrece «Volver a solicitar»", async () => {
+		editorDataset();
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1", status: "rejected" })]);
+		render(DatasetPage);
+
+		const otraVez = await screen.findByRole("button", { name: "Volver a solicitar" });
+		expect(otraVez.closest("[data-unit]")).toHaveTextContent("Solicitud rechazada");
+	});
+
+	it("quien no puede editar ve el estado de la solicitud como insignia, sin unidad ni acción", async () => {
+		editorDataset();
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-999"] });
+		mocks.listRequests.mockResolvedValue([makeRow({ dataset_id: "pkg-1" })]);
+		render(DatasetPage);
+
+		await screen.findByTestId("estado-solicitud");
+		const hero = heroOf();
+		expect(within(hero).getByText("Solicitud pendiente")).toBeInTheDocument();
+		expect(hero.querySelector("[data-unit]")).toBeNull();
+		expect(within(hero).queryByRole("link", { name: "Editar" })).toBeNull();
+	});
+
+	it("un dataset público no tiene unidad, aunque quien mira pueda editar", async () => {
+		editorDataset({ private: false });
+		render(DatasetPage);
+
+		await screen.findByRole("link", { name: "Editar" });
+		expect(heroOf().querySelector("[data-unit]")).toBeNull();
+	});
+
+	describe("etiquetas y licencia", () => {
+		it("cada etiqueta lleva a la búsqueda filtrada por ella, con 44 px de área", async () => {
+			mocks.showDataset.mockResolvedValue(
+				makeDataset({
+					tags: [
+						{ id: "t1", name: "matricula", display_name: "matrícula", state: "active" },
+						{ id: "t2", name: "datos abiertos", display_name: "datos abiertos", state: "active" },
+					],
+				}),
+			);
+			render(DatasetPage);
+
+			const link = await screen.findByRole("link", {
+				name: "Ver datasets con la etiqueta matrícula en el catálogo",
+			});
+			expect(link).toHaveAttribute("href", "/search?tags=matricula");
+			expect(link.textContent?.trim()).toBe("#matrícula");
+			expect(
+				screen.getByRole("link", {
+					name: "Ver datasets con la etiqueta datos abiertos en el catálogo",
+				}),
+			).toHaveAttribute("href", "/search?tags=datos+abiertos");
+			// El área de toque llega a 44 px por el pseudoelemento, sin mover el layout.
+			expect(link.className).toContain("after:-inset-y-3");
+		});
+
+		const withLicense = (extra: Partial<CkanPackage> = {}) =>
+			makeDataset({
+				license_id: "cc-by",
+				license_title: "Creative Commons Atribución 4.0",
+				license_url: "https://creativecommons.org/licenses/by/4.0/deed.es",
+				...extra,
+			});
+
+		it("el nombre de la licencia lleva a la búsqueda por licencia", async () => {
+			mocks.showDataset.mockResolvedValue(withLicense());
+			render(DatasetPage);
+
+			const name = await screen.findByRole("link", {
+				name: "Ver datasets con licencia Creative Commons Atribución 4.0 en el catálogo",
+			});
+			expect(name).toHaveAttribute("href", "/search?license=cc-by");
+			expect(name.textContent?.trim()).toBe("Creative Commons Atribución 4.0");
+		});
+
+		it("los términos tienen su propia fila «Términos»: enlace externo en otra pestaña con nombre accesible explícito", async () => {
+			mocks.showDataset.mockResolvedValue(withLicense());
+			render(DatasetPage);
+
+			const terms = await screen.findByRole("link", {
+				name: "Ver los términos de la licencia Creative Commons Atribución 4.0 (sitio externo, se abre en otra pestaña)",
+			});
+			expect(terms).toHaveAttribute("href", "https://creativecommons.org/licenses/by/4.0/deed.es");
+			expect(terms).toHaveAttribute("target", "_blank");
+			expect(terms).toHaveAttribute("rel", "noopener noreferrer");
+			expect(terms.querySelector(".lucide-external-link")).not.toBeNull();
+			// Fila propia del «Resumen»: su `dt` es «Términos» y está justo después de la de la licencia.
+			const row = terms.closest("dd") as HTMLElement;
+			expect(row.previousElementSibling?.textContent).toBe("Términos");
+			// El enlace del nombre y el externo son dos enlaces separados.
+			expect(terms.closest("dd")).not.toBe(
+				screen.getByRole("link", { name: /Ver datasets con licencia/ }).closest("dd"),
+			);
+		});
+
+		it("sin `license_url` no hay fila «Términos» ni enlace externo, pero el nombre sigue filtrando", async () => {
+			mocks.showDataset.mockResolvedValue(withLicense({ license_url: undefined }));
+			render(DatasetPage);
+
+			await screen.findByRole("link", { name: /Ver datasets con licencia/ });
+			expect(screen.queryByText("Términos", { selector: "dt" })).toBeNull();
+			expect(screen.queryByRole("link", { name: /Ver los términos/ })).toBeNull();
+		});
+
+		it("una dirección que no es web (`javascript:`) no se ofrece como enlace de términos", async () => {
+			mocks.showDataset.mockResolvedValue(withLicense({ license_url: "javascript:alert(1)" }));
+			render(DatasetPage);
+
+			await screen.findByRole("link", { name: /Ver datasets con licencia/ });
+			expect(screen.queryByText("Términos", { selector: "dt" })).toBeNull();
+			expect(screen.queryByRole("link", { name: /Ver los términos/ })).toBeNull();
+		});
+
+		it("sin `license_id` el nombre es texto: no hay filtro que ofrecer", async () => {
+			mocks.showDataset.mockResolvedValue(
+				withLicense({ license_id: undefined, license_url: undefined }),
+			);
+			render(DatasetPage);
+
+			await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+			expect(screen.queryByRole("link", { name: /Ver datasets con licencia/ })).toBeNull();
+			expect(
+				within(screen.getByText("Resumen").closest("div") as HTMLElement).getByText(
+					"Creative Commons Atribución 4.0",
+				),
+			).toBeInTheDocument();
+		});
 	});
 });

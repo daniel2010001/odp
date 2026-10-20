@@ -1,5 +1,14 @@
 <script lang="ts">
-import { Building2, Check, ChevronRight, Copy, Database, Inbox, Pencil } from "@lucide/svelte";
+import {
+	Check,
+	ChevronRight,
+	Copy,
+	Database,
+	ExternalLink,
+	FileText,
+	Inbox,
+	Pencil,
+} from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
@@ -15,18 +24,21 @@ import {
 } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
-import { ACCION_BASE } from "$lib/components/dataset/action-class";
+import ActionsMenu from "$lib/components/dataset/ActionsMenu.svelte";
+import type { MenuItem } from "$lib/components/dataset/more-menu";
+import OverflowBadges, { type BadgeItem } from "$lib/components/dataset/OverflowBadges.svelte";
 import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
 import type { PublicationDecisionResult } from "$lib/components/dataset/publication-decision";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
+import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup } from "$lib/components/ui/meta";
-import { estadoDeLaSolicitud } from "$lib/copy/publication";
+import { estadoDeLaSolicitud, insigniaDeLaSolicitud } from "$lib/copy/publication";
 import { summaryFacts, technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -35,6 +47,7 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
 import { formatDate, ownerOrgIdOf } from "$lib/utils/ckan";
+import { safeExternalUrl } from "$lib/utils/external-url";
 import { renderMarkdown } from "$lib/utils/markdown";
 
 // ─── State ───────────────────────────────────────────────────────
@@ -133,13 +146,14 @@ function reflejarDecision(respuesta: PublicationDecisionResult): void {
 	if (respuesta.status === "approved" && dataset) dataset = { ...dataset, private: false };
 }
 
-// La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título; dos o
-// más van en la fila de las insignias. El reparto depende de cuántas acciones hay.
+// Hero C7 (T13, v0.1.1): «Editar» es la acción principal y va a la derecha de la fila de las insignias; la
+// solicitud de publicación **no** es un botón de esa fila: es una unidad (estado + acción) bajo las insignias.
+// Esta bandera decide si esa unidad existe.
 //
 // La condición de la solicitud **espeja** la de `RequestPublicationControl`, y es el único lugar donde
 // eso pasa: el componente dibuja su acción si el dataset es privado, quien mira puede pedir y no hay
 // una solicitud aprobada. Si esa condición cambia, **este conteo queda viejo** y el hero reserva una
-// fila de más o de menos. Es el precio de que el reparto lo decida la página y el dibujo lo decida el
+// unidad de más o de menos. Es el precio de que el reparto lo decida la página y el dibujo lo decida el
 // componente, y queda declarado a propósito.
 //
 // No hay un segundo control: publicar en directo dejó de existir y la única vía es pedir y decidir en
@@ -200,47 +214,6 @@ async function loadCurrentRequest() {
 const tarjetaDeSolicitudVisible = $derived(
 	solicitudVigente?.status === "pending" || solicitudVigente?.status === "rejected",
 );
-
-/**
- * La insignia del estado de la solicitud, para la fila de insignias del hero: **una** por estado y
- * **exhaustiva** igual que `estadoDeLaSolicitud` — si la tabla gana un estado, esto no compila hasta
- * nombrarlo. `null` para los estados que no son un estado visible en el hero (`approved` ya se lee como
- * el dataset publicado, y `cancelled` vuelve a ofrecer el control).
- */
-const estadoDeLaSolicitudBadge = $derived.by((): { label: string; tone: string } | null => {
-	// El discriminante se fija en una `const` antes del `switch`: sobre `solicitudVigente?.status`
-	// (una cadena opcional sobre un `let` capturado) TypeScript **no** angosta el `default`, y la
-	// exhaustividad quedaría de adorno.
-	const estado = solicitudVigente?.status;
-	switch (estado) {
-		case "pending":
-			return {
-				label: "Solicitud pendiente",
-				tone: "border-primary/20 bg-primary/10 text-primary",
-			};
-		case "rejected":
-			return {
-				label: "Solicitud rechazada",
-				tone: "border-destructive/20 bg-destructive/10 text-destructive",
-			};
-		case "annulled":
-			return {
-				label: "Solicitud anulada",
-				tone: "border-border bg-muted text-muted-foreground",
-			};
-		// Los estados que legítimamente no son una insignia (y la **ausencia** de solicitud) se nombran
-		// para que la exhaustividad sea real: sin enumerarlos, el `default` taparía un estado nuevo.
-		case "approved":
-		case "cancelled":
-		case undefined:
-			return null;
-		default: {
-			const exhaustivo: never = estado;
-			void exhaustivo;
-			return null;
-		}
-	}
-});
 
 async function loadDataset() {
 	if (!datasetId) {
@@ -418,6 +391,8 @@ const hiddenTagCount = $derived((dataset?.tags?.length ?? 0) - 5);
 
 // El «Resumen» del sidebar y los grupos de «Información técnica» (ver `$lib/datasets/details`).
 const summary = $derived(dataset ? summaryFacts(dataset) : []);
+// Los términos sólo se ofrecen con un destino web: el catálogo guarda la dirección que alguien escribió.
+const termsUrl = $derived(safeExternalUrl(dataset?.license_url));
 const technical = $derived(dataset ? technicalGroups(dataset) : []);
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
@@ -443,12 +418,15 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 });
 
 // ─── Hero badges ────────────────────────────────────────────────
-const visibilityLabel = $derived(dataset?.private ? "Privado" : "Público");
+// Regla de las insignias (L32): una insignia es enlace sólo si existe un filtro de búsqueda para su valor
+// (organización, etiquetas, formato, licencia). Los estados informan y no son enlaces. «Público» y «Activo»
+// son los estados por defecto y no se muestran: sólo las excepciones («Privado», «Borrador», «Eliminado», la
+// solicitud) dicen algo.
+const searchHref = (key: "org" | "tags" | "license", value: string) =>
+	`/search?${new URLSearchParams({ [key]: value })}`;
 
 const stateLabel = $derived.by(() => {
 	switch (dataset?.state) {
-		case "active":
-			return "Activo";
 		case "draft":
 			return "Borrador";
 		case "deleted":
@@ -458,11 +436,59 @@ const stateLabel = $derived.by(() => {
 	}
 });
 
+// La página de la organización es la de la miga y la tarjeta lateral; la insignia del hero filtra el catálogo.
 const orgHref = $derived(
 	dataset?.organization?.name
 		? `/organization/${encodeURIComponent(dataset.organization.name)}`
 		: null,
 );
+
+const heroBadges = $derived.by((): BadgeItem[] => {
+	if (!dataset) return [];
+	const list: BadgeItem[] = [];
+	const org = dataset.organization;
+	if (org?.title) {
+		list.push({
+			id: "org",
+			label: org.title,
+			priority: 0,
+			shrinks: true,
+			tone: "border-primary/20 bg-primary/10 text-primary",
+			...(org.name
+				? {
+						linkable: true,
+						href: searchHref("org", org.name),
+						linkLabel: `Ver datasets de ${org.title} en el catálogo`,
+					}
+				: {}),
+		});
+	}
+	if (stateLabel) {
+		list.push({
+			id: "estado",
+			label: stateLabel,
+			priority: 3,
+			tone: "border-destructive/20 bg-destructive/10 text-destructive",
+		});
+	}
+	// Con la unidad del hero el estado de la solicitud vive en ella; sin unidad (quien mira no puede pedir)
+	// sigue siendo una insignia, para que el estado no se pierda.
+	const solicitud = publicacionEnElHero ? null : insigniaDeLaSolicitud(solicitudVigente?.status);
+	if (solicitud) list.push({ id: "solicitud", priority: 2, ...solicitud });
+	if (dataset.private) {
+		list.push({
+			id: "privacidad",
+			label: "Privado",
+			priority: 1,
+			tone: "border-destructive/20 bg-destructive/10 text-destructive",
+		});
+	}
+	return list;
+});
+
+// Acciones secundarias del hero, para «Más acciones» (variante C7). Hoy no hay ninguna: «Editar» va sola, sin
+// flecha. Una acción nueva se agrega acá, con su destino, y el botón dividido aparece solo.
+const heroMoreActions: MenuItem[] = [];
 
 // El enlace cuelga del `owner_org` de este dataset, contrastado contra el conjunto bulk.
 const puedeEditarDataset = $derived.by(() => {
@@ -471,9 +497,7 @@ const puedeEditarDataset = $derived.by(() => {
 });
 
 // «Copiar enlace» es sólo ícono y va siempre a la izquierda del título (T4, v0.1.1; decisión del autor,
-// 2026-10-19). Las demás acciones del hero —«Editar», la solicitud de publicación cuando le corresponde—
-// siguen en la fila de las insignias, a la derecha, y esa fila las aloja sólo si hay alguna.
-const hasOtherHeroActions = $derived(puedeEditarDataset || publicacionEnElHero);
+// 2026-10-19).
 
 // ─── Citation ───────────────────────────────────────────────────
 const citationText = $derived(
@@ -558,103 +582,6 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 	<!-- Dataset content -->
 	{:else if dataset}
-		<!-- ─── Piezas del hero ─────────────────────────────────────────────
-		     La regla es condicional, así que las acciones y las insignias se declaran una sola vez y
-		     el reparto las mueve de fila. Duplicarlas sería la forma más segura de que las dos ramas
-		     se desincronicen. -->
-		{#snippet heroActions(item: CkanPackage)}
-			<div class="flex shrink-0 items-center gap-2">
-				<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
-				     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
-				{#if puedeEditarDataset}
-					<a
-						href={`/dashboard/datasets/${item.name}/edit`}
-						class={ACCION_BASE}
-					>
-						<Pencil class="size-4" aria-hidden="true" />
-						Editar
-					</a>
-				{/if}
-				{#if publicacionEnElHero}
-					<!-- El control de publicación **en la fila de sus hermanos**: mismo alto y misma forma que
-					     «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
-					     no debajo. La compuerta la decide el componente: el editor ve ahí su solicitud. No hay
-					     camino directo —publicar en directo dejó de existir—, así que la única vía es pedir y
-					     decidir en la cola. -->
-					<RequestPublicationControl
-						dataset={{ id: item.id, private: item.private }}
-						canRequest={puedeEditarDataset}
-						currentRequest={solicitudVigente}
-						request={solicitar}
-						cancel={cancelar}
-						apariencia="accion"
-						onrequested={(reportada) => (solicitudVigente = reportada)}
-						oncancelled={(reportada) => (solicitudVigente = reportada)}
-					/>
-				{/if}
-			</div>
-		{/snippet}
-
-		{#snippet heroBadges(item: CkanPackage)}
-			{#if item.organization?.title}
-				{#if orgHref}
-					<a
-						href={orgHref}
-						class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
-					>
-						<Building2 class="size-3.5" />
-						{item.organization.title}
-					</a>
-				{:else}
-					<span
-						class="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
-					>
-						<Building2 class="size-3.5" />
-						{item.organization.title}
-					</span>
-				{/if}
-			{/if}
-
-			{#if stateLabel}
-				<span
-					class={cn(
-						"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
-						item.state === "active"
-							? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-							: "border-destructive/20 bg-destructive/10 text-destructive",
-					)}
-				>
-					<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-					{stateLabel}
-				</span>
-			{/if}
-
-			{#if estadoDeLaSolicitudBadge}
-				<!-- La solicitud es **estado**, no acción: va acá, con las otras insignias, y no en la fila de
-				     acciones. Hasta el 2026-10-08 se dibujaba ahí con forma de botón, y el autor lo cortó: «no me
-				     gusta ese botón que no hace nada». Lo que sí hace algo —cancelar— queda en las acciones. -->
-				<span
-					class={cn(
-						"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
-						estadoDeLaSolicitudBadge.tone,
-					)}
-				>
-					{estadoDeLaSolicitudBadge.label}
-				</span>
-			{/if}
-
-			<span
-				class={cn(
-					"inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold",
-					item.private
-						? "border-destructive/20 bg-destructive/10 text-destructive"
-						: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-				)}
-			>
-				{visibilityLabel}
-			</span>
-		{/snippet}
-
 		<!-- Hero -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -677,9 +604,47 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
 					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
 				</div>
-				<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-					<div class="flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
-					{#if hasOtherHeroActions}{@render heroActions(dataset)}{/if}
+				<!-- Hero C7 (T13). La fila de las insignias y «Editar» no envuelve: la organización trunca y las demás
+				     insignias pasan a un «+N» antes de empujar a «Editar». La solicitud de publicación es una
+				     unidad (estado + acción) bajo esa fila, a la izquierda. El contenedor de consultas hace que
+				     los botones respondan al ancho del hero y no al de la ventana. -->
+				<div class="@container mt-4 space-y-3">
+					<div data-hero-row class="flex flex-nowrap items-center gap-3">
+						<div class="min-w-0 flex-1 basis-[10rem]">
+							<OverflowBadges badges={heroBadges} />
+						</div>
+						<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
+						     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
+						{#if puedeEditarDataset}
+							<div class="flex shrink-0 items-center">
+								<ResponsiveAction
+									icon={Pencil}
+									label="Editar"
+									href={`/dashboard/datasets/${dataset.name}/edit`}
+									collapseBelow="32rem"
+									class={heroMoreActions.length > 0 ? "rounded-r-none" : ""}
+								/>
+								{#if heroMoreActions.length > 0}
+									<ActionsMenu items={heroMoreActions} />
+								{/if}
+							</div>
+						{/if}
+					</div>
+					{#if publicacionEnElHero}
+						<!-- La compuerta la decide el componente: el editor ve ahí su solicitud. No hay camino
+						     directo —publicar en directo dejó de existir—, así que la única vía es pedir y decidir
+						     en la cola. -->
+						<RequestPublicationControl
+							dataset={{ id: dataset.id, private: dataset.private }}
+							canRequest={puedeEditarDataset}
+							currentRequest={solicitudVigente}
+							request={solicitar}
+							cancel={cancelar}
+							apariencia="accion"
+							onrequested={(reportada) => (solicitudVigente = reportada)}
+							oncancelled={(reportada) => (solicitudVigente = reportada)}
+						/>
+					{/if}
 				</div>
 			</div>
 		</section>
@@ -705,12 +670,17 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 						{#if dataset.tags && dataset.tags.length > 0}
 							<div class="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-4">
-								{#each visibleTags as tag}
-									<span
-										class="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground"
+								{#each visibleTags as tag (tag.id)}
+									{@const label = tag.display_name || tag.name}
+									<!-- La etiqueta filtra el catálogo (`/search?tags=`). El área táctil llega a 44 px con el
+									     pseudoelemento, sin mover el diseño. -->
+									<a
+										href={searchHref("tags", tag.name)}
+										aria-label={`Ver datasets con la etiqueta ${label} en el catálogo`}
+										class="relative inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground transition-colors after:absolute after:inset-x-0 after:-inset-y-3 after:content-[''] hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 									>
-										#{tag.display_name || tag.name}
-									</span>
+										#{label}
+									</a>
 								{/each}
 								{#if hiddenTagCount > 0}
 									<span class="inline-flex items-center rounded-full px-3 py-1 text-xs text-muted-foreground">
@@ -866,9 +836,42 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 									<fact.icon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
 									<div class="min-w-0">
 										<dt class="text-xs text-muted-foreground">{fact.label}</dt>
-										<dd class="text-sm font-semibold leading-snug text-foreground">{fact.value}</dd>
+										<dd class="text-sm font-semibold leading-snug text-foreground">
+											{#if fact.key === "license" && dataset.license_id}
+												<!-- El nombre de la licencia filtra el catálogo (`/search?license=`). -->
+												<a
+													href={searchHref("license", dataset.license_id)}
+													aria-label={`Ver datasets con licencia ${fact.value} en el catálogo`}
+													class="relative inline-flex underline decoration-dotted underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-3.5 after:content-[''] hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+													>{fact.value}</a
+												>
+											{:else}
+												{fact.value}
+											{/if}
+										</dd>
 									</div>
 								</div>
+								{#if fact.key === "license" && termsUrl}
+									<!-- Los términos de la licencia son otro destino —un sitio externo— y tienen su propia fila
+									     (variante L3 de `/dev/responsive-actions`, elegida por el autor el 2026-10-20): mezclarlos
+									     con el nombre en una misma insignia dejaba dos destinos en un solo control. -->
+									<div class="flex items-start gap-3">
+										<FileText class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+										<div class="min-w-0">
+											<dt class="text-xs text-muted-foreground">Términos</dt>
+											<dd class="text-sm">
+												<a
+													href={termsUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													aria-label={`Ver los términos de la licencia ${fact.value} (sitio externo, se abre en otra pestaña)`}
+													class="relative inline-flex min-h-8 items-center gap-1 font-medium text-primary underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+													>Ver los términos<ExternalLink class="size-4" aria-hidden="true" /></a
+												>
+											</dd>
+										</div>
+									</div>
+								{/if}
 							{/each}
 						</dl>
 						<!-- Fila de pie (variante C de `/dev/card-links`): el enlace ocupa el ancho de la tarjeta

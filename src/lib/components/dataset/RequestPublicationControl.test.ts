@@ -293,20 +293,27 @@ describe("RequestPublicationControl — qué reporta después del click", () => 
 	});
 });
 
-// La presentación de **acción**: el control en la fila del hero. Se dibuja como sus hermanos y la
-// explicación pasa al `title`. Los **estados** no cambian: una solicitud pendiente o anulada es
-// El estado de la solicitud **también** es una acción del hero (2026-10-08). Hasta ese día, con una
-// solicitud pendiente el componente dibujaba el bloque entero —borde, titular, explicación y botón— con
-// `w-full`, así que el hero crecía y desplazaba el título, las insignias y los otros botones: el defecto que
-// el autor reportó como «rompe completamente el hero». En la presentación de acción el estado ocupa **una
-// fila compacta de la altura de sus hermanos**, y el bloque completo queda para la tarjeta, que es su lugar.
+// La presentación de **acción**: el control en el hero. Desde la promoción de T13 (variante C7 + M1 de
+// `/dev/responsive-actions`) es **una unidad**: una tarjeta con el estado de la solicitud a la izquierda y su
+// acción a la derecha, bajo las insignias. La explicación sigue en el `title`. El bloque completo, con
+// su titular y su explicación, queda para la presentación `bloque`.
 describe("RequestPublicationControl — la presentación de acción", () => {
-	it("en `accion` dibuja sólo el botón, con la forma de las acciones del hero y la explicación en el tooltip", async () => {
-		renderControl({ apariencia: "accion" });
+	it("en `accion` dibuja la unidad: «Sin solicitud» y el botón, con la explicación en el tooltip", async () => {
+		const { container } = renderControl({ apariencia: "accion" });
 
 		const boton = await screen.findByRole("button", { name: REQUEST_LABEL });
+		const unidad = container.querySelector("[data-unit]") as HTMLElement;
 
-		expect(boton.className).toContain("h-9");
+		expect(unidad).not.toBeNull();
+		expect(unidad).toContainElement(boton);
+		expect(unidad).toHaveTextContent("Sin solicitud");
+		// La unidad ocupa el ancho en pantallas chicas y se ajusta a su contenido desde 44 rem del contenedor.
+		expect(unidad.className).toContain("w-full");
+		expect(unidad.className).toContain("@[44rem]:w-fit");
+		expect(unidad.className).toContain("flex-nowrap");
+		// El botón mide 44 px (36 px desde 44 rem) y queda sólo en ícono bajo 20 rem.
+		expect(boton.className).toContain("size-11");
+		expect(boton.className).toContain("@[44rem]:h-9");
 		expect(boton.className).toContain("border-input");
 		expect(boton.className).toContain("bg-background");
 
@@ -322,41 +329,69 @@ describe("RequestPublicationControl — la presentación de acción", () => {
 		expect(copia).toHaveClass("sr-only");
 	});
 
-	it("en `accion` el estado pendiente sólo ofrece la cancelación: el estado es una insignia del hero", async () => {
+	it("en `accion` el estado pendiente muestra su insignia en la unidad y sólo ofrece la cancelación", async () => {
 		const { container } = renderControl({
 			apariencia: "accion",
 			currentRequest: makeRequest({ status: "pending" }),
 		});
 
-		// La acción que sí hace algo…
-		expect(await screen.findByRole("button", { name: CANCEL_LABEL })).toBeInTheDocument();
-		// …y **nada** más: el titular del estado vive en la insignia del hero y la explicación en la tarjeta.
+		const cancelar = await screen.findByRole("button", { name: CANCEL_LABEL });
+		const unidad = container.querySelector("[data-unit]") as HTMLElement;
+		expect(unidad).toContainElement(cancelar);
+		expect(unidad).toHaveTextContent("Solicitud pendiente");
+		// Ni el titular largo ni la explicación del bloque: viven en la presentación `bloque` y en la tarjeta.
 		expect(screen.queryByText(PENDING_HEADING)).toBeNull();
 		expect(screen.queryByText(PENDING_BODY)).toBeNull();
-		expect(container.querySelector(".w-full")).toBeNull();
+		expect(screen.queryByRole("button", { name: REQUEST_LABEL })).toBeNull();
 	});
 
-	it("en `accion` un rechazo no dibuja el estado: ofrece volver a pedir, y el motivo vive en la tarjeta", async () => {
+	it("en `accion` un rechazo muestra su insignia y ofrece volver a pedir; el motivo vive en la tarjeta", async () => {
 		const { container } = renderControl({
 			apariencia: "accion",
 			currentRequest: makeRequest({ status: "rejected", comments: "Falta el resumen." }),
 		});
 
-		// La única acción que tiene sentido tras un rechazo…
-		expect(await screen.findByRole("button", { name: REQUEST_AGAIN_LABEL })).toBeInTheDocument();
-		// …y ni el titular del estado ni el motivo: los dos son la insignia y la tarjeta.
-		expect(screen.queryByText(REJECTED_HEADING)).toBeNull();
+		const otraVez = await screen.findByRole("button", { name: REQUEST_AGAIN_LABEL });
+		const unidad = container.querySelector("[data-unit]") as HTMLElement;
+		expect(unidad).toContainElement(otraVez);
+		expect(unidad).toHaveTextContent("Solicitud rechazada");
+		// La insignia es el estado; el motivo no está en la unidad.
 		expect(screen.queryByText(/Falta el resumen/)).toBeNull();
-		expect(container.querySelector(".w-full")).toBeNull();
+		expect(screen.queryByText(NO_REASON)).toBeNull();
 	});
 
-	it("en `accion` una anulación no dibuja nada: no hay acción que ofrecer", async () => {
+	it("en `accion` una anulación muestra su insignia y no ofrece ninguna acción", async () => {
 		const { container } = renderControl({
 			apariencia: "accion",
 			currentRequest: makeRequest({ status: "annulled" }),
 		});
 
-		expect(container.textContent?.trim()).toBe("");
+		const unidad = container.querySelector("[data-unit]") as HTMLElement;
+		expect(unidad).toHaveTextContent("Solicitud anulada");
+		expect(screen.queryByRole("button")).toBeNull();
+	});
+
+	it("en `accion` pedir sigue llamando al catálogo y avisando a la página", async () => {
+		const pendiente = makeRequest({ status: "pending" });
+		const { request, onrequested } = renderControl({ apariencia: "accion" });
+		request.mockResolvedValue(pendiente);
+
+		await fireEvent.click(await screen.findByRole("button", { name: REQUEST_LABEL }));
+
+		await waitFor(() => expect(onrequested).toHaveBeenCalledWith(pendiente));
+		expect(request).toHaveBeenCalledWith("pkg-1");
+		expect(await screen.findByRole("button", { name: CANCEL_LABEL })).toBeInTheDocument();
+	});
+
+	it("en `accion` un fallo se anuncia como alerta, fuera de la tarjeta", async () => {
+		const { request, container } = renderControl({ apariencia: "accion" });
+		request.mockRejectedValue(new CkanApiError("Forbidden", 403));
+
+		await fireEvent.click(await screen.findByRole("button", { name: REQUEST_LABEL }));
+
+		const alerta = await screen.findByRole("alert");
+		expect(alerta).toHaveTextContent(REFUSED_REQUEST);
+		expect((container.querySelector("[data-unit]") as HTMLElement).contains(alerta)).toBe(false);
 	});
 
 	it("en `bloque` el estado pendiente sigue siendo el bloque completo, con su explicación", async () => {

@@ -171,6 +171,8 @@ export interface CkanPackage {
 	author_email?: string;
 	license_id?: string;
 	license_title?: string;
+	/** Página externa con los términos de la licencia; CKAN la incluye cuando la licencia la declara. */
+	license_url?: string;
 	url?: string;
 	version?: string;
 	// Tipo de dataset (CKAN puede tener múltiples tipos)
