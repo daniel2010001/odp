@@ -2732,6 +2732,15 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1 — producto usable en producción
 
+- [ ] **[v1]** `TODO:` **Revisar el responsive de todas las páginas** (autor, 2026-10-20, L45 de `odd/tasks/v0.1.1-polish.md`,
+  textual: «TODO: revisar el responsive de todas las pages, esto puede ser compicado, pero dejemoslo fuera por ahora»). Una
+  pasada por página a 375/768/1024 px. Ya conocido: las pestañas de gráficos del recurso se apilan una por línea en móvil
+  (`ResourceCharts.svelte:191`); el autor aceptó un selector desplegable en móvil para ellas.
+- [ ] **[demo] Los ítems grandes se mencionan en la presentación como «lo que viene»** (autor, 2026-10-20, L45: «lso grandes
+  anota para la mencionar en la demo»): normalización del DataStore, revisión de seguridad integral, roles, DCAT, módulo de
+  análisis de CSV, colecciones, versionado, auditoría; más audio/video y la gestión de organizaciones (`[v1]`). El guion vive
+  en `presentation/demo.md`.
+
 - [ ] **Editar un recurso existente desde la edición del dataset** (tier por decidir; señalado por el autor el
   2026-10-17, en `odd/tasks/csv-charts.md` L20 y L21). Según el autor, hoy el formulario de edición sólo permite crear
   recursos, no cambiar uno existente (archivo, nombre, formato). **Falta medirlo** antes de decidir: qué hace hoy
@@ -2892,6 +2901,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
     dibujado por el portal (Leaflet o MapLibre), igual que los gráficos.
   - **`ckanext-charts`:** descartado. Dibuja dentro de CKAN, toma las primeras N filas sin `GROUP BY`, exige
     `scheming`, no declara soporte para la 2.12 y es AGPL.
+  **(2026-10-20, L45): audio y video quedan en `[v1]` y se mencionan en la presentación como lo que viene.**
 
 - [ ] **[v1] Antes de desplegar, revisar las versiones de todos los servicios** (decisión del autor, 2026-10-17): se
   comparan las actuales con las nuevas y se decide qué entra. **Línea base medida el 2026-10-17** (es una referencia,
@@ -3078,6 +3088,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v1] Gestión de organizaciones en el portal** — CRUD de organizaciones
   (`organization_create` / `organization_update`) y de miembros
   (`organization_member_create`). _Referencias: PRD RF-06 a RF-08._
+  **(2026-10-20, L45): queda en `[v1]` y se menciona en la presentación como lo que viene.**
 
 - [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
   entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su
@@ -3130,6 +3141,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v1] Arrastrar y soltar para subir archivos: diferido** — la zona de arrastre está dibujada
   pero **no funciona** (el playground es estático). El usuario decidió dejarlo para después: es
   comportamiento nuevo y no quiere mezclarlo con los ajustes menores.
+  **Re-tier (2026-10-20, L45): `[v1]` → `[v1+]`.**
 
 - [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
   **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
@@ -3179,6 +3191,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   **Estado medido (2026-09-30): VIVO.** `src/routes/organization/[id]/+page.svelte` es encabezado + lista de `DatasetCard`
   sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
   **Frena en la decisión del autor: el alcance.**
+  **(2026-10-20, L45): no se toca hasta la feature de organizaciones.**
 
 - [ ] **[v1]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
@@ -3478,6 +3491,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   `previewKind`; (b) un mapa dibujado por el portal (Leaflet o MapLibre), como el `geoview` de la recomendación del
   2026-10-17. El seed ya declara `mimetype: application/geo+json` (#98). No bloquea nada.
   **Tier (2026-10-19, autor): «v1+».**
+  **Re-tier (2026-10-20, L45 de `odd/tasks/v0.1.1-polish.md`): `[v2+]`, o `[v1+]` si la medición dice que la opción de texto es pequeña; volver a preguntar al autor antes de v1.**
 
 ## v2+ — mejoras futuras no solicitadas
 
