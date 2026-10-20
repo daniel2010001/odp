@@ -2689,28 +2689,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
 
-- [ ] **[v0.1.1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  «para el caso de los pdf creo que ese espacio es pequeño, creo que lo mismo aplicará para otros view, como los gráficos y
-  demás». **Medido en el código hoy:** el `<iframe>` del PDF mide **`h-[520px]`** (`ResourcePreview.svelte:131`), la imagen
-  **`max-h-[520px]`** (`:138`), el texto **`h-[360px]`** (`:151`), y los esqueletos de carga `min-h-[420px]` (`:113`) y
-  `h-[420px]` (`resource/[resourceId]/+page.svelte:425`). **La tabla, en cambio, no tiene tope**: sólo `overflow-x-auto`
-  (`DataPreviewTable.svelte:28`), así que crece con las filas — es la única de las cuatro sin alto acotado, y conviene
-  decidir si eso se mantiene.
-  **Dos cosas antes de tocar nada:** (1) **medir cuánto alto libre queda en 1080p** —hay que descontar el encabezado
-  (`var(--header-h)`), la miga, el hero y la banda de acciones—, porque hoy ningún número está medido contra la ventana;
-  (2) **decidir el criterio**: alto fijo más grande, proporcional a la ventana (`vh`), o con un control para **expandir la
-  vista** —y en ese caso, si es por vista o general—. **Es decisión del autor, con la medición hecha primero**, y es de la
-  misma familia que el ítem del responsive del salto.
-  **Los gráficos y mapas todavía no existen**: son el Módulo de Análisis, diferido a `v1+`, y los tabs simulados se
-  quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
-  **Reiterado por el autor (2026-10-18, no urgente), textual:** «el tamaño predeterminado de las vistas previas quisiera
-  tocarlo, ahora mismo estoy en una pantalla fhd de 27 pulgadas y el espacio se de la vista previa es pequeño cuando
-  intento ver pdf, lo mismo pasaba con imágenes, pero cuando estoy en la pantalla de mi laptop sí que se ve bien el
-  alto, esto creo que solo pasa en las pantallas grandes como la de fhd de 27 pulgadas». Apunta al criterio
-  proporcional a la ventana, con un mínimo para la laptop. Medir en 1366×768 y 1920×1080 y probarlo en playground
-  (regla 8).
-  _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
 
 - [ ] **[v0.1.1] Los botones de copiar del recurso: «Copiar enlace» con la disposición del dataset y un solo componente** (TODO del autor, 2026-10-17,
@@ -3614,6 +3592,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **[v0.1.1] Las vistas previas son chicas: no aprovechan la pantalla** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T6). Se comparó en la hoja `/dev/preview-height` (cuatro estrategias por tipo, ventanas simuladas, hero real). El autor eligió D con el foco F3 y el botón de contorno con rótulo, y 16 px de aire descontados (textual: «2: f3 + contorno+rotulo. PERO, creo que hay que tocar un poco el tamaño de D, con el margin-y creo que debemos reducir el alto» → «Aire de 16 px, descontado»). Alturas: PDF `min(max(240px, 100dvh − 140px), max(520px, 130cqw))`, imagen hasta `max(360px, 100dvh − 140px)` con su proporción, texto `clamp(360px, 55dvh, 720px)`, tabla con tope `min(70dvh, 720px)` y el scroll sólo en la tabla. La tarjeta es el destino `#vista-previa` (enlace «Ir a la vista previa» en el hero y botón «Ajustar a la pantalla»), y un enlace compartido con ese fragmento aterriza aunque la tarjeta se dibuje después de cargar. Medido en Chromium con el PDF real del catálogo de desarrollo: 940 px de alto a 1920×1080 y 628 px a 1366×768, con 16 px de aire bajo el encabezado. Límite conocido: con la pestaña de un gráfico activa, la tarjeta no está montada y el enlace del hero no lleva a ningún lado. La hoja se borró al promover. |
 | **[v1] El responsive del salto secuencial, con los dos TODO de 1154 (botones chicos; los demás recursos no alcanzables en escritorio)** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T11). Medido en la hoja `/dev/resource-jump`: hoy los botones medían 36 px (fallan 44) y a 320 px el salto ocupaba 3 líneas con «Siguiente» huérfano; los demás recursos sólo estaban en el menú del breadcrumb desde 1024 px. El autor eligió D (textual: «vamos con d y quitamos el desplegable»): el control compacto «‹ Recurso N de M ⇅ › » (`ResourceStepper.svelte`), extremos de 44 px y el centro abre la lista de todos los recursos con el actual marcado; bajo 32rem de banda, la descarga y el control van en dos filas de ancho completo. La descarga mide 44 px y dice «Descargar» bajo 24rem de contenedor, con el nombre accesible «Descargar recurso». La página de recurso ya no pasa `related` al breadcrumb, así que ni la miga de escritorio ni el chip de móvil listan recursos. Deuda declarada: la opción `related` de `Breadcrumb.svelte` sigue porque la usa la hoja permanente `/dev/nav`; si esa hoja se retira, queda muerta. Verificado en la ficha real a 1280 y 360 px. La hoja se borró al promover. |
 | **[v1] Revisar la POSICIÓN de las solicitudes en la ficha del dataset** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T12). Se comparó en la hoja `/dev/requests-position`, con los componentes reales y doble de datos, por rol (visitante, miembro, editor, administrador, superadministración) y estado de la solicitud, a ancho de página, 768 y 375 px. El autor eligió la C (textual: «para dev/requests-position creo que me voy por la C»): la tarjeta **encabeza la columna lateral**, antes de «Citar como»; la columna es pegajosa en escritorio, así que el aprobador decide sin bajar. En móvil la columna lateral cae después de la principal (igual que en la hoja). El control de pedir o cancelar y la insignia siguen en el hero. Prueba: «la tarjeta encabeza la columna lateral…» en `dataset-page.test.ts` (RED antes del cambio). La hoja se borró al promover. Queda abierta una pregunta del autor: el comentario de la decisión no tiene máximo de caracteres en ningún lado. |
 | **[v0.1.1] El breadcrumb de las páginas de gráficos, en una sola línea** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T5). Causa: el `<ol>` de escritorio de `Breadcrumb.svelte` lleva `lg:flex-wrap`, así que una miga que no cabe baja de línea antes de que su `truncate` actúe. Se comparó en la hoja `/dev/breadcrumb-line` (medido con los nombres reales de la demo: hoy 2 líneas a 1280 px, 3 a 768, 4 a 375). El autor eligió la variante C (textual: «breadcrumb-line = C»): con la opción `collapseMiddle`, la fila muestra «Datasets › … › recurso › gráfico», con la organización y el dataset en un menú detrás del «…» (bits-ui, nombre accesible «Mostrar las secciones ocultas de la ruta»), en una sola línea y con el texto completo en `title`. Sólo la usa `ChartEditorPage` (crear y editar gráfico); sin la opción, el resto de las páginas queda igual (prueba que lo fija en `Breadcrumb.test.ts`). La hoja se borró al promover. |

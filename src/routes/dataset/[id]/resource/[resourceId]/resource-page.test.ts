@@ -1055,3 +1055,137 @@ describe("Página de recurso — la ficha de un enlace dice la verdad", () => {
 		expect(screen.queryByRole("link", { name: /Abrir enlace/i })).toBeNull();
 	});
 });
+
+// ─── Foco de la vista previa (v0.1.1, T6): ancla + botón «Ajustar a la pantalla» ───
+// El alto de la vista previa depende del scroll de cada persona, así que la tarjeta es un destino: tiene
+// `id`, recibe foco sin entrar en el orden del teclado y deja el hueco bajo el encabezado con
+// `scroll-margin-top`. Dos puertas: el enlace del hero (ancla nativa) y el botón del encabezado de la tarjeta.
+describe("Página de recurso — foco de la vista previa", () => {
+	const scrollIntoView = vi.fn();
+	const matchMedia = vi.fn();
+
+	function uploadedPdf() {
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "PDF", mimetype: "application/pdf" }),
+		);
+	}
+
+	beforeEach(() => {
+		scrollIntoView.mockReset();
+		matchMedia.mockReset();
+		matchMedia.mockReturnValue({ matches: false });
+		Object.defineProperty(Element.prototype, "scrollIntoView", {
+			configurable: true,
+			writable: true,
+			value: scrollIntoView,
+		});
+		vi.stubGlobal("matchMedia", matchMedia);
+	});
+
+	afterEach(() => {
+		Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+	});
+
+	it("la tarjeta es el destino `#vista-previa`: id, `tabindex=-1` y margen de `--header-h` + 17px (borde y aire) bajo el encabezado", async () => {
+		uploadedPdf();
+		render(ResourcePage);
+
+		await screen.findByTitle(/Vista previa de Matrícula 2026/);
+		const card = document.getElementById("vista-previa");
+		expect(card).not.toBeNull();
+		expect(card?.getAttribute("tabindex")).toBe("-1");
+		expect(card?.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
+		expect(card?.querySelector("iframe")).not.toBeNull();
+	});
+
+	it("un enlace con `#vista-previa` aterriza en la tarjeta aunque se dibuje después de cargar", async () => {
+		// El navegador resuelve el fragmento antes de que la tarjeta exista (llega tras cargar el recurso):
+		// sin re-aplicarlo, un enlace compartido deja la página arriba. Se aplica una sola vez.
+		window.history.replaceState(null, "", "#vista-previa");
+		try {
+			uploadedPdf();
+			render(ResourcePage);
+
+			await screen.findByTitle(/Vista previa de Matrícula 2026/);
+			const card = document.getElementById("vista-previa");
+			await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+			expect(scrollIntoView.mock.contexts[0]).toBe(card);
+		} finally {
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it("sin fragmento, cargar la página no desplaza nada", async () => {
+		uploadedPdf();
+		render(ResourcePage);
+
+		await screen.findByTitle(/Vista previa de Matrícula 2026/);
+		expect(scrollIntoView).not.toHaveBeenCalled();
+	});
+
+	it("el hero ofrece «Ir a la vista previa» apuntando a `#vista-previa`", async () => {
+		uploadedPdf();
+		render(ResourcePage);
+
+		const link = await screen.findByRole("link", { name: "Ir a la vista previa" });
+		expect(link.getAttribute("href")).toBe("#vista-previa");
+	});
+
+	it("«Ajustar a la pantalla» sube la tarjeta con scroll suave y le pasa el foco sin volver a desplazar", async () => {
+		uploadedPdf();
+		render(ResourcePage);
+
+		const button = await screen.findByRole("button", { name: "Ajustar a la pantalla" });
+		const card = document.getElementById("vista-previa") as HTMLElement;
+		const focus = vi.spyOn(card, "focus");
+		await fireEvent.click(button);
+
+		expect(scrollIntoView).toHaveBeenCalledTimes(1);
+		expect(scrollIntoView.mock.contexts[0]).toBe(card);
+		expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+		expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+		expect(matchMedia).toHaveBeenCalledWith("(prefers-reduced-motion: reduce)");
+	});
+
+	it("con `prefers-reduced-motion` el salto es instantáneo", async () => {
+		matchMedia.mockReturnValue({ matches: true });
+		uploadedPdf();
+		render(ResourcePage);
+
+		await fireEvent.click(await screen.findByRole("button", { name: "Ajustar a la pantalla" }));
+
+		expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "instant", block: "start" });
+	});
+
+	it("la tabla del DataStore también tiene destino y botón", async () => {
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
+		render(ResourcePage);
+
+		expect(await screen.findByText("Cochabamba")).toBeTruthy();
+		expect(document.getElementById("vista-previa")).not.toBeNull();
+		expect(screen.getByRole("button", { name: "Ajustar a la pantalla" })).toBeTruthy();
+		expect(screen.getByRole("link", { name: "Ir a la vista previa" })).toBeTruthy();
+	});
+
+	it("sin vista previa (enlace externo o tipo no previsualizable) no hay enlace ni botón", async () => {
+		// Enlace externo (el recurso por defecto).
+		const first = render(ResourcePage);
+		await screen.findByRole("link", { name: /Abrir enlace/i });
+		expect(screen.queryByRole("link", { name: "Ir a la vista previa" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Ajustar a la pantalla" })).toBeNull();
+		// La tarjeta sigue ahí con su nota: el `id` no depende de que haya embed.
+		expect(document.getElementById("vista-previa")).not.toBeNull();
+		first.unmount();
+
+		// Archivo alojado de un formato que el portal no previsualiza (estado «none»).
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "DOCX", mimetype: "application/msword" }),
+		);
+		render(ResourcePage);
+		await screen.findByText("Sin vista previa disponible");
+		expect(screen.queryByRole("link", { name: "Ir a la vista previa" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Ajustar a la pantalla" })).toBeNull();
+	});
+});

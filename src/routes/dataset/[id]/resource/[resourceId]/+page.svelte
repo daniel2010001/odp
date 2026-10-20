@@ -1,5 +1,14 @@
 <script lang="ts">
-import { Check, Copy, Download, ExternalLink, FileText, Link2 } from "@lucide/svelte";
+import {
+	ArrowDownToLine,
+	Check,
+	Copy,
+	Download,
+	ExternalLink,
+	FileText,
+	Link2,
+	Maximize2,
+} from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createChartApi } from "$lib/api/charts";
@@ -32,6 +41,7 @@ import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { fileUrl } from "$lib/resources/file-url";
 import { resourceKind } from "$lib/resources/kind";
 import { resourceNeighbours } from "$lib/resources/order";
+import { previewKind } from "$lib/resources/preview";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
@@ -397,6 +407,37 @@ const downloadUrl = $derived(resource ? fileUrl(resource) : null);
 // plantilla mantiene una sola lectura de `resourceKind` por render.
 const isLink = $derived(resource ? resourceKind(resource) === "link" : false);
 
+// Hay algo que «ajustar» sólo si la tarjeta muestra una vista previa de verdad: ni el enlace externo ni
+// el tipo sin vista previa (estado «none») la tienen, y ofrecer saltar a una nota vacía sería ruido.
+const hasPreview = $derived(resource ? !isLink && previewKind(resource) !== "none" : false);
+
+// Tarjeta de la vista previa, destino del salto («Ir a la vista previa» del hero y «Ajustar a la pantalla»).
+let previewEl = $state<HTMLElement>();
+
+/**
+ * Sube la tarjeta bajo el encabezado y le pasa el foco. El hueco lo da el `scroll-margin-top` de la tarjeta
+ * (encabezado + 16px de aire), así que el alto de la vista previa —que ya descuenta ese aire— cabe
+ * entero en la pantalla. Con `prefers-reduced-motion` el salto es instantáneo; `preventScroll` evita que el
+ * foco mueva la página por segunda vez.
+ */
+function fitPreview() {
+	if (!previewEl) return;
+	const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	previewEl.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
+	previewEl.focus({ preventScroll: true });
+}
+
+// Un enlace compartido con `#vista-previa`: el navegador resuelve el fragmento antes de que la tarjeta
+// exista (llega cuando carga el recurso), así que se re-aplica **una vez**, cuando el destino aparece.
+// Mismo criterio que los saltos del buscador (`R3-001` de `review-fda3530895a9b51f`).
+let previewHashApplied = false;
+$effect(() => {
+	if (!previewEl || previewHashApplied) return;
+	if (window.location.hash !== `#${previewEl.id}`) return;
+	previewHashApplied = true;
+	previewEl.scrollIntoView({ block: "start" });
+});
+
 // ─── Actions ────────────────────────────────────────────────────
 async function handleCopyEndpoint() {
 	const ok = await copyToClipboard(apiEndpoint);
@@ -546,6 +587,18 @@ async function handleCopyResourceLink() {
 					</p>
 				{/if}
 
+				<!-- Salto a la vista previa (foco F3, ancla): el destino es la tarjeta `#vista-previa`. Sólo si hay
+				     vista previa que mostrar. -->
+				{#if hasPreview}
+					<a
+						href="#vista-previa"
+						class="mt-4 inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						<ArrowDownToLine class="size-4" aria-hidden="true" />
+						Ir a la vista previa
+					</a>
+				{/if}
+
 				<!-- Acción del recurso + salto secuencial (variante D, decisión del autor 2026-10-19). La banda
 				     es un contenedor de consultas: bajo 32 rem (`@lg`) la descarga y el control compacto van en dos
 				     filas de ancho completo; desde ahí, en una fila, con el control a la derecha (`@lg:ml-auto`,
@@ -603,9 +656,28 @@ async function handleCopyResourceLink() {
 		<section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
 			{#snippet previewCard()}
 				{#if resource}
+					<!-- Destino del foco. `scroll-mt` = encabezado (`--header-h`) + 1px de su borde + 16px de aire. Se lee
+					     `--header-h` y no un 4rem fijo porque el salto casi siempre parte del tope, con el encabezado
+					     aún en 5rem: al bajar, éste se encoge 16px y sube el contenido otro tanto, y con 4rem fijos la
+					     tarjeta aterrizaba 16px más arriba de lo medido (pegada al encabezado). Con la variable el
+					     margen vale 16px más cuando el encabezado está alto, justo lo que se pierde al encogerse.
+					     `tabindex="-1"` la deja recibir el foco sin entrar en el orden del teclado. -->
+					<div
+						id="vista-previa"
+						tabindex="-1"
+						bind:this={previewEl}
+						class="scroll-mt-[calc(var(--header-h)+17px)] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
 					<Card class="overflow-hidden border-primary/20">
-						<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-3">
+						<!-- La barra mide 41px con o sin botón (`min-h` + `h-7`): el alto de la vista previa descuenta ese número. -->
+						<div class="flex min-h-[41px] flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-1.5">
 							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
+							{#if hasPreview}
+								<button type="button" onclick={fitPreview} class={cn(ACCION_BASE, "h-7 px-2.5 text-xs")}>
+									<Maximize2 class="size-3.5" aria-hidden="true" />
+									Ajustar a la pantalla
+								</button>
+							{/if}
 						</div>
 						{#if isLink}
 							<!-- Nota compacta. La CAJA era el problema, no el texto: 220px de alto mínimo, 40px de padding
@@ -624,6 +696,7 @@ async function handleCopyResourceLink() {
 							<ResourcePreview resource={resource} datastore={datastoreApi} />
 						{/if}
 					</Card>
+					</div>
 				{/if}
 			{/snippet}
 

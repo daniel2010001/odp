@@ -68,4 +68,14 @@ describe("DataPreviewTable", () => {
 		expect(screen.getAllByText("—")).toHaveLength(2);
 		expect(screen.queryByText("undefined")).toBeNull();
 	});
+
+	it("el tope de alto y el scroll van sólo en la tabla: el pie «Mostrando n de N» queda fuera", () => {
+		render(DataPreviewTable, { props: { fields, records, total: 42 } });
+
+		const scroller = screen.getByRole("table").parentElement;
+		expect(scroller?.className).toContain("max-h-[min(70dvh,720px)]");
+		expect(scroller?.className).toContain("overflow-auto");
+		const footer = screen.getByText("Mostrando 2 de 42 filas");
+		expect(scroller?.contains(footer)).toBe(false);
+	});
 });
