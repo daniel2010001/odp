@@ -7,7 +7,6 @@ import {
 	Copy,
 	Database,
 	Inbox,
-	Link2,
 	Pencil,
 	Shield,
 	User,
@@ -36,6 +35,7 @@ import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { CopyButton } from "$lib/components/ui/copy-button";
 import { estadoDeLaSolicitud } from "$lib/copy/publication";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -73,7 +73,6 @@ let loading = $state(true);
 let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
 let copied = $state(false);
-let copiedLink = $state(false);
 
 // Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
 // una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
@@ -507,11 +506,10 @@ const puedeEditarDataset = $derived.by(() => {
 	return orgsEditables.includes(ownerOrgIdOf(dataset));
 });
 
-// La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título;
-// dos o más van en la fila de las insignias. Acá copiar enlace siempre existe, «Editar» sólo con
-// permiso y la solicitud de publicación cuando le corresponde, así que el conteo —y el reparto—
-// dependen de esas dos respuestas.
-const heroActionCount = $derived(1 + (puedeEditarDataset ? 1 : 0) + (publicacionEnElHero ? 1 : 0));
+// «Copiar enlace» es sólo ícono y va siempre a la izquierda del título (T4, v0.1.1; decisión del autor,
+// 2026-10-19). Las demás acciones del hero —«Editar», la solicitud de publicación cuando le corresponde—
+// siguen en la fila de las insignias, a la derecha, y esa fila las aloja sólo si hay alguna.
+const hasOtherHeroActions = $derived(puedeEditarDataset || publicacionEnElHero);
 
 // ─── Technical metadata table ───────────────────────────────────
 // La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
@@ -545,23 +543,8 @@ async function handleCopyCitation() {
 	}
 }
 
-// Copia el enlace canónico del dataset (usa el slug, no el id interno).
-function buildShareUrl(): string {
-	if (!dataset) return "";
-	return `${window.location.origin}/dataset/${dataset.name}`;
-}
-
-async function handleCopyLink() {
-	const url = buildShareUrl();
-	if (!url) return;
-	const ok = await copyToClipboard(url);
-	if (ok) {
-		copiedLink = true;
-		setTimeout(() => {
-			copiedLink = false;
-		}, 2000);
-	}
-}
+// Enlace canónico del dataset (usa el slug, no el id interno).
+const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}` : "");
 </script>
 
 <svelte:head>
@@ -627,25 +610,8 @@ async function handleCopyLink() {
 		     La regla es condicional, así que las acciones y las insignias se declaran una sola vez y
 		     el reparto las mueve de fila. Duplicarlas sería la forma más segura de que las dos ramas
 		     se desincronicen. -->
-		{#snippet copyLinkButton()}
-			<button
-				type="button"
-				onclick={handleCopyLink}
-				aria-label={copiedLink ? "Enlace copiado" : "Copiar enlace del dataset"}
-				title="Copiar enlace"
-				class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-			>
-				{#if copiedLink}
-					<Check class="size-4 text-emerald-600" aria-hidden="true" />
-				{:else}
-					<Link2 class="size-4" aria-hidden="true" />
-				{/if}
-			</button>
-		{/snippet}
-
 		{#snippet heroActions(item: CkanPackage)}
 			<div class="flex shrink-0 items-center gap-2">
-				{@render copyLinkButton()}
 				<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
 				     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
 				{#if puedeEditarDataset}
@@ -659,7 +625,7 @@ async function handleCopyLink() {
 				{/if}
 				{#if publicacionEnElHero}
 					<!-- El control de publicación **en la fila de sus hermanos**: mismo alto y misma forma que
-					     «Copiar enlace» y «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
+					     «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
 					     no debajo. La compuerta la decide el componente: el editor ve ahí su solicitud. No hay
 					     camino directo —publicar en directo dejó de existir—, así que la única vía es pedir y
 					     decidir en la cola. -->
@@ -740,36 +706,29 @@ async function handleCopyLink() {
 		<!-- Hero -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-				{#if heroActionCount > 1}
-					<!-- Dos acciones (copiar + «Editar»): bajan a la fila de las insignias, alineadas a la
-					     derecha; el título se queda con la primera fila. -->
-					<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+				<!-- «Copiar enlace» a la izquierda del título, anclado a su primera línea: el contenedor hereda el
+				     tamaño y el interlineado del título, así `1lh` es el alto de esa línea y el botón (más alto) se
+				     centra en ella aunque el título ocupe varias. `min-w-0` deja que el título se parta. -->
+				<div class="flex items-start gap-3 font-heading text-3xl leading-tight sm:text-4xl">
+					<div class="flex h-[1lh] shrink-0 items-center">
+						<CopyButton
+							text={shareUrl}
+							label="Copiar enlace del dataset"
+							copiedLabel="Enlace copiado"
+							icon="link"
+						/>
+					</div>
+					<h1 class="min-w-0 font-bold text-foreground">
 						{dataset.title || dataset.name}
 					</h1>
-					<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-						<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
-					</div>
-					<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-						<div class="flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
-						{@render heroActions(dataset)}
-					</div>
-				{:else}
-					<!-- Una sola acción (copiar): se queda en la fila del título. La columna de texto lleva
-					     `min-w-0 flex-1` y el grupo `shrink-0`, así el título se parte dentro de su columna y
-					     la acción nunca cae a una línea propia. -->
-					<div class="flex items-start gap-4">
-						<div class="min-w-0 flex-1">
-							<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-								{dataset.title || dataset.name}
-							</h1>
-							<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-								<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
-							</div>
-							<div class="mt-4 flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
-						</div>
-						{@render heroActions(dataset)}
-					</div>
-				{/if}
+				</div>
+				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
+				</div>
+				<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+					<div class="flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
+					{#if hasOtherHeroActions}{@render heroActions(dataset)}{/if}
+				</div>
 			</div>
 		</section>
 

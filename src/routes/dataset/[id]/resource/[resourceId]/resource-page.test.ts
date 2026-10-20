@@ -1189,3 +1189,166 @@ describe("Página de recurso — foco de la vista previa", () => {
 		expect(screen.queryByRole("button", { name: "Ajustar a la pantalla" })).toBeNull();
 	});
 });
+
+// ─── Botones de copiar y metadatos agrupados (v0.1.1, T4) ──────────────────────────────────────
+// Un solo botón (`CopyButton`) para «Copiar enlace», la dirección de la API y los datos de la ficha. La
+// tarjeta «Información sobre el recurso» sigue el estilo 3b del dataset: un grupo por tarjeta pequeña, el
+// título del grupo afuera, filas con la etiqueta arriba y el valor debajo. Los identificadores ya no son una
+// franja aparte: son el grupo «Identificadores».
+describe("Página de recurso — botones de copiar y metadatos agrupados", () => {
+	const writeText = vi.fn();
+	const HASH = "sha256:9f86d081884c7d659a2feaa0c55ad015";
+
+	beforeEach(() => {
+		writeText.mockReset().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+		mocks.showResource.mockResolvedValue(
+			makeResource({
+				url_type: "upload",
+				format: "CSV",
+				mimetype: "text/csv",
+				hash: HASH,
+				datastore_active: true,
+				url: "http://localhost:5000/dataset/x/resource/y/download/matricula-2026.csv",
+			}),
+		);
+	});
+
+	async function renderPage(): Promise<HTMLElement> {
+		const { container } = render(ResourcePage);
+		await screen.findByRole("heading", { name: "Información sobre el recurso" });
+		return container;
+	}
+
+	it("el «Copiar enlace» del hero va antes del título, sólo con ícono, y copia el enlace del recurso", async () => {
+		await renderPage();
+
+		const copy = screen.getByRole("button", { name: "Copiar enlace del recurso" });
+		const title = screen.getByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		expect(copy.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(copy.textContent?.trim()).toBe("");
+		// Anclado a la primera línea del título: su contenedor mide `1lh`.
+		expect(copy.parentElement?.className).toContain("h-[1lh]");
+		expect(copy.className).toContain("size-9");
+
+		await fireEvent.click(copy);
+		await waitFor(() =>
+			expect(writeText).toHaveBeenCalledWith(
+				"http://localhost/dataset/matricula-2026/resource/res-1",
+			),
+		);
+		expect(await screen.findByText("Enlace copiado")).toBeTruthy();
+	});
+
+	it("el botón de la API vive en la esquina del bloque oscuro y copia la dirección", async () => {
+		const container = await renderPage();
+
+		const code =
+			container.querySelectorAll("code")[renderedCodeBlocks(container).indexOf(DATASTORE_ENDPOINT)];
+		const block = code.parentElement as HTMLElement;
+		expect(block.className).toContain("bg-foreground");
+
+		// El botón no ocupa lugar en el flujo (no cambia el alto del bloque): se posiciona sobre el bloque,
+		// con 8 px de aire arriba y a la derecha, dentro del mismo contenedor relativo.
+		const button = within(block.parentElement as HTMLElement).getByRole("button", {
+			name: "Copiar URL de la API",
+		});
+		expect(block.parentElement?.className).toContain("relative");
+		expect(button.parentElement?.className).toContain("absolute");
+		expect(button.parentElement?.className).toContain("right-2");
+		expect(button.parentElement?.className).toContain("top-2");
+
+		await fireEvent.click(button);
+		await waitFor(() => expect(writeText).toHaveBeenCalledWith(DATASTORE_ENDPOINT));
+	});
+
+	it("reserva a la derecha del bloque oscuro el ancho del botón para que la dirección larga se parta antes", async () => {
+		const container = await renderPage();
+
+		const code =
+			container.querySelectorAll("code")[renderedCodeBlocks(container).indexOf(DATASTORE_ENDPOINT)];
+		const block = code.parentElement as HTMLElement;
+		expect(block.className).toMatch(/\bpr-/);
+		expect(block.className).not.toContain("overflow-x-auto");
+	});
+
+	it("agrupa los campos: Archivo, Fechas e Identificadores, sin perder ninguno", async () => {
+		await renderPage();
+
+		const expected: Record<string, string[]> = {
+			Archivo: ["Nombre del archivo", "Formato", "Tamaño", "Tipo MIME", "Tipo de recurso", "Hash"],
+			Fechas: ["Creado", "Modificado"],
+			Identificadores: ["Identificador", "Dataset", "Posición"],
+		};
+		for (const [group, labels] of Object.entries(expected)) {
+			const box = screen.getByRole("group", { name: group });
+			for (const label of labels) {
+				expect(within(box).getByText(label), `${group} → ${label}`).toBeTruthy();
+			}
+		}
+		// Los valores siguen ahí.
+		expect(screen.getByText("matricula-2026.csv")).toBeTruthy();
+		expect(screen.getByText("text/csv")).toBeTruthy();
+		expect(screen.getByText(HASH)).toBeTruthy();
+	});
+
+	it("los identificadores viven en su grupo: la franja de abajo ya no existe", async () => {
+		const container = await renderPage();
+
+		const ids = screen.getByRole("group", { name: "Identificadores" });
+		expect(within(ids).getByText("res-1")).toBeTruthy();
+		expect(within(ids).getByText("pkg-1")).toBeTruthy();
+		// Cada identificador aparece una sola vez en la ficha (antes: tabla + franja).
+		expect(screen.getAllByText("pkg-1")).toHaveLength(1);
+		expect(container.querySelector(".bg-muted\\/30")).toBeNull();
+		// El título del grupo y el de la tarjeta son jerarquía de encabezados, no texto suelto.
+		expect(screen.getByRole("heading", { level: 3, name: "Identificadores" })).toBeTruthy();
+	});
+
+	it("cada dato copiable tiene su botón y el resto no: hash, nombre del archivo e identificadores", async () => {
+		await renderPage();
+
+		const copyable: Record<string, string> = {
+			"Copiar hash": HASH,
+			"Copiar nombre del archivo": "matricula-2026.csv",
+			"Copiar identificador": "res-1",
+			"Copiar identificador del dataset": "pkg-1",
+		};
+		for (const [name, value] of Object.entries(copyable)) {
+			writeText.mockClear();
+			await fireEvent.click(screen.getByRole("button", { name }));
+			await waitFor(() => expect(writeText).toHaveBeenCalledWith(value));
+		}
+
+		// Formato, tamaño, MIME, fechas y posición no se copian: sólo esos cuatro botones en las tres tarjetas.
+		const buttons = ["Archivo", "Fechas", "Identificadores"].flatMap((group) =>
+			within(screen.getByRole("group", { name: group })).queryAllByRole("button"),
+		);
+		expect(buttons).toHaveLength(Object.keys(copyable).length);
+	});
+
+	it("el botón de una fila se colapsa por contenedor y se alinea con la primera línea del valor", async () => {
+		await renderPage();
+
+		const button = screen.getByRole("button", { name: "Copiar hash" });
+		expect(button.className).toContain("@[24rem]:w-auto");
+		expect(button.parentElement?.className).toContain("h-[1lh]");
+		const row = button.parentElement?.parentElement as HTMLElement;
+		expect(row.className).toContain("@container");
+		expect(row.className).toContain("items-start");
+	});
+
+	it("un enlace externo conserva sus campos (sin nombre del archivo ni tamaño) y los identificadores", async () => {
+		mocks.showResource.mockResolvedValue(makeResource({ format: "CSV" }));
+		render(ResourcePage);
+		await screen.findByRole("heading", { name: "Información sobre el recurso" });
+
+		const archivo = screen.getByRole("group", { name: "Archivo" });
+		expect(within(archivo).getByText("Formato")).toBeTruthy();
+		expect(within(archivo).queryByText("Nombre del archivo")).toBeNull();
+		expect(within(archivo).queryByText("Tamaño")).toBeNull();
+		expect(
+			within(screen.getByRole("group", { name: "Identificadores" })).getByText("res-1"),
+		).toBeTruthy();
+	});
+});

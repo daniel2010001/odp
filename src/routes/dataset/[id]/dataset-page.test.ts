@@ -725,13 +725,12 @@ describe("Página de dataset — acceso a la edición", () => {
 	});
 });
 
-// ─── El reparto de las acciones del hero ──────────────────────────────
-// La hoja `/dev/dataset-hero` (variante G) fijó el criterio en vez de una posición fija: **una
-// acción va en la fila del título; dos o más van en la fila de las insignias**, alineadas a la
-// derecha. Acá copiar enlace siempre está y «Editar» sólo con permiso, así que la misma página
-// rinde de dos formas. jsdom no tiene motor de layout: la fila se mide por la relación entre nodos
-// —el contenedor común— y la alineación por la clase declarada, no por píxeles.
-describe("Página de dataset — el reparto de las acciones del hero (la regla)", () => {
+// ─── El reparto de las acciones del hero (T4, v0.1.1) ─────────────────
+// «Copiar enlace» es sólo ícono, va a la izquierda del título y anclado a su primera línea, en las dos
+// fichas (decisión del autor, 2026-10-19). Ya no cuenta como acción del reparto: las demás —«Editar», la
+// solicitud de publicación— siguen donde estaban, en la fila de las insignias, alineadas a la derecha.
+// jsdom no tiene motor de layout: la fila se mide por la relación entre nodos y la alineación por la clase.
+describe("Página de dataset — el hero: «Copiar enlace» a la izquierda del título", () => {
 	async function renderHero(): Promise<{ copy: HTMLElement; title: HTMLElement }> {
 		render(DatasetPage);
 
@@ -740,28 +739,35 @@ describe("Página de dataset — el reparto de las acciones del hero (la regla)"
 		return { copy, title };
 	}
 
-	it("con una sola acción, copiar comparte la fila del título y la columna de texto puede encogerse", async () => {
-		// Fail closed por defecto: sin permiso confirmado, la única acción disponible es copiar.
+	it("el botón de copiar precede al `h1`, es sólo ícono y se ancla a la primera línea del título", async () => {
 		const { copy, title } = await renderHero();
 
-		expect(screen.queryByRole("link", { name: "Editar" })).toBeNull();
+		expect(copy.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(copy.textContent?.trim()).toBe("");
+		expect(copy.className).toContain("size-9");
 
-		const columna = title.parentElement as HTMLElement;
-		expect(columna.className).toContain("min-w-0");
-		expect(columna.className).toContain("flex-1");
-
-		const fila = columna.parentElement as HTMLElement;
+		// El contenedor mide `1lh` (la primera línea del título); la fila los pone lado a lado y el título
+		// puede encogerse en vez de empujar el botón a una línea propia.
+		expect(copy.parentElement?.className).toContain("h-[1lh]");
+		const fila = title.parentElement as HTMLElement;
 		expect(fila.className).toContain("flex");
+		expect(fila.className).toContain("items-start");
 		expect(fila.contains(copy)).toBe(true);
-
-		// El grupo no empuja al título: es `shrink-0` y hermano de la columna, así que el título se
-		// parte dentro de su columna en vez de empujar la acción a una línea propia.
-		const grupo = copy.parentElement as HTMLElement;
-		expect(grupo.className).toContain("shrink-0");
-		expect(grupo.parentElement).toBe(fila);
+		expect(title.className).toContain("min-w-0");
 	});
 
-	it("con dos acciones, copiar y «Editar» bajan a la fila de las insignias y el título queda solo", async () => {
+	it("sin otras acciones no hay grupo de acciones: la fila de las insignias queda sólo con las insignias", async () => {
+		// Fail closed por defecto: sin permiso confirmado, copiar es lo único que hay.
+		mocks.showDataset.mockResolvedValue(makeDataset({ organization: makeOrganization() }));
+		const { copy } = await renderHero();
+
+		expect(screen.queryByRole("link", { name: "Editar" })).toBeNull();
+		const fila = screen.getAllByRole("link", { name: "Facultad de Ciencias" })[0]
+			.parentElement as HTMLElement;
+		expect(fila.contains(copy)).toBe(false);
+	});
+
+	it("con «Editar», las otras acciones se quedan en la fila de las insignias y copiar sigue junto al título", async () => {
 		mocks.showDataset.mockResolvedValue(
 			makeDataset({ owner_org: "org-1", organization: makeOrganization() }),
 		);
@@ -769,32 +775,26 @@ describe("Página de dataset — el reparto de las acciones del hero (la regla)"
 
 		await renderHero();
 		const editar = await screen.findByRole("link", { name: "Editar" });
-		// El permiso acaba de cambiar el reparto: la rama de una acción se desmontó, así que **las dos
-		// cosas** se vuelven a leer del DOM nuevo —el botón de copiar y el título—. Reusar el título
-		// capturado antes del cambio haría que la aserción dependiera de cuándo se resolvió el helper:
-		// un nodo desmontado no está contenido en ninguna fila, así que la prueba pasaría o fallaría
-		// según los microtasks. Hallazgo `R3-1` de la compuerta `review-e6dab4f3b36e3fdb`.
+		// El permiso acaba de cambiar el reparto: se vuelve a leer del DOM nuevo (hallazgo `R3-1` de la
+		// compuerta `review-e6dab4f3b36e3fdb`: un nodo capturado antes del cambio puede estar desmontado).
 		const copy = screen.getByRole("button", { name: "Copiar enlace del dataset" });
 		const title = screen.getByRole("heading", { level: 1, name: "Matrícula 2026" });
 
-		const grupo = copy.parentElement as HTMLElement;
-		expect(grupo).toContainElement(editar);
-
-		// La fila de las insignias aloja las dos cosas: las insignias a la izquierda y las acciones a
-		// la derecha (`justify-between`), sin que el título comparta esa fila.
-		const fila = grupo.parentElement as HTMLElement;
+		// Copiar quedó con el título; «Editar» está con las insignias, a la derecha (`justify-between`).
+		expect(title.parentElement).toContainElement(copy);
+		const fila = editar.parentElement?.parentElement as HTMLElement;
 		expect(fila.className).toContain("justify-between");
 		expect(within(fila).getByRole("link", { name: "Facultad de Ciencias" })).toBeTruthy();
+		expect(fila.contains(copy)).toBe(false);
 		expect(fila.contains(title)).toBe(false);
-		expect(title.parentElement).toBe(fila.parentElement);
 	});
 });
 
 // ─── El acuse de «Copiar enlace» ──────────────────────────────────────
-// El ícono cambia, pero un cambio de color no le dice nada a un lector de pantalla: el acuse vive
-// en el nombre accesible, que pasa a «Enlace copiado» y vuelve a los 2 s.
+// El ícono pasa a una marca y el aviso «Enlace copiado» se anuncia por `role="status"` (el nombre accesible
+// del botón ya no cambia: un cambio de nombre con el foco encima se anunciaría dos veces).
 describe("Página de dataset — el acuse de «Copiar enlace»", () => {
-	it("cambia el nombre accesible a «Enlace copiado» y vuelve a los 2 s, con el ícono como refuerzo", async () => {
+	it("avisa «Enlace copiado» y lo retira a los 2 s, con el ícono como refuerzo", async () => {
 		render(DatasetPage);
 
 		const copiar = await screen.findByRole("button", { name: "Copiar enlace del dataset" });
@@ -803,13 +803,14 @@ describe("Página de dataset — el acuse de «Copiar enlace»", () => {
 		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 		try {
 			await fireEvent.click(copiar);
-			expect(mocks.copyToClipboard).toHaveBeenCalledTimes(1);
+			await vi.advanceTimersByTimeAsync(0);
+			expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://localhost/dataset/matricula-2026");
 
-			const copiado = screen.getByRole("button", { name: "Enlace copiado" });
-			expect(copiado.querySelector(".lucide-check")).not.toBeNull();
+			expect(screen.getByRole("status").textContent).toBe("Enlace copiado");
+			expect(copiar.querySelector(".lucide-check")).not.toBeNull();
 
 			await vi.advanceTimersByTimeAsync(2000);
-			expect(screen.getByRole("button", { name: "Copiar enlace del dataset" })).toBeTruthy();
+			expect(screen.getByRole("status").textContent).toBe("");
 		} finally {
 			vi.useRealTimers();
 		}

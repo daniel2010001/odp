@@ -1,14 +1,5 @@
 <script lang="ts">
-import {
-	ArrowDownToLine,
-	Check,
-	Copy,
-	Download,
-	ExternalLink,
-	FileText,
-	Link2,
-	Maximize2,
-} from "@lucide/svelte";
+import { ArrowDownToLine, Download, ExternalLink, FileText, Maximize2 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createChartApi } from "$lib/api/charts";
@@ -36,6 +27,7 @@ import CreateChartLink from "$lib/components/resource/views/CreateChartLink.svel
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { CopyButton } from "$lib/components/ui/copy-button";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { fileUrl } from "$lib/resources/file-url";
@@ -46,7 +38,6 @@ import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-g
 import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
-import { copyToClipboard } from "$lib/utils/citation";
 import { formatDate, formatSize } from "$lib/utils/ckan";
 import { safeExternalUrl } from "$lib/utils/external-url";
 
@@ -81,11 +72,6 @@ let expelled = $state(false);
 // Si el usuario puede crear, editar y eliminar los gráficos de este recurso. Sólo decide qué se ofrece: el
 // servidor exige `resource_update` de todos modos. Hasta que la respuesta llega es `false` (falla cerrado).
 let canEditCharts = $state(false);
-
-let endpointCopied = $state(false);
-let copiedLink = $state(false);
-
-let hashCopied = $state(false);
 
 // ─── Params from URL ─────────────────────────────────────────────
 const datasetId = $derived($page.params.id);
@@ -326,6 +312,63 @@ const fieldList = $derived.by(() => {
 	);
 });
 
+// ─── Derived: grupos de la tarjeta de metadatos ─────────────────
+// Los mismos campos de `fieldList` (+ «Modificado» y los identificadores, que antes vivían en una franja
+// aparte), repartidos en tres grupos. Sólo el hash, el nombre del archivo y los identificadores se copian.
+type MetaRow = { label: string; value: string; copy?: string; mono?: boolean };
+type MetaGroup = { id: string; title: string; rows: MetaRow[] };
+
+const FILE_FIELDS = new Set([
+	"Nombre del archivo",
+	"Formato",
+	"Tamaño",
+	"Tipo MIME",
+	"Tipo de recurso",
+	"Hash",
+]);
+const COPY_LABELS: Record<string, string> = {
+	"Nombre del archivo": "Copiar nombre del archivo",
+	Hash: "Copiar hash",
+};
+const MONO_FIELDS = new Set(["Nombre del archivo", "Hash"]);
+
+const metaGroups = $derived.by((): MetaGroup[] => {
+	if (!resource) return [];
+	const toRow = (f: { label: string; value: string | null | undefined }): MetaRow => ({
+		label: f.label,
+		value: f.value ?? "",
+		copy: COPY_LABELS[f.label],
+		mono: MONO_FIELDS.has(f.label),
+	});
+	const dates: MetaRow[] = fieldList.filter((f) => f.label === "Creado").map(toRow);
+	if (resource.last_modified) {
+		dates.push({ label: "Modificado", value: formatDate(resource.last_modified) });
+	}
+	const ids: MetaRow[] = [
+		{ label: "Identificador", value: resource.id, copy: "Copiar identificador", mono: true },
+	];
+	if (resource.package_id) {
+		ids.push({
+			label: "Dataset",
+			value: resource.package_id,
+			copy: "Copiar identificador del dataset",
+			mono: true,
+		});
+	}
+	if (resource.position !== undefined) {
+		ids.push({ label: "Posición", value: String(resource.position), mono: true });
+	}
+	return [
+		{
+			id: "archivo",
+			title: "Archivo",
+			rows: fieldList.filter((f) => FILE_FIELDS.has(f.label)).map(toRow),
+		},
+		{ id: "fechas", title: "Fechas", rows: dates },
+		{ id: "identificadores", title: "Identificadores", rows: ids },
+	].filter((g) => g.rows.length > 0);
+});
+
 // ─── Derived: API extras ───────────────────────────────────────
 // Las cuatro claves que el portal muestra en sus propias cards. El resto de las extras del recurso
 // se lista al pie de la tarjeta de la API.
@@ -438,38 +481,12 @@ $effect(() => {
 	previewEl.scrollIntoView({ block: "start" });
 });
 
-// ─── Actions ────────────────────────────────────────────────────
-async function handleCopyEndpoint() {
-	const ok = await copyToClipboard(apiEndpoint);
-	if (ok) {
-		endpointCopied = true;
-		setTimeout(() => {
-			endpointCopied = false;
-		}, 2000);
-	}
-}
-async function handleCopyHash() {
-	if (!resource?.hash) return;
-	const ok = await copyToClipboard(resource.hash);
-	if (ok) {
-		hashCopied = true;
-		setTimeout(() => {
-			hashCopied = false;
-		}, 2000);
-	}
-}
-
-async function handleCopyResourceLink() {
-	if (!dataset?.name || !resource?.id) return;
-	const url = `${window.location.origin}/dataset/${dataset.name}/resource/${resource.id}`;
-	const ok = await copyToClipboard(url);
-	if (ok) {
-		copiedLink = true;
-		setTimeout(() => {
-			copiedLink = false;
-		}, 2000);
-	}
-}
+// Enlace canónico del recurso, el que copia el botón del hero.
+const resourceLink = $derived(
+	dataset?.name && resource?.id
+		? `${$page.url.origin}/dataset/${dataset.name}/resource/${resource.id}`
+		: "",
+);
 </script>
 
 <svelte:head>
@@ -527,24 +544,21 @@ async function handleCopyResourceLink() {
 		<!-- Resource header -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-				<!-- Title + copy link: el salto secuencial dejó esta fila (decisión del autor) y vive en la
-				     banda de la acción de descarga. `min-w-0` deja que un nombre largo se encoja en vez de
-				     desbordar. -->
-				<div class="flex items-center gap-3">
-					<button
-						type="button"
-						onclick={handleCopyResourceLink}
-						aria-label="Copiar enlace del recurso"
-						title="Copiar enlace"
-						class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-					>
-						{#if copiedLink}
-							<Check class="size-4 text-emerald-600" />
-						{:else}
-							<Link2 class="size-4" />
-						{/if}
-					</button>
-					<h1 class="min-w-0 font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+				<!-- «Copiar enlace» a la izquierda del título, sólo ícono y anclado a su primera línea: el
+				     contenedor hereda el tamaño y el interlineado del título, así `1lh` es el alto de esa línea y el
+				     botón (más alto) se centra en ella aunque el título ocupe varias. El salto secuencial dejó esta
+				     fila (decisión del autor) y vive en la banda de la acción de descarga. `min-w-0` deja que un
+				     nombre largo se encoja en vez de desbordar. -->
+				<div class="flex items-start gap-3 font-heading text-3xl leading-tight sm:text-4xl">
+					<div class="flex h-[1lh] shrink-0 items-center">
+						<CopyButton
+							text={resourceLink}
+							label="Copiar enlace del recurso"
+							copiedLabel="Enlace copiado"
+							icon="link"
+						/>
+					</div>
+					<h1 class="min-w-0 font-bold text-foreground">
 						{resource.name || "Recurso"}
 					</h1>
 				</div>
@@ -736,24 +750,27 @@ async function handleCopyResourceLink() {
 				<div class="mt-4 space-y-4">
 					<!-- Tarjeta de la API -->
 					<Card class="p-5">
-						<div class="flex flex-wrap items-center justify-between gap-3">
+						<!-- El botón vive en la esquina del bloque oscuro, con 8 px de aire arriba, abajo y a la derecha
+						     (el bloque mide 48 px con una línea: 8 + 32 + 8), sin cambiar su alto. El bloque reserva a la
+						     derecha el ancho del botón —el ícono bajo 40 rem de tarjeta, la etiqueta desde ahí—, así una
+						     dirección larga se parte antes de llegar a él. -->
+						<div class="@container">
 							<p class="text-sm font-semibold text-foreground">Dirección de la API</p>
-							<button
-								type="button"
-								onclick={handleCopyEndpoint}
-								class="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
-							>
-								{#if endpointCopied}
-									<Check class="size-3.5 text-emerald-600" />
-									Copiado
-								{:else}
-									<Copy class="size-3.5" />
-									Copiar URL
-								{/if}
-							</button>
-						</div>
-						<div class="mt-3 overflow-x-auto rounded-lg bg-foreground px-4 py-3">
-							<code class="break-all font-mono text-xs text-background">{apiEndpoint}</code>
+							<div class="relative mt-3">
+								<div class="rounded-lg bg-foreground py-3 pl-4 pr-12 @[40rem]:pr-[8rem]">
+									<code class="break-all font-mono text-xs text-background">{apiEndpoint}</code>
+								</div>
+								<div class="absolute right-2 top-2">
+									<CopyButton
+										text={apiEndpoint}
+										label="Copiar URL de la API"
+										visibleLabel="Copiar URL"
+										form="label"
+										size="md"
+										collapseBelow="40rem"
+									/>
+								</div>
+							</div>
 						</div>
 						{#if docsUrl}
 							<a
@@ -810,69 +827,58 @@ async function handleCopyResourceLink() {
 					Formato, tamaño, tipo MIME y sus identificadores.
 				</p>
 
-				{#if fieldList.length > 0}
-					<div class="mt-4 overflow-hidden rounded-lg border border-border">
-						<div
-							class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
-						>
-							<span>Campo</span>
-							<span>Valor</span>
-						</div>
-						<div class="divide-y divide-border/60">
-							{#each fieldList as field}
-								<div
-									class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
+				<!-- Estilo 3b del dataset: un grupo por tarjeta pequeña, con su título afuera y una línea fina; 32 px
+				     entre grupos y 8 px del título a la tarjeta. Las filas llevan la etiqueta arriba y el valor
+				     debajo; el botón de copiar (etiqueta que pasa a ícono si la fila no da) queda al extremo,
+				     centrado en la primera línea del valor: su contenedor mide `1lh`. -->
+				<div class="mt-4 space-y-8">
+					{#each metaGroups as group (group.id)}
+						<div role="group" aria-labelledby="meta-{group.id}">
+							<div class="mb-2 flex items-center gap-3">
+								<h3
+									id="meta-{group.id}"
+									class="text-xs font-bold uppercase tracking-wide text-foreground"
 								>
-									<span class="text-muted-foreground">{field.label}</span>
-									{#if field.label === "Hash"}
-										<div class="flex items-center justify-between gap-2">
-											<code class="break-all font-mono text-foreground">{field.value}</code>
-											<button
-												type="button"
-												onclick={handleCopyHash}
-												aria-label="Copiar hash"
-												title="Copiar hash al portapapeles"
-												class="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-											>
-												{#if hashCopied}
-													<Check class="size-3.5 text-emerald-600" />
-												{:else}
-													<Copy class="size-3.5" />
+									{group.title}
+								</h3>
+								<span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+							</div>
+							<div class="overflow-hidden rounded-lg border border-border">
+								<dl class="divide-y divide-border/60">
+									{#each group.rows as row (row.label)}
+										<div class="min-w-0 px-4 py-3">
+											<dt class="text-xs text-muted-foreground">{row.label}</dt>
+											<dd class="mt-1 flex items-start justify-between gap-2 @container">
+												<span
+													class={cn(
+														"block min-w-0 flex-1 text-foreground [overflow-wrap:anywhere]",
+														row.mono ? "font-mono text-xs" : "text-sm font-medium",
+													)}>{row.value}</span
+												>
+												{#if row.copy}
+													<div
+														class={cn(
+															"flex h-[1lh] shrink-0 items-center",
+															row.mono ? "text-xs" : "text-sm",
+														)}
+													>
+														<CopyButton
+															text={row.value}
+															label={row.copy}
+															visibleLabel="Copiar"
+															form="label"
+															size="sm"
+															collapseBelow="24rem"
+														/>
+													</div>
 												{/if}
-											</button>
+											</dd>
 										</div>
-									{:else}
-										<span class="break-all font-medium text-foreground">{field.value}</span>
-									{/if}
-								</div>
-							{/each}
-							{#if resource.last_modified}
-								<div
-									class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
-								>
-									<span class="text-muted-foreground">Modificado</span>
-									<span class="break-all font-medium text-foreground">
-										{formatDate(resource.last_modified)}
-									</span>
-								</div>
-							{/if}
+									{/each}
+								</dl>
+							</div>
 						</div>
-					</div>
-				{/if}
-
-				<!-- Footer info -->
-				<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-					<p class="text-xs text-muted-foreground">
-						Identificador: <code class="font-mono">{resource.id}</code>
-						{#if resource.package_id}
-							<span class="mx-2">·</span>
-							Dataset: <code class="font-mono">{resource.package_id}</code>
-						{/if}
-						{#if resource.position !== undefined}
-							<span class="mx-2">·</span>
-							Posición: <code class="font-mono">{resource.position}</code>
-						{/if}
-					</p>
+					{/each}
 				</div>
 			</Card>
 		</section>

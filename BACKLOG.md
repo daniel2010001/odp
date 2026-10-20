@@ -2691,28 +2691,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 
 
-- [ ] **[v0.1.1] Los botones de copiar del recurso: «Copiar enlace» con la disposición del dataset y un solo componente** (TODO del autor, 2026-10-17,
-  `csv-charts` L47, textual: «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar
-  esto»). **Precisión del autor, textual:** «sí lo tiene, pero está situado en una posición diferente a la del datasets,
-  creo que al cambiar la posición en una sesión pasada no lo hicimos para el caso de los resources, me refiero a que en
-  los dataset está al lado superior derecho y abajo si se puede editar, mientras que el resource aun lo mantiene en el
-  lado izquiedo del title, nunca sincronizamos esto». **Hoy:**
-  - **En el dataset** (`src/routes/dataset/[id]/+page.svelte:620-665`), el botón está en el snippet `heroActions`, junto
-    a «Editar» y a la acción de publicación. Ese grupo va arriba a la derecha y cambia de fila según la regla
-    condicional del hero.
-  - **En el recurso** (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:503-517`), el botón sigue como
-    ícono a la izquierda del `h1`.
-  **Lo que hay que hacer:** llevar el recurso al reparto del dataset, con las mismas piezas en vez de una copia que se
-  vuelva a desincronizar. Se cruza con P6 de `csv-charts`: el autor quiere guardar la banda del encabezado del recurso
-  «para otras acciones».
-  **Segundo pedido del autor, fusionado (2026-10-19) — unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
-  diferente a otros del mismo estilo, como el de copiar la id o hash de los resources, también quisiera corregir estos
-  porque se ven un poco feos»). Hoy conviven por lo menos tres estilos en la misma página:
-  - el de la dirección de la API, una píldora con texto y `bg-primary/10` (`resource/[resourceId]/+page.svelte:712-725`);
-  - el del hash y el id, un cuadrado de ícono `size-7` (`:804-815`);
-  - el de «Copiar enlace», un cuadrado `size-9` al lado del título.
-  A esos se suma «Copiar código» del diálogo «Insertar». **Propuesta:** un solo componente `CopyButton` con dos tamaños
-  (ícono y con texto), probado en un playground según la regla 8. Es el mismo trabajo que el pedido de «Copiar enlace» de arriba (fusionados).
 
 - [ ] **[v0.1.1] La presentación de la demo: guion actualizado y diapositivas** (decisión del autor, 2026-10-18, textual: «me
   gustaría actualizar lo que tenemos y hacerlo con diapos […] pero esto luego, porque hacerlo ahora quisas haga quedar
@@ -3592,6 +3570,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **[v0.1.1] Los botones de copiar del recurso: «Copiar enlace» con la disposición del dataset y un solo componente** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T4). Cuatro rondas en la hoja `/dev/copy-buttons` (largos de título, API dentro del bloque, valor junto al botón, franja de identificadores a 320 px, instrumentos de alto, huecos y desfase). Lo elegido por el autor (su URL de preferencias y las rondas L12–L23): un solo componente `CopyButton` (`src/lib/components/ui/copy-button/`) con forma de ícono o de etiqueta que se vuelve ícono cuando su contenedor no da, aviso «Copiado» sin cambiar el ancho y anunciado; «Copiar enlace» sólo ícono, a la izquierda del título y anclado a su primera línea, **en las dos fichas**; el botón de la API dentro del bloque oscuro, con 8 px a los bordes y el alto del bloque igual; y la card de metadatos del recurso en el estilo 3b (grupos Archivo, Fechas, Identificadores con título fuera y línea; etiqueta arriba, valor debajo, botón al extremo alineado a la primera línea del valor), sin la franja de identificadores. Verificado en la ficha real a 1280 y 375 px. La hoja se borró al promover. |
 | **[v0.1.1] Las vistas previas son chicas: no aprovechan la pantalla** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T6). Se comparó en la hoja `/dev/preview-height` (cuatro estrategias por tipo, ventanas simuladas, hero real). El autor eligió D con el foco F3 y el botón de contorno con rótulo, y 16 px de aire descontados (textual: «2: f3 + contorno+rotulo. PERO, creo que hay que tocar un poco el tamaño de D, con el margin-y creo que debemos reducir el alto» → «Aire de 16 px, descontado»). Alturas: PDF `min(max(240px, 100dvh − 140px), max(520px, 130cqw))`, imagen hasta `max(360px, 100dvh − 140px)` con su proporción, texto `clamp(360px, 55dvh, 720px)`, tabla con tope `min(70dvh, 720px)` y el scroll sólo en la tabla. La tarjeta es el destino `#vista-previa` (enlace «Ir a la vista previa» en el hero y botón «Ajustar a la pantalla»), y un enlace compartido con ese fragmento aterriza aunque la tarjeta se dibuje después de cargar. Medido en Chromium con el PDF real del catálogo de desarrollo: 940 px de alto a 1920×1080 y 628 px a 1366×768, con 16 px de aire bajo el encabezado. Límite conocido: con la pestaña de un gráfico activa, la tarjeta no está montada y el enlace del hero no lleva a ningún lado. La hoja se borró al promover. |
 | **[v1] El responsive del salto secuencial, con los dos TODO de 1154 (botones chicos; los demás recursos no alcanzables en escritorio)** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T11). Medido en la hoja `/dev/resource-jump`: hoy los botones medían 36 px (fallan 44) y a 320 px el salto ocupaba 3 líneas con «Siguiente» huérfano; los demás recursos sólo estaban en el menú del breadcrumb desde 1024 px. El autor eligió D (textual: «vamos con d y quitamos el desplegable»): el control compacto «‹ Recurso N de M ⇅ › » (`ResourceStepper.svelte`), extremos de 44 px y el centro abre la lista de todos los recursos con el actual marcado; bajo 32rem de banda, la descarga y el control van en dos filas de ancho completo. La descarga mide 44 px y dice «Descargar» bajo 24rem de contenedor, con el nombre accesible «Descargar recurso». La página de recurso ya no pasa `related` al breadcrumb, así que ni la miga de escritorio ni el chip de móvil listan recursos. Deuda declarada: la opción `related` de `Breadcrumb.svelte` sigue porque la usa la hoja permanente `/dev/nav`; si esa hoja se retira, queda muerta. Verificado en la ficha real a 1280 y 360 px. La hoja se borró al promover. |
 | **[v1] Revisar la POSICIÓN de las solicitudes en la ficha del dataset** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T12). Se comparó en la hoja `/dev/requests-position`, con los componentes reales y doble de datos, por rol (visitante, miembro, editor, administrador, superadministración) y estado de la solicitud, a ancho de página, 768 y 375 px. El autor eligió la C (textual: «para dev/requests-position creo que me voy por la C»): la tarjeta **encabeza la columna lateral**, antes de «Citar como»; la columna es pegajosa en escritorio, así que el aprobador decide sin bajar. En móvil la columna lateral cae después de la principal (igual que en la hoja). El control de pedir o cancelar y la insignia siguen en el hero. Prueba: «la tarjeta encabeza la columna lateral…» en `dataset-page.test.ts` (RED antes del cambio). La hoja se borró al promover. Queda abierta una pregunta del autor: el comentario de la decisión no tiene máximo de caracteres en ningún lado. |
