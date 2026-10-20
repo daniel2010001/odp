@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Building2, Check, Copy, Database, Inbox, Pencil } from "@lucide/svelte";
+import { Building2, Check, ChevronRight, Copy, Database, Inbox, Pencil } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
@@ -871,11 +871,18 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 								</div>
 							{/each}
 						</dl>
+						<!-- Fila de pie (variante C de `/dev/card-links`): el enlace ocupa el ancho de la tarjeta
+						     y llega a 44 px de alto. -->
 						<a
 							href="#info-tecnica"
-							class="mt-4 inline-flex text-xs font-semibold text-primary hover:underline"
-							>Ver la información técnica completa</a
+							class="group -mx-5 -mb-5 mt-4 flex min-h-11 items-center justify-between gap-3 rounded-b-xl border-t border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 						>
+							Ver la información técnica
+							<ChevronRight
+								class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+								aria-hidden="true"
+							/>
+						</a>
 					</Card>
 
 					<!-- Organization card -->
@@ -899,11 +906,17 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 								</div>
 							</div>
 							{#if orgHref}
+								<!-- Fila de pie (variante C de `/dev/card-links`). El texto no repite el título de la
+								     organización: la tarjeta ya lo muestra arriba y un título largo partía el enlace. -->
 								<a
 									href={orgHref}
-									class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:underline"
+									class="group -mx-5 -mb-5 mt-4 flex min-h-11 items-center justify-between gap-3 rounded-b-xl border-t border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 								>
-									Ver datasets de {dataset.organization.title}
+									Ver los datasets de la organización
+									<ChevronRight
+										class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+										aria-hidden="true"
+									/>
 								</a>
 							{/if}
 						</Card>

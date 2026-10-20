@@ -1,6 +1,5 @@
 <script lang="ts">
 import {
-	ArrowRight,
 	Building2,
 	ChevronLeft,
 	ChevronRight,
@@ -19,7 +18,11 @@ import { goto } from "$app/navigation";
 import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
+import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import { createSessionApi } from "$lib/api/session";
+import ActionBar from "$lib/components/dashboard/ActionBar.svelte";
+import ActionGrid from "$lib/components/dashboard/ActionGrid.svelte";
+import type { DashboardAction } from "$lib/components/dashboard/actions";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import {
@@ -60,6 +63,9 @@ let permisoResuelto = $state(false);
 // Ids donde el usuario puede editar datasets, en **una** llamada bulk. Fail closed: arranca vacío y
 // sólo `known` lo llena; `unknown` (no se pudo preguntar) se trata como el conjunto vacío.
 let orgsEditables = $state<string[]>([]);
+// Filas de `publication_request_list` con estado `pending` (las que el catálogo le deja ver a quien mira).
+// `null` = todavía sin respuesta o sin poder leerlas: la tarjeta de solicitudes se queda sin línea de estado.
+let solicitudesPendientes = $state<PublicationRequest[] | null>(null);
 
 // ─── Cliente CKAN autenticado ────────────────────────────────────────
 function makeClient() {
@@ -195,6 +201,29 @@ async function loadEditPermission() {
 	}
 }
 
+// «Solicitudes» sólo para quien puede pedir o decidir una publicación: la superadministración o quien
+// edita en alguna organización (misma regla que la entrada del menú de usuario). Fail closed: `orgsEditables`
+// arranca vacío y `unknown` lo deja vacío.
+const puedeVerSolicitudes = $derived($isSuperAdmin || orgsEditables.length > 0);
+
+// Las filas pendientes sólo se piden a quien ve la tarjeta. Un fallo deja `null`: la acción sigue, sin línea
+// de estado. La respuesta vieja no pisa a la nueva si el permiso cambia mientras vuela.
+$effect(() => {
+	if (!authed || !puedeVerSolicitudes) return;
+	let vigente = true;
+	createPublicationApi(makeClient())
+		.list("pending")
+		.then((filas) => {
+			if (vigente) solicitudesPendientes = filas;
+		})
+		.catch(() => {
+			if (vigente) solicitudesPendientes = null;
+		});
+	return () => {
+		vigente = false;
+	};
+});
+
 // ─── ¿Se puede ofrecer crear? ────────────────────────────────────────
 // El contraste es contra el `owner_org` de la fila, no contra la lista amplia de membresías.
 function puedeEditarDataset(paquete: CkanPackage): boolean {
@@ -223,19 +252,55 @@ const confirmedNoCreatePermission = $derived(
 	!orgsLoading && !orgsError && organizations.length > 0 && permisoResuelto && !puedeCrear,
 );
 
-// Sólo acciones que existen: la grilla ya está preparada para crecer cuando cada CRUD aterrice.
-const actions = $derived(
-	puedeOfrecerCreacion
-		? [
-				{
-					title: "Crear dataset",
-					description: "Cree un dataset y suba sus recursos.",
-					href: "/dashboard/datasets/new",
-					icon: Database,
-				},
-			]
-		: [],
-);
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+// Sólo acciones que existen y que el rol permite; la grilla crece cuando cada CRUD aterriza.
+const actions = $derived.by(() => {
+	const lista: DashboardAction[] = [];
+	if (puedeOfrecerCreacion) {
+		const orgsDondeCrear = organizations.filter(
+			(o) => o.capacity === "admin" || o.capacity === "editor",
+		).length;
+		lista.push({
+			id: "crear",
+			title: "Crear dataset",
+			description: "Cree un dataset y suba sus recursos.",
+			href: "/dashboard/datasets/new",
+			icon: Database,
+			tone: "primary",
+			status:
+				orgsDondeCrear > 0
+					? `Disponible en ${plural(orgsDondeCrear, "organización", "organizaciones")}`
+					: undefined,
+		});
+	}
+	if (puedeVerSolicitudes) {
+		const filas = solicitudesPendientes;
+		const decidibles = filas?.filter((fila) => fila.decidable_by_caller === true).length ?? 0;
+		const propias = (filas?.length ?? 0) - decidibles;
+		const decide = decidibles > 0;
+		lista.push({
+			id: "solicitudes",
+			title: "Revisar solicitudes",
+			description: decide
+				? "Revise y decida las solicitudes de publicación."
+				: "Consulte el estado de sus solicitudes de publicación.",
+			href: "/dashboard/requests",
+			icon: Inbox,
+			tone: "neutral",
+			status: !filas
+				? undefined
+				: decide
+					? `${plural(decidibles, "pendiente", "pendientes")} de decisión`
+					: propias > 0
+						? `${plural(propias, "solicitud suya", "solicitudes suyas")} en revisión`
+						: "Ninguna solicitud en revisión",
+			badge: decide ? plural(decidibles, "pendiente", "pendientes") : undefined,
+			count: decide ? decidibles : undefined,
+		});
+	}
+	return lista;
+});
 
 // ─── Barra de acciones pegajosa ──────────────────────────────────────
 // El centinela vive justo después de la grilla: cuando queda detrás de la barra, la barra aparece;
@@ -368,69 +433,14 @@ function siglaOf(organization: CkanOrganization): string | undefined {
 				Acciones
 			</h2>
 
-			<div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-				{#each actions as action (action.title)}
-					<a
-						href={action.href}
-						class="group flex items-start gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-					>
-						<span
-							class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-						>
-							<action.icon class="size-5" aria-hidden="true" />
-						</span>
-						<span class="min-w-0 flex-1">
-							<span class="flex items-center gap-2">
-								<span class="font-heading text-base font-semibold text-primary">
-									{action.title}
-								</span>
-								<ArrowRight
-									class="size-4 shrink-0 text-primary transition-transform group-hover:translate-x-0.5"
-									aria-hidden="true"
-								/>
-							</span>
-							<span class="mt-1 block text-xs leading-relaxed text-muted-foreground">
-								{action.description}
-							</span>
-						</span>
-					</a>
-				{/each}
+			<div class="mt-4">
+				<ActionGrid {actions} />
 			</div>
 
 			<!-- Centinela: marca el momento en que la grilla deja de estar a la vista. -->
 			<div bind:this={actionsSentinel} class="h-px" aria-hidden="true"></div>
 
-			<!-- Barra de acciones pegajosa: se pega justo debajo del encabezado —su alto sale del token
-			     `--header-h`, el mismo que usa el layout— más el aire elegido (`pt-2`). Mientras
-			     está oculta, `inert` la saca del foco y de los clics. El `pointer-events-none` del
-			     contenedor evita que el aire transparente se trague los clics del contenido detrás. -->
-			<div
-				class={cn(
-					"pointer-events-none fixed inset-x-0 top-[var(--header-h)] z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
-					actionsStuck ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
-				)}
-				inert={!actionsStuck}
-			>
-				<div
-					class="pointer-events-auto mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto rounded-xl border border-border bg-card/95 p-2 shadow-lg backdrop-blur"
-					data-sticky-actions=""
-				>
-					<span
-						class="hidden shrink-0 pl-2 pr-1 text-xs font-medium uppercase tracking-wider text-destructive lg:inline"
-					>
-						Acciones
-					</span>
-					{#each actions as action (action.title)}
-						<a
-							href={action.href}
-							class="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/40 bg-card px-3 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-auto lg:justify-start"
-						>
-							<Plus class="size-4" aria-hidden="true" />
-							{action.title}
-						</a>
-					{/each}
-				</div>
-			</div>
+			<ActionBar {actions} stuck={actionsStuck} />
 		</section>
 		{/if}
 

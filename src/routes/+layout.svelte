@@ -117,7 +117,10 @@ $effect(() => {
 	<!-- Header -->
 	<!-- El alto sale del token `--header-h` (`src/app.css`, única fuente). `data-site-header` es el
 	     hook que mide el observer de la barra pegajosa del panel, para no depender de una constante. -->
-	<header class="sticky top-0 z-40 border-b border-border bg-card shadow-sm" data-site-header>
+	<!-- Fijo y no pegado: al achicarse cambia sólo su propio alto, y el contenido conserva la reserva de
+	     `data-header-spacer`, que no se mueve. Así el flujo no cambia y el navegador no tiene nada que
+	     compensar al cruzar el umbral (S17 de `odd/tasks/v0.1.1-polish.md`). -->
+	<header class="fixed inset-x-0 top-0 z-40 border-b border-border bg-card shadow-sm" data-site-header>
 		<nav
 			class="mx-auto flex h-[var(--header-h)] max-w-7xl items-center justify-between px-4 transition-[height] duration-200 ease-out sm:px-6 lg:px-8"
 		>
@@ -200,7 +203,12 @@ $effect(() => {
 
 		<!-- Mobile Menu -->
 		{#if mobileMenuOpen}
-			<div class="border-t border-border bg-card md:hidden">
+			<!-- Un encabezado fijo no se desplaza con la página: si el menú midiera más que la pantalla
+			     (un teléfono apaisado), sus últimas opciones quedarían fuera de alcance. Se desplaza por dentro. -->
+			<div
+				data-mobile-menu
+				class="max-h-[calc(100dvh-var(--header-h)-1px)] overflow-y-auto border-t border-border bg-card md:hidden"
+			>
 				<div class="space-y-1 px-4 py-3">
 					<a
 						href="/search"
@@ -258,6 +266,8 @@ $effect(() => {
 			</div>
 		{/if}
 	</header>
+	<!-- La reserva del encabezado: el alto del tope más 1px del borde, constante en los dos estados. -->
+	<div data-header-spacer aria-hidden="true" class="h-[calc(var(--header-h-max)+1px)] shrink-0"></div>
 	{/if}
 
 	<!-- Main content -->

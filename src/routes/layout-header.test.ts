@@ -160,8 +160,13 @@ describe("Alto del encabezado: una sola fuente", () => {
 
 	it("el estado achicado es más chico que el del tope: si no, el encabezado crecería al scrollear", () => {
 		const css = readFileSync(join(routesDir, "..", "app.css"), "utf8");
+		// El tope declara `--header-h: var(--header-h-max)`: se resuelve al valor de la reserva.
+		const max = css.match(/--header-h-max\s*:\s*([\d.]+)rem/);
 		const remOf = (pattern: RegExp) => {
-			const match = (css.match(pattern) ?? []).join(" ").match(/--header-h\s*:\s*([\d.]+)rem/);
+			const block = (css.match(pattern) ?? []).join(" ");
+			if (/--header-h\s*:\s*var\(--header-h-max\)/.test(block))
+				return max ? Number(max[1]) : undefined;
+			const match = block.match(/--header-h\s*:\s*([\d.]+)rem/);
 			return match ? Number(match[1]) : undefined;
 		};
 
@@ -188,7 +193,8 @@ describe("Alto del encabezado: una sola fuente", () => {
 
 	it("cada offset pegado consume el token", () => {
 		const consumers = [
-			["dashboard/+page.svelte", "la barra de acciones"],
+			// La barra de acciones del panel vive en su componente desde la promoción de T18 (`108ca03`).
+			["../lib/components/dashboard/ActionBar.svelte", "la barra de acciones"],
 			["search/+page.svelte", "la barra de resultados"],
 			["dataset/[id]/+page.svelte", "el panel de la ficha del dataset"],
 			// El panel pegajoso del asistente vive ahora en el formulario extraído: el ancla lo sigue
@@ -208,6 +214,55 @@ describe("Alto del encabezado: una sola fuente", () => {
 		expect(source("dataset/[id]/+page.svelte")).not.toMatch(/lg:top-24\b/);
 		expect(source("dashboard/datasets/new/+page.svelte")).not.toMatch(/lg:top-24\b/);
 		expect(source("../lib/components/datasets/DatasetForm.svelte")).not.toMatch(/lg:top-24\b/);
+	});
+});
+
+// El aviso de Chromium «el anclaje de desplazamiento se desactivó… demasiados ajustes consecutivos»
+// (S17 de `odd/tasks/v0.1.1-polish.md`) nace de que el encabezado, al achicarse, cambiaba su alto EN EL
+// FLUJO: medido en Chromium el 2026-10-20, `main` bajaba de 81 a 65 px y el navegador compensaba el
+// scroll (300 → 284) en cada cruce. La propuesta del autor: que cambie sólo el alto del encabezado y que
+// el espacio que el contenido le reserva no se reduzca. jsdom no tiene layout, así que se ancla la
+// estructura que lo garantiza; la medición en navegador queda en el log del expediente.
+describe("La reserva del encabezado no se mueve al achicarse", () => {
+	it("el encabezado es fijo: su alto ya no empuja el contenido", () => {
+		render(Layout, { children, data: anonymousData });
+
+		const header = document.querySelector("[data-site-header]") as HTMLElement;
+		expect(header.className).toMatch(/\bfixed\b/);
+		expect(header.className).not.toMatch(/\bsticky\b/);
+	});
+
+	it("el contenido reserva el alto del tope, que no cambia con el estado achicado", () => {
+		render(Layout, { children, data: anonymousData });
+
+		const spacer = document.querySelector("[data-header-spacer]") as HTMLElement;
+		expect(spacer).not.toBeNull();
+		expect(spacer).toHaveAttribute("aria-hidden", "true");
+		// Alto del tope + 1px del borde inferior del encabezado; nunca `--header-h`, que se achica.
+		expect(spacer.className).toContain("h-[calc(var(--header-h-max)+1px)]");
+		expect(spacer.className).not.toContain("var(--header-h)");
+	});
+
+	it("la reserva sólo se declara en `:root`: el estado achicado no la toca", () => {
+		const css = readFileSync(join(routesDir, "..", "app.css"), "utf8");
+		const rootBlocks = css.match(/:root\s*\{([^}]*)\}/gs) ?? [];
+		const shrunkBlocks = css.match(/\[data-header-shrunk\][^{]*\{([^}]*)\}/gs) ?? [];
+
+		expect(rootBlocks.some((block) => /--header-h-max\s*:/.test(block))).toBe(true);
+		expect(shrunkBlocks.some((block) => /--header-h-max\s*:/.test(block))).toBe(false);
+		expect(css.match(/--header-h-max\s*:/g) ?? []).toHaveLength(1);
+	});
+
+	it("el menú móvil se desplaza por dentro: un encabezado fijo no puede crecer más que la pantalla", async () => {
+		render(Layout, { children, data: anonymousData });
+
+		screen.getByRole("button", { name: /menú/i }).click();
+		await tick();
+
+		const menu = document.querySelector("[data-mobile-menu]") as HTMLElement;
+		expect(menu).not.toBeNull();
+		expect(menu.className).toContain("max-h-[calc(100dvh-var(--header-h)-1px)]");
+		expect(menu.className).toContain("overflow-y-auto");
 	});
 });
 

@@ -308,20 +308,10 @@ De los **13 ítems `[v0]` abiertos**: **3 cerrados** (dos por trabajo hecho, uno
 **2 sin medir** (uno necesita el síntoma concreto del autor y el otro es tarea de operación). **El único defecto puro de
 `v0` era el encabezado que afirmaba una sesión muerta, y ya está corregido.**
 
-### El guion de la presentación, en orden
+### El guion de la presentación
 
-1. **El catálogo**: buscar, filtrar por organización, entrar a un dataset y a un recurso, ver la vista previa.
-2. **Iniciar sesión** y mostrar el menú de usuario.
-3. **Crear un dataset con un recurso** (un archivo y un enlace).
-4. **Pedir la publicación** como editor y mostrar el estado en la ficha.
-5. **Entrar como el administrador de la organización**: ver la cola, **abrir el dataset desde la fila** (el enlace
-   nuevo) y decidir.
-6. **Volver sin sesión**: el dataset está **público en el catálogo** y no ofrece ningún control de publicación.
-7. *(Opcional, y es un buen cierre)* mostrar que **el camino directo no existe**: `package_patch {private: false}` por
-   API responde `403` con el rótulo del flujo.
-
-**Antes de presentar:** la instalación tiene que estar **provisionada** —organización, usuarios y sus capacidades—, que
-es el paso que no se ve en la demo y que la arruina si falta.
+Vive en **`presentation/demo.md`** (diapositivas y notas del presentador; recorrido de la demo y lista «Antes de presentar» en su apéndice).
+Cómo renderizarlo: `presentation/README.md`. Este expediente conserva sólo la lista de «lo que viene», de abajo.
 
 ### Para mencionar en la presentación: lo que viene (anotado el 2026-10-16)
 
