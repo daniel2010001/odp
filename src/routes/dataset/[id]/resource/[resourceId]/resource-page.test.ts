@@ -1096,7 +1096,9 @@ describe("Página de recurso — foco de la vista previa", () => {
 		const card = document.getElementById("vista-previa");
 		expect(card).not.toBeNull();
 		expect(card?.getAttribute("tabindex")).toBe("-1");
-		expect(card?.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
+		expect(card?.className).toContain(
+			"scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]",
+		);
 		expect(card?.querySelector("iframe")).not.toBeNull();
 	});
 

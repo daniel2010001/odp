@@ -750,7 +750,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la
 					     información técnica completa» del «Resumen»; `scroll-mt` deja el título bajo el encabezado fijo,
 					     como `#vista-previa` en la página del recurso. -->
-					<Card id="info-tecnica" class="scroll-mt-[calc(var(--header-h)+17px)] p-6 sm:p-8">
+					<Card id="info-tecnica" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 							Información técnica
 						</p>
@@ -768,7 +768,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 				<!-- Sidebar -->
 				<aside
-					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)]"
+					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]"
 				>
 					<!-- La tarjeta del estado de la solicitud **encabeza la columna lateral** (variante C de
 					     `/dev/requests-position`, elegida por el autor el 2026-10-19): la columna es pegajosa en

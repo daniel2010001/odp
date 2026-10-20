@@ -685,7 +685,7 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 		expect(link.className).toContain("min-h-11");
 		expect(card.id).toBe("info-tecnica");
 		// Como `#vista-previa` del recurso: el encabezado fijo no tapa el título al saltar.
-		expect(card.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
+		expect(card.className).toContain("scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]");
 	});
 
 	it("la tarjeta muestra cada campo registrado, agrupado en cinco grupos", async () => {

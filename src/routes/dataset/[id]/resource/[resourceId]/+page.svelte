@@ -701,7 +701,7 @@ const resourceLink = $derived(
 						id="vista-previa"
 						tabindex="-1"
 						bind:this={previewEl}
-						class="scroll-mt-[calc(var(--header-h)+17px)] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 					<Card class="overflow-hidden border-primary/20">
 						<!-- La barra mide 41px con o sin botón (`min-h` + `h-7`): el alto de la vista previa descuenta ese número. -->
