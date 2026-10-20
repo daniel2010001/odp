@@ -1,0 +1,206 @@
+/* @theme datos-umss */
+/*
+ * Tema Marp de la presentación de la demo. Sale del sistema de diseño (design-system/datos-umss/README.md §3, §4, §10)
+ * y de los tokens de src/app.css. La presentación vive fuera de la aplicación y no puede leer las variables CSS en
+ * ejecución: los valores se copian aquí, uno por token, y el comentario nombra de dónde sale cada uno. Si un token de
+ * src/app.css cambia, este archivo se actualiza a mano (la verdad sigue estando en src/app.css).
+ *
+ * Proyector: el texto de cuerpo supera 7:1 (--foreground sobre --background ≈ 12:1; ver README de la carpeta).
+ * El coral de --destructive (0.55) no llega a 7:1 como texto: se usa sólo como relleno/borde y en títulos grandes;
+ * para texto coral se usa una variante más oscura propia de este tema (--coral-texto).
+ */
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Poppins:wght@300;400;500;600;700&display=swap");
+
+section {
+	/* src/app.css :root */
+	--background: oklch(0.973 0.006 250); /* --background */
+	--foreground: oklch(0.26 0.03 257); /* --foreground */
+	--card: oklch(0.995 0.001 250); /* --card */
+	--primary: oklch(0.52 0.085 257); /* --primary (azul pastel medio) */
+	--primary-foreground: oklch(0.985 0.002 250); /* --primary-foreground */
+	--secondary: oklch(0.74 0.06 250); /* --secondary (azul pastel claro) */
+	--muted: oklch(0.945 0.008 250); /* --muted */
+	--muted-foreground: oklch(0.42 0.02 257); /* --muted-foreground */
+	--accent: oklch(0.93 0.018 250); /* --accent */
+	--accent-foreground: oklch(0.42 0.07 257); /* --accent-foreground */
+	--destructive: oklch(0.55 0.09 15); /* --destructive (coral pastel) */
+	--border: oklch(0.905 0.01 250); /* --border */
+	--footer: oklch(0.44 0.09 257); /* --footer (azul profundo) */
+	--footer-foreground: oklch(0.985 0.002 250); /* --footer-foreground */
+	--coral-texto: oklch(0.42 0.1 15); /* propio de este tema: coral oscuro para texto (≥ 7:1) */
+	--radius: 0.5rem; /* --radius */
+
+	background: var(--background);
+	color: var(--foreground);
+	font-family:
+		"Poppins", ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif; /* --font-sans */
+	font-size: 28px;
+	line-height: 1.5;
+	padding: 56px 72px 64px;
+	justify-content: flex-start;
+}
+
+h1,
+h2,
+h3 {
+	font-family:
+		"EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", serif; /* --font-heading */
+	color: var(--footer);
+	font-weight: 600;
+	line-height: 1.15;
+	margin: 0 0 0.5em;
+}
+h1 {
+	font-size: 2.1em;
+}
+h2 {
+	font-size: 1.7em;
+	padding-bottom: 0.2em;
+	border-bottom: 4px solid var(--destructive); /* filete coral */
+	display: inline-block;
+}
+h3 {
+	font-size: 1.15em;
+	color: var(--coral-texto);
+}
+strong {
+	color: var(--footer);
+}
+a {
+	color: var(--footer);
+	text-decoration: underline;
+}
+ul,
+ol {
+	padding-left: 1.1em;
+}
+li {
+	margin: 0.2em 0;
+}
+li::marker {
+	color: var(--destructive);
+}
+
+code,
+pre {
+	font-family:
+		"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; /* --font-mono */
+}
+code {
+	background: var(--accent);
+	color: var(--foreground);
+	border-radius: 0.25rem;
+	padding: 0.05em 0.3em;
+	font-size: 0.85em;
+}
+pre {
+	background: var(--footer);
+	color: var(--footer-foreground);
+	border-radius: var(--radius);
+	padding: 0.7em 1em;
+	font-size: 0.62em;
+	line-height: 1.45;
+}
+pre code {
+	background: none;
+	color: inherit;
+	padding: 0;
+	font-size: 1em;
+}
+
+table {
+	border-collapse: collapse;
+	font-size: 0.8em;
+}
+th {
+	background: var(--footer);
+	color: var(--footer-foreground);
+	text-align: left;
+}
+th,
+td {
+	padding: 0.35em 0.7em;
+	border: 1px solid var(--border);
+}
+td {
+	background: var(--card);
+}
+
+blockquote {
+	border-left: 6px solid var(--destructive);
+	background: var(--card);
+	margin: 0.6em 0;
+	padding: 0.2em 1em;
+	border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* Numeración de página */
+section::after {
+	color: var(--muted-foreground);
+	font-size: 0.55em;
+}
+
+/* Portada y secciones: fondo azul profundo (--footer) */
+section.portada,
+section.seccion {
+	background: var(--footer);
+	color: var(--footer-foreground);
+	justify-content: center;
+}
+section.portada h1,
+section.portada h2,
+section.seccion h1,
+section.seccion h2,
+section.portada strong,
+section.seccion strong,
+section.portada a,
+section.seccion a {
+	color: var(--footer-foreground);
+}
+section.portada h2,
+section.seccion h2 {
+	border-bottom-color: var(--destructive);
+}
+section.portada h3,
+section.seccion h3 {
+	color: oklch(0.92 0.05 15); /* coral claro legible sobre azul profundo (≥ 7:1) */
+}
+section.portada::after,
+section.seccion::after {
+	color: var(--footer-foreground);
+}
+
+/* Dos columnas: <div class="cols"><div>…</div><div>…</div></div> (requiere --html) */
+.cols {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.2em;
+}
+
+/* Marcador de captura pendiente: se reemplaza por la imagen cuando la interfaz esté terminada */
+.captura {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 5.2em;
+	margin: 0.5em 0;
+	border: 3px dashed var(--destructive);
+	border-radius: var(--radius);
+	background: var(--card);
+	color: var(--coral-texto);
+	font-weight: 600;
+	font-size: 0.75em;
+	text-align: center;
+	padding: 0 1em;
+}
+
+/* Apéndice (sólo PDF): lista de verificación; se distingue por el filete coral superior */
+section.apendice {
+	border-top: 14px solid var(--destructive);
+}
+section.apendice h2 {
+	border-bottom-color: var(--footer);
+}
+section.apendice {
+	font-size: 24px;
+}
