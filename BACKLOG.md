@@ -2688,6 +2688,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
+> **Estado al cierre (2026-10-20):** nueve diseños y arreglos ya promovidos en la rama `fix/v011-small-fixes` (su PR).
+> **Para revisar en la sesión siguiente** —seis hojas en `/dev/` y las decisiones pendientes— está todo en el traspaso
+> **L35** de `odd/tasks/v0.1.1-polish.md`. Las hojas son borradores sin versionar en `src/routes/dev/`.
+
 
 
 
@@ -2698,6 +2702,29 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   el guion de `odd/tasks/backlog-prd-reconciliation.md` («El guion de la presentación») con gráficos, insertar, la API
   y el flujo de publicación con los usuarios de la demo, y sumar unas pocas diapositivas de apertura y cierre. Incluye
   T5 de `odd/tasks/csv-charts.md`.
+
+- [ ] **[v0.1.1] Una card con el historial de solicitudes de publicación en la ficha del dataset** (idea del autor,
+  textual: «habíamos dicho que mostraríamos algo así como una card para ver el "historial" de las solicitudes, ¿esto está
+  como TODO?» — no lo estaba: sólo existía el diseño del grupo «Resueltas» de la cola). Quién pidió, quién decidió, cuándo y
+  con qué comentario. Con playground (`odd/tasks/v0.1.1-polish.md` S12).
+- [ ] **[v0.1.1] Los enlaces «Ver…» de las cards de la ficha** («Ver datasets de …» en la card de la organización y «Ver la
+  información técnica completa» en «Resumen»): con el diseño nuevo quedaron como texto suelto (autor, textual: «cuando lo
+  vi por primera vez sí que me gustaba, pero ahora lo noto raro con todos los cambios que hicimos»). Con playground (S13).
+- [ ] **[v0.1.1]** `TODO:` **La lista de recursos: íconos por tipo en vez de badges de formato, y los badges a otro sitio.** Observación del
+  autor (2026-10-02, al revisar la hoja `/dev/dataset-edit`): «me gusta más el ícono de los tipos que lo que tenemos en la page de
+  datasets, esos badges indicando el tipo; anota esto como un TODO para usar estos íconos y mover los badges a otro sitio».
+  **Medido:** los íconos por tipo que le gustaron están en la hoja —`FileText` para archivo y `Link` para enlace, elegidos por el
+  tipo del recurso—, y los badges de formato que quiere reubicar viven en `src/lib/components/dataset/ResourceCard.svelte` (la lista
+  de recursos de la página del dataset) y en `src/lib/components/search/DatasetCard.svelte:113` (`formatChips` + `getFormatAccent`,
+  acento sobre neutro). **Ojo con la regla:** el recurso que devuelve CKAN **no** trae un campo «tipo» explícito; el portal lo
+  infiere de `url_type === "upload"` (medido antes en el proyecto), así que el ícono se decide con esa regla, no con `format`.
+  **Decisión pendiente del autor:** dónde van los badges de formato una vez que el ícono diga el tipo —¿la card técnica, el detalle
+  del recurso, o se eliminan?—.
+  **Nota de higiene de UI, compartida:** las acciones de la fila usan `title` nativo + `aria-label` (la convención del repo, igual
+  que `FacetFilter.svelte` y los botones de la página del recurso). Un tooltip **estilizado** es otro trabajo, y es el mismo que
+  pide el ítem de los tags de la card: si algún día se vendoriza el `Tooltip` de bits-ui, se resuelven los dos juntos.
+  _Origen: revisión de la hoja de edición, 2026-10-02._
+  **Re-tier (2026-10-20, decisión del autor): `[v1+]` → `[v0.1.1]`** (`odd/tasks/v0.1.1-polish.md` S14).
 
 ## v1 — producto usable en producción
 
@@ -3270,20 +3297,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
-- [ ] **[v1+]** `TODO:` **La lista de recursos: íconos por tipo en vez de badges de formato, y los badges a otro sitio.** Observación del
-  autor (2026-10-02, al revisar la hoja `/dev/dataset-edit`): «me gusta más el ícono de los tipos que lo que tenemos en la page de
-  datasets, esos badges indicando el tipo; anota esto como un TODO para usar estos íconos y mover los badges a otro sitio».
-  **Medido:** los íconos por tipo que le gustaron están en la hoja —`FileText` para archivo y `Link` para enlace, elegidos por el
-  tipo del recurso—, y los badges de formato que quiere reubicar viven en `src/lib/components/dataset/ResourceCard.svelte` (la lista
-  de recursos de la página del dataset) y en `src/lib/components/search/DatasetCard.svelte:113` (`formatChips` + `getFormatAccent`,
-  acento sobre neutro). **Ojo con la regla:** el recurso que devuelve CKAN **no** trae un campo «tipo» explícito; el portal lo
-  infiere de `url_type === "upload"` (medido antes en el proyecto), así que el ícono se decide con esa regla, no con `format`.
-  **Decisión pendiente del autor:** dónde van los badges de formato una vez que el ícono diga el tipo —¿la card técnica, el detalle
-  del recurso, o se eliminan?—.
-  **Nota de higiene de UI, compartida:** las acciones de la fila usan `title` nativo + `aria-label` (la convención del repo, igual
-  que `FacetFilter.svelte` y los botones de la página del recurso). Un tooltip **estilizado** es otro trabajo, y es el mismo que
-  pide el ítem de los tags de la card: si algún día se vendoriza el `Tooltip` de bits-ui, se resuelven los dos juntos.
-  _Origen: revisión de la hoja de edición, 2026-10-02._
 
 - [ ] **[v1+] Prueba de carga, cuando el CRUD esté completo.** El usuario la quiere, y el orden que
   propuso es el correcto: **recién cuando existan create + read + update + delete**. Una prueba de carga
