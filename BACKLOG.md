@@ -2892,6 +2892,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   archivo con datos sucios.
   **Cuándo (decisión del autor, 2026-10-17):** en `v1`, «mientras más antes mejor»: apenas terminen los gráficos de la
   demo, y si se puede **antes de presentar**, para mostrar los resultados en la demo.
+  **Issue #113 (2026-10-20):** creado con el formulario «Mejora o error», con lo medido en L46 de `odd/tasks/v0.1.1-polish.md`.
 - [ ] **[v1] Vistas de recurso de CKAN: qué sirve en un portal headless** (pedido del autor, 2026-10-17;
   investigado por la sesión de `odp-docker`, `odd/tasks/resource-views-research.md`). Las vistas previas de PDF e imagen
   que se ven hoy las dibuja **el portal** (`ResourcePreview.svelte`), no CKAN. `audio_view`, `video_view` y
