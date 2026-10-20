@@ -2732,6 +2732,14 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1 — producto usable en producción
 
+- [ ] **[v1] El seed choca con los cuatro ojos en una instalación con usuarios** (medido por odp-docker al correr el seed en
+  dev, 2026-10-20): `seed-ckan.mjs` pide y aprueba la publicación como `ckan_admin`, y eso sólo pasa la regla «the approver
+  cannot be the requester» si no hay otro admin en la organización. En dev, fcyt (admin-fcyt) y fca (admin1, admin2) sí
+  tienen: 12 de los 30 datasets nuevos quedaron **privados con la aprobación rechazada**, y odp-docker los aprobó por el
+  flujo con esos admins. Arreglo: que el seed apruebe como otro admin de la organización cuando exista, o que **avise** en
+  vez de dejar el dataset privado en silencio. Resultado de la corrida: 52 datasets públicos (3 páginas de 20), 69
+  recursos subidos; las vistas de gráfico eran 16 ayer y 13 antes de la corrida (la corrida no borró ninguna).
+
 - [ ] **[v1] Formularios de issues del repositorio** (autor, 2026-10-20, L47: «anota lo de crear un form para las issues
   para v1»): el repo no tenía ninguno; para el issue de XLoader se agrega uno mínimo, y en v1 se diseñan los formularios
   completos (error, mejora, pregunta).
