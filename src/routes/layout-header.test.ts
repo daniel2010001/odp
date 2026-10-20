@@ -193,7 +193,8 @@ describe("Alto del encabezado: una sola fuente", () => {
 
 	it("cada offset pegado consume el token", () => {
 		const consumers = [
-			["dashboard/+page.svelte", "la barra de acciones"],
+			// La barra de acciones del panel vive en su componente desde la promoción de T18 (`108ca03`).
+			["../lib/components/dashboard/ActionBar.svelte", "la barra de acciones"],
 			["search/+page.svelte", "la barra de resultados"],
 			["dataset/[id]/+page.svelte", "el panel de la ficha del dataset"],
 			// El panel pegajoso del asistente vive ahora en el formulario extraído: el ancla lo sigue
