@@ -94,6 +94,25 @@ function renderEdit(
 	});
 }
 
+describe("DatasetForm — sin licencia es notspecified", () => {
+	it("al crear sin elegir licencia entrega license_id notspecified", async () => {
+		const onsubmit = vi.fn();
+		const { container } = renderEdit({ license_id: undefined }, onsubmit);
+		await fireEvent.submit(getForm(container));
+		expect(onsubmit).toHaveBeenCalledWith(expect.objectContaining({ license_id: "notspecified" }));
+	});
+
+	it("un dataset con notspecified muestra «Sin especificar» elegido y lo conserva al guardar", async () => {
+		const onsubmit = vi.fn();
+		const { container } = renderEdit({ license_id: "notspecified" }, onsubmit);
+		const select = container.querySelector<HTMLSelectElement>("#license");
+		expect(select?.value).toBe("");
+		expect(select?.selectedOptions[0]?.textContent?.trim()).toBe("Sin especificar");
+		await fireEvent.submit(getForm(container));
+		expect(onsubmit).toHaveBeenCalledWith(expect.objectContaining({ license_id: "notspecified" }));
+	});
+});
+
 describe("DatasetForm — modo creación", () => {
 	it("arranca con los campos vacíos, como el asistente espera hoy", () => {
 		const { container } = renderCreate();

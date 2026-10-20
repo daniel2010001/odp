@@ -105,6 +105,7 @@ import type { CkanLicense, CkanOrganization, CkanPackage } from "$lib/types/ckan
 import { cn } from "$lib/utils";
 import {
 	MAX_RESOURCE_BYTES,
+	NO_LICENSE_ID,
 	suggestSlug,
 	validateResourceFile,
 } from "$lib/utils/dataset-payload";
@@ -188,7 +189,8 @@ let title = $state(prefill.title ?? "");
 let slug = $state(prefill.name ?? "");
 let summary = $state(prefill.summary ?? "");
 let notes = $state(prefill.notes ?? "");
-let licenseId = $state(prefill.license_id ?? "");
+// `notspecified` es «Sin especificar»: el select tiene una sola opción para eso, con valor vacío.
+let licenseId = $state(prefill.license_id === NO_LICENSE_ID ? "" : (prefill.license_id ?? ""));
 let tags = $state<string[]>([...(prefill.tags ?? [])]);
 let url = $state(prefill.url ?? "");
 let maintainer = $state(prefill.maintainer ?? "");
@@ -244,7 +246,7 @@ function formValues() {
 		// En edición la organización llega con el dataset y es un hecho; en creación la elige el usuario.
 		owner_org: mode === "edit" ? orgFact : ownerOrg,
 		private: true,
-		license_id: licenseId || undefined,
+		license_id: licenseId || NO_LICENSE_ID,
 		tag_string: tags.join(", ") || undefined,
 		url: url || undefined,
 		maintainer: maintainer || undefined,
