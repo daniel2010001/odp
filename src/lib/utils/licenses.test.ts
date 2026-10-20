@@ -1,40 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { curatedLicenseLabel, licenseLabel } from "./licenses";
+import { labelFor, mapLicenseItems } from "./licenses";
 
-describe("curatedLicenseLabel", () => {
-	it("devuelve el label curado para un id que CKAN ofrece", () => {
-		expect(curatedLicenseLabel("cc-by")).toBe("CC BY — Atribución");
-		expect(curatedLicenseLabel("cc-by-sa")).toBe("CC BY-SA — Atribución-CompartirIgual");
-		expect(curatedLicenseLabel("cc-by-nc-nd")).toBe(
-			"CC BY-NC-ND — Atribución-NoComercial-SinDerivadas",
+// Los 15 ids que `license_list` de CKAN 2.12 devolvió en dev (2026-10-20), con sus títulos en inglés.
+const OFERTA_CKAN: Record<string, string> = {
+	notspecified: "License not specified",
+	"odc-pddl": "Open Data Commons Public Domain Dedication and License (PDDL)",
+	"odc-odbl": "Open Data Commons Open Database License (ODbL)",
+	"odc-by": "Open Data Commons Attribution License",
+	"cc-zero": "Creative Commons CCZero",
+	"cc-by": "Creative Commons Attribution",
+	"cc-by-sa": "Creative Commons Attribution Share-Alike",
+	gfdl: "GNU Free Documentation License",
+	"other-open": "Other (Open)",
+	"other-pd": "Other (Public Domain)",
+	"other-at": "Other (Attribution)",
+	"uk-ogl": "UK Open Government Licence (OGL)",
+	"cc-nc": "Creative Commons Non-Commercial (Any)",
+	"other-nc": "Other (Non-Commercial)",
+	"other-closed": "Other (Not Open)",
+};
+
+describe("labelFor", () => {
+	it("da el nombre del portal para un id de CKAN, ignorando el título en inglés", () => {
+		expect(labelFor("cc-by", "Creative Commons Attribution")).toBe("CC BY — Atribución");
+		expect(labelFor("odc-pddl")).toBe("PDDL — Dominio Público");
+		expect(labelFor("odc-odbl")).toBe("ODbL — Open Database License");
+	});
+
+	it("cubre los 15 ids que CKAN ofrece: ninguno cae al título en inglés", () => {
+		for (const [id, title] of Object.entries(OFERTA_CKAN)) {
+			expect(labelFor(id, title), id).not.toBe(title);
+		}
+	});
+
+	it("«notspecified» se dice «Sin especificar»", () => {
+		expect(labelFor("notspecified", "License not specified")).toBe("Sin especificar");
+	});
+
+	it("un id que CKAN ofrece pero la tabla no tiene muestra el título de CKAN, no el id", () => {
+		expect(labelFor("nueva-licencia", "Nueva Licencia 1.0")).toBe("Nueva Licencia 1.0");
+	});
+
+	it("sin entrada ni título muestra el id tal cual, sin desfigurarlo", () => {
+		expect(labelFor("nueva-licencia")).toBe("nueva-licencia");
+	});
+
+	it("sin id muestra el título, y sin ninguno de los dos, «Sin especificar»", () => {
+		expect(labelFor(undefined, "Creative Commons Atribución 4.0")).toBe(
+			"Creative Commons Atribución 4.0",
 		);
+		expect(labelFor("")).toBe("Sin especificar");
 	});
 
-	it("devuelve null para los ids eliminados que CKAN no ofrece", () => {
-		expect(curatedLicenseLabel("cc-by-nc")).toBeNull();
-		expect(curatedLicenseLabel("cc-by-nc-sa")).toBeNull();
-		expect(curatedLicenseLabel("cc0-1.0")).toBeNull();
-		expect(curatedLicenseLabel("pddl")).toBeNull();
-	});
-
-	it("devuelve el label curado para odc-pddl", () => {
-		expect(curatedLicenseLabel("odc-pddl")).toBe("PDDL — Dominio Público");
-	});
-
-	it("devuelve null para ids desconocidos", () => {
-		expect(curatedLicenseLabel("no-existe")).toBeNull();
-		expect(curatedLicenseLabel("")).toBeNull();
+	it("los ids que CKAN no ofrece ya no tienen entrada propia", () => {
+		expect(labelFor("cc-by-nc", "Algo")).toBe("Algo");
+		expect(labelFor("pddl")).toBe("pddl");
 	});
 });
 
-describe("licenseLabel se mantiene intacto", () => {
-	it("sigue dando el label completo para ids que ya no están curados", () => {
-		// Aunque `cc-by-nc` ya no sea curado, `licenseLabel` conserva su fallback de legibilidad.
-		expect(licenseLabel("cc-by-nc")).toBe("CC BY-NC — Atribución-NoComercial");
-		expect(licenseLabel("pddl")).toBe("PDDL — Dominio Público");
-	});
-
-	it("capitaliza ids sin label conocido", () => {
-		expect(licenseLabel("no-existe")).toBe("No-existe");
+describe("mapLicenseItems", () => {
+	it("el facet usa la misma etiqueta que el formulario", () => {
+		const [item] = mapLicenseItems([{ name: "odc-pddl", count: 4 }]);
+		expect(item.display_name).toBe("PDDL — Dominio Público");
+		expect(item.display_name).toBe(labelFor("odc-pddl"));
 	});
 });

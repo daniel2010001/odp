@@ -41,6 +41,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup } from "$lib/components/ui/meta";
 import { estadoDeLaSolicitud, insigniaDeLaSolicitud } from "$lib/copy/publication";
+import { stateLabel } from "$lib/copy/states";
 import { summaryFacts, technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -453,16 +454,8 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 const searchHref = (key: "org" | "tags" | "license", value: string) =>
 	`/search?${new URLSearchParams({ [key]: value })}`;
 
-const stateLabel = $derived.by(() => {
-	switch (dataset?.state) {
-		case "draft":
-			return "Borrador";
-		case "deleted":
-			return "Eliminado";
-		default:
-			return null;
-	}
-});
+// «Activo» es el estado por defecto y el hero no lo repite; cualquier otro, conocido o no, se dice.
+const stateBadge = $derived(dataset?.state === "active" ? null : stateLabel(dataset?.state));
 
 // La página de la organización es la de la miga y la tarjeta lateral; la insignia del hero filtra el catálogo.
 const orgHref = $derived(
@@ -491,10 +484,10 @@ const heroBadges = $derived.by((): BadgeItem[] => {
 				: {}),
 		});
 	}
-	if (stateLabel) {
+	if (stateBadge) {
 		list.push({
 			id: "estado",
-			label: stateLabel,
+			label: stateBadge,
 			priority: 3,
 			tone: "border-destructive/20 bg-destructive/10 text-destructive",
 		});

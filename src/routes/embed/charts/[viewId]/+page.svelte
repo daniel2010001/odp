@@ -3,7 +3,7 @@ import { Loader2 } from "@lucide/svelte";
 import { page } from "$app/stores";
 import { type ChartView, createChartApi } from "$lib/api/charts";
 import { createPortalClient } from "$lib/api/client";
-import { classifyFailure } from "$lib/api/failure";
+import { classifyFailure, describeFailure } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
 import ChartViewBody from "$lib/components/resource/chart/ChartViewBody.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
@@ -27,7 +27,7 @@ const resourceApi = createResourceApi(client);
 type State =
 	| { status: "loading" }
 	| { status: "unavailable" }
-	| { status: "failed" }
+	| { status: "failed"; message: string }
 	| { status: "ready"; view: ChartView };
 
 let current = $state<State>({ status: "loading" });
@@ -46,8 +46,11 @@ async function load(viewId: string) {
 		if (view) void loadResource(view.resource_id, seq);
 	} catch (err) {
 		if (seq !== requestSeq) return;
+		// Sin sesión (el embed es siempre anónimo): el texto del fallo del catálogo es el de `failure.ts`.
 		current =
-			classifyFailure(err) === "unavailable" ? { status: "failed" } : { status: "unavailable" };
+			classifyFailure(err) === "unavailable"
+				? { status: "failed", message: describeFailure(err, "resource", "anonymous").message }
+				: { status: "unavailable" };
 	}
 }
 
@@ -92,7 +95,7 @@ $effect(() => {
 			<div>
 				<p class="text-sm font-medium text-foreground">No se pudo cargar el gráfico</p>
 				<p class="mt-1 text-xs leading-relaxed text-muted-foreground">
-					No se pudo completar la consulta al catálogo de datos. Intente nuevamente más tarde.
+					{current.message}
 				</p>
 			</div>
 			<Button type="button" variant="outline" size="sm" onclick={() => load($page.params.viewId ?? "")}>

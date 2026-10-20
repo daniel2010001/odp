@@ -31,6 +31,7 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup, type MetaGroupData, type MetaRow } from "$lib/components/ui/meta";
+import { stateLabel } from "$lib/copy/states";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { fileUrl } from "$lib/resources/file-url";
@@ -270,17 +271,7 @@ const pageTitle = $derived.by(() => {
 // el formato declarado —un enlace es un enlace, no un archivo con formato—. El cómo vive en
 // `ResourceKindChip`, compartido con la lista del dataset.
 
-const stateLabel = $derived.by(() => {
-	switch (resource?.state) {
-		case "active":
-			return "Activo";
-		case "deleted":
-			return "Eliminado";
-		default:
-			return null;
-	}
-});
-
+const stateText = $derived(stateLabel(resource?.state));
 // ─── Derived: field list ───────────────────────────────────────
 // Render every resource_show field that has a non-empty value.
 // name/description/url/state/last_modified are rendered elsewhere.
@@ -573,7 +564,7 @@ const resourceLink = $derived(
 				<div class="mt-4 flex flex-wrap items-center gap-2">
 					<ResourceKindChip kind={resourceKind(resource)} format={resource.format} />
 
-					{#if stateLabel}
+					{#if stateText}
 						<span
 							class={cn(
 								"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
@@ -583,7 +574,7 @@ const resourceLink = $derived(
 							)}
 						>
 							<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-							{stateLabel}
+							{stateText}
 						</span>
 					{/if}
 				</div>

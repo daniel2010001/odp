@@ -5,6 +5,7 @@ import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import { describeFailure } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
 import OrganizationCard from "$lib/components/organizations/OrganizationCard.svelte";
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
@@ -228,13 +229,13 @@ async function doSearch() {
 				total = mock.count;
 				facets = mock.search_facets;
 			} catch {
-				error = err instanceof Error ? err.message : "Error de búsqueda";
+				error = describeFailure(err, "dataset", "unknown").message;
 				results = [];
 				total = 0;
 				facets = {};
 			}
 		} else {
-			error = "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
+			error = describeFailure(err, "dataset", "unknown").message;
 			results = [];
 			total = 0;
 			facets = {};

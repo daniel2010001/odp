@@ -605,6 +605,20 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		expect(screen.queryByRole("heading", { name: "Explorar por organización" })).toBeNull();
 	});
 
+	it("fuera de desarrollo, un catálogo caído dice la frase de failure.ts", async () => {
+		vi.stubEnv("DEV", false);
+		setUrl("?q=matricula");
+		mocks.search.mockRejectedValue(new Error("sin red"));
+
+		renderSearch();
+
+		expect(
+			await screen.findByText(
+				"No se pudo completar la consulta al catálogo de datos. Intente nuevamente más tarde.",
+			),
+		).toBeTruthy();
+	});
+
 	it("fuera de desarrollo, sin datos no se fabrica contenido", async () => {
 		vi.stubEnv("DEV", false);
 		setUrl("?q=matricula");

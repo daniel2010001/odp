@@ -1555,7 +1555,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 		const withLicense = (extra: Partial<CkanPackage> = {}) =>
 			makeDataset({
 				license_id: "cc-by",
-				license_title: "Creative Commons Atribución 4.0",
+				license_title: "CC BY — Atribución",
 				license_url: "https://creativecommons.org/licenses/by/4.0/deed.es",
 				...extra,
 			});
@@ -1565,10 +1565,10 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			render(DatasetPage);
 
 			const name = await screen.findByRole("link", {
-				name: "Ver datasets con licencia Creative Commons Atribución 4.0 en el catálogo",
+				name: "Ver datasets con licencia CC BY — Atribución en el catálogo",
 			});
 			expect(name).toHaveAttribute("href", "/search?license=cc-by");
-			expect(name.textContent?.trim()).toBe("Creative Commons Atribución 4.0");
+			expect(name.textContent?.trim()).toBe("CC BY — Atribución");
 		});
 
 		it("los términos tienen su propia fila «Términos»: enlace externo en otra pestaña con nombre accesible explícito", async () => {
@@ -1576,7 +1576,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			render(DatasetPage);
 
 			const terms = await screen.findByRole("link", {
-				name: "Ver los términos de la licencia Creative Commons Atribución 4.0 (sitio externo, se abre en otra pestaña)",
+				name: "Ver los términos de la licencia CC BY — Atribución (sitio externo, se abre en otra pestaña)",
 			});
 			expect(terms).toHaveAttribute("href", "https://creativecommons.org/licenses/by/4.0/deed.es");
 			expect(terms).toHaveAttribute("target", "_blank");
@@ -1618,9 +1618,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 			expect(screen.queryByRole("link", { name: /Ver datasets con licencia/ })).toBeNull();
 			expect(
-				within(document.getElementById("resumen") as HTMLElement).getByText(
-					"Creative Commons Atribución 4.0",
-				),
+				within(document.getElementById("resumen") as HTMLElement).getByText("CC BY — Atribución"),
 			).toBeInTheDocument();
 		});
 	});
@@ -1722,7 +1720,7 @@ describe("Página de dataset — anclas de sección", () => {
 			makeDataset({
 				organization: makeOrganization(),
 				license_id: "cc-by",
-				license_title: "Creative Commons Atribución 4.0",
+				license_title: "CC BY — Atribución",
 				license_url: "https://creativecommons.org/licenses/by/4.0/deed.es",
 			}),
 		);
