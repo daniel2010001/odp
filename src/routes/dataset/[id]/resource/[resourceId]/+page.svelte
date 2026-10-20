@@ -1,14 +1,5 @@
 <script lang="ts">
-import {
-	Check,
-	ChevronLeft,
-	ChevronRight,
-	Copy,
-	Download,
-	ExternalLink,
-	FileText,
-	Link2,
-} from "@lucide/svelte";
+import { Check, Copy, Download, ExternalLink, FileText, Link2 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createChartApi } from "$lib/api/charts";
@@ -31,6 +22,7 @@ import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
+import ResourceStepper from "$lib/components/resource/ResourceStepper.svelte";
 import CreateChartLink from "$lib/components/resource/views/CreateChartLink.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -39,7 +31,7 @@ import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { fileUrl } from "$lib/resources/file-url";
 import { resourceKind } from "$lib/resources/kind";
-import { resourceNeighbours, resourcePositionLabel } from "$lib/resources/order";
+import { resourceNeighbours } from "$lib/resources/order";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanExtra, CkanPackage, CkanResource } from "$lib/types/ckan";
@@ -232,16 +224,6 @@ const neighbours = $derived(resourceNeighbours(dataset?.resources, resourceId));
  * banda de la acción no debe quedar con el control solo por dibujarlo.
  */
 const hasJump = $derived(neighbours.ordered.length > 1);
-
-/** Los hermanos, para el segundo grupo del desplegable del chip. El actual va **sin `href`**. */
-const relatedResources = $derived({
-	heading: "Recursos de este dataset",
-	items: neighbours.ordered.map((item) => ({
-		label: item.name ?? item.id,
-		role: item.format,
-		href: item.id === resourceId ? undefined : `/dataset/${datasetId}/resource/${item.id}`,
-	})),
-});
 
 // ─── Derived: estado de error ────────────────────────────────
 // Las acciones se deciden en `failureActions` para que la página no vuelva a derivar la regla. Hoy
@@ -459,7 +441,7 @@ async function handleCopyResourceLink() {
 	{#if !loading && !expelled}
 		<div class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-				<Breadcrumb items={breadcrumbItems} icon={FileText} related={relatedResources} />
+				<Breadcrumb items={breadcrumbItems} icon={FileText} />
 			</div>
 		</div>
 	{/if}
@@ -564,13 +546,14 @@ async function handleCopyResourceLink() {
 					</p>
 				{/if}
 
-				<!-- Acción del recurso + salto secuencial: una sola banda a la altura del botón (decisión del
-				     autor). El botón es la acción primaria, a la izquierda; el salto queda a la derecha con
-				     `ml-auto`, que lo alinea aunque no haya botón, y en anchos cortos envuelve a su propia línea
-				     sin perder esa alineación. La banda se renderiza sólo si tiene algún hijo, así que sin
-				     acción y sin salto no queda una fila vacía. -->
+				<!-- Acción del recurso + salto secuencial (variante D, decisión del autor 2026-10-19). La banda
+				     es un contenedor de consultas: bajo 32 rem (`@lg`) la descarga y el control compacto van en dos
+				     filas de ancho completo; desde ahí, en una fila, con el control a la derecha (`@lg:ml-auto`,
+				     que lo alinea aunque no haya botón). La banda se renderiza sólo si tiene algún hijo, así que
+				     sin acción y sin salto no queda una fila vacía. -->
 				{#if downloadUrl || hasJump || canEditCharts}
-					<div class="mt-5 flex flex-wrap items-center gap-3">
+					<div class="@container mt-5">
+					<div class="flex flex-col gap-2 @lg:flex-row @lg:items-center @lg:gap-3">
 						{#if downloadUrl}
 							<a
 								href={downloadUrl}
@@ -578,7 +561,7 @@ async function handleCopyResourceLink() {
 								rel="noopener noreferrer"
 								class={cn(
 									ACCION_BASE,
-									"border-transparent bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+									"h-11 w-full justify-center border-transparent bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 @lg:w-auto",
 								)}
 							>
 								<!-- La forma de las acciones del hero del dataset, la misma que «Crear gráfico», con el color
@@ -588,8 +571,10 @@ async function handleCopyResourceLink() {
 									<ExternalLink class="size-4" aria-hidden="true" />
 									Abrir enlace
 								{:else}
-									<Download class="size-4" aria-hidden="true" />
-									Descargar recurso
+									<Download class="size-4 shrink-0" aria-hidden="true" />
+									<!-- «recurso» sólo se oculta a la vista según el ancho de la banda (contenedor), no el de
+									     la ventana: el nombre accesible sigue siendo «Descargar recurso». -->
+									<span>Descargar{" "}<span class="sr-only @sm:not-sr-only">recurso</span></span>
 								{/if}
 							</a>
 						{/if}
@@ -603,57 +588,12 @@ async function handleCopyResourceLink() {
 							/>
 						{/if}
 
-						<!-- Navegación entre recursos: dos controles rotulados —«‹ Anterior» y «Siguiente ›»— con el
-						     contador en el medio. Cada control trae su propio borde y su radio: son dos controles, no un
-						     grupo. El destino completo va en `title` y `aria-label`, y el rótulo del contador usa
-						     `resourcePositionLabel` (una sola fuente para el formato). En los extremos la dirección que
-						     no existe se dibuja inerte —un `span` con `aria-hidden` y sin `tabindex`, con el mismo
-						     rótulo—, no como un enlace muerto ni como un hueco: una mitad ausente haría ver el salto
-						     roto y movería el contador de lugar. `ml-auto` en el primer control mantiene el salto a la
-						     derecha de la banda. -->
+						<!-- Navegación entre recursos: un solo control compacto «‹ Recurso N de M ⇅ ›» (ver
+						     `ResourceStepper`). Reemplaza al desplegable de hermanos de la miga. -->
 						{#if hasJump}
-							{#if neighbours.previous}
-								<a
-									href={`/dataset/${datasetId}/resource/${neighbours.previous.id}`}
-									aria-label={`Recurso anterior: ${neighbours.previous.name ?? neighbours.previous.id}`}
-									title={neighbours.previous.name ?? neighbours.previous.id}
-									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ml-auto"
-								>
-									<ChevronLeft class="size-4 shrink-0" aria-hidden="true" />
-									<span>Anterior</span>
-								</a>
-							{:else}
-								<span
-									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground/40 ml-auto"
-									aria-hidden="true"
-								>
-									<ChevronLeft class="size-4 shrink-0" />
-									<span>Anterior</span>
-								</span>
-							{/if}
-							<span class="whitespace-nowrap px-1 text-sm text-muted-foreground tabular-nums">
-								{resourcePositionLabel(neighbours.index, neighbours.ordered.length)}
-							</span>
-							{#if neighbours.next}
-								<a
-									href={`/dataset/${datasetId}/resource/${neighbours.next.id}`}
-									aria-label={`Recurso siguiente: ${neighbours.next.name ?? neighbours.next.id}`}
-									title={neighbours.next.name ?? neighbours.next.id}
-									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-								>
-									<span>Siguiente</span>
-									<ChevronRight class="size-4 shrink-0" aria-hidden="true" />
-								</a>
-							{:else}
-								<span
-									class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground/40"
-									aria-hidden="true"
-								>
-									<span>Siguiente</span>
-									<ChevronRight class="size-4 shrink-0" />
-								</span>
-							{/if}
+							<ResourceStepper datasetId={datasetId ?? ""} {neighbours} />
 						{/if}
+					</div>
 					</div>
 				{/if}
 			</div>

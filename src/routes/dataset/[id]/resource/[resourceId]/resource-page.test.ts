@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
@@ -756,7 +756,7 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		// radio, relleno y texto. El color coral se conserva para que descargar resalte (decisión del autor).
 		for (const token of [
 			"inline-flex",
-			"h-9",
+			"h-11",
 			"rounded-lg",
 			"px-3",
 			"text-sm",
@@ -769,54 +769,56 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		expect(action.classList).toContain("text-destructive-foreground");
 		expect(action.classList).not.toContain("bg-background");
 		expect(action.classList).not.toContain("py-2.5");
+		// 44 px de alto (objetivo táctil): el `h-9` de la base lo reemplaza `h-11`.
+		expect(action.classList).not.toContain("h-9");
 	});
 
-	it("los dos controles rotulados viven en la banda de la acción, con el contador en el medio", async () => {
+	it("el control compacto vive en la banda de la acción, bajo el botón de descarga hasta @lg", async () => {
 		const { band } = await renderHero();
 		const action = within(band).getByRole("link", { name: /Abrir enlace|Descargar recurso/i });
 
-		// Una sola banda: la acción del recurso —primaria— a la izquierda y el salto a la derecha. La
-		// banda envuelve en anchos cortos para no desbordar en móvil.
-		expect(action).toBeTruthy();
-		expect(band.className).toContain("flex-wrap");
-
-		// La banda es la fila de la acción, no un contenedor que envuelve todo el hero: el título queda
-		// afuera y cada pieza del salto cuelga directamente de ella, sin envoltorio propio.
+		// La banda es un contenedor de consultas: bajo 32 rem (`@lg`) la descarga y el control van en dos
+		// filas de ancho completo; desde ahí, en una fila. Contrato de clases: jsdom no aplica Tailwind.
+		expect(band.parentElement?.className).toContain("@container");
+		expect(band.className).toContain("flex-col");
+		expect(band.className).toContain("@lg:flex-row");
+		// La banda es la fila de la acción, no un contenedor que envuelve todo el hero.
 		expect(within(band).queryByRole("heading", { level: 1 })).toBeNull();
 
-		const previous = within(band).getByRole("link", {
-			name: "Recurso anterior: Flujos vehiculares 2019",
+		const trigger = within(band).getByRole("button", {
+			name: "Elegir otro recurso del conjunto de datos",
 		});
-		const counter = within(band).getByText("Recurso 2 de 3");
-		const next = within(band).getByRole("link", {
-			name: "Recurso siguiente: Informe metodológico",
-		});
-		expect(previous).toHaveTextContent("Anterior");
-		expect(next).toHaveTextContent("Siguiente");
-		expect(previous.parentElement).toBe(band);
-		expect(counter.parentElement).toBe(band);
-		expect(next.parentElement).toBe(band);
-
-		// Son dos controles separados —cada uno con su borde y su radio—, no un grupo: el contador queda
-		// en el medio y ningún control contiene al otro. La familia es la de los botones del hero, no la
-		// de los chips: mismo radio, misma altura, mismo fondo, mismo hover y mismo tamaño de texto que
-		// el botón de copiar enlace. Es un contrato de clases porque jsdom no aplica Tailwind.
-		const BUTTON_FAMILY =
-			"h-9 rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
-		for (const token of BUTTON_FAMILY.split(" ")) {
-			expect(previous.className).toContain(token);
-			expect(next.className).toContain(token);
-		}
-		// No conservan la escala del chip que las hacía verse de otra familia.
-		expect(previous.className).not.toContain("rounded-md");
-		expect(next.className).not.toContain("rounded-md");
-		expect(previous.contains(next)).toBe(false);
+		expect(trigger).toHaveTextContent("Recurso 2 de 3");
 		const order = Array.from(band.children);
-		expect(order.indexOf(previous)).toBeLessThan(order.indexOf(counter));
-		expect(order.indexOf(counter)).toBeLessThan(order.indexOf(next));
+		expect(order.indexOf(trigger.closest("div") as HTMLElement)).toBeGreaterThan(
+			order.indexOf(action),
+		);
+		expect(
+			within(band).getByRole("link", { name: "Recurso anterior: Flujos vehiculares 2019" }),
+		).toHaveAttribute("href", "/dataset/matricula-2026/resource/res-0");
+		expect(
+			within(band).getByRole("link", { name: "Recurso siguiente: Informe metodológico" }),
+		).toHaveAttribute("href", "/dataset/matricula-2026/resource/res-2");
+		// Ya no hay los dos botones rotulados «Anterior» / «Siguiente».
+		expect(screen.queryByText("Anterior")).toBeNull();
+		expect(screen.queryByText("Siguiente")).toBeNull();
+	});
 
-		// `ml-auto` en el primer control alinea el salto a la derecha; sin él quedaría pegado al botón.
-		expect(previous.className).toContain("ml-auto");
+	it("la descarga mide 44 px, se acorta a «Descargar» por el ancho de la banda y conserva su nombre accesible", async () => {
+		// Un archivo alojado: su acción es la descarga (un enlace externo dice «Abrir enlace»).
+		mocks.showResource.mockResolvedValue(makeResource({ url_type: "upload" }));
+		const { band } = await renderHero();
+		const action = within(band).getByRole("link", { name: /Descargar recurso/i });
+
+		expect(action.classList).toContain("h-11");
+		expect(action.classList).not.toContain("h-9");
+		expect(action.classList).toContain("w-full");
+		expect(action.classList).toContain("@lg:w-auto");
+		// «recurso» sólo se oculta a la vista (según el contenedor), nunca del árbol de accesibilidad.
+		const extra = within(action).getByText("recurso");
+		expect(extra.className).toContain("sr-only");
+		expect(extra.className).toContain("@sm:not-sr-only");
+		expect(action).toHaveAccessibleName("Descargar recurso");
 	});
 
 	it("la fila del título ya no aloja el salto: quedó sólo el copiar enlace y el `h1`", async () => {
@@ -837,35 +839,26 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		expect((titleRow.querySelector("h1") as HTMLElement).className).toContain("min-w-0");
 	});
 
-	it("cada control lleva su rótulo visible y el destino completo en title y aria-label", async () => {
-		const { band } = await renderHero();
-
-		const previous = within(band).getByRole("link", {
-			name: "Recurso anterior: Flujos vehiculares 2019",
-		});
-		expect(previous).toHaveAttribute("href", "/dataset/matricula-2026/resource/res-0");
-		expect(previous).toHaveAttribute("title", "Flujos vehiculares 2019");
-		expect(previous).toHaveTextContent("Anterior");
-
-		const next = within(band).getByRole("link", {
-			name: "Recurso siguiente: Informe metodológico",
-		});
-		expect(next).toHaveAttribute("href", "/dataset/matricula-2026/resource/res-2");
-		expect(next).toHaveAttribute("title", "Informe metodológico");
-		expect(next).toHaveTextContent("Siguiente");
-	});
-
 	it("el contador de posición es visible a toda anchura", async () => {
 		await renderHero();
 
 		const counter = screen.getByText("Recurso 2 de 3");
-		// El `hidden ... sm:inline` de antes dejaba la ficha sin contador por debajo de `sm`. La clase es
-		// lo que lo mide: jsdom no aplica Tailwind.
+		// Contrato de clases (jsdom no aplica Tailwind): el contador nunca se oculta por ancho y no
+		// jitterea al cambiar los dígitos.
 		expect(counter.className).not.toContain("hidden");
-		// El contador dejó de ser el único texto monoespaciado del hero y no jitterea al cambiar los
-		// dígitos. Contrato de clases: jsdom no aplica Tailwind.
-		expect(counter.className).not.toContain("font-mono");
-		expect(counter.className).toContain("tabular-nums");
+		expect(counter.closest("button")?.className).toContain("tabular-nums");
+	});
+
+	it("la lista del control ofrece todos los recursos como enlaces y marca el actual", async () => {
+		await renderHero();
+		await fireEvent.click(screen.getByRole("button", { name: /Elegir otro recurso/ }));
+
+		const menu = await screen.findByRole("menu");
+		expect(within(menu).getAllByRole("link")).toHaveLength(3);
+		expect(within(menu).getByRole("link", { name: /Matrícula 2026/ })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
 	});
 
 	it("el salto no reintroduce el chip de tipo del encabezado", async () => {
@@ -892,9 +885,9 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 	});
 
 	it("en los extremos la dirección ausente es un control inerte, no un enlace muerto", async () => {
-		// Primer recurso: no hay «Anterior». El control queda inerte —un `span` con `aria-hidden`, fuera
-		// del orden de tabulación— con el mismo rótulo que el real, y la geometría se conserva, así que
-		// el contador no salta de lugar.
+		// Primer recurso: no hay «anterior». El control queda inerte —un `span` con `aria-hidden`, fuera
+		// del orden de tabulación— y el contador no salta de lugar. Es el comportamiento de antes del
+		// control compacto, que se conserva.
 		mocks.showDataset.mockResolvedValue({
 			...makeDataset(),
 			resources: [
@@ -908,22 +901,16 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		expect(screen.queryByRole("link", { name: /Recurso anterior/ })).toBeNull();
 		expect(screen.getByRole("link", { name: /Recurso siguiente/ })).toBeTruthy();
 
-		const inert = counter.previousElementSibling as HTMLElement | null;
+		const trigger = counter.closest("button") as HTMLElement;
+		const inert = trigger.previousElementSibling as HTMLElement | null;
 		expect(inert?.tagName).toBe("SPAN");
 		expect(inert?.getAttribute("aria-hidden")).toBe("true");
-		expect(inert?.textContent).toContain("Anterior");
-		expect(inert?.querySelector("svg")).not.toBeNull();
 		expect(inert?.hasAttribute("tabindex")).toBe(false);
-		// El inerte conserva la misma caja que su contraparte real: si perdiera la altura o el radio, las
-		// dos mitades dejarían de alinearse. Contrato de clases: jsdom no aplica Tailwind.
-		expect(inert?.className).toContain("h-9");
-		expect(inert?.className).toContain("rounded-lg");
-		// Inerte de verdad: no es un ancla, así que el lector de pantalla no lo anuncia y el teclado no
-		// lo alcanza.
+		expect(inert?.querySelector("svg")).not.toBeNull();
 		expect(inert?.closest("a")).toBeNull();
 		unmount();
 
-		// Último recurso: no hay «Siguiente».
+		// Último recurso: no hay «siguiente».
 		mocks.showDataset.mockResolvedValue({
 			...makeDataset(),
 			resources: [
@@ -936,19 +923,17 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		expect(screen.queryByRole("link", { name: /Recurso siguiente/ })).toBeNull();
 		expect(screen.getByRole("link", { name: /Recurso anterior/ })).toBeTruthy();
 
-		const lastInert = lastCounter.nextElementSibling as HTMLElement | null;
+		const lastInert = (lastCounter.closest("button") as HTMLElement)
+			.nextElementSibling as HTMLElement | null;
 		expect(lastInert?.tagName).toBe("SPAN");
 		expect(lastInert?.getAttribute("aria-hidden")).toBe("true");
-		expect(lastInert?.textContent).toContain("Siguiente");
 		expect(lastInert?.hasAttribute("tabindex")).toBe(false);
 		expect(lastInert?.closest("a")).toBeNull();
-		expect(lastInert?.className).toContain("h-9");
-		expect(lastInert?.className).toContain("rounded-lg");
 	});
 
-	it("sin URL de descarga el salto sigue a la derecha y no deja una banda vacía", async () => {
-		// Sin `url` no hay acción de descarga, así que el salto es el único contenido de la banda. La
-		// alineación no puede depender del botón: `ml-auto` en el primer control la sostiene sola.
+	it("sin URL de descarga el control compacto es el único contenido de la banda", async () => {
+		// Sin `url` no hay acción de descarga. La alineación no depende del botón: `@lg:ml-auto` en el
+		// control la sostiene sola.
 		mocks.showResource.mockResolvedValue(makeResource({ url: undefined }));
 		mocks.showDataset.mockResolvedValue({ ...makeDataset(), resources: D5_THREE });
 
@@ -958,16 +943,31 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		expect(screen.queryByRole("link", { name: /Descargar recurso/i })).toBeNull();
 		expect(screen.queryByRole("link", { name: /Abrir enlace/i })).toBeNull();
 
-		const band = counter.parentElement as HTMLElement;
-		expect(band.className).toContain("flex-wrap");
-		expect(band.childElementCount).toBe(3);
-		expect((counter.previousElementSibling as HTMLElement).className).toContain("ml-auto");
+		const stepper = counter.closest("button")?.parentElement as HTMLElement;
+		expect(stepper.className).toContain("@lg:ml-auto");
+		const band = stepper.parentElement as HTMLElement;
+		expect(band.childElementCount).toBe(1);
+	});
 
-		// Los tres rótulos del salto, en orden, sin el botón de descarga: no queda una fila en blanco
-		// con su margen ni el salto pegado a la izquierda.
-		expect((band.textContent ?? "").replace(/\s+/g, " ").trim()).toBe(
-			"Anterior Recurso 2 de 3 Siguiente",
-		);
+	it("la miga actual del recorrido ya no ofrece el desplegable de recursos (D4 se retira)", async () => {
+		// Decisión del autor (2026-10-19): el control compacto de la banda reemplaza al desplegable de la
+		// miga. La miga queda como texto y el recorrido no trae ningún disparador.
+		mocks.showDataset.mockResolvedValue({ ...makeDataset(), resources: D5_THREE });
+
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { level: 1, name: /Matrícula 2026/i });
+		const nav = document.querySelector('nav[aria-label="Ruta de navegación"]') as HTMLElement;
+		const trail = nav.querySelector("ol") as HTMLElement;
+		expect(within(trail).queryByRole("button")).toBeNull();
+		const current = trail.querySelector('[aria-current="page"]') as HTMLElement;
+		expect(current).toHaveTextContent("Matrícula 2026");
+		expect(current.tagName).toBe("SPAN");
+
+		// Tampoco el chip de móvil lista los recursos: sólo el recorrido.
+		await fireEvent.click(nav.querySelector("div > button") as HTMLElement);
+		await screen.findByText("Recorrido");
+		expect(screen.queryByText("Recursos de este dataset")).toBeNull();
 	});
 
 	it("con un solo recurso en el dataset no se renderiza ningún salto", async () => {
