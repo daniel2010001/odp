@@ -1,0 +1,40 @@
+name: Mejora o error
+description: Algo que el portal hace mal, o algo que debería hacer y todavía no hace.
+title: "[Tipo] Resumen corto"
+body:
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo
+      options:
+        - Error
+        - Mejora
+    validations:
+      required: true
+  - type: textarea
+    id: hoy
+    attributes:
+      label: Qué pasa hoy
+      description: Lo que se observa, con la página o la acción donde ocurre.
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Qué debería pasar
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidencia
+      description: Mediciones, rutas `archivo:línea`, mensajes de error o capturas.
+    validations:
+      required: false
+  - type: textarea
+    id: referencias
+    attributes:
+      label: Referencias
+      description: Ítem del `BACKLOG.md`, expediente en `odd/tasks/`, requisito del `PRD.md`.
+    validations:
+      required: false
