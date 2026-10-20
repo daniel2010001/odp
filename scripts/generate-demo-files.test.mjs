@@ -1,4 +1,4 @@
-// Test de los archivos ficticios del seed (CSV, XLSX, PDF, JSON, GeoJSON).
+// Test de los archivos ficticios del seed (CSV, XLSX, PDF, JSON, GeoJSON, PNG, JPG, TXT).
 //
 //   node --test scripts/generate-demo-files.test.mjs
 //
@@ -9,7 +9,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { inflateRawSync } from "node:zlib";
+import { inflateRawSync, inflateSync } from "node:zlib";
 
 import { parseCsv } from "./generate-csv-common.mjs";
 import { FORMAT_INFO, generateFile, PROFILES } from "./generate-demo-files.mjs";
@@ -27,7 +27,7 @@ const spec = (format, profile = Object.keys(PROFILES)[0]) => ({
 });
 
 test("hay un perfil por cada conjunto del seed y todos tienen columnas", () => {
-	assert.ok(Object.keys(PROFILES).length >= 20);
+	assert.ok(Object.keys(PROFILES).length >= 50);
 	for (const profile of Object.values(PROFILES)) {
 		assert.ok(profile.columns.length >= 3);
 		assert.ok(profile.rows >= 8);
@@ -162,4 +162,85 @@ test("crc32 coincide con el valor conocido de «123456789»", () => {
 
 test("un formato desconocido lanza", () => {
 	assert.throws(() => generateFile(spec("DOCX")), /Formato no soportado/);
+});
+
+// S18 de odd/tasks/v0.1.1-polish.md: el seed no generaba imágenes ni texto plano, así que dos de las
+// cuatro vistas previas del portal (imagen y texto) no tenían una muestra subida de verdad.
+
+test("el seed genera PNG, JPG y TXT con su MIME y extensión", () => {
+	assert.deepEqual(FORMAT_INFO.PNG, { mime: "image/png", ext: "png" });
+	assert.deepEqual(FORMAT_INFO.JPG, { mime: "image/jpeg", ext: "jpg" });
+	assert.deepEqual(FORMAT_INFO.TXT, { mime: "text/plain", ext: "txt" });
+});
+
+test("PNG: firma, IHDR RGB de 8 bits, CRC de cada chunk y píxeles que descomprimen al tamaño", () => {
+	const png = generateFile(spec("PNG"));
+	assert.ok(
+		png.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+	);
+	const chunks = [];
+	for (let at = 8; at < png.length; ) {
+		const length = png.readUInt32BE(at);
+		const type = png.subarray(at + 4, at + 8).toString("latin1");
+		const data = png.subarray(at + 8, at + 8 + length);
+		assert.equal(
+			png.readUInt32BE(at + 8 + length),
+			crc32(png.subarray(at + 4, at + 8 + length)),
+			type,
+		);
+		chunks.push({ type, data });
+		at += 12 + length;
+	}
+	assert.deepEqual(
+		chunks.map((c) => c.type),
+		["IHDR", "IDAT", "IEND"],
+	);
+	const [width, height] = [chunks[0].data.readUInt32BE(0), chunks[0].data.readUInt32BE(4)];
+	assert.ok(width >= 64 && height >= 64);
+	assert.deepEqual([...chunks[0].data.subarray(8)], [8, 2, 0, 0, 0]);
+	assert.equal(inflateSync(chunks[1].data).length, (1 + width * 3) * height);
+});
+
+test("JPG: SOI/EOI, SOF0 de un componente, y ningún marcador suelto dentro de los datos del scan", () => {
+	const jpg = generateFile(spec("JPG"));
+	assert.deepEqual([...jpg.subarray(0, 2)], [0xff, 0xd8]);
+	assert.deepEqual([...jpg.subarray(-2)], [0xff, 0xd9]);
+	const sof = jpg.indexOf(Buffer.from([0xff, 0xc0]));
+	assert.ok(sof > 0);
+	assert.equal(jpg[sof + 4], 8, "precisión");
+	const height = jpg.readUInt16BE(sof + 5);
+	const width = jpg.readUInt16BE(sof + 7);
+	assert.ok(width >= 64 && height >= 64);
+	assert.equal(jpg[sof + 9], 1, "componentes");
+	const sos = jpg.indexOf(Buffer.from([0xff, 0xda]));
+	assert.ok(sos > sof);
+	const scan = jpg.subarray(sos + 2 + jpg.readUInt16BE(sos + 2), -2);
+	for (let i = 0; i < scan.length - 1; i++) {
+		if (scan[i] === 0xff) assert.equal(scan[i + 1], 0x00, `byte stuffing en ${i}`);
+	}
+});
+
+test("PNG y JPG no son planos: cambiar el recurso cambia la imagen", () => {
+	for (const format of ["PNG", "JPG"]) {
+		const other = { ...spec(format), resourceName: "Otro recurso" };
+		assert.ok(!generateFile(spec(format)).equals(generateFile(other)), format);
+	}
+});
+
+test("TXT: UTF-8 con el título, la nota de datos ficticios y las variables del perfil", () => {
+	for (const [key, profile] of Object.entries(PROFILES)) {
+		const text = generateFile(spec("TXT", key)).toString("utf8");
+		assert.ok(text.includes("Dataset de prueba"), key);
+		assert.match(text, /ficticios/);
+		for (const [name] of profile.columns) assert.ok(text.includes(name), `${key}: ${name}`);
+		assert.ok(!text.includes("\uFFFD"), key);
+	}
+});
+
+test("cada perfil nuevo tiene filas y columnas utilizables en todos los formatos", () => {
+	const extra = Object.keys(PROFILES).filter((k) => !k.startsWith("observatorio-"));
+	assert.ok(extra.length >= 45);
+	for (const key of extra) {
+		for (const format of FORMATS) assert.ok(generateFile(spec(format, key)).length > 100, key);
+	}
 });
