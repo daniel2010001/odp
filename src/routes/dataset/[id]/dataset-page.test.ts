@@ -422,8 +422,10 @@ describe("Página de dataset — el enlace de la organización", () => {
 			"/organization/facultad-de-ciencias",
 		]);
 
-		const card = screen.getByRole("link", { name: /Ver datasets de Facultad de Ciencias/i });
+		const card = screen.getByRole("link", { name: "Ver los datasets de la organización" });
 		expect(card).toHaveAttribute("href", "/organization/facultad-de-ciencias");
+		// Variante C de `/dev/card-links`: fila de pie de la tarjeta, con el alto táctil de 44 px.
+		expect(card.className).toContain("min-h-11");
 	});
 
 	it("codifica el `name` de la organización en el `href`: una sola forma de armar la URL", async () => {
@@ -442,7 +444,7 @@ describe("Página de dataset — el enlace de la organización", () => {
 		const crumb = within(nav as HTMLElement).getByRole("link", { name: "Facultad de Ciencias" });
 		expect(crumb).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
 
-		const card = screen.getByRole("link", { name: /Ver datasets de Facultad de Ciencias/i });
+		const card = screen.getByRole("link", { name: "Ver los datasets de la organización" });
 		expect(card).toHaveAttribute("href", "/organization/facultad%20de%20ciencias%2F%C3%B1");
 	});
 
@@ -637,11 +639,13 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 		expect(within(summary).getByText("Última actualización")).toBeTruthy();
 	});
 
-	it("el enlace «Ver la información técnica completa» apunta a la tarjeta del cuerpo", async () => {
+	it("el enlace «Ver la información técnica» apunta a la tarjeta del cuerpo", async () => {
 		const card = await renderTechnicalCard(FULL());
-		const link = screen.getByRole("link", { name: "Ver la información técnica completa" });
+		const link = screen.getByRole("link", { name: "Ver la información técnica" });
 
 		expect(link.getAttribute("href")).toBe(`#${card.id}`);
+		// Variante C de `/dev/card-links`: fila de pie de la tarjeta, con el alto táctil de 44 px.
+		expect(link.className).toContain("min-h-11");
 		expect(card.id).toBe("info-tecnica");
 		// Como `#vista-previa` del recurso: el encabezado fijo no tapa el título al saltar.
 		expect(card.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
