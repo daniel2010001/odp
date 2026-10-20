@@ -78,15 +78,7 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 
 ## Decisiones del autor (2026-10-09) — qué se posterga, qué se prioriza, y dos casos abiertos
 
-> **Nomenclatura del código: TODO, y una regla desde ahora.** Los **identificadores** van en **inglés**; los
-> **comentarios pueden seguir en español** (aclaración explícita del autor). El caso que lo disparó:
-> `estadoDeLaSolicitudBadge` (`dataset/[id]/+page.svelte`), introducido el 2026-10-08 y mergeado en el PR #58.
-> **Medido hoy (read-only, `src/` sin tests): 31 declaraciones con token en español en 9 archivos**
-> (`estadoDeLaSolicitud`, `estadoDeLaSolicitudBadge`, `solicitudVigente`, `puedeCrear`, `puedeOfrecerCreacion`,
-> `listarCola`, `organizacionesDeLaCola`, `cargarLicencias`, `cargarEtiquetas`, `estadoContador`…). La cuenta es un
-> **piso**, no el total: sólo cubre `function|const|let|var`, así que **no** cuenta props, tipos exportados ni el estado
-> interno de los tres componentes de publicación (`PublicationQueue`, `RequestPublicationControl`, `DatasetForm`).
-> **El barrido puede esperar hasta `v1`** (decisión del autor). El número está para dimensionarlo.
+> **Nomenclatura del código:** ítem `[v1]` en `## v1` («Nomenclatura del código en español»).
 >
 > **Nada de diseño se resuelve hasta terminar `v0`, salvo orden explícita del autor en el momento** (como pasó con la
 > insignia del hero el 2026-10-08). **Precisión del autor (misma sesión, 2026-10-09): estas prioridades son
@@ -258,25 +250,6 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > despliegue, **también le gusta pero no entra en `v0`/la demo**: queda como recomendación de futuro en **`v2+`**, y
 > subiría a **`v1+`** si el despliegue real pidiera una palanca explícita y documentada —porque `c′` no la necesita—.
 > La flag **por organización** queda descartada con su motivo escrito arriba.
->
-> - [ ] **Decidir qué hace el flujo de publicación con un dataset `draft`** (tier: lo decide el autor; nace de una
->   medición, no de una hipótesis). Medido el 2026-10-15: `publication_request_decide` con `approve=True` **aprueba** un
->   dataset en `state = 'draft'` y le escribe `private = false`, pero el dataset **nunca se vuelve públicamente
->   legible** —el `403` anónimo y la ausencia del listado público siguen—, y la pared de A3 le reserva el cambio de
->   `state` al sysadmin, así que **nadie por debajo puede activarlo** después. Las dos salidas, sin decidir: **¿el flujo
->   lo activa al aprobar, o se niega a publicar un `draft`** y lo dice? **No es defecto de `c′`**: el flip es anterior
->   (`_flip_to_public`, `61b6f1c`) y el portal no crea borradores — hoy un `draft` sólo puede entrar por la UI de CKAN.
->   **El dueño del arreglo es `odp-docker`, no este repo**: las dos salidas viven en `ckanext-umss` —(i) en
->   `_flip_to_public`/`publication_request_decide`, (ii) en el predicado de autorización del mismo módulo—, y el
->   portal, en todo caso, sería el que **muestra** el rechazo, como en S4. El lado del store ya lo tiene como tarea
->   bloqueada, con la pregunta escrita y la evidencia (L10 del plan de esta feature), y ofrece anotarlo ahí cuando el
->   autor decida la salida. Escalado por esa sesión.
->   **La «pared» que este ítem cita es A3 «la pared» de
->   `openspec/changes/2026-09-13-publication-lifecycle/tasks.md:366`** —el cambio de **publicación**, **no** el flujo de
->   edición y borrado pospuesto para `v1`— y, según `odd/tasks/publication-lifecycle-minimum.md:936`, **ya está en el
->   master del store** (`6472e48`). Así que el ítem **no espera al flujo de edición**: espera la decisión de producto
->   (¿el flujo activa el `draft` al publicar, o se niega a publicar un `draft`?). Si el autor lo quiere revisar **con
->   el flujo de edición delante**, ese vínculo hay que **crearlo**: hoy no existe en el registro.
 >
 > ---
 >
@@ -2484,13 +2457,12 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > no ocurre.
 >
 > **Y tres apuntes del mismo día, para la próxima sesión:**
-> - **[v0] El despliegue para presentar `v0`** (pedido del autor): con **datos de prueba**, **fuera del modo dev**, con un
->   «lo que tenemos y lo que faltaría» escrito, y **funcional en otras infraestructuras** — considera un VPN o algún
->   servicio para el despliegue. Es el trabajo de presentación, no una decisión tomada.
+> - **[v0] El despliegue para presentar `v0`:** anotado como ítem `[v0.1.1]` en `### v0.1.1 — antes de la presentación`.
 > - **[v1] Alinear el runtime de Node.** Medido: las imágenes (`Dockerfile`, `Dockerfile.dev`) y el contenedor que corre
 >   son **node 20** (`v20.20.2`) y el **CI corre con 22** — o sea, **el verde del CI no cubre el runtime que se
 >   entrega**. El autor dice subirlo y anota que la recomendada **podría ser la 24**: **verificar cuál es la LTS vigente
 >   al hacerlo** antes de elegir el número.
+>   **Énfasis (2026-10-20): el CI (Node 22) no cubre el Node 20 que corre la imagen**; hasta alinear, un verde de CI no prueba el runtime entregado.
 > - **El bloque F, medido, para no volver a medirlo:** lo que hay «debajo» de los colaboradores **no es `v0` en ninguna
 >   de sus partes** — **gestión de organizaciones** (CRUD) es `[v1]`, **gestión de usuarios y roles** (`RF-03`) es
 >   `[v1+]`, **colaboradores por dataset y equipos** y su **UI** son `[v1+]`. Nada de eso entra en un `v0` presentable:
@@ -2531,8 +2503,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > `case "cancelled":` deja el discriminante sin agotar y el `never` deja de ser alcanzable), que es exactamente el
 > guardián que esta unidad vino a poner en serio. Regla: **un aviso de una revisión aprobada se verifica contra el
 > código antes de tratarlo como deuda** — el de la ronda anterior era real y este no.
->
-> **TODO anotado a pedido del autor — el estado `draft` («borrador»).** (Movido a `## v1`: se decide en `v1`.)
 >
 > **Y un defecto del flujo, medido y reproducible, del lado de `odp-docker` (2026-10-08, noche).** La pregunta del
 > autor era cómo revisa el aprobador un dataset que no es suyo. Medido con dos tokens reales sobre un fixture propio:
@@ -2628,24 +2598,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   nada detrás —sin foco visible para el teclado—, así que ahora lleva un anillo con tokens en las tres formas
   (regla 7).
 
-- [x] **[v0]** `TODO:` **Aviso benigno de Chromium: «el anclaje de desplazamiento se desactivó… demasiados ajustes
-  consecutivos». DECIDIDO (2026-10-01): no se actúa.** Lo produce el encabezado que se achica **cambiando su alto en el
-  flujo** (80→64 px) y **animado** (200 ms), en `+layout.svelte`: cada cruce mueve el contenido 16 px y la animación lo
-  hace **cuadro por cuadro** (~12 ajustes de ~1,3 px), así que tras diez ajustes con distancia diminuta el navegador **se
-  rinde y lo desactiva** en ese contenedor —los números del mensaje del autor, −1,13 px promedio y −11,27 px total, son
-  exactamente eso, no saltos de 16 px—. **Aparece en TODAS las páginas** porque el encabezado vive en el layout global: no
-  son varios problemas, es uno. **Medido el 2026-10-01 y no produce salto visible** (cruzando una vez y oscilando 12 ciclos
-  sobre el umbral, la compensación es exacta en cada cruce; la consola no lo repitió en headless). **Si alguna vez molesta,
-  la opción es achicar sin tocar el flujo** (`transform`), que elimina la causa; **`overflow-anchor: none` sería PEOR**,
-  porque esa compensación es lo que hoy evita el salto. El detalle de la medición está en los commits `e891ed5` y `389f2d0`.
-  _Origen: el mensaje de consola que el autor vio el 2026-09-24, en el buscador y en la ficha del PDF de sonda; cierre por
-  decisión del autor el 2026-10-01 (no es importante)._
-  **CERRADO (2026-10-06):** ya decidido el 2026-10-01 (no se actúa); no hay trabajo abierto.
-  **RESUELTO (2026-10-20), a propuesta del autor:** el encabezado pasa a `fixed` y el contenido le reserva un alto
-  constante (`--header-h-max` + 1px, `data-header-spacer`); al achicarse cambia sólo su propio alto. Medido en
-  Chromium: `main` queda en 81 px y el scroll ya no se compensa (antes 300 → 284). Detalle en
-  `odd/tasks/v0.1.1-polish.md` S17 / L38.
-
 - [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
   Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
   `http://192.168.1.201:5000/` sin autenticarse recibía la configuración entera de CKAN, con
@@ -2692,9 +2644,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
-> **Estado al cierre (2026-10-20):** nueve diseños y arreglos ya promovidos en la rama `fix/v011-small-fixes` (su PR).
-> **Para revisar en la sesión siguiente** —seis hojas en `/dev/` y las decisiones pendientes— está todo en el traspaso
-> **L35–L36** de `odd/tasks/v0.1.1-polish.md`. Las hojas son borradores sin versionar en `src/routes/dev/`.
+> **Estado al cierre (2026-10-20):** los PR #107 a #111 están mergeados en `main`; el #112 lleva las rondas 2 y 3 a `main`
+> y el trabajo sigue en la rama `fix/v011-review-round5`. El traspaso y las decisiones están en `odd/tasks/v0.1.1-polish.md`
+> (L35–L55). Las hojas de `/dev/` son borradores sin versionar en `src/routes/dev/`.
 
 
 
@@ -2707,29 +2659,9 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   y el flujo de publicación con los usuarios de la demo, y sumar unas pocas diapositivas de apertura y cierre. Incluye
   T5 de `odd/tasks/csv-charts.md`.
 
-- [ ] **[v0.1.1] Una card con el historial de solicitudes de publicación en la ficha del dataset** (idea del autor,
-  textual: «habíamos dicho que mostraríamos algo así como una card para ver el "historial" de las solicitudes, ¿esto está
-  como TODO?» — no lo estaba: sólo existía el diseño del grupo «Resueltas» de la cola). Quién pidió, quién decidió, cuándo y
-  con qué comentario. Con playground (`odd/tasks/v0.1.1-polish.md` S12).
-- [ ] **[v0.1.1] Los enlaces «Ver…» de las cards de la ficha** («Ver datasets de …» en la card de la organización y «Ver la
-  información técnica completa» en «Resumen»): con el diseño nuevo quedaron como texto suelto (autor, textual: «cuando lo
-  vi por primera vez sí que me gustaba, pero ahora lo noto raro con todos los cambios que hicimos»). Con playground (S13).
-- [ ] **[v0.1.1]** `TODO:` **La lista de recursos: íconos por tipo en vez de badges de formato, y los badges a otro sitio.** Observación del
-  autor (2026-10-02, al revisar la hoja `/dev/dataset-edit`): «me gusta más el ícono de los tipos que lo que tenemos en la page de
-  datasets, esos badges indicando el tipo; anota esto como un TODO para usar estos íconos y mover los badges a otro sitio».
-  **Medido:** los íconos por tipo que le gustaron están en la hoja —`FileText` para archivo y `Link` para enlace, elegidos por el
-  tipo del recurso—, y los badges de formato que quiere reubicar viven en `src/lib/components/dataset/ResourceCard.svelte` (la lista
-  de recursos de la página del dataset) y en `src/lib/components/search/DatasetCard.svelte:113` (`formatChips` + `getFormatAccent`,
-  acento sobre neutro). **Ojo con la regla:** el recurso que devuelve CKAN **no** trae un campo «tipo» explícito; el portal lo
-  infiere de `url_type === "upload"` (medido antes en el proyecto), así que el ícono se decide con esa regla, no con `format`.
-  **Decisión pendiente del autor:** dónde van los badges de formato una vez que el ícono diga el tipo —¿la card técnica, el detalle
-  del recurso, o se eliminan?—.
-  **Nota de higiene de UI, compartida:** las acciones de la fila usan `title` nativo + `aria-label` (la convención del repo, igual
-  que `FacetFilter.svelte` y los botones de la página del recurso). Un tooltip **estilizado** es otro trabajo, y es el mismo que
-  pide el ítem de los tags de la card: si algún día se vendoriza el `Tooltip` de bits-ui, se resuelven los dos juntos.
-  _Origen: revisión de la hoja de edición, 2026-10-02._
-  **Re-tier (2026-10-20, decisión del autor): `[v1+]` → `[v0.1.1]`** (`odd/tasks/v0.1.1-polish.md` S14).
-
+- [ ] **[v0.1.1] El despliegue para presentar la demo, fuera del modo dev** (pedido del autor, 2026-10-08): con **datos de prueba**,
+  un «lo que tenemos y lo que faltaría» escrito y **funcional en otras infraestructuras** (considera un VPN o algún servicio). Necesita
+  al autor y a `odp-docker`; de aquí sale la URL de la instancia que se presenta (`presentation/demo.md` usa `http://localhost:8082`).
 ## v1 — producto usable en producción
 
 - [ ] **[v0.1.1/v1] Auditoría de colores fijos y mapas a mano (2026-10-20, pregunta del autor en L53: «qué otros ítems también
@@ -2758,8 +2690,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   dibuja el visor del navegador; un diseño propio exige `pdfjs-dist` (dependencia de varios MB con worker) y rehacer buscar e
   imprimir. **Volver a preguntar al autor al planear v1/v1+**; el tier no es definitivo.
 - [ ] **[v1] Rediseño de la página «Solicitudes»** (autor, 2026-10-20, L53: «tocar el diseño de esa page de request, podemos
-  hacerlo después?»). Con playground. Antes se corrige que la página sólo pida las pendientes (S30).
-- [ ] **[v1] Pasada de refactor tras las promociones de v0.1.1** (pregunta del autor, L53): cada unidad hizo su refactor en el
+  hacerlo después?»). Con playground. **L55: se planifica EN ESTA SESIÓN (S36), tras terminar los workers.** Antes, S30: la página sólo
+  pide las pendientes; hay que cargar también las resueltas.
   ciclo de test, pero no hubo una pasada que junte lo duplicado entre promociones (tarjetas, botones, mapas). Hacerla con
   la suite verde y sin cambiar comportamiento.
 
@@ -2784,7 +2716,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   análisis de CSV, colecciones, versionado, auditoría; más audio/video y la gestión de organizaciones (`[v1]`). El guion vive
   en `presentation/demo.md`.
 
-- [ ] **Editar un recurso existente desde la edición del dataset** (tier por decidir; señalado por el autor el
+- [ ] **[v1] Editar un recurso existente desde la edición del dataset** (tier `[v1]`, L47; señalado por el autor el
   2026-10-17, en `odd/tasks/csv-charts.md` L20 y L21). Según el autor, hoy el formulario de edición sólo permite crear
   recursos, no cambiar uno existente (archivo, nombre, formato). **Falta medirlo** antes de decidir: qué hace hoy
   `DatasetForm` en modo edición con los recursos ya guardados, y si `resource_update` tiene algún llamador. El
@@ -2958,12 +2890,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   el portal, de los generadores de CSV y del seed por API. Pendientes de `odp-docker`:
   `odp-docker/odd/tasks/NEXT-SESSION.md` (local).
 
-- [ ] **[v1] La ingesta masiva de datos de prueba** (pedido del autor, 2026-10-17, L14). El autor contó su método: un
-  generador arma palabras y oraciones, un randomizador produce números y fechas, y una inserción por lotes con un ORM
-  de TypeScript (cree que Drizzle) cargaba ~3 millones de filas en 30 minutos. Ofreció buscarlo en su backup de
-  Windows, en un proyecto de comercio electrónico. Sirve para pruebas de volumen del DataStore y de `umss_chart_data`.
-  El CSV chico de la demo es otra cosa: T6 de `csv-charts`.
-
 - [ ] **[v1] Dos huecos menores que dejó P4 de `csv-charts`, el bloqueo del *framing*** (verificación independiente,
   2026-10-17, `odd/tasks/csv-charts.md` L46). El bloqueo en sí está hecho y verificado. **(1) Los archivos de `static/`
   no llevan las cabeceras:** en dev el hook no los ve, y en producción `adapter-node` (sirv) los sirve antes del hook.
@@ -2991,59 +2917,10 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   cambian la superficie de autorización, así que una revisión hecha antes mide un sistema que ya no existe.
   _Origen: pedido del autor, 2026-10-07 («algo así como un `cyber-check`»), como TODO explícito._
 
-- [x] **[v1] Buscador: que las cards se fijen completas al scrollear (scroll snapping).**
-  **CERRADO (2026-10-06): NO se adopta**, decisión del autor mirando la hoja y sintiendo el scroll. **La razón,
-  medida:** con las cards a una brecha de 225 px, `proximity` y `mandatory` **se comportan igual dentro de la
-  zona de resultados**, así que el «baja uno por uno» que el autor reportó **no se puede suavizar** mientras el
-  *snapping* viva en el scroller de la página: no hay interruptor CSS intermedio (`scroll-snap-stop` está en
-  `normal` por defecto, y `always` sería peor; el propio ejemplo de la doc de Tailwind sufre lo mismo). Lo que
-  **sí** queda, y cubre la necesidad de fondo —que una card no quede cortada bajo la barra pegajosa al
-  navegar—, es el `scroll-margin-top` que ya existe (`estiloDestino`, atado a `--header-h`). La medición y el
-  instrumento viven en `odd/tasks/snapping-and-tags-demos.md`. El cuerpo de abajo se borra al limpiar el backlog. El usuario lo
-  pide y recuerda haberlo hecho antes; **medido el 2026-09-17: hoy NO existe ninguna clase `snap-*` ni
-  `scroll-mt` en el repo**, así que es net-new y no una regresión. Dirección: `snap-y snap-proximity` (o
-  `snap-mandatory`) en el contenedor de scroll y `snap-start` en cada card. **La trampa es el encabezado
-  pegajoso**: hay que compensarlo con `scroll-mt-*`, porque el buscador ya tiene un `aside` con
-  `lg:sticky lg:top-40` y el encabezado del sitio mide `var(--header-h)` (5rem, `src/app.css`); sin ese margen
-  la card se fija por debajo de la barra y se ve cortada. Se relaciona con «Buscador dentro del menú pegajoso», anotado más abajo.
-  _Origen: pedido del usuario, 2026-09-17._
-  **Hallazgo (2026-10-03) — la premisa del ítem no se sostiene: NO hay contenedor de scroll.** La dirección de
-  arriba dice «en el contenedor de scroll», y la lista de resultados **no lo tiene**: es un `div.space-y-4` en el
-  flujo normal del documento, y el único `overflow-y-auto` de la página es el del `aside` de filtros
-  (`lg:overflow-y-auto`, `lg:sticky lg:top-40`). O sea que el *snapping* no tiene dónde vivir sin decidir algo antes.
-  Tres salidas, con su costo:
-  **(a)** `scroll-snap-type: y proximity` en el scroller de la página más `snap-start` en las cards, apoyado en el
-  `scroll-margin-top` que ya existe (`estiloDestino`, ligado a `--header-h`): el cambio más chico, y `proximity` no le
-  pelea al scroll largo ni a las otras secciones («pruebe con», «recientes», «organizaciones») ni al encabezado que se
-  achica; el ajuste es sutil por definición.
-  **(b)** `mandatory` en el scroller de la página: es el «se fijan» literal, pero gobierna **todo** el desplazamiento de
-  la página, y con el encabezado de alto variable (`E2b`), el sidebar *sticky* y las secciones altas es el más propenso
-  a sentirse roto.
-  **(c)** darle a la región de resultados su propio `overflow-y-auto` con altura acotada: *snapping* contenido y
-  predecible, a costa de **dos áreas de scroll anidadas** en una página que ya tiene una.
-  **Y una corrección útil: el *snapping* SÍ es verificable sin contenedor de frontend.** Medido el 2026-10-03 en
-  chromium headless sobre sondas propias: en un contenedor con `scroll-snap-type: y mandatory`, `scrollTop = 250`
-  termina en **202**, `scrollTo(310)` en **404** y `scrollTo(410, smooth)` en **404**; sobre el scroller raíz,
-  `scrollTo(0, 500)` termina en **410**. El navegador aplica el *snapping* y devuelve el desplazamiento **ya ajustado**:
-  es comportamiento medido, no estilos computados. El motor de layout lo da un `vite dev` de host **efímero** levantado
-  desde el `node_modules` de este worktree —uso que `AGENTS.md` documenta como legítimo para medir un worktree que el
-  proxy no monta—. Lo que falta acá no es una forma de medir: es **elegir (a), (b) o (c)**.
-  _Anotado por la sesión paralela, 2026-10-03. Sin cambios de código por esta nota._
-  **Hoja construida (2026-10-05, rama `feat/dev-search-decision`):** `/dev/search` mide las tres salidas
-  **en el navegador real** y trae un instrumento con auto-test. Lo que ya se midió ahí, y es lo que el autor
-  necesita para elegir: con las cards a una brecha de 225 px, **`proximity` y `mandatory` dan el mismo número**
-  en los cinco sondeos de la zona de resultados; la diferencia aparece **sólo en el punto más lejano a todo
-  borde** (las secciones altas, donde no hay card): `proximity` deja el desplazamiento donde está (Δ 0,1 px) y
-  `mandatory` lo **arrastra 707 px** hasta la última card. Es exactamente el «se siente roto» de este ítem.
-  **Espera la decisión del autor mirándola** (a, b o c).
-
-- [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo.** Hoy conviven **dos representaciones
-  del mismo hecho**: `license_id` vacío/NULL (lo que escribe el portal cuando no se elige ninguna, porque
-  el campo es opcional) y `notspecified` (el id que CKAN ofrece y que su propia UI escribe). Medido el
-  2026-09-14 en la base de dev: `cc-by|5`, `cc-by-sa|4`, `cc-zero|4`, `odc-odbl|3`, `notspecified|1`, y
-  **ningún** vacío. Consecuencia: el facet de licencia puede partir «sin licencia» en dos cubetas.
-  Decidir cuál es el canónico y alinear el facet. **El duplicado del select ya se arregló**
-  (`5d0b751`); esto es la parte de fondo. _Origen: revisión de UI del 2026-09-14._
+- [ ] **[v1] Unificar qué significa «sin licencia» en el catálogo: lo que queda.** La escritura ya guarda `notspecified`
+  y existe el script de migración `scripts/normalize-licenses.mjs`. Falta: (1) que `odp-docker` lo corra (primero en seco) una vez que el
+  PR #112 llegue a `main`, para que el facet no parta «sin licencia» en dos cubetas; (2) la unificación de las etiquetas de licencia (S33,
+  en curso).
 
 - [ ] **Deuda de la revisión nativa de T3a (endurecimiento del token)** — la compuerta `review-f2582d4570d1e94f`
   (tier `medium`, lentes `risk`/`readability`/`reliability`) **aprobó y quedó reconocida**, con **tres avisos no
@@ -3052,17 +2929,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   (`reliability`, `:126-135`, **WARNING**, el único con severidad mayor). El proveedor es explícito: son trabajo
   **posterior** y **no** un motivo para repetir la revisión de ese candidato. Se pagan cuando se toque ese módulo,
   o cuando el autor los priorice.
-
-- [ ] **[v1] El logout probablemente no revoca el token en CKAN** (hallado en el endurecimiento del token,
-  2026-10-16; anterior a esa feature). `revokeToken` (`src/lib/server/ckan-auth.ts:347`) llama a
-  `api_token_revoke` **sin `Authorization`**, así que CKAN lo recibe como anónimo; y la familia de no-ops de
-  `api_token_revoke` ya está medida (`success: true` sin revocar). **Sin medir todavía.** El daño está acotado:
-  el logout **siempre** borra la cookie del portal, cada login revoca los tokens previos del portal
-  (`revokePreviousTokens`, deja **uno** por usuario) y el token vence a las 24 h. Arreglo probable: mandar el
-  propio JWT en `Authorization` (un token puede revocarse a sí mismo) y **verificar listando**, no por el
-  `success`. No hace falta borrar los tokens vivos a mano: vencen solos.
-  **Arreglo mínimo hecho (2026-10-20, `897bca8`, S25):** la revocación ahora se autentica con el mismo token. Falta la
-  confirmación en vivo (listar los tokens del usuario antes y después de cerrar sesión), que necesita credenciales.
 
 - [ ] **[doc] Para la documentación de usuario: qué se abre y qué se descarga** (pedido del autor,
   2026-10-16). Desde el endurecimiento del token los archivos de un recurso salen por el portal
@@ -3198,36 +3064,9 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   comportamiento nuevo y no quiere mezclarlo con los ajustes menores.
   **Re-tier (2026-10-20, L45): `[v1]` → `[v1+]`.**
 
-- [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
-  **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
-  datos. _Origen: pedido del usuario._
-
 - [ ] **[v1] Probar el menú pegajoso del search en el dashboard** — el dashboard usa hoy una barra
   pegajosa propia; probar como alternativa el **mismo estilo que quedó en la página de búsqueda**,
   para ver si conviene unificar. _Origen: pedido del usuario._
-
-- [ ] **[v1] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
-  `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
-  similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
-  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** la del **cuerpo**
-  (`dataset/[id]/+page.svelte:527-554`), **ya cumple** lo que este ítem pide —`p-6 sm:p-8`, tabla Campo/Valor y
-  el rótulo idéntico al de recurso—; la que no cumple es la del **sidebar** (`p-5`, filas
-  con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
-  el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
-
-  **Corrección de los nombres (2026-10-15):** este párrafo nombraba las tarjetas **al revés** de como están hoy
-  —decía «Detalles» el cuerpo y «Metadatos» el sidebar—, y la causa está medida: el autor las **renombró el
-  2026-09-28** (`dataset/[id]/+page.svelte:966`: «Detalles», no «Metadatos»), o sea **después** de aquella
-  medición. Hoy el **cuerpo** se titula **Metadatos** (`:871`) y el **sidebar**, **Detalles** (`:969`); el párrafo
-  del 2026-09-30 de más abajo ya usaba los nombres correctos, así que el ítem se contradecía consigo mismo.
-  _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
-  **Estado medido (2026-09-30): VIVO.** La card del cuerpo (`dataset/[id]/+page.svelte:520`) ya es `p-6 sm:p-8` con tabla
-  Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
-  de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
-  nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
-
 
 - [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
@@ -3248,27 +3087,9 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   **Frena en la decisión del autor: el alcance.**
   **(2026-10-20, L45): no se toca hasta la feature de organizaciones.**
 
-- [ ] **[v1]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
-  float-menu del dashboard es más pequeño que el de los menús del search, o que los resúmenes del
-  form-create-dataset». **Medido — son TRES aires distintos más un número mágico:**
-  - la **barra de acciones del panel**: `fixed inset-x-0 top-[var(--header-h)] … pt-2` → **8px** de aire, y
-    **flota** como tarjeta (`rounded-xl border shadow-lg`, con `p-2` adentro);
-  - la **barra de resultados del buscador**: `sticky top-[calc(var(--header-h)+1px)]` → **1px** (el borde del
-    encabezado), y va **a ras**, ancho completo, con `border-b` y `py-4` adentro;
-  - los **laterales** de la ficha del dataset y del asistente: `lg:top-[calc(var(--header-h)+1rem)]` → **16px**;
-  - y el lateral de **facetas del buscador** sigue con `lg:top-40` → **160px**, un valor que nunca se midió
-    (estaba anotado como observación no actuada en el recibo de E2).
-  **Estado medido (2026-09-30): VIVO.** No existe ningún token `--sticky-air` y los aires siguen distintos: `pt-2` en el
-  dashboard (`:393`), `+1px` en search (`:354`), `+1rem` en las dos laterales y `top-40` en las facetas. **Frena en la
-  decisión del autor:** tarjeta flotante o barra al ras.
-
-  Y son **dos tratamientos**: tarjeta flotante (panel) contra barra a ras (buscador). **Propuesta:** es el mismo
-  problema que el alto del encabezado, así que se arregla igual — **un token** (`--sticky-air` en
-  `src/app.css`) del que salen todos los offsets pegados, **más una decisión del autor**: ¿flotante o a ras para
-  todas? Pertenece al **bloque E**.
-
+- [ ] **[v1] Fijar `CKAN_SITE_URL` a la URL pública real** (hallazgo del autor, 2026-09-23; las notas medidas siguen vigentes, el ítem se
+  recortó el 2026-10-20 al cerrarse el aire de los pegados). Falta: (1) `CKAN_SITE_URL` con la URL pública en `odp-docker`; (2) quitar el
+  fallback `|| "http://localhost:5000"` o hacerlo fallar ruidosamente; (3) decidir si `APP_URL` se usa o se borra.
   - **Un riesgo que había que medir antes de tocar `site_url`, y está resuelto: el callback del DataPusher NO depende de `site_url` en este stack.** `ckanext/datapusher/logic/action.py:67-71` usa `ckan.datapusher.callback_url_base` **y sólo cae a `ckan.site_url` si esa opción falta**. Acá **está seteada**: `CKAN__DATAPUSHER__CALLBACK_URL_BASE=http://ckan-dev:5000` (verificado en el entorno del contenedor), y el pusher **resuelve y alcanza** ese nombre (`getent hosts ckan-dev → 172.19.0.4`, `wget → rc=0`). Por eso la subida al DataStore de la sonda D0 funcionó con `site_url = localhost`: **el pusher nunca usó `site_url`**. Conclusión medida: cambiar `site_url` a la URL pública **no toca la carga al DataStore**. (Contraste: la IP de LAN del host **no** es alcanzable desde el contenedor del pusher — el `wget` a `192.168.1.201:5000` no completa —, así que `callback_url_base` debe seguir siendo la dirección interna del servicio.)
   - **Trampa futura a tener escrita:** el embed de RF-30 depende de que el origen de CKAN sea alcanzable **y del mismo esquema** que el portal. Si el portal se sirve por `https` y `site_url` queda en `http`, el navegador bloquea el `<iframe>` y el `<img>` por contenido mixto. Al fijar la URL pública hay que fijar **las dos** con el mismo esquema.
   - **Arreglo, en orden de riesgo:** (1) `CKAN_SITE_URL` con la URL pública real —en este dev, la IP de LAN— es lo que desbloquea el síntoma entero, y es del repo `odp-docker`; (2) quitar el fallback `|| "http://localhost:5000"` o hacerlo **fallar ruidosamente** si la variable falta; (3) decidir si `APP_URL` se usa o se borra. **Recomendación de momento:** va antes que D3, porque sin esto los visores por tipo que acabamos de aprobar no se pueden verificar de verdad desde otra máquina.
@@ -3317,7 +3138,15 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   los cambios de `state` para todo invocante **menos el `sysadmin`**, que conserva esa administración a propósito.
   **Lo que queda por medir antes de decidir nada** (declarado, no supuesto): qué hace **hoy** el portal con un dataset
   en `draft` —si lo dibuja, si aparece en el catálogo, qué dice su ficha—, y si conviene adoptar ese estado para la
-  máquina editorial o ignorarlo. **No bloquea `v0`.** Se cruza con «Decidir qué hace el flujo de publicación con un dataset `draft`» (registro de la decisión de `c′`, arriba).
+  máquina editorial o ignorarlo. **No bloquea `v0`.**
+  **Medido el 2026-10-15 (registro de la decisión de `c′`):** `publication_request_decide` con `approve=True` aprueba un dataset
+  en `draft` y le escribe `private = false`, pero el dataset **nunca se vuelve públicamente legible** (el `403` anónimo y la ausencia del
+  listado siguen) y la pared de A3 le reserva el cambio de `state` al sysadmin, así que nadie por debajo puede activarlo después. Las
+  dos salidas, sin decidir: **¿el flujo lo activa al aprobar, o se niega a publicar un `draft`** y lo dice? No es defecto de `c′` (el
+  flip es anterior, `_flip_to_public`, `61b6f1c`); el portal no crea borradores. **El dueño del arreglo es `odp-docker`**
+  (`ckanext-umss`: `_flip_to_public`/`publication_request_decide` o el predicado de autorización); el portal sólo **mostraría** el
+  rechazo, como en S4. La pared de A3 ya está en el master del store (`6472e48`): el ítem no espera al flujo de edición, espera la
+  decisión de producto.
 
 
 - [ ] **[v1] Política de existencia, la mitad de la API: el oráculo del `403` sigue en pie** (la mitad de página quedó
@@ -3368,6 +3197,43 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   `classifyFailure`, `describeFailure` y `failureActions`, usados por las dos páginas, con el 403 y el 404 anónimos colapsados
   a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
   `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
+
+- [ ] **[v1] Nomenclatura del código en español.** Los **identificadores** van en **inglés**; los **comentarios pueden seguir en
+  español** (aclaración explícita del autor, 2026-10-09). El caso que lo disparó: `estadoDeLaSolicitudBadge`
+  (`dataset/[id]/+page.svelte`, PR #58). **Medido el 2026-10-09 (`src/` sin tests): 31 declaraciones con token en español en 9
+  archivos** (`estadoDeLaSolicitud`, `estadoDeLaSolicitudBadge`, `solicitudVigente`, `puedeCrear`, `puedeOfrecerCreacion`, `listarCola`,
+  `organizacionesDeLaCola`, `cargarLicencias`, `cargarEtiquetas`, `estadoContador`…). La cuenta es un **piso**: sólo cubre
+  `function|const|let|var`, no props, tipos exportados ni el estado interno de `PublicationQueue`, `RequestPublicationControl` y
+  `DatasetForm`. **El barrido puede esperar hasta `v1`** (decisión del autor); el número está para dimensionarlo.
+
+- [ ] **[v1] Tokens basura en el usuario admin del CKAN dev** — el listado tiene tokens de sesiones
+  viejas de pruebas (`seed-probe`, `seed-probe2`, `odp-e2e-probe`, `odp-e2e-smoke`) que nunca se
+  limpiaron. **No tocar los tres `datapusher`**: esos los usa el plugin de subida y revocarlos rompe la
+  carga de archivos. _Origen: diagnóstico del login, 2026-09-13._
+
+- [ ] **[v1] Sigla de organización (`extras.sigla`)** — CKAN **no** tiene un campo nativo de
+  abreviatura, pero sí soporta extras en organizaciones: existe la tabla `group_extra`, la API acepta
+  `extras` en `organization_create` / `organization_update` y `organization_show(include_extras)` los
+  devuelve (verificado contra el CKAN dev el 2026-09-12). Convención del portal: clave `sigla`
+  (`[{"key": "sigla", "value": "FCyT"}]`), respetada **verbatim** al renderizar. **Lectura ya
+  implementada**: `organization_list_for_user` no acepta `include_extras`, así que `listForUser`
+  completa los extras con una segunda llamada acotada por ids
+  (`organization_list(ids=[...], include_extras=true)`) y, si esa llamada falla, devuelve las
+  organizaciones sin extras (la sigla es cosmética). El mosaico recorta a `MAX_SIGLA_LENGTH` (6,
+  exportado por `OrganizationLogo`) y baja el tamaño de fuente según el largo; sin sigla cae al
+  monograma derivado del nombre. Falta: (a) escribir la sigla en los seeds y en la futura gestión de
+  organizaciones; (b) **validar el mismo `MAX_SIGLA_LENGTH` en el formulario de alta/edición** cuando
+  exista — el límite debe salir de una sola constante para que entrada y salida no deriven, y validar
+  en la entrada **no** exime al render de defenderse (el dato también entra por la API de CKAN).
+  _Origen: revisión de UI del dashboard (2026-09-12)._
+
+- [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
+  datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
+  no es alcanzable con CKAN: las "solicitudes de publicación" del PRD son el caso conocido).
+  _Origen: pedido explícito del usuario (2026-09-12)._
+
+- [ ] **[v1] Verificación estática pendiente del wizard** — "sin scroll horizontal a 360 px" quedó
+  verificado solo por inspección de código, sin test automatizado.
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
@@ -3449,25 +3315,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   colaboradores por dataset son nativos (ver `v0`); los equipos multi-organización son custom.
   _Referencias: PRD RF-19/RF-20, design-system §9 item 12._
 
-- [ ] **[v1+]** `TODO:` **La paleta de formato, en la misma pasada de detalles.** Decisión del autor
-  (2026-09-22): el chip de tipo de recurso queda **neutro** por ahora y la paleta se define **una sola
-  vez** para todas las superficies (la lista del dataset, la ficha del recurso y, si corresponde, los
-  chips del buscador). **Lo que hay que resolver cuando toque:** el chip compartido reemplazó un mapa de
-  **10 formatos con color propio** (en `ResourceCard.svelte`, en HEAD antes de `fa96d5c`) cuyos valores
-  eran `oklch` **crudos dentro del componente** —dos violaciones documentadas: `AGENTS.md` regla 3
-  («Colores vía tokens, nunca hex crudos») y el anti-patrón del design-system §11 («Colores hardcodeados
-  en componentes»)— y que ponía ~10 matices saturados donde el sistema admite **2 por pantalla**. La
-  salida correcta por las reglas es **tokens en `src/app.css`** más la sección de roles en
-  `design-system/datos-umss/README.md`, explicando por qué la paleta de formato extiende ese límite.
-  **No restaurar el mapa crudo** sin esa decisión: repone las dos violaciones.
-
-- [ ] **[v1+]** `TODO:` **Chips y badges clicables: que manden al buscador filtrado por formato.**
-  Pedido del autor (2026-09-22): que los chips de formato —los de las cards del buscador **y** los de
-  dentro del dataset y de la ficha del recurso— sean un enlace al catálogo filtrado por ese formato. La
-  pieza ya existe: la búsqueda soporta el filtro por `res_format`, en la faceta y en la URL
-  (`/search?format=…`). **Dos decisiones abiertas al implementarlo:** (a) el chip **«Enlace»** no tiene
-  formato que filtrar —¿no es clicable, o filtra por otra cosa?—; (b) un chip clicable **dentro** del
-  dataset cambia el clic que hoy lleva a la ficha del recurso, así que hay que resolver esa superposición.
+- [ ] **[v1+]** `TODO:` **Chips de formato de las cards del buscador: que mandan al buscador filtrado.**
+  Pedido del autor (2026-09-22). Ya lo hacen los badges de formato de la lista de recursos del dataset (`ResourceCard.svelte`,
+  `/search?format=…`); faltan los chips de `search/DatasetCard.svelte`, que hoy son texto dentro de una card que es **un solo
+  enlace**. Decisión abierta: un enlace dentro de otro enlace no es HTML válido, así que hay que resolver la superposición (p. ej.
+  `stretched-link` con los chips sobre la capa) y qué hace el chip «Enlace», que no tiene formato que filtrar.
 
 - [ ] **[v1+]** `TODO:` **Reordenar los recursos del asistente (arrastrar para mover, estilo lista de reproducción).**
   Pedido del autor (2026-09-22). **Factibilidad medida, para no volver a medirla:**
@@ -3543,7 +3395,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   **La promesa: resuelta (2026-10-20, `b0fdc17`, S25):** `validateStoredSession` ya no rechaza si cerrar la sesión del
   servidor falla. Queda abierto sólo el límite declarado de los avisos informativos.
 
-- [ ] **[v1+] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
+- [ ] **[v1/v1+] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
   quede en "no se implementará", me refiero a que si alcansamos podemos probar hacerlo, pero no es bloqueantes, es más
   bien algo "plus", un agregado»). Hoy GeoJSON va a «sin vista previa» con su descarga (`preview.ts`,
   `odd/tasks/demo-honest-data.md` S6), porque la ruta `/catalog/download` lo sirve como adjunto y Chrome descarga un
@@ -3551,9 +3403,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   `ckan-download.ts` (#99, cerrado sin mergear, tenía test y verificación independiente PASS) y volviendo a `text` en
   `previewKind`; (b) un mapa dibujado por el portal (Leaflet o MapLibre), como el `geoview` de la recomendación del
   2026-10-17. El seed ya declara `mimetype: application/geo+json` (#98). No bloquea nada.
-  **Tier (2026-10-19, autor): «v1+».**
-  **Re-tier (2026-10-20, L45 de `odd/tasks/v0.1.1-polish.md`): `[v2+]`, o `[v1+]` si la medición dice que la opción de texto es pequeña; volver a preguntar al autor antes de v1.**
-  **Re-tier (2026-10-20, L47, reemplaza el de L45): `[v1]` o `[v1+]` — no es un requerimiento fuerte.** Medido: la opción
+  **Re-tier (2026-10-20, L47): `[v1]` o `[v1+]` — no es un requerimiento fuerte.** Medido: la opción
   de texto es una línea en `preview.ts` más servirlo `inline` como `text/plain`; hay que recortar archivos grandes.
 
 ## v2+ — mejoras futuras no solicitadas
@@ -3621,30 +3471,24 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## Datos y contenido (habilitador de QA, no es feature)
 
-- [ ] **[v1+] Seed CKAN a escala** — poblar CKAN con ~1.500–2.000 datasets realistas para afinar
-  la UI de search/facetas/paginado en condiciones cercanas a producción. Quedó en fase de
-  planificación **sin decidir el camino**: (A) mock a escala arreglando el paginado del mock,
-  (B) seed real vía `package_create` en paralelo, (C) insert directo + rebuild (descartado).
-  Recomendación previa: B + A como colchón. _Origen: plan 2026-09-01._
-
-  **Seed ligero de dev (no es el ítem a escala):** `scripts/seed-ckan.mjs` (2026-09-11) puebla
-  el CKAN dev con 5 organizaciones + 16 datasets espejados de `src/lib/mock/data.ts`; idempotente
-  por `name`, sin secretos en el repo (la contraseña admin se lee del entorno). Es contenido de
-  desarrollo para que el portal no muestre listas vacías; el seed a escala de este ítem sigue
-  pendiente.
-
-- [ ] **[v1+] Datos de muestra para las vistas (contenido en el DataStore)** — la vista previa
-  CSV lee de `datastore_search`, pero los recursos del seed son url-only (sin filas). Falta
-  contenido durable en el DataStore para demoear las vistas. Decidir la fuente (CSVs chicos
-  commiteados vs. generador determinista vs. upload real + datapusher) y hacerlo idempotente y
-  determinista. _Origen: sesión 2026-09-11 (diferido); relacionado con "Endurecer la vista previa CSV"._
-  **Estado del camino «upload real + datapusher» (2026-09-23):** la sonda D0 lo midió y **funciona** —subir
-  un CSV lo dejó en el DataStore al instante, con `datastore_search` devolviendo las filas y la descarga
-  sirviendo `Content-Disposition: inline` (que es lo que hace posible el embed de PDF/imagen de RF-30)—,
-  así que esa opción dejó de ser una apuesta. **Falta una entrada del autor:** pidió aportar un **ejemplo de
-  cómo hacer la carga de datos**; hasta tenerlo, la decisión de la fuente queda abierta. Consumidor concreto
-  hoy: los visores por tipo del bloque D necesitan archivos **alojados** para verse con datos reales — los
-  35 recursos del catálogo son enlaces.
+- [ ] **[v1] Datos de prueba a escala y contenido para las vistas** (fusiona «Seed CKAN a escala», «Datos de muestra para las
+  vistas» y «La ingesta masiva de datos de prueba»; pedidos del autor 2026-09-11 y 2026-10-17). Objetivo: poblar CKAN con
+  ~1.500–2.000 datasets realistas para afinar search/facetas/paginado cerca de producción, y filas en el DataStore para demostrar
+  las vistas y probar volumen (`umss_chart_data`).
+  - **Estado hoy:** `scripts/seed-ckan.mjs` (idempotente por `name`, sin secretos) crea 5 organizaciones, datasets espejados de
+    `src/lib/mock/data.ts` y, desde `feat/seed-more-files`, 30 datasets más con archivos alojados (PNG/JPEG/TXT/CSV): **52 públicos
+    en dev** (tres páginas de 20), 69 recursos subidos. Es contenido de desarrollo; **el seed a escala sigue pendiente**.
+  - **Caminos para la escala, sin decidir:** (A) mock a escala arreglando el paginado del mock, (B) seed real vía `package_create`
+    en paralelo, (C) insert directo + rebuild (descartado). Recomendación previa: B + A como colchón.
+  - **Contenido del DataStore:** decidir la fuente (CSV chicos commiteados, generador determinista o upload real + datapusher; la
+    sonda D0 mostró que el upload real **funciona**), idempotente y determinista. Los visores por tipo necesitan archivos
+    **alojados** para verse con datos reales.
+  - **Ingesta masiva (método del autor):** un generador de palabras y oraciones, un randomizador de números y fechas, e inserción
+    por lotes con un ORM de TypeScript (cree que Drizzle) cargaba ~3 millones de filas en 30 minutos; ofreció buscarlo en su backup de
+    Windows (proyecto de comercio electrónico). Reparto: `odp-docker` la infraestructura de ingesta; el portal, los generadores de CSV
+    y el seed por API. El CSV chico de la demo es otra cosa (T6 de `csv-charts`).
+  - **Choque del seed con los cuatro ojos:** ver el ítem «El seed choca con los cuatro ojos en una instalación con usuarios».
+  _Origen: plan 2026-09-01; sesión 2026-09-11; L14 de 2026-10-17._
 
 ---
 
@@ -4750,35 +4594,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
     acumulados, eso alarga el login (y ya no falla en silencio, pero tampoco hay tope).
   - `R2-001` (`ckan-auth.test.ts:135-136`), `R3-001` (`ckan-auth.ts:30`) — sugerencias de estilo.
 
-- [ ] **[v1] Tokens basura en el usuario admin del CKAN dev** — el listado tiene tokens de sesiones
-  viejas de pruebas (`seed-probe`, `seed-probe2`, `odp-e2e-probe`, `odp-e2e-smoke`) que nunca se
-  limpiaron. **No tocar los tres `datapusher`**: esos los usa el plugin de subida y revocarlos rompe la
-  carga de archivos. _Origen: diagnóstico del login, 2026-09-13._
-
-- [ ] **[v1] Sigla de organización (`extras.sigla`)** — CKAN **no** tiene un campo nativo de
-  abreviatura, pero sí soporta extras en organizaciones: existe la tabla `group_extra`, la API acepta
-  `extras` en `organization_create` / `organization_update` y `organization_show(include_extras)` los
-  devuelve (verificado contra el CKAN dev el 2026-09-12). Convención del portal: clave `sigla`
-  (`[{"key": "sigla", "value": "FCyT"}]`), respetada **verbatim** al renderizar. **Lectura ya
-  implementada**: `organization_list_for_user` no acepta `include_extras`, así que `listForUser`
-  completa los extras con una segunda llamada acotada por ids
-  (`organization_list(ids=[...], include_extras=true)`) y, si esa llamada falla, devuelve las
-  organizaciones sin extras (la sigla es cosmética). El mosaico recorta a `MAX_SIGLA_LENGTH` (6,
-  exportado por `OrganizationLogo`) y baja el tamaño de fuente según el largo; sin sigla cae al
-  monograma derivado del nombre. Falta: (a) escribir la sigla en los seeds y en la futura gestión de
-  organizaciones; (b) **validar el mismo `MAX_SIGLA_LENGTH` en el formulario de alta/edición** cuando
-  exista — el límite debe salir de una sola constante para que entrada y salida no deriven, y validar
-  en la entrada **no** exime al render de defenderse (el dato también entra por la API de CKAN).
-  _Origen: revisión de UI del dashboard (2026-09-12)._
-
-- [ ] **[v1] Barra de acciones pegajosa: revisar si conviene una versión móvil completa** — hoy
-  debajo de `lg` la barra muestra **solo** la acción principal; de `lg` hacia arriba, todas. A 768 px
-  las cuatro acciones no entran (medido: 168 px de desborde interno) y el scroll horizontal dentro de
-  la barra no da ninguna señal de que hay más acciones. Si se necesita todo en móvil, la salida es un
-  menú compacto («más acciones») en lugar de scroll lateral. _Origen: auditoría responsive
-  (2026-09-12)._ **(Hoy sólo existe una acción real: el problema reaparece cuando aterricen las
-  demás.)_**
-
 - [ ] **[v1] La barra pegajosa no tiene test de comportamiento** — su comportamiento (aparición a 88 px,
   `inert` mientras está oculta, clics que atraviesan la franja transparente) se verificó **a mano en
   Chromium por CDP**, no en la suite: jsdom no implementa `inert` ni `IntersectionObserver`. Opción: un
@@ -4805,19 +4620,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   bien. **Para usarlo:** `"@playwright/test": "1.64.1"` **exacto** en `devDependencies` (otra versión busca otra revisión y
   falla con «Executable doesn't exist»); sin `executablePath` ni `channel`. Al subir de versión: `pnpm exec playwright install
   chromium`. Sólo tests locales: no hay runner de CI.
-
-- [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
-  datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
-  no es alcanzable con CKAN: las "solicitudes de publicación" del PRD son el caso conocido).
-  _Origen: pedido explícito del usuario (2026-09-12)._
-
-- [x] **[v0] `describeCreateError` sobre-dispara** — el regex `/already in use|url/i` del wizard
-  etiqueta como conflicto de slug cualquier error cuyo mensaje contenga "url". Acotarlo al mensaje
-  real de CKAN. _Origen: verificación de `dataset-publishing`._
-  **CERRADO (2026-10-06): DONE** — el chequeo es ahora `/that url is already in use/i`.
-
-- [ ] **[v1] Verificación estática pendiente del wizard** — "sin scroll horizontal a 360 px" quedó
-  verificado solo por inspección de código, sin test automatizado.
 
 - [ ] **[v1] Revisión nativa `escalated` sin cerrar** — la línea de revisión de la sesión
   2026-09-10/11 cerró en estado `escalated` (hallazgos severos inconclusos), no `approved`. El
