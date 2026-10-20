@@ -125,9 +125,15 @@
  * Decisión del autor (2026-09-24): el alto **no se recorta** por altura de viewport: eso se midió en la
  * hoja `/dev/header` (marcos de 600/650/760/1080 px) y no lo justificó. Lo que se arregla es la fuente
  * única, sin mover un píxel.
+ *
+ * `--header-h-max` es el alto del tope y **no cambia nunca**: es lo que el contenido le reserva al
+ * encabezado fijo (`data-header-spacer` en el layout). Si la reserva siguiera a `--header-h`, el
+ * contenido se movería 16px en cada cruce y Chromium, al compensarlo cuadro por cuadro, desactivaría el
+ * anclaje de desplazamiento (S17 de `odd/tasks/v0.1.1-polish.md`).
  */
 :root {
-	--header-h: 5rem;
+	--header-h-max: 5rem;
+	--header-h: var(--header-h-max);
 }
 
 /*

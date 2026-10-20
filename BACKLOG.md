@@ -2641,6 +2641,10 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   _Origen: el mensaje de consola que el autor vio el 2026-09-24, en el buscador y en la ficha del PDF de sonda; cierre por
   decisión del autor el 2026-10-01 (no es importante)._
   **CERRADO (2026-10-06):** ya decidido el 2026-10-01 (no se actúa); no hay trabajo abierto.
+  **RESUELTO (2026-10-20), a propuesta del autor:** el encabezado pasa a `fixed` y el contenido le reserva un alto
+  constante (`--header-h-max` + 1px, `data-header-spacer`); al achicarse cambia sólo su propio alto. Medido en
+  Chromium: `main` queda en 81 px y el scroll ya no se compensa (antes 300 → 284). Detalle en
+  `odd/tasks/v0.1.1-polish.md` S17 / L38.
 
 - [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
   Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
