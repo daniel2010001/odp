@@ -2732,6 +2732,16 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1 — producto usable en producción
 
+- [ ] **[v2+] Vista previa de PDF dibujada por el portal (PDF.js)** (autor, 2026-10-20, L53: «anota como v2+, con lo que tenemos
+  basta, pero sería una buena forma de "sobresalir" de otras plataformas, volvamos a preguntar para v1 o v1+»). Hoy el PDF lo
+  dibuja el visor del navegador; un diseño propio exige `pdfjs-dist` (dependencia de varios MB con worker) y rehacer buscar e
+  imprimir. **Volver a preguntar al autor al planear v1/v1+**; el tier no es definitivo.
+- [ ] **[v1] Rediseño de la página «Solicitudes»** (autor, 2026-10-20, L53: «tocar el diseño de esa page de request, podemos
+  hacerlo después?»). Con playground. Antes se corrige que la página sólo pida las pendientes (S30).
+- [ ] **[v1] Pasada de refactor tras las promociones de v0.1.1** (pregunta del autor, L53): cada unidad hizo su refactor en el
+  ciclo de test, pero no hubo una pasada que junte lo duplicado entre promociones (tarjetas, botones, mapas). Hacerla con
+  la suite verde y sin cambiar comportamiento.
+
 - [ ] **[v1] El seed choca con los cuatro ojos en una instalación con usuarios** (medido por odp-docker al correr el seed en
   dev, 2026-10-20): `seed-ckan.mjs` pide y aprueba la publicación como `ckan_admin`, y eso sólo pasa la regla «the approver
   cannot be the requester» si no hay otro admin en la organización. En dev, fcyt (admin-fcyt) y fca (admin1, admin2) sí
