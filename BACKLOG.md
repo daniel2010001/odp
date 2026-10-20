@@ -4759,6 +4759,12 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   dependencia nueva y la opción (a)/(b).
   **(2026-10-20, L47): el autor eligió la opción (b) y se la pidió a la sesión homelab. Pendiente hasta que homelab
   responda; después se agrega `@playwright/test` pineado.**
+  **Homelab lo dejó listo (2026-10-20):** en `~/.cache/ms-playwright` están los navegadores de **Playwright 1.64.1**
+  (chromium-1248 = Chrome for Testing 156.0.8078.4 y su headless shell; 681 MB), sin `install-deps` y con 0 librerías
+  faltantes. Prueba de humo: `@playwright/test@1.64.1` arranca con la configuración por defecto y mide `scrollY`/`sticky`
+  bien. **Para usarlo:** `"@playwright/test": "1.64.1"` **exacto** en `devDependencies` (otra versión busca otra revisión y
+  falla con «Executable doesn't exist»); sin `executablePath` ni `channel`. Al subir de versión: `pnpm exec playwright install
+  chromium`. Sólo tests locales: no hay runner de CI.
 
 - [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
   datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
