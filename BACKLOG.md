@@ -4727,6 +4727,13 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   aviso `R3-1` de E2: esa medición es **una sola vez**, al montar. _Origen: revisión RDD
   `review-1c90076e8986652c`, hallazgo advisory `R3-001` (el texto no se pudo recuperar: el ledger se
   borra al cerrar la línea), 2026-09-12; mitad del desfase cerrada el 2026-09-24._
+  **Medido por la sesión homelab (2026-10-20, a pedido del autor, L45 de `odd/tasks/v0.1.1-polish.md`):** en la máquina
+  hay Playwright sólo como **CLI global** (wrapper de mise, 1.64.1) y `playwright-cli` (npx, versión del día); **no** hay
+  navegadores propios de Playwright instalados (`~/.cache/ms-playwright` vacío), **ni** servicio de navegador (browserless,
+  contenedor, endpoint CDP fijo), **ni** runner de CI. Sí hay `/usr/bin/chromium` 154. Recomendación de homelab: agregar
+  `@playwright/test` como devDependency **pineada** y (a) lanzar el Chromium del sistema con `executablePath` (sin
+  descargas, sin garantía oficial de versión) o (b) `pnpm exec playwright install chromium`. **Decisión del autor:** la
+  dependencia nueva y la opción (a)/(b).
 
 - [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
   datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué
