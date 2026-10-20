@@ -8,6 +8,7 @@ let {
 	placeholder = "Buscar datasets...",
 	submitLabel = "",
 	class: className = "",
+	shortcut = true,
 	onsubmit,
 	onclear,
 }: {
@@ -15,6 +16,11 @@ let {
 	placeholder?: string;
 	submitLabel?: string;
 	class?: string;
+	/**
+	 * Responde a Cmd/Ctrl+K. Con dos campos en la página (el del hero y el de la barra de resultados)
+	 * sólo uno lo atiende: si ambos enfocaran, el del hero —fuera de vista— desplazaría la página.
+	 */
+	shortcut?: boolean;
 	/** Submit por Enter o clic en el botón "Buscar". */
 	onsubmit?: (value: string) => void;
 	/** El campo quedó vacío (X o backspace hasta vaciarlo). */
@@ -57,7 +63,7 @@ function clear() {
 
 // Keyboard shortcut: Cmd/Ctrl+K to focus
 function handleKeydown(e: KeyboardEvent) {
-	if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+	if (shortcut && (e.metaKey || e.ctrlKey) && e.key === "k") {
 		e.preventDefault();
 		inputEl?.focus();
 	}

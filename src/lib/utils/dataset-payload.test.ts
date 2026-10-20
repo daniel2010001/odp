@@ -19,12 +19,13 @@ const base = {
 };
 
 describe("buildPackagePayload", () => {
-	it("con lo mínimo emite solo los campos obligatorios", () => {
+	it("con lo mínimo emite los obligatorios y la licencia notspecified", () => {
 		expect(buildPackagePayload(base)).toEqual({
 			title: "Matrícula Estudiantil 2026",
 			name: "matricula-estudiantil-2026",
 			owner_org: "facultad-de-ciencias",
 			private: true,
+			license_id: "notspecified",
 		});
 	});
 
@@ -39,7 +40,8 @@ describe("buildPackagePayload", () => {
 		});
 
 		expect(payload).not.toHaveProperty("notes");
-		expect(payload).not.toHaveProperty("license_id");
+		// «Sin licencia» se guarda como `notspecified`: un id vacío no tiene bucket en la faceta.
+		expect(payload.license_id).toBe("notspecified");
 		expect(payload).not.toHaveProperty("tag_string");
 		expect(payload).not.toHaveProperty("url");
 		expect(payload).not.toHaveProperty("maintainer");
@@ -373,6 +375,14 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 		);
 	});
 
+	it("sin licencia en edición escribe notspecified, también si la clave falta", () => {
+		const { update } = buildRevisePayload({
+			dataset: datasetCargado,
+			input: { title: "T", name: "t" },
+		});
+		expect(update.license_id).toBe("notspecified");
+	});
+
 	// 2c. Borrar un campo debe verse en el `update`: cada opcional vacío viaja como cadena vacía,
 	// una aserción por campo para que el fallo diga cuál se quedó afuera.
 	it("escribe cada opcional vacío como cadena vacía, para que borrar sea efectivo", () => {
@@ -390,7 +400,7 @@ describe("buildRevisePayload — edición parcial (package_revise)", () => {
 		});
 
 		expect(update.notes).toBe("");
-		expect(update.license_id).toBe("");
+		expect(update.license_id).toBe("notspecified");
 		expect(update.url).toBe("");
 		expect(update.maintainer).toBe("");
 		expect(update.maintainer_email).toBe("");

@@ -28,9 +28,10 @@ import { technicalDetail } from "$lib/api/failure";
 // `approved_by_name` y `motive`, y este archivo no los tenía.
 import type { PublicationRequest } from "$lib/api/publication";
 import Button from "$lib/components/ui/button/button.svelte";
+import { insigniaDeLaSolicitud } from "$lib/copy/publication";
 import { CkanApiError } from "$lib/types/api";
 import { cn } from "$lib/utils";
-import { ACCION_BASE } from "./action-class";
+import ResponsiveAction from "./ResponsiveAction.svelte";
 
 /** Pide la publicación del dataset y devuelve la solicitud tal como quedó en el catálogo. */
 export type RequestPublication = (datasetId: string) => Promise<PublicationRequest>;
@@ -46,12 +47,6 @@ const CONSEQUENCE = "Un administrador de la organización revisará su solicitud
 const REQUEST_FAILED = "No se pudo enviar la solicitud.";
 const CANCEL_FAILED = "No se pudo cancelar la solicitud.";
 
-// La forma de las acciones del hero vive en **un solo lugar** (`action-class.ts`): la base la comparten el
-// enlace «Editar» de la ficha y este control, y cada uno agrega lo suyo. Hasta el 2026-10-08 estaba duplicada
-// entera acá y allá, con la diferencia del `disabled:` —que sólo un `<button>` puede usar— repetida en vez de
-// nombrada. La deuda (`R3-hero-action-class-drift`) se cierra acá: no unificando las dos copias —**no eran
-// idénticas**— sino extrayendo lo compartido y dejando la diferencia explícita.
-const ACCION_CLASS = `${ACCION_BASE} disabled:opacity-60`;
 const PENDING_HEADING = "Solicitud pendiente de revisión";
 const PENDING_BODY =
 	"Su solicitud está a la espera de que un administrador de la organización la revise.";
@@ -89,11 +84,12 @@ let {
 	onrequested?: (request: PublicationRequest) => void;
 	oncancelled?: (request: PublicationRequest) => void;
 	/**
-	 * Presentación. `"bloque"` (lo de siempre) dibuja el botón con su explicación debajo. `"accion"`
-	 * dibuja **sólo el botón**, con la forma de las acciones del hero de la ficha —mismo alto y misma
-	 * forma que «Copiar enlace» y «Editar»— y la explicación como **tooltip**, asociada además con
-	 * `aria-describedby` porque el `title` no se alcanza con el teclado. Los **estados** (pendiente,
-	 * anulada, rechazada) no cambian: son información, no la acción.
+	 * Presentación. `"bloque"` (lo de siempre) dibuja el botón con su explicación debajo. `"accion"` dibuja
+	 * **la unidad del hero** (T13, variante C7 + M1): una tarjeta con el estado de la solicitud a la izquierda
+	 * y su acción a la derecha, en una fila que no envuelve (ocupa el ancho bajo 44 rem del contenedor y se
+	 * ajusta a su contenido desde ahí). La acción mide 44 px (36 px desde 44 rem) y queda sólo en ícono bajo
+	 * 20 rem; la explicación va como **tooltip**, asociada además con `aria-describedby` porque el `title` no
+	 * se alcanza con el teclado. Debe montarse dentro de un `@container`.
 	 */
 	apariencia?: "bloque" | "accion";
 	class?: string;
@@ -184,69 +180,105 @@ function retry() {
 }
 </script>
 
-{#if dataset.private && canRequest && active?.status !== "approved"}
-	<div class={cn("flex flex-col items-start gap-2", className)}>
-		{#if outcome}
-			<div
-				role="alert"
-				class={cn(
-					"flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
-					outcome.kind === "refused"
-						? "border-destructive/20 bg-destructive/10 text-destructive"
-						: "border-border bg-muted/40 text-muted-foreground",
-				)}
-			>
-				{#if outcome.kind === "refused"}
-					<ShieldAlert class="size-4 shrink-0" />
-				{:else}
-					<CircleAlert class="size-4 shrink-0" />
-				{/if}
-				<span>{outcome.message}</span>
-				{#if outcome.technical}
-					<span class="font-mono text-xs">{outcome.technical}</span>
-				{/if}
-				{#if outcome.kind === "error"}
-					<Button variant="outline" size="sm" onclick={retry}>
-						<RefreshCw class="size-4" />
-						Reintentar
-					</Button>
-				{/if}
-			</div>
-		{/if}
+{#snippet alerta()}
+	{#if outcome}
+		<div
+			role="alert"
+			class={cn(
+				"flex w-full flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
+				outcome.kind === "refused"
+					? "border-destructive/20 bg-destructive/10 text-destructive"
+					: "border-border bg-muted/40 text-muted-foreground",
+			)}
+		>
+			{#if outcome.kind === "refused"}
+				<ShieldAlert class="size-4 shrink-0" />
+			{:else}
+				<CircleAlert class="size-4 shrink-0" />
+			{/if}
+			<span>{outcome.message}</span>
+			{#if outcome.technical}
+				<span class="font-mono text-xs">{outcome.technical}</span>
+			{/if}
+			{#if outcome.kind === "error"}
+				<Button variant="outline" size="sm" onclick={retry}>
+					<RefreshCw class="size-4" />
+					Reintentar
+				</Button>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
 
-		{#if active?.status === "pending"}
-			<!-- El estado **también** es una acción del hero, y hasta el 2026-10-08 no lo era: con una
-			     solicitud pendiente se dibujaba el bloque entero —borde, titular, explicación y botón— con
-			     `w-full`, así que el hero crecía, el título y las insignias se desplazaban y la fila de
-			     acciones dejaba de leerse. En la presentación de acción el estado es **una fila compacta**
-			     de la altura de sus hermanos: el distintivo con el ícono y el reloj, y la cancelación con
-			     la misma forma. La explicación no se pierde: la tarjeta del estado, más abajo, dice
-			     «Pendiente de revisión, pedida por …». -->
+{#if dataset.private && canRequest && active?.status !== "approved"}
+	{#if apariencia === "accion"}
+		{@const insignia = insigniaDeLaSolicitud(active?.status)}
+		<div class={cn("flex flex-col items-start gap-2", className)}>
+			<!-- La unidad (M1): el estado a la izquierda y su acción a la derecha, en una fila que no envuelve.
+			     El estado es una **insignia** informativa (no un enlace); la explicación larga y el motivo viven en
+			     la tarjeta del estado, más abajo. «Sin solicitud» se acorta bajo 44 rem. -->
 			<div
-				class={apariencia === "accion"
-					? "flex flex-wrap items-center gap-2"
-					: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
+				data-unit
+				class="flex w-full flex-nowrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-1.5 pl-3 @[44rem]:w-fit @[44rem]:flex-wrap @[44rem]:gap-x-3"
 			>
-				{#if apariencia === "accion"}
-					<!-- En el hero el estado **no** se dibuja acá: es una **insignia** en la fila de insignias
-					     (decisión del autor, 2026-10-08). Un distintivo con forma de botón que no hace nada
-					     —lo que había— se lee como una acción y no lo es. De este lado quedan **sólo las
-					     acciones**: cancelar la solicitud propia. -->
-					<button
-						type="button"
-						class={ACCION_CLASS}
+				<div class="min-w-0 flex-1 @[44rem]:flex-none">
+					{#if insignia}
+						<span
+							class={cn(
+								"inline-flex items-center whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold",
+								insignia.tone,
+							)}>{insignia.label}</span
+						>
+					{:else}
+						<span class="text-xs text-muted-foreground @[44rem]:hidden">Sin solicitud</span>
+						<span class="hidden text-xs text-muted-foreground @[44rem]:inline"
+							>Sin solicitud de publicación</span
+						>
+					{/if}
+				</div>
+				{#if active?.status === "pending"}
+					<ResponsiveAction
+						icon={pending === "cancel" ? LoaderCircle : CircleX}
+						iconClass={pending === "cancel" ? "animate-spin" : ""}
+						label={pending === "cancel" ? "Cancelando…" : CANCEL_LABEL}
+						text={pending === "cancel" ? "Cancelando…" : "Cancelar"}
+						suffix={pending === "cancel" ? undefined : "solicitud"}
+						suffixFrom="24rem"
+						collapseBelow="20rem"
+						height="11"
+						class="@[44rem]:h-9"
 						onclick={handleCancel}
 						disabled={pending !== null}
-					>
-						{#if pending === "cancel"}
-							<LoaderCircle class="size-4 animate-spin" />
-							Cancelando…
-						{:else}
-							<CircleX class="size-4" />
-							{CANCEL_LABEL}
-						{/if}
-					</button>
-				{:else}
+					/>
+				{:else if active?.status !== "annulled"}
+					<!-- Una solicitud anulada perdió su objeto: no se ofrece volver a pedirla. -->
+					<ResponsiveAction
+						icon={pending === "request" ? LoaderCircle : Send}
+						iconClass={pending === "request" ? "animate-spin" : ""}
+						label={pending === "request"
+							? "Enviando…"
+							: active?.status === "rejected"
+								? REQUEST_AGAIN_LABEL
+								: REQUEST_LABEL}
+						collapseBelow="20rem"
+						height="11"
+						class="@[44rem]:h-9"
+						title={CONSEQUENCE}
+						describedby={`${uid}-consecuencia`}
+						onclick={handleRequest}
+						disabled={pending !== null}
+					/>
+					<span id={`${uid}-consecuencia`} class="sr-only">{CONSEQUENCE}</span>
+				{/if}
+			</div>
+			{@render alerta()}
+		</div>
+	{:else}
+		<div class={cn("flex flex-col items-start gap-2", className)}>
+			{@render alerta()}
+
+			{#if active?.status === "pending"}
+				<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
 					<p class="flex items-center gap-2 text-sm font-medium text-foreground">
 						<Clock class="size-4 shrink-0" aria-hidden="true" />
 						{PENDING_HEADING}
@@ -267,37 +299,20 @@ function retry() {
 							{CANCEL_LABEL}
 						{/if}
 					</Button>
-				{/if}
-			</div>
-		{:else if active?.status === "annulled"}
-			<!-- La solicitud perdió su objeto: el dataset se eliminó o ya se publicó por otra vía. No
-			     se ofrece volver a pedirla, porque el estado que la justificaba ya no está. -->
-			<div
-				class={apariencia === "accion"
-					? "flex flex-wrap items-baseline gap-2"
-					: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
-			>
-				{#if apariencia === "accion"}
-					<!-- Nada: el estado anulado es una insignia en la fila de insignias, y su explicación vive en
-					     la tarjeta del estado. Acá sólo van las acciones. -->
-				{:else}
+				</div>
+			{:else if active?.status === "annulled"}
+				<!-- La solicitud perdió su objeto: el dataset se eliminó o ya se publicó por otra vía. No
+				     se ofrece volver a pedirla, porque el estado que la justificaba ya no está. -->
+				<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
 					<p class="flex items-center gap-2 text-sm font-medium text-foreground">
 						<Ban class="size-4 shrink-0" aria-hidden="true" />
 						{ANNULLED_HEADING}
 					</p>
 					<p class="mt-1 text-xs text-muted-foreground">{ANNULLED_BODY}</p>
-				{/if}
-			</div>
-		{:else}
-			{#if active?.status === "rejected"}
-				<div
-					class={apariencia === "accion"
-						? "flex flex-wrap items-baseline gap-2"
-						: "w-full rounded-md border border-border bg-muted/40 px-3 py-2"}
-				>
-					{#if apariencia === "accion"}
-						<!-- Nada: el estado rechazado es una insignia, y el motivo vive en la tarjeta del estado. -->
-					{:else}
+				</div>
+			{:else}
+				{#if active?.status === "rejected"}
+					<div class="w-full rounded-md border border-border bg-muted/40 px-3 py-2">
 						<p class="flex items-center gap-2 text-sm font-medium text-foreground">
 							<CircleX class="size-4 shrink-0" aria-hidden="true" />
 							{REJECTED_HEADING}
@@ -307,31 +322,9 @@ function retry() {
 						{:else}
 							<p class="mt-1 text-xs text-muted-foreground">{NO_REASON}</p>
 						{/if}
-					{/if}
-				</div>
-			{/if}
+					</div>
+				{/if}
 
-			{#if apariencia === "accion"}
-				<!-- En la fila del hero el control es **una acción más**: se dibuja como sus hermanos y la
-				     explicación no ocupa lugar, va al tooltip. -->
-				<button
-					type="button"
-					onclick={handleRequest}
-					disabled={pending !== null}
-					title={CONSEQUENCE}
-					aria-describedby={`${uid}-consecuencia`}
-					class={ACCION_CLASS}
-				>
-					{#if pending === "request"}
-						<LoaderCircle class="size-4 animate-spin" />
-						Enviando…
-					{:else}
-						<Send class="size-4" />
-						{active?.status === "rejected" ? REQUEST_AGAIN_LABEL : REQUEST_LABEL}
-					{/if}
-				</button>
-				<span id={`${uid}-consecuencia`} class="sr-only">{CONSEQUENCE}</span>
-			{:else}
 				<div class="flex flex-col items-start gap-1.5">
 					<Button onclick={handleRequest} disabled={pending !== null}>
 						{#if pending === "request"}
@@ -345,6 +338,6 @@ function retry() {
 					<p class="text-xs text-muted-foreground">{CONSEQUENCE}</p>
 				</div>
 			{/if}
-		{/if}
-	</div>
+		</div>
+	{/if}
 {/if}

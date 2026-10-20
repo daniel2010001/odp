@@ -105,6 +105,20 @@ export interface PublicationRequest {
 	/** Nombre visible de quien decidió, o el token `"unknown"` si el id no resuelve. */
 	approved_by_name?: string | null;
 	comments?: string | null;
+	/**
+	 * Desde la migración 0002 (`odp-docker` PR #34) los dos comentarios viajan separados: la nota de quien
+	 * pidió y el comentario de quien decidió. `comments` se sigue escribiendo como antes (el de la decisión
+	 * pisa al de la solicitud), así que el historial lee estos dos. Las filas viejas los traen en `null`.
+	 */
+	request_comment?: string | null;
+	decision_comment?: string | null;
+	/**
+	 * Quien cerró la solicitud en los cuatro estados finales: aprobó, rechazó, canceló o anuló. El nombre
+	 * sigue la semántica de los otros: sin id → `null`; id irresoluble → `"unknown"`; nunca el id.
+	 * Las cancelaciones anteriores a la 0002 no lo registraron y llegan en `null`, igual que su `decided_at`.
+	 */
+	resolved_by?: string | null;
+	resolved_by_name?: string | null;
 	/** Por qué se anuló, como token del contrato. */
 	motive?: string | null;
 	created_at?: string | null;
@@ -157,6 +171,18 @@ export function createPublicationApi(client: CkanClient) {
 			const params: Record<string, unknown> = {};
 			if (status) params.status = status;
 			return client.get<PublicationRequest[]>("publication_request_list", params);
+		},
+
+		/**
+		 * El historial de un dataset: todas sus solicitudes, la más nueva primero. El orden lo da el
+		 * catálogo (`sort`), no el portal. La visibilidad es la de `list`: quien no administra ni edita la
+		 * organización recibe sólo las suyas, o ninguna.
+		 */
+		async history(datasetId: string): Promise<PublicationRequest[]> {
+			return client.get<PublicationRequest[]>("publication_request_list", {
+				dataset_id: datasetId,
+				sort: "created_at desc",
+			});
 		},
 	};
 }

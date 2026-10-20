@@ -2,6 +2,7 @@
 import { Area, AreaChart, BarChart, Bars, Labels, LinearGradient, PieChart } from "layerchart";
 import { type ChartGroup, type ChartType, groupLabels, type XBucket } from "$lib/charts/contract";
 import { formatChartNumber } from "$lib/charts/format";
+import { legendLayout } from "$lib/charts/legend";
 import { formatCompactNumber, valueLabelsFit } from "$lib/charts/value-labels";
 import {
 	fitLabel,
@@ -226,6 +227,17 @@ const pieData = $derived(
 	})),
 );
 
+// La leyenda del pastel: en una fila dentro de la biblioteca si cabe; si no, una lista propia debajo que se parte
+// en renglones (S20: la fila de la biblioteca no se parte y se salía del gráfico por los dos lados).
+const showLegend = $derived(points.length <= MAX_LEGEND);
+const stackedLegend = $derived(
+	showLegend &&
+		legendLayout(
+			pieData.map((d) => d.label),
+			chartWidth,
+		) === "stacked",
+);
+
 const name = $derived(
 	chartType === "pie"
 		? `Gráfico de pastel: ${yLabel} por ${xLabel}. Total: ${totalLabel}`
@@ -336,7 +348,7 @@ const name = $derived(
 					label="label"
 					value="value"
 					c="color"
-					legend={points.length <= MAX_LEGEND}
+					legend={showLegend && !stackedLegend}
 					innerRadius={0.62}
 					cornerRadius={4}
 					padAngle={0.01}
@@ -351,7 +363,7 @@ const name = $derived(
 			     mismo número viaja en la etiqueta del gráfico y en la tabla está el detalle. -->
 			<div
 				class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center {points.length <=
-				MAX_LEGEND
+				MAX_LEGEND && !stackedLegend
 					? 'pb-8'
 					: ''}"
 				aria-hidden="true"
@@ -361,6 +373,17 @@ const name = $derived(
 			</div>
 		{/if}
 	</div>
+
+	{#if chartType === "pie" && stackedLegend}
+		<ul aria-label="Leyenda" class="flex min-w-0 flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-foreground">
+			{#each pieData as d (d.key)}
+				<li class="flex min-w-0 max-w-full items-center gap-1">
+					<span class="size-4 shrink-0 rounded-full" style:background-color={d.color} aria-hidden="true"></span>
+					<span class="truncate" title={d.label}>{d.label}</span>
+				</li>
+			{/each}
+		</ul>
+	{/if}
 
 	{#if showTable}
 		<details class="text-sm">

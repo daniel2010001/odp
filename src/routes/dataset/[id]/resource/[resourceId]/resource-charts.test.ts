@@ -2,7 +2,7 @@
 // cada gráfico (versión desconocida, borrado con confirmación, números) lo fija `ResourceCharts.test.ts`; acá
 // se mide lo que sólo la página decide: cuándo aparece la sección y a quién se le ofrecen las acciones.
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "$app/stores";
 import type { ChartView } from "$lib/api/charts";
@@ -164,6 +164,42 @@ describe("Página de recurso — gráficos", () => {
 		expect(await screen.findByRole("link", { name: /Editar el gráfico/ })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /Eliminar el gráfico/ })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /^Insertar el gráfico/ })).toBeInTheDocument();
+	});
+
+	// Banda C (T13, L30/L42): todas las acciones miden 44 px y comparten forma; la descarga conserva el coral. Bajo
+	// 32 rem de la banda «Crear gráfico» pasa a «Más acciones» (jsdom no aplica Tailwind: contrato de clases).
+	it("la banda es C: descarga coral y «Crear gráfico» de 44 px, y bajo 32 rem «Crear gráfico» pasa a «Más acciones»", async () => {
+		auth.setUser(user);
+		render(ResourcePage);
+
+		const download = await screen.findByRole("link", { name: "Descargar recurso" });
+		const create = await screen.findByRole("link", { name: /Crear gráfico/ });
+		for (const action of [download, create]) {
+			expect(action.className).toContain("h-11");
+			expect(action.className).not.toContain("h-9");
+			expect(action.className).toContain("rounded-lg");
+		}
+		expect(download.className).toContain("bg-destructive");
+		expect(create.className).not.toContain("bg-destructive");
+		// En la fila sólo desde @lg; bajo ese ancho vive en el menú.
+		expect(create.className).toContain("hidden");
+		expect(create.className).toContain("@lg:inline-flex");
+
+		const more = screen.getByRole("button", { name: "Más acciones" });
+		expect(more.className).toContain("size-11");
+		expect(more.className).toContain("@[32rem]:hidden");
+		await fireEvent.click(more);
+		const item = await within(await screen.findByRole("menu")).findByRole("link", {
+			name: "Crear gráfico",
+		});
+		expect(item).toHaveAttribute("href", "/dataset/planilla/resource/res-1/charts/new");
+	});
+
+	it("sin permiso para crear gráficos no hay «Más acciones»: la descarga va sola", async () => {
+		render(ResourcePage);
+
+		await screen.findByRole("link", { name: "Descargar recurso" });
+		expect(screen.queryByRole("button", { name: "Más acciones" })).toBeNull();
 	});
 
 	it("«Copiar enlace del recurso» sigue donde estaba, junto al título", async () => {

@@ -2732,12 +2732,28 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1 — producto usable en producción
 
+- [ ] **[v1] Formularios de issues del repositorio** (autor, 2026-10-20, L47: «anota lo de crear un form para las issues
+  para v1»): el repo no tenía ninguno; para el issue de XLoader se agrega uno mínimo, y en v1 se diseñan los formularios
+  completos (error, mejora, pregunta).
+
+- [ ] **[v1]** `TODO:` **Revisar el responsive de todas las páginas** (autor, 2026-10-20, L45 de `odd/tasks/v0.1.1-polish.md`,
+  textual: «TODO: revisar el responsive de todas las pages, esto puede ser compicado, pero dejemoslo fuera por ahora»). Una
+  pasada por página a 375/768/1024 px. Ya conocido: las pestañas de gráficos del recurso se apilan una por línea en móvil
+  (`ResourceCharts.svelte:191`); el autor aceptó un selector desplegable en móvil para ellas.
+- [ ] **[demo] Los ítems grandes se mencionan en la presentación como «lo que viene»** (autor, 2026-10-20, L45: «lso grandes
+  anota para la mencionar en la demo»): normalización del DataStore, revisión de seguridad integral, roles, DCAT, módulo de
+  análisis de CSV, colecciones, versionado, auditoría; más audio/video y la gestión de organizaciones (`[v1]`). El guion vive
+  en `presentation/demo.md`.
+
 - [ ] **Editar un recurso existente desde la edición del dataset** (tier por decidir; señalado por el autor el
   2026-10-17, en `odd/tasks/csv-charts.md` L20 y L21). Según el autor, hoy el formulario de edición sólo permite crear
   recursos, no cambiar uno existente (archivo, nombre, formato). **Falta medirlo** antes de decidir: qué hace hoy
   `DatasetForm` en modo edición con los recursos ya guardados, y si `resource_update` tiene algún llamador. El
   `PRD.md` §3 pone en `v0` «la creación de un dataset con recursos (archivos y enlaces) y su edición»: hay que ver si
   esa «edición» incluye los recursos.
+  **(2026-10-20, L47): no entra en la demo; se menciona.** Medido: el formulario de edición oculta los recursos
+  (`DatasetForm.svelte` ~971) y `resource_update` no tiene llamador; el PRD §3 y §9 lo piden. Unas horas sólo metadatos,
+  ≥ 1 día con reemplazo de archivo.
 
 - [ ] **[v1] Evaluar un cargador del DataStore que normalice valores** (pedido del autor, 2026-10-17, en
   `odd/tasks/csv-charts.md` L14; ampliado el mismo día). **Estado: nada hecho todavía, ni medido.** Lo verificado en las
@@ -2892,6 +2908,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
     dibujado por el portal (Leaflet o MapLibre), igual que los gráficos.
   - **`ckanext-charts`:** descartado. Dibuja dentro de CKAN, toma las primeras N filas sin `GROUP BY`, exige
     `scheming`, no declara soporte para la 2.12 y es AGPL.
+  **(2026-10-20, L45): audio y video quedan en `[v1]` y se mencionan en la presentación como lo que viene.**
 
 - [ ] **[v1] Antes de desplegar, revisar las versiones de todos los servicios** (decisión del autor, 2026-10-17): se
   comparan las actuales con las nuevas y se decide qué entra. **Línea base medida el 2026-10-17** (es una referencia,
@@ -2915,6 +2932,12 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   `$env/dynamic/private`. Un alias en `vitest.config.ts`, o una prueba contra el portal levantado (curl a `/`, `/nope` y
   `/embed/charts/x`), cerraría el hueco. Aparte, `+layout.server.ts` sigue mandando `sessionUser` a `/embed`. Nada lo
   dibuja y un sitio de otro origen no lo puede leer, pero sobra.
+  **Medido (2026-10-20, L46–L47 de `odd/tasks/v0.1.1-polish.md`):** desde una página HTML plana servida en otro origen,
+  `/embed/charts/<id>` **carga y dibuja el gráfico** (en dev la primera carga tarda unos segundos, compila la ruta) y la ficha
+  del dataset queda **bloqueada** por `frame-ancestors 'self'`, como debe. Sólo anónimo: un dataset privado no se ve
+  incrustado. Con un `iframe` de 480 px de alto el gráfico muestra scroll interno: revisar el alto que sugiere «Insertar».
+  `static/` no tiene nada sensible. **Decisión del autor (L47):** para luego —antes de la demo si entra, en la próxima sesión—;
+  mientras tanto el `iframe` se **menciona** en la presentación y no se muestra.
 
 - [ ] **[v1] Revisión de seguridad integral del portal (pedido del autor, 2026-10-07).** Una pasada
   dedicada sobre la superficie del portal y su frontera con CKAN — **no** un ítem por síntoma. Es un
@@ -2998,6 +3021,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   (`revokePreviousTokens`, deja **uno** por usuario) y el token vence a las 24 h. Arreglo probable: mandar el
   propio JWT en `Authorization` (un token puede revocarse a sí mismo) y **verificar listando**, no por el
   `success`. No hace falta borrar los tokens vivos a mano: vencen solos.
+  **Arreglo mínimo hecho (2026-10-20, `897bca8`, S25):** la revocación ahora se autentica con el mismo token. Falta la
+  confirmación en vivo (listar los tokens del usuario antes y después de cerrar sesión), que necesita credenciales.
 
 - [ ] **[doc] Para la documentación de usuario: qué se abre y qué se descarga** (pedido del autor,
   2026-10-16). Desde el endurecimiento del token los archivos de un recurso salen por el portal
@@ -3078,6 +3103,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v1] Gestión de organizaciones en el portal** — CRUD de organizaciones
   (`organization_create` / `organization_update`) y de miembros
   (`organization_member_create`). _Referencias: PRD RF-06 a RF-08._
+  **(2026-10-20, L45): queda en `[v1]` y se menciona en la presentación como lo que viene.**
 
 - [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
   entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su
@@ -3130,6 +3156,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v1] Arrastrar y soltar para subir archivos: diferido** — la zona de arrastre está dibujada
   pero **no funciona** (el playground es estático). El usuario decidió dejarlo para después: es
   comportamiento nuevo y no quiere mezclarlo con los ajustes menores.
+  **Re-tier (2026-10-20, L45): `[v1]` → `[v1+]`.**
 
 - [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
   **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
@@ -3179,6 +3206,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   **Estado medido (2026-09-30): VIVO.** `src/routes/organization/[id]/+page.svelte` es encabezado + lista de `DatasetCard`
   sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
   **Frena en la decisión del autor: el alcance.**
+  **(2026-10-20, L45): no se toca hasta la feature de organizaciones.**
 
 - [ ] **[v1]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
@@ -3236,6 +3264,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   implementación. **Cuándo:** después de los gráficos de la demo. Se cruza con el ítem anterior: si la tabla pagina,
   su alto queda acotado por la página y ya no crece con las filas.
   **Tier (2026-10-19, autor):** queda fuera de `v0.1.1` (`odd/tasks/v0.1.1-polish.md` L4); se propone para `v1`, porque cambia RF-31.
+  **(2026-10-20, L47): no entra en la demo; se menciona como no implementado.** Medido: `datastore.ts` ya acepta
+  `offset`/`total`; hace falta `sort: "_id"` para páginas estables.
 
 
 
@@ -3420,6 +3450,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   **Lo que se vuelve caro:** si algún día hay **edición** de recursos, el orden deja de ser gratis — hay que
   persistir `position` con un `resource_update` por recurso. Hoy no hay edición: `resourceUpdate` existe en
   `src/lib/api/resources.ts` y **no tiene llamadores**.
+  **(2026-10-20, L47): no entra en la demo.** Medido: no hay control; `package_resource_reorder` no está en la lista del
+  proxy.
 
 - [ ] **[v1+]** `TODO:` **Los 11 diagnósticos de Biome: 4 son falsos positivos que NO hay que aplicar, 7 son cosméticos.**
   Medido el 2026-09-23 con el binario directo sobre el árbol actual: `Checked 135 files · 4 warnings · 7 infos`,
@@ -3468,6 +3500,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
   medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
   Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
+  **La promesa: resuelta (2026-10-20, `b0fdc17`, S25):** `validateStoredSession` ya no rechaza si cerrar la sesión del
+  servidor falla. Queda abierto sólo el límite declarado de los avisos informativos.
 
 - [ ] **[v1+] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
   quede en "no se implementará", me refiero a que si alcansamos podemos probar hacerlo, pero no es bloqueantes, es más
@@ -3478,6 +3512,9 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   `previewKind`; (b) un mapa dibujado por el portal (Leaflet o MapLibre), como el `geoview` de la recomendación del
   2026-10-17. El seed ya declara `mimetype: application/geo+json` (#98). No bloquea nada.
   **Tier (2026-10-19, autor): «v1+».**
+  **Re-tier (2026-10-20, L45 de `odd/tasks/v0.1.1-polish.md`): `[v2+]`, o `[v1+]` si la medición dice que la opción de texto es pequeña; volver a preguntar al autor antes de v1.**
+  **Re-tier (2026-10-20, L47, reemplaza el de L45): `[v1]` o `[v1+]` — no es un requerimiento fuerte.** Medido: la opción
+  de texto es una línea en `preview.ts` más servirlo `inline` como `text/plain`; hay que recortar archivos grandes.
 
 ## v2+ — mejoras futuras no solicitadas
 
@@ -4713,6 +4750,21 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   aviso `R3-1` de E2: esa medición es **una sola vez**, al montar. _Origen: revisión RDD
   `review-1c90076e8986652c`, hallazgo advisory `R3-001` (el texto no se pudo recuperar: el ledger se
   borra al cerrar la línea), 2026-09-12; mitad del desfase cerrada el 2026-09-24._
+  **Medido por la sesión homelab (2026-10-20, a pedido del autor, L45 de `odd/tasks/v0.1.1-polish.md`):** en la máquina
+  hay Playwright sólo como **CLI global** (wrapper de mise, 1.64.1) y `playwright-cli` (npx, versión del día); **no** hay
+  navegadores propios de Playwright instalados (`~/.cache/ms-playwright` vacío), **ni** servicio de navegador (browserless,
+  contenedor, endpoint CDP fijo), **ni** runner de CI. Sí hay `/usr/bin/chromium` 154. Recomendación de homelab: agregar
+  `@playwright/test` como devDependency **pineada** y (a) lanzar el Chromium del sistema con `executablePath` (sin
+  descargas, sin garantía oficial de versión) o (b) `pnpm exec playwright install chromium`. **Decisión del autor:** la
+  dependencia nueva y la opción (a)/(b).
+  **(2026-10-20, L47): el autor eligió la opción (b) y se la pidió a la sesión homelab. Pendiente hasta que homelab
+  responda; después se agrega `@playwright/test` pineado.**
+  **Homelab lo dejó listo (2026-10-20):** en `~/.cache/ms-playwright` están los navegadores de **Playwright 1.64.1**
+  (chromium-1248 = Chrome for Testing 156.0.8078.4 y su headless shell; 681 MB), sin `install-deps` y con 0 librerías
+  faltantes. Prueba de humo: `@playwright/test@1.64.1` arranca con la configuración por defecto y mide `scrollY`/`sticky`
+  bien. **Para usarlo:** `"@playwright/test": "1.64.1"` **exacto** en `devDependencies` (otra versión busca otra revisión y
+  falla con «Executable doesn't exist»); sin `executablePath` ni `channel`. Al subir de versión: `pnpm exec playwright install
+  chromium`. Sólo tests locales: no hay runner de CI.
 
 - [ ] **[v1] Re-evaluar el contenido del dashboard antes de v1** — hoy muestra acciones, "Mis
   datasets" y "Mis organizaciones". Antes de v1 hay que volver a evaluar qué más corresponde (y qué

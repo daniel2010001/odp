@@ -60,7 +60,13 @@ export async function validateStoredSession(client: CkanClient): Promise<Session
 	if (check.state === "dead" && get(auth).user?.id === sondeado.id) {
 		auth.logout();
 		// Sin esto la cookie seguiría abriendo y la próxima carga mostraría otra vez la sesión muerta.
-		await logoutServerSession();
+		// Best-effort: el encabezado llama a esta función con `void`, así que un fallo acá sería un rechazo
+		// sin manejar en la consola; la sesión local ya quedó cerrada y la próxima carga reintenta.
+		try {
+			await logoutServerSession();
+		} catch {
+			// se ignora: ver arriba.
+		}
 	}
 	return check;
 }

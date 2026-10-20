@@ -237,6 +237,22 @@ describe("validateStoredSession — el veredicto vale para la sesión que se son
 		expect(logoutServerSession).toHaveBeenCalledTimes(1);
 	});
 
+	it("si cerrar la sesión del servidor falla, la sonda no rechaza: el encabezado la llama con `void`", async () => {
+		// `+layout.svelte` hace `void validateStoredSession(...)`: un rechazo acá sería un «Uncaught (in
+		// promise)» en la consola de cualquier página. La sesión local ya quedó cerrada; lo del servidor es
+		// best-effort (S25 de `odd/tasks/v0.1.1-polish.md`).
+		vi.mocked(logoutServerSession).mockRejectedValueOnce(new Error("red caída"));
+		const { client } = stubClient(async (action: string) => {
+			if (action === "user_show") throw new CkanApiError("Not Found", 404);
+			return {};
+		});
+		auth.setUser(baseUser);
+
+		await expect(validateStoredSession(client)).resolves.toEqual({ state: "dead" });
+
+		expect(get(isAuthenticated)).toBe(false);
+	});
+
 	it("un `alive` no toca la sesión del servidor", async () => {
 		const { client } = stubClient(async () => baseUser);
 		auth.setUser(baseUser);

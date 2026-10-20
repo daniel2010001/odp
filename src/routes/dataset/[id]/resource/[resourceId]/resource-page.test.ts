@@ -741,7 +741,8 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		const action = await screen.findByRole("link", { name: /Abrir enlace|Descargar recurso/i });
 		const heading = screen.getByRole("heading", { level: 1, name: /Matrícula 2026/i });
 
-		const band = action.parentElement as HTMLElement | null;
+		// La banda es el padre de las acciones (descarga, «Crear gráfico», «Más acciones») y del salto.
+		const band = action.parentElement?.parentElement as HTMLElement | null;
 		const titleRow = heading.parentElement as HTMLElement | null;
 		expect(band).not.toBeNull();
 		expect(titleRow).not.toBeNull();
@@ -791,7 +792,7 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 		expect(trigger).toHaveTextContent("Recurso 2 de 3");
 		const order = Array.from(band.children);
 		expect(order.indexOf(trigger.closest("div") as HTMLElement)).toBeGreaterThan(
-			order.indexOf(action),
+			order.indexOf(action.parentElement as HTMLElement),
 		);
 		expect(
 			within(band).getByRole("link", { name: "Recurso anterior: Flujos vehiculares 2019" }),
@@ -812,12 +813,13 @@ describe("Página de recurso — el salto secuencial en la banda de la acción (
 
 		expect(action.classList).toContain("h-11");
 		expect(action.classList).not.toContain("h-9");
-		expect(action.classList).toContain("w-full");
-		expect(action.classList).toContain("@lg:w-auto");
-		// «recurso» sólo se oculta a la vista (según el contenedor), nunca del árbol de accesibilidad.
+		// Ocupa el sobrante de la fila bajo `@lg` y se ajusta a su contenido desde ahí.
+		expect(action.classList).toContain("flex-1");
+		expect(action.classList).toContain("@lg:flex-none");
+		// «recurso» sólo se oculta a la vista (según el contenedor, desde 24 rem), nunca del árbol de accesibilidad.
 		const extra = within(action).getByText("recurso");
-		expect(extra.className).toContain("sr-only");
-		expect(extra.className).toContain("@sm:not-sr-only");
+		expect(extra.className).toContain("hidden");
+		expect(extra.className).toContain("@[24rem]:inline");
 		expect(action).toHaveAccessibleName("Descargar recurso");
 	});
 
@@ -1094,7 +1096,9 @@ describe("Página de recurso — foco de la vista previa", () => {
 		const card = document.getElementById("vista-previa");
 		expect(card).not.toBeNull();
 		expect(card?.getAttribute("tabindex")).toBe("-1");
-		expect(card?.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
+		expect(card?.className).toContain(
+			"scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]",
+		);
 		expect(card?.querySelector("iframe")).not.toBeNull();
 	});
 

@@ -8,7 +8,7 @@
 // «[0, 5000)».
 
 import { render, screen, within } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { ChartGroup } from "$lib/charts/contract";
 import ResourceChart from "./ResourceChart.svelte";
 
@@ -171,5 +171,92 @@ describe("ResourceChart — los rótulos del eje X sin ancho medido", () => {
 			.map((text) => text.textContent?.trim() ?? "")
 			.filter((text) => text.startsWith("Facultad"));
 		expect(labels).toEqual([1, 3, 5, 7, 9, 11].map((n) => `Facultad ${n}`));
+	});
+});
+
+describe("ResourceChart — la leyenda de la dona en un contenedor angosto (S20)", () => {
+	// jsdom no mide el layout: este ResizeObserver entrega el ancho que se le pida, que es lo que lee
+	// `bind:clientWidth`. La medición real (375/414/768 px) está en Chromium.
+	const TYPES: ChartGroup[] = [
+		"Artículo científico",
+		"Capítulo de libro",
+		"Informe técnico",
+		"Libro",
+		"Patente",
+		"Tesis de doctorado",
+		"Tesis de maestría",
+		"Ponencia en congreso",
+	].map((key, i) => ({ key, value: 10 + i }));
+
+	function renderPie(width: number) {
+		Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+			configurable: true,
+			get: () => width,
+		});
+		Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+			configurable: true,
+			get: () => 320,
+		});
+		globalThis.ResizeObserver = class {
+			constructor(private cb: ResizeObserverCallback) {}
+			observe(target: Element) {
+				const box = { inlineSize: width, blockSize: 320 };
+				this.cb(
+					[
+						{
+							target,
+							contentRect: { width, height: 320 },
+							borderBoxSize: [box],
+							contentBoxSize: [box],
+						} as unknown as ResizeObserverEntry,
+					],
+					this as unknown as ResizeObserver,
+				);
+			}
+			unobserve() {}
+			disconnect() {}
+		} as unknown as typeof ResizeObserver;
+		return render(ResourceChart, {
+			props: {
+				groups: TYPES,
+				chartType: "pie",
+				bucket: "value",
+				xLabel: "tipo",
+				yLabel: "Cantidad",
+			},
+		});
+	}
+
+	const Original = globalThis.ResizeObserver;
+	afterEach(() => {
+		globalThis.ResizeObserver = Original;
+		delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+		delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight;
+	});
+
+	it("en un contenedor ancho no hay lista propia: la leyenda sigue siendo la de la biblioteca, en una fila", () => {
+		// jsdom no llega a pintar la leyenda de la biblioteca; que se vea igual que antes lo mide Chromium.
+		renderPie(1400);
+
+		expect(screen.queryByRole("list", { name: "Leyenda" })).toBeNull();
+	});
+
+	it("en uno angosto la leyenda de la biblioteca no se pinta y pasa a una lista debajo, con todos los rótulos", () => {
+		renderPie(343);
+
+		expect(document.querySelector(".lc-legend-container")).toBeNull();
+		const legend = screen.getByRole("list", { name: "Leyenda" });
+		expect(within(legend).getAllByRole("listitem")).toHaveLength(8);
+		expect(within(legend).getByText("Ponencia en congreso")).toHaveAttribute(
+			"title",
+			"Ponencia en congreso",
+		);
+	});
+
+	it("la lista se parte en renglones y no se sale del contenedor", () => {
+		renderPie(343);
+
+		const legend = screen.getByRole("list", { name: "Leyenda" });
+		expect(legend).toHaveClass("flex-wrap", "min-w-0");
 	});
 });

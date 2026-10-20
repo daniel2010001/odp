@@ -208,6 +208,25 @@ describe("Alto del encabezado: una sola fuente", () => {
 		}
 	});
 
+	it("todos los pegados y los destinos de salto comparten el aire de 12 px (`--sticky-air`)", () => {
+		// Decisión del autor (L37 de `odd/tasks/v0.1.1-polish.md`): «12 de forma global». Cada superficie
+		// había inventado el suyo (1rem, 17px, pt-2); un literal nuevo vuelve a separarlas sin que nadie lo vea.
+		const surfaces = [
+			"search/+page.svelte",
+			"dataset/[id]/+page.svelte",
+			"dataset/[id]/resource/[resourceId]/+page.svelte",
+			"../lib/components/datasets/DatasetForm.svelte",
+			"../lib/components/resource/chart/ChartForm.svelte",
+			"../lib/components/dashboard/ActionBar.svelte",
+		] as const;
+
+		for (const file of surfaces) {
+			const text = source(file);
+			expect(text, file).toContain("var(--sticky-air)");
+			expect(text, file).not.toMatch(/var\(--header-h\)\+(1rem|17px)\)/);
+		}
+	});
+
 	it("los literales que causaban la desincronización ya no están", () => {
 		expect(source("search/+page.svelte")).not.toContain("top-[81px]");
 		expect(source("dashboard/+page.svelte")).not.toMatch(/const\s+HEADER_PX\b/);

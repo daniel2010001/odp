@@ -136,6 +136,34 @@ describe("createPublicationApi — listar", () => {
 
 		expect(get).toHaveBeenCalledWith("publication_request_list", {});
 	});
+
+	it("el historial de un dataset: GET con `dataset_id` y el orden más nuevo primero, que decide el catálogo", async () => {
+		// Contrato de la migración 0002 (`odp-docker` PR #34, regla 11 de `PUBLICATION-ACTIONS.md`): la lista
+		// acepta `dataset_id` (id o name) y `sort` ∈ {"created_at asc", "created_at desc"}. El portal pide el
+		// orden en vez de reordenar: una sola fuente para «la más nueva arriba».
+		const filas = [
+			makeRow({
+				id: "req-2",
+				status: "approved",
+				request_comment: "Listo para publicar.",
+				decision_comment: null,
+				resolved_by: "user-9",
+				resolved_by_name: "admin.tecnologia",
+				decided_at: "2026-10-15T18:30:06",
+			}),
+			makeRow({ id: "req-1", status: "cancelled", resolved_by: null, resolved_by_name: null }),
+		];
+		const { client, get, post } = makeClient({ publication_request_list: filas });
+
+		const devueltas = await createPublicationApi(client).history("pkg-1");
+
+		expect(get).toHaveBeenCalledWith("publication_request_list", {
+			dataset_id: "pkg-1",
+			sort: "created_at desc",
+		});
+		expect(post).not.toHaveBeenCalled();
+		expect(devueltas).toEqual(filas);
+	});
 });
 
 describe("createPublicationApi — lo que un fallo trae", () => {
