@@ -2732,6 +2732,27 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1 — producto usable en producción
 
+- [ ] **[v0.1.1/v1] Auditoría de colores fijos y mapas a mano (2026-10-20, pregunta del autor en L53: «qué otros ítems también
+  nos estamos perdiendo?»).** Lo encontrado, por visibilidad (`odd/tasks/v0.1.1-polish.md` L54):
+  - **Mapa de formato duplicado:** `DatasetCard.svelte` `FORMAT_ACCENT` (paleta Tailwind cruda, otro color por formato que
+    la ficha). **En curso (S31):** pasa a `format-visual.ts`.
+  - **Sin token de «éxito»:** `emerald` crudo en `CopyButton.svelte:105`, la cita copiada (`dataset/[id]/+page.svelte:851`),
+    la insignia «Activo» del recurso (`resource/[resourceId]/+page.svelte:581`), «Aprobada» en `RequestHistory.svelte:35` y
+    el asistente (`DatasetForm.svelte` 1266/1268/1302/1488). **Decisión del autor:** crear un token de éxito en `app.css` y su
+    rol en el README del sistema de diseño.
+  - `Pagination.svelte:72` usa `text-white` (debe ser `text-primary-foreground`, con contraste medido).
+  - **Licencias, dos tablas** en `licenses.ts` (`LICENSE_LABELS` y `CURATED_LICENSE_LABELS`): el filtro del buscador muestra
+    «Odc-pddl» y el formulario «PDDL — Dominio Público»; la ficha usa `license_title` crudo (`datasets/details.ts:20`) y el
+    formulario cae al título de CKAN si el id no está curado. Unificar en una tabla y una función.
+  - **Etiquetas de estado en tres copias** (`details.ts:17`, la ficha `:455`, el recurso `:273`); un estado desconocido
+    desaparece en silencio.
+  - **`RequestHistory.svelte:28` indexa `ESTADOS[r.status]` sin fallback**: un estado fuera del contrato rompe la tarjeta;
+    debe usar el helper exhaustivo de `copy/publication.ts`.
+  - **Copy de error del catálogo en tres variantes** (`embed/charts/[viewId]/+page.svelte:95`, `search/+page.svelte:237`,
+    `api/failure.ts:155`): usar el presentador de `failure.ts`.
+  - A revisar: `DatasetCard` usa `text-destructive` (coral, color de error) para la organización y «· Privado».
+  - Sin hallazgos: hex/oklch fuera de `app.css` (sólo `ThemePlayground`, dev), emojis (sólo `ThemePlayground`), voseo.
+
 - [ ] **[v2+] Vista previa de PDF dibujada por el portal (PDF.js)** (autor, 2026-10-20, L53: «anota como v2+, con lo que tenemos
   basta, pero sería una buena forma de "sobresalir" de otras plataformas, volvamos a preguntar para v1 o v1+»). Hoy el PDF lo
   dibuja el visor del navegador; un diseño propio exige `pdfjs-dist` (dependencia de varios MB con worker) y rehacer buscar e
