@@ -43,6 +43,12 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   guardrail de diseño—; cuando el portal es **más chico sin motivo** —el tope de 50 MB contra los 100 de CKAN— **se
 >   toma el de CKAN**. Vale para topes de tamaño, longitudes de campos, ítems por página y cualquier constante con pinta
 >   de arbitraria — y `PRD.md` §7 ya tiene medidos los límites reales de CKAN.
+> - **Comentario de la decisión de una solicitud (Aprobar/Rechazar): 1000 caracteres** (decisión del autor, 2026-10-19,
+>   textual: «1000 creo que es más que suficiente, aprobado, documenta también esto para no olvidarlo, quizás este máx lo
+>   usemos en otras audits»). Antes no tenía tope en ningún lado: ni el portal (`PublicationDecision.svelte`) ni un
+>   registro del lado del catálogo. Es el mismo número que la descripción de un recurso (`MAX_RESOURCE_DESCRIPTION_LENGTH`).
+>   **Queda por medir** si el store de solicitudes de `odp-docker` impone su propio tope de columna; si es menor, manda el
+>   del store (regla de arriba). Candidato a reusarse en otros textos libres de auditoría (comentarios, motivos).
 
 ## Requerimientos del PRD sin ítem propio — registro (2026-10-09)
 

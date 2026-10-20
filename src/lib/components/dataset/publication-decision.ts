@@ -49,3 +49,9 @@ export type DecidePublicationRequest = (
 	approve: boolean,
 	comments?: string,
 ) => Promise<PublicationDecisionResult>;
+
+/**
+ * Tope del comentario de una decisión, **en caracteres del texto recortado** —lo que se envía—. Es de UX
+ * del portal, no de CKAN, y está acá para que otros textos de auditoría usen el mismo número.
+ */
+export const MAX_DECISION_COMMENT_LENGTH = 1000;

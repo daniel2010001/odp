@@ -33,6 +33,7 @@ import Button from "$lib/components/ui/button/button.svelte";
 import { currentUser as currentUserStore } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
 import { cn } from "$lib/utils";
+import { MAX_DECISION_COMMENT_LENGTH } from "./publication-decision";
 
 const COMMENT_LABEL = "Comentario (obligatorio para rechazar)";
 const COMMENT_PLACEHOLDER = "Escriba el motivo del rechazo. Es opcional al aprobar.";
@@ -42,6 +43,7 @@ const SELF_APPROVAL = "No puede aprobar su propia solicitud.";
 const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
 const REFUSED_DECIDE =
 	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
+const COMMENT_TOO_LONG = `El comentario no puede superar los ${MAX_DECISION_COMMENT_LENGTH} caracteres.`;
 const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
 // La frase que el usuario lee cuando el fallo al decidir no es de autorización. Es **nuestra**: el dato
 // técnico va detrás, como dato secundario.
@@ -110,12 +112,23 @@ const decidable = $derived(item.decidable_by_caller === true);
  */
 const blocked = $derived(isOwn && !decidable);
 
+// El tope cuenta el texto **recortado**, que es el que se envía: los espacios de los bordes no suman.
+const commentLength = $derived(comment.trim().length);
+const overLimit = $derived(commentLength > MAX_DECISION_COMMENT_LENGTH);
+
+/** Estado del contador «X/Y», igual que en los formularios: neutro, aviso desde el 80% y error al pasarse. */
+const counterState = $derived(
+	overLimit ? "error" : commentLength >= MAX_DECISION_COMMENT_LENGTH * 0.8 ? "aviso" : "neutro",
+);
+
 async function decideOn(approve: boolean) {
 	// Cuatro ojos, con su excepción: la propia no se decide salvo que el catálogo la haya concedido, ni
 	// siquiera si el botón llegara a existir.
 	if (pending || blocked) return;
 
 	const comentario = comment.trim();
+	// Pasarse del tope no se envía: el campo ya muestra el error y el contador en rojo.
+	if (comentario.length > MAX_DECISION_COMMENT_LENGTH) return;
 	if (!approve && !comentario) {
 		// Rechazar exige un motivo: se dice acá y no se envía la decisión al catálogo.
 		outcome = { kind: "reason-required", message: REASON_REQUIRED };
@@ -185,17 +198,38 @@ async function decideOn(approve: boolean) {
 		<span>{SELF_APPROVAL}</span>
 	</div>
 {:else}
-	<label for={`comentario-${uid}`} class="mt-3 block text-xs font-medium text-muted-foreground">
-		{COMMENT_LABEL}
-	</label>
+	<div class="mt-3 flex items-baseline justify-between gap-2">
+		<label for={`comentario-${uid}`} class="block text-xs font-medium text-muted-foreground">
+			{COMMENT_LABEL}
+		</label>
+		<span
+			id={`comentario-${uid}-count`}
+			aria-live="polite"
+			class={cn(
+				"shrink-0 text-[11px] font-normal tabular-nums",
+				counterState === "error"
+					? "font-semibold text-destructive"
+					: counterState === "aviso"
+						? "text-destructive/70"
+						: "text-muted-foreground",
+			)}
+		>
+			{commentLength}/{MAX_DECISION_COMMENT_LENGTH}
+		</span>
+	</div>
 	<textarea
 		id={`comentario-${uid}`}
 		rows="2"
 		placeholder={COMMENT_PLACEHOLDER}
 		value={comment}
+		aria-invalid={overLimit ? "true" : undefined}
+		aria-describedby={overLimit ? `comentario-${uid}-count comentario-${uid}-error` : `comentario-${uid}-count`}
 		oninput={(event) => (comment = event.currentTarget.value)}
 		class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 	></textarea>
+	{#if overLimit}
+		<p id={`comentario-${uid}-error`} class="mt-1 text-xs text-destructive">{COMMENT_TOO_LONG}</p>
+	{/if}
 
 	{#if outcome}
 		<div
