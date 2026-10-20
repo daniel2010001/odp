@@ -807,6 +807,21 @@ describe("Acciones del panel (T18)", () => {
 		expect(grilla(container)?.className).toContain("xl:grid-cols-4");
 	});
 
+	it("todas las tarjetas comparten un solo diseño: mismas clases en tarjeta e ícono", async () => {
+		mocks.listForUser.mockResolvedValue([makeOrganization({ id: "o1", capacity: "editor" })]);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		mocks.publicationList.mockResolvedValue([fila()]);
+		auth.setUser(baseUser);
+
+		const { container } = render(Dashboard);
+
+		const grid = await waitForGrid(container);
+		await waitFor(() => expect(grid.querySelectorAll("a")).toHaveLength(2));
+		const [a, b] = Array.from(grid.querySelectorAll("a"));
+		expect(a.className).toBe(b.className);
+		expect(a.firstElementChild?.className).toBe(b.firstElementChild?.className);
+	});
+
 	it("«Revisar solicitudes» aparece para quien puede editar, con su enlace y el estado propio", async () => {
 		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
 		mocks.publicationList.mockResolvedValue([fila()]);

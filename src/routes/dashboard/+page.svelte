@@ -267,7 +267,6 @@ const actions = $derived.by(() => {
 			description: "Cree un dataset y suba sus recursos.",
 			href: "/dashboard/datasets/new",
 			icon: Database,
-			tone: "primary",
 			status:
 				orgsDondeCrear > 0
 					? `Disponible en ${plural(orgsDondeCrear, "organización", "organizaciones")}`
@@ -287,7 +286,6 @@ const actions = $derived.by(() => {
 				: "Consulte el estado de sus solicitudes de publicación.",
 			href: "/dashboard/requests",
 			icon: Inbox,
-			tone: "neutral",
 			status: !filas
 				? undefined
 				: decide
