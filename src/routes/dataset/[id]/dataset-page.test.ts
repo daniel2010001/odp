@@ -555,13 +555,17 @@ function makeCardResource(overrides: Partial<CkanResource> = {}): CkanResource {
 	};
 }
 
-/** Renderiza la página con un único recurso y devuelve su tarjeta ya montada. */
+/**
+ * Renderiza la página con un único recurso y devuelve su fila ya montada. La fila es el ancestro del
+ * enlace a la ficha: el formato es un enlace hermano, no un descendiente de él.
+ */
 async function renderResourceCard(resource: CkanResource): Promise<HTMLElement> {
 	mocks.showDataset.mockResolvedValue(makeDataset({ resources: [resource] }));
 
 	render(DatasetPage);
 
-	return screen.findByRole("link", { name: /Recurso de prueba, detalle del recurso/i });
+	const link = await screen.findByRole("link", { name: /Recurso de prueba, detalle del recurso/i });
+	return link.closest("div.relative") as HTMLElement;
 }
 
 describe("Página de dataset — el tipo de recurso en la tarjeta del listado", () => {
@@ -569,7 +573,7 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 		const card = await renderResourceCard(makeCardResource({ url_type: "upload", format: "CSV" }));
 
 		expect(within(card).getByText("CSV")).toBeTruthy();
-		expect(within(card).queryByText("Enlace")).toBeNull();
+		expect(within(card).queryByText("Enlace externo")).toBeNull();
 	});
 
 	it("un archivo alojado sin formato dice «Archivo» y no el rótulo inglés «FILE»", async () => {
@@ -581,16 +585,12 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 		expect(within(card).queryByText("FILE")).toBeNull();
 	});
 
-	it("un recurso sin `url_type` (referencia externa) muestra «Enlace» y no el chip de formato", async () => {
+	it("un recurso sin `url_type` (referencia externa) dice «Enlace externo» y no enlaza el formato", async () => {
 		const card = await renderResourceCard(makeCardResource({ format: "CSV" }));
 
-		expect(within(card).getByText("Enlace")).toBeTruthy();
+		expect(within(card).getByText("Enlace externo")).toBeTruthy();
 		expect(within(card).queryByText("CSV")).toBeNull();
-
-		// El ícono se fue por decisión del autor: sin él, el chip de enlace deja de ser más grande
-		// que el de formato. Un `svg` acá sería la regresión silenciosa de esa decisión.
-		const linkChip = within(card).getByText("Enlace");
-		expect(linkChip.querySelectorAll("svg").length).toBe(0);
+		expect(within(card).queryByRole("link", { name: /formato/i })).toBeNull();
 	});
 });
 
