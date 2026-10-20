@@ -130,10 +130,22 @@
  * encabezado fijo (`data-header-spacer` en el layout). Si la reserva siguiera a `--header-h`, el
  * contenido se movería 16px en cada cruce y Chromium, al compensarlo cuadro por cuadro, desactivaría el
  * anclaje de desplazamiento (S17 de `odd/tasks/v0.1.1-polish.md`).
+ *
+ * `--header-h-min` es el alto del encabezado ya achicado (el del estado achicado, más abajo: son el
+ * mismo número, y ese estado lo repite en rem porque `layout-header.test.ts` lo lee literal).
+ * Lo usan los pegados que se dimensionan **una sola vez**, sobre el encabezado bajo, para no animar su
+ * alto al achicarse: hoy las facetas del buscador (`calc(100dvh - var(--header-h-min) - 1px - 2 * aire)`).
+ *
+ * `--sticky-air` es el aire entre el borde inferior del encabezado y todo lo que se pega debajo de él
+ * (decisión del autor, 2026-10-20: 12px global). Un pegado se coloca en
+ * `calc(var(--header-h) + 1px + var(--sticky-air))`; el `1px` es el borde del encabezado. Es el único
+ * valor: ningún pegado lleva su propio `1rem`.
  */
 :root {
 	--header-h-max: 5rem;
+	--header-h-min: 4rem;
 	--header-h: var(--header-h-max);
+	--sticky-air: 12px;
 }
 
 /*

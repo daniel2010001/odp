@@ -830,7 +830,7 @@ describe("ChartForm — la disposición: tarjetas separadas, panel a la derecha 
 		const grafico = screen.getByRole("heading", { name: "Vista previa" }).closest("section");
 
 		expect(grafico?.className).toContain("lg:sticky");
-		expect(grafico?.className).toContain("lg:top-[calc(var(--header-h)+1rem)]");
+		expect(grafico?.className).toContain("lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]");
 		expect(grafico?.className).not.toContain("lg:top-6");
 	});
 });

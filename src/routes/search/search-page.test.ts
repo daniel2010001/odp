@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { tick } from "svelte";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -319,7 +321,8 @@ describe("Página de búsqueda — el panel cuando hay filtros aplicados y no ha
 		});
 		// Al desaparecer el chip, el foco no cae a <body>: vuelve al buscador (el panel se fue
 		// porque ya no quedaban filtros ni facetas).
-		expect(document.activeElement).toBe(screen.getByRole("searchbox"));
+		// Hay dos campos —el del hero y el de la barra de resultados—; el foco vuelve al primero.
+		expect(document.activeElement).toBe(screen.getAllByRole("searchbox")[0]);
 	});
 
 	it("mantiene la plantilla de dos columnas cuando el panel se sostiene por los filtros aplicados", async () => {
@@ -774,6 +777,9 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 			// El alto de la barra se mide (`bind:clientHeight`), no se escribe a mano: el margen
 			// se expresa con el token `--header-h` más el valor medido.
 			expect(style).toContain("calc(var(--header-h)");
+			// El aire es el token compartido, no el `1rem` de antes (T17 / S15).
+			expect(style).toContain("var(--sticky-air)");
+			expect(style).not.toContain("1rem");
 		}
 
 		// Dos medidas distintas tienen que producir dos márgenes distintos. Si el alto medido dejara
@@ -782,14 +788,14 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 		medirAltoBarra(68);
 		await waitFor(() => {
 			expect(document.getElementById("pruebe-con")?.getAttribute("style")).toContain(
-				"calc(var(--header-h) + 68px + 1rem)",
+				"calc(var(--header-h) + 1px + 68px + var(--sticky-air))",
 			);
 		});
 
 		medirAltoBarra(100);
 		await waitFor(() => {
 			expect(document.getElementById("pruebe-con")?.getAttribute("style")).toContain(
-				"calc(var(--header-h) + 100px + 1rem)",
+				"calc(var(--header-h) + 1px + 100px + var(--sticky-air))",
 			);
 		});
 	});
@@ -935,5 +941,370 @@ describe("Página de búsqueda — el vacío como una sección con saltos", () =
 		expect(enlace.className).toContain("border");
 		expect(enlace.className).toContain("rounded-lg");
 		expect(enlace.className).not.toContain("hover:underline");
+	});
+});
+
+// ─── Los pegados del buscador (T17 / S15 de `odd/tasks/v0.1.1-polish.md`) ──────────────────────
+// jsdom no tiene layout: no hay media queries ni rectángulos. Se anclan la estructura que garantiza
+// la geometría (tokens, clases, qué elemento vive dónde por estado) y, con `matchMedia` y
+// `getBoundingClientRect` controlados, las decisiones que la página toma a partir de ellos. La
+// medición real (Chromium) queda en el log del expediente.
+describe("Página de búsqueda — los pegados", () => {
+	const css = readFileSync(join(import.meta.dirname, "..", "..", "app.css"), "utf8");
+	const matchMediaOriginal = window.matchMedia;
+	let rectSpy: ReturnType<typeof vi.spyOn> | undefined;
+	let header: HTMLElement | undefined;
+
+	/** Ancho de ventana simulado: `(min-width: Npx)` coincide si N ≤ ancho; `reducido` fija el resto. */
+	function fijarVentana(ancho: number, reducido = false) {
+		window.matchMedia = ((query: string) => {
+			const min = query.match(/min-width:\s*(\d+)px/);
+			const matches = min
+				? Number(min[1]) <= ancho
+				: /prefers-reduced-motion/.test(query) && reducido;
+			return {
+				matches,
+				media: query,
+				onchange: null,
+				addEventListener: () => {},
+				removeEventListener: () => {},
+				addListener: () => {},
+				removeListener: () => {},
+				dispatchEvent: () => false,
+			} as unknown as MediaQueryList;
+		}) as typeof window.matchMedia;
+	}
+
+	/** Rectángulos controlados: el encabezado baja hasta 65 px; la barra y el hero, donde el test diga. */
+	function fijarGeometria({ barTop, heroBottom }: { barTop: number; heroBottom: number }) {
+		header = document.createElement("header");
+		header.setAttribute("data-site-header", "");
+		document.body.append(header);
+		const rect = (top: number, bottom: number, left = 0, right = 1000) =>
+			({
+				top,
+				bottom,
+				left,
+				right,
+				width: right - left,
+				height: bottom - top,
+				x: left,
+				y: top,
+			}) as DOMRect;
+		rectSpy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+			this: Element,
+		) {
+			if (this.matches("[data-site-header]")) return rect(0, 65);
+			if (this.matches("[data-results-bar]")) return rect(barTop, barTop + 68);
+			if (this.matches("[data-hero-search]")) return rect(heroBottom - 56, heroBottom);
+			if (this.matches("[data-results-column]")) return rect(400, 2000, 312, 1000);
+			if (this.matches("aside")) return rect(400, 1000, 32, 312);
+			return rect(0, 0);
+		});
+	}
+
+	async function montarConFacetas() {
+		setUrl("?q=matricula");
+		mocks.search.mockResolvedValue({
+			count: 1,
+			results: [makeDataset()],
+			search_facets: { organization: makeFacet({ title: "Organización" }) },
+		});
+		const view = renderSearch();
+		await screen.findByRole("heading", { name: "Matrícula 2026" });
+		await tick();
+		return view;
+	}
+
+	const barra = () => document.querySelector("[data-results-bar]") as HTMLElement;
+	const fondo = () => document.querySelector("[data-bar-bg]") as HTMLElement;
+	const filete = () => document.querySelector("[data-bar-line]") as HTMLElement;
+	const columna = () => document.querySelector("[data-results-column]") as HTMLElement;
+	const aside = () => document.querySelector("aside") as HTMLElement;
+	const campo = () => document.querySelector("[data-bar-search]") as HTMLElement;
+	// jsdom no implementa `inert`: Svelte lo asigna como propiedad y no se refleja como atributo.
+	const inerte = () => (campo() as HTMLElement & { inert?: boolean }).inert === true;
+
+	async function desplazar() {
+		window.dispatchEvent(new Event("scroll"));
+		await tick();
+	}
+
+	afterEach(() => {
+		window.matchMedia = matchMediaOriginal;
+		rectSpy?.mockRestore();
+		rectSpy = undefined;
+		header?.remove();
+		header = undefined;
+	});
+
+	describe("los tokens", () => {
+		it("el aire es un solo valor global, en :root", () => {
+			const root = (css.match(/:root\s*\{([^}]*)\}/gs) ?? []).join(" ");
+
+			expect(root).toMatch(/--sticky-air\s*:\s*12px/);
+			expect(css.match(/--sticky-air\s*:/g) ?? []).toHaveLength(1);
+		});
+
+		it("el alto bajo del encabezado es un token y vale lo que el estado achicado", () => {
+			const root = (css.match(/:root\s*\{([^}]*)\}/gs) ?? []).join(" ");
+			const shrunk = (css.match(/\[data-header-shrunk\][^{]*\{([^}]*)\}/gs) ?? []).join(" ");
+
+			const min = root.match(/--header-h-min\s*:\s*([\d.]+)rem/);
+			const bajo = shrunk.match(/--header-h\s*:\s*([\d.]+)rem/);
+			expect(min).not.toBeNull();
+			expect(min?.[1]).toBe(bajo?.[1]);
+		});
+	});
+
+	describe("la barra de resultados", () => {
+		it("bajo 1024 px va sobre el bloque de filtros, fuera de la columna de resultados", async () => {
+			fijarVentana(768);
+			await montarConFacetas();
+
+			expect(barra()).not.toBeNull();
+			expect(columna().contains(barra())).toBe(false);
+			expect(
+				barra().compareDocumentPosition(aside()) & Node.DOCUMENT_POSITION_FOLLOWING,
+			).toBeTruthy();
+		});
+
+		it("desde 1024 px vive sólo en la columna de resultados y su fondo llega a los bordes de la ventana", async () => {
+			fijarVentana(1280);
+			await montarConFacetas();
+
+			expect(columna().contains(barra())).toBe(true);
+			expect(document.querySelectorAll("[data-results-bar]")).toHaveLength(1);
+			expect(fondo().getAttribute("style")).toContain("left: calc(-1 * var(--bleed-l");
+			expect(fondo().getAttribute("style")).toContain("right: calc(-1 * var(--bleed-r");
+		});
+
+		it("el fondo es opaco: el contenido que pasa por debajo no se transparenta junto al filete", async () => {
+			fijarVentana(1280);
+			await montarConFacetas();
+
+			// Medido en Chromium (2026-10-20): con `bg-background/95` + `backdrop-blur` el texto de las
+			// tarjetas se veía fantasma sobre el filete inferior de la barra.
+			expect(fondo().className).toContain("bg-background");
+			expect(fondo().className).not.toMatch(/bg-background\/\d+/);
+			expect(fondo().className).not.toContain("backdrop-blur");
+			// El filete es su propia capa, para recortarse justo a la columna (ver el test siguiente).
+			expect(fondo().className).not.toContain("border-b");
+			expect(filete().className).toContain("bg-border");
+		});
+
+		it("nada sobresale de la columna: el filete se recorta justo y el fondo cubre las sombras de las tarjetas", async () => {
+			fijarVentana(1280);
+			fijarGeometria({ barTop: 65, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+
+			// Medido en Chromium (2026-10-20): con el fondo recortado exacto, la sombra de las tarjetas
+			// (`shadow-sm`, 3px) asomaba como una línea tenue a cada lado de la barra en modo claro.
+			expect(barra().style.getPropertyValue("--bleed-l")).toBe("312px");
+			expect(barra().style.getPropertyValue("--bleed-r")).toBe("0px");
+			expect(barra().style.getPropertyValue("--cover-l")).toBe("304px");
+			expect(barra().style.getPropertyValue("--cover-r")).toBe("0px");
+			expect(fondo().getAttribute("style")).toContain(
+				"clip-path: inset(0 var(--cover-r, 0px) 0 var(--cover-l, 0px))",
+			);
+			expect(filete().getAttribute("style")).toContain(
+				"clip-path: inset(0 var(--bleed-r, 0px) 0 var(--bleed-l, 0px))",
+			);
+		});
+
+		it("en reposo el fondo no se recorta; pegada, se recorta a la columna con clip-path en 250 ms", async () => {
+			fijarVentana(1280);
+			fijarGeometria({ barTop: 400, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+
+			expect(fondo().getAttribute("style")).toMatch(
+				/clip-path:\s*inset\(0(px)? 0(px)? 0(px)? 0(px)?\)/,
+			);
+
+			rectSpy?.mockRestore();
+			fijarGeometria({ barTop: 65, heroBottom: 300 });
+			await desplazar();
+
+			const style = fondo().getAttribute("style") ?? "";
+			expect(style).toContain("clip-path: inset(0 var(--cover-r");
+			expect(style).toContain("clip-path 250ms cubic-bezier(0.22, 1, 0.36, 1)");
+		});
+
+		it("con movimiento reducido el recorte es instantáneo", async () => {
+			fijarVentana(1280, true);
+			fijarGeometria({ barTop: 65, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+
+			const style = fondo().getAttribute("style") ?? "";
+			expect(style).not.toContain("250ms");
+			expect(aside().getAttribute("style")).not.toContain("250ms");
+		});
+
+		it("no cambia nada del flujo al pegarse: la transición sólo toca clip-path y transform", async () => {
+			fijarVentana(1280);
+			fijarGeometria({ barTop: 400, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+			const claseEnReposo = barra().className;
+			const controlEnReposo = barra().querySelector("select")?.className;
+
+			rectSpy?.mockRestore();
+			fijarGeometria({ barTop: 65, heroBottom: 300 });
+			await desplazar();
+
+			// Misma caja pegada y reposo: ninguna clase de alto ni de relleno depende del estado.
+			expect(barra().className).toBe(claseEnReposo);
+			expect(barra().querySelector("select")?.className).toBe(controlEnReposo);
+			// El alto es constante con y sin buscador: todos los controles miden 44 px.
+			expect(controlEnReposo).toContain("h-11");
+			const props = (fondo().style.transition || fondo().getAttribute("style") || "").match(
+				/(?:^|[;\s])(clip-path|transform|height|top|padding)\s/g,
+			);
+			expect(props?.map((p) => p.trim().replace(/^;/, ""))).toEqual(["clip-path"]);
+		});
+	});
+
+	describe("la columna de filtros", () => {
+		it("su tope y su alto salen de los tokens, con alto estático de pantalla completa", async () => {
+			fijarVentana(1280);
+			await montarConFacetas();
+
+			expect(aside().className).toContain("lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]");
+			// El alto se calcula sobre el encabezado BAJO: no se anima al achicarse.
+			expect(aside().className).toContain(
+				"lg:h-[calc(100dvh-var(--header-h-min)-1px-2*var(--sticky-air))]",
+			);
+			expect(aside().className).not.toContain("lg:top-40");
+			expect(aside().className).not.toContain("max-h-[calc(100vh-11rem)]");
+			expect(aside().querySelector(".lg\\:overflow-y-auto")).not.toBeNull();
+		});
+
+		it("en reposo se baja la altura de la barra y, pegada, sube con ella: sólo transform", async () => {
+			fijarVentana(1280);
+			fijarGeometria({ barTop: 400, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+
+			expect(aside().style.getPropertyValue("--aside-y")).toBe("calc(var(--bar-h) + 2rem)");
+			expect(aside().className).toContain("lg:[transform:translateY(var(--aside-y,0px))]");
+
+			rectSpy?.mockRestore();
+			fijarGeometria({ barTop: 65, heroBottom: 300 });
+			await desplazar();
+
+			expect(aside().style.getPropertyValue("--aside-y")).toBe("0px");
+			expect(aside().getAttribute("style")).toContain(
+				"transform 250ms cubic-bezier(0.22, 1, 0.36, 1)",
+			);
+		});
+
+		it("bajo 1024 px no sube ni se baja: el bloque queda como hoy", async () => {
+			fijarVentana(768);
+			fijarGeometria({ barTop: 400, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+
+			expect(aside().style.getPropertyValue("--aside-y")).toBe("0px");
+			expect(aside().getAttribute("style") ?? "").not.toContain("transform 250ms");
+		});
+	});
+
+	describe("el buscador en la barra", () => {
+		it("mientras el del hero se ve, el de la barra existe pero no es alcanzable", async () => {
+			fijarVentana(1280);
+			fijarGeometria({ barTop: 400, heroBottom: 300 });
+			await montarConFacetas();
+			await desplazar();
+
+			expect(inerte()).toBe(true);
+		});
+
+		it("cuando el del hero sale de la vista, aparece en la barra y busca igual que el del hero", async () => {
+			fijarVentana(1280);
+			fijarGeometria({ barTop: 65, heroBottom: 30 });
+			await montarConFacetas();
+			await desplazar();
+
+			expect(inerte()).toBe(false);
+			const input = within(campo()).getByRole("searchbox") as HTMLInputElement;
+			await fireEvent.input(input, { target: { value: "becas" } });
+			await fireEvent.submit(input.closest("form") as HTMLFormElement);
+
+			await waitFor(() =>
+				expect(mocks.search.mock.calls.at(-1)?.[0]).toMatchObject({ q: "becas" }),
+			);
+		});
+
+		it("bajo 640 px no entra en la barra aunque el del hero ya no se vea", async () => {
+			fijarVentana(375);
+			fijarGeometria({ barTop: 65, heroBottom: 30 });
+			await montarConFacetas();
+			await desplazar();
+
+			expect(inerte()).toBe(true);
+			expect(campo().className).toContain("max-sm:hidden");
+		});
+	});
+
+	describe("el cambio de página", () => {
+		async function montarConPaginas(reducido = false) {
+			fijarVentana(1280, reducido);
+			setUrl("");
+			mocks.search.mockResolvedValue({
+				count: 45,
+				results: [makeDataset()],
+				search_facets: { organization: makeFacet({ title: "Organización" }) },
+			});
+			renderSearch();
+			await screen.findByRole("heading", { name: "Matrícula 2026" });
+			await tick();
+		}
+
+		it("lleva al inicio de los resultados, no al tope absoluto de la página", async () => {
+			const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+			await montarConPaginas();
+			scrollIntoView.mockClear();
+
+			await fireEvent.click(screen.getByRole("button", { name: "Ir a página 2" }));
+
+			expect(scrollTo).not.toHaveBeenCalled();
+			expect(scrollIntoView).toHaveBeenCalledTimes(1);
+			const destino = scrollIntoView.mock.contexts[0] as HTMLElement;
+			expect(destino.hasAttribute("data-results")).toBe(true);
+			expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "smooth" });
+			scrollTo.mockRestore();
+		});
+
+		it("el destino deja la primera tarjeta bajo la barra pegada: el mismo margen que los saltos del vacío", async () => {
+			await montarConPaginas();
+			medirAltoBarra(68);
+
+			await waitFor(() => {
+				expect(document.querySelector("[data-results]")?.getAttribute("style")).toContain(
+					"scroll-margin-top: calc(var(--header-h) + 1px + 68px + var(--sticky-air))",
+				);
+			});
+		});
+
+		it("con movimiento reducido el desplazamiento es instantáneo", async () => {
+			await montarConPaginas(true);
+			scrollIntoView.mockClear();
+
+			await fireEvent.click(screen.getByRole("button", { name: "Ir a página 2" }));
+
+			expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
+		});
+
+		it("cambiar un filtro no desplaza la página", async () => {
+			await montarConPaginas();
+			scrollIntoView.mockClear();
+
+			await fireEvent.click(screen.getByRole("checkbox", { name: /X/ }));
+
+			expect(scrollIntoView).not.toHaveBeenCalled();
+		});
 	});
 });

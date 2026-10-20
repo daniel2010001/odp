@@ -135,7 +135,7 @@ const moreClass = $derived(
 
 <div
 	class={cn(
-		"pointer-events-none fixed inset-x-0 top-[var(--header-h)] z-30 px-4 pt-2 transition-all duration-200 ease-out sm:px-6 lg:px-8",
+		"pointer-events-none fixed inset-x-0 top-[calc(var(--header-h)+1px)] z-30 px-4 pt-[var(--sticky-air)] transition-all duration-200 ease-out sm:px-6 lg:px-8",
 		stuck ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0",
 	)}
 	inert={!stuck}

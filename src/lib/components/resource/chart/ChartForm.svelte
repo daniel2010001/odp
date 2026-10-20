@@ -124,7 +124,7 @@ const PRESENTATION_INTRO =
  * Dónde se pega el gráfico: debajo del encabezado del portal, cuyo alto sale del token
  * `--header-h` (`src/app.css`), más el aire que usan el resto de los pegados.
  */
-const STICKY_TOP = "lg:top-[calc(var(--header-h)+1rem)]";
+const STICKY_TOP = "lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]";
 
 let title = $state(untrack(() => initialTitle));
 let description = $state(untrack(() => initialDescription));

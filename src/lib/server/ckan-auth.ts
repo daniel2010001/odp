@@ -343,13 +343,17 @@ export async function ckanLogin(
  * Revoca un token de acceso en CKAN (best-effort). Nunca lanza: el cierre de
  * sesión del cliente debe completarse aunque la revocación falle (red, timeout
  * o un error HTTP como token ya revocado).
+ *
+ * La llamada se autentica con **el mismo token** que revoca: CKAN no deja revocar a un anónimo, y sin
+ * `Authorization` la denegaba en silencio y el token seguía vivo hasta su vencimiento (medido en L46 de
+ * `odd/tasks/v0.1.1-polish.md`). El token va crudo, igual que en el proxy.
  */
 export async function revokeToken(token: string, options: CkanAuthOptions): Promise<void> {
 	const baseUrl = options.baseUrl.replace(/\/$/, "");
 	try {
 		await safeFetch(`${baseUrl}/api/3/action/api_token_revoke`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json", Authorization: token },
 			body: JSON.stringify({ token }),
 		});
 	} catch {

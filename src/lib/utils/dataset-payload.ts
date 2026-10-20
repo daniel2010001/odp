@@ -28,6 +28,9 @@ export interface DatasetFormInput {
 	maintainer_email?: string;
 }
 
+/** Id de CKAN para «Sin especificar»: la forma canónica de «sin licencia». */
+export const NO_LICENSE_ID = "notspecified";
+
 /** Campos opcionales del formulario que se omiten si quedan vacíos. */
 const OPTIONAL_FIELDS = [
 	"notes",
@@ -61,6 +64,10 @@ export function buildPackagePayload(input: DatasetFormInput): Record<string, unk
 		const value = clean(input[field]);
 		if (value !== undefined) payload[field] = value;
 	}
+
+	// Sin licencia se guarda como `notspecified`: un `license_id` vacío no cae en ningún bucket de la
+	// faceta de licencias y el dataset no se puede filtrar.
+	payload.license_id ??= NO_LICENSE_ID;
 
 	// El resumen va como extra: CKAN no tiene un campo nativo para él.
 	const resumen = clean(input.summary);
@@ -201,6 +208,8 @@ export function buildRevisePayload({
 	for (const field of EDIT_SCALAR_FIELDS) {
 		update[field] = input[field]?.trim() ?? "";
 	}
+	// La licencia vacía no se escribe como "": sin bucket en la faceta, el dataset no se filtra.
+	if (update.license_id === "") update.license_id = NO_LICENSE_ID;
 
 	// La lista cargada viaja ENTERA y en su orden, con el resumen resuelto in situ: el `filter`
 	// hace que CKAN la instale verbatim.

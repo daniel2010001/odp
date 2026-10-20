@@ -372,7 +372,7 @@ describe("Wizard de creación", () => {
 
 		await waitFor(() => expect(mocks.create).toHaveBeenCalled());
 		const payload = mocks.create.mock.calls[0][0] as Record<string, unknown>;
-		expect(payload).not.toHaveProperty("license_id");
+		expect(payload.license_id).toBe("notspecified");
 		await waitFor(() => expect(goto).toHaveBeenCalledWith("/dataset/matricula-estudiantil-2026"));
 	});
 

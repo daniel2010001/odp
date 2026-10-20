@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ArrowDown, ChevronDown, SlidersHorizontal, X } from "@lucide/svelte";
-import { tick, untrack } from "svelte";
+import { onMount, tick, untrack } from "svelte";
 import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
@@ -44,6 +44,100 @@ let mobileFiltersOpen = $state(false);
 // Alto real de la barra pegajosa de resultados, medido con `bind:clientHeight`. Entra en el
 // `scroll-margin-top` de los destinos del vacío: hardcodearlo mentiría en cuanto cambie el ancho.
 let altoBarra = $state(0);
+
+// ─── Los pegados (T17 / S15 de `odd/tasks/v0.1.1-polish.md`) ──────────────────────────────────────
+// Desde 1024px la barra de resultados vive sólo en la columna de las tarjetas, y la columna de filtros
+// arranca en el tope de la cuadrícula: en reposo se baja con `transform` el alto de la barra (más el aire
+// de 2rem sobre las tarjetas) y, al pegarse la barra, vuelve a 0 en la misma transición, hasta quedar
+// bajo el encabezado más el aire. La barra nace de borde a borde (su fondo es una capa aparte que se
+// extiende hasta los bordes de la ventana) y, al pegarse, esa capa se recorta a la columna con
+// `clip-path`. Ni `transform` ni `clip-path` cambian el flujo: el alto de la barra y la posición de lo de
+// abajo no se mueven durante la transición (anclaje de desplazamiento, commit 4ffbd2d). Bajo 1024px no hay
+// columna al lado: la barra queda arriba del bloque de filtros, de borde a borde, como antes.
+// Cuánto asoma, a cada lado de la columna, la sombra de una tarjeta (`shadow-md` al pasar el cursor).
+const SOMBRA_PX = 8;
+const DURACION_BARRA = 250;
+const CURVA_BARRA = "cubic-bezier(0.22, 1, 0.36, 1)";
+let enColumna = $state(false); // ≥ 1024px
+let ventanaAncha = $state(false); // ≥ 640px: el campo de búsqueda sólo entra en la barra desde aquí
+let reducido = $state(false); // prefers-reduced-motion: las transiciones son instantáneas
+let pegada = $state(false); // la barra llegó a su tope, bajo el encabezado
+let heroFuera = $state(false); // el campo del hero salió de la vista, por arriba del encabezado
+
+let barraEl = $state<HTMLElement>();
+let columnaEl = $state<HTMLElement>();
+let heroEl = $state<HTMLElement>();
+let resultadosEl = $state<HTMLElement>();
+
+const buscadorEnBarra = $derived(heroFuera && ventanaAncha);
+const animada = $derived(!reducido);
+const transicionBarra = $derived(animada ? `clip-path ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none");
+const transicionContador = $derived(
+	animada ? `transform ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none",
+);
+// El tope y el alto siguen los tokens de `src/app.css`; `top`/`height` sólo se animan con el encabezado
+// (200 ms), y el `transform` con la barra.
+const transicionFiltros = $derived(
+	`top 200ms ease-out, height 200ms ease-out, transform ${animada ? DURACION_BARRA : 0}ms ${CURVA_BARRA}`,
+);
+
+function medirPegados() {
+	const encabezado = document.querySelector("[data-site-header]")?.getBoundingClientRect();
+	if (!encabezado || !barraEl) return;
+	const barra = barraEl.getBoundingClientRect();
+	pegada = barra.top <= encabezado.bottom + 0.5;
+	heroFuera = heroEl ? heroEl.getBoundingClientRect().bottom < encabezado.bottom : false;
+	// Geometría del recorte: cuánto sobra del fondo a cada lado de la columna. Sólo cambia al
+	// redimensionar; va a variables CSS del propio elemento para no pasar por el estado reactivo.
+	if (!columnaEl) return;
+	const columna = columnaEl.getBoundingClientRect();
+	const ventana = document.documentElement.clientWidth;
+	const izquierda = Math.max(Math.round(columna.left), 0);
+	barraEl.style.setProperty("--bleed-l", `${izquierda}px`);
+	const derecha = Math.max(Math.round(ventana - columna.right), 0);
+	barraEl.style.setProperty("--bleed-r", `${derecha}px`);
+	barraEl.style.setProperty("--cover-l", `${Math.max(izquierda - SOMBRA_PX, 0)}px`);
+	barraEl.style.setProperty("--cover-r", `${Math.max(derecha - SOMBRA_PX, 0)}px`);
+	// El contador de la barra en reposo se corre hasta el borde del contenedor (sobre las facetas).
+	const lateral = panelEl?.getBoundingClientRect();
+	barraEl.style.setProperty(
+		"--shift",
+		`${lateral ? Math.max(Math.round(columna.left - lateral.left), 0) : 0}px`,
+	);
+}
+
+onMount(() => {
+	const consultas = [
+		["(min-width: 1024px)", (v: boolean) => (enColumna = v)],
+		["(min-width: 640px)", (v: boolean) => (ventanaAncha = v)],
+		["(prefers-reduced-motion: reduce)", (v: boolean) => (reducido = v)],
+	] as const;
+	const bajas = consultas.map(([consulta, aplicar]) => {
+		const mq = matchMedia(consulta);
+		aplicar(mq.matches);
+		const alCambiar = () => {
+			aplicar(mq.matches);
+			medirPegados();
+		};
+		mq.addEventListener("change", alCambiar);
+		return () => mq.removeEventListener("change", alCambiar);
+	});
+	medirPegados();
+	return () => {
+		for (const baja of bajas) baja();
+	};
+});
+
+// El diseño cambia de sitio la barra y mueve el contenido: se vuelve a medir cuando cambia lo que la
+// afecta, no sólo al desplazar.
+$effect(() => {
+	void altoBarra;
+	void enColumna;
+	void showFilterPanel;
+	void loading;
+	void total;
+	tick().then(medirPegados);
+});
 
 // Referencia al panel de filtros. Sirve para devolver el foco a un chip restante
 // cuando el chip que tenía el foco desaparece del DOM al quitar su filtro.
@@ -218,9 +312,11 @@ const saltos = $derived(
 	].filter((salto) => salto.on),
 );
 
-// Margen de scroll de los destinos: el token `--header-h` más el alto medido de la barra pegajosa
-// (más 1rem de aire). `scroll-mt-*` no existe en este repo y el alto no se hardcodea.
-const estiloDestino = $derived(`scroll-margin-top: calc(var(--header-h) + ${altoBarra}px + 1rem)`);
+// Margen de scroll de los destinos: debe dejarlos bajo la barra pegada, o sea la misma fórmula de los
+// pegados (`--header-h` + el borde del encabezado + el alto medido de la barra + `--sticky-air`). `scroll-mt-*` no existe en este repo y el alto no se hardcodea.
+const estiloDestino = $derived(
+	`scroll-margin-top: calc(var(--header-h) + 1px + ${altoBarra}px + var(--sticky-air))`,
+);
 
 /** Las tres organizaciones con más datasets, de mayor a menor. */
 function topByPackageCount(orgs: CkanOrganization[]): CkanOrganization[] {
@@ -419,9 +515,13 @@ async function onRemoveAppliedFilter(field: "org" | "format" | "tags" | "license
 	document.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
 }
 
+// Al cambiar de página se lleva al lector al **inicio de los resultados**, no al tope de la página: el
+// destino lleva el mismo margen que los saltos del vacío (`estiloDestino`), así que la primera tarjeta
+// queda justo bajo la barra ya pegada —con las facetas arriba, a la vista, desde 1024px— y no oculta por
+// ella. Con movimiento reducido el desplazamiento es instantáneo.
 function goToPage(p: number) {
 	currentPage = p;
-	window.scrollTo({ top: 0, behavior: "smooth" });
+	resultadosEl?.scrollIntoView({ block: "start", behavior: reducido ? "instant" : "smooth" });
 }
 
 const hasActiveFilters = $derived(
@@ -475,6 +575,8 @@ const emptyStateMessage = $derived.by(() => {
 });
 </script>
 
+<svelte:window onscroll={medirPegados} onresize={medirPegados} />
+
 <svelte:head>
 	<title>
 		{query ? `${query} — ` : ''}Catálogo de Datos — UMSS
@@ -501,9 +603,10 @@ const emptyStateMessage = $derived.by(() => {
 			bajo principios FAIR.
 		</p>
 
-		<div class="mx-auto mt-8 w-full max-w-[720px]">
+		<div bind:this={heroEl} data-hero-search class="mx-auto mt-8 w-full max-w-[720px]">
 			<SearchBar
 				value={query}
+				shortcut={!buscadorEnBarra}
 				placeholder="Busque por organización, etiquetas, formato..."
 				submitLabel="Buscar"
 				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
@@ -514,53 +617,121 @@ const emptyStateMessage = $derived.by(() => {
 	</div>
 </section>
 
-<!-- ResultsBar: sticky debajo del encabezado global —su alto sale del token `--header-h`— más su
-     borde inferior de 1px -->
-<section
-	bind:clientHeight={altoBarra}
-	class="sticky top-[calc(var(--header-h)+1px)] z-20 border-b border-border bg-background/95 backdrop-blur transition-[top] duration-200 ease-out"
->
-	<div
-		class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6 lg:px-8"
+<!-- ResultsBar: pegada bajo el encabezado global —su tope sale de los tokens `--header-h` y
+     `--sticky-air`, más el borde de 1px del encabezado—. Desde 1024px se pinta dentro de la columna de las
+     tarjetas; debajo, aquí, sobre el bloque de filtros. La explicación de la geometría está arriba, en el
+     script. El fondo es **opaco**: con `bg-background/95` + `backdrop-blur` el texto de las tarjetas que
+     pasaba por debajo se transparentaba junto al filete inferior (medido en Chromium, 2026-10-20). -->
+{#snippet barraResultados()}
+	<section
+		bind:this={barraEl}
+		bind:clientHeight={altoBarra}
+		data-results-bar
+		class="pointer-events-none sticky top-[calc(var(--header-h)+1px)] z-20 transition-[top] duration-200 ease-out motion-reduce:transition-none"
 	>
-		<p class="flex items-baseline gap-2">
-			{#if loading}
-				<span class="text-sm text-muted-foreground">Buscando...</span>
-			{:else}
-				<span class="font-heading text-2xl font-bold text-foreground">{total.toLocaleString('es-BO')}</span>
-				<span class="text-sm text-muted-foreground">
-					{#if query}
-						resultado{total !== 1 ? 's' : ''} para <span class="font-medium text-foreground">"{query}"</span>
-					{:else}
-						datasets encontrados
-					{/if}
-				</span>
-			{/if}
-		</p>
-
-		<label class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-			<span class="hidden sm:inline">Ordenar:</span>
-			<select
-				value={sortBy}
-				onchange={(e) => {
-					sortBy = (e.target as HTMLSelectElement).value;
-					currentPage = 1;
-				}}
-				class="h-9 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+		<!-- Fondo y filete en capas aparte: sólo se recortan con `clip-path` (compositor). La caja de la
+		     barra, y con ella su alto en el flujo, no cambia nunca. Lo recortado tampoco recibe clics.
+		     El fondo se recorta **un poco más ancho que la columna** (`--cover-*`): las tarjetas que pasan
+		     por debajo proyectan su sombra (`shadow-sm`, y `shadow-md` al pasar el cursor) unos píxeles
+		     fuera de la columna, y con el recorte exacto asomaba como una línea tenue a cada lado de la
+		     barra en modo claro (medido en Chromium, 2026-10-20; en oscuro la sombra negra no se ve). El
+		     filete, en cambio, se recorta justo a la columna: si no, sobresaldría de las tarjetas. -->
+		<div
+			aria-hidden="true"
+			data-bar-bg
+			class="absolute inset-y-0 bg-background {enColumna ? '' : 'inset-x-0'}"
+			style:left={enColumna ? 'calc(-1 * var(--bleed-l, 0px))' : undefined}
+			style:right={enColumna ? 'calc(-1 * var(--bleed-r, 0px))' : undefined}
+			style:clip-path={enColumna && pegada
+				? 'inset(0 var(--cover-r, 0px) 0 var(--cover-l, 0px))'
+				: 'inset(0 0 0 0)'}
+			style:transition={transicionBarra}
+		></div>
+		<div
+			aria-hidden="true"
+			data-bar-line
+			class="absolute bottom-0 h-px bg-border {enColumna ? '' : 'inset-x-0'}"
+			style:left={enColumna ? 'calc(-1 * var(--bleed-l, 0px))' : undefined}
+			style:right={enColumna ? 'calc(-1 * var(--bleed-r, 0px))' : undefined}
+			style:clip-path={enColumna && pegada
+				? 'inset(0 var(--bleed-r, 0px) 0 var(--bleed-l, 0px))'
+				: 'inset(0 0 0 0)'}
+			style:transition={transicionBarra}
+		></div>
+		<div class="relative {enColumna ? '' : 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'}">
+			<div
+				class="pointer-events-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
 			>
-				<option value="metadata_modified desc">Más recientes</option>
-				<option value="metadata_modified asc">Más antiguos</option>
-				<option value="title_string asc">A-Z</option>
-				<option value="title_string desc">Z-A</option>
-				<option value="score desc">Relevancia</option>
-			</select>
-		</label>
-	</div>
-</section>
+				<p
+					class="flex items-baseline gap-2"
+					style:transform={enColumna && !pegada ? 'translateX(calc(-1 * var(--shift, 0px)))' : 'none'}
+					style:transition={transicionContador}
+				>
+					{#if loading}
+						<span class="text-sm text-muted-foreground">Buscando...</span>
+					{:else}
+						<span class="font-heading text-2xl font-bold text-foreground">{total.toLocaleString('es-BO')}</span>
+						<span class="text-sm text-muted-foreground">
+							{#if query}
+								resultado{total !== 1 ? 's' : ''} para <span class="font-medium text-foreground">"{query}"</span>
+							{:else}
+								datasets encontrados
+							{/if}
+						</span>
+					{/if}
+				</p>
+
+				<!-- El campo de la barra sólo se muestra cuando el del hero salió de la vista. Siempre está
+				     montado: así entra con una transición y la barra no cambia de alto. `inert` lo saca del
+				     orden de tabulación y del árbol de accesibilidad mientras no se ve. El relleno y el margen
+				     negativo dejan sitio al anillo de foco, que `overflow-hidden` recortaría. Bajo 640px no
+				     entra (la barra pasaría a dos filas). -->
+				<div
+					data-bar-search
+					class="-m-1.5 min-w-0 overflow-hidden p-1.5 transition-[max-width,opacity] duration-200 ease-out max-sm:hidden motion-reduce:transition-none {buscadorEnBarra
+						? 'max-w-md flex-1 opacity-100'
+						: 'max-w-0 opacity-0'}"
+					inert={!buscadorEnBarra}
+				>
+					<SearchBar
+						value={query}
+						shortcut={buscadorEnBarra}
+						placeholder="Buscar datasets..."
+						class="[&_input]:h-11 [&_input]:rounded-lg"
+						onsubmit={onSearchSubmit}
+						onclear={onSearchClear}
+					/>
+				</div>
+
+				<label class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+					<span class="hidden sm:inline">Ordenar:</span>
+					<select
+						value={sortBy}
+						onchange={(e) => {
+							sortBy = (e.target as HTMLSelectElement).value;
+							currentPage = 1;
+						}}
+						class="h-11 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+					>
+						<option value="metadata_modified desc">Más recientes</option>
+						<option value="metadata_modified asc">Más antiguos</option>
+						<option value="title_string asc">A-Z</option>
+						<option value="title_string desc">Z-A</option>
+						<option value="score desc">Relevancia</option>
+					</select>
+				</label>
+			</div>
+		</div>
+	</section>
+{/snippet}
+
+{#if !enColumna}
+	{@render barraResultados()}
+{/if}
 
 <!-- Active filters -->
 {#if hasActiveFilters}
-	<div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+	<div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8 {enColumna ? 'pb-6' : ''}">
 		<div class="flex flex-wrap items-center gap-2">
 			<span class="text-sm font-medium text-muted-foreground">Filtros activos:</span>
 
@@ -612,16 +783,23 @@ const emptyStateMessage = $derived.by(() => {
 {/if}
 
 <!-- Body -->
-<div class="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+<div
+	class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 {enColumna ? 'pt-0' : 'pt-8'}"
+	style:--bar-h="{altoBarra}px"
+>
 	<div class={showFilterPanel ? 'lg:grid lg:grid-cols-[280px_1fr] lg:gap-8' : ''}>
 		<!-- Sidebar: Facets o filtros aplicados. Se renderiza si hay facetas o si el usuario tiene
 		     filtros aplicados (con cero resultados CKAN devuelve facetas vacías, pero sus filtros
 		     siguen activos). Sin panel no queda un hueco de 280px: el área de resultados ocupa todo
 		     el ancho. -->
 		{#if showFilterPanel}
+		<!-- Tope, alto y subida (T17): ver el script. El alto es estático —de pantalla completa sobre el
+		     encabezado BAJO, `--header-h-min`— y el contenido se desplaza por dentro de la caja. -->
 		<aside
 			bind:this={panelEl}
-			class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-40 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto"
+			class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))] lg:z-[21] lg:h-[calc(100dvh-var(--header-h-min)-1px-2*var(--sticky-air))] lg:[transform:translateY(var(--aside-y,0px))] lg:transition-[top,height] lg:duration-200 lg:ease-out motion-reduce:lg:transition-none"
+			style:--aside-y={enColumna && !pegada ? 'calc(var(--bar-h) + 2rem)' : '0px'}
+			style:transition={enColumna ? transicionFiltros : undefined}
 		>
 			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
 			     (md+) el panel queda siempre desplegado. -->
@@ -651,7 +829,7 @@ const emptyStateMessage = $derived.by(() => {
 			</button>
 
 			<div
-				class="rounded-xl border border-border bg-card p-6 shadow-sm transition-opacity duration-200 {mobileFiltersOpen
+				class="rounded-xl border border-border bg-card p-6 shadow-sm transition-opacity duration-200 lg:h-full lg:overflow-y-auto {mobileFiltersOpen
 					? 'block'
 					: 'hidden'} md:block {loading ? 'opacity-60' : ''}"
 			>
@@ -760,8 +938,20 @@ const emptyStateMessage = $derived.by(() => {
 		</aside>
 		{/if}
 
-		<!-- Results -->
-		<div class="min-w-0">
+		<!-- Results. Con filtros, la columna nunca es más baja que la de filtros bajada por la barra: si lo
+		     fuera, esa columna —que se baja con `transform`— asomaría sobre el pie. -->
+		<div
+			bind:this={columnaEl}
+			data-results-column
+			class="min-w-0 {showFilterPanel
+				? 'lg:min-h-[calc(var(--bar-h)+2rem+100dvh-var(--header-h-min)-1px-2*var(--sticky-air))]'
+				: ''}"
+		>
+			{#if enColumna}
+				{@render barraResultados()}
+			{/if}
+			<div class={enColumna ? 'pt-8' : ''}>
+			<div bind:this={resultadosEl} data-results style={estiloDestino}>
 			<!-- Error -->
 			{#if error}
 				<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
@@ -897,6 +1087,8 @@ const emptyStateMessage = $derived.by(() => {
 					/>
 				</div>
 			{/if}
+			</div>
+			</div>
 		</div>
 	</div>
 </div>

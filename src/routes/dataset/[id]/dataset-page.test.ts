@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
 	// es la que monta el control de decidir (2026-10-14) y las otras dos las llaman los controles del
 	// hero.
 	listRequests: vi.fn(),
+	historyRequests: vi.fn(),
 	decideRequest: vi.fn(),
 	requestPublication: vi.fn(),
 	cancelRequest: vi.fn(),
@@ -49,6 +50,7 @@ vi.mock("$lib/api/organizations", () => ({
 vi.mock("$lib/api/publication", () => ({
 	createPublicationApi: () => ({
 		list: mocks.listRequests,
+		history: mocks.historyRequests,
 		decide: mocks.decideRequest,
 		request: mocks.requestPublication,
 		cancel: mocks.cancelRequest,
@@ -151,6 +153,7 @@ beforeEach(() => {
 	// Sin solicitudes, la tarjeta del estado no aparece y el hero no gana la acción de publicación: es
 	// el estado por defecto de las pruebas que no hablan de publicación.
 	mocks.listRequests.mockResolvedValue([]);
+	mocks.historyRequests.mockResolvedValue([]);
 	mocks.getMockDatasetById.mockReturnValue(
 		makeDataset({ id: "mock-0", name: "mock-0", title: MOCK_TITLE }),
 	);
@@ -555,13 +558,17 @@ function makeCardResource(overrides: Partial<CkanResource> = {}): CkanResource {
 	};
 }
 
-/** Renderiza la página con un único recurso y devuelve su tarjeta ya montada. */
+/**
+ * Renderiza la página con un único recurso y devuelve su fila ya montada. La fila es el ancestro del
+ * enlace a la ficha: el formato es un enlace hermano, no un descendiente de él.
+ */
 async function renderResourceCard(resource: CkanResource): Promise<HTMLElement> {
 	mocks.showDataset.mockResolvedValue(makeDataset({ resources: [resource] }));
 
 	render(DatasetPage);
 
-	return screen.findByRole("link", { name: /Recurso de prueba, detalle del recurso/i });
+	const link = await screen.findByRole("link", { name: /Recurso de prueba, detalle del recurso/i });
+	return link.closest("div.relative") as HTMLElement;
 }
 
 describe("Página de dataset — el tipo de recurso en la tarjeta del listado", () => {
@@ -569,7 +576,7 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 		const card = await renderResourceCard(makeCardResource({ url_type: "upload", format: "CSV" }));
 
 		expect(within(card).getByText("CSV")).toBeTruthy();
-		expect(within(card).queryByText("Enlace")).toBeNull();
+		expect(within(card).queryByText("Enlace externo")).toBeNull();
 	});
 
 	it("un archivo alojado sin formato dice «Archivo» y no el rótulo inglés «FILE»", async () => {
@@ -581,16 +588,12 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 		expect(within(card).queryByText("FILE")).toBeNull();
 	});
 
-	it("un recurso sin `url_type` (referencia externa) muestra «Enlace» y no el chip de formato", async () => {
+	it("un recurso sin `url_type` (referencia externa) dice «Enlace externo» y no enlaza el formato", async () => {
 		const card = await renderResourceCard(makeCardResource({ format: "CSV" }));
 
-		expect(within(card).getByText("Enlace")).toBeTruthy();
+		expect(within(card).getByText("Enlace externo")).toBeTruthy();
 		expect(within(card).queryByText("CSV")).toBeNull();
-
-		// El ícono se fue por decisión del autor: sin él, el chip de enlace deja de ser más grande
-		// que el de formato. Un `svg` acá sería la regresión silenciosa de esa decisión.
-		const linkChip = within(card).getByText("Enlace");
-		expect(linkChip.querySelectorAll("svg").length).toBe(0);
+		expect(within(card).queryByRole("link", { name: /formato/i })).toBeNull();
 	});
 });
 
@@ -682,7 +685,7 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 		expect(link.className).toContain("min-h-11");
 		expect(card.id).toBe("info-tecnica");
 		// Como `#vista-previa` del recurso: el encabezado fijo no tapa el título al saltar.
-		expect(card.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
+		expect(card.className).toContain("scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]");
 	});
 
 	it("la tarjeta muestra cada campo registrado, agrupado en cinco grupos", async () => {
@@ -1617,5 +1620,79 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 				),
 			).toBeInTheDocument();
 		});
+	});
+});
+
+describe("Página de dataset — el historial de solicitudes (T14)", () => {
+	const HISTORIAL = "Historial de solicitudes";
+
+	it("con filas dibuja la tarjeta bajo «Resumen», pidiendo el historial del dataset cargado", async () => {
+		auth.setUser(makeUser());
+		mocks.historyRequests.mockResolvedValue([
+			makeRow({
+				id: "r2",
+				status: "rejected",
+				resolved_by_name: "Marta Quispe",
+				decided_at: "2026-10-18T09:30:00.000000",
+				decision_comment: "Falta la licencia.",
+			}),
+			makeRow({ id: "r1", status: "cancelled" }),
+		]);
+
+		render(DatasetPage);
+
+		const tarjeta = await screen.findByTestId("historial-solicitudes");
+		expect(mocks.historyRequests).toHaveBeenCalledWith("pkg-1");
+		expect(within(tarjeta).getByText(HISTORIAL)).toBeTruthy();
+		expect(within(tarjeta).getAllByTestId("historial-entrada")).toHaveLength(2);
+		expect(tarjeta.textContent).toContain("Rechazada por Marta Quispe el 18 de octubre de 2026");
+		expect(tarjeta.textContent).toContain("Motivo del rechazo: Falta la licencia.");
+		const resumen = screen.getByText("Resumen");
+		expect(
+			resumen.compareDocumentPosition(tarjeta) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("sin filas no hay tarjeta", async () => {
+		auth.setUser(makeUser());
+		mocks.historyRequests.mockResolvedValue([]);
+
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.historyRequests).toHaveBeenCalled());
+
+		expect(screen.queryByTestId("historial-solicitudes")).toBeNull();
+	});
+
+	it("anónimo: no pide el historial y no hay tarjeta", async () => {
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+		await waitFor(() => expect(mocks.listRequests).toHaveBeenCalled());
+
+		expect(mocks.historyRequests).not.toHaveBeenCalled();
+		expect(screen.queryByTestId("historial-solicitudes")).toBeNull();
+	});
+
+	it("si la consulta falla la ficha sigue entera y no muestra la tarjeta", async () => {
+		auth.setUser(makeUser());
+		mocks.historyRequests.mockRejectedValue(new CkanApiError("Server Error", 500));
+
+		render(DatasetPage);
+
+		expect(await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" })).toBeTruthy();
+		await waitFor(() => expect(mocks.historyRequests).toHaveBeenCalled());
+		expect(screen.queryByTestId("historial-solicitudes")).toBeNull();
+	});
+
+	it("convive con la tarjeta de la solicitud vigente sin reemplazarla", async () => {
+		auth.setUser(makeUser());
+		const pendiente = makeRow({ status: "pending" });
+		mocks.listRequests.mockResolvedValue([pendiente]);
+		mocks.historyRequests.mockResolvedValue([pendiente]);
+
+		render(DatasetPage);
+
+		expect(await screen.findByTestId("estado-solicitud")).toBeTruthy();
+		expect(await screen.findByTestId("historial-solicitudes")).toBeTruthy();
 	});
 });
