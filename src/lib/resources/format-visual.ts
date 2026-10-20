@@ -21,6 +21,10 @@ export const FORMAT_TOKEN = {
 	JSON: 4,
 	GEOJSON: 5,
 	PDF: 2,
+	PNG: 2,
+	JPEG: 2,
+	JPG: 2,
+	TXT: 4,
 } as const;
 
 export type FormatToken = 1 | 2 | 3 | 4 | 5;

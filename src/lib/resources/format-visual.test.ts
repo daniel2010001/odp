@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { FORMAT_TOKEN, formatIcon, formatTileClass, formatToken } from "./format-visual";
+import {
+	FORMAT_TOKEN,
+	formatDotClass,
+	formatIcon,
+	formatTileClass,
+	formatToken,
+} from "./format-visual";
 
 describe("formatToken — un solo mapa formato → token", () => {
 	it("mapea los formatos conocidos sin distinguir mayúsculas ni espacios", () => {
@@ -42,5 +48,15 @@ describe("formatIcon", () => {
 		expect(formatIcon("JSON", false)).not.toBe(formatIcon("CSV", false));
 		expect(formatIcon("CSV", true)).not.toBe(formatIcon("CSV", false));
 		expect(formatIcon("ZZZ", false)).toBe(formatIcon(undefined, false));
+	});
+});
+
+describe("formatDotClass", () => {
+	it("los formatos de imagen y texto plano tienen token; un desconocido queda neutro", () => {
+		for (const f of ["PNG", "JPEG", "JPG", "TXT"]) {
+			expect(formatToken(f), f).not.toBeNull();
+			expect(formatDotClass(f), f).toMatch(/^bg-chart-[1-5]$/);
+		}
+		expect(formatDotClass("ZZZ")).toBe("bg-muted-foreground");
 	});
 });

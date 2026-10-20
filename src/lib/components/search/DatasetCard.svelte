@@ -2,6 +2,7 @@
 import { Building2, Calendar, FileText } from "@lucide/svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { Tooltip, TooltipContent, TooltipTrigger } from "$lib/components/ui/tooltip";
+import { formatDotClass } from "$lib/resources/format-visual";
 import { formatChips, MAX_FORMAT_CHIPS, normalizeFormats } from "$lib/resources/formats";
 import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
@@ -49,26 +50,6 @@ const cardClass = $derived(
 		className,
 	),
 );
-
-// Color como ACENTO sobre contenedor neutro: los chips comparten el mismo
-// frame (bg-muted/50 + border) y solo el texto lleva el color del formato.
-// Así la fila se lee como un conjunto ordenado y el color distingue sin
-// competir. Con variantes dark (a diferencia de los oklch hardcodeados).
-const FORMAT_ACCENT: Record<string, string> = {
-	CSV: "text-blue-700 dark:text-blue-300",
-	JSON: "text-emerald-700 dark:text-emerald-300",
-	PDF: "text-red-700 dark:text-red-300",
-	XLSX: "text-teal-700 dark:text-teal-300",
-	XLS: "text-teal-700 dark:text-teal-300",
-	GEOJSON: "text-violet-700 dark:text-violet-300",
-	BIBTEX: "text-amber-700 dark:text-amber-300",
-	RDF: "text-sky-700 dark:text-sky-300",
-	XML: "text-sky-700 dark:text-sky-300",
-};
-
-function getFormatAccent(format: string): string {
-	return FORMAT_ACCENT[format] ?? "text-muted-foreground";
-}
 
 function shortDate(iso: string): string {
 	try {
@@ -143,17 +124,16 @@ function shortDate(iso: string): string {
 			</div>
 		{/if}
 
-		<!-- Footer: format chips (acento sobre neutro) + count de recursos + fecha -->
+		<!-- Footer: format chips (punto del token sobre neutro) + count de recursos + fecha -->
 		<div
 			class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border/70 pt-3"
 		>
 			<div class="flex flex-wrap items-center gap-1.5">
 				{#each formatSummary.chips as format}
 					<span
-						class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-xs font-semibold {getFormatAccent(
-							format,
-						)}"
+						class="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-xs font-semibold text-muted-foreground"
 					>
+						<span class={cn("size-2 rounded-full", formatDotClass(format))} aria-hidden="true"></span>
 						{format}
 					</span>
 				{/each}
