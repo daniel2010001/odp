@@ -169,14 +169,7 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >
 > **Y queda abierto, pedido por el autor en la misma sesión (2026-10-14):**
 >
-> - [ ] **TODO (autor): revisar la POSICIÓN de las solicitudes (localización).** Dónde viven las superficies de la
->   solicitud dentro de la ficha. Hoy se decidió **promover en la posición actual**: la tarjeta decide donde ya
->   estaba su estado —**segunda de cuatro** en la columna principal, entre «Sobre este dataset» y «Recursos»—, y el
->   costo medido de esa posición es que el administrador tiene que bajar para decidir (no es nuevo: ya bajaba para
->   *leer* el estado). Las alternativas que se descartaron por ahora, con su motivo: la **cabecera** pondría los
->   controles del aprobador junto a los del solicitante, y contra la decisión del autor del 2026-10-08 de que la
->   solicitud es **estado**, no acción; la **columna derecha** es de metadatos y en móvil cae al final. **Tier: lo
->   define el autor.**
+> - [ ] **TODO (autor): revisar la POSICIÓN de las solicitudes (localización).** (Movido a `## v1`.)
 >
 > **Medido en la misma sesión, y con consecuencia de diseño (2026-10-14):** la pregunta que el portal hace para
 > ofrecer decidir —`organization_list_for_user` con `permission: "admin"`— **no discrimina** para la
@@ -819,21 +812,8 @@ todavía no está mergeada**. Sus hallazgos no podían vivir sólo ahí, así qu
 rama se rebaseó sobre este `main`, su duplicado se borró y **el registro de medición se consolidó acá**: esta
 sección es ahora la única copia, y por eso lleva el detalle y no sólo el resumen.
 
-- [ ] **[v1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
-  texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
-  **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
-  arreglo son tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su
-  `--primary-foreground`, o ambos—, así que la decisión es del autor y no de una sesión. Reproducir:
-  `/dev/error?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
-  **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
-  texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
-  arbitrario: es el tamaño del texto.
-  *Tres caminos independientes dan el mismo veredicto:* el instrumento de la sesión paralela medido en el
-  navegador sobre el nodo real (**3.72**), su cálculo puro sobre los tokens (**3.733**) y este recomputo
-  (**3.733**); en modo claro los tres dan **5.284** y **pasa**, que es el control de que el cálculo no está
-  sesgado hacia abajo. **La diferencia de 0,01 no es discrepancia: es resolución de canal** — el navegador
-  serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión completa.
-  Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
+- (El ítem del contraste del botón primario en modo oscuro se movió a «v0.1.1 — antes de la presentación», en `## v0`.)
+
 - [ ] **[v1+]** **`pnpm lint` sale con 254 de forma transitoria.** Medido por la sesión paralela; **no lo
   reproduje acá**. Es ruido de herramienta, no del código: `biome check` sobre archivos concretos sale 0.
   La medición: `pnpm exec biome check .` falló **dos veces seguidas** con `Linter process terminated abnormally`
@@ -1151,10 +1131,8 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
 > 2. **E4** — normalizar la card de metadatos del dataset: falta **la decisión del autor** (la página tiene
 >    dos cards y la principal ya cumple). Pide antes/después.
 >
-> **Dos TODO nuevos del autor (2026-09-24), los dos de diseño y los dos con su medida:** los **botones de
-> anterior/siguiente** se ven chicos y pasan desapercibidos (`p-1.5`, ícono `size-4`, contador en `text-[10px]`
-> y oculto debajo de `sm`); y **en escritorio no se ven ni se pueden saltar los demás recursos**, porque el
-> grupo «Recursos de este dataset» vive en el chip, que es `lg:hidden`.
+> **Dos TODO nuevos del autor (2026-09-24):** los botones de anterior/siguiente chicos y los demás recursos sin salto en escritorio.
+> (Fusionados con el responsive del salto secuencial; movidos a `## v1`.)
 >
 > **Y un defecto medido que introdujo E2b:** el navegador **desactiva el anclaje de desplazamiento** del
 > contenedor porque el encabezado cambia su **alto en el flujo** (16px) al achicarse y el anclaje intenta
@@ -1341,11 +1319,10 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
 > `baseRef` explícito**: `1f60930..HEAD`, o sea **sólo el bloque A** — no la rama acumulada, que sigue excluida
 > por decisión del autor. **Pusheado y en sincronía** con `origin/feat/v0-portal-honesty` (`356d42a`).
 > **Aviso informativo del recibo (R3-001, no bloqueante, no reabre la revisión):**
-> `TODO:` en `wizard.test.ts:238` el test se llama «no muestra el campo de visibilidad y **crea siempre como
-> privado**», pero su cuerpo **sólo** verifica que no hay campo de visibilidad; el `private: true` **sí** está
-> verificado, pero **en otro test** (`:203`). El desajuste es **preexistente** (el título viejo prometía lo
-> mismo), y el renombre del verbo lo dejó a la vista. Arreglo: o se parte el título, o se trae la aserción a
-> este test.
+> En `wizard.test.ts` el test se llamaba «no muestra el campo de visibilidad y **crea siempre como privado**», pero su cuerpo
+> **sólo** verificaba que no hay campo de visibilidad; el `private: true` **sí** estaba verificado, pero **en otro test**. El desajuste
+> era **preexistente**. **Corregido el 2026-10-19:** el título pasó a «no muestra el campo de visibilidad ni las opciones Privada y
+> Pública» (ver «Historial de cierre»).
 >
 > **BLOQUE B — CERRADO (2026-09-22): página de error propia, aprobada por el autor y revisada.** Tres
 > unidades de trabajo + el expediente: `716af7e` (componente de presentación) · `ce15382` (hoja
@@ -1373,13 +1350,8 @@ sección es ahora la única copia, y por eso lleva el detalle y no sólo el resu
 > 9 archivos / 957 líneas, presupuesto de corrección 200, 1 revisor, 0 bloqueantes). Rango por `baseRef`
 > explícito: sólo el bloque. **Dos sugerencias informativas, anotadas y NO corregidas** (corregirlas
 > pediría su propia revisión, y la de este recibo ya está quemada):
-> - `TODO:` `src/routes/+error.svelte:27` — el reintento usa `$page.url.pathname`, que **pierde la query
->   y el fragmento**: un 5xx en `/search?q=salud` reintenta `/search` y el usuario pierde su búsqueda.
->   Arreglo: `pathname` + `search` (+ `hash` si corresponde).
-> - `TODO:` `src/lib/components/error/error-page.test.ts:237-240` — el test del ícono toma el **primer**
->   `<svg>` del contenedor, pero el estado 5xx renderiza **dos** (el del estado y el de `Reintentar`), así
->   que la aserción es frágil y el `aria-hidden` del segundo no queda cubierto. Arreglo: acotar la
->   consulta al ícono del estado.
+> - `src/routes/+error.svelte:27` — el reintento pierde la query y el fragmento (movido a `## v1`).
+> - `src/lib/components/error/error-page.test.ts` — el test del ícono toma el primer `<svg>` (movido a `## v1`).
 >
 > **DESVIACIÓN MEDIDA, para que no sorprenda: el bloque tiene 957 líneas de diff y el presupuesto de
 > revisión acordado es 400.** El código de producción son ~315 y el resto es test (531) y la hoja (121).
@@ -2115,53 +2087,15 @@ escenarios) · `specs/dataset-publishing/spec.md` **148** · `tasks.md` **520** 
   **Deuda asociada:** el seed escribía HTML en `notes` y los 16 datasets de dev tenían `<p>`; con el
   HTML crudo deshabilitado eso se vería como texto literal. Se arregló el seed y se migraron los datos
   de dev. Un despliegue con datos legacy necesita la misma limpieza.
-- [ ] **[v1] Mermaid y el `summary` para las cards** — quedan fuera de esta tanda. Mermaid es librería
-  grande + render en cliente + superficie de ataque aparte. El `summary` es un **campo nuevo** (extra
-  del dataset en CKAN, con la deuda de vocabulario ya conocida). SEO queda como feature aparte.
-- [ ] **[v1] Editor de la descripción: primero el layout, después el rich-text** — observación del
-  usuario (2026-09-13): «no termina de gustarme que sea así, me gusta la idea pero a la hora de verla
-  con info se me hace pequeña, y eso de poner dos pestañas no termina de gustarme».
-  **El diagnóstico honesto:** la queja es de **presentación**, no del modelo de datos. El markdown
-  guardado funciona y el render es seguro por construcción; lo que molesta es que el editor se ve
-  chico y que la vista previa obliga a cambiar de pestaña.
-  - **Camino barato (recomendado):** editor más alto y **vista previa visible sin pestañas** (lado a
-    lado en `lg`, apilada debajo en móvil). No toca el modelo ni el transporte: es layout. Ojo con la
-    altura: `MarkdownEditor` ya usa `field-sizing: content` como mejora progresiva, y su mínimo es lo
-    que hay que revisar.
-  - **Camino grande (la idea del usuario, aparcada):** editor **rich-text cuyo modelo guardado siga
-    siendo markdown**. Es factible, pero no gratis: exige una dependencia nueva
-    (TipTap/ProseMirror o Milkdown), un **ida y vuelta markdown ↔ modelo del editor que es con
-    pérdida** (tablas y listas anidadas son el caso típico), y aceptar un límite de fidelidad conocido
-    — o guardar las dos representaciones y convivir con su desincronización. Para v0/v1 **no se
-    justifica**: el markdown con vista previa ya cumple RF-39 y el dolor real se resuelve con el camino
-    barato. _Decisión del usuario: dejarlo pendiente, no ahora._
-
-- [ ] **[v1] VS: creación en un paso vs. dos pasos (con borrador)** — el usuario pidió comparar
-  ambos métodos. Hoy el wizard hace **un solo submit**: `package_create` y después los recursos, con
-  reintento de los que fallan. La UI de CKAN hace **dos pasos** (primero metadatos, después recursos),
-  lo que da un «guardado de emergencia». A comparar: cantidad de requests, qué pasa si el usuario
-  abandona a mitad, si un dataset a medio poblar es aceptable, si el estado `draft` de CKAN está
-  habilitado en este stack (verificarlo con la API antes de prometerlo), y si el flujo de publicación
-  definirá el estado de todos modos (ver el ítem de visibilidad).
 - [x] **[v0] Barra pegajosa vs. botón duplicado** — el usuario pidió **implementar ambos** para
   comparar, igual que se hizo en el playground del dashboard: dejarlo como está (botón al final del
   formulario + otro en el resumen) o reemplazarlo por la barra pegajosa. **Resuelto (2026-09-13): la
   barra pegajosa se descartó** (no gustó). Las acciones quedan **fuera del resumen**, en la columna
   derecha: «Publicar dataset» (primario, ancho completo) + «Cancelar» (contorno) + la nota. Ya no hay
   botón al final del formulario ni duplicado dentro de la tarjeta.
-- [ ] **[v1] Arrastrar y soltar para subir archivos: diferido** — la zona de arrastre está dibujada
-  pero **no funciona** (el playground es estático). El usuario decidió dejarlo para después: es
-  comportamiento nuevo y no quiere mezclarlo con los ajustes menores.
-
 ### Pendientes anotados (2026-09-13)
 
-- [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
-  **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
-  datos. _Origen: pedido del usuario._
-- [ ] **[v1] Probar el menú pegajoso del search en el dashboard** — el dashboard usa hoy una barra
-  pegajosa propia; probar como alternativa el **mismo estilo que quedó en la página de búsqueda**,
-  para ver si conviene unificar. _Origen: pedido del usuario._
-
+> Movidos a `## v1` en la limpieza del 2026-10-19 (`odd/tasks/v0.1.1-polish.md` T2): «Buscador dentro del menú pegajoso» y «Probar el menú pegajoso del search en el dashboard».
 ### Promoción del wizard (Plan C) — CERRADA (2026-09-13)
 
 > Ejecutada y cerrada. El playground (`src/routes/dev/dashboard/datasets/new/`) **se borró**: era
@@ -2259,11 +2193,7 @@ completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: 
 > **Pendientes, para después:**
 > - **El diseño del grupo «Resueltas» se mejora DESPUÉS de promover.** El autor invirtió la prioridad:
 >   «por ahora promover tiene más prioridad». (Promover es `B1`, y está bloqueado del lado de `odp-docker`.)
-> - **«Detalles» (derecha) contra «Información técnica» (izquierda)** en `/dataset/[id]`: marco adoptado —
->   **detalles = resumen, información técnica = completo**, y manda la izquierda. Con la precisión de que el
->   resumen es **otra pregunta** («¿me sirve esto?»: quién lo mantiene, cada cuánto se actualiza, cuándo fue la
->   última vez, con qué licencia), no una lista más corta de la misma información; y que la izquierda tiene que
->   estar **completa** —hoy se pierden datos que el dataset tiene—. TODO para una sesión de diseño.
+> - **«Detalles» (derecha) contra «Información técnica» (izquierda)** en `/dataset/[id]` (movido a `## v1`).
 > - **La parte técnica en los mensajes de error — ENTREGADA (2026-10-07).** Decisión del autor: los mensajes
 >   **pueden** llevar el código (para consultarlo con soporte), pero **el foco no es la técnica**: frase
 >   entendible primero, código como dato secundario («El dataset no existe, error 404»). La **página de error
@@ -2295,9 +2225,7 @@ completo está en «Replanificación HECHA (2026-10-07)», arriba. **Siguiente: 
 >   explicación **como tooltip**, del mismo alto que «Copiar enlace» y «Editar». Decisión textual: «por mi lo
 >   dejamos en el hero, pero… respetando el diseño de sus “hermanos” botones, solo eso».
 > **Pendientes que suma esta ronda:**
-> - **«Detalles» de la derecha contra «Información técnica» de la izquierda** en `/dataset/[id]`: al autor «no
->   le termina de gustar cómo se ven ambos». TODO suyo, para una sesión de diseño: son los dos bloques de
->   información de la ficha, y hoy compiten sin jerarquía clara.
+> - **«Detalles» de la derecha contra «Información técnica»** (movido a `## v1`, fusionado con el ítem anterior).
 > - **Unificar el mecanismo de tooltip de las acciones del hero.** Hoy «Copiar enlace» usa el `title` nativo,
 >   y el control de publicación hace lo mismo para parecerse; el `Tooltip` vendorizado (bits-ui, ya presente
 >   en `DatasetCard`) alcanza también el **foco del teclado**, que el `title` no. Los tres deberían usarlo.
@@ -2546,40 +2474,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   una de dos vías, no las dos: implementar la edición, o que el copy deje de anunciarla.
   **CERRADO (2026-10-06): STALE** — la ruta de edición existe (`src/routes/dashboard/datasets/[id]/edit/+page.svelte`); ya no hay promesa sin respaldo.
 
-- [ ] **[v1] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
-  `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
-  similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
-  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** la del **cuerpo**
-  (`dataset/[id]/+page.svelte:527-554`), **ya cumple** lo que este ítem pide —`p-6 sm:p-8`, tabla Campo/Valor y
-  el rótulo idéntico al de recurso—; la que no cumple es la del **sidebar** (`p-5`, filas
-  con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
-  el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
-
-  **Corrección de los nombres (2026-10-15):** este párrafo nombraba las tarjetas **al revés** de como están hoy
-  —decía «Detalles» el cuerpo y «Metadatos» el sidebar—, y la causa está medida: el autor las **renombró el
-  2026-09-28** (`dataset/[id]/+page.svelte:966`: «Detalles», no «Metadatos»), o sea **después** de aquella
-  medición. Hoy el **cuerpo** se titula **Metadatos** (`:871`) y el **sidebar**, **Detalles** (`:969`); el párrafo
-  del 2026-09-30 de más abajo ya usaba los nombres correctos, así que el ítem se contradecía consigo mismo.
-  _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
-  **Estado medido (2026-09-30): VIVO.** La card del cuerpo (`dataset/[id]/+page.svelte:520`) ya es `p-6 sm:p-8` con tabla
-  Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
-  de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
-  nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
-
-- [ ] **[v1] Con el catálogo caído, el portal le muestra al usuario el error del parser, no una frase suya.**
-  Observado por el autor (2026-10-08): con CKAN caído, el aviso que se lee es «No se pudieron cargar sus
-  organizaciones. **JSON.parse: unexpected character at line 1 column 1 of the JSON data**». La primera mitad es
-  nuestra y está bien; **la segunda es del intérprete**, y contradice la política de copy del resto del portal (frase
-  humana primero, el código técnico como dato secundario y **nunca la prosa cruda**) — la misma familia que las cinco
-  alertas que `technicalDetail` vino a arreglar.
-  **Hipótesis a verificar antes de tocar** (declarada, **no medida**): con el catálogo caído la respuesta del proxy no
-  es JSON, así que `res.json()` falla **antes** de que exista un `CkanApiError` y lo que llega es el mensaje del parser.
-  Si es eso, el arreglo vive en el cliente (`src/lib/api/client.ts`: un fallo de parseo es un fallo de **transporte**,
-  no un texto para el usuario) y no en cada página.
-  **No bloquea `v0`** (decisión del autor).
-
 > **Decisión del autor (2026-10-08, tarde): el hero con una solicitud pendiente rompía la ficha.** Con una solicitud
 > enviada, el control dibujaba el **bloque entero** —borde, titular, explicación y botón— con `w-full` dentro de la fila
 > de acciones: el hero crecía, el título y las insignias se desplazaban y la fila dejaba de leerse. **Corregido**: en la
@@ -2637,14 +2531,7 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 > guardián que esta unidad vino a poner en serio. Regla: **un aviso de una revisión aprobada se verifica contra el
 > código antes de tratarlo como deuda** — el de la ronda anterior era real y este no.
 >
-> **TODO anotado a pedido del autor — el estado `draft` («borrador»).** Lo encontró al presionar por error «unpublish»
-> en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
-> de CKAN para «todavía no publicado»**, y es justamente el que usaría la **máquina editorial** de `RF-15` pasos 1–3
-> que este corte declara **fuera de alcance** y difiere a `[v1]`. Que su clic funcionara es coherente: la pared refusa
-> los cambios de `state` para todo invocante **menos el `sysadmin`**, que conserva esa administración a propósito.
-> **Lo que queda por medir antes de decidir nada** (declarado, no supuesto): qué hace **hoy** el portal con un dataset
-> en `draft` —si lo dibuja, si aparece en el catálogo, qué dice su ficha—, y si conviene adoptar ese estado para la
-> máquina editorial o ignorarlo. **No bloquea `v0`.**
+> **TODO anotado a pedido del autor — el estado `draft` («borrador»).** (Movido a `## v1`: se decide en `v1`.)
 >
 > **Y un defecto del flujo, medido y reproducible, del lado de `odp-docker` (2026-10-08, noche).** La pregunta del
 > autor era cómo revisa el aprobador un dataset que no es suyo. Medido con dos tokens reales sobre un fixture propio:
@@ -2695,77 +2582,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Cuándo se decide:** no ahora, sino **al empezar el trabajo de permisos** (el ítem de colaboradores
   nativos de CKAN en `v0`): ahí se mide si lo nativo alcanza antes de construir equipos por fuera de CKAN.
 
-- [ ] **TODO — DECIDIDO Y CERRADO EN PÁGINA (2026-09-20): política de existencia, opción 3. Queda abierta la mitad de la API.**
-  **Decisión del autor:** `404` **ambiguo para el anónimo** (mismo estado que un recurso inexistente y
-  **sin** botón de iniciar sesión: el botón es lo que revela) y **honesto para el identificado** («su
-  cuenta no está autorizada»). Implementado en `src/lib/api/failure.ts`, los dos call sites, y la spec
-  **partida en dos requisitos** (`Unidentified Viewer Must Not Learn Existence` +
-  `Authorization Failure Is Not a Missing Resource`, este último acotado al espectador identificado — con
-  lo cual su nombre volvió a ser cierto).
-  **Consecuencia aceptada, explícita:** un usuario **autenticado** cualquiera puede distinguir `403` de
-  `404` **en la página**. No es una fuga nueva —la API se la da a cualquiera, incluso anónimo— y cerrarla
-  es una línea en la rama `session-alive` si algún día se quiere.
-  **Nota de UX:** al quitar el botón, en móvil el camino de inicio de sesión queda **dentro del menú
-  hamburguesa** (el enlace del encabezado aparece de `md` para arriba). `layout-header.test.ts` prueba que
-  el enlace existe.
-  **Revisión nativa: `review-249e073ef3489596` — APROBADA y con la authority quemada** (2026-09-20), tier
-  medium, una lente, 11 archivos / 467 líneas, con 2 avisos informativos registrados en la deuda de
-  revisión al final de este archivo.
-  **Lo que SIGUE ABIERTO — la mitad que falta para la propiedad completa:** el **oráculo de la API**
-  (siguiente párrafo). Cerrarlo exige la capa server-side que hoy no existe.
-  **El documento aportado por el autor** describe la recomendación estándar de las plataformas de
-  archivos: para un visitante, un archivo privado «no existe» → `404`, y no «es privado» ni «no tiene
-  permiso», para no habilitar la enumeración. Adoptarlo del todo **enmienda la spec**, no es copia suelta.
-  **Medición que hay que mirar antes de decidir (2026-09-20):** el portal **no es la frontera de la
-  enumeración**, porque el mismo origen que sirve la página proxya la API cruda de CKAN:
-  `GET /api/3/action/package_show?id=test` **sin token** → **`403`** con un cuerpo que **nombra el
-  recurso**, mientras un id inventado (`id=no-existe-x`) → **`404` `Not Found Error`**. Es un oráculo de
-  existencia perfecto, anónimo y accesible desde el navegador. (`package_search` sí filtra: count 16 vs
-  17 reales, y `resource_show` de un recurso privado también da `403` nombrando el recurso.)
-  ⇒ **enmascarar la página y dejar la API como está no compra la propiedad deseada**; comprarla exige
-  una capa server-side — el «middleware» que hoy **no existe**: `src/routes/api/` no existe y las únicas
-  rutas server son `auth/login` y `auth/logout` — que normalice `403` → `404` para llamadores **sin
-  sesión** y deje `403` para los autenticados.
-  **El precedente más fuerte está en el propio CKAN, y son DOS capas con políticas opuestas (medido el
-  2026-09-20):**
-  - **Su interfaz web enmascara exactamente como pide el documento.** `GET /dataset/test` sin sesión →
-    **HTTP `404`**, y el cuerpo dice literalmente **«Dataset not found or you have no permission to view
-    it»**. El recurso privado, igual: `404` «Resource not found». El mecanismo, en su código:
-    `ckan/views/dataset.py:406-407` (y :396-397, :509, :608, :744, :780) atrapa **`(NotFound,
-    NotAuthorized)` en la MISMA rama** → `abort(404, _('Dataset not found'))`; `ckan/views/resource.py:68-69,
-    91, 164-165` hace lo mismo. Es decir: **CKAN no distingue «no existe» de «existe pero no puedes
-    verlo», ni siquiera para un usuario logueado sin permiso**, y su mensaje es el ambiguo del documento.
-  - **Su API REST hace lo contrario**: `package_show?id=test` sin token → **`403` que nombra el UUID del
-    paquete**; `id=no-existe` → **`404`**. Ahí la existencia se revela y los dos casos se distinguen.
-  - **Los listados no filtran en ninguna capa**: `/dataset` anónimo lista 16 y no incluye `test`; la
-    página de la organización dueña tampoco lo lista; `package_search` anónimo → 16.
-  - **Consecuencia para el portal:** el portal es headless y consume la **API**, así que **hereda el
-    `403`** y tiene que elegir cuál de las dos políticas de CKAN reproduce. Y un dato incómodo que
-    conviene tener escrito: **el comportamiento anterior del portal (403 → «Recurso no encontrado»)
-    reproducía fielmente la política de la UI de CKAN.** Lo genuinamente defectuoso de D4 era
-    (a) el mock de DEV tapando un fallo real con datos falsos y (b) perder la mitad «o no tiene
-    permiso» del mensaje, que es la que no confirma nada y no miente.
-  *El punto medio existe, y es el de CKAN:* **`404` ambiguo sin botón de iniciar sesión** (el botón es lo
-  que revela). Si se conserva el botón, no hay punto medio: invitar es revelar. Fuga menor ya existente:
-  la expulsión por sesión muerta revela existencia a quien llegue con un token vencido.
-  **Lo decidido se aparta a propósito de la política de CKAN en un punto y la copia en otro:** para el
-  anónimo reproduce lo que hace su UI (ambiguo, sin invitación); para el identificado se aparta y le dice
-  la verdad útil («su cuenta no está autorizada» le dice que debe pedir permiso, no que escribió mal la
-  dirección). _Origen: documento aportado por el autor + medición del 2026-09-20; decisión del autor,
-  2026-09-20._
-  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizó **la mitad de página** (`lib/api/failure.ts`:
-  `classifyFailure`, `describeFailure` y `failureActions`, usados por las dos páginas, con el 403 y el 404 anónimos colapsados
-  a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
-  `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
-
-- [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
-  está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
-  el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
-  **Estado medido (2026-09-30): VIVO.** Ningún **archivo versionado** habilita la bandera: aparece en `PRD.md:245` y en los
-  artefactos del cambio SDD, y en **ninguno** puesta en `true`. La mitad literal del ítem (`.env.example`) **no es
-  verificable** bajo la política estricta de rutas de entorno. **Frena en medir el stack y en la decisión de habilitarla.**
-
 - [x] **[v0]** **Los tags de la card de dataset cortan a tres y no dicen cuáles son los que faltan.**
   **CERRADO (2026-10-06): promovido.** El `Tooltip` de bits-ui quedó vendorizado y la card ahora divulga las
   etiquetas **y** los formatos que el recorte esconde, con el `<a>` de la card como disparador: es la opción
@@ -2811,28 +2627,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   nada detrás —sin foco visible para el teclado—, así que ahora lleva un anillo con tokens en las tres formas
   (regla 7).
 
-- [ ] **[v1]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
-  y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
-  **El alcance no está definido: el autor no dijo qué le falta**, y la primera tarea es que la mire y lo
-  diga —no adivinarlo—. Contexto: PRD RF-06 a RF-08 y `openspec/specs/organizations/spec.md`.
-  **Estado medido (2026-09-30): VIVO.** `src/routes/organization/[id]/+page.svelte` es encabezado + lista de `DatasetCard`
-  sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
-  **Frena en la decisión del autor: el alcance.**
-
-- [ ] **[v1]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
-  antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
-  (`‹ Anterior` · contador · `Siguiente ›`) que **envuelven a una segunda línea** en anchos cortos, y su
-  ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
-  eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
-  el juicio de diseño.
-  **Estado medido (2026-09-30): VIVO.** La banda envuelve bien (`resource/[resourceId]/+page.svelte:540`), pero el recibo
-  `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
-  **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
-
 - [x] **[v0]** `TODO:` **Aviso benigno de Chromium: «el anclaje de desplazamiento se desactivó… demasiados ajustes
   consecutivos». DECIDIDO (2026-10-01): no se actúa.** Lo produce el encabezado que se achica **cambiando su alto en el
   flujo** (80→64 px) y **animado** (200 ms), en `+layout.svelte`: cada cruce mueve el contenido 16 px y la animación lo
@@ -2846,32 +2640,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   _Origen: el mensaje de consola que el autor vio el 2026-09-24, en el buscador y en la ficha del PDF de sonda; cierre por
   decisión del autor el 2026-10-01 (no es importante)._
   **CERRADO (2026-10-06):** ya decidido el 2026-10-01 (no se actúa); no hay trabajo abierto.
-
-- [ ] **[v1]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
-  float-menu del dashboard es más pequeño que el de los menús del search, o que los resúmenes del
-  form-create-dataset». **Medido — son TRES aires distintos más un número mágico:**
-  - la **barra de acciones del panel**: `fixed inset-x-0 top-[var(--header-h)] … pt-2` → **8px** de aire, y
-    **flota** como tarjeta (`rounded-xl border shadow-lg`, con `p-2` adentro);
-  - la **barra de resultados del buscador**: `sticky top-[calc(var(--header-h)+1px)]` → **1px** (el borde del
-    encabezado), y va **a ras**, ancho completo, con `border-b` y `py-4` adentro;
-  - los **laterales** de la ficha del dataset y del asistente: `lg:top-[calc(var(--header-h)+1rem)]` → **16px**;
-  - y el lateral de **facetas del buscador** sigue con `lg:top-40` → **160px**, un valor que nunca se midió
-    (estaba anotado como observación no actuada en el recibo de E2).
-  **Estado medido (2026-09-30): VIVO.** No existe ningún token `--sticky-air` y los aires siguen distintos: `pt-2` en el
-  dashboard (`:393`), `+1px` en search (`:354`), `+1rem` en las dos laterales y `top-40` en las facetas. **Frena en la
-  decisión del autor:** tarjeta flotante o barra al ras.
-
-  Y son **dos tratamientos**: tarjeta flotante (panel) contra barra a ras (buscador). **Propuesta:** es el mismo
-  problema que el alto del encabezado, así que se arregla igual — **un token** (`--sticky-air` en
-  `src/app.css`) del que salen todos los offsets pegados, **más una decisión del autor**: ¿flotante o a ras para
-  todas? Pertenece al **bloque E**.
-
-  - **Un riesgo que había que medir antes de tocar `site_url`, y está resuelto: el callback del DataPusher NO depende de `site_url` en este stack.** `ckanext/datapusher/logic/action.py:67-71` usa `ckan.datapusher.callback_url_base` **y sólo cae a `ckan.site_url` si esa opción falta**. Acá **está seteada**: `CKAN__DATAPUSHER__CALLBACK_URL_BASE=http://ckan-dev:5000` (verificado en el entorno del contenedor), y el pusher **resuelve y alcanza** ese nombre (`getent hosts ckan-dev → 172.19.0.4`, `wget → rc=0`). Por eso la subida al DataStore de la sonda D0 funcionó con `site_url = localhost`: **el pusher nunca usó `site_url`**. Conclusión medida: cambiar `site_url` a la URL pública **no toca la carga al DataStore**. (Contraste: la IP de LAN del host **no** es alcanzable desde el contenedor del pusher — el `wget` a `192.168.1.201:5000` no completa —, así que `callback_url_base` debe seguir siendo la dirección interna del servicio.)
-  - **Trampa futura a tener escrita:** el embed de RF-30 depende de que el origen de CKAN sea alcanzable **y del mismo esquema** que el portal. Si el portal se sirve por `https` y `site_url` queda en `http`, el navegador bloquea el `<iframe>` y el `<img>` por contenido mixto. Al fijar la URL pública hay que fijar **las dos** con el mismo esquema.
-  - **Arreglo, en orden de riesgo:** (1) `CKAN_SITE_URL` con la URL pública real —en este dev, la IP de LAN— es lo que desbloquea el síntoma entero, y es del repo `odp-docker`; (2) quitar el fallback `|| "http://localhost:5000"` o hacerlo **fallar ruidosamente** si la variable falta; (3) decidir si `APP_URL` se usa o se borra. **Recomendación de momento:** va antes que D3, porque sin esto los visores por tipo que acabamos de aprobar no se pueden verificar de verdad desde otra máquina.
-  _Origen: reporte del autor, 2026-09-23; medición propia del mismo día (`ckan.site_url`, el `curl` a la IP de LAN y el inventario de `localhost` en `src/`)._
 
 - [ ] **[v0] Rotar las credenciales de la base que estuvieron expuestas** — hasta el 2026-09-24, el
   Flask-DebugToolbar del CKAN de desarrollo estaba activo, y **cualquiera en la LAN** que abriera
@@ -2915,12 +2683,27 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Lo que sí se pierde:** el JS/CSS sin minificar de la UI nativa de CKAN y su modo debug de
   plantillas. Irrelevante mientras la interfaz sea el portal.
 
-- [ ] **[v1] Revisar el tag de CKAN cuando salga 2.12.1, o antes de pasar a producción.** El autor decidió
-  mantener `2.12` sin fijar el patch (2026-10-16); hoy `2.12` y `2.12.0` son la misma imagen. Seguimiento en
-  `odp-docker`: `odd/tasks/ckan-patch-pin-decision.md` (registro local, no versionado). Historia completa en el
-  historial de cierre, fila «Higiene de configuración de versión».
+### v0.1.1 — antes de la presentación
 
-- [ ] **[v1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
+Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
+
+- [ ] **[v0.1.1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
+  texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
+  **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
+  arreglo son tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su
+  `--primary-foreground`, o ambos—, así que la decisión es del autor y no de una sesión. Reproducir:
+  `/dev/error?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
+  **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
+  texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
+  arbitrario: es el tamaño del texto.
+  *Tres caminos independientes dan el mismo veredicto:* el instrumento de la sesión paralela medido en el
+  navegador sobre el nodo real (**3.72**), su cálculo puro sobre los tokens (**3.733**) y este recomputo
+  (**3.733**); en modo claro los tres dan **5.284** y **pasa**, que es el control de que el cálculo no está
+  sesgado hacia abajo. **La diferencia de 0,01 no es discrepancia: es resolución de canal** — el navegador
+  serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión completa.
+  Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
+
+- [ ] **[v0.1.1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
   «para el caso de los pdf creo que ese espacio es pequeño, creo que lo mismo aplicará para otros view, como los gráficos y
   demás». **Medido en el código hoy:** el `<iframe>` del PDF mide **`h-[520px]`** (`ResourcePreview.svelte:131`), la imagen
@@ -2943,7 +2726,15 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (regla 8).
   _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
-- [ ] **El botón «Copiar enlace» del recurso no sigue la disposición del dataset** (TODO del autor, 2026-10-17,
+- [ ] **[v0.1.1] El breadcrumb de las páginas de gráficos, en una sola línea** (duda del autor, 2026-10-18, `csv-charts` L49,
+  textual: «antes mencioné algo como "truncar" un poco los titles para que entren todos en una sola línea»). En
+  `…/charts/new` y `…/charts/[viewId]/edit` la miga es la más larga del portal: inicio, organización, dataset, recurso
+  y la página. `Breadcrumb.svelte` ya trunca cada etiqueta (`truncate`, `min-w-0`) y en el teléfono se pliega a un chip
+  con menú. **Primero medir** en 1280 y 1440 px, con nombres reales largos, si ocupa más de una línea. Si la ocupa,
+  **decidir** entre un tope de ancho por etiqueta (con el texto completo en `title`) y plegar las del medio en «…».
+  _Es visual; el autor acepta hacerlo ahora o después._
+
+- [ ] **[v0.1.1] Los botones de copiar del recurso: «Copiar enlace» con la disposición del dataset y un solo componente** (TODO del autor, 2026-10-17,
   `csv-charts` L47, textual: «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar
   esto»). **Precisión del autor, textual:** «sí lo tiene, pero está situado en una posición diferente a la del datasets,
   creo que al cambiar la posición en una sesión pasada no lo hicimos para el caso de los resources, me refiero a que en
@@ -2957,69 +2748,21 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   **Lo que hay que hacer:** llevar el recurso al reparto del dataset, con las mismas piezas en vez de una copia que se
   vuelva a desincronizar. Se cruza con P6 de `csv-charts`: el autor quiere guardar la banda del encabezado del recurso
   «para otras acciones».
-
-- [ ] **El breadcrumb de las páginas de gráficos, en una sola línea** (duda del autor, 2026-10-18, `csv-charts` L49,
-  textual: «antes mencioné algo como "truncar" un poco los titles para que entren todos en una sola línea»). En
-  `…/charts/new` y `…/charts/[viewId]/edit` la miga es la más larga del portal: inicio, organización, dataset, recurso
-  y la página. `Breadcrumb.svelte` ya trunca cada etiqueta (`truncate`, `min-w-0`) y en el teléfono se pliega a un chip
-  con menú. **Primero medir** en 1280 y 1440 px, con nombres reales largos, si ocupa más de una línea. Si la ocupa,
-  **decidir** entre un tope de ancho por etiqueta (con el texto completo en `title`) y plegar las del medio en «…».
-  _Es visual; el autor acepta hacerlo ahora o después._
-
-- [ ] **[v1] En producción, probar que la dirección de «Acceso por API» funciona copiada tal cual** (decisión del autor,
-  2026-10-18, textual: «por ahora al origin del portal puede servir para la demo, pero para prod tiene que funcionar, si
-  usamos el del origin del protal puede pasar como que funciona ya que no lo usaremos, pero en prod debemos probarlo,
-  anota esto»). La sección mostraba un path (`/api/3/action/…`) porque `PUBLIC_CKAN_URL` está vacío en el stack. Ahora,
-  sin esa variable ni el extra `api_base_url`, lleva el **origen del portal**. Medido el 2026-10-18: `POST` y `GET` a
-  `datastore_search` responden `200` en `https://odp.hs.lan/api/…`, en `https://api.odp.hs.lan/api/…` y en
-  `http://localhost:8082/api/…`. **En dev funciona porque el proxy del portal publica `/api/` hacia CKAN; en producción
-  eso no está probado.** Al desplegar hay que copiar la dirección y el `curl` desde la página de un recurso con tabla en
-  `data.umss.edu.bo` y correrlos. Si no responden, se elige entre publicar `/api/` en el proxy de producción o mostrar
-  `api.data.umss.edu.bo` con una variable **propia**. No se puede reusar `PUBLIC_CKAN_URL`: con esa variable, la
-  búsqueda y el inicio piden datos desde el navegador a otro dominio, y CKAN no manda CORS. `/catalog` no sirve para
-  esto: descarta el `Authorization` (la API Key de RF-38) y sólo admite su lista de acciones.
-  **Avance (2026-10-18):** en la demo de v0, que corre el **stack de producción** (`https://demo.odp.hs.lan`, build
-  compilado y proxy de producción), la dirección se ve completa en el navegador (medido con Chromium) y el autor
-  confirmó, textual: «Respecto a lo de la url de la api, funciona correctamente, tanto la url como el ejemplo del
-  curl». Falta lo mismo en el despliegue real, detrás del proxy de UMSS.
-- [ ] **[extra] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
-  quede en "no se implementará", me refiero a que si alcansamos podemos probar hacerlo, pero no es bloqueantes, es más
-  bien algo "plus", un agregado»). Hoy GeoJSON va a «sin vista previa» con su descarga (`preview.ts`,
-  `odd/tasks/demo-honest-data.md` S6), porque la ruta `/catalog/download` lo sirve como adjunto y Chrome descarga un
-  adjunto dentro de un iframe. Dos caminos medidos: (a) como texto, sumando `application/geo+json` a `INLINE_TYPES` de
-  `ckan-download.ts` (#99, cerrado sin mergear, tenía test y verificación independiente PASS) y volviendo a `text` en
-  `previewKind`; (b) un mapa dibujado por el portal (Leaflet o MapLibre), como el `geoview` de la recomendación del
-  2026-10-17. El seed ya declara `mimetype: application/geo+json` (#98). No bloquea nada.
-- [ ] **La presentación de la demo: guion actualizado y diapositivas** (decisión del autor, 2026-10-18, textual: «me
-  gustaría actualizar lo que tenemos y hacerlo con diapos […] pero esto luego, porque hacerlo ahora quisas haga quedar
-  desincronizado lo que tenemos con lo que presentaremos»). Se hace **después** de los arreglos de la demo: actualizar
-  el guion de `odd/tasks/backlog-prd-reconciliation.md` («El guion de la presentación») con gráficos, insertar, la API
-  y el flujo de publicación con los usuarios de la demo, y sumar unas pocas diapositivas de apertura y cierre. Incluye
-  T5 de `odd/tasks/csv-charts.md`.
-- [ ] **Unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
+  **Segundo pedido del autor, fusionado (2026-10-19) — unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
   diferente a otros del mismo estilo, como el de copiar la id o hash de los resources, también quisiera corregir estos
   porque se ven un poco feos»). Hoy conviven por lo menos tres estilos en la misma página:
   - el de la dirección de la API, una píldora con texto y `bg-primary/10` (`resource/[resourceId]/+page.svelte:712-725`);
   - el del hash y el id, un cuadrado de ícono `size-7` (`:804-815`);
   - el de «Copiar enlace», un cuadrado `size-9` al lado del título.
   A esos se suma «Copiar código» del diálogo «Insertar». **Propuesta:** un solo componente `CopyButton` con dos tamaños
-  (ícono y con texto), probado en un playground según la regla 8. Se cruza con el ítem de «Copiar enlace» del recurso.
+  (ícono y con texto), probado en un playground según la regla 8. Es el mismo trabajo que el pedido de «Copiar enlace» de arriba (fusionados).
 
-- [ ] **Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
-  previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
-  (`PRD.md:259`, «primeras 20 filas»). El autor la revisó con los 2.500 de la planilla y eligió **paginación**: anterior
-  y siguiente sobre el DataStore, de 20 en 20, con `offset`. **Cambia RF-31**, así que el PRD se actualiza con la
-  implementación. **Cuándo:** después de los gráficos de la demo. Se cruza con el ítem anterior: si la tabla pagina,
-  su alto queda acotado por la página y ya no crece con las filas.
-
-- [ ] **[v1+]** **Una promesa descartada en el sondeo, y el límite declarado de los avisos informativos.** La compuerta del PR
-  de la sesión (linaje `review-1d91289cfb043d06`) devolvió un aviso **verdadero y verificado contra el código**:
-  `+layout.svelte` llama `void validateStoredSession(client)` y esa función espera `check()` **sin atrapar**, así que un
-  **rechazo** de la sonda queda como **rechazo de promesa sin manejar** y el encabezado se queda con el estado anterior.
-  **No se arregló a propósito: acá se declaró el límite** —esa rama ya había cerrado **dos** avisos verdaderos (el desempate
-  por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
-  medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
-  Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
+- [ ] **[v0.1.1] La presentación de la demo: guion actualizado y diapositivas** (decisión del autor, 2026-10-18, textual: «me
+  gustaría actualizar lo que tenemos y hacerlo con diapos […] pero esto luego, porque hacerlo ahora quisas haga quedar
+  desincronizado lo que tenemos con lo que presentaremos»). Se hace **después** de los arreglos de la demo: actualizar
+  el guion de `odd/tasks/backlog-prd-reconciliation.md` («El guion de la presentación») con gráficos, insertar, la API
+  y el flujo de publicación con los usuarios de la demo, y sumar unas pocas diapositivas de apertura y cierre. Incluye
+  T5 de `odd/tasks/csv-charts.md`.
 
 ## v1 — producto usable en producción
 
@@ -3370,15 +3113,6 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (`organization_create` / `organization_update`) y de miembros
   (`organization_member_create`). _Referencias: PRD RF-06 a RF-08._
 
-- [ ] **[v2] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
-  registro de logins/logouts; la `activity` nativa de CKAN es insuficiente. Evaluar
-  `ckanext-event-audit`. Depende del ciclo de vida resuelto.
-  **Tier corregido a `[v2]` (2026-10-09, al precisar el modelo de versiones):** el `PRD.md` se contradecía —§3 lo listaba
-  en el alcance de `v1` y §7 lo difiere— y **`v1+` ya no es el lugar de un requerimiento del PRD**: `v1+` es para lo que
-  **no** es un requerimiento fuerte. Es un requerimiento de este documento que **no alcanza para `v1`** (exige una
-  extensión propia), así que va a **`v2` con su motivo escrito**, que es lo que el modelo pide para informar a los
-  futuros desarrolladores. `PRD.md` §3, RF-33/RF-34 y §6 llevan la misma anotación.
-
 - [ ] **[v1] La guarda de copy falla en silencio, tres veces por el mismo motivo.** Tres rondas seguidas
   entregaron una guarda más débil de lo que promete su comentario: (1) una guarda **más estrecha que su
   propio comentario**; (2) otra que podía **ocultar** un token prohibido en vez de señalarlo; y (3) un
@@ -3396,6 +3130,260 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   no puede fallar por el motivo que dice proteger no es una guarda; el parser elimina la clase de defecto
   (la desincronización por `${…}`) en vez de un caso, y las dos dependencias ya están pagadas.
   _Origen: observación del autor, 2026-10-06._
+
+- [ ] **[v1] Mermaid y el `summary` para las cards** — quedan fuera de esta tanda. Mermaid es librería
+  grande + render en cliente + superficie de ataque aparte. El `summary` es un **campo nuevo** (extra
+  del dataset en CKAN, con la deuda de vocabulario ya conocida). SEO queda como feature aparte.
+
+- [ ] **[v1] Editor de la descripción: primero el layout, después el rich-text** — observación del
+  usuario (2026-09-13): «no termina de gustarme que sea así, me gusta la idea pero a la hora de verla
+  con info se me hace pequeña, y eso de poner dos pestañas no termina de gustarme».
+  **El diagnóstico honesto:** la queja es de **presentación**, no del modelo de datos. El markdown
+  guardado funciona y el render es seguro por construcción; lo que molesta es que el editor se ve
+  chico y que la vista previa obliga a cambiar de pestaña.
+  - **Camino barato (recomendado):** editor más alto y **vista previa visible sin pestañas** (lado a
+    lado en `lg`, apilada debajo en móvil). No toca el modelo ni el transporte: es layout. Ojo con la
+    altura: `MarkdownEditor` ya usa `field-sizing: content` como mejora progresiva, y su mínimo es lo
+    que hay que revisar.
+  - **Camino grande (la idea del usuario, aparcada):** editor **rich-text cuyo modelo guardado siga
+    siendo markdown**. Es factible, pero no gratis: exige una dependencia nueva
+    (TipTap/ProseMirror o Milkdown), un **ida y vuelta markdown ↔ modelo del editor que es con
+    pérdida** (tablas y listas anidadas son el caso típico), y aceptar un límite de fidelidad conocido
+    — o guardar las dos representaciones y convivir con su desincronización. Para v0/v1 **no se
+    justifica**: el markdown con vista previa ya cumple RF-39 y el dolor real se resuelve con el camino
+    barato. _Decisión del usuario: dejarlo pendiente, no ahora._
+
+- [ ] **[v1] VS: creación en un paso vs. dos pasos (con borrador)** — el usuario pidió comparar
+  ambos métodos. Hoy el wizard hace **un solo submit**: `package_create` y después los recursos, con
+  reintento de los que fallan. La UI de CKAN hace **dos pasos** (primero metadatos, después recursos),
+  lo que da un «guardado de emergencia». A comparar: cantidad de requests, qué pasa si el usuario
+  abandona a mitad, si un dataset a medio poblar es aceptable, si el estado `draft` de CKAN está
+  habilitado en este stack (verificarlo con la API antes de prometerlo), y si el flujo de publicación
+  definirá el estado de todos modos (ver el ítem de visibilidad).
+
+- [ ] **[v1] Arrastrar y soltar para subir archivos: diferido** — la zona de arrastre está dibujada
+  pero **no funciona** (el playground es estático). El usuario decidió dejarlo para después: es
+  comportamiento nuevo y no quiere mezclarlo con los ajustes menores.
+
+- [ ] **[v1] Buscador dentro del menú pegajoso** — al hacer scroll, el input del buscador debería
+  **moverse del hero al menú pegajoso**, en vez de quedar sólo arriba. Patrón habitual en portales de
+  datos. _Origen: pedido del usuario._
+
+- [ ] **[v1] Probar el menú pegajoso del search en el dashboard** — el dashboard usa hoy una barra
+  pegajosa propia; probar como alternativa el **mismo estilo que quedó en la página de búsqueda**,
+  para ver si conviene unificar. _Origen: pedido del usuario._
+
+- [ ] **[v1] Normalizar la card de metadatos del dataset según la de recurso** — el usuario prefiere
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
+  la card de metadatos de la **página de recurso** (`resource/[resourceId]/+page.svelte:619-692`: rótulo
+  `text-destructive`, tabla de campos con jerarquía, `Card` con `p-6 sm:p-8`) y quiere llevar algo
+  similar a la del **dataset**, conservando el detalle que agrega valor a la card. **Corrección medida el
+  2026-09-24: la página del dataset tiene DOS cards, y este ítem no decía cuál.** la del **cuerpo**
+  (`dataset/[id]/+page.svelte:527-554`), **ya cumple** lo que este ítem pide —`p-6 sm:p-8`, tabla Campo/Valor y
+  el rótulo idéntico al de recurso—; la que no cumple es la del **sidebar** (`p-5`, filas
+  con ícono, sin tabla). **Cuál de las dos y qué detalle sobrevive es decisión del autor**, y va antes de tocar
+  el archivo: `odd/tasks/block-e-layout-polish.md`, slice E4.
+
+  **Corrección de los nombres (2026-10-15):** este párrafo nombraba las tarjetas **al revés** de como están hoy
+  —decía «Detalles» el cuerpo y «Metadatos» el sidebar—, y la causa está medida: el autor las **renombró el
+  2026-09-28** (`dataset/[id]/+page.svelte:966`: «Detalles», no «Metadatos»), o sea **después** de aquella
+  medición. Hoy el **cuerpo** se titula **Metadatos** (`:871`) y el **sidebar**, **Detalles** (`:969`); el párrafo
+  del 2026-09-30 de más abajo ya usaba los nombres correctos, así que el ítem se contradecía consigo mismo.
+  _Origen: revisión de UI del dashboard (2026-09-12); re-verificado el 2026-09-24._
+  **Estado medido (2026-09-30): VIVO.** La card del cuerpo (`dataset/[id]/+page.svelte:520`) ya es `p-6 sm:p-8` con tabla
+  Campo/Valor; la del sidebar «Detalles» (`:620`) sigue en `p-5` con filas e ícono. **Frena en la decisión del autor: cuál
+  de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
+  nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
+
+- [ ] **[v1] Con el catálogo caído, el portal le muestra al usuario el error del parser, no una frase suya.**
+  Observado por el autor (2026-10-08): con CKAN caído, el aviso que se lee es «No se pudieron cargar sus
+  organizaciones. **JSON.parse: unexpected character at line 1 column 1 of the JSON data**». La primera mitad es
+  nuestra y está bien; **la segunda es del intérprete**, y contradice la política de copy del resto del portal (frase
+  humana primero, el código técnico como dato secundario y **nunca la prosa cruda**) — la misma familia que las cinco
+  alertas que `technicalDetail` vino a arreglar.
+  **Hipótesis a verificar antes de tocar** (declarada, **no medida**): con el catálogo caído la respuesta del proxy no
+  es JSON, así que `res.json()` falla **antes** de que exista un `CkanApiError` y lo que llega es el mensaje del parser.
+  Si es eso, el arreglo vive en el cliente (`src/lib/api/client.ts`: un fallo de parseo es un fallo de **transporte**,
+  no un texto para el usuario) y no en cada página.
+  **No bloquea `v0`** (decisión del autor).
+
+- [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
+  está en `.env.example`. La funcionalidad es nativa desde CKAN 2.9 pero está apagada, así que
+  el modelo de permisos por dataset (RF-18) no funciona hoy. _Referencias: PRD RF-18, PRD §7._
+  **Estado medido (2026-09-30): VIVO.** Ningún **archivo versionado** habilita la bandera: aparece en `PRD.md:245` y en los
+  artefactos del cambio SDD, y en **ninguno** puesta en `true`. La mitad literal del ítem (`.env.example`) **no es
+  verificable** bajo la política estricta de rutas de entorno. **Frena en medir el stack y en la decisión de habilitarla.**
+
+- [ ] **[v1]** `TODO:` **La página de la organización, a mejorar.** Observación del autor (2026-09-28):
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
+  «mejorar la page de las org». Es una de las páginas con menos trabajo encima: nació resolviendo `name` o `id`
+  y mostrando lo que `organization_show` devuelve, y **nunca tuvo una pasada de diseño propia**.
+  **El alcance no está definido: el autor no dijo qué le falta**, y la primera tarea es que la mire y lo
+  diga —no adivinarlo—. Contexto: PRD RF-06 a RF-08 y `openspec/specs/organizations/spec.md`.
+  **Estado medido (2026-09-30): VIVO.** `src/routes/organization/[id]/+page.svelte` es encabezado + lista de `DatasetCard`
+  sin pasada de diseño propia; las unidades del 2026-09-28 tocaron enlaces y ruteo hacia la org, no la página.
+  **Frena en la decisión del autor: el alcance.**
+
+- [ ] **[v1]** `TODO:` **Los pegados no comparten la medida del aire: cada superficie inventó la suya.**
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
+  Observación del autor (2026-09-24) **y aparece justamente ahora que el encabezado se achica**: «el
+  float-menu del dashboard es más pequeño que el de los menús del search, o que los resúmenes del
+  form-create-dataset». **Medido — son TRES aires distintos más un número mágico:**
+  - la **barra de acciones del panel**: `fixed inset-x-0 top-[var(--header-h)] … pt-2` → **8px** de aire, y
+    **flota** como tarjeta (`rounded-xl border shadow-lg`, con `p-2` adentro);
+  - la **barra de resultados del buscador**: `sticky top-[calc(var(--header-h)+1px)]` → **1px** (el borde del
+    encabezado), y va **a ras**, ancho completo, con `border-b` y `py-4` adentro;
+  - los **laterales** de la ficha del dataset y del asistente: `lg:top-[calc(var(--header-h)+1rem)]` → **16px**;
+  - y el lateral de **facetas del buscador** sigue con `lg:top-40` → **160px**, un valor que nunca se midió
+    (estaba anotado como observación no actuada en el recibo de E2).
+  **Estado medido (2026-09-30): VIVO.** No existe ningún token `--sticky-air` y los aires siguen distintos: `pt-2` en el
+  dashboard (`:393`), `+1px` en search (`:354`), `+1rem` en las dos laterales y `top-40` en las facetas. **Frena en la
+  decisión del autor:** tarjeta flotante o barra al ras.
+
+  Y son **dos tratamientos**: tarjeta flotante (panel) contra barra a ras (buscador). **Propuesta:** es el mismo
+  problema que el alto del encabezado, así que se arregla igual — **un token** (`--sticky-air` en
+  `src/app.css`) del que salen todos los offsets pegados, **más una decisión del autor**: ¿flotante o a ras para
+  todas? Pertenece al **bloque E**.
+
+  - **Un riesgo que había que medir antes de tocar `site_url`, y está resuelto: el callback del DataPusher NO depende de `site_url` en este stack.** `ckanext/datapusher/logic/action.py:67-71` usa `ckan.datapusher.callback_url_base` **y sólo cae a `ckan.site_url` si esa opción falta**. Acá **está seteada**: `CKAN__DATAPUSHER__CALLBACK_URL_BASE=http://ckan-dev:5000` (verificado en el entorno del contenedor), y el pusher **resuelve y alcanza** ese nombre (`getent hosts ckan-dev → 172.19.0.4`, `wget → rc=0`). Por eso la subida al DataStore de la sonda D0 funcionó con `site_url = localhost`: **el pusher nunca usó `site_url`**. Conclusión medida: cambiar `site_url` a la URL pública **no toca la carga al DataStore**. (Contraste: la IP de LAN del host **no** es alcanzable desde el contenedor del pusher — el `wget` a `192.168.1.201:5000` no completa —, así que `callback_url_base` debe seguir siendo la dirección interna del servicio.)
+  - **Trampa futura a tener escrita:** el embed de RF-30 depende de que el origen de CKAN sea alcanzable **y del mismo esquema** que el portal. Si el portal se sirve por `https` y `site_url` queda en `http`, el navegador bloquea el `<iframe>` y el `<img>` por contenido mixto. Al fijar la URL pública hay que fijar **las dos** con el mismo esquema.
+  - **Arreglo, en orden de riesgo:** (1) `CKAN_SITE_URL` con la URL pública real —en este dev, la IP de LAN— es lo que desbloquea el síntoma entero, y es del repo `odp-docker`; (2) quitar el fallback `|| "http://localhost:5000"` o hacerlo **fallar ruidosamente** si la variable falta; (3) decidir si `APP_URL` se usa o se borra. **Recomendación de momento:** va antes que D3, porque sin esto los visores por tipo que acabamos de aprobar no se pueden verificar de verdad desde otra máquina.
+  _Origen: reporte del autor, 2026-09-23; medición propia del mismo día (`ckan.site_url`, el `curl` a la IP de LAN y el inventario de `localhost` en `src/`)._
+
+- [ ] **[v1] Revisar el tag de CKAN cuando salga 2.12.1, o antes de pasar a producción.** El autor decidió
+  mantener `2.12` sin fijar el patch (2026-10-16); hoy `2.12` y `2.12.0` son la misma imagen. Seguimiento en
+  `odp-docker`: `odd/tasks/ckan-patch-pin-decision.md` (registro local, no versionado). Historia completa en el
+  historial de cierre, fila «Higiene de configuración de versión».
+
+- [ ] **[v1] En producción, probar que la dirección de «Acceso por API» funciona copiada tal cual** (decisión del autor,
+  2026-10-18, textual: «por ahora al origin del portal puede servir para la demo, pero para prod tiene que funcionar, si
+  usamos el del origin del protal puede pasar como que funciona ya que no lo usaremos, pero en prod debemos probarlo,
+  anota esto»). La sección mostraba un path (`/api/3/action/…`) porque `PUBLIC_CKAN_URL` está vacío en el stack. Ahora,
+  sin esa variable ni el extra `api_base_url`, lleva el **origen del portal**. Medido el 2026-10-18: `POST` y `GET` a
+  `datastore_search` responden `200` en `https://odp.hs.lan/api/…`, en `https://api.odp.hs.lan/api/…` y en
+  `http://localhost:8082/api/…`. **En dev funciona porque el proxy del portal publica `/api/` hacia CKAN; en producción
+  eso no está probado.** Al desplegar hay que copiar la dirección y el `curl` desde la página de un recurso con tabla en
+  `data.umss.edu.bo` y correrlos. Si no responden, se elige entre publicar `/api/` en el proxy de producción o mostrar
+  `api.data.umss.edu.bo` con una variable **propia**. No se puede reusar `PUBLIC_CKAN_URL`: con esa variable, la
+  búsqueda y el inicio piden datos desde el navegador a otro dominio, y CKAN no manda CORS. `/catalog` no sirve para
+  esto: descarta el `Authorization` (la API Key de RF-38) y sólo admite su lista de acciones.
+  **Avance (2026-10-18):** en la demo de v0, que corre el **stack de producción** (`https://demo.odp.hs.lan`, build
+  compilado y proxy de producción), la dirección se ve completa en el navegador (medido con Chromium) y el autor
+  confirmó, textual: «Respecto a lo de la url de la api, funciona correctamente, tanto la url como el ejemplo del
+  curl». Falta lo mismo en el despliegue real, detrás del proxy de UMSS.
+
+- [ ] **[v1]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
+  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
+  autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
+  antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
+  (`‹ Anterior` · contador · `Siguiente ›`) que **envuelven a una segunda línea** en anchos cortos, y su
+  ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
+  eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
+  el juicio de diseño.
+  **Estado medido (2026-09-30): VIVO.** La banda envuelve bien (`resource/[resourceId]/+page.svelte:540`), pero el recibo
+  `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
+  **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
+  **Fusionado (2026-10-19, decisión del autor: «Fusionar con el responsive del salto»):** dos TODO del autor (2026-09-24, del
+  handoff del bloque E), los dos de diseño y con su medida: los **botones de anterior/siguiente** se ven chicos y pasan
+  desapercibidos (`p-1.5`, ícono `size-4`, contador en `text-[10px]` y oculto debajo de `sm`); y **en escritorio no se ven
+  ni se pueden saltar los demás recursos**, porque el grupo «Recursos de este dataset» vive en el chip, que es `lg:hidden`.
+
+- [ ] **[v1] Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
+  previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
+  (`PRD.md:259`, «primeras 20 filas»). El autor la revisó con los 2.500 de la planilla y eligió **paginación**: anterior
+  y siguiente sobre el DataStore, de 20 en 20, con `offset`. **Cambia RF-31**, así que el PRD se actualiza con la
+  implementación. **Cuándo:** después de los gráficos de la demo. Se cruza con el ítem anterior: si la tabla pagina,
+  su alto queda acotado por la página y ya no crece con las filas.
+  **Tier (2026-10-19, autor):** queda fuera de `v0.1.1` (`odd/tasks/v0.1.1-polish.md` L4); se propone para `v1`, porque cambia RF-31.
+
+- [ ] **[v1] TODO (autor): revisar la POSICIÓN de las solicitudes (localización).** Dónde viven las superficies de la
+  solicitud dentro de la ficha. Hoy se decidió **promover en la posición actual**: la tarjeta decide donde ya
+  estaba su estado —**segunda de cuatro** en la columna principal, entre «Sobre este dataset» y «Recursos»—, y el
+  costo medido de esa posición es que el administrador tiene que bajar para decidir (no es nuevo: ya bajaba para
+  *leer* el estado). Las alternativas que se descartaron por ahora, con su motivo: la **cabecera** pondría los
+  controles del aprobador junto a los del solicitante, y contra la decisión del autor del 2026-10-08 de que la
+  solicitud es **estado**, no acción; la **columna derecha** es de metadatos y en móvil cae al final. **Tier (2026-10-19, autor): «Pendiente v1, con playground»**
+  (regla 8 de `AGENTS.md`).
+
+- [ ] **[v1] El reintento de la página de error pierde la query y el fragmento** (aviso informativo del recibo
+  `review-13d22ebddf82eef0`, bloque B, anotado como TODO en el handoff del 2026-09-23 y **VIVO** al 2026-10-19: el reintento sigue
+  en `src/routes/+error.svelte:27`). El reintento usa `$page.url.pathname`, que **pierde la query y el fragmento**: un 5xx en
+  `/search?q=salud` reintenta `/search` y el usuario pierde su búsqueda. Arreglo: `pathname` + `search` (+ `hash` si corresponde).
+
+- [ ] **[v1] El test del ícono de la página de error toma el primer `<svg>`** (aviso informativo del recibo
+  `review-13d22ebddf82eef0`, bloque B; hoy en `src/lib/components/error/error-page.test.ts:248`). El estado 5xx renderiza **dos**
+  `<svg>` (el del estado y el de `Reintentar`), así que la aserción es frágil y el `aria-hidden` del segundo no queda cubierto.
+  Arreglo: acotar la consulta al ícono del estado.
+
+- [ ] **[v1] El estado `draft` («borrador»): qué hace el portal con él y si se adopta** (TODO anotado a pedido del autor; **decisión del autor, 2026-10-19: «Decidir en v1»**). Lo encontró al presionar por error «unpublish»
+  en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
+  de CKAN para «todavía no publicado»**, y es justamente el que usaría la **máquina editorial** de `RF-15` pasos 1–3
+  que este corte declara **fuera de alcance** y difiere a `[v1]`. Que su clic funcionara es coherente: la pared refusa
+  los cambios de `state` para todo invocante **menos el `sysadmin`**, que conserva esa administración a propósito.
+  **Lo que queda por medir antes de decidir nada** (declarado, no supuesto): qué hace **hoy** el portal con un dataset
+  en `draft` —si lo dibuja, si aparece en el catálogo, qué dice su ficha—, y si conviene adoptar ese estado para la
+  máquina editorial o ignorarlo. **No bloquea `v0`.** Se cruza con «Decidir qué hace el flujo de publicación con un dataset `draft`» (registro de la decisión de `c′`, arriba).
+
+- [ ] **[v1] «Detalles» (derecha) contra «Información técnica» (izquierda) en `/dataset/[id]`: hoy compiten sin jerarquía clara** (TODO del
+  autor, para una sesión de diseño; **tier, 2026-10-19, decisión del autor: `v1`**). Dos anotaciones del 2026-10-07, fusionadas:
+  - **Marco adoptado (revisión de `/dev/publication`):**
+    **detalles = resumen, información técnica = completo**, y manda la izquierda. Con la precisión de que el
+    resumen es **otra pregunta** («¿me sirve esto?»: quién lo mantiene, cada cuánto se actualiza, cuándo fue la
+    última vez, con qué licencia), no una lista más corta de la misma información; y que la izquierda tiene que
+    estar **completa** —hoy se pierden datos que el dataset tiene—. TODO para una sesión de diseño.
+  - **Segunda ronda de decisiones (pendientes que suma):** en `/dataset/[id]`: al autor «no
+    le termina de gustar cómo se ven ambos». TODO suyo, para una sesión de diseño: son los dos bloques de
+    información de la ficha, y hoy compiten sin jerarquía clara.
+
+- [ ] **[v1] Política de existencia, la mitad de la API: el oráculo del `403` sigue en pie** (la mitad de página quedó
+  decidida y cerrada el 2026-09-20; **decisión del autor, 2026-10-19: «Sí, la API como ítem v1»**).
+  **Lo que SIGUE ABIERTO — la mitad que falta para la propiedad completa:** el **oráculo de la API**
+  (siguiente párrafo). Cerrarlo exige la capa server-side que hoy no existe.
+  **El documento aportado por el autor** describe la recomendación estándar de las plataformas de
+  archivos: para un visitante, un archivo privado «no existe» → `404`, y no «es privado» ni «no tiene
+  permiso», para no habilitar la enumeración. Adoptarlo del todo **enmienda la spec**, no es copia suelta.
+  **Medición que hay que mirar antes de decidir (2026-09-20):** el portal **no es la frontera de la
+  enumeración**, porque el mismo origen que sirve la página proxya la API cruda de CKAN:
+  `GET /api/3/action/package_show?id=test` **sin token** → **`403`** con un cuerpo que **nombra el
+  recurso**, mientras un id inventado (`id=no-existe-x`) → **`404` `Not Found Error`**. Es un oráculo de
+  existencia perfecto, anónimo y accesible desde el navegador. (`package_search` sí filtra: count 16 vs
+  17 reales, y `resource_show` de un recurso privado también da `403` nombrando el recurso.)
+  ⇒ **enmascarar la página y dejar la API como está no compra la propiedad deseada**; comprarla exige
+  una capa server-side — el «middleware» que hoy **no existe**: `src/routes/api/` no existe y las únicas
+  rutas server son `auth/login` y `auth/logout` — que normalice `403` → `404` para llamadores **sin
+  sesión** y deje `403` para los autenticados.
+  **El precedente más fuerte está en el propio CKAN, y son DOS capas con políticas opuestas (medido el
+  2026-09-20):**
+  - **Su interfaz web enmascara exactamente como pide el documento.** `GET /dataset/test` sin sesión →
+    **HTTP `404`**, y el cuerpo dice literalmente **«Dataset not found or you have no permission to view
+    it»**. El recurso privado, igual: `404` «Resource not found». El mecanismo, en su código:
+    `ckan/views/dataset.py:406-407` (y :396-397, :509, :608, :744, :780) atrapa **`(NotFound,
+    NotAuthorized)` en la MISMA rama** → `abort(404, _('Dataset not found'))`; `ckan/views/resource.py:68-69,
+    91, 164-165` hace lo mismo. Es decir: **CKAN no distingue «no existe» de «existe pero no puedes
+    verlo», ni siquiera para un usuario logueado sin permiso**, y su mensaje es el ambiguo del documento.
+  - **Su API REST hace lo contrario**: `package_show?id=test` sin token → **`403` que nombra el UUID del
+    paquete**; `id=no-existe` → **`404`**. Ahí la existencia se revela y los dos casos se distinguen.
+  - **Los listados no filtran en ninguna capa**: `/dataset` anónimo lista 16 y no incluye `test`; la
+    página de la organización dueña tampoco lo lista; `package_search` anónimo → 16.
+  - **Consecuencia para el portal:** el portal es headless y consume la **API**, así que **hereda el
+    `403`** y tiene que elegir cuál de las dos políticas de CKAN reproduce. Y un dato incómodo que
+    conviene tener escrito: **el comportamiento anterior del portal (403 → «Recurso no encontrado»)
+    reproducía fielmente la política de la UI de CKAN.** Lo genuinamente defectuoso de D4 era
+    (a) el mock de DEV tapando un fallo real con datos falsos y (b) perder la mitad «o no tiene
+    permiso» del mensaje, que es la que no confirma nada y no miente.
+  *El punto medio existe, y es el de CKAN:* **`404` ambiguo sin botón de iniciar sesión** (el botón es lo
+  que revela). Si se conserva el botón, no hay punto medio: invitar es revelar. Fuga menor ya existente:
+  la expulsión por sesión muerta revela existencia a quien llegue con un token vencido.
+  **Lo decidido se aparta a propósito de la política de CKAN en un punto y la copia en otro:** para el
+  anónimo reproduce lo que hace su UI (ambiguo, sin invitación); para el identificado se aparta y le dice
+  la verdad útil («su cuenta no está autorizada» le dice que debe pedir permiso, no que escribió mal la
+  dirección). _Origen: documento aportado por el autor + medición del 2026-09-20; decisión del autor,
+  2026-09-20._
+  **Estado medido (2026-09-30) — `PARTIAL`, con el corte exacto:** aterrizó **la mitad de página** (`lib/api/failure.ts`:
+  `classifyFailure`, `describeFailure` y `failureActions`, usados por las dos páginas, con el 403 y el 404 anónimos colapsados
+  a un mismo texto). **No aterrizó la mitad de API:** no existe `src/routes/api` y los únicos `+server.ts` son los dos de
+  `auth`, así que el oráculo del 403 sigue en pie a través del proxy.
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
@@ -3572,6 +3560,25 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (`src/routes/about/+page.svelte`) y su contenido actual queda como está hasta esa sesión.
   _Origen: pedido del autor, 2026-10-06._
 
+- [ ] **[v1+]** **Una promesa descartada en el sondeo, y el límite declarado de los avisos informativos.** La compuerta del PR
+  de la sesión (linaje `review-1d91289cfb043d06`) devolvió un aviso **verdadero y verificado contra el código**:
+  `+layout.svelte` llama `void validateStoredSession(client)` y esa función espera `check()` **sin atrapar**, así que un
+  **rechazo** de la sonda queda como **rechazo de promesa sin manejar** y el encabezado se queda con el estado anterior.
+  **No se arregló a propósito: acá se declaró el límite** —esa rama ya había cerrado **dos** avisos verdaderos (el desempate
+  por `id` y el nombre accesible), y cada arreglo abre un candidato nuevo y por lo tanto otra compuerta—. **Mitigante
+  medido:** `check()` atrapa sus errores y devuelve `inconclusive`, así que el rechazo es **latente y no observado**.
+  Arreglo cuando se toque: `void validateStoredSession(client).catch(() => {})`, o un `try` dentro de la función.
+
+- [ ] **[v1+] Vista previa de GeoJSON** (decisión del autor, 2026-10-18, textual: «me gustaría que eso del geojson no
+  quede en "no se implementará", me refiero a que si alcansamos podemos probar hacerlo, pero no es bloqueantes, es más
+  bien algo "plus", un agregado»). Hoy GeoJSON va a «sin vista previa» con su descarga (`preview.ts`,
+  `odd/tasks/demo-honest-data.md` S6), porque la ruta `/catalog/download` lo sirve como adjunto y Chrome descarga un
+  adjunto dentro de un iframe. Dos caminos medidos: (a) como texto, sumando `application/geo+json` a `INLINE_TYPES` de
+  `ckan-download.ts` (#99, cerrado sin mergear, tenía test y verificación independiente PASS) y volviendo a `text` en
+  `previewKind`; (b) un mapa dibujado por el portal (Leaflet o MapLibre), como el `geoview` de la recomendación del
+  2026-10-17. El seed ya declara `mimetype: application/geo+json` (#98). No bloquea nada.
+  **Tier (2026-10-19, autor): «v1+».**
+
 ## v2+ — mejoras futuras no solicitadas
 
 - [ ] **TODO (pregunta del autor): ¿internacionalizar la UI (i18n)?** Notó que CKAN define el idioma y que en
@@ -3626,6 +3633,15 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
   (OCR/lectura de cabeceras), edición masiva de metadatos, integración con repositorios externos
   (Drive/Dropbox), auto-registro. _Referencias: PRD §3 "Fuera del alcance (v1)"._
 
+- [ ] **[v2] Auditoría de operaciones críticas** — RF-33/RF-34 piden retención de 5 años y
+  registro de logins/logouts; la `activity` nativa de CKAN es insuficiente. Evaluar
+  `ckanext-event-audit`. Depende del ciclo de vida resuelto.
+  **Tier corregido a `[v2]` (2026-10-09, al precisar el modelo de versiones):** el `PRD.md` se contradecía —§3 lo listaba
+  en el alcance de `v1` y §7 lo difiere— y **`v1+` ya no es el lugar de un requerimiento del PRD**: `v1+` es para lo que
+  **no** es un requerimiento fuerte. Es un requerimiento de este documento que **no alcanza para `v1`** (exige una
+  extensión propia), así que va a **`v2` con su motivo escrito**, que es lo que el modelo pide para informar a los
+  futuros desarrolladores. `PRD.md` §3, RF-33/RF-34 y §6 llevan la misma anotación.
+
 ## Datos y contenido (habilitador de QA, no es feature)
 
 - [ ] **[v1+] Seed CKAN a escala** — poblar CKAN con ~1.500–2.000 datasets realistas para afinar
@@ -3661,6 +3677,8 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **Mejora del nombre del test del asistente: «no muestra el campo de visibilidad y crea siempre como privado»** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2); el autor eligió «Corregir el título ahora»). El aviso R3-001 del recibo `review-169119db13ffab2c` decía que el título prometía lo que el cuerpo no verificaba. El cuerpo sólo comprueba que no hay campo de visibilidad ni las opciones «Privada» y «Pública»; el `private: true` ya lo verifica el test del envío mínimo. El título pasó a «no muestra el campo de visibilidad ni las opciones Privada y Pública» (`src/routes/dashboard/datasets/new/wizard.test.ts`). 34 de 34 pasan. |
+| **Política de existencia (`404` ambiguo para el anónimo): la mitad de página** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2)). El ítem decía de sí mismo «DECIDIDO Y CERRADO EN PÁGINA (2026-09-20)»: `404` ambiguo para el anónimo y sin botón de iniciar sesión, honesto para el identificado («su cuenta no está autorizada»). Implementado en `src/lib/api/failure.ts` y los dos call sites; la spec se partió en `Unidentified Viewer Must Not Learn Existence` y `Authorization Failure Is Not a Missing Resource`; revisión nativa `review-249e073ef3489596` aprobada. **Consecuencia aceptada:** un usuario autenticado puede distinguir `403` de `404` en la página (no es una fuga nueva: la API se lo da a cualquiera); en móvil el camino de inicio de sesión queda dentro del menú hamburguesa (`layout-header.test.ts` prueba que el enlace existe). Medido el 2026-09-30: aterrizó la mitad de página. **Queda la mitad de la API como ítem `[v1]`** (decisión del autor: «Sí, la API como ítem v1»). |
 | **[v0.1.1] Los rótulos del eje X se pisan con categorías de nombre largo** | **Cerrado** (2026-10-19, rama `fix/chart-axis-labels`). Se iteró en la hoja `/dev/chart-axis` con cinco formas (hoy, girados, recortados con «…», en renglones y automática) y un instrumento que medía sobre el SVG real los rótulos escritos, pisados, recortados y fuera del borde. El autor eligió la **automática**, textual: «mejor, me quedo con la e, aprobado». La regla vale para el eje entero: los rótulos van derechos si caben todos; si no, en hasta 3 renglones si todos caben sin recortar; y si no, girados 40° (recortados a 140 px, con el nombre completo en el tooltip y en la tabla). Sin ancho medido, el eje se comporta como antes. En la hoja ninguna combinación de caso y ancho dejó rótulos pisados ni fuera del borde. Se cerró también el hallazgo de las barras sin rótulo: con 12 categorías ahora se rotulan las 12 cuando caben. La lógica vive en `src/lib/charts/x-axis-labels.ts` y la hoja se borró al promover. |
 | **Higiene de configuración de versión (`CKAN_VERSION` muerta y fijar el patch de CKAN)** | **Cerrado** (2026-10-16). La mitad de `.env` ya estaba cerrada: `CKAN_VERSION` no aparece en `ckan-docker/.env` ni en `.env.example` (`a128b4f`). La decisión de fijar el patch la tomó el autor, textual: *«mantener en 2.12, creo que ahora mismo estamos con la .0 y es la últimia desde hace 2 meses, por ahora dejarlo así»*. La sesión de `odp-docker` verificó en Docker Hub que `ckan/ckan-base:2.12` y `2.12.0` tienen el mismo digest (`sha256:87ecf3f2…`, publicado el 2026-08-27) y que todavía no existe la 2.12.1. Queda un ítem `[v1]` para revisarlo cuando salga la 2.12.1 o antes de producción. |
 | **Higiene de versión: el tag de CKAN sin fuente única (`R2-002`)** | **Cerrado** (medido el 2026-10-16 por la sesión de `odp-docker`). Las partes (a) y (b) se cerraron el 2026-09-29 con `test-ckan-image-tag.sh` (`f21dc6b`). La parte (c), la guarda de `redis` frente al cliente de CKAN 2.12 (`HELLO`/RESP3), la cerró `ckan-docker/ckan/tests/test-redis-version.sh` (`c283c2a`, ajustada en `47753b2`): exige que la imagen de `checks.yml` sea `redis` 6 o superior y que los compose usen `redis:${REDIS_VERSION}`, y el job `shell-tests` la corre en CI. Límite declarado: no lee el valor de `REDIS_VERSION` en `.env`. Registro en `odp-docker`: `odd/tasks/redis-resp3-guard.md`. |

@@ -251,7 +251,7 @@ describe("Wizard de creación", () => {
 		expect(container.querySelector("#slug")).toBeInTheDocument();
 	});
 
-	it("no muestra el campo de visibilidad y crea siempre como privado", async () => {
+	it("no muestra el campo de visibilidad ni las opciones Privada y Pública", async () => {
 		auth.setUser(baseUser);
 
 		const { container } = render(Wizard);
