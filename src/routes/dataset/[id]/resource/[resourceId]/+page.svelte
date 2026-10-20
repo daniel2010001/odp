@@ -28,6 +28,7 @@ import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.sv
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
+import { MetaGroup, type MetaGroupData, type MetaRow } from "$lib/components/ui/meta";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { fileUrl } from "$lib/resources/file-url";
@@ -315,8 +316,6 @@ const fieldList = $derived.by(() => {
 // ─── Derived: grupos de la tarjeta de metadatos ─────────────────
 // Los mismos campos de `fieldList` (+ «Modificado» y los identificadores, que antes vivían en una franja
 // aparte), repartidos en tres grupos. Sólo el hash, el nombre del archivo y los identificadores se copian.
-type MetaRow = { label: string; value: string; copy?: string; mono?: boolean };
-type MetaGroup = { id: string; title: string; rows: MetaRow[] };
 
 const FILE_FIELDS = new Set([
 	"Nombre del archivo",
@@ -332,7 +331,7 @@ const COPY_LABELS: Record<string, string> = {
 };
 const MONO_FIELDS = new Set(["Nombre del archivo", "Hash"]);
 
-const metaGroups = $derived.by((): MetaGroup[] => {
+const metaGroups = $derived.by((): MetaGroupData[] => {
 	if (!resource) return [];
 	const toRow = (f: { label: string; value: string | null | undefined }): MetaRow => ({
 		label: f.label,
@@ -827,57 +826,11 @@ const resourceLink = $derived(
 					Formato, tamaño, tipo MIME y sus identificadores.
 				</p>
 
-				<!-- Estilo 3b del dataset: un grupo por tarjeta pequeña, con su título afuera y una línea fina; 32 px
-				     entre grupos y 8 px del título a la tarjeta. Las filas llevan la etiqueta arriba y el valor
-				     debajo; el botón de copiar (etiqueta que pasa a ícono si la fila no da) queda al extremo,
-				     centrado en la primera línea del valor: su contenedor mide `1lh`. -->
+				<!-- Estilo 3b, el mismo de la página del dataset (`MetaGroup`): un grupo por tarjeta pequeña con
+				     su título afuera; 32 px entre grupos. -->
 				<div class="mt-4 space-y-8">
 					{#each metaGroups as group (group.id)}
-						<div role="group" aria-labelledby="meta-{group.id}">
-							<div class="mb-2 flex items-center gap-3">
-								<h3
-									id="meta-{group.id}"
-									class="text-xs font-bold uppercase tracking-wide text-foreground"
-								>
-									{group.title}
-								</h3>
-								<span class="h-px flex-1 bg-border" aria-hidden="true"></span>
-							</div>
-							<div class="overflow-hidden rounded-lg border border-border">
-								<dl class="divide-y divide-border/60">
-									{#each group.rows as row (row.label)}
-										<div class="min-w-0 px-4 py-3">
-											<dt class="text-xs text-muted-foreground">{row.label}</dt>
-											<dd class="mt-1 flex items-start justify-between gap-2 @container">
-												<span
-													class={cn(
-														"block min-w-0 flex-1 text-foreground [overflow-wrap:anywhere]",
-														row.mono ? "font-mono text-xs" : "text-sm font-medium",
-													)}>{row.value}</span
-												>
-												{#if row.copy}
-													<div
-														class={cn(
-															"flex h-[1lh] shrink-0 items-center",
-															row.mono ? "text-xs" : "text-sm",
-														)}
-													>
-														<CopyButton
-															text={row.value}
-															label={row.copy}
-															visibleLabel="Copiar"
-															form="label"
-															size="sm"
-															collapseBelow="24rem"
-														/>
-													</div>
-												{/if}
-											</dd>
-										</div>
-									{/each}
-								</dl>
-							</div>
-						</div>
+						<MetaGroup {...group} />
 					{/each}
 				</div>
 			</Card>

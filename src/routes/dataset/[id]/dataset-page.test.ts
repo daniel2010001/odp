@@ -562,113 +562,162 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 	});
 });
 
-// ─── La tarjeta de información técnica del dataset ────────────────────
-// El molde es la tarjeta del recurso: eyebrow «Metadatos», una descripción
-// bajo el título, la tabla sólo con los campos semánticos y una franja monoespaciada con los
-// identificadores. Los identificadores dejan de mezclarse con «Visibilidad» y «Estado».
-describe("Página de dataset — la tarjeta de información técnica", () => {
-	async function renderTechnicalCard(): Promise<HTMLElement> {
-		mocks.showDataset.mockResolvedValue(makeDataset());
-
-		render(DatasetPage);
-
-		const heading = await screen.findByRole("heading", {
-			name: "Información sobre el dataset",
+// ─── «Resumen» (sidebar) e «Información técnica» (cuerpo) ──────────────
+// Variante C / 3b de `/dev/dataset-details` (decisión del autor, 2026-10-19): el sidebar resume lo que
+// responde «¿me sirve esto?» y la tarjeta del cuerpo trae **todos** los campos registrados, en grupos.
+// Antes: «Detalles» (creado, modificado, licencia, autor, mantenedor) y «Metadatos / Información sobre
+// el dataset» (visibilidad, estado y una franja de identificadores); los correos, la versión, el sitio de
+// origen y los extras no se mostraban en ningún lado.
+describe("Página de dataset — «Resumen» e «Información técnica»", () => {
+	const FULL = () =>
+		makeDataset({
+			author: "Unidad de Estadística",
+			author_email: "estadistica@umss.edu.bo",
+			maintainer: "María Rojas",
+			maintainer_email: "mrojas@umss.edu.bo",
+			version: "2026.2",
+			url: "https://planificacion.umss.edu.bo/matricula",
+			license_title: "Creative Commons Atribución 4.0",
+			extras: [
+				{ key: "Frecuencia de actualización", value: "Semestral" },
+				{ key: "Cobertura geográfica", value: "Cochabamba, Bolivia" },
+				{ key: "Cobertura temporal", value: "Enero a diciembre de 2026" },
+			],
 		});
-		return heading.parentElement as HTMLElement;
+
+	async function renderTechnicalCard(dataset: CkanPackage): Promise<HTMLElement> {
+		mocks.showDataset.mockResolvedValue(dataset);
+		render(DatasetPage);
+		const eyebrow = await screen.findByText("Información técnica");
+		return eyebrow.closest("[id]") as HTMLElement;
 	}
 
-	it("unifica el eyebrow con el de la tarjeta del recurso", async () => {
-		const card = await renderTechnicalCard();
+	function groupTitles(card: HTMLElement): string[] {
+		return within(card)
+			.getAllByRole("group")
+			.map((g) => g.querySelector("h3")?.textContent?.trim() ?? "");
+	}
 
-		expect(within(card).getByText("Metadatos")).toBeTruthy();
-		// «Sobre este dataset» sigue siendo el título de la tarjeta de descripción, no de ésta.
-		expect(screen.getByRole("heading", { name: "Sobre este dataset" })).toBeTruthy();
-		expect(within(card).queryByText("Sobre este dataset")).toBeNull();
+	it("el sidebar se llama «Resumen» y ya no hay «Detalles» ni «Metadatos»", async () => {
+		await renderTechnicalCard(FULL());
+
+		expect(screen.getByText("Resumen")).toBeTruthy();
+		expect(screen.queryByText("Detalles")).toBeNull();
+		expect(screen.queryByText("Metadatos")).toBeNull();
+		expect(screen.queryByText("Información sobre el dataset")).toBeNull();
 	});
 
-	it("dice «Metadatos» una sola vez, y el sidebar se llama «Detalles»", async () => {
-		// Decisión del autor (2026-09-28/29): el eyebrow de la tarjeta técnica es exactamente «Metadatos»
-		// —igual en las dos páginas— y el segundo título dice de qué es la información. El sidebar es un
-		// **resumen** y se llama «Detalles», así que la palabra no se repite. La aserción es de **conteo**
-		// y no de ausencia: mientras el eyebrow fue «Metadatos · Información técnica» el match exacto no lo
-		// alcanzaba y «no aparece» probaba menos de lo que decía; con el eyebrow corto, «no aparece» sería
-		// directamente falso.
-		mocks.showDataset.mockResolvedValue(makeDataset());
+	it("el resumen trae los cuatro datos clave", async () => {
+		await renderTechnicalCard(FULL());
+		const summary = screen.getByText("Resumen").closest("div") as HTMLElement;
 
-		render(DatasetPage);
-
-		const heading = await screen.findByRole("heading", { name: "Información sobre el dataset" });
-		const card = heading.parentElement as HTMLElement;
-
-		expect(within(card).getAllByText("Metadatos")).toHaveLength(1);
-		expect(screen.getAllByText("Metadatos")).toHaveLength(1);
-		expect(screen.getByText("Detalles")).toBeTruthy();
-	});
-
-	it("agrega la línea descriptiva bajo el título", async () => {
-		const card = await renderTechnicalCard();
-
-		expect(within(card).getByText("Visibilidad, estado y sus identificadores.")).toBeTruthy();
-	});
-
-	it("deja en la tabla sólo los campos semánticos y saca los identificadores", async () => {
-		const card = await renderTechnicalCard();
-		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
-		expect(table).not.toBeNull();
-
-		expect(within(table as HTMLElement).getByText("Visibilidad")).toBeTruthy();
-		expect(within(table as HTMLElement).getByText("Estado")).toBeTruthy();
-		expect(within(table as HTMLElement).queryByText("Dirección web")).toBeNull();
-		expect(within(table as HTMLElement).queryByText("Identificador")).toBeNull();
-	});
-
-	it("muestra la dirección web y el identificador en la franja monoespaciada bajo la tabla", async () => {
-		const card = await renderTechnicalCard();
-		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
-		const strip = table?.nextElementSibling as HTMLElement | null;
-
-		// La franja es hermana de la tabla, no una fila dentro de ella: antes del cambio los
-		// identificadores vivían en `code.font-mono` dentro de la tabla y este caso pasaba en falso.
-		expect(strip).not.toBeNull();
-		expect((strip as HTMLElement).textContent).toContain("Dirección web");
-		expect((strip as HTMLElement).textContent).toContain("Identificador");
-		const codes = Array.from((strip as HTMLElement).querySelectorAll("code.font-mono")).map(
-			(code) => code.textContent,
-		);
-		expect(codes).toEqual(["matricula-2026", "pkg-1"]);
-	});
-
-	it("la franja envuelve entre identificadores y no dentro de un valor", async () => {
-		const card = await renderTechnicalCard();
-		const table = card.querySelector(".overflow-hidden") as HTMLElement | null;
-		const strip = table?.nextElementSibling as HTMLElement | null;
-		expect(strip).not.toBeNull();
-
-		// jsdom no aplica Tailwind: lo de abajo es un contrato de clases, no una medición de layout.
-		// `flex` + `flex-wrap` es lo que permite partir entre elementos; con el contenido en un solo
-		// bloque en línea, la única ruptura posible vuelve a ser dentro del valor.
-		const row = (strip as HTMLElement).firstElementChild as HTMLElement | null;
-		expect(row).not.toBeNull();
-		expect((row as HTMLElement).className).toContain("flex");
-		expect((row as HTMLElement).className).toContain("flex-wrap");
-
-		// Cada identificador es su propio hijo: el navegador puede bajar de línea «Identificador: …»
-		// entero en vez de partir la oración. El `·` conserva la separación visual del molde.
-		const items = Array.from((row as HTMLElement).children);
-		const slugItem = items.find((el) => el.textContent?.startsWith("Dirección web:"));
-		const idItem = items.find((el) => el.textContent?.startsWith("Identificador:"));
-		expect(slugItem).not.toBeUndefined();
-		expect(idItem).not.toBeUndefined();
-		expect(slugItem).not.toBe(idItem);
-		expect(items.some((el) => el.textContent === "·")).toBe(true);
-
-		// `break-all` sobrevive sólo en los `code`, como último recurso para un valor que no cabe.
-		for (const item of [slugItem, idItem]) {
-			const code = item?.querySelector("code");
-			expect(code).not.toBeNull();
-			expect((code as HTMLElement).className).toContain("break-all");
+		for (const [label, value] of [
+			["Lo mantiene", "María Rojas"],
+			["Se actualiza", "Semestral"],
+			["Última actualización", "1 de enero de 2026"],
+			["Licencia", "Creative Commons Atribución 4.0"],
+		]) {
+			expect(within(summary).getByText(label).tagName).toBe("DT");
+			expect(within(summary).getByText(value).tagName).toBe("DD");
 		}
+	});
+
+	it("«Lo mantiene» cae al autor y luego a la organización", async () => {
+		await renderTechnicalCard(makeDataset({ author: "Unidad de Estadística" }));
+		expect(screen.getByText("Unidad de Estadística", { selector: "dd" })).toBeTruthy();
+	});
+
+	it("con pocos datos el resumen omite los hechos que faltan, no los inventa", async () => {
+		await renderTechnicalCard(makeDataset());
+		const summary = screen.getByText("Resumen").closest("div") as HTMLElement;
+
+		expect(within(summary).queryByText("Lo mantiene")).toBeNull();
+		expect(within(summary).queryByText("Se actualiza")).toBeNull();
+		expect(within(summary).queryByText("Licencia")).toBeNull();
+		expect(within(summary).getByText("Última actualización")).toBeTruthy();
+	});
+
+	it("el enlace «Ver la información técnica completa» apunta a la tarjeta del cuerpo", async () => {
+		const card = await renderTechnicalCard(FULL());
+		const link = screen.getByRole("link", { name: "Ver la información técnica completa" });
+
+		expect(link.getAttribute("href")).toBe(`#${card.id}`);
+		expect(card.id).toBe("info-tecnica");
+		// Como `#vista-previa` del recurso: el encabezado fijo no tapa el título al saltar.
+		expect(card.className).toContain("scroll-mt-[calc(var(--header-h)+17px)]");
+	});
+
+	it("la tarjeta muestra cada campo registrado, agrupado en cinco grupos", async () => {
+		const card = await renderTechnicalCard(FULL());
+
+		expect(groupTitles(card)).toEqual([
+			"Responsables",
+			"Fechas y versión",
+			"Condiciones y estado",
+			"Origen y cobertura",
+			"Identificadores",
+		]);
+		const rows: [string, string][] = [
+			["Autor", "Unidad de Estadística"],
+			["Correo del autor", "estadistica@umss.edu.bo"],
+			["Mantenedor", "María Rojas"],
+			["Correo del mantenedor", "mrojas@umss.edu.bo"],
+			["Creado", "1 de enero de 2026"],
+			["Modificado", "1 de enero de 2026"],
+			["Versión", "2026.2"],
+			["Frecuencia de actualización", "Semestral"],
+			["Licencia", "Creative Commons Atribución 4.0"],
+			["Visibilidad", "Público"],
+			["Estado", "Activo"],
+			["Sitio de origen", "https://planificacion.umss.edu.bo/matricula"],
+			["Cobertura geográfica", "Cochabamba, Bolivia"],
+			["Cobertura temporal", "Enero a diciembre de 2026"],
+			["Dirección web", "matricula-2026"],
+			["Identificador", "pkg-1"],
+		];
+		for (const [label, value] of rows) {
+			const dt = within(card).getByText(label, { selector: "dt" });
+			expect(dt.nextElementSibling?.textContent).toContain(value);
+		}
+		// Estructura 3b: el título va afuera de la tarjeta pequeña y la franja de identificadores desapareció.
+		expect(card.querySelector("code")).toBeNull();
+		expect(within(card).queryByText("Campo")).toBeNull();
+	});
+
+	it("con pocos datos no se renderizan los grupos vacíos", async () => {
+		const card = await renderTechnicalCard(makeDataset());
+
+		// Sin autor, correos, versión, licencia, sitio ni extras quedan: fechas, condiciones e identificadores.
+		expect(groupTitles(card)).toEqual([
+			"Fechas y versión",
+			"Condiciones y estado",
+			"Identificadores",
+		]);
+		expect(within(card).queryByText("Correo del autor", { selector: "dt" })).toBeNull();
+		expect(within(card).queryByText("Versión", { selector: "dt" })).toBeNull();
+	});
+
+	it("sólo se copian los correos, el sitio de origen, la dirección web y el identificador", async () => {
+		const card = await renderTechnicalCard(FULL());
+
+		const buttons = within(card).getAllByRole("button");
+		expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
+			"Copiar correo del autor",
+			"Copiar correo del mantenedor",
+			"Copiar sitio de origen",
+			"Copiar dirección web",
+			"Copiar identificador",
+		]);
+	});
+
+	it("copiar un correo copia su valor", async () => {
+		const card = await renderTechnicalCard(FULL());
+
+		await fireEvent.click(within(card).getByRole("button", { name: "Copiar correo del autor" }));
+
+		await waitFor(() =>
+			expect(mocks.copyToClipboard).toHaveBeenCalledWith("estadistica@umss.edu.bo"),
+		);
 	});
 });
 
@@ -800,17 +849,20 @@ describe("Página de dataset — el acuse de «Copiar enlace»", () => {
 		const copiar = await screen.findByRole("button", { name: "Copiar enlace del dataset" });
 		expect(copiar.querySelector(".lucide-link-2")).not.toBeNull();
 
+		// Cada botón de copiar trae su propio aviso `role="status"` (también los de «Información técnica»):
+		// el de este botón es el de su mismo contenedor.
+		const aviso = () => within(copiar.parentElement as HTMLElement).getByRole("status");
 		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 		try {
 			await fireEvent.click(copiar);
 			await vi.advanceTimersByTimeAsync(0);
 			expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://localhost/dataset/matricula-2026");
 
-			expect(screen.getByRole("status").textContent).toBe("Enlace copiado");
+			expect(aviso().textContent).toBe("Enlace copiado");
 			expect(copiar.querySelector(".lucide-check")).not.toBeNull();
 
 			await vi.advanceTimersByTimeAsync(2000);
-			expect(screen.getByRole("status").textContent).toBe("");
+			expect(aviso().textContent).toBe("");
 		} finally {
 			vi.useRealTimers();
 		}

@@ -1,16 +1,5 @@
 <script lang="ts">
-import {
-	Building2,
-	Calendar,
-	Check,
-	Clock,
-	Copy,
-	Database,
-	Inbox,
-	Pencil,
-	Shield,
-	User,
-} from "@lucide/svelte";
+import { Building2, Check, Copy, Database, Inbox, Pencil } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
@@ -36,7 +25,9 @@ import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.sve
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
+import { MetaGroup } from "$lib/components/ui/meta";
 import { estadoDeLaSolicitud } from "$lib/copy/publication";
+import { summaryFacts, technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
@@ -425,36 +416,9 @@ const activeResources = $derived(
 const visibleTags = $derived(dataset?.tags?.slice(0, 5) ?? []);
 const hiddenTagCount = $derived((dataset?.tags?.length ?? 0) - 5);
 
-const metadataItems = $derived.by(() => {
-	if (!dataset) return [];
-	const items: { icon: typeof Calendar; label: string; value: string }[] = [];
-
-	items.push({
-		icon: Calendar,
-		label: "Creado",
-		value: formatDate(dataset.metadata_created),
-	});
-	items.push({
-		icon: Clock,
-		label: "Modificado",
-		value: formatDate(dataset.metadata_modified),
-	});
-
-	if (dataset.license_title) {
-		items.push({ icon: Shield, label: "Licencia", value: dataset.license_title });
-	} else if (dataset.license_id) {
-		items.push({ icon: Shield, label: "Licencia", value: dataset.license_id });
-	}
-
-	if (dataset.author) {
-		items.push({ icon: User, label: "Autor", value: dataset.author });
-	}
-	if (dataset.maintainer) {
-		items.push({ icon: User, label: "Mantenedor", value: dataset.maintainer });
-	}
-
-	return items;
-});
+// El «Resumen» del sidebar y los grupos de «Información técnica» (ver `$lib/datasets/details`).
+const summary = $derived(dataset ? summaryFacts(dataset) : []);
+const technical = $derived(dataset ? technicalGroups(dataset) : []);
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
 const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
@@ -510,18 +474,6 @@ const puedeEditarDataset = $derived.by(() => {
 // 2026-10-19). Las demás acciones del hero —«Editar», la solicitud de publicación cuando le corresponde—
 // siguen en la fila de las insignias, a la derecha, y esa fila las aloja sólo si hay alguna.
 const hasOtherHeroActions = $derived(puedeEditarDataset || publicacionEnElHero);
-
-// ─── Technical metadata table ───────────────────────────────────
-// La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
-// monoespaciada bajo la tabla, igual que en la tarjeta del recurso.
-const generalMetaRows = $derived.by(() => {
-	if (!dataset) return [];
-	const rows: { label: string; value: string }[] = [
-		{ label: "Visibilidad", value: visibilityLabel },
-	];
-	if (stateLabel) rows.push({ label: "Estado", value: stateLabel });
-	return rows;
-});
 
 // ─── Citation ───────────────────────────────────────────────────
 const citationText = $derived(
@@ -791,45 +743,22 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 						</div>
 					</Card>
 
-					<!-- Technical info -->
-					<Card class="p-6 sm:p-8">
+					<!-- Información técnica: todos los campos registrados, en grupos (variante C / 3b de
+					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la
+					     información técnica completa» del «Resumen»; `scroll-mt` deja el título bajo el encabezado fijo,
+					     como `#vista-previa` en la página del recurso. -->
+					<Card id="info-tecnica" class="scroll-mt-[calc(var(--header-h)+17px)] p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-							Metadatos
+							Información técnica
 						</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-							Información sobre el dataset
-						</h2>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Ficha completa</h2>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-							Visibilidad, estado y sus identificadores.
+							Todos los datos que el catálogo registra de este dataset.
 						</p>
-						<div class="mt-4 overflow-hidden rounded-lg border border-border">
-							<div
-								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
-							>
-								<span>Campo</span>
-								<span>Valor</span>
-							</div>
-							<div class="divide-y divide-border/60">
-								{#each generalMetaRows as row}
-									<div
-										class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
-									>
-										<span class="text-muted-foreground">{row.label}</span>
-										<span class="break-all font-medium text-foreground">{row.value}</span>
-									</div>
-								{/each}
-							</div>
-						</div>
-
-						<!-- Identificadores: misma franja monoespaciada que la tarjeta del recurso. La fila
-						     envuelve entre elementos (cada identificador es un hijo propio) para que un valor
-						     largo no sea lo primero en romperse; `break-all` queda en el `code` como último recurso. -->
-						<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-								<span>Dirección web: <code class="break-all font-mono">{dataset.name}</code></span>
-								<span>·</span>
-								<span>Identificador: <code class="break-all font-mono">{dataset.id}</code></span>
-							</div>
+						<div class="mt-4 space-y-8">
+							{#each technical as group (group.id)}
+								<MetaGroup {...group} />
+							{/each}
 						</div>
 					</Card>
 				</div>
@@ -927,28 +856,27 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 						</p>
 					</Card>
 
-					<!-- Metadata card -->
-					{#if metadataItems.length > 0}
-						<Card class="p-5">
-							<!-- «Detalles», no «Metadatos» (decisión del autor, 2026-09-28): la palabra «Metadatos» es de la
-							     tarjeta de la tabla técnica —arriba en esta página y en la del recurso—, y acá lo que hay es un
-							     **resumen** (creado, modificado, licencia, autor, mantenedor). Repetir el título era el defecto. -->
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
-							<div class="mt-3 divide-y divide-border/60">
-								{#each metadataItems as item}
-									<div class="flex items-start justify-between gap-3 py-2.5">
-										<span class="flex items-center gap-2 text-xs text-muted-foreground">
-											<item.icon class="size-3.5 shrink-0" />
-											{item.label}
-										</span>
-										<span class="text-right text-xs font-semibold text-foreground">
-											{item.value}
-										</span>
+					<!-- Resumen: lo que responde «¿me sirve esto?». Reemplaza a «Detalles» (variante C de
+					     `/dev/dataset-details`); el resto vive en «Información técnica». -->
+					<Card class="p-5">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
+						<dl class="mt-3 space-y-3">
+							{#each summary as fact (fact.key)}
+								<div class="flex items-start gap-3">
+									<fact.icon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+									<div class="min-w-0">
+										<dt class="text-xs text-muted-foreground">{fact.label}</dt>
+										<dd class="text-sm font-semibold leading-snug text-foreground">{fact.value}</dd>
 									</div>
-								{/each}
-							</div>
-						</Card>
-					{/if}
+								</div>
+							{/each}
+						</dl>
+						<a
+							href="#info-tecnica"
+							class="mt-4 inline-flex text-xs font-semibold text-primary hover:underline"
+							>Ver la información técnica completa</a
+						>
+					</Card>
 
 					<!-- Organization card -->
 					{#if dataset.organization?.title}
