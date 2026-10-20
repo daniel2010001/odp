@@ -90,3 +90,29 @@ export function insigniaDeLaSolicitud(
 		}
 	}
 }
+
+/**
+ * Cómo se nombra a una persona del historial. `null` o vacío = sin asignar: no hay nada que decir y el
+ * llamador omite la frase. `"unknown"` = asignada pero irresoluble (contrato de `publication.ts`): una
+ * etiqueta neutra, nunca el id crudo.
+ */
+export const USUARIO_NO_DISPONIBLE = "usuario no disponible";
+
+export function nombreDelHistorial(nombre: string | null | undefined): string | null {
+	const limpio = nombre?.trim();
+	if (!limpio) return null;
+	return limpio === "unknown" ? USUARIO_NO_DISPONIBLE : limpio;
+}
+
+const MOTIVOS_DE_ANULACION: Record<string, string> = {
+	dataset_deleted: "El dataset se eliminó.",
+	published_by_another_path: "El dataset se publicó por otra vía.",
+};
+
+/**
+ * Por qué se anuló una solicitud, a partir del token `motive` del contrato. Un token que el portal no
+ * conoce no se muestra crudo: se cae a la oración general, la misma de `estadoDeLaSolicitud`.
+ */
+export function motivoDeAnulacion(motivo: string | null | undefined): string {
+	return (motivo && MOTIVOS_DE_ANULACION[motivo]) || "La solicitud dejó de estar vigente.";
+}

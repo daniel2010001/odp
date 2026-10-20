@@ -29,6 +29,7 @@ import type { MenuItem } from "$lib/components/dataset/more-menu";
 import OverflowBadges, { type BadgeItem } from "$lib/components/dataset/OverflowBadges.svelte";
 import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
 import type { PublicationDecisionResult } from "$lib/components/dataset/publication-decision";
+import RequestHistory from "$lib/components/dataset/RequestHistory.svelte";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
@@ -73,6 +74,12 @@ let solicitudVigente = $state<PublicationRequest | null>(null);
  * línea, que sería ruido.
  */
 let pendingRequestCount = $state(0);
+/**
+ * El historial de solicitudes de **este** dataset, la más nueva primero (S12/S19). Vacío quiere decir «no
+ * hay nada que mostrar» y también «no se pudo averiguar» o «el espectador es anónimo»: la tarjeta no
+ * existe en ninguno de los tres casos.
+ */
+let historialDeSolicitudes = $state<PublicationRequest[]>([]);
 let loading = $state(true);
 let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
@@ -144,6 +151,7 @@ function reflejarDecision(respuesta: PublicationDecisionResult): void {
 		approved_by_name: respuesta.approved_by_name ?? solicitudVigente.approved_by_name,
 	};
 	if (respuesta.status === "approved" && dataset) dataset = { ...dataset, private: false };
+	void loadHistory();
 }
 
 // Hero C7 (T13, v0.1.1): «Editar» es la acción principal y va a la derecha de la fila de las insignias; la
@@ -202,6 +210,23 @@ async function loadCurrentRequest() {
 	}
 }
 
+/**
+ * El historial, en su **propia** llamada y con su **propio** catch: un fallo acá no puede tumbar la ficha.
+ * El anónimo no lo pide —el catálogo le respondería vacío— y la visibilidad por rol la acota el catálogo,
+ * no el portal. Se pide con el **id** del dataset cargado: el filtro del servidor es por `dataset_id`.
+ */
+async function loadHistory() {
+	if (!dataset || !get(auth).user) {
+		historialDeSolicitudes = [];
+		return;
+	}
+	try {
+		historialDeSolicitudes = await publicationApi.history(dataset.id);
+	} catch {
+		historialDeSolicitudes = [];
+	}
+}
+
 // La oración del estado de la solicitud vive en `$lib/copy/publication.ts`: la hoja de revisión
 // `/dev/publication` muestra la misma tarjeta para decidir dónde va el control de decidir, y tiene que
 // renderizar **esta** frase, no una copia que puede quedar vieja.
@@ -230,6 +255,7 @@ async function loadDataset() {
 	loading = true;
 	failure = null;
 	dataset = null;
+	historialDeSolicitudes = [];
 	orgsEditables = [];
 
 	const user = get(auth).user;
@@ -295,6 +321,7 @@ async function loadDataset() {
 		// medirlo antes de tocarlo.
 		await loadDecidePermission(ownerOrgIdOf(dataset));
 		await loadCurrentRequest();
+		await loadHistory();
 	}
 }
 
@@ -641,8 +668,14 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 							request={solicitar}
 							cancel={cancelar}
 							apariencia="accion"
-							onrequested={(reportada) => (solicitudVigente = reportada)}
-							oncancelled={(reportada) => (solicitudVigente = reportada)}
+							onrequested={(reportada) => {
+								solicitudVigente = reportada;
+								void loadHistory();
+							}}
+							oncancelled={(reportada) => {
+								solicitudVigente = reportada;
+								void loadHistory();
+							}}
 						/>
 					{/if}
 				</div>
@@ -887,6 +920,10 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 							/>
 						</a>
 					</Card>
+
+					<!-- Historial de solicitudes (variante H2 de `/dev/request-history`, elegida por el autor el
+					     2026-10-20): tarjeta propia bajo «Resumen». Sólo existe si el catálogo devolvió filas. -->
+					<RequestHistory rows={historialDeSolicitudes} />
 
 					<!-- Organization card -->
 					{#if dataset.organization?.title}
