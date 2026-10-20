@@ -16,6 +16,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import { motivoDeAnulacion, nombreDelHistorial } from "$lib/copy/publication";
 import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
+import AnchorLink from "./AnchorLink.svelte";
 
 let { rows }: { rows: PublicationRequest[] } = $props();
 
@@ -99,10 +100,17 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 </script>
 
 {#if rows.length > 0}
-	<Card class="p-5" data-testid="historial-solicitudes">
-		<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-			Historial de solicitudes
-		</p>
+	<Card
+		id="historial"
+		class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
+		data-testid="historial-solicitudes"
+	>
+		<div class="group/ancla flex h-4 items-center gap-2">
+			<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+				Historial de solicitudes
+			</p>
+			<AnchorLink id="historial" title="Historial de solicitudes" />
+		</div>
 		<ol class="relative mt-3">
 			<span class="absolute bottom-2 left-2.5 top-2 w-px bg-border" aria-hidden="true"></span>
 			{#each visibles as r (r.id)}
