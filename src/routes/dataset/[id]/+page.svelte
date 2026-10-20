@@ -1,17 +1,5 @@
 <script lang="ts">
-import {
-	Building2,
-	Calendar,
-	Check,
-	Clock,
-	Copy,
-	Database,
-	Inbox,
-	Link2,
-	Pencil,
-	Shield,
-	User,
-} from "@lucide/svelte";
+import { Building2, Check, Copy, Database, Inbox, Pencil } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
@@ -36,7 +24,10 @@ import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { CopyButton } from "$lib/components/ui/copy-button";
+import { MetaGroup } from "$lib/components/ui/meta";
 import { estadoDeLaSolicitud } from "$lib/copy/publication";
+import { summaryFacts, technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
@@ -73,7 +64,6 @@ let loading = $state(true);
 let failure = $state<DatasetFailure | null>(null);
 let citationFormat = $state<"apa" | "bibtex">("apa");
 let copied = $state(false);
-let copiedLink = $state(false);
 
 // Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
 // una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
@@ -426,36 +416,9 @@ const activeResources = $derived(
 const visibleTags = $derived(dataset?.tags?.slice(0, 5) ?? []);
 const hiddenTagCount = $derived((dataset?.tags?.length ?? 0) - 5);
 
-const metadataItems = $derived.by(() => {
-	if (!dataset) return [];
-	const items: { icon: typeof Calendar; label: string; value: string }[] = [];
-
-	items.push({
-		icon: Calendar,
-		label: "Creado",
-		value: formatDate(dataset.metadata_created),
-	});
-	items.push({
-		icon: Clock,
-		label: "Modificado",
-		value: formatDate(dataset.metadata_modified),
-	});
-
-	if (dataset.license_title) {
-		items.push({ icon: Shield, label: "Licencia", value: dataset.license_title });
-	} else if (dataset.license_id) {
-		items.push({ icon: Shield, label: "Licencia", value: dataset.license_id });
-	}
-
-	if (dataset.author) {
-		items.push({ icon: User, label: "Autor", value: dataset.author });
-	}
-	if (dataset.maintainer) {
-		items.push({ icon: User, label: "Mantenedor", value: dataset.maintainer });
-	}
-
-	return items;
-});
+// El «Resumen» del sidebar y los grupos de «Información técnica» (ver `$lib/datasets/details`).
+const summary = $derived(dataset ? summaryFacts(dataset) : []);
+const technical = $derived(dataset ? technicalGroups(dataset) : []);
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
 const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
@@ -507,23 +470,10 @@ const puedeEditarDataset = $derived.by(() => {
 	return orgsEditables.includes(ownerOrgIdOf(dataset));
 });
 
-// La regla del hero (hoja `/dev/dataset-hero`, variante G): una acción va en la fila del título;
-// dos o más van en la fila de las insignias. Acá copiar enlace siempre existe, «Editar» sólo con
-// permiso y la solicitud de publicación cuando le corresponde, así que el conteo —y el reparto—
-// dependen de esas dos respuestas.
-const heroActionCount = $derived(1 + (puedeEditarDataset ? 1 : 0) + (publicacionEnElHero ? 1 : 0));
-
-// ─── Technical metadata table ───────────────────────────────────
-// La tabla conserva los campos semánticos; los identificadores (Slug, ID) viven en la franja
-// monoespaciada bajo la tabla, igual que en la tarjeta del recurso.
-const generalMetaRows = $derived.by(() => {
-	if (!dataset) return [];
-	const rows: { label: string; value: string }[] = [
-		{ label: "Visibilidad", value: visibilityLabel },
-	];
-	if (stateLabel) rows.push({ label: "Estado", value: stateLabel });
-	return rows;
-});
+// «Copiar enlace» es sólo ícono y va siempre a la izquierda del título (T4, v0.1.1; decisión del autor,
+// 2026-10-19). Las demás acciones del hero —«Editar», la solicitud de publicación cuando le corresponde—
+// siguen en la fila de las insignias, a la derecha, y esa fila las aloja sólo si hay alguna.
+const hasOtherHeroActions = $derived(puedeEditarDataset || publicacionEnElHero);
 
 // ─── Citation ───────────────────────────────────────────────────
 const citationText = $derived(
@@ -545,23 +495,8 @@ async function handleCopyCitation() {
 	}
 }
 
-// Copia el enlace canónico del dataset (usa el slug, no el id interno).
-function buildShareUrl(): string {
-	if (!dataset) return "";
-	return `${window.location.origin}/dataset/${dataset.name}`;
-}
-
-async function handleCopyLink() {
-	const url = buildShareUrl();
-	if (!url) return;
-	const ok = await copyToClipboard(url);
-	if (ok) {
-		copiedLink = true;
-		setTimeout(() => {
-			copiedLink = false;
-		}, 2000);
-	}
-}
+// Enlace canónico del dataset (usa el slug, no el id interno).
+const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}` : "");
 </script>
 
 <svelte:head>
@@ -627,25 +562,8 @@ async function handleCopyLink() {
 		     La regla es condicional, así que las acciones y las insignias se declaran una sola vez y
 		     el reparto las mueve de fila. Duplicarlas sería la forma más segura de que las dos ramas
 		     se desincronicen. -->
-		{#snippet copyLinkButton()}
-			<button
-				type="button"
-				onclick={handleCopyLink}
-				aria-label={copiedLink ? "Enlace copiado" : "Copiar enlace del dataset"}
-				title="Copiar enlace"
-				class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-			>
-				{#if copiedLink}
-					<Check class="size-4 text-emerald-600" aria-hidden="true" />
-				{:else}
-					<Link2 class="size-4" aria-hidden="true" />
-				{/if}
-			</button>
-		{/snippet}
-
 		{#snippet heroActions(item: CkanPackage)}
 			<div class="flex shrink-0 items-center gap-2">
-				{@render copyLinkButton()}
 				<!-- Fail closed: sin respuesta afirmativa no hay enlace; `unknown` y el conjunto vacío se
 				     tratan igual. CKAN es la frontera de seguridad, no el botón oculto. -->
 				{#if puedeEditarDataset}
@@ -659,7 +577,7 @@ async function handleCopyLink() {
 				{/if}
 				{#if publicacionEnElHero}
 					<!-- El control de publicación **en la fila de sus hermanos**: mismo alto y misma forma que
-					     «Copiar enlace» y «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
+					     «Editar» (`apariencia="accion"`), con la explicación en el tooltip y
 					     no debajo. La compuerta la decide el componente: el editor ve ahí su solicitud. No hay
 					     camino directo —publicar en directo dejó de existir—, así que la única vía es pedir y
 					     decidir en la cola. -->
@@ -740,36 +658,29 @@ async function handleCopyLink() {
 		<!-- Hero -->
 		<section class="border-b border-border bg-card">
 			<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-				{#if heroActionCount > 1}
-					<!-- Dos acciones (copiar + «Editar»): bajan a la fila de las insignias, alineadas a la
-					     derecha; el título se queda con la primera fila. -->
-					<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+				<!-- «Copiar enlace» a la izquierda del título, anclado a su primera línea: el contenedor hereda el
+				     tamaño y el interlineado del título, así `1lh` es el alto de esa línea y el botón (más alto) se
+				     centra en ella aunque el título ocupe varias. `min-w-0` deja que el título se parta. -->
+				<div class="flex items-start gap-3 font-heading text-3xl leading-tight sm:text-4xl">
+					<div class="flex h-[1lh] shrink-0 items-center">
+						<CopyButton
+							text={shareUrl}
+							label="Copiar enlace del dataset"
+							copiedLabel="Enlace copiado"
+							icon="link"
+						/>
+					</div>
+					<h1 class="min-w-0 font-bold text-foreground">
 						{dataset.title || dataset.name}
 					</h1>
-					<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-						<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
-					</div>
-					<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-						<div class="flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
-						{@render heroActions(dataset)}
-					</div>
-				{:else}
-					<!-- Una sola acción (copiar): se queda en la fila del título. La columna de texto lleva
-					     `min-w-0 flex-1` y el grupo `shrink-0`, así el título se parte dentro de su columna y
-					     la acción nunca cae a una línea propia. -->
-					<div class="flex items-start gap-4">
-						<div class="min-w-0 flex-1">
-							<h1 class="font-heading text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-								{dataset.title || dataset.name}
-							</h1>
-							<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-								<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
-							</div>
-							<div class="mt-4 flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
-						</div>
-						{@render heroActions(dataset)}
-					</div>
-				{/if}
+				</div>
+				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
+				</div>
+				<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+					<div class="flex flex-wrap items-center gap-2">{@render heroBadges(dataset)}</div>
+					{#if hasOtherHeroActions}{@render heroActions(dataset)}{/if}
+				</div>
 			</div>
 		</section>
 
@@ -810,7 +721,56 @@ async function handleCopyLink() {
 						{/if}
 					</Card>
 
-					<!-- La tarjeta del estado de la solicitud, **después de la información textual**.
+					<!-- Resources -->
+					<Card class="p-6 sm:p-8">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
+							Archivos disponibles
+							{#if activeResources.length > 0}
+								<span class="font-normal text-muted-foreground">({activeResources.length})</span>
+							{/if}
+						</h2>
+						<div class="mt-4 space-y-2">
+							{#if activeResources.length === 0}
+								<p class="text-sm text-muted-foreground">
+									Este dataset no tiene recursos disponibles.
+								</p>
+							{:else}
+								{#each activeResources as resource (resource.id)}
+									<ResourceCard {resource} datasetSlug={dataset.name} />
+								{/each}
+							{/if}
+						</div>
+					</Card>
+
+					<!-- Información técnica: todos los campos registrados, en grupos (variante C / 3b de
+					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la
+					     información técnica completa» del «Resumen»; `scroll-mt` deja el título bajo el encabezado fijo,
+					     como `#vista-previa` en la página del recurso. -->
+					<Card id="info-tecnica" class="scroll-mt-[calc(var(--header-h)+17px)] p-6 sm:p-8">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+							Información técnica
+						</p>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Ficha completa</h2>
+						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+							Todos los datos que el catálogo registra de este dataset.
+						</p>
+						<div class="mt-4 space-y-8">
+							{#each technical as group (group.id)}
+								<MetaGroup {...group} />
+							{/each}
+						</div>
+					</Card>
+				</div>
+
+				<!-- Sidebar -->
+				<aside
+					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)]"
+				>
+					<!-- La tarjeta del estado de la solicitud **encabeza la columna lateral** (variante C de
+					     `/dev/requests-position`, elegida por el autor el 2026-10-19): la columna es pegajosa en
+					     escritorio, así que el aprobador decide sin bajar. Antes era la segunda de la columna
+					     principal, después de la información textual.
 					     Muestra en qué está y, desde el 2026-10-14, también **deja decidirla** —cuando quien mira
 					     administra la organización dueña, la solicitud está pendiente y no es suya—: la gobernanza
 					     pide revisar **y** decidir, y el dataset está privado, así que no está en el catálogo y el
@@ -848,75 +808,6 @@ async function handleCopyLink() {
 						</Card>
 					{/if}
 
-					<!-- Resources -->
-					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-							Archivos disponibles
-							{#if activeResources.length > 0}
-								<span class="font-normal text-muted-foreground">({activeResources.length})</span>
-							{/if}
-						</h2>
-						<div class="mt-4 space-y-2">
-							{#if activeResources.length === 0}
-								<p class="text-sm text-muted-foreground">
-									Este dataset no tiene recursos disponibles.
-								</p>
-							{:else}
-								{#each activeResources as resource (resource.id)}
-									<ResourceCard {resource} datasetSlug={dataset.name} />
-								{/each}
-							{/if}
-						</div>
-					</Card>
-
-					<!-- Technical info -->
-					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-							Metadatos
-						</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-							Información sobre el dataset
-						</h2>
-						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-							Visibilidad, estado y sus identificadores.
-						</p>
-						<div class="mt-4 overflow-hidden rounded-lg border border-border">
-							<div
-								class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 bg-muted/50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-foreground"
-							>
-								<span>Campo</span>
-								<span>Valor</span>
-							</div>
-							<div class="divide-y divide-border/60">
-								{#each generalMetaRows as row}
-									<div
-										class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-2 px-4 py-3 text-sm"
-									>
-										<span class="text-muted-foreground">{row.label}</span>
-										<span class="break-all font-medium text-foreground">{row.value}</span>
-									</div>
-								{/each}
-							</div>
-						</div>
-
-						<!-- Identificadores: misma franja monoespaciada que la tarjeta del recurso. La fila
-						     envuelve entre elementos (cada identificador es un hijo propio) para que un valor
-						     largo no sea lo primero en romperse; `break-all` queda en el `code` como último recurso. -->
-						<div class="mt-6 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-								<span>Dirección web: <code class="break-all font-mono">{dataset.name}</code></span>
-								<span>·</span>
-								<span>Identificador: <code class="break-all font-mono">{dataset.id}</code></span>
-							</div>
-						</div>
-					</Card>
-				</div>
-
-				<!-- Sidebar -->
-				<aside
-					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1rem)]"
-				>
 					<!-- Cite card -->
 					<Card class="p-5">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
@@ -965,28 +856,27 @@ async function handleCopyLink() {
 						</p>
 					</Card>
 
-					<!-- Metadata card -->
-					{#if metadataItems.length > 0}
-						<Card class="p-5">
-							<!-- «Detalles», no «Metadatos» (decisión del autor, 2026-09-28): la palabra «Metadatos» es de la
-							     tarjeta de la tabla técnica —arriba en esta página y en la del recurso—, y acá lo que hay es un
-							     **resumen** (creado, modificado, licencia, autor, mantenedor). Repetir el título era el defecto. -->
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Detalles</p>
-							<div class="mt-3 divide-y divide-border/60">
-								{#each metadataItems as item}
-									<div class="flex items-start justify-between gap-3 py-2.5">
-										<span class="flex items-center gap-2 text-xs text-muted-foreground">
-											<item.icon class="size-3.5 shrink-0" />
-											{item.label}
-										</span>
-										<span class="text-right text-xs font-semibold text-foreground">
-											{item.value}
-										</span>
+					<!-- Resumen: lo que responde «¿me sirve esto?». Reemplaza a «Detalles» (variante C de
+					     `/dev/dataset-details`); el resto vive en «Información técnica». -->
+					<Card class="p-5">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
+						<dl class="mt-3 space-y-3">
+							{#each summary as fact (fact.key)}
+								<div class="flex items-start gap-3">
+									<fact.icon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+									<div class="min-w-0">
+										<dt class="text-xs text-muted-foreground">{fact.label}</dt>
+										<dd class="text-sm font-semibold leading-snug text-foreground">{fact.value}</dd>
 									</div>
-								{/each}
-							</div>
-						</Card>
-					{/if}
+								</div>
+							{/each}
+						</dl>
+						<a
+							href="#info-tecnica"
+							class="mt-4 inline-flex text-xs font-semibold text-primary hover:underline"
+							>Ver la información técnica completa</a
+						>
+					</Card>
 
 					<!-- Organization card -->
 					{#if dataset.organization?.title}

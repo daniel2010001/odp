@@ -211,11 +211,16 @@ describe("Crear un gráfico (…/charts/new)", () => {
 		render(NewPage);
 
 		await screen.findByLabelText(/Título de la vista/);
-		const links = Array.from(document.querySelectorAll("a[href]")).map((a) =>
-			a.getAttribute("href"),
+		const hrefs = () =>
+			Array.from(document.querySelectorAll("a[href]")).map((a) => a.getAttribute("href"));
+		expect(hrefs()).toContain(RESOURCE_PATH);
+
+		// La miga del dataset está plegada en el «…» (una sola línea, decisión del autor 2026-10-19): se
+		// llega a ella abriendo el menú.
+		await fireEvent.click(
+			screen.getByRole("button", { name: "Mostrar las secciones ocultas de la ruta" }),
 		);
-		expect(links).toContain(RESOURCE_PATH);
-		expect(links).toContain("/dataset/planilla");
+		await waitFor(() => expect(hrefs()).toContain("/dataset/planilla"));
 	});
 });
 

@@ -202,3 +202,69 @@ describe("createPortalClient — el cliente que habla con el puente del portal",
 		expect((error as CkanApiError).status).toBe(401);
 	});
 });
+
+// Una respuesta cuyo cuerpo no es JSON (p. ej. el HTML de un 502 del proxy con el catálogo caído):
+// `json()` rechaza con el mensaje del intérprete, que no debe llegar al usuario.
+function stubNonJson(status: number) {
+	const parserMessage = "JSON.parse: unexpected character at line 1 column 1 of the JSON data";
+	const fetchMock = vi.fn(async () => ({
+		ok: status >= 200 && status < 300,
+		status,
+		json: async () => {
+			throw new SyntaxError(parserMessage);
+		},
+	}));
+	vi.stubGlobal("fetch", fetchMock);
+	return parserMessage;
+}
+
+describe("createCkanClient — cuerpo que no es JSON", () => {
+	it("un 502 con HTML conserva el status y no filtra el mensaje del intérprete", async () => {
+		const parserMessage = stubNonJson(502);
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+
+		const error = await client.post("package_search").catch((e: unknown) => e);
+
+		expect(error).toBeInstanceOf(CkanApiError);
+		expect((error as CkanApiError).status).toBe(502);
+		expect((error as CkanApiError).message).toBe(
+			"No se pudo completar la consulta al catálogo de datos.",
+		);
+		expect((error as CkanApiError).message).not.toContain(parserMessage);
+	});
+
+	it("un 200 que no es JSON tampoco muestra el mensaje del intérprete", async () => {
+		const parserMessage = stubNonJson(200);
+		const client = createPortalClient();
+
+		const error = await client.get("organization_list_for_user").catch((e: unknown) => e);
+
+		expect(error).toBeInstanceOf(CkanApiError);
+		expect((error as CkanApiError).message).toBe(
+			"No se pudo completar la consulta al catálogo de datos.",
+		);
+		expect((error as CkanApiError).message).not.toContain(parserMessage);
+		// Sin respuesta utilizable no hay estado que citar: se clasifica como transporte.
+		expect((error as CkanApiError).status).toBe(0);
+	});
+
+	it("una respuesta JSON válida se sigue leyendo como antes", async () => {
+		stubResponse(200, { success: true, result: { id: "abc" } });
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+
+		await expect(client.post("package_show")).resolves.toEqual({ id: "abc" });
+	});
+
+	it("un error JSON de CKAN conserva su mensaje y su status", async () => {
+		stubResponse(404, {
+			success: false,
+			error: { message: "Not found", __type: "Not Found Error" },
+		});
+		const client = createCkanClient({ baseUrl: "https://ckan.test" });
+
+		const error = await client.post("package_show").catch((e: unknown) => e);
+
+		expect((error as CkanApiError).status).toBe(404);
+		expect((error as CkanApiError).message).toBe("Not found");
+	});
+});

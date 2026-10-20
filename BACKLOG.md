@@ -43,6 +43,12 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 >   guardrail de diseño—; cuando el portal es **más chico sin motivo** —el tope de 50 MB contra los 100 de CKAN— **se
 >   toma el de CKAN**. Vale para topes de tamaño, longitudes de campos, ítems por página y cualquier constante con pinta
 >   de arbitraria — y `PRD.md` §7 ya tiene medidos los límites reales de CKAN.
+> - **Comentario de la decisión de una solicitud (Aprobar/Rechazar): 1000 caracteres** (decisión del autor, 2026-10-19,
+>   textual: «1000 creo que es más que suficiente, aprobado, documenta también esto para no olvidarlo, quizás este máx lo
+>   usemos en otras audits»). Antes no tenía tope en ningún lado: ni el portal (`PublicationDecision.svelte`) ni un
+>   registro del lado del catálogo. Es el mismo número que la descripción de un recurso (`MAX_RESOURCE_DESCRIPTION_LENGTH`).
+>   **Queda por medir** si el store de solicitudes de `odp-docker` impone su propio tope de columna; si es menor, manda el
+>   del store (regla de arriba). Candidato a reusarse en otros textos libres de auditoría (comentarios, motivos).
 
 ## Requerimientos del PRD sin ítem propio — registro (2026-10-09)
 
@@ -786,11 +792,6 @@ Lo que salió del cierre de la rebanada 1b-B1 (el detalle y la evidencia viven e
 `openspec/changes/2026-10-02-dataset-edit-and-delete/`). Son cosas **encontradas** durante ese trabajo, no
 pedidos nuevos.
 
-- [ ] **[v1]** **`client.ts` traga el cuerpo del error cuando no es JSON.** `await response.json()` sin guarda:
-  un 409 con cuerpo no-JSON (HTML de un proxy o de un balanceador) lanza `SyntaxError`, se re-lanza como
-  `CkanApiError(…, 0)` y **pierde el status**. Un conflicto real se reporta así como fallo de transporte. No
-  hay pérdida de datos —la escritura no ocurre— pero clasifica mal en silencio, que es la dirección que este
-  proyecto no acepta.
 - [x] **[v1]** **`CkanPackage` no declara `owner_org`.** La ruta de edición lo lee por un cast, con respaldo en
   `organization.id`. El arreglo honesto es un campo en `src/lib/types/ckan.ts`.
   **CERRADO (2026-10-06): DONE** — `owner_org` ya está declarado en `src/lib/types/ckan.ts`.
@@ -2687,75 +2688,13 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
-- [ ] **[v0.1.1]** **El botón primario en modo oscuro incumple la regla 7.** `AGENTS.md:35` exige contraste de
-  texto **≥ 4.5:1**, y el par `--primary` / `--primary-foreground` del bloque `.dark` de `src/app.css` mide
-  **3.73:1** (`oklch(0.6 0.1 257)` sobre `oklch(0.98 0.002 250)`). Es **portal-wide y preexistente**, y el
-  arreglo son tokens en `src/app.css` —bajar la luminosidad del `--primary` oscuro, cambiar su
-  `--primary-foreground`, o ambos—, así que la decisión es del autor y no de una sesión. Reproducir:
-  `/dev/error?theme=oscuro`, que imprime primer plano, fondo efectivo, ratio, umbral y veredicto por elemento.
-  **Cuidado con leer los números sueltos:** el encabezado del mismo bloque mide ~3.71 y **sí pasa**, porque es
-  texto grande (umbral 3:1); el rótulo del botón es de 14 px (umbral 4.5:1). «3.71 pasa y 3.73 falla» no es
-  arbitrario: es el tamaño del texto.
-  *Tres caminos independientes dan el mismo veredicto:* el instrumento de la sesión paralela medido en el
-  navegador sobre el nodo real (**3.72**), su cálculo puro sobre los tokens (**3.733**) y este recomputo
-  (**3.733**); en modo claro los tres dan **5.284** y **pasa**, que es el control de que el cálculo no está
-  sesgado hacia abajo. **La diferencia de 0,01 no es discrepancia: es resolución de canal** — el navegador
-  serializa el color a hex de 8 bits (`#5882bb`) y el cálculo puro usa el `oklch` de precisión completa.
-  Quien compare 3.72 con 3.733 sin saberlo va a sospechar de la medición en vez del token.
+> **Estado al cierre (2026-10-20):** nueve diseños y arreglos ya promovidos en la rama `fix/v011-small-fixes` (su PR).
+> **Para revisar en la sesión siguiente** —seis hojas en `/dev/` y las decisiones pendientes— está todo en el traspaso
+> **L35–L36** de `odd/tasks/v0.1.1-polish.md`. Las hojas son borradores sin versionar en `src/routes/dev/`.
 
-- [ ] **[v0.1.1]** `TODO:` **Las vistas previas son chicas: no aprovechan la pantalla.** Observación del autor (2026-10-01):
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  «para el caso de los pdf creo que ese espacio es pequeño, creo que lo mismo aplicará para otros view, como los gráficos y
-  demás». **Medido en el código hoy:** el `<iframe>` del PDF mide **`h-[520px]`** (`ResourcePreview.svelte:131`), la imagen
-  **`max-h-[520px]`** (`:138`), el texto **`h-[360px]`** (`:151`), y los esqueletos de carga `min-h-[420px]` (`:113`) y
-  `h-[420px]` (`resource/[resourceId]/+page.svelte:425`). **La tabla, en cambio, no tiene tope**: sólo `overflow-x-auto`
-  (`DataPreviewTable.svelte:28`), así que crece con las filas — es la única de las cuatro sin alto acotado, y conviene
-  decidir si eso se mantiene.
-  **Dos cosas antes de tocar nada:** (1) **medir cuánto alto libre queda en 1080p** —hay que descontar el encabezado
-  (`var(--header-h)`), la miga, el hero y la banda de acciones—, porque hoy ningún número está medido contra la ventana;
-  (2) **decidir el criterio**: alto fijo más grande, proporcional a la ventana (`vh`), o con un control para **expandir la
-  vista** —y en ese caso, si es por vista o general—. **Es decisión del autor, con la medición hecha primero**, y es de la
-  misma familia que el ítem del responsive del salto.
-  **Los gráficos y mapas todavía no existen**: son el Módulo de Análisis, diferido a `v1+`, y los tabs simulados se
-  quitaron el 2026-09-28. Hoy el ítem aplica a PDF, imagen, texto y tabla.
-  **Reiterado por el autor (2026-10-18, no urgente), textual:** «el tamaño predeterminado de las vistas previas quisiera
-  tocarlo, ahora mismo estoy en una pantalla fhd de 27 pulgadas y el espacio se de la vista previa es pequeño cuando
-  intento ver pdf, lo mismo pasaba con imágenes, pero cuando estoy en la pantalla de mi laptop sí que se ve bien el
-  alto, esto creo que solo pasa en las pantallas grandes como la de fhd de 27 pulgadas». Apunta al criterio
-  proporcional a la ventana, con un mínimo para la laptop. Medir en 1366×768 y 1920×1080 y probarlo en playground
-  (regla 8).
-  _Origen: observación del autor, 2026-10-01, al revisar la vista previa de un PDF._
 
-- [ ] **[v0.1.1] El breadcrumb de las páginas de gráficos, en una sola línea** (duda del autor, 2026-10-18, `csv-charts` L49,
-  textual: «antes mencioné algo como "truncar" un poco los titles para que entren todos en una sola línea»). En
-  `…/charts/new` y `…/charts/[viewId]/edit` la miga es la más larga del portal: inicio, organización, dataset, recurso
-  y la página. `Breadcrumb.svelte` ya trunca cada etiqueta (`truncate`, `min-w-0`) y en el teléfono se pliega a un chip
-  con menú. **Primero medir** en 1280 y 1440 px, con nombres reales largos, si ocupa más de una línea. Si la ocupa,
-  **decidir** entre un tope de ancho por etiqueta (con el texto completo en `title`) y plegar las del medio en «…».
-  _Es visual; el autor acepta hacerlo ahora o después._
 
-- [ ] **[v0.1.1] Los botones de copiar del recurso: «Copiar enlace» con la disposición del dataset y un solo componente** (TODO del autor, 2026-10-17,
-  `csv-charts` L47, textual: «los resources no tienen la forma de copiar el link como lo tiene los ddatasets, agregar
-  esto»). **Precisión del autor, textual:** «sí lo tiene, pero está situado en una posición diferente a la del datasets,
-  creo que al cambiar la posición en una sesión pasada no lo hicimos para el caso de los resources, me refiero a que en
-  los dataset está al lado superior derecho y abajo si se puede editar, mientras que el resource aun lo mantiene en el
-  lado izquiedo del title, nunca sincronizamos esto». **Hoy:**
-  - **En el dataset** (`src/routes/dataset/[id]/+page.svelte:620-665`), el botón está en el snippet `heroActions`, junto
-    a «Editar» y a la acción de publicación. Ese grupo va arriba a la derecha y cambia de fila según la regla
-    condicional del hero.
-  - **En el recurso** (`src/routes/dataset/[id]/resource/[resourceId]/+page.svelte:503-517`), el botón sigue como
-    ícono a la izquierda del `h1`.
-  **Lo que hay que hacer:** llevar el recurso al reparto del dataset, con las mismas piezas en vez de una copia que se
-  vuelva a desincronizar. Se cruza con P6 de `csv-charts`: el autor quiere guardar la banda del encabezado del recurso
-  «para otras acciones».
-  **Segundo pedido del autor, fusionado (2026-10-19) — unificar los botones de copiar del recurso** (TODO del autor, 2026-10-18, textual: «el botón de copiar es
-  diferente a otros del mismo estilo, como el de copiar la id o hash de los resources, también quisiera corregir estos
-  porque se ven un poco feos»). Hoy conviven por lo menos tres estilos en la misma página:
-  - el de la dirección de la API, una píldora con texto y `bg-primary/10` (`resource/[resourceId]/+page.svelte:712-725`);
-  - el del hash y el id, un cuadrado de ícono `size-7` (`:804-815`);
-  - el de «Copiar enlace», un cuadrado `size-9` al lado del título.
-  A esos se suma «Copiar código» del diálogo «Insertar». **Propuesta:** un solo componente `CopyButton` con dos tamaños
-  (ícono y con texto), probado en un playground según la regla 8. Es el mismo trabajo que el pedido de «Copiar enlace» de arriba (fusionados).
+
 
 - [ ] **[v0.1.1] La presentación de la demo: guion actualizado y diapositivas** (decisión del autor, 2026-10-18, textual: «me
   gustaría actualizar lo que tenemos y hacerlo con diapos […] pero esto luego, porque hacerlo ahora quisas haga quedar
@@ -2763,6 +2702,29 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   el guion de `odd/tasks/backlog-prd-reconciliation.md` («El guion de la presentación») con gráficos, insertar, la API
   y el flujo de publicación con los usuarios de la demo, y sumar unas pocas diapositivas de apertura y cierre. Incluye
   T5 de `odd/tasks/csv-charts.md`.
+
+- [ ] **[v0.1.1] Una card con el historial de solicitudes de publicación en la ficha del dataset** (idea del autor,
+  textual: «habíamos dicho que mostraríamos algo así como una card para ver el "historial" de las solicitudes, ¿esto está
+  como TODO?» — no lo estaba: sólo existía el diseño del grupo «Resueltas» de la cola). Quién pidió, quién decidió, cuándo y
+  con qué comentario. Con playground (`odd/tasks/v0.1.1-polish.md` S12).
+- [ ] **[v0.1.1] Los enlaces «Ver…» de las cards de la ficha** («Ver datasets de …» en la card de la organización y «Ver la
+  información técnica completa» en «Resumen»): con el diseño nuevo quedaron como texto suelto (autor, textual: «cuando lo
+  vi por primera vez sí que me gustaba, pero ahora lo noto raro con todos los cambios que hicimos»). Con playground (S13).
+- [ ] **[v0.1.1]** `TODO:` **La lista de recursos: íconos por tipo en vez de badges de formato, y los badges a otro sitio.** Observación del
+  autor (2026-10-02, al revisar la hoja `/dev/dataset-edit`): «me gusta más el ícono de los tipos que lo que tenemos en la page de
+  datasets, esos badges indicando el tipo; anota esto como un TODO para usar estos íconos y mover los badges a otro sitio».
+  **Medido:** los íconos por tipo que le gustaron están en la hoja —`FileText` para archivo y `Link` para enlace, elegidos por el
+  tipo del recurso—, y los badges de formato que quiere reubicar viven en `src/lib/components/dataset/ResourceCard.svelte` (la lista
+  de recursos de la página del dataset) y en `src/lib/components/search/DatasetCard.svelte:113` (`formatChips` + `getFormatAccent`,
+  acento sobre neutro). **Ojo con la regla:** el recurso que devuelve CKAN **no** trae un campo «tipo» explícito; el portal lo
+  infiere de `url_type === "upload"` (medido antes en el proyecto), así que el ícono se decide con esa regla, no con `format`.
+  **Decisión pendiente del autor:** dónde van los badges de formato una vez que el ícono diga el tipo —¿la card técnica, el detalle
+  del recurso, o se eliminan?—.
+  **Nota de higiene de UI, compartida:** las acciones de la fila usan `title` nativo + `aria-label` (la convención del repo, igual
+  que `FacetFilter.svelte` y los botones de la página del recurso). Un tooltip **estilizado** es otro trabajo, y es el mismo que
+  pide el ítem de los tags de la card: si algún día se vendoriza el `Tooltip` de bits-ui, se resuelven los dos juntos.
+  _Origen: revisión de la hoja de edición, 2026-10-02._
+  **Re-tier (2026-10-20, decisión del autor): `[v1+]` → `[v0.1.1]`** (`odd/tasks/v0.1.1-polish.md` S14).
 
 ## v1 — producto usable en producción
 
@@ -3195,17 +3157,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   de las dos y qué detalle sobrevive** (`odd/tasks/block-e-layout-polish.md`, slice E4). **Si se considera que la decisión de
   nombres del 2026-09-28 ya resolvió E4, este ítem se cierra.**
 
-- [ ] **[v1] Con el catálogo caído, el portal le muestra al usuario el error del parser, no una frase suya.**
-  Observado por el autor (2026-10-08): con CKAN caído, el aviso que se lee es «No se pudieron cargar sus
-  organizaciones. **JSON.parse: unexpected character at line 1 column 1 of the JSON data**». La primera mitad es
-  nuestra y está bien; **la segunda es del intérprete**, y contradice la política de copy del resto del portal (frase
-  humana primero, el código técnico como dato secundario y **nunca la prosa cruda**) — la misma familia que las cinco
-  alertas que `technicalDetail` vino a arreglar.
-  **Hipótesis a verificar antes de tocar** (declarada, **no medida**): con el catálogo caído la respuesta del proxy no
-  es JSON, así que `res.json()` falla **antes** de que exista un `CkanApiError` y lo que llega es el mensaje del parser.
-  Si es eso, el arreglo vive en el cliente (`src/lib/api/client.ts`: un fallo de parseo es un fallo de **transporte**,
-  no un texto para el usuario) y no en cada página.
-  **No bloquea `v0`** (decisión del autor).
 
 - [ ] **[v1] Habilitar colaboradores por dataset** — `ckan.auth.allow_dataset_collaborators` no
   **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** Necesita una pantalla propia en el portal y no aporta a la demo. Se nombra en la presentación como algo que viene: `odd/tasks/backlog-prd-reconciliation.md`, § «Para mencionar en la presentación».
@@ -3273,21 +3224,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   confirmó, textual: «Respecto a lo de la url de la api, funciona correctamente, tanto la url como el ejemplo del
   curl». Falta lo mismo en el despliegue real, detrás del proxy de UMSS.
 
-- [ ] **[v1]** `TODO:` **El responsive del salto secuencial, antes de darlo por cerrado.** Observación del
-  **Re-tier (2026-10-16, decisión del autor): `[v0]` → `[v1]`.** No es crítico para la demo: se resuelve antes de la defensa o de llevar el portal a producción.
-  autor (2026-09-28): «con el cambio que hicimos en el salto habría que tocar en el responsive; esto faltaría
-  antes de promover el salto». El salto va en la banda de la acción principal como dos controles rotulados
-  (`‹ Anterior` · contador · `Siguiente ›`) que **envuelven a una segunda línea** en anchos cortos, y su
-  ubicación quedó **aparcada, no aprobada**. **Falta el síntoma concreto: qué se ve mal y a qué anchura**, y
-  eso sólo lo tiene el autor. El código está cubierto por el recibo `review-fc7e00d27e1f61cf`; lo que falta es
-  el juicio de diseño.
-  **Estado medido (2026-09-30): VIVO.** La banda envuelve bien (`resource/[resourceId]/+page.svelte:540`), pero el recibo
-  `review-fc7e00d27e1f61cf` registra que el autor **aparcó** la ubicación («ese lugar es raro… queda abierta, no aprobada»).
-  **Frena en la decisión del autor:** qué se ve mal y a qué ancho.
-  **Fusionado (2026-10-19, decisión del autor: «Fusionar con el responsive del salto»):** dos TODO del autor (2026-09-24, del
-  handoff del bloque E), los dos de diseño y con su medida: los **botones de anterior/siguiente** se ven chicos y pasan
-  desapercibidos (`p-1.5`, ícono `size-4`, contador en `text-[10px]` y oculto debajo de `sm`); y **en escritorio no se ven
-  ni se pueden saltar los demás recursos**, porque el grupo «Recursos de este dataset» vive en el chip, que es `lg:hidden`.
 
 - [ ] **[v1] Paginación en la vista previa de la tabla** (decisión del autor, 2026-10-17, `csv-charts` L38). Hoy la vista
   previa pide `limit: 20` (`ResourcePreview.svelte:87`) y avisa «Mostrando 20 de N filas», como dice RF-31
@@ -3297,24 +3233,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   su alto queda acotado por la página y ya no crece con las filas.
   **Tier (2026-10-19, autor):** queda fuera de `v0.1.1` (`odd/tasks/v0.1.1-polish.md` L4); se propone para `v1`, porque cambia RF-31.
 
-- [ ] **[v1] TODO (autor): revisar la POSICIÓN de las solicitudes (localización).** Dónde viven las superficies de la
-  solicitud dentro de la ficha. Hoy se decidió **promover en la posición actual**: la tarjeta decide donde ya
-  estaba su estado —**segunda de cuatro** en la columna principal, entre «Sobre este dataset» y «Recursos»—, y el
-  costo medido de esa posición es que el administrador tiene que bajar para decidir (no es nuevo: ya bajaba para
-  *leer* el estado). Las alternativas que se descartaron por ahora, con su motivo: la **cabecera** pondría los
-  controles del aprobador junto a los del solicitante, y contra la decisión del autor del 2026-10-08 de que la
-  solicitud es **estado**, no acción; la **columna derecha** es de metadatos y en móvil cae al final. **Tier (2026-10-19, autor): «Pendiente v1, con playground»**
-  (regla 8 de `AGENTS.md`).
 
-- [ ] **[v1] El reintento de la página de error pierde la query y el fragmento** (aviso informativo del recibo
-  `review-13d22ebddf82eef0`, bloque B, anotado como TODO en el handoff del 2026-09-23 y **VIVO** al 2026-10-19: el reintento sigue
-  en `src/routes/+error.svelte:27`). El reintento usa `$page.url.pathname`, que **pierde la query y el fragmento**: un 5xx en
-  `/search?q=salud` reintenta `/search` y el usuario pierde su búsqueda. Arreglo: `pathname` + `search` (+ `hash` si corresponde).
 
-- [ ] **[v1] El test del ícono de la página de error toma el primer `<svg>`** (aviso informativo del recibo
-  `review-13d22ebddf82eef0`, bloque B; hoy en `src/lib/components/error/error-page.test.ts:248`). El estado 5xx renderiza **dos**
-  `<svg>` (el del estado y el de `Reintentar`), así que la aserción es frágil y el `aria-hidden` del segundo no queda cubierto.
-  Arreglo: acotar la consulta al ícono del estado.
 
 - [ ] **[v1] El estado `draft` («borrador»): qué hace el portal con él y si se adopta** (TODO anotado a pedido del autor; **decisión del autor, 2026-10-19: «Decidir en v1»**). Lo encontró al presionar por error «unpublish»
   en la UI nativa de CKAN, que deja el dataset en **`state='draft'`** (no en `deleted`). Qué es: **el vocabulario nativo
@@ -3325,16 +3245,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   en `draft` —si lo dibuja, si aparece en el catálogo, qué dice su ficha—, y si conviene adoptar ese estado para la
   máquina editorial o ignorarlo. **No bloquea `v0`.** Se cruza con «Decidir qué hace el flujo de publicación con un dataset `draft`» (registro de la decisión de `c′`, arriba).
 
-- [ ] **[v1] «Detalles» (derecha) contra «Información técnica» (izquierda) en `/dataset/[id]`: hoy compiten sin jerarquía clara** (TODO del
-  autor, para una sesión de diseño; **tier, 2026-10-19, decisión del autor: `v1`**). Dos anotaciones del 2026-10-07, fusionadas:
-  - **Marco adoptado (revisión de `/dev/publication`):**
-    **detalles = resumen, información técnica = completo**, y manda la izquierda. Con la precisión de que el
-    resumen es **otra pregunta** («¿me sirve esto?»: quién lo mantiene, cada cuánto se actualiza, cuándo fue la
-    última vez, con qué licencia), no una lista más corta de la misma información; y que la izquierda tiene que
-    estar **completa** —hoy se pierden datos que el dataset tiene—. TODO para una sesión de diseño.
-  - **Segunda ronda de decisiones (pendientes que suma):** en `/dataset/[id]`: al autor «no
-    le termina de gustar cómo se ven ambos». TODO suyo, para una sesión de diseño: son los dos bloques de
-    información de la ficha, y hoy compiten sin jerarquía clara.
 
 - [ ] **[v1] Política de existencia, la mitad de la API: el oráculo del `403` sigue en pie** (la mitad de página quedó
   decidida y cerrada el 2026-09-20; **decisión del autor, 2026-10-19: «Sí, la API como ítem v1»**).
@@ -3387,20 +3297,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
-- [ ] **[v1+]** `TODO:` **La lista de recursos: íconos por tipo en vez de badges de formato, y los badges a otro sitio.** Observación del
-  autor (2026-10-02, al revisar la hoja `/dev/dataset-edit`): «me gusta más el ícono de los tipos que lo que tenemos en la page de
-  datasets, esos badges indicando el tipo; anota esto como un TODO para usar estos íconos y mover los badges a otro sitio».
-  **Medido:** los íconos por tipo que le gustaron están en la hoja —`FileText` para archivo y `Link` para enlace, elegidos por el
-  tipo del recurso—, y los badges de formato que quiere reubicar viven en `src/lib/components/dataset/ResourceCard.svelte` (la lista
-  de recursos de la página del dataset) y en `src/lib/components/search/DatasetCard.svelte:113` (`formatChips` + `getFormatAccent`,
-  acento sobre neutro). **Ojo con la regla:** el recurso que devuelve CKAN **no** trae un campo «tipo» explícito; el portal lo
-  infiere de `url_type === "upload"` (medido antes en el proyecto), así que el ícono se decide con esa regla, no con `format`.
-  **Decisión pendiente del autor:** dónde van los badges de formato una vez que el ícono diga el tipo —¿la card técnica, el detalle
-  del recurso, o se eliminan?—.
-  **Nota de higiene de UI, compartida:** las acciones de la fila usan `title` nativo + `aria-label` (la convención del repo, igual
-  que `FacetFilter.svelte` y los botones de la página del recurso). Un tooltip **estilizado** es otro trabajo, y es el mismo que
-  pide el ítem de los tags de la card: si algún día se vendoriza el `Tooltip` de bits-ui, se resuelven los dos juntos.
-  _Origen: revisión de la hoja de edición, 2026-10-02._
 
 - [ ] **[v1+] Prueba de carga, cuando el CRUD esté completo.** El usuario la quiere, y el orden que
   propuso es el correcto: **recién cuando existan create + read + update + delete**. Una prueba de carga
@@ -3677,6 +3573,15 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 | Ítem | Cómo se cerró |
 |---|---|
+| **[v1] «Detalles» contra «Información técnica» en `/dataset/[id]`: competían sin jerarquía clara** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T10). Hallazgo de la hoja `/dev/dataset-details`: la ficha mostraba 9 de 16 datos registrados (faltaban correos, versión, sitio de origen y extras). El autor eligió C con el cuerpo 3b (textual: «c como dices» y «1: 3b»): el sidebar es **«Resumen»** (quién lo mantiene, cada cuánto se actualiza, última actualización, licencia, y el enlace «Ver la información técnica completa» a `#info-tecnica`) y el cuerpo es la **«Información técnica»** completa en grupos (Responsables, Fechas y versión, Condiciones y estado, Origen y cobertura, Identificadores) con título fuera y línea; la franja de identificadores pasó a ser un grupo. Copiar sólo en correos, sitio de origen, dirección web e identificador. El mapeo vive en `src/lib/datasets/details.ts` y la fila en el componente compartido `MetaGroup` (`src/lib/components/ui/meta/`), que también usa la ficha del recurso. Límite declarado: sólo se mapean tres extras (frecuencia, cobertura geográfica y temporal); otros extras de un dataset siguen sin mostrarse. Verificado en la ficha real a 1280 px. La hoja se borró al promover. |
+| **[v0.1.1] Los botones de copiar del recurso: «Copiar enlace» con la disposición del dataset y un solo componente** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T4). Cuatro rondas en la hoja `/dev/copy-buttons` (largos de título, API dentro del bloque, valor junto al botón, franja de identificadores a 320 px, instrumentos de alto, huecos y desfase). Lo elegido por el autor (su URL de preferencias y las rondas L12–L23): un solo componente `CopyButton` (`src/lib/components/ui/copy-button/`) con forma de ícono o de etiqueta que se vuelve ícono cuando su contenedor no da, aviso «Copiado» sin cambiar el ancho y anunciado; «Copiar enlace» sólo ícono, a la izquierda del título y anclado a su primera línea, **en las dos fichas**; el botón de la API dentro del bloque oscuro, con 8 px a los bordes y el alto del bloque igual; y la card de metadatos del recurso en el estilo 3b (grupos Archivo, Fechas, Identificadores con título fuera y línea; etiqueta arriba, valor debajo, botón al extremo alineado a la primera línea del valor), sin la franja de identificadores. Verificado en la ficha real a 1280 y 375 px. La hoja se borró al promover. |
+| **[v0.1.1] Las vistas previas son chicas: no aprovechan la pantalla** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T6). Se comparó en la hoja `/dev/preview-height` (cuatro estrategias por tipo, ventanas simuladas, hero real). El autor eligió D con el foco F3 y el botón de contorno con rótulo, y 16 px de aire descontados (textual: «2: f3 + contorno+rotulo. PERO, creo que hay que tocar un poco el tamaño de D, con el margin-y creo que debemos reducir el alto» → «Aire de 16 px, descontado»). Alturas: PDF `min(max(240px, 100dvh − 140px), max(520px, 130cqw))`, imagen hasta `max(360px, 100dvh − 140px)` con su proporción, texto `clamp(360px, 55dvh, 720px)`, tabla con tope `min(70dvh, 720px)` y el scroll sólo en la tabla. La tarjeta es el destino `#vista-previa` (enlace «Ir a la vista previa» en el hero y botón «Ajustar a la pantalla»), y un enlace compartido con ese fragmento aterriza aunque la tarjeta se dibuje después de cargar. Medido en Chromium con el PDF real del catálogo de desarrollo: 940 px de alto a 1920×1080 y 628 px a 1366×768, con 16 px de aire bajo el encabezado. Límite conocido: con la pestaña de un gráfico activa, la tarjeta no está montada y el enlace del hero no lleva a ningún lado. La hoja se borró al promover. |
+| **[v1] El responsive del salto secuencial, con los dos TODO de 1154 (botones chicos; los demás recursos no alcanzables en escritorio)** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T11). Medido en la hoja `/dev/resource-jump`: hoy los botones medían 36 px (fallan 44) y a 320 px el salto ocupaba 3 líneas con «Siguiente» huérfano; los demás recursos sólo estaban en el menú del breadcrumb desde 1024 px. El autor eligió D (textual: «vamos con d y quitamos el desplegable»): el control compacto «‹ Recurso N de M ⇅ › » (`ResourceStepper.svelte`), extremos de 44 px y el centro abre la lista de todos los recursos con el actual marcado; bajo 32rem de banda, la descarga y el control van en dos filas de ancho completo. La descarga mide 44 px y dice «Descargar» bajo 24rem de contenedor, con el nombre accesible «Descargar recurso». La página de recurso ya no pasa `related` al breadcrumb, así que ni la miga de escritorio ni el chip de móvil listan recursos. Deuda declarada: la opción `related` de `Breadcrumb.svelte` sigue porque la usa la hoja permanente `/dev/nav`; si esa hoja se retira, queda muerta. Verificado en la ficha real a 1280 y 360 px. La hoja se borró al promover. |
+| **[v1] Revisar la POSICIÓN de las solicitudes en la ficha del dataset** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T12). Se comparó en la hoja `/dev/requests-position`, con los componentes reales y doble de datos, por rol (visitante, miembro, editor, administrador, superadministración) y estado de la solicitud, a ancho de página, 768 y 375 px. El autor eligió la C (textual: «para dev/requests-position creo que me voy por la C»): la tarjeta **encabeza la columna lateral**, antes de «Citar como»; la columna es pegajosa en escritorio, así que el aprobador decide sin bajar. En móvil la columna lateral cae después de la principal (igual que en la hoja). El control de pedir o cancelar y la insignia siguen en el hero. Prueba: «la tarjeta encabeza la columna lateral…» en `dataset-page.test.ts` (RED antes del cambio). La hoja se borró al promover. Queda abierta una pregunta del autor: el comentario de la decisión no tiene máximo de caracteres en ningún lado. |
+| **[v0.1.1] El breadcrumb de las páginas de gráficos, en una sola línea** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T5). Causa: el `<ol>` de escritorio de `Breadcrumb.svelte` lleva `lg:flex-wrap`, así que una miga que no cabe baja de línea antes de que su `truncate` actúe. Se comparó en la hoja `/dev/breadcrumb-line` (medido con los nombres reales de la demo: hoy 2 líneas a 1280 px, 3 a 768, 4 a 375). El autor eligió la variante C (textual: «breadcrumb-line = C»): con la opción `collapseMiddle`, la fila muestra «Datasets › … › recurso › gráfico», con la organización y el dataset en un menú detrás del «…» (bits-ui, nombre accesible «Mostrar las secciones ocultas de la ruta»), en una sola línea y con el texto completo en `title`. Sólo la usa `ChartEditorPage` (crear y editar gráfico); sin la opción, el resto de las páginas queda igual (prueba que lo fija en `Breadcrumb.test.ts`). La hoja se borró al promover. |
+| **[v0.1.1] El botón primario en modo oscuro incumple la regla 7** | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T3). Se comparó en la hoja `/dev/button-contrast`, con el botón real en los dos temas y el contraste medido sobre los colores computados. Hallazgo que el ítem no tenía: los **enlaces** oscuros usan `--primary` como color de texto y también incumplían (4,38:1 sobre el fondo, 3,69:1 sobre una tarjeta). El autor eligió la opción D (textual: «button-contrast?preset=D»): en `.dark`, `--primary: oklch(0.66 0.1 257)` y `--primary-foreground: oklch(0.2 0.03 257)`, relleno claro con texto oscuro como el coral oscuro. Medido: botón 5,81:1 (antes 3,73), enlaces 5,56:1 y 4,68:1. El tema claro no cambia. La hoja se borró al promover. |
+| **El cliente traga un cuerpo que no es JSON: el catálogo caído mostraba el error del parser, y un error HTTP perdía su status** (dos ítems `[v1]`) | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T9). `src/lib/api/client.ts` envuelve el `response.json()`: un cuerpo ilegible se convierte en `CkanApiError` con una frase nuestra, «No se pudo completar la consulta al catálogo de datos.» (la misma de `unavailable` en `failure.ts`), y nunca en el mensaje del intérprete. Con un error HTTP conserva el status real (un 409 o un 502 ya no se leen como transporte); con un 200 ilegible no hay estado que citar y queda como transporte (status 0). Pruebas en `client.test.ts`: 502 no-JSON, 200 no-JSON, JSON válido y error JSON; RED antes del arreglo. |
+| **El reintento de la página de error perdía la query; su test del ícono tomaba el primer `<svg>`** (dos avisos informativos `[v1]`) | **Cerrado** (2026-10-19, `odd/tasks/v0.1.1-polish.md` T9). `src/routes/+error.svelte` reintenta a `pathname + search`; el fragmento queda afuera a propósito (el servidor nunca lo recibe y el `href` de servidor e hidratación diferirían). El ícono de estado lleva `data-error-icon` y los tests lo seleccionan por ahí; se verificó que fallan si el atributo va al ícono equivocado. Pruebas en `src/routes/error.test.ts` y `error-page.test.ts`. |
 | **Mejora del nombre del test del asistente: «no muestra el campo de visibilidad y crea siempre como privado»** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2); el autor eligió «Corregir el título ahora»). El aviso R3-001 del recibo `review-169119db13ffab2c` decía que el título prometía lo que el cuerpo no verificaba. El cuerpo sólo comprueba que no hay campo de visibilidad ni las opciones «Privada» y «Pública»; el `private: true` ya lo verifica el test del envío mínimo. El título pasó a «no muestra el campo de visibilidad ni las opciones Privada y Pública» (`src/routes/dashboard/datasets/new/wizard.test.ts`). 34 de 34 pasan. |
 | **Política de existencia (`404` ambiguo para el anónimo): la mitad de página** | **Cerrado** (2026-10-19, limpieza del BACKLOG (`odd/tasks/v0.1.1-polish.md` T2)). El ítem decía de sí mismo «DECIDIDO Y CERRADO EN PÁGINA (2026-09-20)»: `404` ambiguo para el anónimo y sin botón de iniciar sesión, honesto para el identificado («su cuenta no está autorizada»). Implementado en `src/lib/api/failure.ts` y los dos call sites; la spec se partió en `Unidentified Viewer Must Not Learn Existence` y `Authorization Failure Is Not a Missing Resource`; revisión nativa `review-249e073ef3489596` aprobada. **Consecuencia aceptada:** un usuario autenticado puede distinguir `403` de `404` en la página (no es una fuga nueva: la API se lo da a cualquiera); en móvil el camino de inicio de sesión queda dentro del menú hamburguesa (`layout-header.test.ts` prueba que el enlace existe). Medido el 2026-09-30: aterrizó la mitad de página. **Queda la mitad de la API como ítem `[v1]`** (decisión del autor: «Sí, la API como ítem v1»). |
 | **[v0.1.1] Los rótulos del eje X se pisan con categorías de nombre largo** | **Cerrado** (2026-10-19, rama `fix/chart-axis-labels`). Se iteró en la hoja `/dev/chart-axis` con cinco formas (hoy, girados, recortados con «…», en renglones y automática) y un instrumento que medía sobre el SVG real los rótulos escritos, pisados, recortados y fuera del borde. El autor eligió la **automática**, textual: «mejor, me quedo con la e, aprobado». La regla vale para el eje entero: los rótulos van derechos si caben todos; si no, en hasta 3 renglones si todos caben sin recortar; y si no, girados 40° (recortados a 140 px, con el nombre completo en el tooltip y en la tabla). Sin ancho medido, el eje se comporta como antes. En la hoja ninguna combinación de caso y ancho dejó rótulos pisados ni fuera del borde. Se cerró también el hallazgo de las barras sin rótulo: con 12 categorías ahora se rotulan las 12 cuando caben. La lógica vive en `src/lib/charts/x-axis-labels.ts` y la hoja se borró al promover. |

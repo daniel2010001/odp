@@ -22,6 +22,12 @@
 <script lang="ts">
 import { page } from "$app/stores";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
+
+// El reintento vuelve a la dirección completa que falló: sólo el `pathname` perdía la query (un 5xx en
+// `/search?q=salud` reintentaba `/search`). El fragmento queda afuera a propósito: el servidor nunca lo
+// recibe, así que el `href` renderizado en servidor y el de la hidratación diferirían, y no cambia qué
+// pide el reintento.
+const retryPath = $derived($page.url.pathname + $page.url.search);
 </script>
 
-<ErrorPage status={$page.status} message={$page.error?.message} path={$page.url.pathname} />
+<ErrorPage status={$page.status} message={$page.error?.message} path={retryPath} />

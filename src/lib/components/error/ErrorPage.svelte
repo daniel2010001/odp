@@ -197,9 +197,9 @@ const SECONDARY_ACTION =
 			class="mx-auto mt-10 flex size-16 items-center justify-center rounded-full {medallionBackgroundClass}"
 		>
 			{#if state === "client"}
-				<FileQuestion class={medallionIconClass} aria-hidden="true" />
+				<FileQuestion class={medallionIconClass} aria-hidden="true" data-error-icon />
 			{:else}
-				<TriangleAlert class={medallionIconClass} aria-hidden="true" />
+				<TriangleAlert class={medallionIconClass} aria-hidden="true" data-error-icon />
 			{/if}
 		</div>
 

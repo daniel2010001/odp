@@ -81,6 +81,30 @@ describe("La página de error del portal", () => {
 		expect(screen.getByRole("link", { name: /reintentar/i })).toHaveAttribute("href", "/dashboard");
 	});
 
+	it("el reintento conserva la query de la página que falló", () => {
+		// Un 5xx en `/search?q=salud` reintentaba `/search` y el usuario perdía su búsqueda.
+		setPage("/search?q=salud&page=2", 500, "Internal Error");
+
+		render(ErrorBoundary);
+
+		expect(screen.getByRole("link", { name: /reintentar/i })).toHaveAttribute(
+			"href",
+			"/search?q=salud&page=2",
+		);
+	});
+
+	it("el reintento no arrastra el fragmento: el servidor nunca lo recibe", () => {
+		// Con fragmento el `href` renderizado en servidor y el de la hidratación diferirían.
+		setPage("/search?q=salud#resultados", 500, "Internal Error");
+
+		render(ErrorBoundary);
+
+		expect(screen.getByRole("link", { name: /reintentar/i })).toHaveAttribute(
+			"href",
+			"/search?q=salud",
+		);
+	});
+
 	it("no ofrece iniciar sesión: ese camino vive en el encabezado, que no sabe qué se pidió", () => {
 		setPage("/dataset/privado", 403, "Access denied");
 

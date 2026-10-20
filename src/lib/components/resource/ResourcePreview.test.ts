@@ -283,3 +283,43 @@ describe("ResourcePreview — bordes de seguridad del embed", () => {
 		expect(search).not.toHaveBeenCalled();
 	});
 });
+
+// Alto de la vista previa (v0.1.1, T6, estrategia D). Los números viven en clases de Tailwind y jsdom no
+// calcula `dvh` ni `cqw`, así que lo que se ancla es la fórmula escrita, no un alto medido (eso se midió en
+// Chromium). `140px` = 65 (encabezado encogido, con su borde) + 41 (barra de la tarjeta) + 2 (bordes de la tarjeta) + 2 × 16 (aire).
+describe("ResourcePreview — alto por tipo (estrategia D)", () => {
+	it("el PDF llena la pantalla sin pasar de 1,3 × el ancho de la columna ni bajar de 520px", () => {
+		const { api } = makeDatastore();
+		render(ResourcePreview, {
+			props: { resource: makeResource({ format: "PDF" }), datastore: api },
+		});
+
+		const iframe = screen.getByTitle("Vista previa de Flujos vehiculares");
+		expect(iframe.className).toContain("h-[min(max(240px,calc(100dvh-140px)),max(520px,130cqw))]");
+		// `cqw` mide el contenedor que lo envuelve.
+		expect(iframe.parentElement?.className).toContain("@container");
+	});
+
+	it("la imagen ocupa el ancho, con alto automático y tope `max(360px, pantalla)`", () => {
+		const { api } = makeDatastore();
+		render(ResourcePreview, {
+			props: { resource: makeResource({ format: "PNG" }), datastore: api },
+		});
+
+		const image = screen.getByAltText("Flujos vehiculares");
+		expect(image.className).toContain("w-full");
+		expect(image.className).toContain("h-auto");
+		expect(image.className).toContain("max-h-[max(360px,calc(100dvh-140px))]");
+		expect(image.className).toContain("object-contain");
+	});
+
+	it("el texto mide `clamp(360px, 55dvh, 720px)`", () => {
+		const { api } = makeDatastore();
+		render(ResourcePreview, {
+			props: { resource: makeResource({ format: "TXT" }), datastore: api },
+		});
+
+		const iframe = screen.getByTitle("Vista previa de Flujos vehiculares");
+		expect(iframe.className).toContain("h-[clamp(360px,55dvh,720px)]");
+	});
+});

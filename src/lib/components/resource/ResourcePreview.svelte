@@ -126,18 +126,24 @@ $effect(() => {
 {:else if kind === "none" || sourceUrl === null}
 	{@render compactState(noneCopy)}
 {:else if kind === "pdf"}
-	<iframe
-		src={sourceUrl}
-		title={`Vista previa de ${resource.name}`}
-		loading="lazy"
-		class="h-[520px] w-full"
-	></iframe>
+	<!-- Alto del PDF: llena la pantalla bajo el encabezado (100dvh − 65px del encabezado encogido, con su
+	     borde − 41px de la barra de la tarjeta − 2px de los bordes de la tarjeta − 2 × 16px de aire = 140px), sin pasar de 1,3 veces el ancho de la columna
+	     (`cqw`, del contenedor de abajo; una hoja vertical) y sin bajar de 520px. En una pantalla baja
+	     manda el piso de 520px y la página se desplaza; el de 240px sólo protege a ventanas diminutas. -->
+	<div class="@container">
+		<iframe
+			src={sourceUrl}
+			title={`Vista previa de ${resource.name}`}
+			loading="lazy"
+			class="h-[min(max(240px,calc(100dvh-140px)),max(520px,130cqw))] w-full"
+		></iframe>
+	</div>
 {:else if kind === "image"}
 	<div class="flex items-center justify-center p-4">
 		<img
 			src={sourceUrl}
 			alt={resource.name}
-			class="max-h-[520px] w-auto max-w-full object-contain"
+			class="h-auto max-h-[max(360px,calc(100dvh-140px))] w-full object-contain"
 		/>
 	</div>
 {:else}
@@ -150,6 +156,6 @@ $effect(() => {
 		src={sourceUrl}
 		title={`Vista previa de ${resource.name}`}
 		loading="lazy"
-		class="h-[360px] w-full"
+		class="h-[clamp(360px,55dvh,720px)] w-full"
 	></iframe>
 {/if}
