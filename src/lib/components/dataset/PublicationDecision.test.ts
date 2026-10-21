@@ -171,3 +171,33 @@ describe("PublicationDecision — la carrera: otra persona decidió primero", ()
 		expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo registrar la decisión.");
 	});
 });
+
+describe("PublicationDecision — una ajena que el catálogo no le concede (#38 de odp-docker)", () => {
+	it("no ofrece aprobar ni rechazar y dice quién la decide", () => {
+		render(PublicationDecision, {
+			props: {
+				item: { id: "req-1", requested_by: "otro", decidable_by_caller: false },
+				decide: vi.fn<DecidePublicationRequest>(),
+				readDataset: vi.fn(),
+				currentUser: "yo",
+			},
+		});
+		expect(screen.queryByRole("button", { name: APPROVE_LABEL })).toBeNull();
+		expect(screen.queryByRole("button", { name: REJECT_LABEL })).toBeNull();
+		expect(
+			screen.getByText("Esta solicitud la decide un administrador de la organización."),
+		).toBeInTheDocument();
+	});
+
+	it("la propia sin la excepción sigue diciendo que no puede aprobar su propia solicitud", () => {
+		render(PublicationDecision, {
+			props: {
+				item: { id: "req-1", requested_by: "yo", decidable_by_caller: false },
+				decide: vi.fn<DecidePublicationRequest>(),
+				readDataset: vi.fn(),
+				currentUser: "yo",
+			},
+		});
+		expect(screen.getByText("No puede aprobar su propia solicitud.")).toBeInTheDocument();
+	});
+});

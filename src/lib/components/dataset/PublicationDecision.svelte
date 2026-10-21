@@ -40,6 +40,8 @@ const COMMENT_PLACEHOLDER = "Escriba el motivo del rechazo. Es opcional al aprob
 const APPROVE_LABEL = "Aprobar";
 const REJECT_LABEL = "Rechazar";
 const SELF_APPROVAL = "No puede aprobar su propia solicitud.";
+// Una ajena que el catálogo no le concede a quien mira (#38 de odp-docker: decide el admin de la organización).
+const NOT_YOURS = "Esta solicitud la decide un administrador de la organización.";
 const REASON_REQUIRED = "Para rechazar una solicitud debe escribir un motivo.";
 const REFUSED_DECIDE =
 	"Solo un administrador de la organización puede decidir sobre las solicitudes de publicación.";
@@ -112,9 +114,10 @@ const decidable = $derived(item.decidable_by_caller === true);
 
 /**
  * Lo que el control deja de ofrecer. La propia se bloquea **sólo** si el catálogo no concedió la
- * excepción: la comparación de ids decide la **frase** que se lee, no el permiso.
+ * excepción; una ajena, si el catálogo dice que no le toca a quien mira (#38). La comparación de ids decide
+ * la **frase** que se lee, no el permiso.
  */
-const blocked = $derived(isOwn && !decidable);
+const blocked = $derived((isOwn && !decidable) || item.decidable_by_caller === false);
 
 // El tope cuenta el texto **recortado**, que es el que se envía: los espacios de los bordes no suman.
 const commentLength = $derived(comment.trim().length);
@@ -203,7 +206,7 @@ async function decideOn(approve: boolean) {
 		class="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
 	>
 		<ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
-		<span>{SELF_APPROVAL}</span>
+		<span>{isOwn ? SELF_APPROVAL : NOT_YOURS}</span>
 	</div>
 {:else}
 	<div class="mt-3 flex items-baseline justify-between gap-2">
