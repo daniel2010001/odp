@@ -2671,6 +2671,14 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
+- [ ] **[v1] Historial de solicitudes paginado y con filtros** (propuesta aceptada por el autor, 2026-10-21, L65 de
+  `odd/tasks/v0.1.1-polish.md`). Hoy «Solicitudes» pide todas las filas visibles en una llamada y muestra las pendientes y las
+  últimas resueltas con «Ver N más»: no escala. Pendientes = trabajo (todas, de la más vieja a la más nueva; paginar si
+  pasan de ~20). Resueltas = archivo: en la página sólo las últimas, y «Ver el historial completo» lleva a una vista paginada
+  de 20 en 20 (el paginador del buscador), de la más nueva a la más vieja, con filtros por organización, estado, solicitante,
+  rango de fechas y búsqueda por título de dataset. **Depende de odp-docker:** `publication_request_list` con `limit`/`offset`
+  y el total (aditivo, como la 0002), y los filtros de fecha y título del lado del catálogo.
+
 - [ ] **[v1] Rediseñar el menú de filtros del buscador para unificarlo con el resto** (autor, 2026-10-20, L63 de
   `odd/tasks/v0.1.1-polish.md`: «tenemos que tocar el diseño del filter menu del search, ahora el diseño queda un poco feo y
   algo "anticuado" en cuanto a los cambios que hicimos en otros lados […] para "unificar" el diseño de toda la plataforma»).
