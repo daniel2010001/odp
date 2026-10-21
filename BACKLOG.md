@@ -2671,6 +2671,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
+- [ ] **[v0.1.1/v1] Rediseñar el menú de filtros del buscador para unificarlo con el resto** (autor, 2026-10-20, L63 de
+  `odd/tasks/v0.1.1-polish.md`: «tenemos que tocar el diseño del filter menu del search, ahora el diseño queda un poco feo y
+  algo "anticuado" en cuanto a los cambios que hicimos en otros lados […] para "unificar" el diseño de toda la plataforma»).
+  Con playground. Tier por confirmar con el autor (antes de la presentación o v1).
+
 - [ ] **[v0.1.1/v1] Auditoría de colores fijos y mapas a mano (2026-10-20, pregunta del autor en L53: «qué otros ítems también
   nos estamos perdiendo?»).** Lo encontrado, por visibilidad (`odd/tasks/v0.1.1-polish.md` L54):
   - **Mapa de formato duplicado:** `DatasetCard.svelte` `FORMAT_ACCENT` (paleta Tailwind cruda, otro color por formato que
