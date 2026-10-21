@@ -2668,6 +2668,10 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   - **P22** Revisar el diseño de la sección de la API y de los ejemplos de DataStore (las dos funcionan).
   - **P23 (decide)** El home muestra «— Recursos» a propósito (`src/routes/+page.svelte:64`): odp-docker agrega una acción
     pública de estadísticas con el total, **o** se quita la cifra.
+  - **Hash de todos los archivos, no sólo de los CSV** (autor, L88: «hash para todos los archivos, no solo los csv, esto
+    puede ser importante para los tipo zip»). El portal ya muestra `resource.hash` en la ficha del recurso para cualquier
+    tipo; el valor lo llena hoy sólo la carga a DataStore (CSV). El arreglo es del lado del catálogo (odp-docker /
+    ckanext-umss): calcular el hash (p. ej. SHA-256) al subir cualquier archivo, y decidir el formato con el que se muestra.
   - **Tras buscar o cambiar un filtro, llevar la vista a la primera card** (autor, L87: «cuando realicemos una busqueda o
     cambios del filtro, hacer un scroll para bajar o subir hasta ver la primera card, esto tando en el filter menu como en
     los buscadores (hero y de la barra)»). Respetar `prefers-reduced-motion` y el alto de la barra pegada.
