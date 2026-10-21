@@ -851,7 +851,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 								class="inline-flex size-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							>
 								{#if copied}
-									<Check class="size-4 text-emerald-600" />
+									<Check class="size-4 text-positive" />
 								{:else}
 									<Copy class="size-4" />
 								{/if}

@@ -129,7 +129,7 @@ const ESTADOS_DEL_HISTORIAL: Record<PublicationRequest["status"], EstadoDelHisto
 	pending: { label: "Pendiente", tone: "text-primary", resolvio: null },
 	approved: {
 		label: "Aprobada",
-		tone: "text-emerald-700 dark:text-emerald-400",
+		tone: "text-positive",
 		resolvio: "Aprobada",
 	},
 	rejected: { label: "Rechazada", tone: "text-destructive", resolvio: "Rechazada" },

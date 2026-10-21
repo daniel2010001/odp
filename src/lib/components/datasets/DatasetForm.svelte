@@ -1263,9 +1263,9 @@ const hayTitulo = $derived(title.trim().length > 0);
 												<div class="mt-2 space-y-1.5">
 													<div class="flex items-center gap-3">
 														<div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-															<div class="h-full w-full rounded-full bg-emerald-600"></div>
+															<div class="h-full w-full rounded-full bg-positive"></div>
 														</div>
-														<span class="shrink-0 text-xs font-medium tabular-nums text-emerald-700">100 %</span>
+														<span class="shrink-0 text-xs font-medium tabular-nums text-positive">100 %</span>
 													</div>
 													<p class="flex items-center gap-1.5 text-xs font-medium text-primary">
 														<LoaderCircle class="size-3.5 animate-spin" aria-hidden="true" />
@@ -1299,7 +1299,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 													</span>
 												{:else if recurso.estado === "listo"}
 													<span class="inline-flex items-center gap-1 pr-1 text-xs text-muted-foreground">
-														<Check class="size-4 text-emerald-600" aria-hidden="true" />
+														<Check class="size-4 text-positive" aria-hidden="true" />
 														Listo
 													</span>
 												{/if}
@@ -1485,7 +1485,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 						</ul>
 					</div>
 				{:else}
-					<p class="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+					<p class="flex items-center gap-1.5 text-xs font-medium text-positive">
 						<Check class="size-3.5" aria-hidden="true" />
 						Todos los datos recomendados están completos
 					</p>
