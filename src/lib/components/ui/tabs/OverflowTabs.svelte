@@ -190,7 +190,7 @@ function onKeydown(event: KeyboardEvent) {
 			bind:clientHeight={height}
 			data-testid={barTestId}
 			data-hidden={inMenu.length}
-			class={cn("flex border-b border-border", form.bar, form.sticky, className)}
+			class={cn("flex border-b border-border bg-background", form.bar, form.sticky, className)}
 			onkeydowncapture={onKeydown}
 		>
 			{#if leading}

@@ -160,6 +160,55 @@ describe("uploadResourceFile — resultado", () => {
 		expect(error).toMatchObject({ message: "subida rechazada", code: "ckan" });
 	});
 
+	// El filtro de tipos de ckanext-umss (odp-docker #36) responde 409 con el motivo en `error.upload`, en inglés.
+	function reject409(upload: string[]) {
+		const { promise, xhr } = start();
+		xhr.status = 409;
+		xhr.responseText = JSON.stringify({
+			success: false,
+			error: { __type: "Validation Error", upload },
+		});
+		xhr.onload?.();
+		return promise.catch((err: unknown) => err);
+	}
+
+	it("un tipo de archivo no admitido se cuenta en español, con la extensión", async () => {
+		const error = await reject409([
+			"File type .sh is not allowed. Allowed extensions: csv, tsv, xlsx, xls, ods, json, geojson, xml, txt, pdf, png, jpg, jpeg, zip.",
+		]);
+		expect(error).toBeInstanceOf(UploadError);
+		expect(error).toMatchObject({
+			code: "http",
+			status: 409,
+			message: "El tipo de archivo .sh no está admitido.",
+		});
+	});
+
+	it("un archivo sin extensión se cuenta en español", async () => {
+		const error = await reject409([
+			"File type (none) is not allowed. Allowed extensions: csv, tsv, xlsx, xls, ods, json, geojson, xml, txt, pdf, png, jpg, jpeg, zip.",
+		]);
+		expect(error).toMatchObject({
+			status: 409,
+			message: "El archivo no tiene extensión: no se puede saber su tipo.",
+		});
+	});
+
+	it("un contenido que no corresponde a la extensión se cuenta en español", async () => {
+		const error = await reject409([
+			"The content of the file (text/x-shellscript) does not match its .csv extension. Allowed extensions: csv, tsv.",
+		]);
+		expect(error).toMatchObject({
+			status: 409,
+			message: "El contenido del archivo no corresponde a su extensión .csv.",
+		});
+	});
+
+	it("un rechazo de la subida con otro motivo no muestra «HTTP 409» ni el texto en inglés", async () => {
+		const error = await reject409(["Some other upload problem."]);
+		expect(error).toMatchObject({ status: 409, message: "El servidor rechazó el archivo." });
+	});
+
 	it("mapea una respuesta HTTP no exitosa sin romper el parseo", async () => {
 		const { promise, xhr } = start();
 		xhr.status = 413;

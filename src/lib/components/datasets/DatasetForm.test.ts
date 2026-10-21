@@ -427,3 +427,58 @@ describe("DatasetForm — orden de los selects", () => {
 		expect(resto.length).toBeGreaterThan(1);
 	});
 });
+
+describe("DatasetForm — el resumen cuenta los recursos que el dataset ya tiene (P14, S50)", () => {
+	const guardados = [
+		{ id: "r1", name: "matricula.csv", kind: "archivo" as const },
+		{ id: "r2", name: "Portal de la facultad", kind: "enlace" as const },
+	];
+
+	it("al editar un dataset con recursos, el resumen los cuenta y los nombra", () => {
+		const { container } = renderEdit({ resources: guardados });
+		const text = container.textContent ?? "";
+		expect(text).toMatch(/2\s+recursos/);
+		expect(text).toContain("matricula.csv");
+		expect(text).toContain("Portal de la facultad");
+		expect(text).not.toContain("Puede crear sin recursos y agregarlos después.");
+	});
+
+	it("al editar, los recursos guardados cuentan como el dato recomendado «Recursos»", () => {
+		const { container } = renderEdit({ resources: guardados, tags: [], license_id: "cc-by" });
+		const aviso = [...container.querySelectorAll("p")].find((p) =>
+			p.textContent?.includes("Faltan datos recomendados"),
+		);
+		expect(aviso).toBeTruthy();
+		expect(aviso?.parentElement?.textContent ?? "").not.toMatch(/Recursos/);
+	});
+
+	it("al crear sin recursos, el resumen sigue diciendo 0 recursos e invitando a agregarlos después", () => {
+		const { container } = renderCreate();
+		const text = container.textContent ?? "";
+		expect(text).toMatch(/0\s+recursos/);
+		expect(text).toContain("Puede crear sin recursos y agregarlos después.");
+	});
+});
+
+describe("DatasetForm — tipos de archivo admitidos", () => {
+	it("el selector de archivos sólo ofrece las extensiones de la lista", () => {
+		const { container } = renderCreate();
+		const input = container.querySelector<HTMLInputElement>("#recurso-archivo");
+		expect(input?.getAttribute("accept")).toBe(
+			".csv,.tsv,.xlsx,.xls,.ods,.json,.geojson,.xml,.txt,.pdf,.png,.jpg,.jpeg,.zip",
+		);
+	});
+
+	it("un .sh elegido se lista como rechazado y no se agrega como recurso", async () => {
+		const { container } = renderCreate();
+		const input = container.querySelector<HTMLInputElement>("#recurso-archivo") as HTMLInputElement;
+		await fireEvent.change(input, {
+			target: { files: [new File(["echo hola"], "instalar.sh", { type: "text/x-sh" })] },
+		});
+
+		const alerta = await screen.findByRole("alert");
+		expect(alerta.textContent).toContain("no se agregaron");
+		expect(alerta.textContent).toContain("instalar.sh");
+		expect(container.textContent).toMatch(/0\s+recursos/);
+	});
+});

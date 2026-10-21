@@ -443,3 +443,73 @@ describe("el puente — subidas multipart (E2/E3)", () => {
 		expect((init as RequestInit & { duplex?: string }).duplex).toBeUndefined();
 	});
 });
+
+// P7 (S47 de odd/tasks/v0.1.1-polish.md): uWSGI cierra la conexión sin `Connection: close`; el `fetch` de Node
+// reusa ese socket muerto y falla en milisegundos (`UND_ERR_SOCKET`) sin reintentar un `POST`. El navegador veía
+// «No se pudieron cargar los gráficos» la primera vez. Una lectura sin efectos se reintenta una vez; nada más.
+describe("el puente — un socket muerto no llega al navegador (P7)", () => {
+	function socketMuerto() {
+		return Object.assign(new TypeError("fetch failed"), { cause: { code: "UND_ERR_SOCKET" } });
+	}
+
+	it("una lectura que se pide por POST (`resource_view_list`) se reintenta una vez y responde", async () => {
+		const ok = makeFetcher();
+		const fetcher = vi.fn<Fetcher>().mockRejectedValueOnce(socketMuerto()).mockImplementation(ok);
+
+		const resultado = await forwardToCatalog(
+			pedido({ action: "resource_view_list", params: { id: "res-1" } }),
+			fetcher,
+		);
+
+		expect(resultado.status).toBe(200);
+		expect(fetcher).toHaveBeenCalledTimes(2);
+		expect(fetcher.mock.calls[1]).toEqual(fetcher.mock.calls[0]);
+	});
+
+	it("también `umss_chart_data`, `resource_view_show` y las lecturas por GET", async () => {
+		for (const action of ["umss_chart_data", "resource_view_show", "package_show"]) {
+			const ok = makeFetcher();
+			const fetcher = vi.fn<Fetcher>().mockRejectedValueOnce(socketMuerto()).mockImplementation(ok);
+			const resultado = await forwardToCatalog(pedido({ action }), fetcher);
+			expect(resultado.status, action).toBe(200);
+			expect(fetcher, action).toHaveBeenCalledTimes(2);
+		}
+	});
+
+	it("reintenta una sola vez: dos fallas seguidas son el 502 de siempre", async () => {
+		const fetcher = vi.fn<Fetcher>().mockRejectedValue(socketMuerto());
+
+		const resultado = await forwardToCatalog(pedido({ action: "resource_view_list" }), fetcher);
+
+		expect(resultado).toEqual({
+			status: 502,
+			body: { error: "No se pudo contactar el catálogo." },
+		});
+		expect(fetcher).toHaveBeenCalledTimes(2);
+	});
+
+	it("un mutador NO se reintenta: el primer intento pudo haber escrito", async () => {
+		for (const action of ["package_patch", "resource_view_create", "publication_request_decide"]) {
+			const fetcher = vi.fn<Fetcher>().mockRejectedValue(socketMuerto());
+			const resultado = await forwardToCatalog(pedido({ action }), fetcher);
+			expect(resultado.status, action).toBe(502);
+			expect(fetcher, action).toHaveBeenCalledTimes(1);
+		}
+	});
+
+	it("una subida NO se reintenta: su cuerpo es un stream que ya se consumió", async () => {
+		const fetcher = vi.fn<Fetcher>().mockRejectedValue(socketMuerto());
+
+		const resultado = await forwardToCatalog(
+			pedido({
+				action: "resource_create",
+				incomingHeaders: new Headers({ "content-type": "multipart/form-data; boundary=x" }),
+				rawBody: new ReadableStream<Uint8Array>(),
+			}),
+			fetcher,
+		);
+
+		expect(resultado.status).toBe(502);
+		expect(fetcher).toHaveBeenCalledTimes(1);
+	});
+});

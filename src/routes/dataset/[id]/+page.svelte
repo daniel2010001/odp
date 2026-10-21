@@ -52,6 +52,7 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
 import { formatDate, ownerOrgIdOf } from "$lib/utils/ckan";
+import { SUMMARY_EXTRA_KEY } from "$lib/utils/dataset-summary";
 import { safeExternalUrl } from "$lib/utils/external-url";
 import { licenseTermsUrl } from "$lib/utils/licenses";
 import { renderMarkdown } from "$lib/utils/markdown";
@@ -581,6 +582,10 @@ async function handleCopyCitation() {
 
 // Enlace canónico del dataset (usa el slug, no el id interno).
 const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}` : "");
+// El resumen corto que escribió quien publica (extra `summary`); vacío si no lo hay.
+const resumenEditorial = $derived(
+	dataset?.extras?.find((extra) => extra.key === SUMMARY_EXTRA_KEY)?.value?.trim() ?? "",
+);
 </script>
 
 <svelte:head>
@@ -661,6 +666,13 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 						{dataset.title || dataset.name}
 					</h1>
 				</div>
+				<!-- El resumen editorial como bajada del título (P17): sólo el extra que escribió quien publica. Sin él
+				     no se arma uno con la descripción, que ya está en el cuerpo de la página. -->
+				{#if resumenEditorial}
+					<p data-dataset-summary class="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground">
+						{resumenEditorial}
+					</p>
+				{/if}
 				<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
 					<span>Actualizado {formatDate(dataset.metadata_modified)}</span>
 				</div>

@@ -603,6 +603,33 @@ describe("Página de dataset — el tipo de recurso en la tarjeta del listado", 
 // Antes: «Detalles» (creado, modificado, licencia, autor, mantenedor) y «Metadatos / Información sobre
 // el dataset» (visibilidad, estado y una franja de identificadores); los correos, la versión, el sitio de
 // origen y los extras no se mostraban en ningún lado.
+describe("Página de dataset — el resumen bajo el título (P17, S53)", () => {
+	it("el resumen editorial se muestra como bajada del título, en el hero", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({
+				extras: [{ key: "summary", value: "Matrícula por facultad, en datos ficticios." }],
+			}),
+		);
+		render(DatasetPage);
+
+		const lede = await screen.findByText("Matrícula por facultad, en datos ficticios.");
+		expect(lede.tagName).toBe("P");
+		const hero = screen.getByRole("heading", { level: 1 }).closest("section") as HTMLElement;
+		expect(hero.contains(lede)).toBe(true);
+	});
+
+	it("sin resumen no inventa uno con la descripción: la descripción ya está en la página", async () => {
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ notes: "Descripción larga del dataset.", extras: [] }),
+		);
+		render(DatasetPage);
+
+		const h1 = await screen.findByRole("heading", { level: 1 });
+		const hero = h1.closest("section") as HTMLElement;
+		expect(hero.querySelector("[data-dataset-summary]")).toBeNull();
+	});
+});
+
 describe("Página de dataset — «Resumen» e «Información técnica»", () => {
 	const FULL = () =>
 		makeDataset({

@@ -59,6 +59,8 @@ export interface DatasetFormInitial {
 	maintainer?: string;
 	maintainer_email?: string;
 	slug_edited?: boolean;
+	/** Los recursos que el dataset ya tiene (edición): el resumen los cuenta aunque el formulario no los edite. */
+	resources?: { id: string; name: string; kind: "archivo" | "enlace" }[];
 }
 </script>
 
@@ -107,6 +109,7 @@ import {
 	MAX_RESOURCE_BYTES,
 	NO_LICENSE_ID,
 	suggestSlug,
+	ALLOWED_RESOURCE_EXTENSIONS,
 	validateResourceFile,
 } from "$lib/utils/dataset-payload";
 import { safeExternalUrl } from "$lib/utils/external-url";
@@ -115,6 +118,7 @@ import { isOfferedInForm, labelFor, licenseSummary, licenseTermsUrl } from "$lib
 
 // ─── Constantes ──────────────────────────────────────────────────────
 const LIMIT_MB = MAX_RESOURCE_BYTES / 1024 / 1024;
+const ARCHIVO_ACCEPT = ALLOWED_RESOURCE_EXTENSIONS.map((ext) => `.${ext}`).join(",");
 
 const inputClass =
 	"h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
@@ -560,16 +564,23 @@ interface FichaResource {
 	tipo: "archivo" | "enlace";
 	nombre: string;
 }
-const fichaResources = $derived<FichaResource[]>(
-	recursos.map((entry) => ({
+// Al editar, el formulario no administra recursos, pero el dataset sí los tiene: el resumen los cuenta (P14).
+const guardados: FichaResource[] = (prefill.resources ?? []).map((r) => ({
+	key: r.id,
+	tipo: r.kind,
+	nombre: r.name,
+}));
+const fichaResources = $derived<FichaResource[]>([
+	...guardados,
+	...recursos.map((entry) => ({
 		key: entry.key,
 		tipo: entry.tipo,
 		nombre: nombreEfectivo(entry),
 	})),
-);
+]);
 
 const recomendados = $derived([
-	{ label: "Recursos", ok: recursos.length > 0 },
+	{ label: "Recursos", ok: fichaResources.length > 0 },
 	{ label: "Licencia", ok: licenseId !== "" },
 	{ label: "Etiquetas", ok: tags.length > 0 },
 ]);
@@ -1137,6 +1148,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 							<input
 								id="recurso-archivo"
 								type="file"
+								accept={ARCHIVO_ACCEPT}
 								onchange={onArchivoPicked}
 								class="sr-only"
 								aria-label="Seleccione un archivo"
@@ -1198,11 +1210,11 @@ const hayTitulo = $derived(title.trim().length > 0);
 				</div>
 			</div>
 
-			<!-- Rechazos por tamaño -->
+			<!-- Rechazos por tipo o tamaño -->
 			{#if rejectedFiles.length > 0}
 				<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-3" role="alert">
 					<p class="text-sm font-medium text-destructive">
-						Algunos archivos superan el límite y no se agregaron:
+						Algunos archivos no cumplen los requisitos y no se agregaron:
 					</p>
 					<ul class="mt-2 space-y-1 text-xs text-destructive">
 						{#each rejectedFiles as rejected (rejected.name)}
@@ -1483,7 +1495,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 								+{fichaResources.length - 3} más
 							</p>
 						{/if}
-					{:else}
+					{:else if mode !== "edit"}
 						<p class="mt-1 text-[11px] text-muted-foreground">
 							Puede crear sin recursos y agregarlos después.
 						</p>

@@ -1,3 +1,8 @@
+/* El orden de las capas, declarado antes que nada (P19, S46 de odd/tasks/v0.1.1-polish.md). Sin esta línea, el
+   build de producción declara `components` antes que `base`, y las reglas de `base` de LayerChart les ganan a las de
+   `components`: el resaltado del hover de las barras salía opaco (negro o blanco según el tema). En dev el orden
+   era el correcto, por eso sólo se veía en la demo. */
+@layer theme, base, components, utilities;
 @import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 

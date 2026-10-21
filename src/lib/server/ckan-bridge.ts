@@ -19,6 +19,7 @@
 
 import {
 	isReadAction,
+	isRetryableAction,
 	isUploadAction,
 	upstreamHeaders,
 	upstreamMultipartHeaders,
@@ -221,10 +222,19 @@ export async function forwardToCatalog(
 		};
 	}
 
-	let respuesta: Response;
-	try {
-		respuesta = await fetcher(destino, init);
-	} catch {
+	// Un solo reintento, sólo para una lectura sin efectos y nunca para una subida (su cuerpo es un stream que el
+	// primer intento ya consumió). Es para P7: uWSGI cierra la conexión sin `Connection: close`, el `fetch` de Node
+	// reusa ese socket muerto y falla en milisegundos (`UND_ERR_SOCKET`) sin reintentar un `POST` por su cuenta.
+	const intentos = !multipart && isRetryableAction(request.action) ? 2 : 1;
+	let respuesta: Response | undefined;
+	for (let intento = 1; intento <= intentos && !respuesta; intento++) {
+		try {
+			respuesta = await fetcher(destino, init);
+		} catch {
+			// Se cuenta abajo si no queda otro intento.
+		}
+	}
+	if (!respuesta) {
 		// El catálogo no respondió: la falla es de la conexión. Se dice con nuestras palabras y con un status
 		// propio, para que el navegador no confunda un catálogo caído con una negativa del catálogo.
 		return {

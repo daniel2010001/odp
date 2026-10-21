@@ -53,7 +53,23 @@ export interface UploadResourceOptions {
 interface ResourceCreateEnvelope {
 	success?: boolean;
 	result?: CkanResource;
-	error?: { message?: string; __type?: string };
+	error?: { message?: string; __type?: string; upload?: string[] };
+}
+
+/**
+ * El motivo de un rechazo del archivo (`error.upload`, 409 `ValidationError`), en español. Lo escribe el filtro de
+ * tipos de ckanext-umss (odp-docker #36) en inglés: tipo no admitido, o contenido que no corresponde a la extensión.
+ * Un motivo desconocido no se muestra crudo: la interfaz va en español (regla 6 de `AGENTS.md`).
+ */
+export function describeUploadRejection(reasons: string[]): string {
+	const reason = reasons[0] ?? "";
+	if (/^File type \(none\) is not allowed/.test(reason))
+		return "El archivo no tiene extensión: no se puede saber su tipo.";
+	const type = /^File type (\.\S+) is not allowed/.exec(reason);
+	if (type) return `El tipo de archivo ${type[1]} no está admitido.`;
+	const content = /does not match its (\.\S+) extension/.exec(reason);
+	if (content) return `El contenido del archivo no corresponde a su extensión ${content[1]}.`;
+	return "El servidor rechazó el archivo.";
 }
 
 /** Sube un archivo como recurso de un dataset. Resuelve con el recurso creado. */
@@ -95,9 +111,12 @@ export function uploadResourceFile(options: UploadResourceOptions): Promise<Ckan
 			}
 
 			if (xhr.status !== 200) {
+				const rejection = body?.error?.upload;
 				reject(
 					new UploadError(
-						body?.error?.message ?? `HTTP ${xhr.status}`,
+						Array.isArray(rejection)
+							? describeUploadRejection(rejection)
+							: (body?.error?.message ?? `HTTP ${xhr.status}`),
 						"http",
 						xhr.status,
 						body?.error?.__type,

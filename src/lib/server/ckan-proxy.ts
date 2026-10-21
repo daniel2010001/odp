@@ -114,6 +114,26 @@ export function isReadAction(action: string | null | undefined): boolean {
 }
 
 /**
+ * Las acciones **sin efectos** que el puente puede repetir si la conexión con el catálogo falla (P7): las de
+ * `READ_ACTIONS` más las lecturas que el cliente pide por `POST`. No es lo mismo que `READ_ACTIONS`, que dice qué
+ * viaja por `GET` (una decisión de anti-CSRF); ésta dice qué se puede pedir dos veces sin escribir dos veces.
+ * Un mutador nunca entra: si el primer intento llegó y la respuesta se perdió, repetirlo escribiría de nuevo.
+ */
+export const RETRYABLE_ACTIONS = [
+	...READ_ACTIONS,
+	"resource_view_list",
+	"resource_view_show",
+	"umss_chart_data",
+] as const;
+
+const RETRYABLE = new Set<string>(RETRYABLE_ACTIONS);
+
+/** ¿Esta acción se puede repetir ante una falla de conexión? */
+export function isRetryableAction(action: string | null | undefined): boolean {
+	return typeof action === "string" && RETRYABLE.has(action);
+}
+
+/**
  * Las acciones que aceptan un cuerpo **`multipart/form-data`** (las que llevan un archivo). Para cualquier otra
  * el puente sigue exigiendo JSON (`415`). Misma disciplina que `READ_ACTIONS`: lista explícita y probada, de
  * modo que una acción nueva no pueda recibir un cuerpo en stream sin que alguien lo decida acá.

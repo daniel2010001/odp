@@ -156,6 +156,27 @@ beforeEach(() => {
 });
 
 describe("Ruta de edición de dataset", () => {
+	it("el resumen cuenta los recursos del dataset cargado (P14, S50)", async () => {
+		auth.setUser(user);
+		mocks.show.mockResolvedValue(
+			makeDataset({
+				resources: [
+					{ id: "r-1", name: "matricula.csv", url: "http://x/matricula.csv", url_type: "upload" },
+					{ id: "r-2", name: "", url: "https://umss.edu.bo/datos", url_type: "" },
+				] as LoadedPackage["resources"],
+			}),
+		);
+
+		const { container } = renderPage();
+
+		await waitFor(() => expect(container.querySelector("form")).not.toBeNull());
+		const text = container.textContent ?? "";
+		expect(text).toMatch(/2\s+recursos/);
+		expect(text).toContain("matricula.csv");
+		// Sin nombre, el recurso se nombra por su dirección.
+		expect(text).toContain("https://umss.edu.bo/datos");
+	});
+
 	it("pregunta el permiso con el `owner_org` del dataset cargado", async () => {
 		auth.setUser(user);
 

@@ -1113,6 +1113,52 @@ describe("Página de búsqueda — los pegados", () => {
 		});
 	});
 
+	describe("la fila de filtros activos", () => {
+		const fila = () =>
+			screen.getByText("Filtros activos:").parentElement?.parentElement as HTMLElement;
+		const sigue = (a: Element, b: Element) =>
+			Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+		async function montarConFiltro() {
+			setUrl("?q=matricula&org=rectorado");
+			mocks.search.mockResolvedValue({
+				count: 1,
+				results: [makeDataset()],
+				search_facets: { organization: makeFacet({ title: "Organización" }) },
+			});
+			renderSearch();
+			await screen.findByRole("heading", { name: "Matrícula 2026" });
+			await tick();
+		}
+
+		it("desde 1024 px va dentro de la columna de resultados, debajo de la barra, para que ésta no salte", async () => {
+			fijarVentana(1280);
+			await montarConFiltro();
+
+			expect(columna().contains(fila())).toBe(true);
+			expect(sigue(barra(), fila())).toBe(true);
+			expect(barra().contains(fila())).toBe(false);
+		});
+
+		it("bajo 1024 px conserva el orden: barra y luego la fila, fuera de la columna", async () => {
+			fijarVentana(768);
+			await montarConFiltro();
+
+			expect(sigue(barra(), fila())).toBe(true);
+			expect(columna().contains(fila())).toBe(false);
+		});
+
+		it("«Limpiar todos» quita los filtros y la fila desaparece", async () => {
+			fijarVentana(1280);
+			await montarConFiltro();
+
+			await fireEvent.click(screen.getByRole("button", { name: "Limpiar todos" }));
+			await tick();
+
+			expect(screen.queryByText("Filtros activos:")).toBeNull();
+		});
+	});
+
 	describe("la barra de resultados", () => {
 		it("bajo 1024 px va sobre el bloque de filtros, fuera de la columna de resultados", async () => {
 			fijarVentana(768);

@@ -772,13 +772,9 @@ const emptyStateMessage = $derived.by(() => {
 	</section>
 {/snippet}
 
-{#if !enColumna}
-	{@render barraResultados()}
-{/if}
-
-<!-- Active filters -->
-{#if hasActiveFilters}
-	<div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8 {enColumna ? 'pb-6' : ''}">
+<!-- Filtros activos. Desde `enColumna` viven en la columna de resultados, bajo la barra: arriba del
+     cuerpo empujarían la barra (y las tarjetas) al aplicar un filtro. Bajo `enColumna` van tras la barra. -->
+{#snippet filtrosActivos()}
 		<div class="flex flex-wrap items-center gap-2">
 			<span class="text-sm font-medium text-muted-foreground">Filtros activos:</span>
 
@@ -826,7 +822,15 @@ const emptyStateMessage = $derived.by(() => {
 				Limpiar todos
 			</button>
 		</div>
-	</div>
+{/snippet}
+
+{#if !enColumna}
+	{@render barraResultados()}
+	{#if hasActiveFilters}
+		<div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+			{@render filtrosActivos()}
+		</div>
+	{/if}
 {/if}
 
 <!-- Body -->
@@ -996,6 +1000,11 @@ const emptyStateMessage = $derived.by(() => {
 		>
 			{#if enColumna}
 				{@render barraResultados()}
+				{#if hasActiveFilters}
+					<div class="pt-6">
+						{@render filtrosActivos()}
+					</div>
+				{/if}
 			{/if}
 			<div class={enColumna ? 'pt-8' : ''}>
 			<div
