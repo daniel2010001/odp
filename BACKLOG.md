@@ -3267,6 +3267,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
 
+- [ ] **[v1+/v2+] Qué tipos de archivo pueden tener más vistas** (autor, 2026-10-21, L70 de `odd/tasks/v0.1.1-polish.md`).
+  Hoy sólo los tabulares (CSV, y también XLSX/TSV/ODS cuando el DataStore los carga) tienen vistas además de la tabla: los
+  gráficos. Candidatos: **GeoJSON** (mapa, ligado a «Vista previa de GeoJSON»), **PDF** (texto o Markdown extraído, ligado a
+  procesar/convertir PDF) e **imágenes** sólo si algún día hay anotaciones o metadatos. Decidir con la feature de análisis.
+
 
 - [ ] **[v1+] Prueba de carga, cuando el CRUD esté completo.** El usuario la quiere, y el orden que
   propuso es el correcto: **recién cuando existan create + read + update + delete**. Una prueba de carga
