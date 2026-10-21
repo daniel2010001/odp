@@ -84,6 +84,13 @@ describe("canDecide / firstDecidable", () => {
 		expect(canDecide(item({ requested_by: "otro" }), YO)).toBe(true);
 	});
 
+	it("una ajena que el catálogo dice que no le toca no se decide (#38: decide el admin de la org)", () => {
+		expect(canDecide(item({ requested_by: "otro", decidable_by_caller: false }), YO)).toBe(false);
+		expect(canDecide(item({ requested_by: "otro", decidable_by_caller: true }), YO)).toBe(true);
+		// Un catálogo anterior al campo no lo trae: vale lo de siempre.
+		expect(canDecide(item({ requested_by: "otro", decidable_by_caller: null }), YO)).toBe(true);
+	});
+
 	it("sin identidad nada se bloquea", () => {
 		expect(canDecide(item({ requested_by: YO }), null)).toBe(true);
 	});

@@ -91,8 +91,13 @@ export function splitQueue(items: QueueItem[]): {
 	};
 }
 
-/** La regla de cuatro ojos de la cola: la propia sólo se decide si el catálogo concedió la excepción. */
+/**
+ * La regla de cuatro ojos de la cola: la propia sólo se decide si el catálogo concedió la excepción. Y una
+ * ajena que el catálogo marca como no decidible tampoco (#38 de odp-docker: si la organización tiene un
+ * administrador propio, decide él y no el sysadmin). Sin el campo —catálogo anterior— vale lo de siempre.
+ */
 export function canDecide(item: QueueItem, viewer: string | null): boolean {
+	if (item.decidable_by_caller === false) return false;
 	const own = viewer !== null && item.requested_by === viewer;
 	return !own || item.decidable_by_caller === true;
 }
