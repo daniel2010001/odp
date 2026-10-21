@@ -2668,6 +2668,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   - **P22** Revisar el diseño de la sección de la API y de los ejemplos de DataStore (las dos funcionan).
   - **P23 (decide)** El home muestra «— Recursos» a propósito (`src/routes/+page.svelte:64`): odp-docker agrega una acción
     pública de estadísticas con el total, **o** se quita la cifra.
+  - **El chip de un filtro por organización muestra el slug** (`rectorado`) en vez del título (visto al capturar la demo,
+    2026-10-21). El de formato (`CSV`) está bien.
   - **Hash de todos los archivos, no sólo de los CSV** (autor, L88: «hash para todos los archivos, no solo los csv, esto
     puede ser importante para los tipo zip»). El portal ya muestra `resource.hash` en la ficha del recurso para cualquier
     tipo; el valor lo llena hoy sólo la carga a DataStore (CSV). El arreglo es del lado del catálogo (odp-docker /

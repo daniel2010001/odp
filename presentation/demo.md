@@ -211,7 +211,7 @@ gráficos avanzados, búsqueda con paginación y el cierre por API (son los punt
 - Inicio del portal y **búsqueda** con facetas (organización, etiquetas, formato, licencia).
 - Entrar a un dataset: **resumen**, organización, licencia, **información técnica**.
 
-<div class="captura">CAPTURA PENDIENTE · inicio y búsqueda con facetas</div>
+![bg right:44% fit](img/d1-busqueda.png)
 
 <!--
 (16:30 · 4 min) SIN SESIÓN iniciada (ventana de incógnito o cerrada la sesión). Abrir https://demo.odp.hs.lan
@@ -220,7 +220,7 @@ resultados, filtrar por organización. Entrar a un dataset: señalar la tarjeta 
 la licencia. Abrir «Información técnica».
 QUÉ DECIR: es lo que ve cualquier ciudadano; no hay que iniciar sesión.
 SI FALLA: «No hay resultados» o error de catálogo → CKAN no responde; comprobar con docker ps los contenedores y
-volver a lanzar la búsqueda. Plan B: mostrar las capturas de esta diapositiva (cuando estén).
+volver a lanzar la búsqueda. Plan B: mostrar las capturas de esta diapositiva y las del anexo C (sólo PDF).
 -->
 
 ---
@@ -231,7 +231,7 @@ volver a lanzar la búsqueda. Plan B: mostrar las capturas de esta diapositiva (
 - Combinar **texto + filtros**; limpiar los filtros; **ordenar**.
 - La URL **conserva** la búsqueda: se puede compartir.
 
-<div class="captura">CAPTURA PENDIENTE · resultados paginados (página 2 de 3)</div>
+![w:560](img/d2-filtro-csv.png) ![w:560](img/d2-pagina-2.png)
 
 <!--
 (20:30 · 3 min · OPCIONAL) Requiere que el seed ampliado (rama feat/seed-more-files) esté corrido: en dev hay 52 datasets públicos,
@@ -250,7 +250,8 @@ Sin descargar nada, el portal muestra el archivo:
 - **Tablas** (CSV, hojas de cálculo) · **PDF** · **imágenes** · **texto** · **JSON**
 - **GeoJSON** y otros formatos sin vista previa: se informa con claridad, sin descarga automática.
 
-<div class="captura">CAPTURA PENDIENTE · vista previa de un PDF y de una tabla</div>
+![h:165](img/d3-tabla.png) ![h:165](img/d3-pdf.png) ![h:165](img/d3-imagen.png)
+![w:540](img/d3-geojson.png)
 
 <!--
 (23:30 · 4 min) Abrir un dataset con CSV (p. ej. «Matrícula por facultad»): mostrar la tabla. Después el PDF
@@ -270,7 +271,7 @@ saltar a uno con archivo subido. Plan B: capturas.
 - Se guardan como **vistas del recurso** y aparecen como pestañas.
 - *(Sólo se menciona)* Cada gráfico se puede **incrustar** en otra página con un `<iframe>`: no se muestra en vivo.
 
-<div class="captura">CAPTURA PENDIENTE · gráfico de barras con sus pestañas de vistas</div>
+![bg right:46% fit](img/d4-grafico-barras.png)
 
 <!--
 (27:30 · 5 min) Es el primer paso del módulo de análisis, el «núcleo diferencial» del proyecto. Con el CSV
@@ -296,7 +297,7 @@ SI FALLA: «sin gráficos» → el seed de vistas no corrió (ver apéndice). Pl
 curl "https://demo.odp.hs.lan/api/3/action/package_show?id=<dataset>"
 ```
 
-<div class="captura">CAPTURA PENDIENTE · bloque «Acceso por API» con el botón de copiar</div>
+![w:1000](img/d5-api.png)
 
 <!--
 (32:30 · 4 min) En la página de un recurso, ir al bloque de acceso por API, pulsar «Copiar» y pegar el ejemplo en una
@@ -316,7 +317,8 @@ SI FALLA: el portapapeles necesita HTTPS o localhost; en un dominio http el bot�
 - **Asistente de creación**: datos, recursos (un **archivo** y un **enlace**), revisión.
 - El dataset queda **privado**: sólo lo ve su organización.
 
-<div class="captura">CAPTURA PENDIENTE · asistente de creación, paso de recursos</div>
+![bg right:42% fit vertical](img/d6-login.png)
+![bg right:42% fit](img/d6-crear-recursos.png)
 
 <!--
 (36:30 · 6 min) Iniciar sesión como editor-fcyt (contraseña del archivo de credenciales, sin mostrarla). Abrir el menú
@@ -335,7 +337,7 @@ dataset ya existente en lugar de crear (no demuestra la subida, pero sigue el fl
 - La ficha muestra el **estado de la solicitud**; el panel, la lista de pendientes.
 - El **historial** de la solicitud: cuándo, quién y con qué motivo.
 
-<div class="captura">CAPTURA PENDIENTE · tarjeta de solicitud con su estado «Pendiente»</div>
+![bg right:42% fit](img/d7-solicitud.png)
 
 <!--
 (42:30 · 3 min) Sigue como editor-fcyt. Pulsar «Solicitar publicación», escribir un motivo corto. Mostrar el estado
@@ -352,7 +354,8 @@ SI FALLA: «sin organización» → la instalación no está provisionada (apén
 - **Solicitudes**: la cola, con filtro por organización; abrir el dataset **desde la fila**.
 - **Aprobar** (o rechazar con motivo): el dataset pasa a **público**.
 
-<div class="captura">CAPTURA PENDIENTE · cola de solicitudes con el botón «Decidir»</div>
+![bg right:46% fit vertical](img/d8-cola.png)
+![bg right:46% fit](img/d8-decidir.png)
 
 <!--
 (45:30 · 5 min) Cerrar sesión; entrar como admin-fcyt. Menú → Solicitudes. En la cola, mostrar la fila de la solicitud
@@ -379,7 +382,7 @@ devuelve «no puede aprobar su propia solicitud», se creó con el mismo usuario
 curl -X POST …/api/3/action/package_patch -d '{"id":"…","private":false}'   →   403
 ```
 
-<div class="captura">CAPTURA PENDIENTE · dataset recién aprobado visible sin sesión</div>
+![w:1100](img/d9-publico.png)
 
 <!--
 (50:30 · 4 min) Cerrar sesión (o ventana de incógnito). Buscar el dataset por su título: aparece. Entrar y mostrar que la
@@ -498,7 +501,7 @@ previa, y probar el inicio de sesión de los cuatro usuarios antes de empezar.
 
 - [ ] **Archivo de prueba** pequeño (CSV o PDF) para la subida de la demo 6.
 - [ ] **Terminal** abierta con `curl` y un token de editor (demo 9, cierre opcional).
-- [ ] **Capturas** de plan B en `presentation/` (reemplazan los recuadros «CAPTURA PENDIENTE»).
+- [ ] **Capturas** de plan B en `presentation/img/` (las de foco están en cada diapositiva de demostración; las de página completa, en el apéndice C). Se regeneran con `capture/capture.mjs` (ver `README.md`).
 - [ ] **Hora acumulada** (hasta una hora): 16:30 inicio de demo · 54:30 fin de demo · 60:00 cierre.
 - [ ] Si el tiempo se acorta, omitir la demo 2 y el cierre por API.
 
@@ -506,3 +509,104 @@ previa, y probar el inicio de sesión de los cuatro usuarios antes de empezar.
 Plan por tiempo: con 45 minutos, omitir la demo 2 (búsqueda con paginación), la demo 5 en vivo (dejarla como captura)
 y el rechazo opcional de la demo 8.
 -->
+
+---
+
+<!-- _class: apendice -->
+
+## Apéndice C · Capturas de página completa
+
+Las capturas siguientes muestran **cada página entera**, una por diapositiva y en el orden de la demostración. Esto **no se muestra** en el
+proyector; sólo está en el PDF, y el PDF permite ampliar cada imagen hasta leer el texto.
+
+Datos ficticios, de la instancia `https://demo.odp.hs.lan`; se regeneran con `capture/capture.mjs`.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d1-inicio-completa.png)
+
+## Inicio del portal
+
+Demo 1 · El catálogo: la página de inicio.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d1-ficha-completa.png)
+
+## Ficha de un dataset
+
+Demo 1 · El catálogo: resumen, organización, licencia e información técnica.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d2-busqueda-completa.png)
+
+## Resultados de búsqueda (página 2)
+
+Demo 2 · Búsqueda con paginación: los 20 resultados de la segunda página y el paginador.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d3-pdf-completa.png)
+
+## Recurso PDF con vista previa
+
+Demo 3 · Vistas previas: el informe de matrícula visto dentro de la página.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d4-recurso-completa.png)
+
+## Recurso CSV con gráfico de barras
+
+Demo 4 · Gráficos: pestañas de vistas, gráfico «Monto ejecutado por unidad» y acceso por API (demo 5).
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d6-crear-completa.png)
+
+## Crear dataset (editor)
+
+Demo 6 · Iniciar sesión y crear un dataset: el formulario completo, sin enviar.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d7-ficha-completa.png)
+
+## Ficha con solicitud de publicación (editor)
+
+Demo 7 · Solicitar la publicación: estado «Pendiente» de la solicitud.
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d8-cola-completa.png)
+
+## Cola de solicitudes (administrador)
+
+Demo 8 · Decidir como administrador: la cola con el botón «Decidir».
+
+---
+
+<!-- _class: apendice -->
+
+![bg right:34% fit](img/d9-publico-completa.png)
+
+## Dataset público sin sesión
+
+Demo 9 · Verlo público: la ficha de un dataset público, sin controles de publicación.
