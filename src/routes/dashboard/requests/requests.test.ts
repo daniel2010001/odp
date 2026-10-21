@@ -1,12 +1,13 @@
 // Pruebas de la page de solicitudes: la cola en su propia ruta, con las llamadas **reales** de la capa de API.
 //
 // Lo que se prueba es lo que la page decide y el componente no puede: que sin sesión no se muestre nada y se
-// navegue al login; que el **filtro por organización** aparezca sólo cuando hay más de una —un filtro que no
-// filtra es ruido—; que filtrar **filtre de verdad**; y que una fila cuyo título no se pudo resolver se lea
-// con la frase del portal y **no** con la línea principal vacía.
+// navegue al login; que las **pestañas de organización** aparezcan sólo cuando hay más de una —un filtro que no
+// filtra es ruido—; que filtrar **filtre de verdad** y sin otra llamada; que la cola monte sobre la tarjeta de la
+// page (la barra pegada toma su fondo); y que una fila cuyo título no se pudo resolver se lea con la frase del
+// portal y **no** con la línea principal vacía.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { goto } from "$app/navigation";
 import type { PublicationRequest } from "$lib/api/publication";
 import { auth } from "$lib/stores/auth";
@@ -33,6 +34,18 @@ vi.mock("$lib/api/publication", () => ({
 vi.mock("$lib/api/session", () => ({ createSessionApi: () => ({ check: mocks.check }) }));
 
 const SIN_TITULO = "Dataset no disponible";
+
+// La barra pegada de la cola mide su alto con `ResizeObserver`, que jsdom no trae.
+beforeAll(() => {
+	vi.stubGlobal(
+		"ResizeObserver",
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		},
+	);
+});
 
 function makeUser(): CkanUser {
 	return {
@@ -77,6 +90,7 @@ beforeEach(() => {
 	mocks.createPortalClient.mockReturnValue({});
 	mocks.check.mockResolvedValue({ state: "alive", user: makeUser() });
 	mocks.listRequests.mockResolvedValue([makeRow()]);
+	mocks.showDataset.mockResolvedValue({ id: "pkg-1", private: true, resources: [] });
 });
 
 describe("Solicitudes — la compuerta de sesión", () => {
@@ -97,12 +111,19 @@ describe("Solicitudes — la compuerta de sesión", () => {
 			await screen.findByRole("heading", { level: 1, name: "Solicitudes de publicación" }),
 		).toBeInTheDocument();
 		expect(vi.mocked(goto)).not.toHaveBeenCalled();
-		expect(await screen.findByText("Matrícula 2026")).toBeInTheDocument();
+		expect((await screen.findAllByText("Matrícula 2026")).length).toBeGreaterThan(0);
 	});
 });
 
+const mostrar = () => screen.getByRole("combobox", { name: /Mostrar/ }) as HTMLSelectElement;
+const tablist = () => screen.queryByRole("tablist", { name: "Organización" });
+const titulos = () =>
+	[...document.querySelectorAll("[data-request-id]")].map((li) =>
+		li.getAttribute("data-request-id"),
+	);
+
 describe("Solicitudes — pendientes y resueltas", () => {
-	it("pide todas las filas en **una** llamada sin estado y muestra Pendientes y después Resueltas", async () => {
+	it("pide todas las filas en **una** llamada sin estado; muestra las pendientes y «Mostrar» da las resueltas, la más nueva primero", async () => {
 		auth.setUser(makeUser());
 		mocks.listRequests.mockResolvedValue([
 			makeRow({
@@ -124,72 +145,93 @@ describe("Solicitudes — pendientes y resueltas", () => {
 
 		renderPage();
 
-		const pendientes = await screen.findByRole("heading", { name: "Pendientes 1" });
-		const resueltas = screen.getByRole("heading", { name: "Resueltas 2" });
+		await screen.findAllByText("Matrícula 2026");
 		expect(mocks.listRequests).toHaveBeenCalledTimes(1);
 		expect(mocks.listRequests).toHaveBeenCalledWith();
-		expect(
-			pendientes.compareDocumentPosition(resueltas) & Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
-		const grupo = resueltas.closest("section") as HTMLElement;
-		const filas = within(grupo).getAllByRole("listitem");
-		expect(filas[0]).toHaveTextContent("Nuevo rechazado");
-		expect(filas[1]).toHaveTextContent("Viejo aprobado");
+		expect(titulos()).toEqual(["req-1"]);
+		expect(within(mostrar()).getByRole("option", { name: "Pendientes (1)" })).toBeInTheDocument();
+		expect(within(mostrar()).getByRole("option", { name: "Resueltas (2)" })).toBeInTheDocument();
+
+		await fireEvent.change(mostrar(), { target: { value: "resueltas" } });
+		expect(titulos()).toEqual(["req-new", "req-old"]);
 	});
 
-	it("el filtro por organización recorta las dos secciones", async () => {
+	it("las pendientes llegan de la más antigua a la más nueva, aunque el catálogo las devuelva al revés", async () => {
+		auth.setUser(makeUser());
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ id: "nueva", dataset_title: "Nueva", created_at: "2026-10-09T00:00:00.000000" }),
+			makeRow({ id: "vieja", dataset_title: "Vieja", created_at: "2026-09-01T00:00:00.000000" }),
+			makeRow({ id: "media", dataset_title: "Media", created_at: "2026-10-01T00:00:00.000000" }),
+		]);
+
+		renderPage();
+
+		await screen.findAllByText("Vieja");
+		expect(titulos()).toEqual(["vieja", "media", "nueva"]);
+	});
+
+	it("la cola vive en la tarjeta de la page: la barra pegada toma el fondo de la tarjeta", async () => {
 		auth.setUser(makeUser());
 		mocks.listRequests.mockResolvedValue([
 			makeRow({ id: "a", dataset_title: "Pend Tec" }),
-			makeRow({
-				id: "b",
-				dataset_title: "Res Tec",
-				status: "approved",
-				approved_by_name: "admin.tecnologia",
-			}),
 			makeRow({
 				id: "c",
 				dataset_title: "Pend Eco",
 				organization_title: "Facultad de Ciencias Económicas",
 			}),
-			makeRow({
-				id: "d",
-				dataset_title: "Res Eco",
-				status: "rejected",
-				organization_title: "Facultad de Ciencias Económicas",
-				approved_by_name: "admin.economicas",
-			}),
 		]);
 
 		renderPage();
 
-		const filtro = await screen.findByRole("group", { name: "Filtrar por organización" });
-		await fireEvent.click(
-			within(filtro).getByRole("button", { name: "Facultad de Ciencias Económicas" }),
+		const barra = await screen.findByTestId("barra-pestanas");
+		expect(barra.className.split(/\s+/)).toContain("bg-card");
+		expect(barra.className.split(/\s+/)).not.toContain("bg-background");
+	});
+
+	it("decidir deja la fila en la lista como resuelta, con quien la decidió, y no vuelve a pedir el listado", async () => {
+		auth.setUser(makeUser());
+		mocks.showDataset.mockResolvedValue({ id: "pkg-1", private: false, resources: [] });
+		mocks.decideRequest.mockResolvedValue(
+			makeRow({
+				status: "rejected",
+				approved_by_name: "admin.tecnologia",
+				decided_at: "2026-10-20T10:00:00.000000",
+				comments: "Falta",
+			}),
 		);
 
-		await waitFor(() => expect(screen.queryByText("Pend Tec")).not.toBeInTheDocument());
-		expect(screen.queryByText("Res Tec")).not.toBeInTheDocument();
-		expect(screen.getByText("Pend Eco")).toBeInTheDocument();
-		expect(screen.getByText("Res Eco")).toBeInTheDocument();
+		renderPage();
+
+		await fireEvent.input(await screen.findByLabelText("Comentario (obligatorio para rechazar)"), {
+			target: { value: "Falta" },
+		});
+		await fireEvent.click(screen.getByRole("button", { name: "Rechazar" }));
+
+		expect(await screen.findByRole("status")).toHaveTextContent("La solicitud fue rechazada.");
+		expect(mocks.decideRequest).toHaveBeenCalledWith("req-1", false, "Falta");
 		expect(mocks.listRequests).toHaveBeenCalledTimes(1);
+		await fireEvent.change(mostrar(), { target: { value: "resueltas" } });
+		expect(screen.getByTestId("status-line")).toHaveTextContent(
+			"Rechazada por admin.tecnologia el 20 de octubre de 2026",
+		);
 	});
 });
 
-describe("Solicitudes — el filtro por organización", () => {
-	it("con **una sola** organización no dibuja el selector: no hay nada que filtrar", async () => {
+describe("Solicitudes — las pestañas de organización", () => {
+	it("con **una sola** organización no dibuja las pestañas: no hay nada que filtrar", async () => {
 		auth.setUser(makeUser());
 		mocks.listRequests.mockResolvedValue([makeRow()]);
 
 		renderPage();
 
-		await screen.findByText("Matrícula 2026");
+		await screen.findAllByText("Matrícula 2026");
+		expect(tablist()).toBeNull();
 		expect(
 			screen.queryByRole("group", { name: "Filtrar por organización" }),
 		).not.toBeInTheDocument();
 	});
 
-	it("con dos organizaciones dibuja el selector, y filtrar filtra de verdad", async () => {
+	it("con dos organizaciones dibuja las pestañas, y filtrar filtra de verdad sin otra llamada", async () => {
 		auth.setUser(makeUser());
 		mocks.listRequests.mockResolvedValue([
 			makeRow({ id: "req-1", dataset_title: "Matrícula 2026" }),
@@ -204,15 +246,17 @@ describe("Solicitudes — el filtro por organización", () => {
 
 		renderPage();
 
-		await screen.findByText("Matrícula 2026");
-		const filtro = await screen.findByRole("group", { name: "Filtrar por organización" });
-		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
-
-		await fireEvent.click(within(filtro).getByRole("button", { name: "Facultad de Tecnología" }));
+		await screen.findAllByText("Matrícula 2026");
+		expect(screen.getAllByText("Presupuesto 2026").length).toBeGreaterThan(0);
+		const tab = within(tablist() as HTMLElement).getByRole("tab", {
+			name: /Facultad de Tecnología/,
+		});
+		await fireEvent.mouseDown(tab);
+		await fireEvent.click(tab);
 
 		await waitFor(() => expect(screen.queryByText("Presupuesto 2026")).not.toBeInTheDocument());
-		expect(screen.getByText("Matrícula 2026")).toBeInTheDocument();
-		// El filtro es del lado de la page: no dispara otra llamada al catálogo.
+		expect(screen.getAllByText("Matrícula 2026").length).toBeGreaterThan(0);
+		// El filtro es de las filas ya cargadas: no dispara otra llamada al catálogo.
 		expect(mocks.listRequests).toHaveBeenCalledTimes(1);
 	});
 });
@@ -229,7 +273,10 @@ describe("Solicitudes — lo que la page le entrega a la cola", () => {
 
 		renderPage();
 
-		expect(await screen.findAllByText(SIN_TITULO)).toHaveLength(2);
+		// Una por fila: el título es el botón de la cabecera (la abierta repite el nombre en su «Cerrar»).
+		expect(
+			await screen.findAllByRole("button", { name: new RegExp(`^${SIN_TITULO}`) }),
+		).toHaveLength(2);
 		expect(screen.queryByText("pkg-1")).not.toBeInTheDocument();
 		expect(screen.queryByText("unknown")).not.toBeInTheDocument();
 	});
@@ -257,7 +304,7 @@ describe("Solicitudes — lo que la page le entrega a la cola", () => {
 
 		renderPage();
 
-		expect(await screen.findByText("Matrícula 2026")).toBeInTheDocument();
+		expect((await screen.findAllByText("Matrícula 2026")).length).toBeGreaterThan(0);
 		expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
 	});
 });
