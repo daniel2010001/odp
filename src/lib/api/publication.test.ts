@@ -164,6 +164,22 @@ describe("createPublicationApi — listar", () => {
 		expect(post).not.toHaveBeenCalled();
 		expect(devueltas).toEqual(filas);
 	});
+
+	it("contra un catálogo sin la 0002 (que ignora `dataset_id` y `sort`) no mezcla otros datasets ni invierte el orden", async () => {
+		// Medido por odp-docker en la instancia demo (2026-10-20): el código anterior a la 0002 ignora los dos
+		// parámetros y devuelve toda la cola visible, de la más vieja a la más nueva. Sin esta guarda la tarjeta
+		// mostraría solicitudes de otros datasets como si fueran el historial de éste.
+		const filas = [
+			makeRow({ id: "vieja", dataset_id: "pkg-1", created_at: "2026-10-01T00:00:00" }),
+			makeRow({ id: "ajena", dataset_id: "pkg-2", created_at: "2026-10-05T00:00:00" }),
+			makeRow({ id: "nueva", dataset_id: "pkg-1", created_at: "2026-10-09T00:00:00" }),
+		];
+		const { client } = makeClient({ publication_request_list: filas });
+
+		const devueltas = await createPublicationApi(client).history("pkg-1");
+
+		expect(devueltas.map((fila) => fila.id)).toEqual(["nueva", "vieja"]);
+	});
 });
 
 describe("createPublicationApi — lo que un fallo trae", () => {
