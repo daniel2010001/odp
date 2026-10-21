@@ -22,8 +22,10 @@ const rowValue = (d: CkanPackage, label: string) =>
 describe("licencia y estado de la ficha", () => {
 	it("el resumen y la información técnica dicen la licencia con la etiqueta del portal", () => {
 		const d = dataset({ license_id: "odc-pddl", license_title: "Open Data Commons PDDL" });
-		expect(summaryFacts(d).find((f) => f.key === "license")?.value).toBe("PDDL — Dominio Público");
-		expect(rowValue(d, "Licencia")).toBe("PDDL — Dominio Público");
+		expect(summaryFacts(d).find((f) => f.key === "license")?.value).toBe(
+			"ODC-PDDL — Dominio Público (bases de datos)",
+		);
+		expect(rowValue(d, "Licencia")).toBe("ODC-PDDL — Dominio Público (bases de datos)");
 	});
 
 	it("un id fuera de la tabla muestra el título de CKAN", () => {

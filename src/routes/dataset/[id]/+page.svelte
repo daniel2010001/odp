@@ -51,6 +51,7 @@ import { cn } from "$lib/utils";
 import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
 import { formatDate, ownerOrgIdOf } from "$lib/utils/ckan";
 import { safeExternalUrl } from "$lib/utils/external-url";
+import { licenseTermsUrl } from "$lib/utils/licenses";
 import { renderMarkdown } from "$lib/utils/markdown";
 
 // ─── State ───────────────────────────────────────────────────────
@@ -421,7 +422,9 @@ const hiddenTagCount = $derived((dataset?.tags?.length ?? 0) - 5);
 // El «Resumen» del sidebar y los grupos de «Información técnica» (ver `$lib/datasets/details`).
 const summary = $derived(dataset ? summaryFacts(dataset) : []);
 // Los términos sólo se ofrecen con un destino web: el catálogo guarda la dirección que alguien escribió.
-const termsUrl = $derived(safeExternalUrl(dataset?.license_url));
+const termsUrl = $derived(
+	safeExternalUrl(licenseTermsUrl(dataset?.license_id, dataset?.license_url)),
+);
 const technical = $derived(dataset ? technicalGroups(dataset) : []);
 
 // ─── Breadcrumb ─────────────────────────────────────────────────

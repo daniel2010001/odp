@@ -110,7 +110,7 @@ import {
 	validateResourceFile,
 } from "$lib/utils/dataset-payload";
 import { safeExternalUrl } from "$lib/utils/external-url";
-import { labelFor } from "$lib/utils/licenses";
+import { isOfferedInForm, labelFor, licenseSummary, licenseTermsUrl } from "$lib/utils/licenses";
 
 // ─── Constantes ──────────────────────────────────────────────────────
 const LIMIT_MB = MAX_RESOURCE_BYTES / 1024 / 1024;
@@ -265,7 +265,13 @@ const idsOfrecidos = $derived(licenses.map((license) => license.id));
 // completo, con el mismo texto a la vista. Se oculta del selector y queda **una sola** opción para
 // «sin licencia». `idsOfrecidos` conserva el id a propósito, para poder validar los datasets que ya
 // lo tengan guardado.
-const licenciasOfrecidas = $derived(licenses.filter((license) => license.id !== "notspecified"));
+// `uk-ogl` tampoco se ofrece (no aplica al portal), salvo que el dataset ya la tenga seleccionada.
+const licenciasOfrecidas = $derived(
+	licenses.filter(
+		(license) =>
+			license.id !== "notspecified" && (isOfferedInForm(license.id) || license.id === licenseId),
+	),
+);
 
 const allErrors = $derived.by(() => {
 	const errors = validation.success
@@ -528,7 +534,10 @@ const orgDisplayTitle = $derived(
 const orgIsMissing = $derived(orgDisplayTitle === "");
 
 const selectedLicense = $derived(licenses.find((license) => license.id === licenseId) ?? null);
-const safeLicenseUrl = $derived(selectedLicense ? safeExternalUrl(selectedLicense.url) : null);
+const safeLicenseUrl = $derived(
+	selectedLicense ? safeExternalUrl(licenseTermsUrl(selectedLicense.id, selectedLicense.url)) : null,
+);
+const licenseSummaryText = $derived(selectedLicense ? licenseSummary(selectedLicense.id) : null);
 
 interface FichaResource {
 	key: string;
@@ -857,11 +866,11 @@ const hayTitulo = $derived(title.trim().length > 0);
 					<div class="rounded-lg border border-border bg-muted/30 p-3" id="license-help">
 						{#if selectedLicense}
 							<p class="text-xs leading-relaxed text-muted-foreground">
-								{selectedLicense.title}
-								{#if selectedLicense.od_conformance}
-									<span class="text-muted-foreground/70">
-										· {selectedLicense.od_conformance}
-									</span>
+								<span class="font-medium text-foreground">
+									{labelFor(selectedLicense.id, selectedLicense.title)}
+								</span>
+								{#if licenseSummaryText}
+									<span class="block">{licenseSummaryText}</span>
 								{/if}
 							</p>
 							{#if safeLicenseUrl}
