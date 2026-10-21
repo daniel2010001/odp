@@ -20,9 +20,11 @@ import {
 	readJson,
 	SHOWCASE,
 	SUMMARY_EXTRA_KEY,
+	SUPERSEDED_SUMMARIES,
 	seedChartsLast,
 	seedFileDataset,
 	sessionHeaders,
+	summaryToWrite,
 	summaryWithChartsNote,
 	uploadForm,
 } from "./seed-ckan.mjs";
@@ -461,4 +463,24 @@ test("S54: el anuncio de los gráficos cabe en el tope del resumen y no se repit
 	const fitted = summaryWithChartsNote(long);
 	assert.ok(fitted.length <= MAX_SUMMARY_LENGTH, String(fitted.length));
 	assert.ok(fitted.endsWith(`… ${CHARTS_NOTE}`), fitted);
+});
+
+test("S54: el seed reemplaza su propio resumen viejo, nunca uno editado (L84: «…gráficos. Incluye gráficos.»)", () => {
+	const wanted = "Matrícula ficticia de ocho facultades, gestiones 2015–2025.";
+	const old = SUPERSEDED_SUMMARIES["matricula-facultad-gestion-ficticia"];
+	assert.ok(old, "el texto viejo de matrícula está registrado");
+	assert.equal(summaryToWrite("", wanted, old), wanted);
+	assert.equal(summaryToWrite(old, wanted, old), wanted);
+	assert.equal(summaryToWrite(`${old} ${CHARTS_NOTE}`, wanted, old), wanted);
+	assert.equal(summaryToWrite("Resumen propio.", wanted, old), null, "uno editado no se pisa");
+	assert.equal(summaryToWrite(wanted, wanted, old), null);
+	assert.equal(summaryToWrite(`${wanted} ${CHARTS_NOTE}`, wanted, old), null);
+});
+
+test("S54: ningún resumen de los datasets con gráficos anuncia gráficos por su cuenta", () => {
+	for (const demo of DEMOS) {
+		const summary =
+			demo.dataset.extras?.find((extra) => extra.key === SUMMARY_EXTRA_KEY)?.value ?? "";
+		assert.ok(!/gráfico/i.test(summary), `${demo.dataset.name}: ${summary}`);
+	}
 });

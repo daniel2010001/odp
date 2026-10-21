@@ -2668,6 +2668,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   - **P22** Revisar el diseño de la sección de la API y de los ejemplos de DataStore (las dos funcionan).
   - **P23 (decide)** El home muestra «— Recursos» a propósito (`src/routes/+page.svelte:64`): odp-docker agrega una acción
     pública de estadísticas con el total, **o** se quita la cifra.
+  - **La barra de pestañas pegada parece una caja al hacer scroll** (autor, L83: «al hacer un poco scroll se ve el border-x y
+    parece como si fuera un cuadro […] si se puede solucionar bien, sino lo podemos dejar para otra realise»). Con fondo
+    (S49), los bordes laterales de la tarjeta de la vista que pasa por debajo se cortan contra la línea inferior de la barra.
+    Hay que verlo en vivo y probar opciones en un playground (fondo más ancho que la columna, como la barra de resultados del
+    buscador, o la línea inferior a todo el ancho).
   - **Observado por odp-docker:** una URL de dataset inexistente responde **200** con la carcasa «Cargando… — UMSS» (el SSR no
     da 404; la API sí niega los privados). Y entrar directo a `/catalog` da un bucle 301/308 entre nginx (`location /catalog/`)
     y el `trailingSlash` de SvelteKit; nada enlaza ahí, y si alguna vez se enlaza lo arregla odp-docker en el proxy.

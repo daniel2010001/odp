@@ -1000,13 +1000,15 @@ const emptyStateMessage = $derived.by(() => {
 		>
 			{#if enColumna}
 				{@render barraResultados()}
+				<!-- La fila arranca a 2rem de la barra, igual que el panel de filtros (`--aside-y`), así el borde del
+				     panel no corta su texto; la primera card queda a 1rem de ella (L83). -->
 				{#if hasActiveFilters}
-					<div class="pt-6">
+					<div class="pt-8">
 						{@render filtrosActivos()}
 					</div>
 				{/if}
 			{/if}
-			<div class={enColumna ? 'pt-8' : ''}>
+			<div class={enColumna ? (hasActiveFilters ? 'pt-4' : 'pt-8') : ''}>
 			<div
 				bind:this={resultadosEl}
 				data-results
