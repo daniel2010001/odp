@@ -2,10 +2,9 @@
 	Las organizaciones como pestañas, con la forma de las vistas del recurso: ambas son un `OverflowTabs` (S39), una
 	sola fila siempre. «Todas» primero y, en cada una, la insignia de sus PENDIENTES (ninguna si no tiene; «Todas»,
 	la suma): los totales se leen en «Mostrar». Las que no caben van a «Más (n)»; la activa siempre se ve.
-	`leading` es el conteo «N solicitudes» y `trailing` el control de estado: desde 701 px de ventana (611 px de
-	contenedor dentro de la tarjeta de la page) comparten la fila con las pestañas —el conteo a la izquierda, «Mostrar»
-	a la derecha, centrado en el texto sin llegar a la línea—; hasta 700 px la barra es el desplegable de organización
-	con «Mostrar» al lado, ambos de 44 px y con el mismo campo, y el conteo arriba.
+	`trailing` es el control de estado: desde 701 px de ventana (611 px de contenedor dentro de la tarjeta de la
+	page) comparte la fila con las pestañas —«Mostrar» a la derecha, centrado en el texto sin llegar a la línea—;
+	hasta 700 px la barra es el desplegable de organización con «Mostrar» al lado, ambos de 44 px y con el mismo campo.
 	Con una sola organización no se dibuja nada: una pestaña que no filtra es ruido.
 	La barra queda pegada bajo el encabezado desde el punto de cambio (`top` = `--header-h` + el borde de 1px, como la
 	barra de resultados de la búsqueda; bajo él son dos filas apiladas que no valen la pena): fondo opaco, la línea
@@ -29,7 +28,6 @@ let {
 	tabs,
 	value,
 	onchange,
-	leading,
 	trailing,
 	barHeight = $bindable(0),
 	surface = "background",
@@ -39,8 +37,6 @@ let {
 	/** La organización activa, o `null` para «Todas». */
 	value: string | null;
 	onchange: (org: string | null) => void;
-	/** Lo que va al extremo izquierdo de la fila, antes de las pestañas (el conteo de solicitudes). */
-	leading?: Snippet;
 	/** Lo que comparte la fila con las pestañas, a su derecha. */
 	trailing?: Snippet;
 	/** Alto de la barra pegada (pestañas + `trailing`); 0 mientras no se pega. */
@@ -78,7 +74,6 @@ $effect(() => {
 		class={surfaceClass(surface)}
 		barTestId="barra-pestanas"
 		bind:barRef={bar}
-		{leading}
 		{trailing}
 	>
 		{#each tabs as t (t.id)}

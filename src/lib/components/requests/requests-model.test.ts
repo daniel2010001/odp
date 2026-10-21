@@ -19,7 +19,6 @@ import {
 	LIMITE_RESUELTAS,
 	organizationsOf,
 	organizationTabs,
-	requestCountLabel,
 	resolutionDetail,
 	resolutionLine,
 	splitQueue,
@@ -349,24 +348,6 @@ describe("el control de estado en la barra", () => {
 	it("la opción lleva su conteo entre paréntesis", () => {
 		expect(statusOptionLabel({ label: "Pendientes", count: 4 })).toBe("Pendientes (4)");
 		expect(statusOptionLabel({ label: "Todas", count: 0 })).toBe("Todas (0)");
-	});
-
-	it("el conteo concuerda en número y en estado, como la barra de resultados de la búsqueda", () => {
-		expect(requestCountLabel("pendientes", 4)).toEqual({
-			number: "4",
-			text: "solicitudes pendientes",
-		});
-		expect(requestCountLabel("pendientes", 1)).toEqual({
-			number: "1",
-			text: "solicitud pendiente",
-		});
-		expect(requestCountLabel("resueltas", 6)).toEqual({
-			number: "6",
-			text: "solicitudes resueltas",
-		});
-		expect(requestCountLabel("resueltas", 1)).toEqual({ number: "1", text: "solicitud resuelta" });
-		expect(requestCountLabel("todas", 10)).toEqual({ number: "10", text: "solicitudes" });
-		expect(requestCountLabel("todas", 0)).toEqual({ number: "0", text: "solicitudes" });
 	});
 });
 

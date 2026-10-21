@@ -501,17 +501,12 @@ describe("RequestsQueue — «Mostrar» al nivel de las pestañas", () => {
 		expect(mostrar().value).toBe("resueltas");
 	});
 
-	it("con una sola organización no hay pestañas: la barra con el conteo ocupa su lugar, con su línea inferior", async () => {
+	it("con una sola organización no hay pestañas: la barra con «Mostrar» ocupa su lugar, con su línea inferior", async () => {
 		await abrirYEsperar({ caso: "una-organizacion" });
 		const barra = screen.getByTestId("barra-estado");
 		expect(barra).toContainElement(mostrar());
 		expect(barra.className).toMatch(/border-b/);
 		expect(tablist()).toBeNull();
-		expect(textoDe(barra.querySelector("p"))).toMatch(/^\d+ solicitud(es)? pendientes?$/);
-		await fireEvent.change(mostrar(), { target: { value: "todas" } });
-		expect(textoDe(screen.getByTestId("barra-estado").querySelector("p"))).toMatch(
-			/^\d+ solicitud/,
-		);
 	});
 
 	it("«Mostrar» mide 36 px donde comparte fila con las pestañas (desde 701 px de ventana) y 44 px en el resto", async () => {
@@ -546,46 +541,29 @@ describe("RequestsQueue — «Mostrar» al nivel de las pestañas", () => {
 	});
 });
 
-describe("RequestsQueue — «N solicitudes» a la izquierda de las pestañas", () => {
-	const conteo = () => textoDe(screen.getByTestId("conteo-solicitudes"));
+describe("RequestsQueue — sin el conteo «N solicitudes»", () => {
+	const opcionesDeMostrar = () => Array.from(mostrar().options).map((o) => textoDe(o));
 
-	it("va en la barra de pestañas, antes de ellas, y sigue a «Mostrar» (pendientes por defecto)", async () => {
+	it("la barra de pestañas (varias organizaciones) no trae el conteo", async () => {
 		await abrirYEsperar({ caso: "varias" });
-		const barra = screen.getByTestId("barra-pestanas");
-		const el = screen.getByTestId("conteo-solicitudes");
-		expect(barra).toContainElement(el);
-		expect(
-			el.compareDocumentPosition(tablist() as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
-		expect(conteo()).toBe("4 solicitudes");
-		await fireEvent.change(mostrar(), { target: { value: "resueltas" } });
-		expect(conteo()).toBe("6 solicitudes");
-		await fireEvent.change(mostrar(), { target: { value: "todas" } });
-		expect(conteo()).toBe("10 solicitudes");
+		expect(screen.queryByTestId("conteo-solicitudes")).not.toBeInTheDocument();
+		expect(textoDe(screen.getByTestId("barra-pestanas"))).not.toMatch(/\d+ solicitud(es)?\b/);
 	});
 
-	it("va al extremo izquierdo de la fila: primero en la barra, con la clase de la fila y 48 px desde el punto de cambio", async () => {
-		await abrirYEsperar({ caso: "varias" });
-		const barra = screen.getByTestId("barra-pestanas");
-		expect(barra.firstElementChild).toContainElement(screen.getByTestId("conteo-solicitudes"));
-		expect(barra.firstElementChild?.className).toMatch(/@min-\[611px\]:h-12/);
-		expect(barra.firstElementChild?.className).toMatch(/basis-full/);
+	it("la barra de una sola organización no trae el conteo: sólo «Mostrar»", async () => {
+		await abrirYEsperar({ caso: "una-organizacion" });
+		const barra = screen.getByTestId("barra-estado");
+		expect(screen.queryByTestId("conteo-solicitudes")).not.toBeInTheDocument();
+		expect(barra.querySelector("p")).toBeNull();
+		expect(barra).toContainElement(mostrar());
+		expect(barra.className).toMatch(/justify-end/);
+		expect(barra.className).toMatch(/sm:sticky/);
+		expect(barra.className).toMatch(/border-b/);
 	});
 
-	it("sigue a la organización activa, y en singular dice «1 solicitud»", async () => {
+	it("«Mostrar» conserva los totales por estado", async () => {
 		await abrirYEsperar({ caso: "varias" });
-		const tab = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Medicina/ });
-		await fireEvent.mouseDown(tab);
-		await fireEvent.click(tab);
-		await waitFor(() => expect(conteo()).toBe("1 solicitud"));
-		await fireEvent.change(mostrar(), { target: { value: "todas" } });
-		expect(conteo()).toBe("3 solicitudes");
-	});
-
-	it("con cero filas dice «0 solicitudes»", async () => {
-		const items = itemsDelCaso("varias").filter((i) => i.status !== "pending");
-		await abrirYEsperar({ items });
-		expect(conteo()).toBe("0 solicitudes");
+		expect(opcionesDeMostrar()).toEqual(["Pendientes (4)", "Resueltas (6)", "Todas (10)"]);
 	});
 });
 
