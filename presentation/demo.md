@@ -359,6 +359,10 @@ SI FALLA: «sin organización» → la instalación no está provisionada (apén
 y el enlace al dataset. Abrir el dataset, revisar, volver y decidir: aprobar. Mostrar el historial de la solicitud.
 Opcional: antes, rechazar una solicitud con motivo (preparada) y mostrar el estado «rechazada» y el motivo.
 También: entrar como miembro-fcyt para mostrar que NO ve «Solicitudes» (el menú sólo ofrece lo que se puede usar).
+HISTORIAL (todavía como admin-fcyt): abrir «Calidad del agua en puntos de muestreo del valle» (FCYT) y mostrar la tarjeta
+«Historial» bajo «Resumen»: la publicación inicial, una solicitud de editor-fcyt RECHAZADA por admin-fcyt con el comentario
+«Falta describir las columnas.» y la siguiente APROBADA. La tarjeta sólo se ve con sesión de alguien de la organización
+(sin sesión el catálogo no devuelve solicitudes), por eso se muestra acá y no en la demo 9. La arma odp-docker después del seed.
 SI FALLA: si el admin no ve la solicitud, comprobar que el dataset es de la misma organización (fcyt). Si el aprobar
 devuelve «no puede aprobar su propia solicitud», se creó con el mismo usuario por error: repetir con editor-fcyt.
 -->
