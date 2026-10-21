@@ -56,7 +56,8 @@
 //
 // Gráficos de los datasets adicionales (S52): los que tienen un CSV (`FILE_CHART_VIEWS`) reciben 1–2 vistas
 // que cuentan filas por una columna de texto, porque esos CSV no se tipan. El paso de gráficos corre al
-// final y toca los datasets con gráficos para que «más recientes» los muestre primero (S54, `seedChartsLast`).
+// final y le agrega «Incluye gráficos.» al resumen de los datasets con gráficos: un cambio real, que los deja
+// primeros en «más recientes» (S54, `seedChartsLast`).
 // El seed no tiene modo de simulación ni banderas: todo lo que hace es idempotente.
 //
 // Idempotente (también para los datasets adicionales: se identifican por su `name`, así que correr el
@@ -1358,14 +1359,40 @@ async function seedViews(token, name, resourceName, desired) {
 	return { created, failed, present: created + existingViews.length > 0 };
 }
 
-// «Toca» un dataset: un `package_patch` que reenvía sus extras tal cual, sin cambiar ningún dato. CKAN
-// actualiza `metadata_modified` al guardar, que es lo que ordena «más recientes». No se inventa ninguna fecha.
+// La frase que el resumen de un dataset con gráficos agrega al final (S54): es verdad, y en la card avisa
+// que ahí hay gráficos.
+export const CHARTS_NOTE = "Incluye gráficos.";
+
+// El resumen con el anuncio de los gráficos, dentro del tope del portal. Si ya lo dice, queda igual; si no
+// cabe, el resumen se recorta en una palabra y se marca con «…».
+export function summaryWithChartsNote(summary) {
+	const base = String(summary ?? "").trim();
+	if (base.endsWith(CHARTS_NOTE)) return base;
+	if (!base) return CHARTS_NOTE;
+	const room = MAX_SUMMARY_LENGTH - CHARTS_NOTE.length - 1;
+	if (base.length <= room) return `${base} ${CHARTS_NOTE}`;
+	const cut = base.slice(0, room - 1);
+	const atWord = cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).replace(/[\s.,;:]+$/, "");
+	return `${atWord}… ${CHARTS_NOTE}`;
+}
+
+// «Toca» un dataset con gráficos: su resumen pasa a anunciarlos (`CHARTS_NOTE`). Tiene que ser un cambio de
+// verdad: CKAN 2.12 no actualiza `metadata_modified` con un `package_patch` que no cambia nada (lo midió
+// odp-docker en la demo, 2026-10-21), y esa fecha es la que ordena «más recientes». Si el resumen ya lo
+// anuncia no se escribe nada. No se inventa ninguna fecha.
 async function touchDataset(token, name) {
 	const shown = await api(token, "package_show", { id: name });
 	if (!shown.success) return false;
+	const extras = shown.result.extras ?? [];
+	const current = extras.find((extra) => extra.key === SUMMARY_EXTRA_KEY)?.value ?? "";
+	const wanted = summaryWithChartsNote(current);
+	if (wanted === String(current).trim()) return false;
 	const touched = await api(token, "package_patch", {
 		id: shown.result.id,
-		extras: shown.result.extras ?? [],
+		extras: [
+			...extras.filter((extra) => extra.key !== SUMMARY_EXTRA_KEY),
+			{ key: SUMMARY_EXTRA_KEY, value: wanted },
+		],
 	});
 	if (!touched.success) console.error(`✗ orden ${name}: ${errorText(touched.error)}`);
 	return touched.success;
@@ -1377,8 +1404,8 @@ async function touchDataset(token, name) {
 // (`metadata_modified` desc) y crear una vista no modifica el dataset, así que los datasets con gráficos
 // quedaban sepultados entre los 51 y quien explora la demo no los veía (la autora creyó que no había
 // gráficos). Tocarlos al final, después de sembrar y de completar resúmenes, los deja con las fechas más
-// recientes y arriba del listado, sin falsear ninguna fecha. Cada corrida los vuelve a tocar, así que
-// siguen arriba aunque el seed se repita; los demás datasets no se tocan.
+// recientes y arriba del listado, sin falsear ninguna fecha. El toque es el anuncio de los gráficos en el
+// resumen (`touchDataset`); una vez escrito, otra corrida no vuelve a escribir, y los demás datasets no se tocan.
 export async function seedChartsLast(token, fileDatasets, demos = DEMOS) {
 	let created = 0;
 	let failed = 0;
