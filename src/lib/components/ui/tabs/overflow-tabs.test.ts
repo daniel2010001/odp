@@ -162,6 +162,27 @@ const tabNames = () =>
 	screen.getAllByRole("tab").map((t) => t.textContent?.replace(/\s+/g, " ").trim());
 const more = () => screen.queryByRole("button", { name: /^Más vistas/ });
 
+describe("OverflowTabs — fondo de la barra pegada (P18, S49)", () => {
+	const bar = () => screen.getByRole("tablist").closest("[data-hidden]") as HTMLElement;
+
+	it("sin clase propia la barra tiene el fondo de la página, para no dejar ver lo que pasa por debajo", () => {
+		mount();
+		expect(bar().className).toContain("bg-background");
+	});
+
+	it("el fondo de quien la usa reemplaza al de la página (la cola de solicitudes va sobre una tarjeta)", () => {
+		render(OverflowTabs, {
+			items: items(3),
+			value: "t0",
+			onchange: vi.fn(),
+			label: "Vistas",
+			class: "bg-card",
+		});
+		expect(bar().className).toContain("bg-card");
+		expect(bar().className).not.toContain("bg-background");
+	});
+});
+
 describe("OverflowTabs — prioridad+", () => {
 	it("con todas a la vista no hay «Más»", async () => {
 		available = 2000;
