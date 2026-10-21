@@ -215,7 +215,7 @@ const SHOTS = [
 		path: PENDIENTE,
 		kind: "focus",
 		focus: { selector: "[data-testid=estado-solicitud]", card: true },
-		ready: "Solicitud de publicación",
+		ready: "[data-testid=estado-solicitud]",
 	},
 	{
 		id: "d7-ficha-completa",
@@ -223,7 +223,7 @@ const SHOTS = [
 		as: "editor",
 		path: PENDIENTE,
 		kind: "full",
-		ready: "Solicitud de publicación",
+		ready: "[data-testid=estado-solicitud]",
 	},
 	// Demo 8 · decidir como administrador (sólo se captura: nunca se aprueba ni se rechaza)
 	{
@@ -233,7 +233,7 @@ const SHOTS = [
 		path: "/dashboard/requests",
 		kind: "focus",
 		focus: { selector: "[data-request-id]", up: "ul" },
-		ready: "Decidir",
+		ready: "[data-request-id]",
 	},
 	{
 		id: "d8-decidir",
@@ -242,7 +242,7 @@ const SHOTS = [
 		path: PENDIENTE,
 		kind: "focus",
 		focus: { selector: "[data-testid=estado-solicitud]", card: true },
-		ready: "Solicitud de publicación",
+		ready: "[data-testid=estado-solicitud]",
 	},
 	{
 		id: "d8-cola-completa",
@@ -250,7 +250,7 @@ const SHOTS = [
 		as: "admin",
 		path: "/dashboard/requests",
 		kind: "full",
-		ready: "Decidir",
+		ready: "[data-request-id]",
 	},
 	// Demo 9 · verlo público
 	{
@@ -485,11 +485,14 @@ async function accion(p, a) {
 	await p.redEnReposo();
 }
 
-/** Aparece cuando existe el selector (si empieza por # . [ ) o el texto. */
+/**
+ * Aparece cuando existe el selector (si empieza por # . [ ) o el texto. El texto se compara en minúsculas:
+ * `innerText` aplica `text-transform`, y un rótulo en mayúsculas no coincidía (lo midió odp-docker).
+ */
 function condicionDeListo(ready) {
 	return /^[#.[]/.test(ready)
 		? `!!document.querySelector(${lit(ready)})`
-		: `document.body.innerText.includes(${lit(ready)})`;
+		: `document.body.innerText.toLowerCase().includes(${lit(ready.toLowerCase())})`;
 }
 
 // ─── Sesión ────────────────────────────────────────────────────────────
