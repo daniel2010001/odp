@@ -159,13 +159,15 @@ function scrollToId(id: string) {
 		?.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
 }
 
-// El último fragmento que el estado ya refleja: el efecto sólo actúa sobre uno nuevo (un enlace, atrás/adelante)
-// y espera a conocer los gráficos, porque un `#grafico-…` no se resuelve antes.
-let appliedHash = "";
+// El último fragmento que el efecto VIO en `$page`: sólo actúa sobre uno distinto (un enlace, atrás/adelante) y
+// espera a conocer los gráficos, porque un `#grafico-…` no se resuelve antes. Compara contra lo visto y no contra
+// lo que `choose` escribió: `replaceState` vuelve a emitir `$page` (con la URL anterior, aún sin el fragmento
+// nuevo) y eso reaplicaba el fragmento del enlace sobre la pestaña que la persona acababa de elegir.
+let seenHash = "";
 $effect(() => {
 	const hash = $page.url.hash;
-	if (list.status !== "ready" || hash === appliedHash) return;
-	appliedHash = hash;
+	if (list.status !== "ready" || hash === seenHash) return;
+	seenHash = hash;
 	const target = resolveHash(hash, windows).view;
 	if (!target) return;
 	activeTab = target.key;
@@ -176,7 +178,6 @@ function choose(key: string) {
 	const view = windows.find((v) => v.key === key);
 	if (!view) return;
 	activeTab = key;
-	appliedHash = `#${view.id}`;
 	const url = new URL($page.url);
 	url.hash = view.id;
 	replaceState(url, {});

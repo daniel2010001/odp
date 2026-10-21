@@ -438,6 +438,32 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 		expect(target.id).toBe("grafico-view-2");
 	});
 
+	it("con un enlace #grafico-<id> abierto, elegir otra pestaña cambia de vista y la elegida gana (ida y vuelta)", async () => {
+		at("#grafico-view-2");
+		renderCharts(two());
+		await waitFor(() =>
+			expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
+				"data-state",
+				"active",
+			),
+		);
+		// SvelteKit vuelve a emitir `$page` al llamar `replaceState`, aún con la URL del enlace.
+		vi.mocked(replaceState).mockImplementation(() => at("#grafico-view-2"));
+
+		await fireEvent.click(screen.getByRole("tab", { name: "Tabla" }));
+		await new Promise((r) => setTimeout(r, 50));
+		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
+		expect((vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL).hash).toBe("#tabla");
+
+		await fireEvent.click(screen.getByRole("tab", { name: "Otro gráfico" }));
+		await new Promise((r) => setTimeout(r, 50));
+		expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
+			"data-state",
+			"active",
+		);
+		vi.mocked(replaceState).mockReset();
+	});
+
 	it("un enlace con el id de un gráfico que no existe deja la tabla", async () => {
 		at("#grafico-nada");
 		renderCharts(two());
