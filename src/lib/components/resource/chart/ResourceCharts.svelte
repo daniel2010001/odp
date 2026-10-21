@@ -18,6 +18,7 @@ import type { ChartApi, ChartView } from "$lib/api/charts";
 import { describeFailure } from "$lib/api/failure";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import { rewriteLegacyFragment } from "../legacy-fragment";
 import PreviewWindow from "../PreviewWindow.svelte";
 import { chartWindowId, type PreviewView, resolveHash, shareLink } from "../preview-views";
 import ChartViewBody from "./ChartViewBody.svelte";
@@ -34,10 +35,10 @@ import EmbedChartDialog from "./EmbedChartDialog.svelte";
 // del recurso. Con 0 gráficos no hay barra (una sola pestaña no elige nada): la tabla va sola y, debajo, el
 // aviso de que no hay gráficos, que a quien edita lo invita a crear el primero.
 //
-// Cada vista vive en una «ventana» (`PreviewWindow`) con su id: `#tabla` (la pone quien pasa `table`) y
-// `#grafico-<id de la vista>`. Un enlace con ese fragmento abre su pestaña y baja hasta ella; elegir una pestaña
+// Cada vista vive en una «ventana» (`PreviewWindow`) con su id: `#table` (la pone quien pasa `table`) y
+// `#chart-<id de la vista>`. Un enlace con ese fragmento abre su pestaña y baja hasta ella; elegir una pestaña
 // escribe su id en la URL (`replaceState`, sin historial). Bajo 32 rem de contenedor (`@lg`) las pestañas son un
-// desplegable «Vista». El contenedor `#vista-previa` lo pone la página.
+// desplegable «Vista». El contenedor `#preview` lo pone la página.
 let {
 	resourceId,
 	datasetId,
@@ -138,7 +139,7 @@ const tabbed = $derived(views.length > 0);
 
 // ─── Ventanas: ids, enlaces y pestaña ⇄ fragmento ────────────────
 const windows = $derived<PreviewView[]>([
-	{ key: "table", id: "tabla", kind: "table", label: "Tabla" },
+	{ key: "table", id: "table", kind: "table", label: "Tabla" },
 	...views.map((v) => ({
 		key: v.id,
 		id: chartWindowId(v.id),
@@ -160,15 +161,23 @@ function scrollToId(id: string) {
 }
 
 // El último fragmento que el efecto VIO en `$page`: sólo actúa sobre uno distinto (un enlace, atrás/adelante) y
-// espera a conocer los gráficos, porque un `#grafico-…` no se resuelve antes. Compara contra lo visto y no contra
+// espera a conocer los gráficos, porque un `#chart-…` no se resuelve antes. Compara contra lo visto y no contra
 // lo que `choose` escribió: `replaceState` vuelve a emitir `$page` (con la URL anterior, aún sin el fragmento
 // nuevo) y eso reaplicaba el fragmento del enlace sobre la pestaña que la persona acababa de elegir.
+// Un fragmento heredado en español (`#grafico-…`, `#tabla`) abre su vista igual y la URL se reescribe a la forma
+// en inglés; `replaceState` emite `$page` primero con el fragmento viejo, que por eso también cuenta como visto.
 let seenHash = "";
+let seenLegacy = "";
 $effect(() => {
 	const hash = $page.url.hash;
-	if (list.status !== "ready" || hash === seenHash) return;
+	if (list.status !== "ready" || hash === seenHash || hash === seenLegacy) return;
 	seenHash = hash;
 	const target = resolveHash(hash, windows).view;
+	const upgraded = rewriteLegacyFragment($page.url);
+	if (upgraded) {
+		seenLegacy = hash;
+		seenHash = upgraded;
+	}
 	if (!target) return;
 	activeTab = target.key;
 	tick().then(() => scrollToId(target.id));

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { goto } from "$app/navigation";
+import { goto, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { sessionExpiredLoginUrl } from "$lib/session";
 import { auth } from "$lib/stores/auth";
@@ -1088,12 +1088,12 @@ describe("Página de recurso — foco de la vista previa", () => {
 		Reflect.deleteProperty(Element.prototype, "scrollIntoView");
 	});
 
-	it("la tarjeta es el destino `#vista-previa`: id, `tabindex=-1` y margen de `--header-h` + 17px (borde y aire) bajo el encabezado", async () => {
+	it("la tarjeta es el destino `#preview`: id, `tabindex=-1` y margen de `--header-h` + 17px (borde y aire) bajo el encabezado", async () => {
 		uploadedPdf();
 		render(ResourcePage);
 
 		await screen.findByTitle(/Vista previa de Matrícula 2026/);
-		const card = document.getElementById("vista-previa");
+		const card = document.getElementById("preview");
 		expect(card).not.toBeNull();
 		expect(card?.getAttribute("tabindex")).toBe("-1");
 		expect(card?.className).toContain(
@@ -1102,18 +1102,34 @@ describe("Página de recurso — foco de la vista previa", () => {
 		expect(card?.querySelector("iframe")).not.toBeNull();
 	});
 
-	it("un enlace con `#vista-previa` aterriza en la tarjeta aunque se dibuje después de cargar", async () => {
+	it("un enlace con `#preview` aterriza en la tarjeta aunque se dibuje después de cargar", async () => {
 		// El navegador resuelve el fragmento antes de que la tarjeta exista (llega tras cargar el recurso):
 		// sin re-aplicarlo, un enlace compartido deja la página arriba. Se aplica una sola vez.
-		window.history.replaceState(null, "", "#vista-previa");
+		window.history.replaceState(null, "", "#preview");
 		try {
 			uploadedPdf();
 			render(ResourcePage);
 
 			await screen.findByTitle(/Vista previa de Matrícula 2026/);
-			const card = document.getElementById("vista-previa");
+			const card = document.getElementById("preview");
 			await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
 			expect(scrollIntoView.mock.contexts[0]).toBe(card);
+		} finally {
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it("un enlace viejo `#vista-previa` aterriza en la tarjeta y reescribe la URL a `#preview`", async () => {
+		window.history.replaceState(null, "", "#vista-previa");
+		vi.mocked(replaceState).mockClear();
+		try {
+			uploadedPdf();
+			render(ResourcePage);
+
+			await screen.findByTitle(/Vista previa de Matrícula 2026/);
+			await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+			expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("preview"));
+			expect((vi.mocked(replaceState).mock.calls[0]?.[0] as URL).hash).toBe("#preview");
 		} finally {
 			window.history.replaceState(null, "", window.location.pathname);
 		}
@@ -1127,12 +1143,12 @@ describe("Página de recurso — foco de la vista previa", () => {
 		expect(scrollIntoView).not.toHaveBeenCalled();
 	});
 
-	it("el hero ofrece «Ir a la vista previa» apuntando a `#vista-previa`", async () => {
+	it("el hero ofrece «Ir a la vista previa» apuntando a `#preview`", async () => {
 		uploadedPdf();
 		render(ResourcePage);
 
 		const link = await screen.findByRole("link", { name: "Ir a la vista previa" });
-		expect(link.getAttribute("href")).toBe("#vista-previa");
+		expect(link.getAttribute("href")).toBe("#preview");
 	});
 
 	it("«Ajustar a la pantalla» sube la tarjeta con scroll suave y le pasa el foco sin volver a desplazar", async () => {
@@ -1140,7 +1156,7 @@ describe("Página de recurso — foco de la vista previa", () => {
 		render(ResourcePage);
 
 		const button = await screen.findByRole("button", { name: "Ajustar a la pantalla" });
-		const card = document.getElementById("vista-previa") as HTMLElement;
+		const card = document.getElementById("preview") as HTMLElement;
 		const focus = vi.spyOn(card, "focus");
 		await fireEvent.click(button);
 
@@ -1168,7 +1184,7 @@ describe("Página de recurso — foco de la vista previa", () => {
 		render(ResourcePage);
 
 		expect(await screen.findByText("Cochabamba")).toBeTruthy();
-		expect(document.getElementById("vista-previa")).not.toBeNull();
+		expect(document.getElementById("preview")).not.toBeNull();
 		expect(screen.getByRole("button", { name: "Ajustar a la pantalla" })).toBeTruthy();
 		expect(screen.getByRole("link", { name: "Ir a la vista previa" })).toBeTruthy();
 	});
@@ -1180,7 +1196,7 @@ describe("Página de recurso — foco de la vista previa", () => {
 		expect(screen.queryByRole("link", { name: "Ir a la vista previa" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Ajustar a la pantalla" })).toBeNull();
 		// La tarjeta sigue ahí con su nota: el `id` no depende de que haya embed.
-		expect(document.getElementById("vista-previa")).not.toBeNull();
+		expect(document.getElementById("preview")).not.toBeNull();
 		first.unmount();
 
 		// Archivo alojado de un formato que el portal no previsualiza (estado «none»).
@@ -1196,7 +1212,7 @@ describe("Página de recurso — foco de la vista previa", () => {
 
 // ─── Ventanas de la vista previa (v0.1.1, T25 / S24) ──────────────────────────────────────────────
 // Toda vista vive en la MISMA ventana (encabezado con «Copiar enlace» y «Ajustar a la pantalla») dentro del
-// contenedor `#vista-previa`, y cada una lleva su id: #tabla, #pdf, #imagen, #texto (los gráficos, en
+// contenedor `#preview`, y cada una lleva su id: #table, #pdf, #image, #text (los gráficos, en
 // `resource-charts.test.ts`). Un enlace con ese fragmento baja hasta ella.
 describe("Página de recurso — ventanas de la vista previa", () => {
 	const scrollIntoView = vi.fn();
@@ -1230,30 +1246,30 @@ describe("Página de recurso — ventanas de la vista previa", () => {
 
 	it.each([
 		[{ format: "PDF", mimetype: "application/pdf" }, "pdf", "PDF"],
-		[{ format: "PNG", mimetype: "image/png" }, "imagen", "Imagen"],
-		[{ format: "TXT", mimetype: "text/plain" }, "texto", "Texto"],
-	])("%j: la ventana #%s está dentro de #vista-previa, con el mismo encabezado", async (overrides, id, label) => {
+		[{ format: "PNG", mimetype: "image/png" }, "image", "Imagen"],
+		[{ format: "TXT", mimetype: "text/plain" }, "text", "Texto"],
+	])("%j: la ventana #%s está dentro de #preview, con el mismo encabezado", async (overrides, id, label) => {
 		mocks.showResource.mockResolvedValue(makeResource({ url_type: "upload", ...overrides }));
 		render(ResourcePage);
 
 		await screen.findByText(`Vista previa · ${label}`);
 		const win = document.getElementById(id) as HTMLElement;
 		expect(win).not.toBeNull();
-		expect(document.getElementById("vista-previa")?.contains(win)).toBe(true);
+		expect(document.getElementById("preview")?.contains(win)).toBe(true);
 		expect(within(win).getByRole("button", { name: "Copiar enlace de la vista" })).toBeTruthy();
 		expect(within(win).getByRole("button", { name: "Ajustar a la pantalla" })).toBeTruthy();
 	});
 
-	it("la tabla es la ventana #tabla", async () => {
+	it("la tabla es la ventana #table", async () => {
 		mocks.showResource.mockResolvedValue(
 			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
 		);
 		render(ResourcePage);
 
 		await screen.findByText("Cochabamba");
-		const win = document.getElementById("tabla") as HTMLElement;
+		const win = document.getElementById("table") as HTMLElement;
 		expect(win).not.toBeNull();
-		expect(document.getElementById("vista-previa")?.contains(win)).toBe(true);
+		expect(document.getElementById("preview")?.contains(win)).toBe(true);
 		expect(within(win).getByText("Vista previa · Tabla")).toBeTruthy();
 	});
 
@@ -1262,7 +1278,7 @@ describe("Página de recurso — ventanas de la vista previa", () => {
 		render(ResourcePage);
 
 		await screen.findByTitle(/Vista previa de Matrícula 2026/);
-		expect(document.getElementById("vista-previa")?.className).toContain("@container");
+		expect(document.getElementById("preview")?.className).toContain("@container");
 	});
 
 	it("«Copiar enlace» copia la URL de la página con el id de la ventana", async () => {
@@ -1295,7 +1311,7 @@ describe("Página de recurso — ventanas de la vista previa", () => {
 		render(ResourcePage);
 
 		await screen.findByRole("link", { name: /Abrir enlace/i });
-		expect(document.getElementById("vista-previa")).not.toBeNull();
+		expect(document.getElementById("preview")).not.toBeNull();
 		expect(screen.queryByRole("button", { name: "Copiar enlace de la vista" })).toBeNull();
 		expect(screen.getByText("Vista previa")).toBeTruthy();
 	});

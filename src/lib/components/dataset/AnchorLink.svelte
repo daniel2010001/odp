@@ -1,7 +1,7 @@
 <!--
 	El enlace de una sección de la ficha (variante A, elegida por el autor el 2026-10-20):
-	un ícono de enlace junto al título de la sección que copia la URL completa con su fragmento (`#resumen`,
-	`#licencia`…) sin cambiar la URL de la página. Aparece al pasar el cursor o enfocar y queda siempre visible en
+	un ícono de enlace junto al título de la sección que copia la URL completa con su fragmento (`#summary`,
+	`#license`…) sin cambiar la URL de la página. Aparece al pasar el cursor o enfocar y queda siempre visible en
 	pantallas táctiles (donde no hay cursor). La fila del título debe llevar `group/ancla`.
 -->
 <script lang="ts">

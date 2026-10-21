@@ -126,16 +126,16 @@ const openChart = async () =>
 const heroBand = () =>
 	screen.getByRole("link", { name: "Descargar recurso" }).parentElement as HTMLElement;
 
-// T25 / S24: el contenedor `#vista-previa` abarca las pestañas y la ventana activa, así que el salto y «Ajustar a la
+// T25 / S24: el contenedor `#preview` abarca las pestañas y la ventana activa, así que el salto y «Ajustar a la
 // pantalla» funcionan con un gráfico elegido.
 describe("Página de recurso — el contenedor con un gráfico activo", () => {
-	it("#vista-previa contiene las pestañas y la ventana #grafico-<id>; «Ir a la vista previa» apunta a él", async () => {
+	it("#preview contiene las pestañas y la ventana #chart-<id>; «Ir a la vista previa» apunta a él", async () => {
 		render(ResourcePage);
 		await openChart();
 
-		const container = document.getElementById("vista-previa") as HTMLElement;
+		const container = document.getElementById("preview") as HTMLElement;
 		const win = await waitFor(() => {
-			const el = document.getElementById("grafico-view-1");
+			const el = document.getElementById("chart-view-1");
 			expect(el).not.toBeNull();
 			return el as HTMLElement;
 		});
@@ -143,7 +143,7 @@ describe("Página de recurso — el contenedor con un gráfico activo", () => {
 		expect(container.contains(screen.getByRole("tablist"))).toBe(true);
 		expect(screen.getByRole("link", { name: "Ir a la vista previa" })).toHaveAttribute(
 			"href",
-			"#vista-previa",
+			"#preview",
 		);
 		expect(container.className).toContain("@container");
 	});
@@ -155,12 +155,12 @@ describe("Página de recurso — el contenedor con un gráfico activo", () => {
 		await openChart();
 
 		const win = await waitFor(() => {
-			const el = document.getElementById("grafico-view-1");
+			const el = document.getElementById("chart-view-1");
 			expect(el).not.toBeNull();
 			return el as HTMLElement;
 		});
 		await fireEvent.click(within(win).getByRole("button", { name: "Ajustar a la pantalla" }));
-		expect((scrollIntoView.mock.contexts.at(-1) as HTMLElement).id).toBe("vista-previa");
+		expect((scrollIntoView.mock.contexts.at(-1) as HTMLElement).id).toBe("preview");
 	});
 });
 

@@ -669,7 +669,7 @@ describe("RequestsQueue — el pie del panel es responsive", () => {
 			items.getAllByRole("link").map((a) => [a.textContent?.trim(), a.getAttribute("href")]),
 		).toEqual([
 			["Abrir el dataset", "/dataset/pkg-p3"],
-			["Historial de solicitudes", "/dataset/pkg-p3#historial"],
+			["Historial de solicitudes", "/dataset/pkg-p3#history"],
 		]);
 		expect(items.getByRole("button", { name: /^Cerrar/ })).toBeInTheDocument();
 	});

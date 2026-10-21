@@ -382,11 +382,11 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 	const second = makeView({ id: "view-2", title: "Otro gráfico" });
 	const two = () => makeApi({ listViews: vi.fn(async () => [makeView(), second]) });
 
-	it("cada gráfico vive en una ventana #grafico-<id de la vista> con «Copiar enlace» y «Ajustar a la pantalla»", async () => {
+	it("cada gráfico vive en una ventana #chart-<id de la vista> con «Copiar enlace» y «Ajustar a la pantalla»", async () => {
 		renderCharts(makeApi());
 		await openChart();
 
-		const win = document.getElementById("grafico-view-1") as HTMLElement;
+		const win = document.getElementById("chart-view-1") as HTMLElement;
 		expect(win).not.toBeNull();
 		expect(within(win).getByText("Vista previa · Salario por turno")).toBeInTheDocument();
 		expect(
@@ -394,7 +394,7 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 		).toBeInTheDocument();
 		expect(within(win).getByRole("button", { name: "Ajustar a la pantalla" })).toBeInTheDocument();
 		// Sólo la pestaña activa dibuja su ventana: un solo id de gráfico en el documento.
-		expect(document.querySelectorAll('[id^="grafico-"]')).toHaveLength(1);
+		expect(document.querySelectorAll('[id^="chart-"]')).toHaveLength(1);
 	});
 
 	it("«Copiar enlace de la vista» copia la URL del recurso con el id de la ventana", async () => {
@@ -406,7 +406,7 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 		await fireEvent.click(screen.getByRole("button", { name: "Copiar enlace de la vista" }));
 		await waitFor(() =>
 			expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-				"http://localhost/dataset/planilla/resource/res-1?x=1#grafico-view-1",
+				"http://localhost/dataset/planilla/resource/res-1?x=1#chart-view-1",
 			),
 		);
 		// Copiar no cambia la URL.
@@ -418,28 +418,28 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 		await openChart("Otro gráfico");
 
 		let url = vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL;
-		expect(url.hash).toBe("#grafico-view-2");
+		expect(url.hash).toBe("#chart-view-2");
 		await fireEvent.click(screen.getByRole("tab", { name: "Tabla" }));
 		url = vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL;
-		expect(url.hash).toBe("#tabla");
+		expect(url.hash).toBe("#table");
 	});
 
-	it("un enlace con #grafico-<id> abre esa pestaña y baja hasta su ventana", async () => {
-		at("#grafico-view-2");
+	it("un enlace con #chart-<id> abre esa pestaña y baja hasta su ventana", async () => {
+		at("#chart-view-2");
 		renderCharts(two());
 
-		await waitFor(() => expect(document.getElementById("grafico-view-2")).not.toBeNull());
+		await waitFor(() => expect(document.getElementById("chart-view-2")).not.toBeNull());
 		expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
 			"data-state",
 			"active",
 		);
 		await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
 		const target = vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1) as HTMLElement;
-		expect(target.id).toBe("grafico-view-2");
+		expect(target.id).toBe("chart-view-2");
 	});
 
-	it("con un enlace #grafico-<id> abierto, elegir otra pestaña cambia de vista y la elegida gana (ida y vuelta)", async () => {
-		at("#grafico-view-2");
+	it("con un enlace #chart-<id> abierto, elegir otra pestaña cambia de vista y la elegida gana (ida y vuelta)", async () => {
+		at("#chart-view-2");
 		renderCharts(two());
 		await waitFor(() =>
 			expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
@@ -448,12 +448,12 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 			),
 		);
 		// SvelteKit vuelve a emitir `$page` al llamar `replaceState`, aún con la URL del enlace.
-		vi.mocked(replaceState).mockImplementation(() => at("#grafico-view-2"));
+		vi.mocked(replaceState).mockImplementation(() => at("#chart-view-2"));
 
 		await fireEvent.click(screen.getByRole("tab", { name: "Tabla" }));
 		await new Promise((r) => setTimeout(r, 50));
 		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
-		expect((vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL).hash).toBe("#tabla");
+		expect((vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL).hash).toBe("#table");
 
 		await fireEvent.click(screen.getByRole("tab", { name: "Otro gráfico" }));
 		await new Promise((r) => setTimeout(r, 50));
@@ -464,8 +464,59 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 		vi.mocked(replaceState).mockReset();
 	});
 
+	it("un enlace viejo #grafico-<id> abre esa pestaña, baja hasta su ventana y reescribe la URL a #chart-<id>", async () => {
+		at("#grafico-view-2");
+		vi.mocked(replaceState).mockClear();
+		renderCharts(two());
+
+		await waitFor(() =>
+			expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
+				"data-state",
+				"active",
+			),
+		);
+		await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+		expect(
+			(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1) as HTMLElement).id,
+		).toBe("chart-view-2");
+		expect((vi.mocked(replaceState).mock.calls[0]?.[0] as URL).hash).toBe("#chart-view-2");
+	});
+
+	it("con un enlace viejo #grafico-<id> abierto, elegir otra pestaña cambia de vista (ida y vuelta)", async () => {
+		at("#grafico-view-2");
+		renderCharts(two());
+		await waitFor(() =>
+			expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
+				"data-state",
+				"active",
+			),
+		);
+		vi.mocked(replaceState).mockImplementation(() => at("#grafico-view-2"));
+
+		await fireEvent.click(screen.getByRole("tab", { name: "Tabla" }));
+		await new Promise((r) => setTimeout(r, 50));
+		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
+		await fireEvent.click(screen.getByRole("tab", { name: "Otro gráfico" }));
+		await new Promise((r) => setTimeout(r, 50));
+		expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
+			"data-state",
+			"active",
+		);
+		vi.mocked(replaceState).mockReset();
+	});
+
+	it("un enlace viejo #tabla abre la tabla y reescribe la URL a #table", async () => {
+		at("#tabla");
+		vi.mocked(replaceState).mockClear();
+		renderCharts(two());
+
+		await screen.findAllByRole("tab");
+		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
+		expect((vi.mocked(replaceState).mock.calls[0]?.[0] as URL).hash).toBe("#table");
+	});
+
 	it("un enlace con el id de un gráfico que no existe deja la tabla", async () => {
-		at("#grafico-nada");
+		at("#chart-nada");
 		renderCharts(two());
 
 		await screen.findAllByRole("tab");

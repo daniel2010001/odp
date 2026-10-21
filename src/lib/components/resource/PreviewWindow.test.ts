@@ -85,9 +85,9 @@ describe("PreviewWindow", () => {
 		}
 	});
 
-	it("«Ajustar a la pantalla» sube el contenedor #vista-previa y le pasa el foco", async () => {
+	it("«Ajustar a la pantalla» sube el contenedor #preview y le pasa el foco", async () => {
 		const host = document.createElement("div");
-		host.id = "vista-previa";
+		host.id = "preview";
 		document.body.append(host);
 		render(PreviewWindow, {
 			target: host,
@@ -100,7 +100,7 @@ describe("PreviewWindow", () => {
 			block: "start",
 		});
 		const el = vi.mocked(Element.prototype.scrollIntoView).mock.contexts[0] as HTMLElement;
-		expect(el.id).toBe("vista-previa");
+		expect(el.id).toBe("preview");
 		expect(focus).toHaveBeenCalledWith({ preventScroll: true });
 	});
 

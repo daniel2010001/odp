@@ -254,7 +254,7 @@ Sin descargar nada, el portal muestra el archivo:
 
 <!--
 (23:30 · 4 min) Abrir un dataset con CSV (p. ej. «Matrícula por facultad»): mostrar la tabla. Después el PDF
-(informe-matrícula ficticio): se ve dentro de la página; usar el control de enfoque (#vista-previa) para llevar la vista
+(informe-matrícula ficticio): se ve dentro de la página; usar el control de enfoque (#preview) para llevar la vista
 previa al centro de la pantalla. Después una imagen y un TXT si existen en el seed ampliado.
 Mostrar un recurso GeoJSON: dice que no hay vista previa y NO descarga solo (decisión del autor, 2026-10-18).
 QUÉ DECIR: los archivos son reales, subidos al portal; la previsualización es local, sin servicios externos.

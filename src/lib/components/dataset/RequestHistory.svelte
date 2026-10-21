@@ -88,7 +88,7 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 
 {#if rows.length > 0}
 	<Card
-		id="historial"
+		id="history"
 		class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
 		data-testid="historial-solicitudes"
 	>
@@ -96,7 +96,7 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 			<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 				Historial de solicitudes
 			</p>
-			<AnchorLink id="historial" title="Historial de solicitudes" />
+			<AnchorLink id="history" title="Historial de solicitudes" />
 		</div>
 		<ol class="relative mt-3">
 			<span class="absolute bottom-2 left-2.5 top-2 w-px bg-border" aria-hidden="true"></span>
