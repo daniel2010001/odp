@@ -860,7 +860,7 @@ export const DEMOS = [
 			name: "planilla-docente-ficticia",
 			title: "Planilla docente ficticia — Datos ficticios para demostración",
 			extras: summaryExtras(
-				"Nómina docente inventada, con nombres ficticios, para probar gráficos y tablas.",
+				"Nómina docente inventada, con nombres ficticios, por turno, cargo, departamento y facultad.",
 			),
 			notes:
 				"Datos ficticios para demostración. Nómina docente inventada para probar las vistas de " +
@@ -895,9 +895,7 @@ export const DEMOS = [
 		dataset: {
 			name: "matricula-facultad-gestion-ficticia",
 			title: "Matrícula por facultad y gestión ficticia — Datos ficticios para demostración",
-			extras: summaryExtras(
-				"Matrícula ficticia de ocho facultades, gestiones 2015–2025, para probar las vistas de gráficos.",
-			),
+			extras: summaryExtras("Matrícula ficticia de ocho facultades, gestiones 2015–2025."),
 			notes:
 				"Datos ficticios para demostración. Matrícula inventada de carreras de ocho facultades, " +
 				"gestiones 2015–2025, para probar las vistas de gráficos.\n\n" +
@@ -932,7 +930,7 @@ export const DEMOS = [
 			name: "ejecucion-presupuestaria-ficticia",
 			title: "Ejecución presupuestaria mensual ficticia — Datos ficticios para demostración",
 			extras: summaryExtras(
-				"Ejecución presupuestaria mensual ficticia de doce unidades, 2024–2025, para probar gráficos.",
+				"Ejecución presupuestaria mensual ficticia de doce unidades, 2024–2025.",
 			),
 			notes:
 				"Datos ficticios para demostración. Registros mensuales inventados de ejecución " +
@@ -968,7 +966,7 @@ export const DEMOS = [
 			name: "produccion-investigacion-ficticia",
 			title: "Producción de investigación ficticia — Datos ficticios para demostración",
 			extras: summaryExtras(
-				"Productos de investigación ficticios de doce departamentos, 2015–2025, para probar gráficos.",
+				"Productos de investigación ficticios de doce departamentos, 2015–2025.",
 			),
 			notes:
 				"Datos ficticios para demostración. Productos de investigación inventados (artículos, " +
@@ -1183,17 +1181,43 @@ function leftPrivate(name, missing = "sus tipos") {
 	console.error(`  ${name} queda privado: no se publica sin ${missing}. Corra el seed de nuevo.`);
 }
 
-// Le agrega el resumen a un dataset que ya existe y no lo tiene (S53): el seed creó los de antes sin él.
-// Sólo completa lo que falta: un resumen ya escrito —del seed o de quien edita— no se pisa, y los demás
-// extras se conservan. Devuelve el dataset tal como queda.
+// Los resúmenes que el seed escribía antes para los datasets con gráficos (S53): mencionaban los gráficos, y
+// con el anuncio de S54 quedaban «…gráficos. Incluye gráficos.» (L84). El seed reemplaza **su propio** texto
+// viejo —tal cual, o con el anuncio— por el nuevo; un resumen que alguien editó no se toca.
+export const SUPERSEDED_SUMMARIES = {
+	"planilla-docente-ficticia":
+		"Nómina docente inventada, con nombres ficticios, para probar gráficos y tablas.",
+	"matricula-facultad-gestion-ficticia":
+		"Matrícula ficticia de ocho facultades, gestiones 2015–2025, para probar las vistas de gráficos.",
+	"ejecucion-presupuestaria-ficticia":
+		"Ejecución presupuestaria mensual ficticia de doce unidades, 2024–2025, para probar gráficos.",
+	"produccion-investigacion-ficticia":
+		"Productos de investigación ficticios de doce departamentos, 2015–2025, para probar gráficos.",
+};
+
+// Qué resumen escribir sobre el que el dataset ya tiene, o `null` si no hay que escribir nada: falta, o es un
+// texto viejo del seed. Uno editado por alguien, o el actual (con o sin el anuncio), se deja.
+export function summaryToWrite(current, wanted, superseded) {
+	const text = String(current ?? "").trim();
+	if (!text) return wanted;
+	if (superseded && (text === superseded || text === `${superseded} ${CHARTS_NOTE}`)) return wanted;
+	return null;
+}
+
+// Le agrega el resumen a un dataset que ya existe y no lo tiene (S53): el seed creó los de antes sin él. También
+// reemplaza un texto viejo del propio seed (`SUPERSEDED_SUMMARIES`).
+// Fuera de eso no pisa nada: un resumen que alguien editó, o el actual del seed, se deja, y los demás extras
+// se conservan. Devuelve el dataset tal como queda.
 async function ensureSummary(token, pkg, ds) {
 	const wanted = ds.extras?.find((extra) => extra.key === SUMMARY_EXTRA_KEY);
 	if (!wanted) return pkg;
-	const present = (pkg.extras ?? []).some(
-		(extra) => extra.key === SUMMARY_EXTRA_KEY && String(extra.value ?? "").trim() !== "",
-	);
-	if (present) return pkg;
-	const extras = [...(pkg.extras ?? []).filter((e) => e.key !== SUMMARY_EXTRA_KEY), wanted];
+	const current = (pkg.extras ?? []).find((extra) => extra.key === SUMMARY_EXTRA_KEY)?.value;
+	const value = summaryToWrite(current, wanted.value, SUPERSEDED_SUMMARIES[ds.name]);
+	if (value === null) return pkg;
+	const extras = [
+		...(pkg.extras ?? []).filter((e) => e.key !== SUMMARY_EXTRA_KEY),
+		{ key: SUMMARY_EXTRA_KEY, value },
+	];
 	const patched = await api(token, "package_patch", { id: pkg.id, extras });
 	if (!patched.success) {
 		console.error(`✗ resumen ${ds.name}: ${errorText(patched.error)}`);
