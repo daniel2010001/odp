@@ -63,6 +63,8 @@ interface ResourceCreateEnvelope {
  */
 export function describeUploadRejection(reasons: string[]): string {
 	const reason = reasons[0] ?? "";
+	if (/^File type \(none\) is not allowed/.test(reason))
+		return "El archivo no tiene extensión: no se puede saber su tipo.";
 	const type = /^File type (\.\S+) is not allowed/.exec(reason);
 	if (type) return `El tipo de archivo ${type[1]} no está admitido.`;
 	const content = /does not match its (\.\S+) extension/.exec(reason);

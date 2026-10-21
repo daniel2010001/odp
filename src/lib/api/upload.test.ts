@@ -184,6 +184,16 @@ describe("uploadResourceFile — resultado", () => {
 		});
 	});
 
+	it("un archivo sin extensión se cuenta en español", async () => {
+		const error = await reject409([
+			"File type (none) is not allowed. Allowed extensions: csv, tsv, xlsx, xls, ods, json, geojson, xml, txt, pdf, png, jpg, jpeg, zip.",
+		]);
+		expect(error).toMatchObject({
+			status: 409,
+			message: "El archivo no tiene extensión: no se puede saber su tipo.",
+		});
+	});
+
 	it("un contenido que no corresponde a la extensión se cuenta en español", async () => {
 		const error = await reject409([
 			"The content of the file (text/x-shellscript) does not match its .csv extension. Allowed extensions: csv, tsv.",
