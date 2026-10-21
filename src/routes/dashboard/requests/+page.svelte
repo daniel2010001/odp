@@ -66,7 +66,12 @@ function paraLaCola(fila: PublicationRequest): QueueItem {
 		id: fila.id,
 		dataset_id: fila.dataset_id,
 		dataset_title: tituloLegible(fila),
-		organization_title: fila.organization_title ?? undefined,
+		// El mismo token del contrato para una organización que no resuelve: sin él, «unknown» se volvía una
+		// pestaña de la cola (L83). La fila queda sin organización y se lee en «Todas».
+		organization_title:
+			fila.organization_title && fila.organization_title !== "unknown"
+				? fila.organization_title
+				: undefined,
 		requested_by: fila.requested_by ?? undefined,
 		requested_by_name: fila.requested_by_name ?? undefined,
 		approved_by_name: fila.approved_by_name ?? undefined,

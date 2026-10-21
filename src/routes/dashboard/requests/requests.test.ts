@@ -281,6 +281,22 @@ describe("Solicitudes — lo que la page le entrega a la cola", () => {
 		expect(screen.queryByText("unknown")).not.toBeInTheDocument();
 	});
 
+	it("una organización irresoluble («unknown») no se vuelve una pestaña ni un texto (L83)", async () => {
+		// admin-fcyt veía dos facultades y la segunda era «unknown»: el token del contrato para un id que no
+		// resuelve. Igual que el título, no se muestra; la fila queda sin organización y se ve en «Todas».
+		auth.setUser(makeUser());
+		mocks.listRequests.mockResolvedValue([
+			makeRow({ organization_title: "Facultad de Tecnología" }),
+			makeRow({ id: "req-2", dataset_title: "Otro", organization_title: "unknown" }),
+		]);
+
+		renderPage();
+
+		await screen.findAllByRole("button", { name: /^Otro/ });
+		expect(screen.queryByText("unknown")).not.toBeInTheDocument();
+		expect(screen.queryByRole("tab", { name: /unknown/ })).toBeNull();
+	});
+
 	it("la respuesta del catálogo llega a la cola: la propia que el catálogo concede se puede decidir", async () => {
 		// La excepción de cuatro ojos (#74) la decide el catálogo en `decidable_by_caller`. Si la page la pierde al
 		// traducir la fila, la cola aplica la regla vieja y el único aprobador posible no puede decidir — en la
