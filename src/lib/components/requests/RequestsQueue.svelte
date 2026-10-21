@@ -12,7 +12,7 @@
 	 · **Sólo la primera pendiente decidible arranca abierta**; abrir o cerrar a mano manda. Una fila decidida **queda**
 	   en la lista, ya como resuelta, y el anuncio nombra el desenlace.
 	 · **Cuatro ojos y el resto de las reglas de decidir** son de `PublicationDecision`, no de la cola.
-	Con una sola organización no hay pestañas: una barra delgada con el conteo ocupa su lugar. Las pestañas y esa barra
+	Con una sola organización no hay pestañas: una barra delgada con «Mostrar» ocupa su lugar. Las pestañas y esa barra
 	quedan pegadas bajo el encabezado, y su alto se publica como `--barra-h` para que las filas frenen debajo de ella.
 	`surface` es la superficie donde se monta la cola: el fondo opaco de la barra pegada tiene que ser el suyo.
 -->
@@ -36,7 +36,6 @@ import {
 	itemsForTab,
 	LIMITE_RESUELTAS,
 	organizationTabs,
-	requestCountLabel,
 	type Tab,
 	tabCounts,
 } from "./requests-model";
@@ -101,8 +100,6 @@ const firstOpen = $derived(firstDecidable(visibles, viewer)?.id ?? null);
 // Las resueltas crecen sin parar: se acota la parte resuelta de la pestaña, no las pendientes.
 const acotadas = $derived(acotarResueltas(rows, LIMITE_RESUELTAS));
 const shown = $derived(verTodas ? rows : acotadas.shown);
-// «N solicitudes»: las de la organización activa y el estado elegido, sin repetir el estado (ya lo dice «Mostrar»).
-const totalFilas = $derived(requestCountLabel("todas", rows.length));
 const empty = $derived(emptyState(tab, counts));
 const hayResueltasDeMas = $derived(
 	rows.filter((i) => i.status !== "pending").length > LIMITE_RESUELTAS,
@@ -126,13 +123,6 @@ onMount(() => {
 
 {#snippet mostrar()}
 	<StatusSelect {tab} {counts} ontab={(t) => (tab = t)} inBar />
-{/snippet}
-
-{#snippet conteo()}
-	<p data-testid="conteo-solicitudes" class="flex items-baseline gap-2" aria-live="polite">
-		<span class="font-heading text-2xl font-bold text-foreground">{totalFilas.number}</span>
-		<span class="text-sm text-muted-foreground">{totalFilas.text}</span>
-	</p>
 {/snippet}
 
 <div style:--barra-h="{altoBarra}px" class={className}>
@@ -166,14 +156,13 @@ onMount(() => {
 			tabs={orgTabs}
 			value={orgActiva}
 			onchange={(o) => (org = o)}
-			leading={conteo}
 			trailing={mostrar}
 			bind:barHeight={altoBarra}
 			{surface}
 		>
 			<div class="flex flex-col gap-3">
 				{#if !conPestanas}
-					<StatusBar {tab} {counts} shown={rows.length} ontab={(t) => (tab = t)} bind:height={altoBarra} {surface} />
+					<StatusBar {tab} {counts} ontab={(t) => (tab = t)} bind:height={altoBarra} {surface} />
 				{/if}
 
 				{#if queue.announcement}

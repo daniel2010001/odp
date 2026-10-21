@@ -314,20 +314,6 @@ export function statusOptionLabel(option: { label: string; count: number }): str
 	return `${option.label} (${option.count})`;
 }
 
-/**
- * El conteo de la barra de resultados, en las dos partes de la búsqueda (el número grande y su frase):
- * «4» «solicitudes pendientes», «1» «solicitud resuelta», «10» «solicitudes».
- */
-export function requestCountLabel(tab: Tab, count: number): { number: string; text: string } {
-	const plural = count !== 1;
-	const noun = plural ? "solicitudes" : "solicitud";
-	const adjective =
-		tab === "todas"
-			? ""
-			: ` ${tab === "pendientes" ? "pendiente" : "resuelta"}${plural ? "s" : ""}`;
-	return { number: count.toLocaleString("es-BO"), text: `${noun}${adjective}` };
-}
-
 export interface DatasetSummary {
 	/** La organización dueña hoy; `null` si el catálogo no la trae. */
 	organization: string | null;
