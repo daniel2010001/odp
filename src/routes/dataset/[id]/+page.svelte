@@ -395,7 +395,9 @@ $effect(() => {
 	fragmentApplied = true;
 	rewriteLegacyFragment(new URL(window.location.href));
 	const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-	target.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
+	// `?.`: los entornos sin layout (jsdom) no implementan `scrollIntoView`; sin la guarda, cualquier test que monte la
+	// ficha con un fragmento termina con un error sin manejar y la suite sale con código de error.
+	target.scrollIntoView?.({ behavior: reduce ? "instant" : "smooth", block: "start" });
 });
 
 // ─── Derived: estado de error ────────────────────────────────
