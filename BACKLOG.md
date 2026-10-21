@@ -2668,13 +2668,17 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
-- [ ] **[v1] XLSX en el DataStore** (autor, 2026-10-21, L69 de `odd/tasks/v0.1.1-polish.md`: «para la demo no es tan importante […]
-  podemos dejarlo para v1 o luego de hacer la feature de "análisis de datos"»). Medir qué hace el XLoader 2.6.0 con un XLSX
-  (consultado a odp-docker) y, si no lo carga, decidir entre configurarlo o convertir a CSV al subir. Hoy un XLSX no tiene
-  vista de tabla ni gráficos. Va junto con la feature de análisis de datos.
+- [ ] **[v1] XLSX en el DataStore: se carga, pero todo como texto** (autor, 2026-10-21, L69 de `odd/tasks/v0.1.1-polish.md`:
+  «para la demo no es tan importante […] podemos dejarlo para v1 o luego de hacer la feature de "análisis de datos"»).
+  **Medido por odp-docker (2026-10-21):** XLoader 2.6.0 **sí carga** XLSX (sus formatos por defecto incluyen csv, xls, xlsx,
+  tsv, ods; los 7 XLSX subidos de dev tienen tabla, 45–110 filas) y el portal ya los trata como tabulares
+  (`preview.ts:12`). El problema real: **todas las columnas quedan como texto** (p. ej. `incremento_rendimiento_pct: text`
+  con «6.77»), así que un gráfico con suma o promedio no funciona; el seed declara tipos (`ensureTyped`) sólo para los CSV
+  de DEMOS. Los XLSX que son enlaces no tienen tabla. Va con el cargador que normaliza tipos y la feature de análisis.
 - [ ] **[v1] Aviso suave al crear muchos gráficos en un recurso** (propuesta aceptada, L69): sin tope fijo (la regla del
   BACKLOG: el límite lo da el sistema que guarda), pero al crear, por ejemplo, el gráfico 11: «Este recurso ya tiene 10
-  gráficos; considere editar uno existente». El tope real de CKAN/umss_chart se consultó a odp-docker.
+  gráficos; considere editar uno existente». **Medido por odp-docker:** ni CKAN 2.12 (`resource_view_create`) ni
+  `umss_chart` ponen tope; en dev el recurso con más vistas tiene 6.
 
 - [ ] **[v1] Historial de solicitudes paginado y con filtros** (propuesta aceptada por el autor, 2026-10-21, L65 de
   `odd/tasks/v0.1.1-polish.md`). Hoy «Solicitudes» pide todas las filas visibles en una llamada y muestra las pendientes y las
