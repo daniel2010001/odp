@@ -605,6 +605,20 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		expect(screen.queryByRole("heading", { name: "Explorar por organización" })).toBeNull();
 	});
 
+	it("fuera de desarrollo, un catálogo caído dice la frase de failure.ts", async () => {
+		vi.stubEnv("DEV", false);
+		setUrl("?q=matricula");
+		mocks.search.mockRejectedValue(new Error("sin red"));
+
+		renderSearch();
+
+		expect(
+			await screen.findByText(
+				"No se pudo completar la consulta al catálogo de datos. Intente nuevamente más tarde.",
+			),
+		).toBeTruthy();
+	});
+
 	it("fuera de desarrollo, sin datos no se fabrica contenido", async () => {
 		vi.stubEnv("DEV", false);
 		setUrl("?q=matricula");
@@ -1270,12 +1284,54 @@ describe("Página de búsqueda — los pegados", () => {
 
 			await fireEvent.click(screen.getByRole("button", { name: "Ir a página 2" }));
 
+			await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
 			expect(scrollTo).not.toHaveBeenCalled();
-			expect(scrollIntoView).toHaveBeenCalledTimes(1);
 			const destino = scrollIntoView.mock.contexts[0] as HTMLElement;
 			expect(destino.hasAttribute("data-results")).toBe(true);
 			expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "smooth" });
 			scrollTo.mockRestore();
+		});
+
+		it("desplaza cuando llegan los resultados de la página nueva, no antes", async () => {
+			const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+			await montarConPaginas();
+			scrollIntoView.mockClear();
+			let resolver: (v: unknown) => void = () => {};
+			mocks.search.mockReturnValueOnce(new Promise((r) => (resolver = r)));
+
+			await fireEvent.click(screen.getByRole("button", { name: "Ir a página 2" }));
+			await tick();
+			expect(scrollIntoView).not.toHaveBeenCalled();
+
+			resolver({
+				count: 45,
+				results: [makeDataset({ id: "d2", title: "Página dos" })],
+				search_facets: {},
+			});
+			await screen.findByRole("heading", { name: "Página dos" });
+			await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+			expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "smooth" });
+			expect(scrollTo).not.toHaveBeenCalled();
+			scrollTo.mockRestore();
+		});
+
+		it("no pelea con el lector: si desplaza durante la carga, no se desplaza al llegar", async () => {
+			await montarConPaginas();
+			scrollIntoView.mockClear();
+			let resolver: (v: unknown) => void = () => {};
+			mocks.search.mockReturnValueOnce(new Promise((r) => (resolver = r)));
+
+			await fireEvent.click(screen.getByRole("button", { name: "Ir a página 2" }));
+			await tick();
+			await fireEvent.wheel(window);
+			resolver({
+				count: 45,
+				results: [makeDataset({ id: "d2", title: "Página dos" })],
+				search_facets: {},
+			});
+			await screen.findByRole("heading", { name: "Página dos" });
+			await tick();
+			expect(scrollIntoView).not.toHaveBeenCalled();
 		});
 
 		it("el destino deja la primera tarjeta bajo la barra pegada: el mismo margen que los saltos del vacío", async () => {
@@ -1295,7 +1351,9 @@ describe("Página de búsqueda — los pegados", () => {
 
 			await fireEvent.click(screen.getByRole("button", { name: "Ir a página 2" }));
 
-			expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
+			await waitFor(() =>
+				expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "instant" }),
+			);
 		});
 
 		it("cambiar un filtro no desplaza la página", async () => {

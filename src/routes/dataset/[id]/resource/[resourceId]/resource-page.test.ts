@@ -1194,6 +1194,113 @@ describe("Página de recurso — foco de la vista previa", () => {
 	});
 });
 
+// ─── Ventanas de la vista previa (v0.1.1, T25 / S24) ──────────────────────────────────────────────
+// Toda vista vive en la MISMA ventana (encabezado con «Copiar enlace» y «Ajustar a la pantalla») dentro del
+// contenedor `#vista-previa`, y cada una lleva su id: #tabla, #pdf, #imagen, #texto (los gráficos, en
+// `resource-charts.test.ts`). Un enlace con ese fragmento baja hasta ella.
+describe("Página de recurso — ventanas de la vista previa", () => {
+	const scrollIntoView = vi.fn();
+
+	function uploadedFile() {
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "PDF", mimetype: "application/pdf" }),
+		);
+	}
+
+	beforeEach(() => {
+		scrollIntoView.mockReset();
+		Object.defineProperty(Element.prototype, "scrollIntoView", {
+			configurable: true,
+			writable: true,
+			value: scrollIntoView,
+		});
+		vi.stubGlobal(
+			"matchMedia",
+			vi.fn(() => ({ matches: false })),
+		);
+		Object.defineProperty(navigator, "clipboard", {
+			value: { writeText: vi.fn(async () => {}) },
+			configurable: true,
+		});
+	});
+
+	afterEach(() => {
+		Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+	});
+
+	it.each([
+		[{ format: "PDF", mimetype: "application/pdf" }, "pdf", "PDF"],
+		[{ format: "PNG", mimetype: "image/png" }, "imagen", "Imagen"],
+		[{ format: "TXT", mimetype: "text/plain" }, "texto", "Texto"],
+	])("%j: la ventana #%s está dentro de #vista-previa, con el mismo encabezado", async (overrides, id, label) => {
+		mocks.showResource.mockResolvedValue(makeResource({ url_type: "upload", ...overrides }));
+		render(ResourcePage);
+
+		await screen.findByText(`Vista previa · ${label}`);
+		const win = document.getElementById(id) as HTMLElement;
+		expect(win).not.toBeNull();
+		expect(document.getElementById("vista-previa")?.contains(win)).toBe(true);
+		expect(within(win).getByRole("button", { name: "Copiar enlace de la vista" })).toBeTruthy();
+		expect(within(win).getByRole("button", { name: "Ajustar a la pantalla" })).toBeTruthy();
+	});
+
+	it("la tabla es la ventana #tabla", async () => {
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
+		render(ResourcePage);
+
+		await screen.findByText("Cochabamba");
+		const win = document.getElementById("tabla") as HTMLElement;
+		expect(win).not.toBeNull();
+		expect(document.getElementById("vista-previa")?.contains(win)).toBe(true);
+		expect(within(win).getByText("Vista previa · Tabla")).toBeTruthy();
+	});
+
+	it("el contenedor es contenedor de consultas: los cortes de los botones y de las pestañas son suyos", async () => {
+		uploadedFile();
+		render(ResourcePage);
+
+		await screen.findByTitle(/Vista previa de Matrícula 2026/);
+		expect(document.getElementById("vista-previa")?.className).toContain("@container");
+	});
+
+	it("«Copiar enlace» copia la URL de la página con el id de la ventana", async () => {
+		uploadedFile();
+		render(ResourcePage);
+
+		await fireEvent.click(await screen.findByRole("button", { name: "Copiar enlace de la vista" }));
+		await waitFor(() =>
+			expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+				`http://localhost${RESOURCE_PATH}#pdf`,
+			),
+		);
+	});
+
+	it("un enlace con #pdf baja hasta la ventana una vez dibujada", async () => {
+		window.history.replaceState(null, "", "#pdf");
+		try {
+			uploadedFile();
+			render(ResourcePage);
+
+			await screen.findByTitle(/Vista previa de Matrícula 2026/);
+			await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+			expect((scrollIntoView.mock.contexts.at(-1) as HTMLElement).id).toBe("pdf");
+		} finally {
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it("la nota de un enlace externo es una ventana sin id, sin botones", async () => {
+		render(ResourcePage);
+
+		await screen.findByRole("link", { name: /Abrir enlace/i });
+		expect(document.getElementById("vista-previa")).not.toBeNull();
+		expect(screen.queryByRole("button", { name: "Copiar enlace de la vista" })).toBeNull();
+		expect(screen.getByText("Vista previa")).toBeTruthy();
+	});
+});
+
 // ─── Botones de copiar y metadatos agrupados (v0.1.1, T4) ──────────────────────────────────────
 // Un solo botón (`CopyButton`) para «Copiar enlace», la dirección de la API y los datos de la ficha. La
 // tarjeta «Información sobre el recurso» sigue el estilo 3b del dataset: un grupo por tarjeta pequeña, el
@@ -1241,7 +1348,12 @@ describe("Página de recurso — botones de copiar y metadatos agrupados", () =>
 				"http://localhost/dataset/matricula-2026/resource/res-1",
 			),
 		);
-		expect(await screen.findByText("Enlace copiado")).toBeTruthy();
+		// El aviso es el `role="status"` (la ventana de la vista previa también tiene un botón de enlace).
+		await waitFor(() =>
+			expect(screen.getAllByRole("status").some((el) => el.textContent === "Enlace copiado")).toBe(
+				true,
+			),
+		);
 	});
 
 	it("el botón de la API vive en la esquina del bloque oscuro y copia la dirección", async () => {

@@ -5,6 +5,7 @@ import { afterNavigate, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
+import { describeFailure } from "$lib/api/failure";
 import { createOrganizationApi } from "$lib/api/organizations";
 import OrganizationCard from "$lib/components/organizations/OrganizationCard.svelte";
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
@@ -228,19 +229,20 @@ async function doSearch() {
 				total = mock.count;
 				facets = mock.search_facets;
 			} catch {
-				error = err instanceof Error ? err.message : "Error de búsqueda";
+				error = describeFailure(err, "dataset", "unknown").message;
 				results = [];
 				total = 0;
 				facets = {};
 			}
 		} else {
-			error = "No se pudo conectar con el catálogo de datos. Intente nuevamente más tarde.";
+			error = describeFailure(err, "dataset", "unknown").message;
 			results = [];
 			total = 0;
 			facets = {};
 		}
 	} finally {
 		loading = false;
+		void aterrizarPagina();
 	}
 }
 
@@ -519,9 +521,49 @@ async function onRemoveAppliedFilter(field: "org" | "format" | "tags" | "license
 // destino lleva el mismo margen que los saltos del vacío (`estiloDestino`), así que la primera tarjeta
 // queda justo bajo la barra ya pegada —con las facetas arriba, a la vista, desde 1024px— y no oculta por
 // ella. Con movimiento reducido el desplazamiento es instantáneo.
-function goToPage(p: number) {
-	currentPage = p;
+//
+// El desplazamiento ocurre **cuando llegan los resultados de la página nueva**, no al pulsar: mientras
+// carga, la lista se reemplaza por el esqueleto, el documento se acorta y el navegador recorta el scroll;
+// un desplazamiento hecho antes se pierde. Además el área conserva su alto durante la carga
+// (`altoRetenido`) para que el documento no se acorte. Si el lector desplaza por su cuenta mientras
+// carga, el aterrizaje se cancela: no se le pelea el scroll.
+let aterrizaje = false;
+let altoRetenido = $state(0);
+const EVENTOS_LECTOR = ["wheel", "touchmove", "keydown", "pointerdown"] as const;
+
+function cancelarAterrizaje() {
+	aterrizaje = false;
+	altoRetenido = 0;
+	for (const e of EVENTOS_LECTOR) window.removeEventListener(e, cancelarAterrizaje);
+}
+
+async function aterrizarPagina() {
+	if (!aterrizaje) return;
+	await tick();
+	// El alto de la barra cambia al terminar la carga (el contador pasa de «cargando» al total y puede
+	// partirse en dos líneas), y `altoBarra` se entera por el observador, un cuadro después. El margen
+	// del destino se lee al desplazar: se espera a que coincida con la barra real, o el aterrizaje
+	// queda corto por la diferencia (medido a 375px: 40px).
+	for (
+		let cuadros = 0;
+		aterrizaje && cuadros < 10 && barraEl && barraEl.offsetHeight !== altoBarra;
+		cuadros++
+	) {
+		await new Promise((r) => requestAnimationFrame(r));
+		await tick();
+	}
+	if (!aterrizaje) return;
+	cancelarAterrizaje();
 	resultadosEl?.scrollIntoView({ block: "start", behavior: reducido ? "instant" : "smooth" });
+}
+
+$effect(() => () => cancelarAterrizaje());
+
+function goToPage(p: number) {
+	altoRetenido = resultadosEl?.offsetHeight ?? 0;
+	aterrizaje = true;
+	for (const e of EVENTOS_LECTOR) window.addEventListener(e, cancelarAterrizaje, { passive: true });
+	currentPage = p;
 }
 
 const hasActiveFilters = $derived(
@@ -951,7 +993,11 @@ const emptyStateMessage = $derived.by(() => {
 				{@render barraResultados()}
 			{/if}
 			<div class={enColumna ? 'pt-8' : ''}>
-			<div bind:this={resultadosEl} data-results style={estiloDestino}>
+			<div
+				bind:this={resultadosEl}
+				data-results
+				style="{estiloDestino}{loading && altoRetenido ? `; min-height: ${altoRetenido}px` : ''}"
+			>
 			<!-- Error -->
 			{#if error}
 				<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">

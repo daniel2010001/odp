@@ -5,6 +5,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "$lib/stores/auth";
+import { CkanApiError } from "$lib/types/api";
 import PublicationDecision from "./PublicationDecision.svelte";
 import {
 	type DecidePublicationRequest,
@@ -119,5 +120,54 @@ describe("PublicationDecision — tope del comentario", () => {
 		await fireEvent.click(screen.getByRole("button", { name: APPROVE_LABEL }));
 
 		await waitFor(() => expect(decide).toHaveBeenCalledWith("req-1", true, undefined));
+	});
+});
+
+describe("PublicationDecision — la carrera: otra persona decidió primero", () => {
+	// Contrato (`src/lib/api/publication.ts`): el `409` con la clave `request_id` es la carrera real —dos
+	// administradores con la misma lista— y el portal tiene que decir «ya fue decidida», no «no se pudo
+	// registrar»: la diferencia es si el usuario recarga o reintenta algo que no va a funcionar nunca.
+	function renderWithFailure(err: unknown) {
+		const decide = vi.fn<DecidePublicationRequest>().mockRejectedValue(err);
+		const readDataset = vi.fn();
+		render(PublicationDecision, {
+			props: {
+				item: { id: "req-1", requested_by: "otro" },
+				decide,
+				readDataset,
+				currentUser: null,
+			},
+		});
+		return { decide };
+	}
+
+	it("un 409 con `request_id` dice que la solicitud ya fue decidida, sin dato técnico", async () => {
+		renderWithFailure(
+			new CkanApiError("Validation Error", 409, "Validation Error", {
+				__type: "Validation Error",
+				request_id: ["Request is not pending"],
+			}),
+		);
+
+		await fireEvent.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+
+		const alerta = await screen.findByRole("alert");
+		expect(alerta).toHaveTextContent(
+			"Esta solicitud ya fue decidida por otra persona. Recargue la página para ver su estado.",
+		);
+		expect(alerta).not.toHaveTextContent("No se pudo registrar la decisión.");
+	});
+
+	it("regresión: un 409 con otra clave sigue siendo el fallo genérico", async () => {
+		renderWithFailure(
+			new CkanApiError("Validation Error", 409, "Validation Error", {
+				__type: "Validation Error",
+				approve: ["Missing value"],
+			}),
+		);
+
+		await fireEvent.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo registrar la decisión.");
 	});
 });

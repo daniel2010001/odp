@@ -25,6 +25,7 @@ import {
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import ActionsMenu from "$lib/components/dataset/ActionsMenu.svelte";
+import AnchorLink from "$lib/components/dataset/AnchorLink.svelte";
 import type { MenuItem } from "$lib/components/dataset/more-menu";
 import OverflowBadges, { type BadgeItem } from "$lib/components/dataset/OverflowBadges.svelte";
 import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
@@ -40,6 +41,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup } from "$lib/components/ui/meta";
 import { estadoDeLaSolicitud, insigniaDeLaSolicitud } from "$lib/copy/publication";
+import { stateLabel } from "$lib/copy/states";
 import { summaryFacts, technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
@@ -452,16 +454,8 @@ const breadcrumbItems = $derived.by((): BreadcrumbItem[] => {
 const searchHref = (key: "org" | "tags" | "license", value: string) =>
 	`/search?${new URLSearchParams({ [key]: value })}`;
 
-const stateLabel = $derived.by(() => {
-	switch (dataset?.state) {
-		case "draft":
-			return "Borrador";
-		case "deleted":
-			return "Eliminado";
-		default:
-			return null;
-	}
-});
+// «Activo» es el estado por defecto y el hero no lo repite; cualquier otro, conocido o no, se dice.
+const stateBadge = $derived(dataset?.state === "active" ? null : stateLabel(dataset?.state));
 
 // La página de la organización es la de la miga y la tarjeta lateral; la insignia del hero filtra el catálogo.
 const orgHref = $derived(
@@ -490,10 +484,10 @@ const heroBadges = $derived.by((): BadgeItem[] => {
 				: {}),
 		});
 	}
-	if (stateLabel) {
+	if (stateBadge) {
 		list.push({
 			id: "estado",
-			label: stateLabel,
+			label: stateBadge,
 			priority: 3,
 			tone: "border-destructive/20 bg-destructive/10 text-destructive",
 		});
@@ -725,14 +719,17 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					</Card>
 
 					<!-- Resources -->
-					<Card class="p-6 sm:p-8">
+					<Card id="recursos" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-							Archivos disponibles
-							{#if activeResources.length > 0}
-								<span class="font-normal text-muted-foreground">({activeResources.length})</span>
-							{/if}
-						</h2>
+						<div class="group/ancla mt-1 flex items-center gap-2">
+							<h2 class="font-heading text-xl font-bold text-primary">
+								Archivos disponibles
+								{#if activeResources.length > 0}
+									<span class="font-normal text-muted-foreground">({activeResources.length})</span>
+								{/if}
+							</h2>
+							<AnchorLink id="recursos" title="Recursos" />
+						</div>
 						<div class="mt-4 space-y-2">
 							{#if activeResources.length === 0}
 								<p class="text-sm text-muted-foreground">
@@ -754,7 +751,10 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 							Información técnica
 						</p>
-						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Ficha completa</h2>
+						<div class="group/ancla mt-1 flex items-center gap-2">
+							<h2 class="font-heading text-xl font-bold text-primary">Ficha completa</h2>
+							<AnchorLink id="info-tecnica" title="Información técnica" />
+						</div>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 							Todos los datos que el catálogo registra de este dataset.
 						</p>
@@ -812,8 +812,11 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					{/if}
 
 					<!-- Cite card -->
-					<Card class="p-5">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
+					<Card id="citar" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
+						<div class="group/ancla flex h-4 items-center gap-2">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
+							<AnchorLink id="citar" title="Citar como" />
+						</div>
 						<div class="mt-3 flex items-center gap-2">
 							<button
 								type="button"
@@ -861,11 +864,24 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 					<!-- Resumen: lo que responde «¿me sirve esto?». Reemplaza a «Detalles» (variante C de
 					     `/dev/dataset-details`); el resto vive en «Información técnica». -->
-					<Card class="p-5">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
+					<Card id="resumen" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
+						<div class="group/ancla flex h-4 items-center gap-2">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
+							<AnchorLink id="resumen" title="Resumen" />
+						</div>
 						<dl class="mt-3 space-y-3">
 							{#each summary as fact (fact.key)}
-								<div class="flex items-start gap-3">
+								<!-- `#licencia` es la fila «Términos» (el destino de los términos de uso) y, sin enlace a los
+								     términos, la fila de la licencia. -->
+								{@const licenciaAqui = fact.key === "license" && !termsUrl}
+								<div
+									id={licenciaAqui ? "licencia" : undefined}
+									class={cn(
+										"flex items-start gap-3",
+										licenciaAqui &&
+											"group/ancla scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]",
+									)}
+								>
 									<fact.icon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
 									<div class="min-w-0">
 										<dt class="text-xs text-muted-foreground">{fact.label}</dt>
@@ -883,12 +899,18 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 											{/if}
 										</dd>
 									</div>
+									{#if licenciaAqui}
+										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="licencia" title="Licencia" /></div>
+									{/if}
 								</div>
 								{#if fact.key === "license" && termsUrl}
 									<!-- Los términos de la licencia son otro destino —un sitio externo— y tienen su propia fila
 									     (variante L3 de `/dev/responsive-actions`, elegida por el autor el 2026-10-20): mezclarlos
 									     con el nombre en una misma insignia dejaba dos destinos en un solo control. -->
-									<div class="flex items-start gap-3">
+									<div
+										id="licencia"
+										class="group/ancla flex scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] items-start gap-3"
+									>
 										<FileText class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
 										<div class="min-w-0">
 											<dt class="text-xs text-muted-foreground">Términos</dt>
@@ -903,6 +925,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 												>
 											</dd>
 										</div>
+										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="licencia" title="Términos" /></div>
 									</div>
 								{/if}
 							{/each}
@@ -927,8 +950,11 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 					<!-- Organization card -->
 					{#if dataset.organization?.title}
-						<Card class="p-5">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
+						<Card id="organizacion" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
+							<div class="group/ancla flex h-4 items-center gap-2">
+								<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
+								<AnchorLink id="organizacion" title="Organización" />
+							</div>
 							<div class="mt-3 flex items-start gap-3">
 								<OrganizationLogo
 									imageUrl={dataset.organization.image_url}

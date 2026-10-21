@@ -4,6 +4,8 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { createRawSnippet } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { replaceState } from "$app/navigation";
+import { page } from "$app/stores";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import type { ChartData, NormalizedChartConfig } from "$lib/charts/contract";
 import { auth } from "$lib/stores/auth";
@@ -73,7 +75,25 @@ async function openChart(name = "Salario por turno") {
 	await fireEvent.click(await screen.findByRole("tab", { name }));
 }
 
-beforeEach(() => auth.reset());
+const pageStore = page as unknown as {
+	set: (value: { params: Record<string, string>; url: URL }) => void;
+};
+const at = (hash = "") =>
+	pageStore.set({
+		params: {},
+		url: new URL(`http://localhost/dataset/planilla/resource/res-1${hash}`),
+	});
+
+beforeEach(() => {
+	auth.reset();
+	at();
+	Element.prototype.scrollIntoView = vi.fn();
+	vi.mocked(replaceState).mockClear();
+	Object.defineProperty(navigator, "clipboard", {
+		value: { writeText: vi.fn(async () => {}) },
+		configurable: true,
+	});
+});
 afterEach(() => auth.reset());
 
 describe("ResourceCharts — el visitante", () => {
@@ -354,5 +374,92 @@ describe("ResourceCharts — «Insertar»", () => {
 
 		const code = (await screen.findByLabelText("Código para insertar")) as HTMLTextAreaElement;
 		expect(code.value).toContain("/embed/charts/view-1");
+	});
+});
+
+// ─── Ventanas (T25 / S24): un diseño para todas las vistas, con su id y su enlace ───────────────────
+describe("ResourceCharts — ventanas, ids y enlaces", () => {
+	const second = makeView({ id: "view-2", title: "Otro gráfico" });
+	const two = () => makeApi({ listViews: vi.fn(async () => [makeView(), second]) });
+
+	it("cada gráfico vive en una ventana #grafico-<id de la vista> con «Copiar enlace» y «Ajustar a la pantalla»", async () => {
+		renderCharts(makeApi());
+		await openChart();
+
+		const win = document.getElementById("grafico-view-1") as HTMLElement;
+		expect(win).not.toBeNull();
+		expect(within(win).getByText("Vista previa · Salario por turno")).toBeInTheDocument();
+		expect(
+			within(win).getByRole("button", { name: "Copiar enlace de la vista" }),
+		).toBeInTheDocument();
+		expect(within(win).getByRole("button", { name: "Ajustar a la pantalla" })).toBeInTheDocument();
+		// Sólo la pestaña activa dibuja su ventana: un solo id de gráfico en el documento.
+		expect(document.querySelectorAll('[id^="grafico-"]')).toHaveLength(1);
+	});
+
+	it("«Copiar enlace de la vista» copia la URL del recurso con el id de la ventana", async () => {
+		at("?x=1");
+		renderCharts(makeApi());
+		await openChart();
+
+		vi.mocked(replaceState).mockClear();
+		await fireEvent.click(screen.getByRole("button", { name: "Copiar enlace de la vista" }));
+		await waitFor(() =>
+			expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+				"http://localhost/dataset/planilla/resource/res-1?x=1#grafico-view-1",
+			),
+		);
+		// Copiar no cambia la URL.
+		expect(replaceState).not.toHaveBeenCalled();
+	});
+
+	it("elegir una pestaña escribe su id en la URL con replaceState", async () => {
+		renderCharts(two());
+		await openChart("Otro gráfico");
+
+		let url = vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL;
+		expect(url.hash).toBe("#grafico-view-2");
+		await fireEvent.click(screen.getByRole("tab", { name: "Tabla" }));
+		url = vi.mocked(replaceState).mock.calls.at(-1)?.[0] as URL;
+		expect(url.hash).toBe("#tabla");
+	});
+
+	it("un enlace con #grafico-<id> abre esa pestaña y baja hasta su ventana", async () => {
+		at("#grafico-view-2");
+		renderCharts(two());
+
+		await waitFor(() => expect(document.getElementById("grafico-view-2")).not.toBeNull());
+		expect(screen.getByRole("tab", { name: "Otro gráfico" })).toHaveAttribute(
+			"data-state",
+			"active",
+		);
+		await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+		const target = vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1) as HTMLElement;
+		expect(target.id).toBe("grafico-view-2");
+	});
+
+	it("un enlace con el id de un gráfico que no existe deja la tabla", async () => {
+		at("#grafico-nada");
+		renderCharts(two());
+
+		await screen.findAllByRole("tab");
+		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
+	});
+
+	it("bajo 32 rem de contenedor las pestañas son un desplegable «Vista» (misma regla: @lg)", async () => {
+		renderCharts(two());
+
+		const tablist = await screen.findByRole("tablist");
+		expect(tablist.className).toContain("hidden");
+		expect(tablist.className).toContain("@lg:flex");
+		const trigger = screen.getByRole("button", { name: "Vista" });
+		expect(trigger.closest("div")?.className).toContain("@lg:hidden");
+	});
+
+	it("la barra de pestañas fija --tabs-h para las alturas y el scroll-margin de las ventanas", async () => {
+		renderCharts(two());
+		await screen.findAllByRole("tab");
+
+		expect(document.querySelector("[style*='--tabs-h']")).not.toBeNull();
 	});
 });

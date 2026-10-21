@@ -295,7 +295,9 @@ describe("ResourcePreview — alto por tipo (estrategia D)", () => {
 		});
 
 		const iframe = screen.getByTitle("Vista previa de Flujos vehiculares");
-		expect(iframe.className).toContain("h-[min(max(240px,calc(100dvh-140px)),max(520px,130cqw))]");
+		expect(iframe.className).toContain(
+			"h-[min(max(240px,calc(100dvh-140px-var(--tabs-h,0px))),max(520px,130cqw))]",
+		);
 		// `cqw` mide el contenedor que lo envuelve.
 		expect(iframe.parentElement?.className).toContain("@container");
 	});
@@ -309,17 +311,18 @@ describe("ResourcePreview — alto por tipo (estrategia D)", () => {
 		const image = screen.getByAltText("Flujos vehiculares");
 		expect(image.className).toContain("w-full");
 		expect(image.className).toContain("h-auto");
-		expect(image.className).toContain("max-h-[max(360px,calc(100dvh-140px))]");
+		expect(image.className).toContain("max-h-[max(360px,calc(100dvh-172px-var(--tabs-h,0px)))]");
 		expect(image.className).toContain("object-contain");
 	});
 
-	it("el texto mide `clamp(360px, 55dvh, 720px)`", () => {
+	it("el texto usa la misma regla de alto que el PDF y la imagen (llena la pantalla), ya no 55dvh", () => {
 		const { api } = makeDatastore();
 		render(ResourcePreview, {
 			props: { resource: makeResource({ format: "TXT" }), datastore: api },
 		});
 
 		const iframe = screen.getByTitle("Vista previa de Flujos vehiculares");
-		expect(iframe.className).toContain("h-[clamp(360px,55dvh,720px)]");
+		expect(iframe.className).toContain("h-[max(360px,calc(100dvh-140px-var(--tabs-h,0px)))]");
+		expect(iframe.className).not.toContain("55dvh");
 	});
 });

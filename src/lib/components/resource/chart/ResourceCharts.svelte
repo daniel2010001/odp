@@ -1,11 +1,25 @@
 <script lang="ts">
-import { BarChart3, ChartColumn, ChartLine, ChartPie, Pencil, Table, Trash2 } from "@lucide/svelte";
-import { Dialog, Tabs } from "bits-ui";
-import type { Snippet } from "svelte";
+import {
+	BarChart3,
+	ChartColumn,
+	ChartLine,
+	ChartPie,
+	Check,
+	ChevronDown,
+	Pencil,
+	Table,
+	Trash2,
+} from "@lucide/svelte";
+import { Dialog, Select, Tabs } from "bits-ui";
+import { type Snippet, tick } from "svelte";
+import { replaceState } from "$app/navigation";
+import { page } from "$app/stores";
 import type { ChartApi, ChartView } from "$lib/api/charts";
 import { describeFailure } from "$lib/api/failure";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import PreviewWindow from "../PreviewWindow.svelte";
+import { chartWindowId, type PreviewView, resolveHash, shareLink } from "../preview-views";
 import ChartViewBody from "./ChartViewBody.svelte";
 import EmbedChartDialog from "./EmbedChartDialog.svelte";
 
@@ -19,6 +33,11 @@ import EmbedChartDialog from "./EmbedChartDialog.svelte";
 // componente y llega en `table`) y una pestaña por gráfico. «Crear gráfico» no está acá: lo ofrece el encabezado
 // del recurso. Con 0 gráficos no hay barra (una sola pestaña no elige nada): la tabla va sola y, debajo, el
 // aviso de que no hay gráficos, que a quien edita lo invita a crear el primero.
+//
+// Cada vista vive en una «ventana» (`PreviewWindow`) con su id: `#tabla` (la pone quien pasa `table`) y
+// `#grafico-<id de la vista>`. Un enlace con ese fragmento abre su pestaña y baja hasta ella; elegir una pestaña
+// escribe su id en la URL (`replaceState`, sin historial). Bajo 32 rem de contenedor (`@lg`) las pestañas son un
+// desplegable «Vista». El contenedor `#vista-previa` lo pone la página.
 let {
 	resourceId,
 	datasetId,
@@ -117,6 +136,53 @@ const chartIcon = (view: ChartView) =>
 const views = $derived(list.status === "ready" ? list.views : []);
 const tabbed = $derived(views.length > 0);
 
+// ─── Ventanas: ids, enlaces y pestaña ⇄ fragmento ────────────────
+const windows = $derived<PreviewView[]>([
+	{ key: "table", id: "tabla", kind: "table", label: "Tabla" },
+	...views.map((v) => ({
+		key: v.id,
+		id: chartWindowId(v.id),
+		kind: "chart" as const,
+		label: viewTitle(v),
+	})),
+]);
+const linkOf = (id: string) => shareLink($page.url.toString(), id);
+
+// Alto de la barra de pestañas + 16 px de aire: los descuentan el alto de cada vista y el `scroll-margin`.
+let barH = $state(48);
+const tabsH = $derived(tabbed ? barH + 16 : 0);
+
+function scrollToId(id: string) {
+	const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	document
+		.getElementById(id)
+		?.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
+}
+
+// El último fragmento que el estado ya refleja: el efecto sólo actúa sobre uno nuevo (un enlace, atrás/adelante)
+// y espera a conocer los gráficos, porque un `#grafico-…` no se resuelve antes.
+let appliedHash = "";
+$effect(() => {
+	const hash = $page.url.hash;
+	if (list.status !== "ready" || hash === appliedHash) return;
+	appliedHash = hash;
+	const target = resolveHash(hash, windows).view;
+	if (!target) return;
+	activeTab = target.key;
+	tick().then(() => scrollToId(target.id));
+});
+
+function choose(key: string) {
+	const view = windows.find((v) => v.key === key);
+	if (!view) return;
+	activeTab = key;
+	appliedHash = `#${view.id}`;
+	const url = new URL($page.url);
+	url.hash = view.id;
+	replaceState(url, {});
+}
+const activeLabel = $derived(windows.find((v) => v.key === activeTab)?.label ?? "");
+
 const triggerClass =
 	"inline-flex h-12 cursor-pointer items-center gap-2 border-b-2 border-transparent px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-primary motion-reduce:transition-none";
 
@@ -125,7 +191,8 @@ const actionClass =
 </script>
 
 {#snippet chartCard(view: ChartView)}
-	<Card class="space-y-4 p-5 sm:p-6">
+	<PreviewWindow id={chartWindowId(view.id)} label={viewTitle(view)} link={linkOf(chartWindowId(view.id))}>
+	<div class="space-y-4 p-5 sm:p-6">
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div class="min-w-0">
 				<h3 class="font-heading text-lg font-bold text-foreground">{viewTitle(view)}</h3>
@@ -160,7 +227,8 @@ const actionClass =
 			</div>
 		</div>
 		<ChartViewBody {view} {api} />
-	</Card>
+	</div>
+	</PreviewWindow>
 {/snippet}
 
 {#snippet states()}
@@ -186,31 +254,77 @@ const actionClass =
 <section aria-labelledby="resource-charts-heading" class="space-y-4">
 	<h2 id="resource-charts-heading" class="sr-only">Vista previa y gráficos del recurso</h2>
 	{#if tabbed}
-		<Tabs.Root bind:value={activeTab}>
-			<div class="border-b border-border">
-				<Tabs.List class="-mb-px flex flex-wrap gap-1" aria-label="Vistas del recurso">
-					<Tabs.Trigger value="table" class={triggerClass}>
-						<Table class="size-4 shrink-0" aria-hidden="true" />
-						Tabla
-					</Tabs.Trigger>
-					{#each views as view (view.id)}
-						{@const Icon = chartIcon(view)}
-						<Tabs.Trigger value={view.id} class="{triggerClass} max-w-64">
-							<Icon class="size-4 shrink-0" aria-hidden="true" />
-							<span class="truncate">{viewTitle(view)}</span>
-						</Tabs.Trigger>
-					{/each}
-				</Tabs.List>
-			</div>
-			<Tabs.Content value="table" class="pt-4">
-				{@render table?.()}
-			</Tabs.Content>
-			{#each views as view (view.id)}
-				<Tabs.Content value={view.id} class="pt-4">
-					{@render chartCard(view)}
+		<div style="--tabs-h: {tabsH}px">
+			<Tabs.Root value={activeTab} onValueChange={choose}>
+				<div bind:clientHeight={barH} class="border-b border-border">
+					<Tabs.List class="-mb-px hidden flex-wrap gap-1 @lg:flex" aria-label="Vistas del recurso">
+						{#each windows as view (view.key)}
+							{#if view.kind === "table"}
+								<Tabs.Trigger value="table" class={triggerClass}>
+									<Table class="size-4 shrink-0" aria-hidden="true" />
+									Tabla
+								</Tabs.Trigger>
+							{:else}
+								{@const Icon = chartIcon(views.find((v) => v.id === view.key) as ChartView)}
+								<Tabs.Trigger value={view.key} class="{triggerClass} max-w-64">
+									<Icon class="size-4 shrink-0" aria-hidden="true" />
+									<span class="truncate">{view.label}</span>
+								</Tabs.Trigger>
+							{/if}
+						{/each}
+					</Tabs.List>
+					<!-- Bajo 32 rem de contenedor las pestañas no caben en una línea: pasan a un desplegable. -->
+					<div class="flex h-12 items-center @lg:hidden">
+						<Select.Root
+							type="single"
+							value={activeTab}
+							onValueChange={choose}
+							items={windows.map((v) => ({ value: v.key, label: v.label }))}
+						>
+							<Select.Trigger
+								aria-label="Vista"
+								class="flex h-10 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+							>
+								<span class="truncate">{activeLabel}</span>
+								<ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+							</Select.Trigger>
+							<Select.Portal>
+								<Select.Content
+									sideOffset={4}
+									class="z-50 max-h-72 min-w-[var(--bits-select-anchor-width)] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+								>
+									<Select.Viewport>
+										{#each windows as view (view.key)}
+											<Select.Item
+												value={view.key}
+												label={view.label}
+												class="flex cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-2 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground motion-reduce:transition-none"
+											>
+												{#snippet children({ selected })}
+													<span class="truncate">{view.label}</span>
+													{#if selected}<Check class="size-4 shrink-0 text-primary" aria-hidden="true" />{/if}
+												{/snippet}
+											</Select.Item>
+										{/each}
+									</Select.Viewport>
+								</Select.Content>
+							</Select.Portal>
+						</Select.Root>
+					</div>
+				</div>
+				<Tabs.Content value="table" class="pt-4">
+					{@render table?.()}
 				</Tabs.Content>
-			{/each}
-		</Tabs.Root>
+				{#each views as view (view.id)}
+					<Tabs.Content value={view.id} class="pt-4">
+						<!-- Sólo la pestaña activa dibuja su ventana: así hay un solo id de vista en el documento. -->
+						{#if view.id === activeTab}
+							{@render chartCard(view)}
+						{/if}
+					</Tabs.Content>
+				{/each}
+			</Tabs.Root>
+		</div>
 	{:else}
 		{@render table?.()}
 		{@render states()}

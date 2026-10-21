@@ -3,8 +3,10 @@
 
 import { Clock, RefreshCw, Shield, User } from "@lucide/svelte";
 import type { MetaGroupData, MetaRow } from "$lib/components/ui/meta";
+import { stateLabel } from "$lib/copy/states";
 import type { CkanPackage } from "$lib/types/ckan";
 import { formatDate } from "$lib/utils/ckan";
+import { labelFor } from "$lib/utils/licenses";
 
 export interface SummaryFact {
 	key: string;
@@ -14,10 +16,11 @@ export interface SummaryFact {
 }
 
 const FREQUENCY = "Frecuencia de actualización";
-const STATE: Record<string, string> = { active: "Activo", draft: "Borrador", deleted: "Eliminado" };
 
 const extra = (d: CkanPackage, key: string) => d.extras?.find((e) => e.key === key)?.value;
-const license = (d: CkanPackage) => d.license_title || d.license_id;
+// Sin id ni título no hay licencia que decir: la fila se omite, no se inventa.
+const license = (d: CkanPackage) =>
+	d.license_id || d.license_title ? labelFor(d.license_id, d.license_title) : undefined;
 
 const row = (
 	label: string,
@@ -76,7 +79,7 @@ export function technicalGroups(d: CkanPackage): MetaGroupData[] {
 			rows: [
 				...row("Licencia", license(d)),
 				...row("Visibilidad", d.private ? "Privado" : "Público"),
-				...row("Estado", STATE[d.state]),
+				...row("Estado", stateLabel(d.state) ?? undefined),
 			],
 		},
 		{

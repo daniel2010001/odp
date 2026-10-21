@@ -172,11 +172,12 @@ async function rowFor(titulo: string): Promise<HTMLElement> {
 }
 
 describe("PublicationQueue — qué carga y qué muestra", () => {
-	it("pide las solicitudes pendientes al montarse y las lista", async () => {
+	it("pide todas las solicitudes que el catálogo autoriza (sin filtrar por estado) y las lista", async () => {
 		const { list } = renderQueue();
 
 		await waitFor(() => expect(screen.getByText("Matrícula 2026")).toBeInTheDocument());
-		expect(list).toHaveBeenCalledWith("pending");
+		expect(list).toHaveBeenCalledTimes(1);
+		expect(list).toHaveBeenCalledWith();
 		expect(screen.getByText("Presupuesto 2026")).toBeInTheDocument();
 		expect(screen.getAllByRole("listitem")).toHaveLength(2);
 	});
@@ -852,6 +853,87 @@ describe("PublicationQueue — la presentación: secciones y plegado", () => {
 		).toBeInTheDocument();
 		expect(within(grupoResueltas as HTMLElement).getByText("Egresados 2025")).toBeInTheDocument();
 		expect(within(grupoResueltas as HTMLElement).queryByText("Matrícula 2026")).toBeNull();
+	});
+
+	it("`secciones`: las resueltas llegan del catálogo (no sólo las decididas en la visita), la más nueva primero", async () => {
+		const resuelta = (
+			n: number,
+			decided_at: string | undefined,
+			created_at = "2026-09-01T00:00:00.000000",
+		) =>
+			makeItem({
+				id: `res-${n}`,
+				dataset_id: `pkg-res-${n}`,
+				dataset_title: `Resuelta ${n}`,
+				status: n % 2 ? "approved" : "rejected",
+				approved_by_name: DECISOR_NAME,
+				created_at,
+				decided_at,
+			});
+		renderQueue({
+			secciones: true,
+			list: vi.fn().mockResolvedValue([
+				resuelta(1, "2026-10-02T00:00:00.000000"),
+				resuelta(2, "2026-10-05T00:00:00.000000"),
+				// Sin `decided_at` (cancelaciones anteriores a la 0002): se ordena por la fecha de creación.
+				resuelta(3, undefined, "2026-10-03T12:00:00.000000"),
+				makeItem(),
+			]),
+		});
+
+		const grupo = (await screen.findByRole("heading", { name: "Resueltas 3" })).closest("section");
+		const titulos = within(grupo as HTMLElement)
+			.getAllByRole("listitem")
+			.map((li) => li.textContent?.match(/Resuelta \d/)?.[0]);
+		expect(titulos).toEqual(["Resuelta 2", "Resuelta 3", "Resuelta 1"]);
+		// «Pendientes» sigue primero.
+		expect(
+			screen
+				.getByRole("heading", { name: "Pendientes 1" })
+				.compareDocumentPosition(screen.getByRole("heading", { name: "Resueltas 3" })) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("`secciones` acota las resueltas a las 5 más nuevas y «Ver N más» muestra el resto", async () => {
+		const todas = Array.from({ length: 8 }, (_, i) =>
+			makeItem({
+				id: `res-${i}`,
+				dataset_id: `pkg-res-${i}`,
+				dataset_title: `Resuelta ${i}`,
+				status: "approved",
+				approved_by_name: DECISOR_NAME,
+				decided_at: `2026-10-0${i + 1}T00:00:00.000000`,
+			}),
+		);
+		renderQueue({ secciones: true, list: vi.fn().mockResolvedValue(todas) });
+
+		const grupo = (await screen.findByRole("heading", { name: "Resueltas 8" })).closest(
+			"section",
+		) as HTMLElement;
+		expect(within(grupo).getAllByRole("listitem")).toHaveLength(5);
+		expect(within(grupo).getByText("Resuelta 7")).toBeInTheDocument();
+		expect(within(grupo).queryByText("Resuelta 2")).toBeNull();
+
+		const mas = within(grupo).getByRole("button", { name: "Ver 3 más" });
+		expect(mas).toHaveAttribute("aria-expanded", "false");
+		await fireEvent.click(mas);
+		expect(within(grupo).getAllByRole("listitem")).toHaveLength(8);
+		const menos = within(grupo).getByRole("button", { name: "Ver menos" });
+		expect(menos).toHaveAttribute("aria-expanded", "true");
+	});
+
+	it("`secciones` con 5 resueltas o menos no ofrece «Ver más»", async () => {
+		renderQueue({
+			secciones: true,
+			list: vi
+				.fn()
+				.mockResolvedValue([
+					makeItem({ id: "req-9", status: "approved", approved_by_name: DECISOR_NAME }),
+				]),
+		});
+		await rowFor("Matrícula 2026");
+		expect(screen.queryByRole("button", { name: /Ver .* más|Ver menos/ })).toBeNull();
 	});
 
 	it("`secciones` no titula un grupo vacío", async () => {

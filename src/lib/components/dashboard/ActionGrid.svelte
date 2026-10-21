@@ -5,7 +5,6 @@
 -->
 <script lang="ts">
 import { ArrowRight } from "@lucide/svelte";
-import { cn } from "$lib/utils";
 import type { DashboardAction } from "./actions";
 
 interface Props {
@@ -20,20 +19,10 @@ let { actions }: Props = $props();
 		{@const Icon = action.icon}
 		<a
 			href={action.href}
-			class={cn(
-				"group flex items-start gap-4 rounded-xl border p-5 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-				action.tone === "primary"
-					? "border-primary/30 bg-primary/5 hover:bg-primary/10"
-					: "border-border bg-card hover:bg-accent/60",
-			)}
+			class="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 		>
 			<span
-				class={cn(
-					"inline-flex size-10 shrink-0 items-center justify-center rounded-full",
-					action.tone === "primary"
-						? "bg-primary text-primary-foreground"
-						: "bg-primary/10 text-primary",
-				)}
+				class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
 			>
 				<Icon class="size-5" aria-hidden="true" />
 			</span>

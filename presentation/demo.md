@@ -17,7 +17,7 @@ description: Presentación de la demostración del portal (diapositivas para pro
 Universidad Mayor de San Simón
 
 <!--
-(00:00 · 1 min) Saludo y agradecimiento. Presentarse. Decir la duración: unos 50 minutos, con la demostración en vivo
+(00:00 · 1 min) Saludo y agradecimiento. Presentarse. Decir la duración: hasta una hora (no hay límite fijo), con la demostración en vivo
 en el centro y espacio para preguntas al final; se puede interrumpir en cualquier momento.
 Mostrar esta diapositiva mientras se abre el navegador en otra ventana, ya con el portal cargado.
 SI ALGO FALLA: el PDF también se puede proyectar; las diapositivas de demostración traen el recorrido paso a paso.
@@ -215,7 +215,7 @@ gráficos avanzados, búsqueda con paginación y el cierre por API (son los punt
 
 <!--
 (16:30 · 4 min) SIN SESIÓN iniciada (ventana de incógnito o cerrada la sesión). Abrir http://localhost:8082
-(o la URL de la demostración). Mostrar el inicio; escribir una palabra en el buscador (p. ej. «matrícula»); en los
+(o la URL de la demostración: la URL de la instancia que se presente se decide junto con el despliegue, ítem «El despliegue para presentar la demo» del BACKLOG; `localhost:8082` es la de desarrollo). Mostrar el inicio; escribir una palabra en el buscador (p. ej. «matrícula»); en los
 resultados, filtrar por organización. Entrar a un dataset: señalar la tarjeta «Resumen» a la derecha, la organización y
 la licencia. Abrir «Información técnica».
 QUÉ DECIR: es lo que ve cualquier ciudadano; no hay que iniciar sesión.
@@ -227,15 +227,15 @@ volver a lanzar la búsqueda. Plan B: mostrar las capturas de esta diapositiva (
 
 ## Demo 2 · Búsqueda con paginación
 
-- El catálogo de demostración tiene **51 conjuntos de datos**, en tres páginas de 20.
+- El catálogo de demostración tiene **más de 50 conjuntos de datos**, en tres páginas de 20.
 - Combinar **texto + filtros**; limpiar los filtros; **ordenar**.
 - La URL **conserva** la búsqueda: se puede compartir.
 
 <div class="captura">CAPTURA PENDIENTE · resultados paginados (página 2 de 3)</div>
 
 <!--
-(20:30 · 3 min · OPCIONAL) Requiere que el seed de la rama feat/seed-more-files esté corrido (51 datasets); sin él
-sólo habrá ~25 y no habrá tres páginas: en ese caso omitir y decir «el catálogo real tendrá cientos».
+(20:30 · 3 min · OPCIONAL) Requiere que el seed ampliado (rama feat/seed-more-files) esté corrido: en dev hay 52 datasets públicos,
+sin decir una cifra exacta si la instancia presentada difiere; sin el seed sólo habrá ~25 y no habrá tres páginas: en ese caso omitir y decir «el catálogo real tendrá cientos».
 Ir a /search, desplazarse hasta el paginador, pasar a la página 2, aplicar un filtro de formato (CSV) y mostrar que
 vuelve a la página 1. Copiar la URL y abrirla en otra pestaña para mostrar que guarda el estado.
 Si preguntan por rendimiento: el buscador es Solr (el de CKAN); la prueba de carga está prevista (ver «Lo que viene»).
@@ -268,15 +268,16 @@ saltar a uno con archivo subido. Plan B: capturas.
 
 - Desde la tabla de un CSV, **«Crear gráfico»**: barras, líneas o torta.
 - Se guardan como **vistas del recurso** y aparecen como pestañas.
-- **«Insertar»**: código para incrustar el gráfico en otra página (la del departamento, por ejemplo).
+- *(Sólo se menciona)* Cada gráfico se puede **incrustar** en otra página con un `<iframe>`: no se muestra en vivo.
 
-<div class="captura">CAPTURA PENDIENTE · gráfico de barras con el botón «Insertar»</div>
+<div class="captura">CAPTURA PENDIENTE · gráfico de barras con sus pestañas de vistas</div>
 
 <!--
 (27:30 · 5 min) Es el primer paso del módulo de análisis, el «núcleo diferencial» del proyecto. Con el CSV
 «Monto ejecutado por unidad»: abrir las pestañas de gráficos ya sembrados (2–3 por dataset); mostrar cómo las etiquetas
-largas del eje se giran o se parten según el espacio. Pulsar «Insertar», copiar el fragmento y pegarlo en una página de
-prueba (preparada en el apéndice) para ver el gráfico incrustado.
+largas del eje se giran o se parten según el espacio. Si hay una leyenda de dona, notar que ya no se desborda en móvil.
+EL GRÁFICO INCRUSTADO SE MENCIONA, NO SE MUESTRA (decisión del autor, L47): decir que cada gráfico tiene una dirección
+propia para incrustarlo con un iframe en otra página (la del departamento, por ejemplo), sin abrir una página de prueba.
 PARA EL PÚBLICO TÉCNICO: el gráfico se sirve en /embed/charts/<id>; el resto del portal bloquea el framing
 (X-Frame-Options / frame-ancestors) y sólo esa ruta se puede incrustar.
 Para crear uno nuevo en vivo hace falta sesión con permiso de edición: entrar como editor-fcyt (se hace en la demo 6).
@@ -402,6 +403,7 @@ SI FALLA: el dataset no aparece → el índice de búsqueda tarda unos segundos;
 - **Sección para desarrolladores**: ejemplos de consumo de la API (RF-37 y RF-38).
 - **Administración dentro del portal**: usuarios, organizaciones y permisos (hoy por CKAN).
 - **Versionado, auditoría y colecciones.**
+- **Gestión de organizaciones** dentro del portal (alta, edición, miembros).
 
 <!--
 (54:30 · 3 min) Tomado de «lo que viene» (odd/tasks/backlog-prd-reconciliation.md, anotado el 2026-10-16). El orden de
@@ -411,17 +413,38 @@ No prometer fechas.
 
 ---
 
+## Lo que se menciona, pero todavía no está
+
+- **Paginación en la vista previa de la tabla**: hoy se ven las primeras 20 filas.
+- **Editar un recurso ya guardado** (cambiar archivo, nombre o formato) desde la edición del dataset.
+- **Gráficos incrustados** (`<iframe>`) en otras páginas: la ruta existe, no se muestra.
+- **Vista previa de audio y video.**
+- **Vista previa de PDF dibujada por el portal** (PDF.js): idea a largo plazo (v2+), se vuelve a preguntar antes de v1.
+- **Estado de la carga de una tabla** (XLoader): hoy el publicador no ve si falló; issue #113.
+
+<!--
+(57:30 · 2 min) Es lo que el autor pidió MENCIONAR como no implementado (L45 y L47 de odd/tasks/v0.1.1-polish.md), sin mostrarlo.
+Decir cada punto en una frase y por qué no entra: paginación de la tabla cambia el requisito RF-31; editar recursos son
+horas si sólo es metadatos y más de un día si hay reemplazo de archivo; el gráfico incrustado se probó aparte; audio/video
+no estaban en el alcance; PDF.js es una pieza grande; la carga de XLoader tiene su issue (#113) porque los gráficos ya están
+en la demo y hay que explicar qué pasa cuando la carga falla.
+-->
+
+---
+
 ## Antes de salir a producción (v1)
 
-- **Seguridad**: revisión integral; qué hace el cierre de sesión con el token.
+- **Seguridad**: revisión integral del portal y de la política de existencia.
 - **Calidad de datos**: cargador del DataStore que normalice tipos, números locales y fechas.
 - **Operación**: revisión de versiones de todos los servicios y prueba de carga.
 - **Interoperabilidad**: metadatos DCAT / Dublin Core.
-- **Experiencia**: paginación en la vista previa, vista previa de GeoJSON, chips y etiquetas que lleven al buscador.
+- **Experiencia**: vista previa de GeoJSON, revisión del responsive de todas las páginas y rediseño de «Solicitudes».
 - **Documentación y manuales.**
 
 <!--
-(57:30 · 2 min) Titulares del BACKLOG en el nivel v1 / v1+. Elegir tres según el público: seguridad, calidad de datos y
+(59:00 · 1 min) Titulares del BACKLOG en el nivel v1 / v1+. Lo que v0.1.1 ya entregó NO va aquí: chips y etiquetas que llevan
+al buscador filtrado, colores por formato, barra de búsqueda pegajosa, historial de solicitudes en la ficha, licencias «sin
+licencia» unificadas, anclaje de scroll estable, leyenda de las donas y revocación del token al cerrar sesión. Elegir tres según el público: seguridad, calidad de datos y
 operación suelen interesar a quien mantiene sitios web. Aclarar que v1 es la entrega del proyecto: documentación,
 manuales y defensa.
 -->
@@ -435,7 +458,7 @@ manuales y defensa.
 ## Gracias
 
 <!--
-(59:30) Resumir en una frase: un portal propio sobre CKAN, con un proceso de publicación con cuatro ojos, vistas previas,
+(60:00) Resumir en una frase: un portal propio sobre CKAN, con un proceso de publicación con cuatro ojos, vistas previas,
 gráficos y API. Abrir las preguntas. Dejar esta diapositiva en pantalla.
 PREGUNTAS PROBABLES: (1) ¿cómo se despliega y quién lo mantiene? → contenedores, receta en odp-docker; (2) ¿cómo se
 integra con el dominio y el inicio de sesión institucional? → no está en v0; queda como decisión para v1; (3) ¿y los
@@ -453,9 +476,9 @@ datos sensibles? → los privados sólo los ve su organización; la política de
 Esto **no se muestra** en el proyector; sólo está en el PDF.
 
 - [ ] **Provisión**: las organizaciones y los usuarios existen (`admin-fcyt`, `editor-fcyt`, `miembro-fcyt`, `editor-fcs`).
-- [ ] **Seed corrido**: datasets, archivos y gráficos de ejemplo; **51 datasets** si la rama `feat/seed-more-files` ya se ejecutó.
+- [ ] **Seed corrido**: datasets, archivos y gráficos de ejemplo; **más de 50 datasets** si el seed ampliado (`feat/seed-more-files`) ya se ejecutó.
 - [ ] **Contraseñas** a mano en otra ventana (no proyectada), archivo `odp-docker/.demo-users`.
-- [ ] **Contenedores arriba**: `docker ps` y `http://localhost:8082` responde.
+- [ ] **Contenedores arriba**: `docker ps` y `http://localhost:8082` responde (la URL de la instancia presentada se decide con el despliegue).
 - [ ] **Navegador**: ventana limpia, sin sesión, zoom adecuado para el proyector, notificaciones apagadas.
 
 <!--
@@ -470,10 +493,9 @@ previa, y probar el inicio de sesión de los cuatro usuarios antes de empezar.
 ## Apéndice B · Material de apoyo
 
 - [ ] **Archivo de prueba** pequeño (CSV o PDF) para la subida de la demo 6.
-- [ ] **Página de prueba** con un `<iframe>` para pegar el código de «Insertar» (demo 4).
 - [ ] **Terminal** abierta con `curl` y un token de editor (demo 9, cierre opcional).
 - [ ] **Capturas** de plan B en `presentation/` (reemplazan los recuadros «CAPTURA PENDIENTE»).
-- [ ] **Hora acumulada**: 16:30 inicio de demo · 54:30 fin de demo · 60:00 cierre.
+- [ ] **Hora acumulada** (hasta una hora): 16:30 inicio de demo · 54:30 fin de demo · 60:00 cierre.
 - [ ] Si el tiempo se acorta, omitir la demo 2 y el cierre por API.
 
 <!--

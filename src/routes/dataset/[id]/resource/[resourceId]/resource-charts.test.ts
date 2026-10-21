@@ -126,6 +126,44 @@ const openChart = async () =>
 const heroBand = () =>
 	screen.getByRole("link", { name: "Descargar recurso" }).parentElement as HTMLElement;
 
+// T25 / S24: el contenedor `#vista-previa` abarca las pestañas y la ventana activa, así que el salto y «Ajustar a la
+// pantalla» funcionan con un gráfico elegido.
+describe("Página de recurso — el contenedor con un gráfico activo", () => {
+	it("#vista-previa contiene las pestañas y la ventana #grafico-<id>; «Ir a la vista previa» apunta a él", async () => {
+		render(ResourcePage);
+		await openChart();
+
+		const container = document.getElementById("vista-previa") as HTMLElement;
+		const win = await waitFor(() => {
+			const el = document.getElementById("grafico-view-1");
+			expect(el).not.toBeNull();
+			return el as HTMLElement;
+		});
+		expect(container.contains(win)).toBe(true);
+		expect(container.contains(screen.getByRole("tablist"))).toBe(true);
+		expect(screen.getByRole("link", { name: "Ir a la vista previa" })).toHaveAttribute(
+			"href",
+			"#vista-previa",
+		);
+		expect(container.className).toContain("@container");
+	});
+
+	it("«Ajustar a la pantalla» de un gráfico sube el contenedor, no sólo la ventana", async () => {
+		const scrollIntoView = vi.fn();
+		Element.prototype.scrollIntoView = scrollIntoView;
+		render(ResourcePage);
+		await openChart();
+
+		const win = await waitFor(() => {
+			const el = document.getElementById("grafico-view-1");
+			expect(el).not.toBeNull();
+			return el as HTMLElement;
+		});
+		await fireEvent.click(within(win).getByRole("button", { name: "Ajustar a la pantalla" }));
+		expect((scrollIntoView.mock.contexts.at(-1) as HTMLElement).id).toBe("vista-previa");
+	});
+});
+
 describe("Página de recurso — gráficos", () => {
 	it("un visitante anónimo ve las pestañas con íconos, el gráfico y ninguna acción", async () => {
 		render(ResourcePage);
@@ -148,7 +186,7 @@ describe("Página de recurso — gráficos", () => {
 
 		await screen.findAllByRole("tab");
 		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
-		expect(screen.getByText("Vista previa")).toBeInTheDocument();
+		expect(screen.getByText("Vista previa · Tabla")).toBeInTheDocument();
 	});
 
 	it("quien puede editar ve «Crear gráfico» en el encabezado, y «Editar» y «Eliminar» en el gráfico", async () => {
@@ -236,7 +274,7 @@ describe("Página de recurso — gráficos", () => {
 		await waitFor(() => expect(mocks.listViews).toHaveBeenCalled());
 		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
 		expect(screen.queryByText(/Cree el primero/)).toBeNull();
-		expect(screen.getByText("Vista previa")).toBeInTheDocument();
+		expect(screen.getByText("Vista previa · Tabla")).toBeInTheDocument();
 		expect(screen.queryByRole("tab")).toBeNull();
 		expect(await screen.findByRole("link", { name: /Crear gráfico/ })).toBeInTheDocument();
 	});
@@ -245,7 +283,7 @@ describe("Página de recurso — gráficos", () => {
 		mocks.listViews.mockResolvedValue([]);
 		render(ResourcePage);
 
-		await screen.findByText("Vista previa");
+		await screen.findByText("Vista previa · Tabla");
 		await waitFor(() => expect(mocks.listViews).toHaveBeenCalled());
 		expect(screen.queryByText("Este recurso todavía no tiene gráficos")).toBeNull();
 		expect(screen.queryByText(/Cuando quien publica el recurso configure uno/)).toBeNull();

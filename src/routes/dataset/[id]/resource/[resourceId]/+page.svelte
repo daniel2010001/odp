@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowDownToLine, Download, ExternalLink, FileText, Maximize2, Plus } from "@lucide/svelte";
+import { ArrowDownToLine, Download, ExternalLink, FileText, Plus } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createChartApi } from "$lib/api/charts";
@@ -17,11 +17,12 @@ import {
 } from "$lib/api/failure";
 import { createResourceApi } from "$lib/api/resources";
 import { canEditResourceCharts } from "$lib/charts/permission";
-import { ACCION_BASE } from "$lib/components/dataset/action-class";
 import MoreMenu from "$lib/components/dataset/MoreMenu.svelte";
 import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
+import PreviewWindow from "$lib/components/resource/PreviewWindow.svelte";
+import { CONTAINER_ID, shareLink, windowIdFor } from "$lib/components/resource/preview-views";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import ResourceStepper from "$lib/components/resource/ResourceStepper.svelte";
@@ -30,6 +31,7 @@ import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup, type MetaGroupData, type MetaRow } from "$lib/components/ui/meta";
+import { stateLabel } from "$lib/copy/states";
 import { env } from "$lib/env";
 import { getMockDatasetById, getMockResourceById } from "$lib/mock/data";
 import { fileUrl } from "$lib/resources/file-url";
@@ -269,17 +271,7 @@ const pageTitle = $derived.by(() => {
 // el formato declarado —un enlace es un enlace, no un archivo con formato—. El cómo vive en
 // `ResourceKindChip`, compartido con la lista del dataset.
 
-const stateLabel = $derived.by(() => {
-	switch (resource?.state) {
-		case "active":
-			return "Activo";
-		case "deleted":
-			return "Eliminado";
-		default:
-			return null;
-	}
-});
-
+const stateText = $derived(stateLabel(resource?.state));
 // ─── Derived: field list ───────────────────────────────────────
 // Render every resource_show field that has a non-empty value.
 // name/description/url/state/last_modified are rendered elsewhere.
@@ -455,32 +447,24 @@ const isLink = $derived(resource ? resourceKind(resource) === "link" : false);
 // el tipo sin vista previa (estado «none») la tienen, y ofrecer saltar a una nota vacía sería ruido.
 const hasPreview = $derived(resource ? !isLink && previewKind(resource) !== "none" : false);
 
-// Tarjeta de la vista previa, destino del salto («Ir a la vista previa» del hero y «Ajustar a la pantalla»).
+// Contenedor de la vista previa, destino del salto («Ir a la vista previa» del hero y «Ajustar a la pantalla»).
 let previewEl = $state<HTMLElement>();
 
-/**
- * Sube la tarjeta bajo el encabezado y le pasa el foco. El hueco lo da el `scroll-margin-top` de la tarjeta
- * (encabezado + 16px de aire), así que el alto de la vista previa —que ya descuenta ese aire— cabe
- * entero en la pantalla. Con `prefers-reduced-motion` el salto es instantáneo; `preventScroll` evita que el
- * foco mueva la página por segunda vez.
- */
-function fitPreview() {
-	if (!previewEl) return;
-	const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-	previewEl.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
-	previewEl.focus({ preventScroll: true });
-}
-
-// Un enlace compartido con `#vista-previa`: el navegador resuelve el fragmento antes de que la tarjeta
-// exista (llega cuando carga el recurso), así que se re-aplica **una vez**, cuando el destino aparece.
-// Mismo criterio que los saltos del buscador (`R3-001` de `review-fda3530895a9b51f`).
+// Un enlace compartido con `#vista-previa` o con el id de una ventana (`#pdf`, `#tabla`…): el navegador resuelve
+// el fragmento antes de que el destino exista (llega cuando carga el recurso), así que se re-aplica **una vez**,
+// cuando el destino aparece. Los gráficos llegan después de la lista: los resuelve `ResourceCharts`. Mismo criterio
+// que los saltos del buscador (`R3-001` de `review-fda3530895a9b51f`).
 let previewHashApplied = false;
 $effect(() => {
 	if (!previewEl || previewHashApplied) return;
-	if (window.location.hash !== `#${previewEl.id}`) return;
+	const id = window.location.hash.slice(1);
+	const target = id ? document.getElementById(id) : null;
+	if (!target || !previewEl.contains(target)) return;
 	previewHashApplied = true;
-	previewEl.scrollIntoView({ block: "start" });
+	target.scrollIntoView({ block: "start" });
 });
+
+const linkOf = (id: string) => shareLink($page.url.toString(), id);
 
 // Enlace canónico del recurso, el que copia el botón del hero.
 const resourceLink = $derived(
@@ -580,7 +564,7 @@ const resourceLink = $derived(
 				<div class="mt-4 flex flex-wrap items-center gap-2">
 					<ResourceKindChip kind={resourceKind(resource)} format={resource.format} />
 
-					{#if stateLabel}
+					{#if stateText}
 						<span
 							class={cn(
 								"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
@@ -590,7 +574,7 @@ const resourceLink = $derived(
 							)}
 						>
 							<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-							{stateLabel}
+							{stateText}
 						</span>
 					{/if}
 				</div>
@@ -689,31 +673,13 @@ const resourceLink = $derived(
 
 		<!-- Preview + metadata content -->
 		<section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+			<!-- La ventana de la vista previa (T25): la misma tarjeta y el mismo encabezado para la tabla, el PDF, la
+			     imagen y el texto (los gráficos la usan desde `ResourceCharts`). El id y el rótulo salen del tipo de
+			     vista; la nota de un enlace externo o de un tipo sin vista previa es una ventana sin id ni botones. -->
 			{#snippet previewCard()}
 				{#if resource}
-					<!-- Destino del foco. `scroll-mt` = encabezado (`--header-h`) + 1px de su borde + 16px de aire. Se lee
-					     `--header-h` y no un 4rem fijo porque el salto casi siempre parte del tope, con el encabezado
-					     aún en 5rem: al bajar, éste se encoge 16px y sube el contenido otro tanto, y con 4rem fijos la
-					     tarjeta aterrizaba 16px más arriba de lo medido (pegada al encabezado). Con la variable el
-					     margen vale 16px más cuando el encabezado está alto, justo lo que se pierde al encogerse.
-					     `tabindex="-1"` la deja recibir el foco sin entrar en el orden del teclado. -->
-					<div
-						id="vista-previa"
-						tabindex="-1"
-						bind:this={previewEl}
-						class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					>
-					<Card class="overflow-hidden border-primary/20">
-						<!-- La barra mide 41px con o sin botón (`min-h` + `h-7`): el alto de la vista previa descuenta ese número. -->
-						<div class="flex min-h-[41px] flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-5 py-1.5">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Vista previa</p>
-							{#if hasPreview}
-								<button type="button" onclick={fitPreview} class={cn(ACCION_BASE, "h-7 px-2.5 text-xs")}>
-									<Maximize2 class="size-3.5" aria-hidden="true" />
-									Ajustar a la pantalla
-								</button>
-							{/if}
-						</div>
+					{@const win = isLink ? null : windowIdFor(previewKind(resource))}
+					<PreviewWindow id={win?.id} label={win?.label} link={win ? linkOf(win.id) : ""}>
 						{#if isLink}
 							<!-- Nota compacta. La CAJA era el problema, no el texto: 220px de alto mínimo, 40px de padding
 							     y un círculo de 64px para una sola oración. El copy se conserva palabra por palabra porque
@@ -730,27 +696,38 @@ const resourceLink = $derived(
 						{:else}
 							<ResourcePreview resource={resource} datastore={datastoreApi} />
 						{/if}
-					</Card>
-					</div>
+					</PreviewWindow>
 				{/if}
 			{/snippet}
 
-			<!-- Con tabla en el DataStore la vista previa es la pestaña «Tabla» y cada gráfico `umss_chart` tiene la
-			     suya. Es el mismo marcador que gobierna la vista previa y la sección de la API. Sin tabla no hay
-			     pestañas: queda la vista previa sola. -->
-			{#if resource.datastore_active === true}
-				{#key resource.id}
-					<ResourceCharts
-						resourceId={resource.id}
-						datasetId={datasetId ?? ""}
-						api={chartApi}
-						canEdit={canEditCharts}
-						table={previewCard}
-					/>
-				{/key}
-			{:else}
-				{@render previewCard()}
-			{/if}
+			<!-- El contenedor `#vista-previa` abarca las pestañas y la ventana de la vista activa: es el destino del
+			     salto («Ir a la vista previa») y de «Ajustar a la pantalla», así que funcionan con un gráfico activo.
+			     `scroll-mt` = encabezado ACHICADO (`--header-h-min`, el estado en que queda al llegar) + 1px de su
+			     borde + `--sticky-air`. Es contenedor de consultas (`@container`): los botones de las ventanas
+			     (24 rem) y las pestañas (32 rem) responden a su ancho. `tabindex="-1"` lo deja recibir el foco sin
+			     entrar en el orden del teclado. Con tabla en el DataStore la vista previa es la pestaña «Tabla» y cada
+			     gráfico `umss_chart` tiene la suya. Es el mismo marcador que gobierna la vista previa y la sección de
+			     la API. Sin tabla no hay pestañas: queda la vista previa sola. -->
+			<div
+				id={CONTAINER_ID}
+				tabindex="-1"
+				bind:this={previewEl}
+				class="@container scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			>
+				{#if resource.datastore_active === true}
+					{#key resource.id}
+						<ResourceCharts
+							resourceId={resource.id}
+							datasetId={datasetId ?? ""}
+							api={chartApi}
+							canEdit={canEditCharts}
+							table={previewCard}
+						/>
+					{/key}
+				{:else}
+					{@render previewCard()}
+				{/if}
+			</div>
 
 		<!-- API content -->
 		<!-- El gate es `datastore_active`, no `resource_type`: `resource_type` es un campo heredado que

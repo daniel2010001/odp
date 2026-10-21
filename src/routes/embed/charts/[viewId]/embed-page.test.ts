@@ -6,6 +6,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "$app/stores";
 import type { ChartView } from "$lib/api/charts";
+import { describeFailure } from "$lib/api/failure";
 import type { ChartData, NormalizedChartConfig } from "$lib/charts/contract";
 import { auth } from "$lib/stores/auth";
 import { CkanApiError } from "$lib/types/api";
@@ -157,6 +158,12 @@ describe("/embed/charts/[viewId]", () => {
 		render(EmbedPage);
 
 		expect(await screen.findByText("No se pudo cargar el gráfico")).toBeInTheDocument();
+		// La frase es la de `failure.ts`, no una copia local.
+		expect(
+			screen.getByText(
+				describeFailure(new CkanApiError("x", 500), "resource", "anonymous").message,
+			),
+		).toBeInTheDocument();
 		await fireEvent.click(screen.getByRole("button", { name: "Intentar nuevamente" }));
 
 		expect(await screen.findByRole("heading", { name: "Salario por turno" })).toBeInTheDocument();

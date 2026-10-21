@@ -23,6 +23,15 @@ function entradas() {
 }
 
 describe("RequestHistory", () => {
+	it("un estado que el portal no conoce no rompe la tarjeta: se lee «Estado desconocido»", () => {
+		const futura = fila({ status: "escalated" as unknown as PublicationRequest["status"] });
+		render(RequestHistory, { rows: [futura] });
+		const [e] = entradas();
+		expect(within(e).getByText("Estado desconocido")).toBeTruthy();
+		expect(within(e).getByText("Pedida por Ana Flores el 17 de octubre de 2026")).toBeTruthy();
+		expect(e.textContent).not.toMatch(/escalated/);
+	});
+
 	it("sin filas no dibuja la tarjeta", () => {
 		render(RequestHistory, { rows: [] });
 		expect(screen.queryByTestId("historial-solicitudes")).toBeNull();

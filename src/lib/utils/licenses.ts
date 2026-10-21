@@ -1,65 +1,39 @@
-// Labels legibles para los ids de licencia de CKAN.
-// El facet `license_id` devuelve ids crudos (ej: "cc-by"), pero el usuario
-// necesita un nombre legible (ej: "CC BY — Atribución"). Los datasets ya
-// traen `license_title`, pero el facet solo expone el id.
+// Etiquetas en español de las licencias, una sola fuente para el facet de búsqueda, la ficha del
+// dataset y el formulario.
+//
+// La tabla está indexada por los ids de la propia lista de CKAN (`license_list`): son los únicos ids
+// que el formulario ofrece y los que quedan guardados en `license_id`. CKAN trae sus títulos en inglés
+// ("Creative Commons Attribution"); el portal sólo pone el nombre en español encima.
+//
+// Medido contra el CKAN de desarrollo (2026-10-20): `license_list` devuelve 15 ids y `package_show`
+// repite el título en inglés en `license_title`. Un id que CKAN agregue y que esta tabla aún no tenga
+// se muestra con el título de CKAN (legible), nunca con el id desfigurado.
 
 const LICENSE_LABELS: Record<string, string> = {
-	"cc-by": "CC BY — Atribución",
-	"cc-by-sa": "CC BY-SA — Atribución-CompartirIgual",
-	"cc-by-nc": "CC BY-NC — Atribución-NoComercial",
-	"cc-by-nc-sa": "CC BY-NC-SA — Atribución-NoComercial-CompartirIgual",
-	"cc-by-nd": "CC BY-ND — Atribución-SinDerivadas",
-	"cc-by-nc-nd": "CC BY-NC-ND — Atribución-NoComercial-SinDerivadas",
-	"cc-zero": "CC0 — Dominio Público",
-	cc0: "CC0 — Dominio Público",
-	"cc0-1.0": "CC0 — Dominio Público",
-	odbl: "ODbL — Open Database License",
-	"odc-odbl": "ODbL — Open Database License",
-	"odc-by": "ODC-BY — Atribución",
-	pddl: "PDDL — Dominio Público",
-	"other-open": "Otra (abierta)",
-	"other-at": "Otra (atribución)",
-	"other-closed": "Otra (cerrada)",
-	other: "Otra",
 	notspecified: "Sin especificar",
-};
-
-// Etiquetas **curadas** del portal para los ids que `license_list` de CKAN ofrece de verdad.
-//
-// Medido contra el CKAN en ejecución (2026-09-13): `license_list` devuelve 15 ids y la lista
-// genérica de arriba contenía 4 que no existen allí (`cc-by-nc`, `cc-by-nc-sa`, `cc0-1.0`,
-// `pddl`), mientras que faltaba `odc-pddl`. `licenseLabel` y `mapLicenseItems` mantienen su
-// comportamiento (con fallback), así que esta es la única lista **curada** que usa el wizard:
-// sólo devuelve un label cuando el id tiene una entrada curada, y `null` en cualquier otro caso.
-const CURATED_LICENSE_LABELS: Record<string, string> = {
-	"cc-by": "CC BY — Atribución",
-	"cc-by-sa": "CC BY-SA — Atribución-CompartirIgual",
-	"cc-by-nd": "CC BY-ND — Atribución-SinDerivadas",
-	"cc-by-nc-nd": "CC BY-NC-ND — Atribución-NoComercial-SinDerivadas",
-	"cc-zero": "CC0 — Dominio Público",
-	cc0: "CC0 — Dominio Público",
-	odbl: "ODbL — Open Database License",
-	"odc-odbl": "ODbL — Open Database License",
-	"odc-by": "ODC-BY — Atribución",
 	"odc-pddl": "PDDL — Dominio Público",
+	"odc-odbl": "ODbL — Open Database License",
+	"odc-by": "ODC-BY — Atribución",
+	"cc-zero": "CC0 — Dominio Público",
+	"cc-by": "CC BY — Atribución",
+	"cc-by-sa": "CC BY-SA — Atribución-CompartirIgual",
+	gfdl: "GFDL — Licencia de Documentación Libre de GNU",
 	"other-open": "Otra (abierta)",
+	"other-pd": "Otra (dominio público)",
 	"other-at": "Otra (atribución)",
+	"uk-ogl": "OGL — Licencia de Gobierno Abierto del Reino Unido",
+	"cc-nc": "CC NC — NoComercial",
+	"other-nc": "Otra (no comercial)",
 	"other-closed": "Otra (cerrada)",
-	other: "Otra",
-	notspecified: "Sin especificar",
 };
-
-/** Devuelve un label legible para un id de licencia, o el id capitalizado. */
-export function licenseLabel(id: string): string {
-	return LICENSE_LABELS[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
-}
 
 /**
- * Label curado en español para un id de licencia, o `null` si ese id no tiene una entrada
- * curada (p. ej. un id que CKAN no ofrece o uno desconocido).
+ * Etiqueta legible de una licencia: la del portal si el id está en la tabla; si no, el título que
+ * CKAN trae; si tampoco hay título, el id tal cual. Sin id ni título, «Sin especificar».
  */
-export function curatedLicenseLabel(id: string): string | null {
-	return CURATED_LICENSE_LABELS[id] ?? null;
+export function labelFor(id?: string | null, ckanTitle?: string | null): string {
+	if (id && LICENSE_LABELS[id]) return LICENSE_LABELS[id];
+	return ckanTitle?.trim() || id || LICENSE_LABELS.notspecified;
 }
 
 /** Convierte items de un facet `license_id` a labels legibles. */
@@ -68,6 +42,14 @@ export function mapLicenseItems<T extends { name: string; count: number }>(
 ): (T & { display_name: string })[] {
 	return items.map((item) => ({
 		...item,
-		display_name: licenseLabel(item.name),
+		display_name: labelFor(item.name),
 	}));
+}
+
+/**
+ * @deprecated Sólo lo usa el playground `/dev/dataset-edit` (fuera del alcance de la unificación);
+ * usar `labelFor`. Se borra con ese playground.
+ */
+export function curatedLicenseLabel(id: string): string | null {
+	return LICENSE_LABELS[id] ?? null;
 }

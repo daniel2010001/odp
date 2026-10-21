@@ -180,3 +180,16 @@ describe("foco visible del enlace de la card", () => {
 		expect(link.className).toContain("rounded-xl");
 	});
 });
+
+describe("DatasetCard — chips de formato con el mapa compartido", () => {
+	it("cada chip lleva el punto del token de su formato; un desconocido, neutro; sin colores crudos", () => {
+		render(DatasetCard, { props: { dataset: makeDataset({ formats: ["CSV", "PNG", "ZZZ"] }) } });
+		const dot = (name: string) => screen.getByText(name).querySelector("span[aria-hidden]");
+		expect(dot("CSV")).toHaveClass("bg-chart-1");
+		expect(dot("PNG")?.className).toMatch(/bg-chart-\d/);
+		expect(dot("ZZZ")).toHaveClass("bg-muted-foreground");
+		for (const f of ["CSV", "PNG", "ZZZ"]) {
+			expect(screen.getByText(f).className).not.toMatch(/-(red|blue|teal|emerald|violet)-\d/);
+		}
+	});
+});

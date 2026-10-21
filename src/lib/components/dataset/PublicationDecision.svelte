@@ -48,9 +48,13 @@ const UNCONFIRMED_DECIDE = "El catálogo no confirmó la decisión.";
 // La frase que el usuario lee cuando el fallo al decidir no es de autorización. Es **nuestra**: el dato
 // técnico va detrás, como dato secundario.
 const DECIDE_FAILED = "No se pudo registrar la decisión.";
+// La carrera del contrato: otra persona decidió mientras ésta miraba. Se distingue por la clave
+// `request_id` del `409`, no por el texto, y pide recargar en vez de reintentar.
+const ALREADY_DECIDED =
+	"Esta solicitud ya fue decidida por otra persona. Recargue la página para ver su estado.";
 
 type Outcome = {
-	kind: "refused" | "unconfirmed" | "error" | "reason-required";
+	kind: "refused" | "unconfirmed" | "error" | "reason-required" | "already-decided";
 	message: string;
 	/** El dato técnico que sigue a la frase; `null` cuando no hay ninguno que citar. */
 	technical?: string | null;
@@ -174,10 +178,14 @@ async function decideOn(approve: boolean) {
 			outcome = { kind: "unconfirmed", message: UNCONFIRMED_DECIDE };
 		}
 	} catch (err) {
+		const yaDecidida =
+			err instanceof CkanApiError && err.status === 409 && err.payload?.request_id !== undefined;
 		outcome =
 			err instanceof CkanApiError && err.status === 403
 				? { kind: "refused", message: REFUSED_DECIDE }
-				: {
+				: yaDecidida
+					? { kind: "already-decided", message: ALREADY_DECIDED }
+					: {
 						kind: "error",
 						message: DECIDE_FAILED,
 						technical: technicalDetail(err),

@@ -127,7 +127,8 @@ $effect(() => {
 	{@render compactState(noneCopy)}
 {:else if kind === "pdf"}
 	<!-- Alto del PDF: llena la pantalla bajo el encabezado (100dvh − 65px del encabezado encogido, con su
-	     borde − 41px de la barra de la tarjeta − 2px de los bordes de la tarjeta − 2 × 16px de aire = 140px), sin pasar de 1,3 veces el ancho de la columna
+	     borde − 41px de la barra de la tarjeta − 2px de los bordes de la tarjeta − 2 × 16px de aire = 140px,
+	     y además la barra de pestañas, `--tabs-h`, que pone el contenedor), sin pasar de 1,3 veces el ancho de la columna
 	     (`cqw`, del contenedor de abajo; una hoja vertical) y sin bajar de 520px. En una pantalla baja
 	     manda el piso de 520px y la página se desplaza; el de 240px sólo protege a ventanas diminutas. -->
 	<div class="@container">
@@ -135,19 +136,21 @@ $effect(() => {
 			src={sourceUrl}
 			title={`Vista previa de ${resource.name}`}
 			loading="lazy"
-			class="h-[min(max(240px,calc(100dvh-140px)),max(520px,130cqw))] w-full"
+			class="h-[min(max(240px,calc(100dvh-140px-var(--tabs-h,0px))),max(520px,130cqw))] w-full"
 		></iframe>
 	</div>
 {:else if kind === "image"}
+	<!-- Misma regla de alto que el PDF, y además el relleno de la tarjeta (`p-4` = 32px): 140px + 32px = 172px. -->
 	<div class="flex items-center justify-center p-4">
 		<img
 			src={sourceUrl}
 			alt={resource.name}
-			class="h-auto max-h-[max(360px,calc(100dvh-140px))] w-full object-contain"
+			class="h-auto max-h-[max(360px,calc(100dvh-172px-var(--tabs-h,0px)))] w-full object-contain"
 		/>
 	</div>
 {:else}
 	<!--
+		El texto usa la misma regla de alto que el PDF y la imagen (llena la pantalla).
 		El texto se muestra en un `<iframe>` y no con un `fetch`: la API de CKAN no manda cabeceras
 		CORS, así que el navegador no puede leer un archivo de otro origen. El `<iframe>` no necesita
 		CORS porque no lee el contenido, lo muestra.
@@ -156,6 +159,6 @@ $effect(() => {
 		src={sourceUrl}
 		title={`Vista previa de ${resource.name}`}
 		loading="lazy"
-		class="h-[clamp(360px,55dvh,720px)] w-full"
+		class="h-[max(360px,calc(100dvh-140px-var(--tabs-h,0px)))] w-full"
 	></iframe>
 {/if}

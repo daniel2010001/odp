@@ -110,7 +110,7 @@ import {
 	validateResourceFile,
 } from "$lib/utils/dataset-payload";
 import { safeExternalUrl } from "$lib/utils/external-url";
-import { curatedLicenseLabel } from "$lib/utils/licenses";
+import { labelFor } from "$lib/utils/licenses";
 
 // ─── Constantes ──────────────────────────────────────────────────────
 const LIMIT_MB = MAX_RESOURCE_BYTES / 1024 / 1024;
@@ -843,7 +843,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 					>
 						<option value="">Sin especificar</option>
 						{#each licenciasOfrecidas as license (license.id)}
-							<option value={license.id}>{curatedLicenseLabel(license.id) ?? license.title}</option>
+							<option value={license.id}>{labelFor(license.id, license.title)}</option>
 						{/each}
 					</select>
 					{#if licensesLoading}

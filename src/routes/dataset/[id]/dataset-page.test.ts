@@ -644,7 +644,7 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 
 	it("el resumen trae los cuatro datos clave", async () => {
 		await renderTechnicalCard(FULL());
-		const summary = screen.getByText("Resumen").closest("div") as HTMLElement;
+		const summary = document.getElementById("resumen") as HTMLElement;
 
 		for (const [label, value] of [
 			["Lo mantiene", "María Rojas"],
@@ -668,7 +668,7 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 
 	it("con pocos datos el resumen omite los hechos que faltan, no los inventa", async () => {
 		await renderTechnicalCard(makeDataset());
-		const summary = screen.getByText("Resumen").closest("div") as HTMLElement;
+		const summary = document.getElementById("resumen") as HTMLElement;
 
 		expect(within(summary).queryByText("Lo mantiene")).toBeNull();
 		expect(within(summary).queryByText("Se actualiza")).toBeNull();
@@ -741,7 +741,10 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 	it("sólo se copian los correos, el sitio de origen, la dirección web y el identificador", async () => {
 		const card = await renderTechnicalCard(FULL());
 
-		const buttons = within(card).getAllByRole("button");
+		// El ícono de enlace de la sección (T25) no es un dato de la ficha: se cuenta aparte.
+		const buttons = within(card)
+			.getAllByRole("button")
+			.filter((b) => !b.getAttribute("aria-label")?.startsWith("Copiar enlace a la sección"));
 		expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
 			"Copiar correo del autor",
 			"Copiar correo del mantenedor",
@@ -1552,7 +1555,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 		const withLicense = (extra: Partial<CkanPackage> = {}) =>
 			makeDataset({
 				license_id: "cc-by",
-				license_title: "Creative Commons Atribución 4.0",
+				license_title: "CC BY — Atribución",
 				license_url: "https://creativecommons.org/licenses/by/4.0/deed.es",
 				...extra,
 			});
@@ -1562,10 +1565,10 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			render(DatasetPage);
 
 			const name = await screen.findByRole("link", {
-				name: "Ver datasets con licencia Creative Commons Atribución 4.0 en el catálogo",
+				name: "Ver datasets con licencia CC BY — Atribución en el catálogo",
 			});
 			expect(name).toHaveAttribute("href", "/search?license=cc-by");
-			expect(name.textContent?.trim()).toBe("Creative Commons Atribución 4.0");
+			expect(name.textContent?.trim()).toBe("CC BY — Atribución");
 		});
 
 		it("los términos tienen su propia fila «Términos»: enlace externo en otra pestaña con nombre accesible explícito", async () => {
@@ -1573,7 +1576,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			render(DatasetPage);
 
 			const terms = await screen.findByRole("link", {
-				name: "Ver los términos de la licencia Creative Commons Atribución 4.0 (sitio externo, se abre en otra pestaña)",
+				name: "Ver los términos de la licencia CC BY — Atribución (sitio externo, se abre en otra pestaña)",
 			});
 			expect(terms).toHaveAttribute("href", "https://creativecommons.org/licenses/by/4.0/deed.es");
 			expect(terms).toHaveAttribute("target", "_blank");
@@ -1615,9 +1618,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 			expect(screen.queryByRole("link", { name: /Ver datasets con licencia/ })).toBeNull();
 			expect(
-				within(screen.getByText("Resumen").closest("div") as HTMLElement).getByText(
-					"Creative Commons Atribución 4.0",
-				),
+				within(document.getElementById("resumen") as HTMLElement).getByText("CC BY — Atribución"),
 			).toBeInTheDocument();
 		});
 	});
@@ -1694,5 +1695,114 @@ describe("Página de dataset — el historial de solicitudes (T14)", () => {
 
 		expect(await screen.findByTestId("estado-solicitud")).toBeTruthy();
 		expect(await screen.findByTestId("historial-solicitudes")).toBeTruthy();
+	});
+});
+
+// ─── Anclas de sección (v0.1.1, T25 / S24, variante A del autor, L52) ────────────────────────────
+// Siete secciones con id y un ícono de enlace junto a su título (visible al pasar el cursor o enfocar; siempre en
+// táctil) que copia la URL completa con el fragmento, sin cambiar la URL de la página. Los ids son el destino de
+// las filas «Ver…» y de las URL compartidas; el margen de desplazamiento deja la sección bajo el encabezado fijo.
+describe("Página de dataset — anclas de sección", () => {
+	const SECCIONES: Array<[id: string, titulo: string]> = [
+		["resumen", "Resumen"],
+		["recursos", "Recursos"],
+		["licencia", "Términos"],
+		["info-tecnica", "Información técnica"],
+		["historial", "Historial de solicitudes"],
+		["organizacion", "Organización"],
+		["citar", "Citar como"],
+	];
+	const SCROLL_MT = "scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]";
+
+	async function renderCompleta() {
+		auth.setUser(makeUser());
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({
+				organization: makeOrganization(),
+				license_id: "cc-by",
+				license_title: "CC BY — Atribución",
+				license_url: "https://creativecommons.org/licenses/by/4.0/deed.es",
+			}),
+		);
+		mocks.historyRequests.mockResolvedValue([makeRow({ id: "r1", status: "cancelled" })]);
+		render(DatasetPage);
+		await screen.findByTestId("historial-solicitudes");
+	}
+
+	it.each(
+		SECCIONES,
+	)("#%s existe y deja el título bajo el encabezado fijo (scroll-margin)", async (id) => {
+		await renderCompleta();
+
+		const seccion = document.getElementById(id) as HTMLElement;
+		expect(seccion).not.toBeNull();
+		expect(seccion.className).toContain(SCROLL_MT);
+		// El margen usa el aire compartido: ni 1rem ni 17px sueltos.
+		expect(seccion.className).not.toMatch(/\+(1rem|17px)\)/);
+	});
+
+	it.each(
+		SECCIONES,
+	)("#%s lleva un ícono de enlace que copia la URL completa con su fragmento", async (id, titulo) => {
+		await renderCompleta();
+
+		const boton = within(document.getElementById(id) as HTMLElement).getByRole("button", {
+			name: `Copiar enlace a la sección ${titulo}`,
+		});
+		await fireEvent.click(boton);
+		await waitFor(() =>
+			expect(mocks.copyToClipboard).toHaveBeenCalledWith(`http://localhost${DATASET_PATH}#${id}`),
+		);
+		// Copiar no navega ni escribe la URL de la página.
+		expect(goto).not.toHaveBeenCalled();
+		expect(window.location.hash).toBe("");
+	});
+
+	it("el ícono es sólo ícono, aparece al pasar el cursor o enfocar y queda siempre visible en táctil", async () => {
+		await renderCompleta();
+
+		const boton = within(document.getElementById("recursos") as HTMLElement).getByRole("button", {
+			name: "Copiar enlace a la sección Recursos",
+		});
+		expect(boton.textContent?.trim()).toBe("");
+		expect(boton.className).toContain("opacity-0");
+		expect(boton.className).toContain("group-hover/ancla:opacity-100");
+		expect(boton.className).toContain("focus-visible:opacity-100");
+		expect(boton.className).toContain("[@media(hover:none)]:opacity-100");
+		expect(boton.className).toContain("motion-reduce:transition-none");
+	});
+
+	it("la URL copiada conserva la consulta de la página", async () => {
+		pageStore.set({
+			params: { id: "matricula-2026" },
+			url: new URL(`http://localhost${DATASET_PATH}?from=search`),
+		});
+		await renderCompleta();
+
+		await fireEvent.click(
+			screen.getByRole("button", { name: "Copiar enlace a la sección Citar como" }),
+		);
+		await waitFor(() =>
+			expect(mocks.copyToClipboard).toHaveBeenCalledWith(
+				`http://localhost${DATASET_PATH}?from=search#citar`,
+			),
+		);
+	});
+
+	it("las filas «Ver…» siguen apuntando a un id que existe", async () => {
+		await renderCompleta();
+
+		const link = screen.getByRole("link", { name: "Ver la información técnica" });
+		expect(link).toHaveAttribute("href", "#info-tecnica");
+		expect(document.getElementById("info-tecnica")).not.toBeNull();
+	});
+
+	it("sin organización o sin historial esas secciones no existen (no hay ids huérfanos)", async () => {
+		mocks.showDataset.mockResolvedValue(makeDataset());
+		render(DatasetPage);
+		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
+
+		expect(document.getElementById("organizacion")).toBeNull();
+		expect(document.getElementById("historial")).toBeNull();
 	});
 });
