@@ -102,7 +102,7 @@ const buttonClass = $derived(
 
 {#snippet face()}
 	{#if copier.copied}
-		<Check class={cn(s.icon, "text-emerald-700 dark:text-emerald-400")} aria-hidden="true" />
+		<Check class={cn(s.icon, "text-positive")} aria-hidden="true" />
 	{:else}
 		<Idle class={s.icon} aria-hidden="true" />
 	{/if}

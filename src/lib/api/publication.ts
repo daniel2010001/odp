@@ -178,11 +178,20 @@ export function createPublicationApi(client: CkanClient) {
 		 * catálogo (`sort`), no el portal. La visibilidad es la de `list`: quien no administra ni edita la
 		 * organización recibe sólo las suyas, o ninguna.
 		 */
+		//
+		// `datasetId` es el **id** del dataset (no el `name`): la guarda de abajo compara contra `dataset_id`
+		// de la fila, que guarda el id. La guarda existe porque un catálogo anterior a la 0002 ignora
+		// `dataset_id` y `sort` sin error y devuelve toda la cola visible, de la más vieja a la más nueva
+		// (medido por odp-docker en la instancia demo, 2026-10-20): sin ella la tarjeta mostraría solicitudes
+		// de otros datasets. Con un catálogo actualizado no cambia nada.
 		async history(datasetId: string): Promise<PublicationRequest[]> {
-			return client.get<PublicationRequest[]>("publication_request_list", {
+			const filas = await client.get<PublicationRequest[]>("publication_request_list", {
 				dataset_id: datasetId,
 				sort: "created_at desc",
 			});
+			return filas
+				.filter((fila) => fila.dataset_id === datasetId)
+				.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 		},
 	};
 }

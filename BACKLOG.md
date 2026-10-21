@@ -195,10 +195,8 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > - **Decisión del autor, ya registrada arriba**: el quirk del sysadmin (`R4-sysadmin-gate-ineffective`).
 > - **Queda abierto:**
 >
-> - [ ] **La hoja y la ficha tienen cada una su `reflejarDecision`** (`dev/publication/+page.svelte` vs
->   `dataset/[id]/+page.svelte`): el mismo reflejo del estado, escrito dos veces. Es superficie **sólo de
->   desarrollo**, así que el costo es **deriva**, no comportamiento; si se unifican, la ocasión natural es
->   el **TODO de localización** de arriba, que ya va a tocar esa tarjeta. **Tier: lo define el autor.**
+> - ~~**La hoja y la ficha tienen cada una su `reflejarDecision`.**~~ **CERRADO (2026-10-21):** la hoja
+>   `/dev/publication` se borró (T36), así que ya no hay una segunda copia.
 
 > **Pregunta del autor (2026-10-15): si en una organización sólo existe quien la administra, y es además quien pidió
 > la publicación, ¿quién la revisa?** Medido en la acción del store —`ckanext-umss/logic/auth/publication.py`,
@@ -427,7 +425,6 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > - **El mecanismo de tooltip de las acciones del hero** — los tres deberían usar el `Tooltip` vendorizado (que
 >   alcanza el foco del teclado), no el `title` nativo.
 > - **El diseño del grupo «Resueltas»** de la cola, que el autor puso **después de promover**.
-> - **Su revisión en el navegador de la hoja `/dev/publication`**.
 > - ~~**Si un `admin` ve las dos affordances o sólo la cola.**~~ **CERRADA (2026-10-08):** nadie ve el control
 >   directo, el `sysadmin` incluido (punto 1 de arriba). El ítem se cierra acá **en vez de agregarse la
 >   respuesta al lado**: la pregunta se le hizo al autor cuatro veces justamente por haber quedado abierta en
@@ -2662,7 +2659,27 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v0.1.1] El despliegue para presentar la demo, fuera del modo dev** (pedido del autor, 2026-10-08): con **datos de prueba**,
   un «lo que tenemos y lo que faltaría» escrito y **funcional en otras infraestructuras** (considera un VPN o algún servicio). Necesita
   al autor y a `odp-docker`; de aquí sale la URL de la instancia que se presenta (`presentation/demo.md` usa `http://localhost:8082`).
+  **Estado medido por odp-docker (2026-10-20, sólo lectura); el autor eligió presentar desde `https://demo.odp.hs.lan`:**
+  la instancia está **detenida** (~31 h); su portal es **v0.1.0** (imagen del 2026-10-19 12:32, sin nada de v0.1.1); su CKAN
+  está en la migración **0001** (sin el historial; la imagen hornea el código, hay que reconstruirla desde master ≥ `8655f4d`);
+  tiene **21 datasets** públicos (sin los 30 del seed) y los cuatro usuarios de la demo; 0 licencias vacías; sus credenciales
+  de base son **distintas** de las expuestas en septiembre y el debug está apagado. Para presentar v0.1.1 falta: reconstruir
+  el frontend desde `main`, reconstruir CKAN con la 0002, sembrar S18 (choca con los cuatro ojos en fcyt: ver el ítem del
+  seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
+
+- [ ] **[v1] Historial de solicitudes paginado y con filtros** (propuesta aceptada por el autor, 2026-10-21, L65 de
+  `odd/tasks/v0.1.1-polish.md`). Hoy «Solicitudes» pide todas las filas visibles en una llamada y muestra las pendientes y las
+  últimas resueltas con «Ver N más»: no escala. Pendientes = trabajo (todas, de la más vieja a la más nueva; paginar si
+  pasan de ~20). Resueltas = archivo: en la página sólo las últimas, y «Ver el historial completo» lleva a una vista paginada
+  de 20 en 20 (el paginador del buscador), de la más nueva a la más vieja, con filtros por organización, estado, solicitante,
+  rango de fechas y búsqueda por título de dataset. **Depende de odp-docker:** `publication_request_list` con `limit`/`offset`
+  y el total (aditivo, como la 0002), y los filtros de fecha y título del lado del catálogo.
+
+- [ ] **[v1] Rediseñar el menú de filtros del buscador para unificarlo con el resto** (autor, 2026-10-20, L63 de
+  `odd/tasks/v0.1.1-polish.md`: «tenemos que tocar el diseño del filter menu del search, ahora el diseño queda un poco feo y
+  algo "anticuado" en cuanto a los cambios que hicimos en otros lados […] para "unificar" el diseño de toda la plataforma»).
+  Con playground. **Tier: v1** (decisión del autor, L64).
 
 - [ ] **[v0.1.1/v1] Auditoría de colores fijos y mapas a mano (2026-10-20, pregunta del autor en L53: «qué otros ítems también
   nos estamos perdiendo?»).** Lo encontrado, por visibilidad (`odd/tasks/v0.1.1-polish.md` L54):
@@ -2689,11 +2706,10 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   basta, pero sería una buena forma de "sobresalir" de otras plataformas, volvamos a preguntar para v1 o v1+»). Hoy el PDF lo
   dibuja el visor del navegador; un diseño propio exige `pdfjs-dist` (dependencia de varios MB con worker) y rehacer buscar e
   imprimir. **Volver a preguntar al autor al planear v1/v1+**; el tier no es definitivo.
-- [ ] **[v1] Rediseño de la página «Solicitudes»** (autor, 2026-10-20, L53: «tocar el diseño de esa page de request, podemos
-  hacerlo después?»). Con playground. **L55: se planifica EN ESTA SESIÓN (S36), tras terminar los workers.** Antes, S30: la página sólo
-  pide las pendientes; hay que cargar también las resueltas.
+- [ ] **[v1] Pasada de refactor tras las promociones de v0.1.1** (pregunta del autor, L53): cada unidad hizo su refactor en el
   ciclo de test, pero no hubo una pasada que junte lo duplicado entre promociones (tarjetas, botones, mapas). Hacerla con
   la suite verde y sin cambiar comportamiento.
+  - `/dev/kind` se borra si la página del recurso adopta los iconos por formato (`ResourceKindChip` es hoy su único componente vivo).
 
 - [ ] **[v1] El seed choca con los cuatro ojos en una instalación con usuarios** (medido por odp-docker al correr el seed en
   dev, 2026-10-20): `seed-ckan.mjs` pide y aprueba la publicación como `ckan_admin`, y eso sólo pasa la regla «the approver

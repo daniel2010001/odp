@@ -951,7 +951,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 	});
 
 	it("la tarjeta encabeza la columna lateral, antes de «Citar como»: el aprobador no tiene que bajar", async () => {
-		// Variante C de `/dev/requests-position`, elegida por el autor (2026-10-19, textual: «para
+		// Variante C de la posición de las solicitudes, elegida por el autor (2026-10-19, textual: «para
 		// dev/requests-position creo que me voy por la C»). La columna lateral es pegajosa en escritorio.
 		setParams({ id: "matricula-2026" });
 		mocks.showDataset.mockResolvedValue(
@@ -1591,8 +1591,30 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			);
 		});
 
-		it("sin `license_url` no hay fila «Términos» ni enlace externo, pero el nombre sigue filtrando", async () => {
-			mocks.showDataset.mockResolvedValue(withLicense({ license_url: undefined }));
+		it("con un id conocido, «Términos» usa la página oficial en español aunque CKAN traiga otra", async () => {
+			mocks.showDataset.mockResolvedValue(
+				withLicense({ license_url: "http://www.opendefinition.org/licenses/cc-by" }),
+			);
+			render(DatasetPage);
+
+			const terms = await screen.findByRole("link", { name: /Ver los términos de la licencia/ });
+			expect(terms).toHaveAttribute("href", "https://creativecommons.org/licenses/by/4.0/deed.es");
+		});
+
+		it("con un id desconocido, «Términos» usa la dirección de CKAN", async () => {
+			mocks.showDataset.mockResolvedValue(
+				withLicense({ license_id: "nueva", license_url: "https://example.org/terminos" }),
+			);
+			render(DatasetPage);
+
+			const terms = await screen.findByRole("link", { name: /Ver los términos de la licencia/ });
+			expect(terms).toHaveAttribute("href", "https://example.org/terminos");
+		});
+
+		it("sin `license_url` ni página mapeada no hay fila «Términos» ni enlace externo, pero el nombre sigue filtrando", async () => {
+			mocks.showDataset.mockResolvedValue(
+				withLicense({ license_id: "other-open", license_url: undefined }),
+			);
 			render(DatasetPage);
 
 			await screen.findByRole("link", { name: /Ver datasets con licencia/ });
@@ -1601,7 +1623,9 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 		});
 
 		it("una dirección que no es web (`javascript:`) no se ofrece como enlace de términos", async () => {
-			mocks.showDataset.mockResolvedValue(withLicense({ license_url: "javascript:alert(1)" }));
+			mocks.showDataset.mockResolvedValue(
+				withLicense({ license_id: "nueva", license_url: "javascript:alert(1)" }),
+			);
 			render(DatasetPage);
 
 			await screen.findByRole("link", { name: /Ver datasets con licencia/ });

@@ -214,8 +214,8 @@ gráficos avanzados, búsqueda con paginación y el cierre por API (son los punt
 <div class="captura">CAPTURA PENDIENTE · inicio y búsqueda con facetas</div>
 
 <!--
-(16:30 · 4 min) SIN SESIÓN iniciada (ventana de incógnito o cerrada la sesión). Abrir http://localhost:8082
-(o la URL de la demostración: la URL de la instancia que se presente se decide junto con el despliegue, ítem «El despliegue para presentar la demo» del BACKLOG; `localhost:8082` es la de desarrollo). Mostrar el inicio; escribir una palabra en el buscador (p. ej. «matrícula»); en los
+(16:30 · 4 min) SIN SESIÓN iniciada (ventana de incógnito o cerrada la sesión). Abrir https://demo.odp.hs.lan
+(la instancia de la demostración, decidida por el autor el 2026-10-20; `localhost:8082` es la de desarrollo). Mostrar el inicio; escribir una palabra en el buscador (p. ej. «matrícula»); en los
 resultados, filtrar por organización. Entrar a un dataset: señalar la tarjeta «Resumen» a la derecha, la organización y
 la licencia. Abrir «Información técnica».
 QUÉ DECIR: es lo que ve cualquier ciudadano; no hay que iniciar sesión.
@@ -293,7 +293,7 @@ SI FALLA: «sin gráficos» → el seed de vistas no corrió (ver apéndice). Pl
 - Cualquier programa puede consumir los datos: **sin interfaz, sin permisos especiales** para lo público.
 
 ```text
-curl "http://localhost:8082/api/3/action/package_show?id=<dataset>"
+curl "https://demo.odp.hs.lan/api/3/action/package_show?id=<dataset>"
 ```
 
 <div class="captura">CAPTURA PENDIENTE · bloque «Acceso por API» con el botón de copiar</div>
@@ -359,6 +359,10 @@ SI FALLA: «sin organización» → la instalación no está provisionada (apén
 y el enlace al dataset. Abrir el dataset, revisar, volver y decidir: aprobar. Mostrar el historial de la solicitud.
 Opcional: antes, rechazar una solicitud con motivo (preparada) y mostrar el estado «rechazada» y el motivo.
 También: entrar como miembro-fcyt para mostrar que NO ve «Solicitudes» (el menú sólo ofrece lo que se puede usar).
+HISTORIAL (todavía como admin-fcyt): abrir «Calidad del agua en puntos de muestreo del valle» (FCYT) y mostrar la tarjeta
+«Historial» bajo «Resumen»: la publicación inicial, una solicitud de editor-fcyt RECHAZADA por admin-fcyt con el comentario
+«Falta describir las columnas.» y la siguiente APROBADA. La tarjeta sólo se ve con sesión de alguien de la organización
+(sin sesión el catálogo no devuelve solicitudes), por eso se muestra acá y no en la demo 9. La arma odp-docker después del seed.
 SI FALLA: si el admin no ve la solicitud, comprobar que el dataset es de la misma organización (fcyt). Si el aprobar
 devuelve «no puede aprobar su propia solicitud», se creó con el mismo usuario por error: repetir con editor-fcyt.
 -->
@@ -478,7 +482,7 @@ Esto **no se muestra** en el proyector; sólo está en el PDF.
 - [ ] **Provisión**: las organizaciones y los usuarios existen (`admin-fcyt`, `editor-fcyt`, `miembro-fcyt`, `editor-fcs`).
 - [ ] **Seed corrido**: datasets, archivos y gráficos de ejemplo; **más de 50 datasets** si el seed ampliado (`feat/seed-more-files`) ya se ejecutó.
 - [ ] **Contraseñas** a mano en otra ventana (no proyectada), archivo `odp-docker/.demo-users`.
-- [ ] **Contenedores arriba**: `docker ps` y `http://localhost:8082` responde (la URL de la instancia presentada se decide con el despliegue).
+- [ ] **Contenedores arriba**: `https://demo.odp.hs.lan` responde, con la versión del portal que se presenta, los usuarios de la demo, el seed y la migración 0002 aplicados.
 - [ ] **Navegador**: ventana limpia, sin sesión, zoom adecuado para el proyector, notificaciones apagadas.
 
 <!--

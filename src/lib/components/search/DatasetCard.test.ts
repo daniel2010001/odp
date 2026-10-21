@@ -189,7 +189,32 @@ describe("DatasetCard — chips de formato con el mapa compartido", () => {
 		expect(dot("PNG")?.className).toMatch(/bg-chart-\d/);
 		expect(dot("ZZZ")).toHaveClass("bg-muted-foreground");
 		for (const f of ["CSV", "PNG", "ZZZ"]) {
-			expect(screen.getByText(f).className).not.toMatch(/-(red|blue|teal|emerald|violet)-\d/);
+			expect(screen.getByText(f).className).not.toMatch(/-(red|blue|teal|violet)-\d/);
 		}
+	});
+
+	describe("organización y «Privado» (S35 variante A)", () => {
+		it("la organización va en muted-foreground, no en coral", () => {
+			render(DatasetCard, {
+				dataset: { ...makeDataset(), organization: { title: "Facultad X" } as never },
+			});
+			const org = screen.getByText("Facultad X");
+			expect(org.className).toContain("text-muted-foreground");
+			expect(org.className).not.toContain("text-destructive");
+		});
+
+		it("«Privado» es una insignia neutra con candado", () => {
+			render(DatasetCard, { dataset: { ...makeDataset(), private: true } });
+			const badge = screen.getByText("Privado");
+			expect(badge.className).toContain("bg-muted");
+			expect(badge.className).toContain("border-border");
+			expect(badge.className).not.toContain("text-destructive");
+			expect(badge.querySelector("svg.lucide-lock")).not.toBeNull();
+		});
+
+		it("un dataset público no muestra «Privado»", () => {
+			render(DatasetCard, { dataset: { ...makeDataset(), private: false } });
+			expect(screen.queryByText("Privado")).toBeNull();
+		});
 	});
 });

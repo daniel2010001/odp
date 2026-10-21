@@ -2,7 +2,7 @@
 // devuelve la acción.
 //
 // ─── Por qué vive acá y no en la cola ────────────────────────────────
-// Vivía en `PublicationQueue.svelte`, que es **un consumidor** del control, no su dueño: eso dejaba al
+// Vivía en el componente de la cola, que es **un consumidor** del control, no su dueño: eso dejaba al
 // componente importando su propio contrato del componente que lo monta, con el ciclo de tipos que eso
 // implica. Un módulo sin Svelte corta la dependencia en la dirección correcta, y de paso la ficha puede
 // hablar el mismo contrato sin pasar por la cola.
@@ -15,7 +15,7 @@ import type { PublicationRequest } from "$lib/api/publication";
 /**
  * Lo mínimo que el control necesita de una solicitud: **su id** —para el `for`/`id` del comentario—,
  * **quién la creó** y **si el catálogo le concedería la decisión a quien mira**. El resto de la fila no
- * se usa, y por eso lo pueden montar tanto la cola (`PublicationQueueItem`, su tipo de vista) como la
+ * se usa, y por eso lo pueden montar tanto la cola (`QueueItem`, su tipo de vista) como la
  * ficha (`PublicationRequest`, la fila cruda del catálogo) sin que ninguno fabrique los campos del otro.
  */
 export type DecidableRequest = {
@@ -34,7 +34,7 @@ export type DecidableRequest = {
  * uniforme de las cinco acciones. No trae el dataset; la confirmación de una aprobación viene de releer
  * el **valor almacenado** (`readDataset`), y un rechazo confirma con el estado de su propia fila.
  *
- * Es la **fila del catálogo**, no la vista de la cola: `PublicationQueueItem` agrega los campos ya
+ * Es la **fila del catálogo**, no la vista de la cola: `QueueItem` agrega los campos ya
  * resueltos para mostrar (título del dataset y de la organización, nombres visibles) que la respuesta no
  * trae.
  */

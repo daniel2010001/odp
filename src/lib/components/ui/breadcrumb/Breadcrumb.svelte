@@ -9,12 +9,6 @@ export interface BreadcrumbItem {
 	 */
 	role?: string;
 }
-
-/** Grupo extra del desplegable del chip: los hermanos del nivel actual. */
-export interface BreadcrumbGroup {
-	heading: string;
-	items: BreadcrumbItem[];
-}
 </script>
 
 <script lang="ts">
@@ -25,17 +19,11 @@ export interface BreadcrumbGroup {
 	let {
 		items,
 		icon: Icon,
-		related,
 		collapseMiddle = false,
 	}: {
 		items: BreadcrumbItem[];
 		/** Ícono del nivel **actual** (un dataset, un recurso…). Sólo lo usa el disparador de móvil. */
 		icon?: Component;
-		/**
-		 * Segundo grupo del desplegable: los **hermanos** del nivel actual («Recursos de este dataset»). El
-		 * item **sin `href`** es el actual, y se marca como la página.
-		 */
-		related?: BreadcrumbGroup;
 		/**
 		 * Recorrido de escritorio en **una sola línea**: se conserva la primera miga y las dos últimas, y las de
 		 * en medio (organización, dataset…) se pliegan tras un «…» que las ofrece como enlaces en un
@@ -132,38 +120,7 @@ export interface BreadcrumbGroup {
 					</DropdownMenu.Root>
 					<ChevronRight class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 				{/if}
-				{#if index === items.length - 1 && related && related.items.length > 0}
-					<!-- El desplegable de hermanos vive en la miga ACTUAL del recorrido (decisión del autor,
-					     hoja `/dev/nav` D4): los hermanos son del nivel del recurso, y así de `lg` para arriba el
-					     salto está donde el recorrido ya mira, no sólo en el chip de móvil. La fila del menú es el
-					     mismo snippet `row` del chip: un solo marcado para los dos. `aria-current` se queda acá —el
-					     disparador sigue siendo la página actual—, y la fila del actual dentro del grupo lo repite
-					     por el snippet. -->
-					<DropdownMenu.Root>
-						<DropdownMenu.Trigger
-							class="inline-flex min-w-0 items-center gap-1 font-medium text-foreground transition-colors hover:text-primary"
-							aria-current="page"
-						>
-							<span class="truncate">{item.label}</span>
-							<ChevronDown class="size-3.5 shrink-0" aria-hidden="true" />
-						</DropdownMenu.Trigger>
-						<DropdownMenu.Content
-							class="z-50 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-popover p-1 shadow-md"
-							sideOffset={6}
-						>
-							<DropdownMenu.Group>
-								<DropdownMenu.GroupHeading
-									class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground"
-								>
-									{related.heading}
-								</DropdownMenu.GroupHeading>
-								{#each related.items as relatedItem, relatedIndex (relatedIndex)}
-									{@render row(relatedItem)}
-								{/each}
-							</DropdownMenu.Group>
-						</DropdownMenu.Content>
-					</DropdownMenu.Root>
-				{:else if item.href && index < items.length - 1}
+				{#if item.href && index < items.length - 1}
 					<a
 						href={item.href}
 						title={collapseMiddle ? item.label : undefined}
@@ -187,12 +144,11 @@ export interface BreadcrumbGroup {
 	</ol>
 
 	<!-- Móvil: el nivel ACTUAL y el árbol adentro, y el TÍTULO entero es la zona de toque. Decisión del
-	     autor (hoja `/dev/nav`, A7): el aspecto deja de ser un chip —sin borde, sin fondo y sin relleno de
+	     autor (A7 de la revisión de navegación): el aspecto deja de ser un chip —sin borde, sin fondo y sin relleno de
 	     botón— y queda el texto con los íconos a `size-4` y el `hover` como única retroalimentación. El
 	     ícono dice **de qué tipo de cosa** se trata, no a dónde va; volver es el botón del navegador, y por
 	     eso no hay flecha. El disparador no cambia de tamaño cuando el recorrido crece: el nombre se
-	     recorta. Si hay hermanos, van en un segundo grupo: el desplegable contesta «¿dónde estoy?» y «¿qué
-	     más hay?» en el mismo lugar. -->
+	     recorta. -->
 	<div class="lg:hidden">
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger
@@ -218,20 +174,6 @@ export interface BreadcrumbGroup {
 							Recorrido
 						</DropdownMenu.GroupHeading>
 						{#each ancestors as item, index (index)}
-							{@render row(item)}
-						{/each}
-					</DropdownMenu.Group>
-				{/if}
-
-				{#if related && related.items.length > 0}
-					<DropdownMenu.Separator class="my-1 h-px bg-border" />
-					<DropdownMenu.Group>
-						<DropdownMenu.GroupHeading
-							class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground"
-						>
-							{related.heading}
-						</DropdownMenu.GroupHeading>
-						{#each related.items as item, index (index)}
 							{@render row(item)}
 						{/each}
 					</DropdownMenu.Group>

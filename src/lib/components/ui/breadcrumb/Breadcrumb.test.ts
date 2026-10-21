@@ -68,6 +68,14 @@ describe("Breadcrumb — el recorrido (escritorio)", () => {
 		expect(list.querySelectorAll(".truncate")).toHaveLength(items.length);
 	});
 
+	it("sin hermanos, la miga actual sigue siendo texto y el recorrido no ofrece desplegable", () => {
+		const { container } = render(Breadcrumb, { props: { items } });
+		const list = trail(container);
+
+		expect(within(list).queryByRole("button")).toBeNull();
+		expect(within(list).getByText(items[3].label)).toHaveAttribute("aria-current", "page");
+	});
+
 	it("la raíz puede encogerse: sin eso el truncado de adentro no actúa y la fila desborda", () => {
 		// Lo encontró la revisión nativa del slice E5 (`R3-001`, CRITICAL, `review-5ab16f231f1adb49`): el
 		// `<nav>` es el item flexible de la fila que lo contiene, y sin `min-w-0` su `min-width: auto` no
@@ -91,7 +99,7 @@ describe("Breadcrumb — el chip de móvil", () => {
 	});
 
 	it("el disparador de móvil es la fila de texto del A7: sin chip y con los íconos a `size-4`", () => {
-		// Decisión del autor (hoja `/dev/nav`, A7): el título completo es la zona de toque —por eso el
+		// Decisión del autor (A7 de la revisión de navegación): el título completo es la zona de toque —por eso el
 		// disparador es la fila entera— y el aspecto deja de ser un botón con borde y fondo: texto con
 		// relleno vertical y el `hover` como única retroalimentación. jsdom no maqueta, así que la clase es
 		// lo que fija la forma y este test impide que vuelva el chip.
@@ -129,37 +137,6 @@ describe("Breadcrumb — el chip de móvil", () => {
 		expect(screen.queryByRole("link", { name: items[3].label })).toBeNull();
 		expect(screen.getByText("Organización")).toBeInTheDocument();
 	});
-
-	it("con hermanos suma un segundo grupo, y el actual va sin enlace", async () => {
-		// El salto entre recursos vive en el mismo desplegable que el recorrido: contesta «¿dónde estoy?» y
-		// «¿qué más hay?» de una sola vez. El rótulo del rol entra en el nombre accesible del enlace, así
-		// que las consultas van con expresión regular.
-		const { container } = render(Breadcrumb, {
-			props: {
-				items,
-				related: {
-					heading: "Recursos de este dataset",
-					items: [
-						{ label: "Flujos vehiculares por punto de conteo", href: "/r/1", role: "CSV" },
-						{ label: items[3].label, role: "CSV" },
-					],
-				},
-			},
-		});
-		// Con hermanos, el RECORRIDO de escritorio también trae un disparador (D4): este test es del
-		// chip, así que se acota a él para no confundir los dos botones con el mismo nombre accesible.
-		const chip = container.querySelector("nav > div") as HTMLElement;
-
-		await fireEvent.click(within(chip).getByRole("button"));
-
-		expect(await screen.findByText("Recursos de este dataset")).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /Flujos vehiculares/ })).toHaveAttribute(
-			"href",
-			"/r/1",
-		);
-		// El actual es información, no destino: no es enlace.
-		expect(screen.queryByRole("link", { name: /movilidad_urbana_2026/ })).toBeNull();
-	});
 });
 
 describe("Breadcrumb — el desplegable no desborda el viewport", () => {
@@ -183,24 +160,6 @@ describe("Breadcrumb — el desplegable no desborda el viewport", () => {
 
 		const content = openContent();
 		expect(content.className).toContain("w-72");
-		expect(content.className).toContain("max-w-[calc(100vw-2rem)]");
-	});
-
-	it("el desplegable de la miga actual de escritorio (D4) tiene el mismo tope de ancho", async () => {
-		const related = {
-			heading: "Recursos de este dataset",
-			items: [
-				{ label: "Flujos vehiculares por punto de conteo", href: "/r/1", role: "CSV" },
-				{ label: items[3].label, role: "CSV" },
-			],
-		};
-		const { container } = render(Breadcrumb, { props: { items, related } });
-		const list = trail(container);
-
-		await fireEvent.click(within(list).getByRole("button", { name: items[3].label }));
-		await screen.findByText("Recursos de este dataset");
-
-		const content = openContent();
 		expect(content.className).toContain("max-w-[calc(100vw-2rem)]");
 	});
 
@@ -229,45 +188,6 @@ describe("Breadcrumb — el desplegable no desborda el viewport", () => {
 
 		expect(label.className).toContain("min-w-0");
 		expect(label.className).toContain("truncate");
-	});
-});
-
-describe("Breadcrumb — el desplegable de hermanos en la miga actual (escritorio, D4)", () => {
-	const related = {
-		heading: "Recursos de este dataset",
-		items: [
-			{ label: "Flujos vehiculares por punto de conteo", href: "/r/1", role: "CSV" },
-			{ label: items[3].label, role: "CSV" },
-		],
-	};
-
-	it("la miga actual del recorrido de escritorio es el disparador del grupo de hermanos", async () => {
-		// Decisión del autor (hoja `/dev/nav`, D4): los hermanos SON del nivel del recurso, así que el
-		// desplegable vive en la miga ACTUAL del recorrido de escritorio, no sólo en el chip de móvil.
-		const { container } = render(Breadcrumb, { props: { items, related } });
-		const list = trail(container);
-
-		const trigger = within(list).getByRole("button", { name: items[3].label });
-		// La miga actual sigue anunciándose como la página: el disparador no la convierte en un destino.
-		expect(trigger).toHaveAttribute("aria-current", "page");
-
-		await fireEvent.click(trigger);
-
-		expect(await screen.findByText("Recursos de este dataset")).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /Flujos vehiculares/ })).toHaveAttribute(
-			"href",
-			"/r/1",
-		);
-		// El actual es información, no destino: en la fila del grupo va sin enlace.
-		expect(screen.queryByRole("link", { name: /movilidad_urbana_2026/ })).toBeNull();
-	});
-
-	it("sin hermanos, la miga actual sigue siendo texto y el recorrido no ofrece desplegable", () => {
-		const { container } = render(Breadcrumb, { props: { items } });
-		const list = trail(container);
-
-		expect(within(list).queryByRole("button")).toBeNull();
-		expect(within(list).getByText(items[3].label)).toHaveAttribute("aria-current", "page");
 	});
 });
 

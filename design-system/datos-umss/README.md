@@ -50,6 +50,7 @@ hardcodeados). Usá los tokens vía utilidades de Tailwind (`bg-primary`, `text-
 | `--primary` | Azul institucional. Títulos, enlaces, brand, iconos, números. | `oklch(0.52 0.085 257)` | `oklch(0.6 0.1 257)` |
 | `--secondary` | Azul claro. Acentos y elementos secundarios. | `oklch(0.74 0.06 250)` | `oklch(0.56 0.07 250)` |
 | `--destructive` | **Coral.** Acento institucional UMSS (rótulos eyebrow), acciones destructivas y botón "Iniciar Sesión". | `oklch(0.55 0.09 15)` | `oklch(0.74 0.09 15)` |
+| `--positive` | **Verde azulado.** Contraparte de `destructive` para lo positivo: copiado/confirmado, activo, aprobado, completado. Texto, icono o relleno (`text-positive`, `bg-positive/10`, `border-positive/20`); nunca para acciones. | `oklch(0.5 0.08 175)` | `oklch(0.76 0.09 175)` |
 | `--background` | Fondo de página (azulado casi blanco). | `oklch(0.973 0.006 250)` | `oklch(0.22 0.02 257)` |
 | `--foreground` | Texto principal (slate suave, no negro puro). | `oklch(0.26 0.03 257)` | `oklch(0.93 0.008 250)` |
 | `--card` | Fondo de cards. | `oklch(0.995 0.001 250)` | `oklch(0.28 0.024 257)` |

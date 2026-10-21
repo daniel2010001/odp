@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Building2, Calendar, FileText } from "@lucide/svelte";
+import { Building2, Calendar, FileText, Lock } from "@lucide/svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { Tooltip, TooltipContent, TooltipTrigger } from "$lib/components/ui/tooltip";
 import { formatDotClass } from "$lib/resources/format-visual";
@@ -93,13 +93,17 @@ function shortDate(iso: string): string {
 		<!-- Meta: org (con icono, estilo actual) + privado -->
 		<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
 			{#if dataset.organization}
-				<span class="inline-flex items-center gap-1.5 font-medium text-destructive">
+				<span class="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
 					<Building2 class="size-3.5" aria-hidden="true" />
 					{dataset.organization.title}
 				</span>
 			{/if}
 			{#if dataset.private}
-				<span class="text-destructive">· Privado</span>
+				<span
+					class="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
+				>
+					<Lock class="size-3" aria-hidden="true" />Privado
+				</span>
 			{/if}
 		</div>
 

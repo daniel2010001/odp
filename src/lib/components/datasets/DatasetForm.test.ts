@@ -310,3 +310,70 @@ describe("DatasetForm — modo edición", () => {
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 });
+
+describe("DatasetForm — ayuda de la licencia", () => {
+	const ogl: CkanLicense = {
+		...license,
+		id: "uk-ogl",
+		title: "UK Open Government Licence (OGL)",
+		url: "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+	};
+	const otra: CkanLicense = { ...license, id: "other-open", title: "Other (Open)", url: "" };
+
+	function renderWith(licenses: CkanLicense[], overrides: Partial<DatasetFormInitial> = {}) {
+		return render(DatasetForm, {
+			props: {
+				mode: "create",
+				initial: { ...initial, ...overrides },
+				organizations: [org],
+				licenses,
+				onsubmit: vi.fn(),
+			},
+		});
+	}
+
+	it("muestra la etiqueta en español y el resumen, sin el título en inglés ni la conformidad", () => {
+		const { container } = renderWith([license]);
+		const help = container.querySelector("#license-help") as HTMLElement;
+		expect(help.textContent).toContain("CC BY — Atribución");
+		expect(help.textContent).toContain(
+			"Permite usar, compartir y adaptar los datos, incluso con fines comerciales, citando la fuente.",
+		);
+		expect(help.textContent).not.toContain("Creative Commons Attribution 4.0");
+		expect(help.textContent).not.toContain("approved");
+	});
+
+	it("el enlace a los términos usa la página oficial en español, no la de CKAN", () => {
+		const { container } = renderWith([license]);
+		const link = container.querySelector<HTMLAnchorElement>("#license-help a");
+		expect(link?.getAttribute("href")).toBe("https://creativecommons.org/licenses/by/4.0/deed.es");
+	});
+
+	it("un id sin página mapeada cae a la dirección de CKAN, y sin ella no hay enlace", () => {
+		const conUrl = renderWith([{ ...otra, url: "https://example.org/t" }], {
+			license_id: "other-open",
+		});
+		expect(conUrl.container.querySelector("#license-help a")?.getAttribute("href")).toBe(
+			"https://example.org/t",
+		);
+		conUrl.unmount();
+		const sinUrl = renderWith([otra], { license_id: "other-open" });
+		expect(sinUrl.container.querySelector("#license-help a")).toBeNull();
+	});
+
+	it("uk-ogl no se ofrece en el selector", () => {
+		const { container } = renderWith([license, ogl]);
+		const values = [...container.querySelectorAll<HTMLOptionElement>("#license option")].map(
+			(o) => o.value,
+		);
+		expect(values).toContain("cc-by");
+		expect(values).not.toContain("uk-ogl");
+	});
+
+	it("un dataset que ya tiene uk-ogl lo conserva seleccionado, con su etiqueta", () => {
+		const { container } = renderWith([license, ogl], { license_id: "uk-ogl" });
+		const select = container.querySelector<HTMLSelectElement>("#license");
+		expect(select?.value).toBe("uk-ogl");
+		expect(select?.selectedOptions[0]?.textContent).toBe("OGL — Gobierno Abierto (Reino Unido)");
+	});
+});

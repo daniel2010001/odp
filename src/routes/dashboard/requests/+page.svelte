@@ -3,12 +3,13 @@
 
 	Existe porque **descubrir la cola es parte de la compuerta**: si un editor pide publicar y nadie ve la
 	solicitud, la pared se vuelve un **bloqueo mudo**. La cola estaba en la hoja de revisión y en el panel; acá
-	vive donde el trabajo se hace, con las presentaciones que el autor ya decidió y que son del componente:
-	**pendientes y después resueltas**, **sólo la primera solicitud decidible** desplegada, y un **filtro por
-	organización que no aparece cuando hay una sola** — un filtro que no filtra es ruido.
+	vive donde el trabajo se hace, con la presentación que el autor eligió (`RequestsQueue`, la variante C1): las organizaciones como pestañas —que no aparecen cuando hay una sola: un filtro que no
+	filtra es ruido—, «Mostrar» pendientes o resueltas, las pendientes en orden de llegada y, abierta una fila, el
+	resumen de su dataset y el control de decidir.
 
 	Las llamadas son las **reales**: `publication_request_list`, `_decide` y la relectura del dataset, todas de
-	`$lib/api/publication`. Hasta `B1` entraban inyectadas porque la capa de API no las exponía.
+	`$lib/api/publication` y `$lib/api/datasets`. La page pide el listado **una vez**; el filtro por organización
+	y el de estado los aplica la cola sobre las filas cargadas.
 -->
 <script lang="ts">
 import { Inbox } from "@lucide/svelte";
@@ -19,14 +20,12 @@ import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import { createSessionApi } from "$lib/api/session";
-import PublicationQueue, {
-	type PublicationQueueItem,
-} from "$lib/components/dataset/PublicationQueue.svelte";
+import RequestsQueue from "$lib/components/requests/RequestsQueue.svelte";
+import type { QueueItem } from "$lib/components/requests/requests-model";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { endInvalidSession } from "$lib/session-guard";
 import { isAuthenticated } from "$lib/stores/auth";
-import { cn } from "$lib/utils";
 
 function makeClient() {
 	return createPortalClient();
@@ -41,23 +40,6 @@ const ahora = new Date();
 
 let authed = $state(false);
 let comprobando = $state(true);
-/** Las filas del listado: de acá salen el filtro y las organizaciones que lo justifican. */
-let filas = $state<PublicationRequest[] | null>(null);
-let orgElegida = $state<string | null>(null);
-/** Remonta la cola al cambiar de filtro, sin volver a pedir nada al catálogo. */
-let clave = $state(0);
-
-const organizaciones = $derived([
-	...new Set(
-		(filas ?? [])
-			.map((fila) => fila.organization_title)
-			.filter((titulo): titulo is string => Boolean(titulo)),
-	),
-]);
-
-/** Con **una sola** organización el selector no se dibuja: no hay nada que filtrar. */
-const hayFiltro = $derived(organizaciones.length > 1);
-
 /**
  * El título con el que la fila se lee.
  *
@@ -79,7 +61,7 @@ function tituloLegible(fila: PublicationRequest): string {
  * el contrato y admite los huecos. Traducir de una a la otra acá evita que cada consumidor improvise su
  * propia versión del fallback.
  */
-function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
+function paraLaCola(fila: PublicationRequest): QueueItem {
 	return {
 		id: fila.id,
 		dataset_id: fila.dataset_id,
@@ -99,26 +81,16 @@ function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
 }
 
 /**
- * El cargador de la cola.
- *
- * La **primera** llamada trae las filas y con ellas arma el filtro; las siguientes responden de memoria, así
- * que cambiar de organización no cuesta otra llamada ni puede mostrar dos listados distintos. El filtro se
- * aplica **acá** y no en el componente: la cola no sabe de organizaciones, recibe las filas que le tocan.
+ * El cargador de la cola: una llamada, sin estado —pendientes y resueltas juntas; el catálogo ya acota lo visible—.
+ * Cada vez que la cola pide la lista (al montar, «Reintentar», «Actualizar la lista») es una lectura nueva.
  */
-const list = async (): Promise<PublicationQueueItem[]> => {
-	if (filas === null) {
-		// Sin estado: pendientes y resueltas en una sola llamada; el catálogo ya acota lo visible.
-		filas = await publicationApi.list();
-	}
-	const visibles =
-		orgElegida === null ? filas : filas.filter((fila) => fila.organization_title === orgElegida);
-	return visibles.map(paraLaCola);
-};
+const list = async (): Promise<QueueItem[]> => (await publicationApi.list()).map(paraLaCola);
 
-const decide = async (requestId: string, approve: boolean, comments?: string) =>
-	paraLaCola(await publicationApi.decide(requestId, approve, comments));
+/** La decisión tal como el catálogo la devuelve; la cola la lee para dejar la fila resuelta. */
+const decide = (requestId: string, approve: boolean, comments?: string) =>
+	publicationApi.decide(requestId, approve, comments);
 
-/** La relectura que confirma una aprobación: la fila de `decide` no trae el dataset. */
+/** La relectura que confirma una aprobación y alimenta el resumen del dataset de la fila abierta. */
 const readDataset = (id: string) => datasetApi.show(id);
 
 onMount(() => {
@@ -140,11 +112,6 @@ async function comprobarSesion() {
 	}
 	comprobando = false;
 }
-
-function elegirOrg(org: string | null) {
-	orgElegida = org;
-	clave += 1;
-}
 </script>
 
 <svelte:head>
@@ -152,7 +119,8 @@ function elegirOrg(org: string | null) {
 </svelte:head>
 
 <div class="min-h-screen bg-background font-sans text-foreground">
-	<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+	<!-- El ancho del panel (`max-w-7xl`): con `max-w-5xl` el contenedor de la cola no llega a los 64 rem en que las pestañas y «Mostrar» comparten fila. -->
+	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 		{#if authed && !comprobando}
 			<Breadcrumb
 				items={[{ label: "Panel", href: "/dashboard" }, { label: "Solicitudes de publicación" }]}
@@ -169,43 +137,8 @@ function elegirOrg(org: string | null) {
 				</p>
 			</header>
 
-			{#if hayFiltro}
-				<div class="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filtrar por organización">
-					<button
-						type="button"
-						aria-pressed={orgElegida === null}
-						onclick={() => elegirOrg(null)}
-						class={cn(
-							"inline-flex h-8 items-center rounded-lg border px-3 text-xs font-medium transition-colors",
-							orgElegida === null
-								? "border-primary bg-primary text-primary-foreground"
-								: "border-border bg-card text-foreground hover:bg-accent",
-						)}
-					>
-						Todas las organizaciones
-					</button>
-					{#each organizaciones as organizacion (organizacion)}
-						<button
-							type="button"
-							aria-pressed={orgElegida === organizacion}
-							onclick={() => elegirOrg(organizacion)}
-							class={cn(
-								"inline-flex h-8 items-center rounded-lg border px-3 text-xs font-medium transition-colors",
-								orgElegida === organizacion
-									? "border-primary bg-primary text-primary-foreground"
-									: "border-border bg-card text-foreground hover:bg-accent",
-							)}
-						>
-							{organizacion}
-						</button>
-					{/each}
-				</div>
-			{/if}
-
 			<Card class="mt-6 p-5">
-				{#key clave}
-					<PublicationQueue {list} {decide} {readDataset} now={ahora} secciones expansion="primera" />
-				{/key}
+				<RequestsQueue {list} {decide} {readDataset} now={ahora} surface="card" />
 			</Card>
 		{:else}
 			<p class="text-sm text-muted-foreground" aria-busy="true">Comprobando la sesión…</p>

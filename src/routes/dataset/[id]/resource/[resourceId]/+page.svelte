@@ -569,7 +569,7 @@ const resourceLink = $derived(
 							class={cn(
 								"inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
 								resource.state === "active"
-									? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+									? "border-positive/20 bg-positive/10 text-positive dark:bg-positive/5"
 									: "border-destructive/20 bg-destructive/10 text-destructive",
 							)}
 						>
