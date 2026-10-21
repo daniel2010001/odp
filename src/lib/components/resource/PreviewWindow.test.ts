@@ -37,6 +37,22 @@ beforeEach(() => {
 	});
 });
 
+describe("PreviewWindow — alto (T37, S40)", () => {
+	const FILL = "min-h-[max(360px,calc(100dvh-140px-var(--tabs-h,0px)))]";
+
+	it("la ventana de una vista (con id) llena la pantalla: el cuerpo tiene el piso de alto de toda vista", () => {
+		open();
+		expect(screen.getByText("contenido").parentElement?.className).toContain(FILL);
+	});
+
+	it("la nota sin id (enlace externo, tipo sin vista previa) no se estira", () => {
+		open({ id: undefined, label: undefined });
+		expect(screen.getByText("contenido").parentElement?.className ?? "").not.toContain(
+			"min-h-[max",
+		);
+	});
+});
+
 describe("PreviewWindow", () => {
 	it("lleva el id de la vista, el margen bajo el encabezado y el rótulo «Vista previa · …»", () => {
 		open();

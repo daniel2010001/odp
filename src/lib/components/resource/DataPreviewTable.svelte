@@ -25,8 +25,9 @@ function cellValue(value: unknown): string {
 }
 </script>
 
-<!-- El tope y el scroll van sólo en la tabla: el pie «Mostrando n de N» queda fuera y siempre a la vista. -->
-<div class="max-h-[min(70dvh,720px)] overflow-auto">
+<!-- El tope y el scroll van sólo en la tabla: el pie «Mostrando n de N» queda fuera y siempre a la vista.
+     Tope = el alto de la ventana (100dvh − 140px, ver `PreviewWindow`) menos ~44px del pie. -->
+<div class="max-h-[max(316px,calc(100dvh-184px-var(--tabs-h,0px)))] overflow-auto">
 	<table class="w-full border-collapse text-left text-sm">
 		<thead>
 			<tr class="border-b border-border bg-muted/50">

@@ -126,22 +126,17 @@ $effect(() => {
 {:else if kind === "none" || sourceUrl === null}
 	{@render compactState(noneCopy)}
 {:else if kind === "pdf"}
-	<!-- Alto del PDF: llena la pantalla bajo el encabezado (100dvh − 65px del encabezado encogido, con su
-	     borde − 41px de la barra de la tarjeta − 2px de los bordes de la tarjeta − 2 × 16px de aire = 140px,
-	     y además la barra de pestañas, `--tabs-h`, que pone el contenedor), sin pasar de 1,3 veces el ancho de la columna
-	     (`cqw`, del contenedor de abajo; una hoja vertical) y sin bajar de 520px. En una pantalla baja
-	     manda el piso de 520px y la página se desplaza; el de 240px sólo protege a ventanas diminutas. -->
-	<div class="@container">
-		<iframe
-			src={sourceUrl}
-			title={`Vista previa de ${resource.name}`}
-			loading="lazy"
-			class="h-[min(max(240px,calc(100dvh-140px-var(--tabs-h,0px))),max(520px,130cqw))] w-full"
-		></iframe>
-	</div>
+	<!-- Alto del PDF: el mismo que el del texto y el piso de la ventana (`PreviewWindow`): llena la pantalla bajo el
+	     encabezado (100dvh − 140px, ver `PreviewWindow`, y además la barra de pestañas, `--tabs-h`) sin bajar de 360px. -->
+	<iframe
+		src={sourceUrl}
+		title={`Vista previa de ${resource.name}`}
+		loading="lazy"
+		class="h-[max(360px,calc(100dvh-140px-var(--tabs-h,0px)))] w-full"
+	></iframe>
 {:else if kind === "image"}
 	<!-- Misma regla de alto que el PDF, y además el relleno de la tarjeta (`p-4` = 32px): 140px + 32px = 172px. -->
-	<div class="flex items-center justify-center p-4">
+	<div class="flex items-start justify-center p-4">
 		<img
 			src={sourceUrl}
 			alt={resource.name}

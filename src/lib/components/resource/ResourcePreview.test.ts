@@ -288,21 +288,18 @@ describe("ResourcePreview — bordes de seguridad del embed", () => {
 // calcula `dvh` ni `cqw`, así que lo que se ancla es la fórmula escrita, no un alto medido (eso se midió en
 // Chromium). `140px` = 65 (encabezado encogido, con su borde) + 41 (barra de la tarjeta) + 2 (bordes de la tarjeta) + 2 × 16 (aire).
 describe("ResourcePreview — alto por tipo (estrategia D)", () => {
-	it("el PDF llena la pantalla sin pasar de 1,3 × el ancho de la columna ni bajar de 520px", () => {
+	it("el PDF llena la pantalla igual que el texto (sin tope por ancho)", () => {
 		const { api } = makeDatastore();
 		render(ResourcePreview, {
 			props: { resource: makeResource({ format: "PDF" }), datastore: api },
 		});
 
 		const iframe = screen.getByTitle("Vista previa de Flujos vehiculares");
-		expect(iframe.className).toContain(
-			"h-[min(max(240px,calc(100dvh-140px-var(--tabs-h,0px))),max(520px,130cqw))]",
-		);
-		// `cqw` mide el contenedor que lo envuelve.
-		expect(iframe.parentElement?.className).toContain("@container");
+		expect(iframe.className).toContain("h-[max(360px,calc(100dvh-140px-var(--tabs-h,0px)))]");
+		expect(iframe.className).not.toContain("cqw");
 	});
 
-	it("la imagen ocupa el ancho, con alto automático y tope `max(360px, pantalla)`", () => {
+	it("la imagen ocupa el ancho, con tope `max(360px, pantalla)` y arriba de su ventana", () => {
 		const { api } = makeDatastore();
 		render(ResourcePreview, {
 			props: { resource: makeResource({ format: "PNG" }), datastore: api },
@@ -313,6 +310,8 @@ describe("ResourcePreview — alto por tipo (estrategia D)", () => {
 		expect(image.className).toContain("h-auto");
 		expect(image.className).toContain("max-h-[max(360px,calc(100dvh-172px-var(--tabs-h,0px)))]");
 		expect(image.className).toContain("object-contain");
+		expect(image.parentElement?.className).toContain("items-start");
+		expect(image.parentElement?.className).not.toContain("items-center");
 	});
 
 	it("el texto usa la misma regla de alto que el PDF y la imagen (llena la pantalla), ya no 55dvh", () => {
