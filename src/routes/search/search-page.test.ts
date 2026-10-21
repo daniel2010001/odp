@@ -1140,6 +1140,33 @@ describe("Página de búsqueda — los pegados", () => {
 			expect(barra().contains(fila())).toBe(false);
 		});
 
+		it("desde 1024 px arranca a 2rem de la barra, como el panel de filtros, y deja 1rem hasta la primera card (L83)", async () => {
+			// El panel baja `--bar-h + 2rem` (`--aside-y`): con 1.5rem su borde cortaba el texto de la fila.
+			fijarVentana(1280);
+			await montarConFiltro();
+
+			expect(fila().className).toContain("pt-8");
+			const resultados = document.querySelector("[data-results]")?.parentElement as HTMLElement;
+			expect(resultados.className).toContain("pt-4");
+			expect(resultados.className).not.toContain("pt-8");
+		});
+
+		it("sin filtros, la primera card sigue a 2rem de la barra, a la altura del panel", async () => {
+			fijarVentana(1280);
+			setUrl("?q=matricula");
+			mocks.search.mockResolvedValue({
+				count: 1,
+				results: [makeDataset()],
+				search_facets: { organization: makeFacet({ title: "Organización" }) },
+			});
+			renderSearch();
+			await screen.findByRole("heading", { name: "Matrícula 2026" });
+			await tick();
+
+			const resultados = document.querySelector("[data-results]")?.parentElement as HTMLElement;
+			expect(resultados.className).toContain("pt-8");
+		});
+
 		it("bajo 1024 px conserva el orden: barra y luego la fila, fuera de la columna", async () => {
 			fijarVentana(768);
 			await montarConFiltro();
