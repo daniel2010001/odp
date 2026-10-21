@@ -2647,7 +2647,7 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 
 - [ ] **[siguiente ronda] Lo que dejó el primer ensayo de la demo (2026-10-21) y no entra en v0.1.1** (decisión del autor,
   textual: «A + B (recomendado)»; el resto va acá). Clasificación de odp-docker (P#); el texto original del autor queda en
-  L78 de `odd/tasks/v0.1.1-polish.md`. Los marcados **decide** necesitan una elección del autor antes de empezar (regla 9).
+  L79 de `odd/tasks/v0.1.1-polish.md`. Los marcados **decide** necesitan una elección del autor antes de empezar (regla 9).
   - **P1 (decide)** Panel del dataset: la card de la organización antes que el historial (historial al final), **o** scroll propio
     del panel, **o** historial plegable que siempre muestre la última solicitud.
   - **P2** Unificar dónde va el copiar del #id en las fichas del dataset (a la izquierda aparece en el segundo título; a la
