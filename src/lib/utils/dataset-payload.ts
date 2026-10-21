@@ -11,6 +11,27 @@ import { SUMMARY_EXTRA_KEY } from "./dataset-summary";
 /** Tamaño máximo por recurso (PRD RF-12). Único origen del valor. */
 export const MAX_RESOURCE_BYTES = 50 * 1024 * 1024;
 
+/**
+ * Extensiones que admite el selector de archivos (S51): la misma lista que aplica CKAN. Único origen
+ * del valor; el `accept` del formulario y la validación salen de acá.
+ */
+export const ALLOWED_RESOURCE_EXTENSIONS = [
+	"csv",
+	"tsv",
+	"xlsx",
+	"xls",
+	"ods",
+	"json",
+	"geojson",
+	"xml",
+	"txt",
+	"pdf",
+	"png",
+	"jpg",
+	"jpeg",
+	"zip",
+] as const;
+
 /** Largo máximo del slug que acepta el schema de `datasetCreateSchema`. */
 const MAX_SLUG_LENGTH = 100;
 
@@ -291,13 +312,23 @@ export function inferResourceFormat(filename: string): string {
 }
 
 /**
- * Valida el tamaño del archivo ANTES de enviar bytes, para que el rechazo de un
+ * Valida el tipo (extensión) y el tamaño del archivo ANTES de enviar bytes, para que el rechazo de un
  * proxy o de CKAN no aparezca como un error de validación confuso.
  */
 export function validateResourceFile(file: {
 	name: string;
 	size: number;
 }): { ok: true } | { ok: false; message: string } {
+	const dot = file.name.lastIndexOf(".");
+	const extension = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : "";
+	if (!(ALLOWED_RESOURCE_EXTENSIONS as readonly string[]).includes(extension)) {
+		const accepted = ALLOWED_RESOURCE_EXTENSIONS.map((ext) => ext.toUpperCase()).join(", ");
+		return {
+			ok: false,
+			message: `El archivo "${file.name}" no es un tipo de archivo admitido. Los tipos aceptados son: ${accepted}.`,
+		};
+	}
+
 	if (file.size <= MAX_RESOURCE_BYTES) return { ok: true };
 
 	const limitMb = MAX_RESOURCE_BYTES / 1024 / 1024;

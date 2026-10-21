@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CkanPackage } from "$lib/types/ckan";
 import {
+	ALLOWED_RESOURCE_EXTENSIONS,
 	buildPackagePayload,
 	buildRevisePayload,
 	inferResourceFormat,
@@ -206,6 +207,53 @@ describe("validateResourceFile", () => {
 			expect(result.message).toContain("51.0 MB");
 			expect(result.message).toContain("50 MB");
 		}
+	});
+
+	it("acepta cada extensión de la lista, sin importar mayúsculas", () => {
+		expect([...ALLOWED_RESOURCE_EXTENSIONS]).toEqual([
+			"csv",
+			"tsv",
+			"xlsx",
+			"xls",
+			"ods",
+			"json",
+			"geojson",
+			"xml",
+			"txt",
+			"pdf",
+			"png",
+			"jpg",
+			"jpeg",
+			"zip",
+		]);
+		for (const ext of ALLOWED_RESOURCE_EXTENSIONS) {
+			expect(validateResourceFile({ name: `datos.${ext}`, size: 10 })).toEqual({ ok: true });
+		}
+		expect(validateResourceFile({ name: "DATOS.CSV", size: 10 })).toEqual({ ok: true });
+		expect(validateResourceFile({ name: "informe.final.PDF", size: 10 })).toEqual({ ok: true });
+	});
+
+	it("rechaza una extensión fuera de la lista, nombrando el archivo y los tipos aceptados", () => {
+		const result = validateResourceFile({ name: "instalar.sh", size: 10 });
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.message).toContain("instalar.sh");
+			expect(result.message).toContain("no es un tipo de archivo admitido");
+			expect(result.message).toContain(
+				"CSV, TSV, XLSX, XLS, ODS, JSON, GEOJSON, XML, TXT, PDF, PNG, JPG, JPEG, ZIP",
+			);
+		}
+	});
+
+	it("rechaza un archivo sin extensión", () => {
+		for (const name of ["LEEME", "datos.", ".csv"]) {
+			expect(validateResourceFile({ name, size: 10 }).ok).toBe(false);
+		}
+	});
+
+	it("la extensión se toma de la última: datos.csv.sh se rechaza", () => {
+		expect(validateResourceFile({ name: "datos.csv.sh", size: 10 }).ok).toBe(false);
 	});
 
 	it("el límite es el de PRD RF-12 (50 MB)", () => {
