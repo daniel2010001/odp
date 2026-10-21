@@ -2711,6 +2711,12 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
+- [ ] **[v1 o v1+] Al aplicar un filtro, las demás opciones de ese mismo filtro desaparecen** (autor, 2026-10-21, L90 de
+  `odd/tasks/v0.1.1-polish.md`, textual: «al aplicar algún filtro los otros filtros desaparecen, eg: seleccionar alguna org
+  todas las otras orgs desaparecen. v1 o v1+»). Es cómo responde CKAN: las facetas cuentan sólo sobre los resultados ya
+  filtrados, así que al elegir una organización las otras quedan en cero y no se listan. La solución conocida es la
+  **faceta disyuntiva**: los conteos de cada faceta se piden sin su propio filtro (una consulta extra por faceta activa,
+  o `facet.field` con `{!ex=…}` si el catálogo lo permite) y las demás opciones siguen visibles para sumar o cambiar.
 - [ ] **[v1] XLSX en el DataStore: se carga, pero todo como texto** (autor, 2026-10-21, L69 de `odd/tasks/v0.1.1-polish.md`:
   «para la demo no es tan importante […] podemos dejarlo para v1 o luego de hacer la feature de "análisis de datos"»).
   **Medido por odp-docker (2026-10-21):** XLoader 2.6.0 **sí carga** XLSX (sus formatos por defecto incluyen csv, xls, xlsx,
