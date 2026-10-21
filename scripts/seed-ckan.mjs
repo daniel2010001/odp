@@ -50,6 +50,15 @@
 // sin vistas no hay pestañas de gráfico ni botón «Insertar». Espera a que la tabla del DataStore exista y
 // valida cada configuración contra los campos reales de la tabla; si no está lista, informa y sigue.
 //
+// Resumen (S53 de odd/tasks/v0.1.1-polish.md): todo dataset lleva en el extra `summary` una oración breve
+// (≤ 200 caracteres, la que muestran las tarjetas). A los ya existentes que no lo tienen se les agrega con
+// `package_patch`, sin pisar un resumen ya escrito ni los demás extras.
+//
+// Gráficos de los datasets adicionales (S52): los que tienen un CSV (`FILE_CHART_VIEWS`) reciben 1–2 vistas
+// que cuentan filas por una columna de texto, porque esos CSV no se tipan. El paso de gráficos corre al
+// final y toca los datasets con gráficos para que «más recientes» los muestre primero (S54, `seedChartsLast`).
+// El seed no tiene modo de simulación ni banderas: todo lo que hace es idempotente.
+//
 // Idempotente (también para los datasets adicionales: se identifican por su `name`, así que correr el
 // seed otra vez sólo lee, sin crear ni modificar nada): si una organización ya existe (por `name`), se salta; si un dataset ya
 // existe **y es público**, se salta sin pedir nada; si existe y sigue **privado** (una
@@ -71,6 +80,7 @@ import { TYPES as PRESUPUESTO_TYPES } from "./generate-presupuesto-csv.mjs";
 import {
 	CHART_VIEWS,
 	chartViewPayload,
+	FILE_CHART_VIEWS,
 	validateSeedConfig,
 	viewsToCreate,
 } from "./seed-charts.mjs";
@@ -436,6 +446,21 @@ const FORMATS = ["CSV", "XLSX", "PDF", "JSON", "GeoJSON"];
 // Nota que lleva todo dataset y recurso sembrado: ninguno es oficial.
 const FICTITIOUS = "Datos ficticios para demostración: no son datos oficiales de la UMSS.";
 
+// El resumen (S53 de odd/tasks/v0.1.1-polish.md): el texto corto de las tarjetas, guardado en el extra que
+// lee el portal. Espejo de `SUMMARY_EXTRA_KEY` (src/lib/utils/dataset-summary.ts) y de `MAX_SUMMARY_LENGTH`
+// (src/lib/schemas/dataset.ts): un script de Node no importa TypeScript con alias `$lib`.
+export const SUMMARY_EXTRA_KEY = "summary";
+export const MAX_SUMMARY_LENGTH = 200;
+
+const summaryExtras = (text) => [{ key: SUMMARY_EXTRA_KEY, value: text }];
+
+// Una oración: la primera de la descripción, avisando que los datos son ficticios.
+function summaryFromNotes(notes) {
+	const paragraph = notes.split("\n\n")[0];
+	const sentence = paragraph.match(/^.*?\.(?=\s|$)/)?.[0] ?? paragraph;
+	return summaryExtras(`${sentence.replace(/\.$/, "")} (datos ficticios de muestra).`);
+}
+
 // Un recurso sembrado es un archivo real: `bytes()` lo genera en memoria (determinista por
 // dataset + formato + recurso), `filename` y `mime` salen del formato. `profile` es la clave de
 // `PROFILES` (`generate-demo-files.mjs`) que fija las columnas del archivo.
@@ -498,6 +523,7 @@ export function buildBaseDatasets() {
 			// `notes` es markdown (RF-39): texto plano con párrafos separados por línea en blanco.
 			// No se escribe HTML acá a propósito — el render no interpreta HTML crudo.
 			notes: `${DESCS[i]}\n\n${FICTITIOUS} Los archivos son de muestra y no reproducen cifras reales de la ${org.title}.`,
+			extras: summaryFromNotes(DESCS[i]),
 			license_id: LICENSES[i % LICENSES.length],
 			tags,
 			resources,
@@ -722,6 +748,7 @@ export function buildMoreDatasets() {
 			title,
 			owner_org_name: org,
 			notes: `${description}\n\n${FICTITIOUS} Los archivos son de muestra y no reproducen cifras reales de la ${orgTitle}.`,
+			extras: summaryFromNotes(description),
 			license_id: MORE_LICENSES[i % MORE_LICENSES.length],
 			tags: tags.map((tag) => ({ name: tag })),
 			resources,
@@ -739,6 +766,9 @@ export const SHOWCASE = {
 	notes:
 		"El Observatorio de Movilidad Urbana de Cochabamba recopila, procesa y publica datos abiertos sobre movilidad urbana en el área metropolitana de Kanata: flujos vehiculares, encuestas de origen-destino, transporte público y accidentalidad vial.\n\nLos archivos de este conjunto son de muestra. " +
 		FICTITIOUS,
+	extras: summaryExtras(
+		"Datos de muestra, ficticios, sobre movilidad urbana en el área metropolitana de Cochabamba.",
+	),
 	license_id: "cc-by",
 	author: "Centro de Investigación en Movilidad Urbana (CIMU-FCyT)",
 	maintainer: "Ing. María Elena Vargas Quiroga",
@@ -828,6 +858,9 @@ export const DEMOS = [
 		dataset: {
 			name: "planilla-docente-ficticia",
 			title: "Planilla docente ficticia — Datos ficticios para demostración",
+			extras: summaryExtras(
+				"Nómina docente inventada, con nombres ficticios, para probar gráficos y tablas.",
+			),
 			notes:
 				"Datos ficticios para demostración. Nómina docente inventada para probar las vistas de " +
 				"gráficos: los nombres y apellidos son inventados y no corresponden a personas reales.\n\n" +
@@ -861,6 +894,9 @@ export const DEMOS = [
 		dataset: {
 			name: "matricula-facultad-gestion-ficticia",
 			title: "Matrícula por facultad y gestión ficticia — Datos ficticios para demostración",
+			extras: summaryExtras(
+				"Matrícula ficticia de ocho facultades, gestiones 2015–2025, para probar las vistas de gráficos.",
+			),
 			notes:
 				"Datos ficticios para demostración. Matrícula inventada de carreras de ocho facultades, " +
 				"gestiones 2015–2025, para probar las vistas de gráficos.\n\n" +
@@ -894,6 +930,9 @@ export const DEMOS = [
 		dataset: {
 			name: "ejecucion-presupuestaria-ficticia",
 			title: "Ejecución presupuestaria mensual ficticia — Datos ficticios para demostración",
+			extras: summaryExtras(
+				"Ejecución presupuestaria mensual ficticia de doce unidades, 2024–2025, para probar gráficos.",
+			),
 			notes:
 				"Datos ficticios para demostración. Registros mensuales inventados de ejecución " +
 				"presupuestaria de doce unidades, 2024–2025, para probar las vistas de gráficos.\n\n" +
@@ -927,6 +966,9 @@ export const DEMOS = [
 		dataset: {
 			name: "produccion-investigacion-ficticia",
 			title: "Producción de investigación ficticia — Datos ficticios para demostración",
+			extras: summaryExtras(
+				"Productos de investigación ficticios de doce departamentos, 2015–2025, para probar gráficos.",
+			),
 			notes:
 				"Datos ficticios para demostración. Productos de investigación inventados (artículos, " +
 				"libros, tesis, patentes) de doce departamentos, 2015–2025, para probar las vistas de " +
@@ -961,6 +1003,9 @@ export const DEMOS = [
 		dataset: {
 			name: "informe-matricula-ficticio",
 			title: "Informe de matrícula 2015–2025 ficticio — Datos ficticios para demostración",
+			extras: summaryExtras(
+				"Informe ficticio de tres páginas sobre la matrícula 2015–2025, para probar la vista previa de PDF.",
+			),
 			notes:
 				"Datos ficticios para demostración. Informe inventado de tres páginas con la matrícula " +
 				"de ocho facultades, gestiones 2015–2025, para probar la vista previa de documentos PDF " +
@@ -1137,6 +1182,26 @@ function leftPrivate(name, missing = "sus tipos") {
 	console.error(`  ${name} queda privado: no se publica sin ${missing}. Corra el seed de nuevo.`);
 }
 
+// Le agrega el resumen a un dataset que ya existe y no lo tiene (S53): el seed creó los de antes sin él.
+// Sólo completa lo que falta: un resumen ya escrito —del seed o de quien edita— no se pisa, y los demás
+// extras se conservan. Devuelve el dataset tal como queda.
+async function ensureSummary(token, pkg, ds) {
+	const wanted = ds.extras?.find((extra) => extra.key === SUMMARY_EXTRA_KEY);
+	if (!wanted) return pkg;
+	const present = (pkg.extras ?? []).some(
+		(extra) => extra.key === SUMMARY_EXTRA_KEY && String(extra.value ?? "").trim() !== "",
+	);
+	if (present) return pkg;
+	const extras = [...(pkg.extras ?? []).filter((e) => e.key !== SUMMARY_EXTRA_KEY), wanted];
+	const patched = await api(token, "package_patch", { id: pkg.id, extras });
+	if (!patched.success) {
+		console.error(`✗ resumen ${ds.name}: ${errorText(patched.error)}`);
+		return pkg;
+	}
+	console.log(`✓ resumen: ${ds.name}`);
+	return { ...pkg, extras };
+}
+
 async function seedDemoDataset(token, orgIdByName, demo) {
 	const orgId = orgIdByName.get(demo.owner_org_name);
 	if (!orgId) {
@@ -1164,7 +1229,7 @@ async function seedDemoDataset(token, orgIdByName, demo) {
 	const existing = await api(token, "package_show", { id: demo.dataset.name });
 	// El dataset como lo devuelve CKAN (`id`, `state`): es lo que mira `publishDataset`.
 	// Queda `null` mientras no exista.
-	let pkg = existing.success ? existing.result : null;
+	let pkg = existing.success ? await ensureSummary(token, existing.result, demo.dataset) : null;
 	// ¿Falta publicar? Lo que ya está público no se pide de nuevo; lo que se crea acá sí,
 	// porque nace privado.
 	const needsPublication = pkg ? pkg.private === true : true;
@@ -1239,21 +1304,19 @@ async function waitForDatastore(token, resourceId) {
 	}
 }
 
-// Crea las vistas `umss_chart` que le faltan al recurso CSV de un dataset de `DEMOS`. Nunca lanza: informa
-// ✓/✗ y sigue, para que un dataset sin tabla no aborte el seed. Corre aunque el dataset ya sea público.
-async function seedDemoCharts(token, demo) {
-	const name = demo.dataset.name;
-	const desired = CHART_VIEWS[name] ?? [];
-	if (!demo.types || desired.length === 0) return { created: 0, failed: 0 };
+// Crea las vistas `umss_chart` que le faltan a un recurso CSV, por título. Nunca lanza: informa ✓/✗ y sigue,
+// para que un dataset sin tabla no aborte el seed. Corre aunque el dataset ya sea público. `present` dice si
+// el recurso queda con alguna vista (las que ya tenía o las que se crearon).
+async function seedViews(token, name, resourceName, desired) {
 	const skip = (why) => {
 		console.error(`✗ gráficos ${name}: ${why}`);
-		return { created: 0, failed: desired.length };
+		return { created: 0, failed: desired.length, present: false };
 	};
 
 	const shown = await api(token, "package_show", { id: name });
 	if (!shown.success) return skip("el dataset no existe, se salta.");
-	const resource = (shown.result.resources ?? []).find((r) => r.name === demo.resource.name);
-	if (!resource) return skip(`falta el recurso ${demo.resource.name}, se salta.`);
+	const resource = (shown.result.resources ?? []).find((r) => r.name === resourceName);
+	if (!resource) return skip(`falta el recurso ${resourceName}, se salta.`);
 
 	if (!(await waitForDatastore(token, resource.id))) {
 		return skip(
@@ -1268,7 +1331,8 @@ async function seedDemoCharts(token, demo) {
 
 	const listed = await api(token, "resource_view_list", { id: resource.id });
 	if (!listed.success) return skip(`resource_view_list: ${errorText(listed.error)}`);
-	const missing = viewsToCreate(desired, listed.result ?? []);
+	const existingViews = listed.result ?? [];
+	const missing = viewsToCreate(desired, existingViews);
 	for (const view of desired) {
 		if (!missing.includes(view)) console.log(`· gráfico existente: ${name} → ${view.title}`);
 	}
@@ -1291,7 +1355,53 @@ async function seedDemoCharts(token, demo) {
 		console.log(`✓ gráfico ${name} → ${view.title} (${view.config.chart_type})`);
 		created++;
 	}
-	return { created, failed };
+	return { created, failed, present: created + existingViews.length > 0 };
+}
+
+// «Toca» un dataset: un `package_patch` que reenvía sus extras tal cual, sin cambiar ningún dato. CKAN
+// actualiza `metadata_modified` al guardar, que es lo que ordena «más recientes». No se inventa ninguna fecha.
+async function touchDataset(token, name) {
+	const shown = await api(token, "package_show", { id: name });
+	if (!shown.success) return false;
+	const touched = await api(token, "package_patch", {
+		id: shown.result.id,
+		extras: shown.result.extras ?? [],
+	});
+	if (!touched.success) console.error(`✗ orden ${name}: ${errorText(touched.error)}`);
+	return touched.success;
+}
+
+// Los gráficos del seed, en el último paso, y después los datasets que los tienen, en orden.
+//
+// Por qué al final (S54 de odd/tasks/v0.1.1-polish.md): el portal ordena por defecto con «más recientes»
+// (`metadata_modified` desc) y crear una vista no modifica el dataset, así que los datasets con gráficos
+// quedaban sepultados entre los 51 y quien explora la demo no los veía (la autora creyó que no había
+// gráficos). Tocarlos al final, después de sembrar y de completar resúmenes, los deja con las fechas más
+// recientes y arriba del listado, sin falsear ninguna fecha. Cada corrida los vuelve a tocar, así que
+// siguen arriba aunque el seed se repita; los demás datasets no se tocan.
+export async function seedChartsLast(token, fileDatasets, demos = DEMOS) {
+	let created = 0;
+	let failed = 0;
+	const withCharts = [];
+	for (const demo of demos) {
+		const desired = CHART_VIEWS[demo.dataset.name] ?? [];
+		if (!demo.types || desired.length === 0) continue;
+		const outcome = await seedViews(token, demo.dataset.name, demo.resource.name, desired);
+		created += outcome.created;
+		failed += outcome.failed;
+		if (outcome.present) withCharts.push(demo.dataset.name);
+	}
+	for (const ds of fileDatasets) {
+		const desired = FILE_CHART_VIEWS[ds.name] ?? [];
+		const csv = ds.resources.find((resource) => resource.format === "CSV");
+		if (!csv || desired.length === 0) continue;
+		const outcome = await seedViews(token, ds.name, csv.name, desired);
+		created += outcome.created;
+		failed += outcome.failed;
+		if (outcome.present) withCharts.push(ds.name);
+	}
+	for (const name of withCharts) await touchDataset(token, name);
+	return { created, failed, touched: withCharts.length };
 }
 
 // Siembra un dataset base o el `SHOWCASE`: todos sus recursos se suben como archivo.
@@ -1312,6 +1422,7 @@ export async function seedFileDataset(token, orgIdByName, ds) {
 	let created = false;
 	if (pkg) {
 		console.log(`· dataset existente: ${ds.name}`);
+		pkg = await ensureSummary(token, pkg, ds);
 	} else {
 		// `private: true` porque la pared rechaza nacer público. El `state` no se manda: CKAN lo
 		// crea `active`, que es lo que el flujo necesita para dejar el dataset legible.
@@ -1398,15 +1509,11 @@ async function main() {
 			if (outcome.skipped) skippedCount++;
 		}
 
-		// Gráficos: paso aparte, también para los datasets de la demo que ya existían y son públicos.
-		let chartsCreated = 0;
-		let chartsFailed = 0;
-		for (const spec of DEMOS) {
-			const outcome = await seedDemoCharts(token, spec);
-			chartsCreated += outcome.created;
-			chartsFailed += outcome.failed;
-		}
-		console.log(`\nGráficos: ${chartsCreated} creados, ${chartsFailed} con problemas.`);
+		// Gráficos: último paso, también para los datasets que ya existían y son públicos (ver `seedChartsLast`).
+		const charts = await seedChartsLast(token, all);
+		console.log(
+			`\nGráficos: ${charts.created} creados, ${charts.failed} con problemas; ${charts.touched} datasets con gráficos al tope de «más recientes».`,
+		);
 
 		console.log(`\nListo. Creados ${createdCount} datasets, ${skippedCount} ya existían.`);
 	} finally {

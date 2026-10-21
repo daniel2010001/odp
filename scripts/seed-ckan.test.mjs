@@ -9,13 +9,17 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PROFILES } from "./generate-demo-files.mjs";
+import { FILE_CHART_VIEWS } from "./seed-charts.mjs";
 import {
 	buildBaseDatasets,
 	buildMoreDatasets,
 	DEMOS,
+	MAX_SUMMARY_LENGTH,
 	ORGS,
 	readJson,
 	SHOWCASE,
+	SUMMARY_EXTRA_KEY,
+	seedChartsLast,
 	seedFileDataset,
 	sessionHeaders,
 	uploadForm,
@@ -208,8 +212,42 @@ test("los datasets nuevos son datos ficticios, con título, descripción y un re
 	}
 });
 
+// S53 (mitad de la siembra) de odd/tasks/v0.1.1-polish.md: todo dataset sembrado trae su resumen, el texto
+// corto de la tarjeta, en el extra que lee el portal (`SUMMARY_EXTRA_KEY`, src/lib/utils/dataset-summary.ts).
+const summaryOf = (ds) => ds.extras?.find((extra) => extra.key === SUMMARY_EXTRA_KEY)?.value;
+const everyDataset = [...datasets, ...more, ...DEMOS.map((demo) => demo.dataset)];
+
+test("S53: la clave y el límite del resumen son los del portal", () => {
+	assert.equal(SUMMARY_EXTRA_KEY, "summary");
+	assert.equal(MAX_SUMMARY_LENGTH, 200);
+});
+
+test("S53: todo dataset sembrado trae un resumen de una oración, breve y en español formal", () => {
+	assert.equal(everyDataset.length, 15 + 1 + 30 + 5);
+	for (const ds of everyDataset) {
+		const summary = summaryOf(ds);
+		assert.equal(typeof summary, "string", ds.name);
+		assert.ok(
+			summary.length >= 20 && summary.length <= MAX_SUMMARY_LENGTH,
+			`${ds.name}: ${summary.length}`,
+		);
+		assert.equal(summary, summary.trim(), ds.name);
+		assert.match(summary, /[.]$/, `${ds.name}: termina en punto`);
+		assert.equal(summary.slice(0, -1).includes(". "), false, `${ds.name}: una sola oración`);
+		assert.equal(/\b(vos|tenés|podés|mirá|descargá)\b/i.test(summary), false, ds.name);
+		assert.equal(ds.extras.filter((extra) => extra.key === SUMMARY_EXTRA_KEY).length, 1, ds.name);
+	}
+});
+
+test("S53: un resumen no promete datos reales", () => {
+	for (const ds of everyDataset)
+		assert.match(summaryOf(ds), /fictici|muestra|demostración/i, ds.name);
+});
+
 // CKAN falso en memoria: package_show / package_create / resource_create / publicación.
-function fakeCkan(initial = []) {
+function fakeCkan(initial = [], tableFields = []) {
+	const patches = [];
+	const views = new Map();
 	const packages = new Map(initial.map((pkg) => [pkg.name, pkg]));
 	const calls = [];
 	const json = (body) => new Response(JSON.stringify(body), { status: 200 });
@@ -233,6 +271,25 @@ function fakeCkan(initial = []) {
 			packages.set(pkg.name, pkg);
 			return json({ success: true, result: pkg });
 		}
+		if (action === "package_patch") {
+			const pkg = packages.get(data.id) ?? [...packages.values()].find((p) => p.id === data.id);
+			Object.assign(pkg, data, { id: pkg.id });
+			patches.push(data);
+			return json({ success: true, result: pkg });
+		}
+		if (action === "resource_show")
+			return json({ success: true, result: { datastore_active: true } });
+		if (action === "datastore_search")
+			return json({
+				success: true,
+				result: { fields: tableFields.map((id) => ({ id, type: "text" })) },
+			});
+		if (action === "resource_view_list")
+			return json({ success: true, result: views.get(data.id) ?? [] });
+		if (action === "resource_view_create") {
+			views.set(data.resource_id, [...(views.get(data.resource_id) ?? []), { title: data.title }]);
+			return json({ success: true, result: { id: `v${calls.length}` } });
+		}
 		if (action === "publication_request_list") return json({ success: true, result: [] });
 		if (action === "publication_request_create")
 			return json({ success: true, result: { id: "q1" } });
@@ -242,7 +299,7 @@ function fakeCkan(initial = []) {
 		}
 		return json({ success: false, error: { message: action } });
 	};
-	return { packages, calls, handler };
+	return { packages, calls, handler, patches, views };
 }
 
 async function withFakeFetch(fake, run) {
@@ -292,4 +349,88 @@ test("sembrar los 30 nuevos no toca un dataset existente de otro nombre", async 
 	});
 	assert.equal(JSON.stringify(fake.packages.get(old.name)), before);
 	assert.equal(fake.packages.size, 31);
+});
+
+test("S53: a un dataset existente sin resumen se le agrega, conservando sus otros extras", async () => {
+	const ds = more[0];
+	const orgs = new Map(ORGS.map((o) => [o.name, `org-${o.name}`]));
+	const old = {
+		id: "old-2",
+		name: ds.name,
+		private: false,
+		state: "active",
+		extras: [{ key: "otro", value: "x" }],
+		resources: ds.resources.map((r, i) => ({ id: `x${i}`, name: r.name })),
+	};
+	const fake = fakeCkan([old]);
+	await withFakeFetch(fake, () => seedFileDataset("t", orgs, ds));
+	assert.equal(fake.patches.length, 1);
+	assert.deepEqual(fake.patches[0].extras, [
+		{ key: "otro", value: "x" },
+		{ key: SUMMARY_EXTRA_KEY, value: summaryOf(ds) },
+	]);
+	fake.calls.length = 0;
+	await withFakeFetch(fake, () => seedFileDataset("t", orgs, ds));
+	assert.deepEqual(fake.calls, ["package_show"], "con resumen, la segunda corrida sólo lee");
+});
+
+test("S53: un resumen que el editor ya cambió no se pisa", async () => {
+	const ds = more[0];
+	const orgs = new Map(ORGS.map((o) => [o.name, `org-${o.name}`]));
+	const mine = [{ key: SUMMARY_EXTRA_KEY, value: "Resumen propio." }];
+	const old = {
+		id: "old-3",
+		name: ds.name,
+		private: false,
+		state: "active",
+		extras: mine,
+		resources: ds.resources.map((r, i) => ({ id: `x${i}`, name: r.name })),
+	};
+	const fake = fakeCkan([old]);
+	await withFakeFetch(fake, () => seedFileDataset("t", orgs, ds));
+	assert.deepEqual(fake.patches, []);
+	assert.deepEqual(fake.packages.get(ds.name).extras, mine);
+});
+
+// S52 + S54: los gráficos se siembran al final y los datasets con gráficos se tocan en último lugar, para
+// que «más recientes» (metadata_modified desc) los muestre primero.
+const csvDataset = more.find((ds) => ds.resources.some((r) => r.format === "CSV"));
+const plainDataset = more.find((ds) => !ds.resources.some((r) => r.format === "CSV"));
+
+test("S52/S54: siembra los gráficos que faltan y toca al final sólo los datasets con gráficos", async () => {
+	const orgs = new Map(ORGS.map((o) => [o.name, `org-${o.name}`]));
+	const fake = fakeCkan(
+		[],
+		PROFILES[csvDataset.name].columns.map(([name]) => name),
+	);
+	await withFakeFetch(fake, async () => {
+		await seedFileDataset("t", orgs, csvDataset);
+		await seedFileDataset("t", orgs, plainDataset);
+		fake.calls.length = 0;
+		const result = await seedChartsLast("t", [csvDataset, plainDataset], []);
+		assert.equal(result.failed, 0);
+		assert.equal(result.created, FILE_CHART_VIEWS[csvDataset.name].length);
+	});
+	const created = fake.calls.filter((call) => call === "resource_view_create");
+	assert.equal(created.length, FILE_CHART_VIEWS[csvDataset.name].length);
+	const touches = fake.calls.filter((call) => call === "package_patch");
+	assert.equal(touches.length, 1);
+	assert.equal(fake.patches.at(-1).id, fake.packages.get(csvDataset.name).id);
+	assert.ok(
+		fake.calls.lastIndexOf(created.at(-1)) < fake.calls.indexOf(touches[0]),
+		"toca después de crear",
+	);
+	assert.equal(fake.calls.at(-1), touches[0], "el toque es lo último que se hace");
+
+	// Segunda corrida: no duplica vistas.
+	fake.calls.length = 0;
+	const again = await withFakeFetch(fake, () =>
+		seedChartsLast("t", [csvDataset, plainDataset], []),
+	);
+	assert.equal(again.created, 0);
+	assert.equal(fake.calls.filter((call) => call === "resource_view_create").length, 0);
+	assert.equal(
+		fake.views.get(fake.packages.get(csvDataset.name).resources[0].id).length,
+		FILE_CHART_VIEWS[csvDataset.name].length,
+	);
 });

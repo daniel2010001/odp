@@ -167,6 +167,94 @@ export const CHART_VIEWS = {
 	],
 };
 
+/**
+ * Los gráficos por defecto de los datasets adicionales (S18; S52 de odd/tasks/v0.1.1-polish.md), por
+ * `dataset.name`: sólo los que tienen un recurso CSV, y sobre ese CSV. Estos CSV los carga xloader como
+ * texto y el seed no declara sus tipos (a diferencia de `DEMOS`), así que cada gráfico sólo **cuenta filas**
+ * agrupando por el valor de una columna de texto; los títulos dicen lo que se cuenta, no una suma.
+ */
+export const FILE_CHART_VIEWS = {
+	"inventario-de-equipos-de-computo-por-laboratorio": [
+		{
+			title: "Equipos por laboratorio",
+			description: "Cantidad de equipos de cómputo registrados en cada laboratorio.",
+			config: config("bar", "laboratorio", "value", "count"),
+		},
+		{
+			title: "Equipos por estado de operación",
+			description: "Proporción de equipos operativos, en mantenimiento o de baja.",
+			config: config("pie", "estado", "value", "count"),
+		},
+	],
+	"campanas-de-vacunacion-estudiantil": [
+		{
+			title: "Campañas de vacunación por vacuna",
+			description: "Cantidad de campañas registradas para cada vacuna.",
+			config: config("bar", "vacuna", "value", "count"),
+		},
+		{
+			title: "Campañas de vacunación por gestión",
+			description: "Evolución de la cantidad de campañas registradas en cada gestión.",
+			config: config("line", "gestion", "value", "count"),
+		},
+	],
+	"practicas-clinicas-por-centro-de-salud": [
+		{
+			title: "Prácticas clínicas por centro de salud",
+			description: "Cantidad de prácticas registradas en cada centro de salud.",
+			config: config("bar", "centro", "value", "count"),
+		},
+		{
+			title: "Prácticas clínicas por carrera",
+			description: "Proporción de las prácticas registradas según la carrera.",
+			config: config("pie", "carrera", "value", "count"),
+		},
+	],
+	"estaciones-experimentales-y-superficie-cultivada": [
+		{
+			title: "Estaciones experimentales por municipio",
+			description: "Cantidad de estaciones experimentales registradas en cada municipio.",
+			config: config("bar", "municipio", "value", "count"),
+		},
+	],
+	"consumo-de-agua-de-riego-en-parcelas": [
+		{
+			title: "Mediciones de riego por sistema",
+			description: "Proporción de las mediciones registradas según el sistema de riego.",
+			config: config("pie", "sistema", "value", "count"),
+		},
+		{
+			title: "Mediciones de riego por mes",
+			description: "Cantidad de mediciones de riego registradas en cada mes de 2025.",
+			config: config("line", "mes", "value", "count"),
+		},
+	],
+	"reclamos-y-sugerencias-recibidos-por-canal": [
+		{
+			title: "Reclamos y sugerencias por canal",
+			description: "Cantidad de registros recibidos por cada canal de atención.",
+			config: config("bar", "canal", "value", "count"),
+		},
+		{
+			title: "Reclamos y sugerencias por tipo",
+			description: "Proporción de reclamos, sugerencias y felicitaciones recibidos.",
+			config: config("pie", "tipo", "value", "count"),
+		},
+	],
+	"convocatorias-de-investigacion-y-proyectos-adjudicados": [
+		{
+			title: "Convocatorias de investigación por línea",
+			description: "Cantidad de convocatorias registradas en cada línea de investigación.",
+			config: config("bar", "linea", "value", "count"),
+		},
+		{
+			title: "Convocatorias de investigación por gestión",
+			description: "Evolución de la cantidad de convocatorias registradas en cada gestión.",
+			config: config("line", "gestion", "value", "count"),
+		},
+	],
+};
+
 /** El cuerpo de `resource_view_create`: la configuración va plana, al tope (`createView` del portal). */
 export function chartViewPayload(resourceId, view) {
 	return {
