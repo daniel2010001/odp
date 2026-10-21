@@ -2662,6 +2662,13 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v0.1.1] El despliegue para presentar la demo, fuera del modo dev** (pedido del autor, 2026-10-08): con **datos de prueba**,
   un «lo que tenemos y lo que faltaría» escrito y **funcional en otras infraestructuras** (considera un VPN o algún servicio). Necesita
   al autor y a `odp-docker`; de aquí sale la URL de la instancia que se presenta (`presentation/demo.md` usa `http://localhost:8082`).
+  **Estado medido por odp-docker (2026-10-20, sólo lectura); el autor eligió presentar desde `https://demo.odp.hs.lan`:**
+  la instancia está **detenida** (~31 h); su portal es **v0.1.0** (imagen del 2026-10-19 12:32, sin nada de v0.1.1); su CKAN
+  está en la migración **0001** (sin el historial; la imagen hornea el código, hay que reconstruirla desde master ≥ `8655f4d`);
+  tiene **21 datasets** públicos (sin los 30 del seed) y los cuatro usuarios de la demo; 0 licencias vacías; sus credenciales
+  de base son **distintas** de las expuestas en septiembre y el debug está apagado. Para presentar v0.1.1 falta: reconstruir
+  el frontend desde `main`, reconstruir CKAN con la 0002, sembrar S18 (choca con los cuatro ojos en fcyt: ver el ítem del
+  seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
 - [ ] **[v0.1.1/v1] Auditoría de colores fijos y mapas a mano (2026-10-20, pregunta del autor en L53: «qué otros ítems también
