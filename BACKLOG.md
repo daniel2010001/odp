@@ -2679,6 +2679,10 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   - **Tras buscar o cambiar un filtro, llevar la vista a la primera card** (autor, L87: «cuando realicemos una busqueda o
     cambios del filtro, hacer un scroll para bajar o subir hasta ver la primera card, esto tando en el filter menu como en
     los buscadores (hero y de la barra)»). Respetar `prefers-reduced-motion` y el alto de la barra pegada.
+    **Y al abrir un enlace del buscador con filtros** (autor, L91: «al copiar un enlace del search con algún filtro incluir
+    el #id o algo así para que el scrol haga foco en la primera card o en la barra del buscador, cosa que no tengamos que
+    bajas desde el hero»): la URL con filtros lleva un fragmento (p. ej. `#resultados`) o la página baja sola a los
+    resultados cuando hay filtros o búsqueda; mismo mecanismo que el de arriba, por eso van juntos.
   - **La barra de pestañas pegada parece una caja al hacer scroll** (autor, L83: «al hacer un poco scroll se ve el border-x y
     parece como si fuera un cuadro […] si se puede solucionar bien, sino lo podemos dejar para otra realise»). Con fondo
     (S49), los bordes laterales de la tarjeta de la vista que pasa por debajo se cortan contra la línea inferior de la barra.
