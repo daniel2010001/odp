@@ -24,8 +24,10 @@ import {
 	FORBIDDEN_ACTIONS,
 	isAllowedAction,
 	isReadAction,
+	isRetryableAction,
 	isUploadAction,
 	READ_ACTIONS,
+	RETRYABLE_ACTIONS,
 	UPLOAD_ACTIONS,
 	upstreamHeaders,
 	upstreamUrl,
@@ -250,5 +252,25 @@ describe("las cabeceras del pedido al catálogo — la credencial del cliente no
 		expect(cabeceras.get("accept")).toBeNull();
 		// La forma exacta: sólo las dos cabeceras que el portal decide.
 		expect([...cabeceras.keys()].sort()).toEqual(["authorization", "content-type"]);
+	});
+});
+
+describe("RETRYABLE_ACTIONS — lo que el puente puede pedir dos veces (P7)", () => {
+	it("son todas permitidas, incluyen las lecturas por GET y las tres lecturas por POST", () => {
+		expect(RETRYABLE_ACTIONS.every((accion) => isAllowedAction(accion))).toBe(true);
+		expect(READ_ACTIONS.every((accion) => isRetryableAction(accion))).toBe(true);
+		for (const accion of ["resource_view_list", "resource_view_show", "umss_chart_data"])
+			expect(isRetryableAction(accion), accion).toBe(true);
+	});
+
+	it("ningún mutador ni ninguna subida se puede repetir", () => {
+		const mutadores = ALLOWED_ACTIONS.filter(
+			(accion) =>
+				!isReadAction(accion) &&
+				!["resource_view_list", "resource_view_show", "umss_chart_data"].includes(accion),
+		);
+		expect(mutadores.length).toBeGreaterThan(0);
+		for (const accion of mutadores) expect(isRetryableAction(accion), accion).toBe(false);
+		for (const accion of UPLOAD_ACTIONS) expect(isRetryableAction(accion), accion).toBe(false);
 	});
 });
