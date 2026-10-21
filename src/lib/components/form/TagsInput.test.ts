@@ -107,4 +107,18 @@ describe("TagsInput", () => {
 		expect(await screen.findByRole("option", { name: "educación" })).toBeInTheDocument();
 		expect(screen.queryByRole("option", { name: "salud" })).not.toBeInTheDocument();
 	});
+
+	it("ofrece las sugerencias en orden alfabético (es)", async () => {
+		render(TagsInput, { props: { suggestions: ["zoología", "ñandú", "Álgebra", "nube"] } });
+
+		await fireEvent.focus(screen.getByRole("combobox"));
+		await screen.findAllByRole("option");
+
+		expect(screen.getAllByRole("option").map((o) => o.textContent?.trim())).toEqual([
+			"Álgebra",
+			"nube",
+			"ñandú",
+			"zoología",
+		]);
+	});
 });

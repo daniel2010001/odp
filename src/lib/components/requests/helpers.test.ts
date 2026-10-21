@@ -23,14 +23,14 @@ describe("datasetLinks", () => {
 		const items = datasetLinks(item("pkg-p1"));
 		expect(items.map((i) => [i.label, i.href])).toEqual([
 			["Abrir el dataset", "/dataset/pkg-p1"],
-			["Historial de solicitudes", "/dataset/pkg-p1#historial"],
+			["Historial de solicitudes", "/dataset/pkg-p1#history"],
 		]);
 	});
 
 	it("codifica el id del dataset en la ruta", () => {
 		const [ficha, historial] = datasetLinks(item("a b/c"));
 		expect(ficha.href).toBe("/dataset/a%20b%2Fc");
-		expect(historial.href).toBe("/dataset/a%20b%2Fc#historial");
+		expect(historial.href).toBe("/dataset/a%20b%2Fc#history");
 	});
 });
 

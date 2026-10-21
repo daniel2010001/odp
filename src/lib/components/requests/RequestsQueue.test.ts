@@ -5,6 +5,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DecidePublicationRequest } from "$lib/components/dataset/publication-decision";
+import { FIELD_CHEVRON_CLASS, FIELD_CLASS } from "$lib/components/ui/tabs/overflow-tabs";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import {
@@ -380,13 +381,49 @@ describe("RequestsQueue — los datos «con rótulos»", () => {
 });
 
 describe("RequestsQueue — las organizaciones son las pestañas", () => {
-	it("«Todas» va primero, con el total, y cada organización con su conteo", async () => {
+	it("«Todas» va primero; su insignia es la suma de las pendientes de las organizaciones", async () => {
 		await abrirYEsperar({ caso: "varias" });
 		const tabs = within(tablist() as HTMLElement).getAllByRole("tab");
-		expect(tabs[0]).toHaveTextContent(/^Todas\s*10$/);
+		expect(tabs[0]).toHaveTextContent(/^Todas\s*4$/);
 		expect(tabs[0]).toHaveAttribute("aria-selected", "true");
 		expect(tabs.length).toBeGreaterThan(2);
-		expect(tabs[1].textContent).toMatch(/\d+$/);
+		const insignias = tabs
+			.slice(1)
+			.map((t) => t.querySelector("[data-testid=insignia]")?.textContent);
+		expect(insignias.map(Number).reduce((a, b) => a + b, 0)).toBe(4);
+	});
+
+	it("la insignia cuenta sólo las pendientes de la organización y se nombra «N pendientes»", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const tec = within(tablist() as HTMLElement).getByRole("tab", {
+			name: /Facultad de Tecnología/,
+		});
+		expect(tec).toHaveTextContent(/Facultad de Tecnología\s*2$/);
+		expect(within(tec).getByLabelText("2 pendientes")).toBeInTheDocument();
+		const med = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Medicina/ });
+		expect(within(med).getByLabelText("1 pendiente")).toBeInTheDocument();
+	});
+
+	it("una organización sin pendientes no lleva insignia", async () => {
+		const items = [
+			...itemsDelCaso("varias"),
+			{
+				...(itemsDelCaso("varias").find((i) => i.status !== "pending") as QueueItem),
+				id: "der1",
+				organization_title: "Facultad de Derecho",
+			},
+		];
+		await abrirYEsperar({ items });
+		const der = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Derecho/ });
+		expect(der.textContent?.trim()).toBe("Facultad de Derecho");
+		expect(der.querySelector("[data-testid=insignia]")).toBeNull();
+		expect(tablist()?.querySelectorAll("[data-testid=insignia]")).toHaveLength(4);
+	});
+
+	it("sin ninguna pendiente tampoco «Todas» lleva insignia", async () => {
+		const items = itemsDelCaso("varias").filter((i) => i.status !== "pending");
+		await abrirYEsperar({ items });
+		expect(tablist()?.querySelector("[data-testid=insignia]")).toBeNull();
 	});
 
 	it("con una sola organización no se dibujan ni las pestañas ni el desplegable", async () => {
@@ -407,12 +444,14 @@ describe("RequestsQueue — las organizaciones son las pestañas", () => {
 		expect(lista).toHaveBeenCalledTimes(1);
 	});
 
-	it("bajo el punto de las pestañas hay un desplegable de organización (se oculta con la misma clase `@lg`)", async () => {
+	it("hasta 700 px de ventana (611 px de contenedor) hay un desplegable de organización; desde 701, pestañas", async () => {
 		await abrirYEsperar({ caso: "varias" });
-		expect(tablist()?.parentElement?.className).toMatch(/hidden .*@lg:block/);
+		expect(tablist()?.closest("[data-list]")?.parentElement?.className).toMatch(
+			/hidden .*@min-\[611px\]:block/,
+		);
 		const trigger = screen.getByRole("button", { name: "Organización" });
-		expect(trigger.parentElement?.className).toMatch(/@lg:hidden/);
-		expect(trigger).toHaveTextContent("Todas (10)");
+		expect(trigger.parentElement?.className).toMatch(/@min-\[611px\]:hidden/);
+		expect(trigger).toHaveTextContent("Todas (4 pendientes)");
 	});
 
 	it("las pestañas llevan la forma de las vistas del recurso: línea inferior y la activa en azul", async () => {
@@ -438,17 +477,19 @@ describe("RequestsQueue — «Mostrar» al nivel de las pestañas", () => {
 		expect(select.value).toBe("pendientes");
 		expect([...select.options].map((o) => o.textContent)).toEqual(OPCIONES);
 		expect(select.className).toContain("h-11");
-		expect(select.className).toContain("rounded-lg");
-		expect(select.className).toContain("text-xs font-semibold");
+		expect(select.className).toContain("rounded-md");
+		expect(select.className).toContain("text-sm font-medium");
 		expect(select.closest("label")).toHaveTextContent(/^Mostrar:/);
 	});
 
 	it("está en la fila de las pestañas: comparte contenedor con la lista de pestañas y no hay barra aparte", async () => {
 		await abrirYEsperar({ caso: "varias" });
-		const fila = (tablist() as HTMLElement).parentElement?.parentElement as HTMLElement;
+		const fila = (tablist() as HTMLElement).closest("[data-testid=barra-pestanas]") as HTMLElement;
 		expect(fila.contains(mostrar())).toBe(true);
 		expect(fila.className).toMatch(/border-b/);
-		expect(fila.className).toMatch(/@5xl:flex-row/);
+		// Una sola fila desde el punto de cambio: sin `flex-col`, sin envolver.
+		expect(fila.className).toMatch(/@min-\[611px\]:flex-nowrap/);
+		expect(fila.className).not.toMatch(/flex-col/);
 		expect(screen.queryByTestId("barra-estado")).not.toBeInTheDocument();
 	});
 
@@ -473,20 +514,78 @@ describe("RequestsQueue — «Mostrar» al nivel de las pestañas", () => {
 		);
 	});
 
-	it("«Mostrar» mide 36 px donde comparte fila con las pestañas (desde 64 rem) y 44 px en el resto", async () => {
+	it("«Mostrar» mide 36 px donde comparte fila con las pestañas (desde 701 px de ventana) y 44 px en el resto", async () => {
 		await abrirYEsperar({ caso: "varias" });
 		expect(mostrar().className).toMatch(/\bh-11\b/);
-		expect(mostrar().className).toMatch(/@5xl:h-9/);
-		const wrapper = mostrar().closest("label")?.parentElement as HTMLElement;
-		expect(wrapper.className).toMatch(/@5xl:mt-\[5px\]/);
+		expect(mostrar().className).toMatch(/@min-\[611px\]:h-9/);
+		const wrapper = mostrar().closest("[data-trailing]") as HTMLElement;
+		expect(wrapper.className).toMatch(/@min-\[611px\]:mt-\[5px\]/);
 	});
 
-	it("en ancho angosto la etiqueta y el campo llenan la fila (apilado bajo el desplegable de organización)", async () => {
+	it("junto al desplegable de organización es el MISMO campo: las mismas clases de altura, borde, radio, letra y chevron", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const org = screen.getByRole("button", { name: "Organización" });
+		for (const token of FIELD_CLASS.split(" ")) {
+			expect(org.className.split(" "), token).toContain(token);
+			expect(mostrar().className.split(" "), token).toContain(token);
+		}
+		const chevron = (el: Element) =>
+			el.querySelector("svg") ?? el.parentElement?.querySelector("svg");
+		for (const el of [org, mostrar()]) {
+			const classes = chevron(el)?.getAttribute("class")?.split(" ") ?? [];
+			for (const token of FIELD_CHEVRON_CLASS.split(" ")) expect(classes, token).toContain(token);
+		}
+	});
+
+	it("apilado (bajo 18 rem de contenedor) la etiqueta y el campo llenan la fila; en la forma angosta la etiqueta es sólo para lectores", async () => {
 		await abrirYEsperar({ caso: "varias" });
 		const label = mostrar().closest("label") as HTMLElement;
-		expect(label.className).toMatch(/w-full/);
-		expect(label.className).toMatch(/@lg:w-auto/);
-		expect(mostrar().className).toMatch(/flex-1/);
+		expect(label.className).toMatch(/@max-\[18rem\]:w-full/);
+		expect(label.firstElementChild?.className).toMatch(/\bsr-only\b/);
+		expect(label.firstElementChild?.className).toMatch(/@min-\[611px\]:not-sr-only/);
+	});
+});
+
+describe("RequestsQueue — «N solicitudes» a la izquierda de las pestañas", () => {
+	const conteo = () => textoDe(screen.getByTestId("conteo-solicitudes"));
+
+	it("va en la barra de pestañas, antes de ellas, y sigue a «Mostrar» (pendientes por defecto)", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const barra = screen.getByTestId("barra-pestanas");
+		const el = screen.getByTestId("conteo-solicitudes");
+		expect(barra).toContainElement(el);
+		expect(
+			el.compareDocumentPosition(tablist() as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(conteo()).toBe("4 solicitudes");
+		await fireEvent.change(mostrar(), { target: { value: "resueltas" } });
+		expect(conteo()).toBe("6 solicitudes");
+		await fireEvent.change(mostrar(), { target: { value: "todas" } });
+		expect(conteo()).toBe("10 solicitudes");
+	});
+
+	it("va al extremo izquierdo de la fila: primero en la barra, con la clase de la fila y 48 px desde el punto de cambio", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const barra = screen.getByTestId("barra-pestanas");
+		expect(barra.firstElementChild).toContainElement(screen.getByTestId("conteo-solicitudes"));
+		expect(barra.firstElementChild?.className).toMatch(/@min-\[611px\]:h-12/);
+		expect(barra.firstElementChild?.className).toMatch(/basis-full/);
+	});
+
+	it("sigue a la organización activa, y en singular dice «1 solicitud»", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const tab = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Medicina/ });
+		await fireEvent.mouseDown(tab);
+		await fireEvent.click(tab);
+		await waitFor(() => expect(conteo()).toBe("1 solicitud"));
+		await fireEvent.change(mostrar(), { target: { value: "todas" } });
+		expect(conteo()).toBe("3 solicitudes");
+	});
+
+	it("con cero filas dice «0 solicitudes»", async () => {
+		const items = itemsDelCaso("varias").filter((i) => i.status !== "pending");
+		await abrirYEsperar({ items });
+		expect(conteo()).toBe("0 solicitudes");
 	});
 });
 
@@ -496,12 +595,12 @@ describe("RequestsQueue — la barra de pestañas y «Mostrar» queda pegada", (
 		const barra = screen.getByTestId("barra-pestanas");
 		expect(barra.contains(tablist())).toBe(true);
 		expect(barra.contains(mostrar())).toBe(true);
-		expect(barra.className).toMatch(/@lg:sticky/);
-		expect(barra.className).toMatch(/@lg:top-\[calc\(var\(--header-h\)\+1px\)\]/);
+		expect(barra.className).toMatch(/@min-\[611px\]:sticky/);
+		expect(barra.className).toMatch(/@min-\[611px\]:top-\[calc\(var\(--header-h\)\+1px\)\]/);
 		expect(barra.className).toMatch(/\bbg-background\b/);
 		expect(barra.className).not.toMatch(/bg-background\//);
 		expect(barra.className).toMatch(/\bborder-b\b/);
-		expect(barra.className).toMatch(/@lg:z-20/);
+		expect(barra.className).toMatch(/@min-\[611px\]:z-20/);
 	});
 
 	it("bajo 32 rem no se pega: no hay `sticky` ni `z-20` sin prefijo", async () => {
@@ -669,7 +768,7 @@ describe("RequestsQueue — el pie del panel es responsive", () => {
 			items.getAllByRole("link").map((a) => [a.textContent?.trim(), a.getAttribute("href")]),
 		).toEqual([
 			["Abrir el dataset", "/dataset/pkg-p3"],
-			["Historial de solicitudes", "/dataset/pkg-p3#historial"],
+			["Historial de solicitudes", "/dataset/pkg-p3#history"],
 		]);
 		expect(items.getByRole("button", { name: /^Cerrar/ })).toBeInTheDocument();
 	});

@@ -1,10 +1,15 @@
 <!--
-	«Mostrar: Pendientes (4) ▾»: el estado de las solicitudes (Pendientes / Resueltas / Todas, con su conteo) como el
-	«Ordenar» de la barra de resultados de la búsqueda —el mismo `<select>` nativo, a 44 px—, para que las dos
-	pantallas se lean igual. Cuando comparte la fila con las pestañas (contenedor de 64 rem o más, un puntero fino)
-	baja a 36 px y queda centrado en la fila sin llegar a la línea inferior (L64); en el resto conserva los 44 px. En ancho angosto la etiqueta y el campo llenan la fila; desde `sm`, miden lo que dicen.
+	«Mostrar: Pendientes (4) ▾»: el estado de las solicitudes (Pendientes / Resueltas / Todas, con su conteo) como un
+	`<select>` nativo, pero con el MISMO campo que el desplegable de organización de `OverflowTabs` (`FIELD_CLASS` y
+	`FIELD_CHEVRON_CLASS`: 44 px, borde, radio, letra y chevron) para que, lado a lado, se vean idénticos.
+	`inBar` es cuando comparte la fila con las pestañas (`OrgTabs`): desde 701 px de ventana mide 36 px y su etiqueta
+	«Mostrar:» se lee; en la forma angosta mide 44 px y la etiqueta es sólo para lectores de pantalla (el campo ya
+	dice el estado), salvo apilado (bajo 18 rem de contenedor), donde ocupa su fila con la etiqueta a la vista.
+	Fuera de la barra (la barra de una sola organización) la etiqueta siempre se ve.
 -->
 <script lang="ts">
+import { ChevronDown } from "@lucide/svelte";
+import { FIELD_CHEVRON_CLASS, FIELD_CLASS, FORMS } from "$lib/components/ui/tabs/overflow-tabs";
 import { cn } from "$lib/utils";
 import { statusOptionLabel, statusOptions, type Tab } from "./requests-model";
 
@@ -12,26 +17,38 @@ let {
 	tab,
 	counts,
 	ontab,
+	inBar = false,
 	class: className = "",
 }: {
 	tab: Tab;
 	counts: Record<Tab, number>;
 	ontab: (tab: Tab) => void;
+	/** Comparte la fila con las pestañas de organización. */
+	inBar?: boolean;
 	class?: string;
 } = $props();
 
 const options = $derived(statusOptions(counts));
+const form = FORMS["611px"];
 </script>
 
-<label class={cn("flex items-center gap-2 text-xs font-medium text-muted-foreground", className)}>
-	<span>Mostrar:</span>
-	<select
-		value={tab}
-		onchange={(e) => ontab((e.target as HTMLSelectElement).value as Tab)}
-		class="h-11 min-w-0 @5xl:h-9 flex-1 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:flex-none"
-	>
-		{#each options as option (option.id)}
-			<option value={option.id}>{statusOptionLabel(option)}</option>
-		{/each}
-	</select>
+<label
+	class={cn(
+		"flex items-center gap-2 text-xs font-medium text-muted-foreground @max-[18rem]:w-full",
+		className,
+	)}
+>
+	<span class={inBar ? cn("sr-only @max-[18rem]:not-sr-only", form.wideLabel) : undefined}>Mostrar:</span>
+	<span class="relative min-w-0 flex-1">
+		<select
+			value={tab}
+			onchange={(e) => ontab((e.target as HTMLSelectElement).value as Tab)}
+			class={cn(FIELD_CLASS, "w-full appearance-none", inBar && form.wideFieldH)}
+		>
+			{#each options as option (option.id)}
+				<option value={option.id}>{statusOptionLabel(option)}</option>
+			{/each}
+		</select>
+		<ChevronDown class={FIELD_CHEVRON_CLASS} aria-hidden="true" />
+	</span>
 </label>

@@ -73,7 +73,9 @@ describe("DataPreviewTable", () => {
 		render(DataPreviewTable, { props: { fields, records, total: 42 } });
 
 		const scroller = screen.getByRole("table").parentElement;
-		expect(scroller?.className).toContain("max-h-[min(70dvh,720px)]");
+		expect(scroller?.className).toContain(
+			"max-h-[max(316px,calc(100dvh-184px-var(--tabs-h,0px)))]",
+		);
 		expect(scroller?.className).toContain("overflow-auto");
 		const footer = screen.getByText("Mostrando 2 de 42 filas");
 		expect(scroller?.contains(footer)).toBe(false);

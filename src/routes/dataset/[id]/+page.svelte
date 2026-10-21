@@ -36,6 +36,8 @@ import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
+import { rewriteLegacyFragment } from "$lib/components/resource/legacy-fragment";
+import { upgradeFragment } from "$lib/components/resource/preview-views";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
@@ -361,6 +363,41 @@ async function loadEditPermission() {
 $effect(() => {
 	void datasetId;
 	loadDataset();
+});
+
+// Un enlace compartido con el fragmento de una sección (`#history`, o el heredado en español `#historial`): el
+// navegador no lo resuelve porque la sección se dibuja después de cargar. Se baja a ella **una vez** y cuando ya
+// existe (el historial llega después del dataset: si falta, se espera); un fragmento heredado además reescribe la
+// URL a su forma en inglés. Si la persona se desplaza antes de que llegue la sección, el salto se abandona.
+let fragmentApplied = false;
+$effect(() => {
+	const stop = () => {
+		fragmentApplied = true;
+	};
+	const events = ["wheel", "touchstart", "keydown"] as const;
+	for (const e of events) window.addEventListener(e, stop, { passive: true });
+	return () => {
+		for (const e of events) window.removeEventListener(e, stop);
+	};
+});
+$effect(() => {
+	void dataset;
+	void historialDeSolicitudes;
+	if (fragmentApplied || !dataset) return;
+	const hash = window.location.hash;
+	const id = (upgradeFragment(hash) ?? hash).slice(1);
+	if (!id) {
+		fragmentApplied = true;
+		return;
+	}
+	const target = document.getElementById(id);
+	if (!target) return;
+	fragmentApplied = true;
+	rewriteLegacyFragment(new URL(window.location.href));
+	const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+	// `?.`: los entornos sin layout (jsdom) no implementan `scrollIntoView`; sin la guarda, cualquier test que monte la
+	// ficha con un fragmento termina con un error sin manejar y la suite sale con código de error.
+	target.scrollIntoView?.({ behavior: reduce ? "instant" : "smooth", block: "start" });
 });
 
 // ─── Derived: estado de error ────────────────────────────────
@@ -721,7 +758,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					</Card>
 
 					<!-- Resources -->
-					<Card id="recursos" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
+					<Card id="resources" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
 						<div class="group/ancla mt-1 flex items-center gap-2">
 							<h2 class="font-heading text-xl font-bold text-primary">
@@ -730,7 +767,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 									<span class="font-normal text-muted-foreground">({activeResources.length})</span>
 								{/if}
 							</h2>
-							<AnchorLink id="recursos" title="Recursos" />
+							<AnchorLink id="resources" title="Recursos" />
 						</div>
 						<div class="mt-4 space-y-2">
 							{#if activeResources.length === 0}
@@ -748,14 +785,14 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					<!-- Información técnica: todos los campos registrados, en grupos (variante C / 3b de
 					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la
 					     información técnica completa» del «Resumen»; `scroll-mt` deja el título bajo el encabezado fijo,
-					     como `#vista-previa` en la página del recurso. -->
-					<Card id="info-tecnica" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
+					     como `#preview` en la página del recurso. -->
+					<Card id="technical-info" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 							Información técnica
 						</p>
 						<div class="group/ancla mt-1 flex items-center gap-2">
 							<h2 class="font-heading text-xl font-bold text-primary">Ficha completa</h2>
-							<AnchorLink id="info-tecnica" title="Información técnica" />
+							<AnchorLink id="technical-info" title="Información técnica" />
 						</div>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 							Todos los datos que el catálogo registra de este dataset.
@@ -814,10 +851,10 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					{/if}
 
 					<!-- Cite card -->
-					<Card id="citar" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
+					<Card id="cite" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
 						<div class="group/ancla flex h-4 items-center gap-2">
 							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
-							<AnchorLink id="citar" title="Citar como" />
+							<AnchorLink id="cite" title="Citar como" />
 						</div>
 						<div class="mt-3 flex items-center gap-2">
 							<button
@@ -866,18 +903,18 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 					<!-- Resumen: lo que responde «¿me sirve esto?». Reemplaza a «Detalles» (variante C de
 					     `/dev/dataset-details`); el resto vive en «Información técnica». -->
-					<Card id="resumen" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
+					<Card id="summary" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
 						<div class="group/ancla flex h-4 items-center gap-2">
 							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
-							<AnchorLink id="resumen" title="Resumen" />
+							<AnchorLink id="summary" title="Resumen" />
 						</div>
 						<dl class="mt-3 space-y-3">
 							{#each summary as fact (fact.key)}
-								<!-- `#licencia` es la fila «Términos» (el destino de los términos de uso) y, sin enlace a los
+								<!-- `#license` es la fila «Términos» (el destino de los términos de uso) y, sin enlace a los
 								     términos, la fila de la licencia. -->
 								{@const licenciaAqui = fact.key === "license" && !termsUrl}
 								<div
-									id={licenciaAqui ? "licencia" : undefined}
+									id={licenciaAqui ? "license" : undefined}
 									class={cn(
 										"flex items-start gap-3",
 										licenciaAqui &&
@@ -902,7 +939,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 										</dd>
 									</div>
 									{#if licenciaAqui}
-										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="licencia" title="Licencia" /></div>
+										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Licencia" /></div>
 									{/if}
 								</div>
 								{#if fact.key === "license" && termsUrl}
@@ -910,7 +947,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 									     (variante L3 de `/dev/responsive-actions`, elegida por el autor el 2026-10-20): mezclarlos
 									     con el nombre en una misma insignia dejaba dos destinos en un solo control. -->
 									<div
-										id="licencia"
+										id="license"
 										class="group/ancla flex scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] items-start gap-3"
 									>
 										<FileText class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
@@ -927,7 +964,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 												>
 											</dd>
 										</div>
-										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="licencia" title="Términos" /></div>
+										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Términos" /></div>
 									</div>
 								{/if}
 							{/each}
@@ -935,7 +972,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 						<!-- Fila de pie (variante C de `/dev/card-links`): el enlace ocupa el ancho de la tarjeta
 						     y llega a 44 px de alto. -->
 						<a
-							href="#info-tecnica"
+							href="#technical-info"
 							class="group -mx-5 -mb-5 mt-4 flex min-h-11 items-center justify-between gap-3 rounded-b-xl border-t border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 						>
 							Ver la información técnica
@@ -952,10 +989,10 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 
 					<!-- Organization card -->
 					{#if dataset.organization?.title}
-						<Card id="organizacion" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
+						<Card id="organization" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
 							<div class="group/ancla flex h-4 items-center gap-2">
 								<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
-								<AnchorLink id="organizacion" title="Organización" />
+								<AnchorLink id="organization" title="Organización" />
 							</div>
 							<div class="mt-3 flex items-start gap-3">
 								<OrganizationLogo

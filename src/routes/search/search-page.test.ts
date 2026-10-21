@@ -563,6 +563,48 @@ describe("Página de búsqueda — el vacío con contenido", () => {
 		expect(screen.getByText("Facultad de Ciencias y Tecnología")).toBeTruthy();
 	});
 
+	it("con un texto buscado y sin orden elegido, el orden por defecto es «Relevancia»", async () => {
+		// Decisión del autor (L70 de `odd/tasks/v0.1.1-polish.md`): «relevancia como default». Sin texto no hay
+		// relevancia que medir, así que el catálogo vacío sigue empezando por lo más reciente.
+		setUrl("?q=matricula");
+		renderSearch();
+
+		await waitFor(() => expect(mocks.search).toHaveBeenCalled());
+		const sort = (
+			mocks.search.mock.calls.find(([p]) => (p as { limit?: number }).limit === 20)?.[0] as
+				| { sort?: string }
+				| undefined
+		)?.sort;
+		expect(sort).toBe("score desc");
+		expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe("score desc");
+	});
+
+	it("sin texto, el orden por defecto sigue siendo «Más recientes»", async () => {
+		setUrl("");
+		renderSearch();
+
+		await waitFor(() => expect(mocks.search).toHaveBeenCalled());
+		const sort = (
+			mocks.search.mock.calls.find(([p]) => (p as { limit?: number }).limit === 20)?.[0] as
+				| { sort?: string }
+				| undefined
+		)?.sort;
+		expect(sort).toBe("metadata_modified desc");
+	});
+
+	it("un orden elegido en la URL manda aunque haya texto", async () => {
+		setUrl("?q=matricula&sort=title_string%20asc");
+		renderSearch();
+
+		await waitFor(() => expect(mocks.search).toHaveBeenCalled());
+		const sort = (
+			mocks.search.mock.calls.find(([p]) => (p as { limit?: number }).limit === 20)?.[0] as
+				| { sort?: string }
+				| undefined
+		)?.sort;
+		expect(sort).toBe("title_string asc");
+	});
+
 	it("mientras el vacío siga en pantalla, un cambio de orden no vuelve a cargar los bloques", async () => {
 		setUrl("?q=matricula");
 		mocks.search.mockImplementation(respondBySignature);
@@ -1364,5 +1406,21 @@ describe("Página de búsqueda — los pegados", () => {
 
 			expect(scrollIntoView).not.toHaveBeenCalled();
 		});
+	});
+});
+
+describe("Página de búsqueda — «Ordenar»", () => {
+	it("ofrece «Relevancia» primero y conserva los pares A-Z / Z-A", async () => {
+		setUrl("?q=matricula");
+		renderSearch();
+
+		const select = (await screen.findAllByRole("combobox")).find((c) =>
+			within(c).queryByRole("option", { name: "Relevancia" }),
+		) as HTMLElement;
+		expect(
+			within(select)
+				.getAllByRole("option")
+				.map((o) => o.textContent?.trim()),
+		).toEqual(["Relevancia", "Más recientes", "Más antiguos", "A-Z", "Z-A"]);
 	});
 });

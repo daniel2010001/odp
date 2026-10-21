@@ -92,6 +92,11 @@ function track(node: HTMLElement) {
 				</div>
 			{/if}
 		</div>
-		{@render children()}
+		<!-- Todas las vistas con id comparten UN alto: llenan la pantalla bajo el encabezado (140px = 65 + 41 + 2 + 2 × 16,
+		     menos la barra de pestañas). Un contenido más chico queda arriba dentro de la ventana; uno más grande se
+		     desplaza dentro de ella (cada vista pone su propio tope). La nota sin id no se estira. -->
+		<div class={id ? "min-h-[max(360px,calc(100dvh-140px-var(--tabs-h,0px)))]" : undefined}>
+			{@render children()}
+		</div>
 	</Card>
 </div>

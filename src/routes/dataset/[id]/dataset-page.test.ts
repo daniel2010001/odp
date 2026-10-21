@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { goto } from "$app/navigation";
+import { goto, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import type { PublicationRequest } from "$lib/api/publication";
 import { sessionExpiredLoginUrl } from "$lib/session";
@@ -644,7 +644,7 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 
 	it("el resumen trae los cuatro datos clave", async () => {
 		await renderTechnicalCard(FULL());
-		const summary = document.getElementById("resumen") as HTMLElement;
+		const summary = document.getElementById("summary") as HTMLElement;
 
 		for (const [label, value] of [
 			["Lo mantiene", "María Rojas"],
@@ -668,7 +668,7 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 
 	it("con pocos datos el resumen omite los hechos que faltan, no los inventa", async () => {
 		await renderTechnicalCard(makeDataset());
-		const summary = document.getElementById("resumen") as HTMLElement;
+		const summary = document.getElementById("summary") as HTMLElement;
 
 		expect(within(summary).queryByText("Lo mantiene")).toBeNull();
 		expect(within(summary).queryByText("Se actualiza")).toBeNull();
@@ -683,8 +683,8 @@ describe("Página de dataset — «Resumen» e «Información técnica»", () =>
 		expect(link.getAttribute("href")).toBe(`#${card.id}`);
 		// Variante C de `/dev/card-links`: fila de pie de la tarjeta, con el alto táctil de 44 px.
 		expect(link.className).toContain("min-h-11");
-		expect(card.id).toBe("info-tecnica");
-		// Como `#vista-previa` del recurso: el encabezado fijo no tapa el título al saltar.
+		expect(card.id).toBe("technical-info");
+		// Como `#preview` del recurso: el encabezado fijo no tapa el título al saltar.
 		expect(card.className).toContain("scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]");
 	});
 
@@ -1642,7 +1642,7 @@ describe("Página de dataset — hero C7, insignias y licencia (T13)", () => {
 			await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 			expect(screen.queryByRole("link", { name: /Ver datasets con licencia/ })).toBeNull();
 			expect(
-				within(document.getElementById("resumen") as HTMLElement).getByText("CC BY — Atribución"),
+				within(document.getElementById("summary") as HTMLElement).getByText("CC BY — Atribución"),
 			).toBeInTheDocument();
 		});
 	});
@@ -1728,13 +1728,13 @@ describe("Página de dataset — el historial de solicitudes (T14)", () => {
 // las filas «Ver…» y de las URL compartidas; el margen de desplazamiento deja la sección bajo el encabezado fijo.
 describe("Página de dataset — anclas de sección", () => {
 	const SECCIONES: Array<[id: string, titulo: string]> = [
-		["resumen", "Resumen"],
-		["recursos", "Recursos"],
-		["licencia", "Términos"],
-		["info-tecnica", "Información técnica"],
-		["historial", "Historial de solicitudes"],
-		["organizacion", "Organización"],
-		["citar", "Citar como"],
+		["summary", "Resumen"],
+		["resources", "Recursos"],
+		["license", "Términos"],
+		["technical-info", "Información técnica"],
+		["history", "Historial de solicitudes"],
+		["organization", "Organización"],
+		["cite", "Citar como"],
 	];
 	const SCROLL_MT = "scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]";
 
@@ -1785,7 +1785,7 @@ describe("Página de dataset — anclas de sección", () => {
 	it("el ícono es sólo ícono, aparece al pasar el cursor o enfocar y queda siempre visible en táctil", async () => {
 		await renderCompleta();
 
-		const boton = within(document.getElementById("recursos") as HTMLElement).getByRole("button", {
+		const boton = within(document.getElementById("resources") as HTMLElement).getByRole("button", {
 			name: "Copiar enlace a la sección Recursos",
 		});
 		expect(boton.textContent?.trim()).toBe("");
@@ -1808,17 +1808,113 @@ describe("Página de dataset — anclas de sección", () => {
 		);
 		await waitFor(() =>
 			expect(mocks.copyToClipboard).toHaveBeenCalledWith(
-				`http://localhost${DATASET_PATH}?from=search#citar`,
+				`http://localhost${DATASET_PATH}?from=search#cite`,
 			),
 		);
+	});
+
+	it.each([
+		["#resumen", "summary"],
+		["#recursos", "resources"],
+		["#licencia", "license"],
+		["#info-tecnica", "technical-info"],
+		["#historial", "history"],
+		["#organizacion", "organization"],
+		["#citar", "cite"],
+	])("un enlace viejo %s baja a la sección y reescribe la URL a #%s", async (old, id) => {
+		window.history.replaceState(null, "", old);
+		vi.mocked(replaceState).mockClear();
+		const scroll = vi.fn();
+		Element.prototype.scrollIntoView = scroll;
+		try {
+			await renderCompleta();
+
+			await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+			expect((scroll.mock.contexts[0] as HTMLElement).id).toBe(id);
+			expect((vi.mocked(replaceState).mock.calls[0]?.[0] as URL).hash).toBe(`#${id}`);
+		} finally {
+			Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it.each([
+		"summary",
+		"resources",
+		"license",
+		"technical-info",
+		"history",
+		"organization",
+		"cite",
+	])("un enlace directo #%s baja a la sección cuando ya existe, sin reescribir la URL", async (id) => {
+		window.history.replaceState(null, "", `#${id}`);
+		vi.mocked(replaceState).mockClear();
+		const scroll = vi.fn();
+		Element.prototype.scrollIntoView = scroll;
+		try {
+			await renderCompleta();
+
+			await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+			expect((scroll.mock.contexts[0] as HTMLElement).id).toBe(id);
+			expect(replaceState).not.toHaveBeenCalled();
+		} finally {
+			Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it("tras bajar al enlace, un desplazamiento posterior de la persona no se pisa", async () => {
+		window.history.replaceState(null, "", "#technical-info");
+		const scroll = vi.fn();
+		Element.prototype.scrollIntoView = scroll;
+		try {
+			await renderCompleta();
+			await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+
+			mocks.historyRequests.mockResolvedValue([makeRow({ id: "r2", status: "rejected" })]);
+			await fireEvent.keyDown(document.body, { key: "End" });
+			await new Promise((r) => setTimeout(r, 50));
+			expect(scroll).toHaveBeenCalledTimes(1);
+		} finally {
+			Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it("con movimiento reducido el salto es instantáneo", async () => {
+		window.history.replaceState(null, "", "#technical-info");
+		const scroll = vi.fn();
+		Element.prototype.scrollIntoView = scroll;
+		const mm = window.matchMedia;
+		window.matchMedia = ((q: string) => ({ ...mm(q), matches: true })) as typeof window.matchMedia;
+		try {
+			await renderCompleta();
+			await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+			expect(scroll.mock.calls[0][0]).toMatchObject({ block: "start", behavior: "instant" });
+		} finally {
+			window.matchMedia = mm;
+			Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	});
+
+	it("un enlace en inglés no se reescribe", async () => {
+		window.history.replaceState(null, "", "#history");
+		vi.mocked(replaceState).mockClear();
+		try {
+			await renderCompleta();
+			expect(replaceState).not.toHaveBeenCalled();
+		} finally {
+			window.history.replaceState(null, "", window.location.pathname);
+		}
 	});
 
 	it("las filas «Ver…» siguen apuntando a un id que existe", async () => {
 		await renderCompleta();
 
 		const link = screen.getByRole("link", { name: "Ver la información técnica" });
-		expect(link).toHaveAttribute("href", "#info-tecnica");
-		expect(document.getElementById("info-tecnica")).not.toBeNull();
+		expect(link).toHaveAttribute("href", "#technical-info");
+		expect(document.getElementById("technical-info")).not.toBeNull();
 	});
 
 	it("sin organización o sin historial esas secciones no existen (no hay ids huérfanos)", async () => {
@@ -1826,7 +1922,7 @@ describe("Página de dataset — anclas de sección", () => {
 		render(DatasetPage);
 		await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" });
 
-		expect(document.getElementById("organizacion")).toBeNull();
-		expect(document.getElementById("historial")).toBeNull();
+		expect(document.getElementById("organization")).toBeNull();
+		expect(document.getElementById("history")).toBeNull();
 	});
 });

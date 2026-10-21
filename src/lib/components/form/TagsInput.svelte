@@ -6,6 +6,7 @@ import { Plus, Tag, X } from "@lucide/svelte";
 import { Command } from "bits-ui";
 import { tagProblem } from "$lib/schemas/dataset";
 import { cn } from "$lib/utils";
+import { sortByLabel } from "$lib/utils/collate";
 
 interface Props {
 	value?: string[];
@@ -37,10 +38,13 @@ interface OpcionTag {
 
 const sugerencias = $derived.by(() => {
 	const q = tagInput.trim().toLocaleLowerCase();
-	return suggestions
-		.filter((t) => !value.includes(t))
-		.filter((t) => !q || t.toLocaleLowerCase().includes(q))
-		.slice(0, 6);
+	return sortByLabel(
+		suggestions
+			.filter((t) => !value.includes(t))
+			.filter((t) => !q || t.toLocaleLowerCase().includes(q)),
+		(t) => t,
+		(t) => t,
+	).slice(0, 6);
 });
 
 const opciones = $derived.by(() => {

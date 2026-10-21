@@ -13,17 +13,46 @@ export interface PreviewView {
 	label: string;
 }
 
-/** El contenedor de todas las vistas (tabla, gráficos, PDF, imagen, texto): `#vista-previa`. */
-export const CONTAINER_ID = "vista-previa";
+/** El contenedor de todas las vistas (tabla, gráficos, PDF, imagen, texto): `#preview`. */
+export const CONTAINER_ID = "preview";
+
+/**
+ * Los fragmentos en español que ya circulan en enlaces compartidos, y su equivalente en inglés (la plataforma
+ * no lleva español en la URL). Es el ÚNICO lugar donde viven: a esto se suma `#grafico-<id>` → `#chart-<id>`
+ * (ver `upgradeFragment`). Quien carga una página con uno de ellos abre la vista o sección y reescribe la URL
+ * con `replaceState`. Se puede retirar cuando ya no circulen.
+ */
+export const LEGACY_FRAGMENTS: Record<string, string> = {
+	"vista-previa": "preview",
+	tabla: "table",
+	imagen: "image",
+	texto: "text",
+	resumen: "summary",
+	licencia: "license",
+	recursos: "resources",
+	"info-tecnica": "technical-info",
+	historial: "history",
+	organizacion: "organization",
+	citar: "cite",
+};
+
+/** El fragmento en inglés (con `#`) que reemplaza a uno heredado en español; `null` si no hay nada que migrar. */
+export function upgradeFragment(hash: string): string | null {
+	const id = hash.replace(/^#/, "");
+	const mapped = Object.hasOwn(LEGACY_FRAGMENTS, id) ? LEGACY_FRAGMENTS[id] : undefined;
+	if (mapped) return `#${mapped}`;
+	const chart = /^grafico-(.+)$/.exec(id);
+	return chart ? `#chart-${chart[1]}` : null;
+}
 
 /** Id de la ventana de un gráfico: el de su vista de CKAN (el id es estable aunque el título cambie). */
-export const chartWindowId = (viewId: string): string => `grafico-${viewId}`;
+export const chartWindowId = (viewId: string): string => `chart-${viewId}`;
 
 const WINDOWS = {
-	table: { id: "tabla", label: "Tabla" },
+	table: { id: "table", label: "Tabla" },
 	pdf: { id: "pdf", label: "PDF" },
-	image: { id: "imagen", label: "Imagen" },
-	text: { id: "texto", label: "Texto" },
+	image: { id: "image", label: "Imagen" },
+	text: { id: "text", label: "Texto" },
 } as const;
 
 /** El id y el rótulo de la ventana de un tipo de vista previa; `null` si no hay nada que previsualizar. */
@@ -36,7 +65,7 @@ export function resolveHash(
 	hash: string,
 	views: PreviewView[],
 ): { view: PreviewView | null; container: boolean } {
-	const id = hash.replace(/^#/, "");
+	const id = (upgradeFragment(hash) ?? hash).replace(/^#/, "");
 	if (id === CONTAINER_ID) return { view: null, container: true };
 	return { view: views.find((v) => v.id === id) ?? null, container: false };
 }

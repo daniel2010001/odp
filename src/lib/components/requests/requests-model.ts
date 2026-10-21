@@ -7,6 +7,7 @@ import { normalizeFormats } from "$lib/resources/formats";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { formatDate } from "$lib/utils";
+import { sortByLabel } from "$lib/utils/collate";
 import { labelFor } from "$lib/utils/licenses";
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
@@ -269,19 +270,31 @@ export interface OrganizationTab {
 	/** `TODAS_LAS_ORGANIZACIONES` o el nombre de la organización. */
 	id: string;
 	label: string;
-	count: number;
+	/** Las solicitudes pendientes —sólo ésas se cuentan en la pestaña—; 0 = sin insignia. */
+	pending: number;
 }
 
-/** «Todas» primero, con el total, y después cada organización en el orden en que aparece, con sus solicitudes. */
+/**
+ * «Todas» primero, con la suma de las pendientes de las organizaciones, y después cada organización en orden
+ * alfabético (es), con las suyas. Los totales por estado viven sólo en «Mostrar».
+ */
 export function organizationTabs(items: QueueItem[]): OrganizationTab[] {
-	return [
-		{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", count: items.length },
-		...organizationsOf(items).map((organization) => ({
-			id: organization,
-			label: organization,
-			count: filterByOrganization(items, organization).length,
-		})),
-	];
+	const organizations = sortByLabel(
+		organizationsOf(items),
+		(organization) => organization,
+		(organization) => organization,
+	).map((organization) => ({
+		id: organization,
+		label: organization,
+		pending: filterByOrganization(items, organization).filter(isPending).length,
+	}));
+	const pending = organizations.reduce((sum, t) => sum + t.pending, 0);
+	return [{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", pending }, ...organizations];
+}
+
+/** El nombre accesible de la insignia de una pestaña: «1 pendiente», «3 pendientes». */
+export function pendingBadgeLabel(pending: number): string {
+	return `${pending} ${pending === 1 ? "pendiente" : "pendientes"}`;
 }
 
 /** Las opciones del control de estado, cada una con su conteo. */

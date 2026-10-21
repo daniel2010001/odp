@@ -21,8 +21,14 @@ import MoreMenu from "$lib/components/dataset/MoreMenu.svelte";
 import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import ResourceCharts from "$lib/components/resource/chart/ResourceCharts.svelte";
+import { rewriteLegacyFragment } from "$lib/components/resource/legacy-fragment";
 import PreviewWindow from "$lib/components/resource/PreviewWindow.svelte";
-import { CONTAINER_ID, shareLink, windowIdFor } from "$lib/components/resource/preview-views";
+import {
+	CONTAINER_ID,
+	shareLink,
+	upgradeFragment,
+	windowIdFor,
+} from "$lib/components/resource/preview-views";
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import ResourceStepper from "$lib/components/resource/ResourceStepper.svelte";
@@ -450,17 +456,18 @@ const hasPreview = $derived(resource ? !isLink && previewKind(resource) !== "non
 // Contenedor de la vista previa, destino del salto («Ir a la vista previa» del hero y «Ajustar a la pantalla»).
 let previewEl = $state<HTMLElement>();
 
-// Un enlace compartido con `#vista-previa` o con el id de una ventana (`#pdf`, `#tabla`…): el navegador resuelve
+// Un enlace compartido con `#preview` o con el id de una ventana (`#pdf`, `#table`…): el navegador resuelve
 // el fragmento antes de que el destino exista (llega cuando carga el recurso), así que se re-aplica **una vez**,
 // cuando el destino aparece. Los gráficos llegan después de la lista: los resuelve `ResourceCharts`. Mismo criterio
 // que los saltos del buscador (`R3-001` de `review-fda3530895a9b51f`).
 let previewHashApplied = false;
 $effect(() => {
 	if (!previewEl || previewHashApplied) return;
-	const id = window.location.hash.slice(1);
+	const id = (upgradeFragment(window.location.hash) ?? window.location.hash).slice(1);
 	const target = id ? document.getElementById(id) : null;
 	if (!target || !previewEl.contains(target)) return;
 	previewHashApplied = true;
+	rewriteLegacyFragment(new URL(window.location.href));
 	target.scrollIntoView({ block: "start" });
 });
 
@@ -586,11 +593,11 @@ const resourceLink = $derived(
 					</p>
 				{/if}
 
-				<!-- Salto a la vista previa (foco F3, ancla): el destino es la tarjeta `#vista-previa`. Sólo si hay
+				<!-- Salto a la vista previa (foco F3, ancla): el destino es la tarjeta `#preview`. Sólo si hay
 				     vista previa que mostrar. -->
 				{#if hasPreview}
 					<a
-						href="#vista-previa"
+						href="#preview"
 						class="mt-4 inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						<ArrowDownToLine class="size-4" aria-hidden="true" />
@@ -700,7 +707,7 @@ const resourceLink = $derived(
 				{/if}
 			{/snippet}
 
-			<!-- El contenedor `#vista-previa` abarca las pestañas y la ventana de la vista activa: es el destino del
+			<!-- El contenedor `#preview` abarca las pestañas y la ventana de la vista activa: es el destino del
 			     salto («Ir a la vista previa») y de «Ajustar a la pantalla», así que funcionan con un gráfico activo.
 			     `scroll-mt` = encabezado ACHICADO (`--header-h-min`, el estado en que queda al llegar) + 1px de su
 			     borde + `--sticky-air`. Es contenedor de consultas (`@container`): los botones de las ventanas

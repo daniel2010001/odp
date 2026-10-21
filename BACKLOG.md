@@ -2641,9 +2641,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
-> **Estado al cierre (2026-10-20):** los PR #107 a #111 están mergeados en `main`; el #112 lleva las rondas 2 y 3 a `main`
-> y el trabajo sigue en la rama `fix/v011-review-round5`. El traspaso y las decisiones están en `odd/tasks/v0.1.1-polish.md`
-> (L35–L55). Las hojas de `/dev/` son borradores sin versionar en `src/routes/dev/`.
+> **Estado al cierre (2026-10-21):** `main` tiene #107–#115. Queda la rama local `feat/v011-review-round7` (sin publicar) y la
+> hoja sin versionar `/dev/tabs-overflow`. El traspaso completo —qué sigue, en orden, y la coordinación con odp-docker para la
+> demo— está en **L72** de `odd/tasks/v0.1.1-polish.md`.
 
 
 
@@ -2667,6 +2667,18 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   el frontend desde `main`, reconstruir CKAN con la 0002, sembrar S18 (choca con los cuatro ojos en fcyt: ver el ítem del
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
+
+- [ ] **[v1] XLSX en el DataStore: se carga, pero todo como texto** (autor, 2026-10-21, L69 de `odd/tasks/v0.1.1-polish.md`:
+  «para la demo no es tan importante […] podemos dejarlo para v1 o luego de hacer la feature de "análisis de datos"»).
+  **Medido por odp-docker (2026-10-21):** XLoader 2.6.0 **sí carga** XLSX (sus formatos por defecto incluyen csv, xls, xlsx,
+  tsv, ods; los 7 XLSX subidos de dev tienen tabla, 45–110 filas) y el portal ya los trata como tabulares
+  (`preview.ts:12`). El problema real: **todas las columnas quedan como texto** (p. ej. `incremento_rendimiento_pct: text`
+  con «6.77»), así que un gráfico con suma o promedio no funciona; el seed declara tipos (`ensureTyped`) sólo para los CSV
+  de DEMOS. Los XLSX que son enlaces no tienen tabla. Va con el cargador que normaliza tipos y la feature de análisis.
+- [ ] **[v1] Aviso suave al crear muchos gráficos en un recurso** (propuesta aceptada, L69): sin tope fijo (la regla del
+  BACKLOG: el límite lo da el sistema que guarda), pero al crear, por ejemplo, el gráfico 11: «Este recurso ya tiene 10
+  gráficos; considere editar uno existente». **Medido por odp-docker:** ni CKAN 2.12 (`resource_view_create`) ni
+  `umss_chart` ponen tope; en dev el recurso con más vistas tiene 6.
 
 - [ ] **[v1] Historial de solicitudes paginado y con filtros** (propuesta aceptada por el autor, 2026-10-21, L65 de
   `odd/tasks/v0.1.1-polish.md`). Hoy «Solicitudes» pide todas las filas visibles en una llamada y muestra las pendientes y las
@@ -3254,6 +3266,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   verificado solo por inspección de código, sin test automatizado.
 
 ## v1+ — diferido de v1 o conveniente sin ser requerimiento
+
+- [ ] **[v1+/v2+] Qué tipos de archivo pueden tener más vistas** (autor, 2026-10-21, L70 de `odd/tasks/v0.1.1-polish.md`).
+  Hoy sólo los tabulares (CSV, y también XLSX/TSV/ODS cuando el DataStore los carga) tienen vistas además de la tabla: los
+  gráficos. Candidatos: **GeoJSON** (mapa, ligado a «Vista previa de GeoJSON»), **PDF** (texto o Markdown extraído, ligado a
+  procesar/convertir PDF) e **imágenes** sólo si algún día hay anotaciones o metadatos. Decidir con la feature de análisis.
 
 
 - [ ] **[v1+] Prueba de carga, cuando el CRUD esté completo.** El usuario la quiere, y el orden que

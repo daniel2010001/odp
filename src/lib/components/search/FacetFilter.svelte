@@ -2,6 +2,7 @@
 import { ChevronDown, Search } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { cn } from "$lib/utils";
+import { byLabel } from "$lib/utils/collate";
 
 let {
 	title = "",
@@ -29,15 +30,24 @@ onMount(() => {
 
 const DEFAULT_SHOW = 5;
 
+// Por conteo, de mayor a menor; los empates, alfabéticos (S41).
+const ordenados = $derived(
+	[...items].sort(
+		(a, b) =>
+			b.count - a.count ||
+			byLabel.compare(a.display_name, b.display_name) ||
+			byLabel.compare(a.name, b.name),
+	),
+);
 const normalizedQuery = $derived(query.trim().toLowerCase());
 const filteredItems = $derived(
 	normalizedQuery
-		? items.filter(
+		? ordenados.filter(
 				(i) =>
 					i.display_name.toLowerCase().includes(normalizedQuery) ||
 					i.name.toLowerCase().includes(normalizedQuery),
 			)
-		: items,
+		: ordenados,
 );
 const visibleItems = $derived(
 	open && showAll ? filteredItems : open ? filteredItems.slice(0, DEFAULT_SHOW) : [],
