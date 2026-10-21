@@ -1366,3 +1366,19 @@ describe("Página de búsqueda — los pegados", () => {
 		});
 	});
 });
+
+describe("Página de búsqueda — «Ordenar»", () => {
+	it("ofrece «Relevancia» primero y conserva los pares A-Z / Z-A", async () => {
+		setUrl("?q=matricula");
+		renderSearch();
+
+		const select = (await screen.findAllByRole("combobox")).find((c) =>
+			within(c).queryByRole("option", { name: "Relevancia" }),
+		) as HTMLElement;
+		expect(
+			within(select)
+				.getAllByRole("option")
+				.map((o) => o.textContent?.trim()),
+		).toEqual(["Relevancia", "Más recientes", "Más antiguos", "A-Z", "Z-A"]);
+	});
+});

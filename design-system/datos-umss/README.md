@@ -238,6 +238,17 @@ duplicar estilos.
 
 ---
 
+## 11 bis. Orden de las opciones de las listas
+
+Toda lista de opciones (selects, menús, pestañas, sugerencias) va **alfabética por la etiqueta visible**,
+con el colador compartido `byLabel` de `src/lib/utils/collate.ts` (`Intl.Collator("es", { numeric: true,
+sensitivity: "base" })`: sin distinguir acentos ni caja, «ñ» tras «n», «Dataset 9» antes de «Dataset 10») y
+`sortByLabel(items, etiqueta, id)`, que desempata por id. **Excepciones**, que conservan su propio orden:
+secuencias (pasos, migas), flujos (Pendientes / Resueltas / Todas), prioridad (acciones de la barra), datos
+con ranking (facetas por conteo, con desempate alfabético), opciones de «Ordenar por» (Relevancia primero,
+pares A-Z / Z-A), escalas de dominio fijas (tipos de gráfico, agregaciones), el orden del archivo (columnas
+del constructor de gráficos) y los valores fijos arriba («Todas», «Sin especificar»).
+
 ## 12. Notas técnicas
 
 - **Tailwind v4 y bordes:** la utilidad `border` (solo ancho) no define color por defecto;

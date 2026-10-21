@@ -151,6 +151,17 @@ describe("organizaciones", () => {
 		]);
 	});
 
+	it("pestañas de organización: tras «Todas», alfabéticas en español", () => {
+		const orden = organizationTabs([
+			item({ id: "1", organization_title: "Zoología" }),
+			item({ id: "2", organization_title: "Ñandú" }),
+			item({ id: "3", organization_title: "Álgebra" }),
+			item({ id: "4", organization_title: "Facultad 10" }),
+			item({ id: "5", organization_title: "Facultad 9" }),
+		]).map((t) => t.label);
+		expect(orden).toEqual(["Todas", "Álgebra", "Facultad 9", "Facultad 10", "Ñandú", "Zoología"]);
+	});
+
 	it("pestañas de organización: sin solicitudes sólo queda «Todas» en cero", () => {
 		expect(organizationTabs([])).toEqual([
 			{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", count: 0 },

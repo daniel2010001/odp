@@ -755,11 +755,11 @@ const emptyStateMessage = $derived.by(() => {
 						}}
 						class="h-11 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 					>
+						<option value="score desc">Relevancia</option>
 						<option value="metadata_modified desc">Más recientes</option>
 						<option value="metadata_modified asc">Más antiguos</option>
 						<option value="title_string asc">A-Z</option>
 						<option value="title_string desc">Z-A</option>
-						<option value="score desc">Relevancia</option>
 					</select>
 				</label>
 			</div>

@@ -377,3 +377,53 @@ describe("DatasetForm — ayuda de la licencia", () => {
 		expect(select?.selectedOptions[0]?.textContent).toBe("OGL — Gobierno Abierto (Reino Unido)");
 	});
 });
+
+describe("DatasetForm — orden de los selects", () => {
+	const opciones = (container: HTMLElement, id: string) =>
+		[...container.querySelectorAll(`#${id} option`)].map((o) => o.textContent?.trim());
+
+	it("organizaciones: alfabéticas por título, con el marcador arriba", () => {
+		const orgs = ["Zoología", "Ñandú", "Álgebra", "Facultad 10", "Facultad 9"].map((title, i) => ({
+			...org,
+			id: `o${i}`,
+			name: `o${i}`,
+			title,
+		}));
+		const { container } = render(DatasetForm, {
+			props: { mode: "create", organizations: orgs, licenses: [license], onsubmit: vi.fn() },
+		});
+		expect(opciones(container, "owner-org")).toEqual([
+			"Seleccione una organización",
+			"Álgebra",
+			"Facultad 9",
+			"Facultad 10",
+			"Ñandú",
+			"Zoología",
+		]);
+	});
+
+	it("licencias: alfabéticas por la etiqueta en español, «Sin especificar» fija arriba", () => {
+		const lic = (id: string, title: string): CkanLicense => ({ ...license, id, title });
+		const { container } = render(DatasetForm, {
+			props: {
+				mode: "create",
+				initial,
+				organizations: [org],
+				licenses: [
+					lic("cc-zero", "CC0"),
+					lic("cc-by-sa", "CC BY-SA"),
+					lic("cc-by", "CC BY"),
+					lic("odc-odbl", "ODbL"),
+				],
+				onsubmit: vi.fn(),
+			},
+		});
+		const lista = opciones(container, "license");
+		expect(lista[0]).toBe("Sin especificar");
+		const resto = lista.slice(1);
+		expect(resto).toEqual(
+			[...resto].sort((a, b) => a.localeCompare(b, "es", { numeric: true, sensitivity: "base" })),
+		);
+		expect(resto.length).toBeGreaterThan(1);
+	});
+});

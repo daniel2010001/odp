@@ -7,6 +7,7 @@ import { normalizeFormats } from "$lib/resources/formats";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
 import { formatDate } from "$lib/utils";
+import { sortByLabel } from "$lib/utils/collate";
 import { labelFor } from "$lib/utils/licenses";
 
 // ─── Tipos de la cola de solicitudes ──────────────────────────────────
@@ -272,11 +273,15 @@ export interface OrganizationTab {
 	count: number;
 }
 
-/** «Todas» primero, con el total, y después cada organización en el orden en que aparece, con sus solicitudes. */
+/** «Todas» primero, con el total, y después cada organización en orden alfabético (es), con sus solicitudes. */
 export function organizationTabs(items: QueueItem[]): OrganizationTab[] {
 	return [
 		{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", count: items.length },
-		...organizationsOf(items).map((organization) => ({
+		...sortByLabel(
+			organizationsOf(items),
+			(organization) => organization,
+			(organization) => organization,
+		).map((organization) => ({
 			id: organization,
 			label: organization,
 			count: filterByOrganization(items, organization).length,

@@ -110,6 +110,7 @@ import {
 	validateResourceFile,
 } from "$lib/utils/dataset-payload";
 import { safeExternalUrl } from "$lib/utils/external-url";
+import { sortByLabel } from "$lib/utils/collate";
 import { isOfferedInForm, labelFor, licenseSummary, licenseTermsUrl } from "$lib/utils/licenses";
 
 // ─── Constantes ──────────────────────────────────────────────────────
@@ -513,6 +514,21 @@ function handleSubmit() {
 }
 
 // ─── Derivados de la ficha (resumen lateral) ─────────────────────────
+// Orden alfabético por la etiqueta visible (S41); «Sin especificar» queda fija arriba en el template.
+const organizacionesOrdenadas = $derived(
+	sortByLabel(
+		organizations,
+		(org) => org.title,
+		(org) => org.id,
+	),
+);
+const licenciasOrdenadas = $derived(
+	sortByLabel(
+		licenciasOfrecidas,
+		(license) => labelFor(license.id, license.title),
+		(license) => license.id,
+	),
+);
 const singleOrg = $derived(organizations.length === 1 ? organizations[0] : null);
 // Organización efectiva: la elegida en creación o el hecho cargado en edición. La ficha lateral y la
 // sección de organización la leen de acá para que edición no muestre "falta elegir".
@@ -793,7 +809,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 						class={inputClass}
 					>
 						<option value="">Seleccione una organización</option>
-						{#each organizations as org (org.id)}
+						{#each organizacionesOrdenadas as org (org.id)}
 							<option value={org.name}>{org.title}</option>
 						{/each}
 					</select>
@@ -851,7 +867,7 @@ const hayTitulo = $derived(title.trim().length > 0);
 						class={inputClass}
 					>
 						<option value="">Sin especificar</option>
-						{#each licenciasOfrecidas as license (license.id)}
+						{#each licenciasOrdenadas as license (license.id)}
 							<option value={license.id}>{labelFor(license.id, license.title)}</option>
 						{/each}
 					</select>
