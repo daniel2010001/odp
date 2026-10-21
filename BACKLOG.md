@@ -2645,6 +2645,33 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 > hoja sin versionar `/dev/tabs-overflow`. El traspaso completo —qué sigue, en orden, y la coordinación con odp-docker para la
 > demo— está en **L72** de `odd/tasks/v0.1.1-polish.md`.
 
+- [ ] **[siguiente ronda] Lo que dejó el primer ensayo de la demo (2026-10-21) y no entra en v0.1.1** (decisión del autor,
+  textual: «A + B (recomendado)»; el resto va acá). Clasificación de odp-docker (P#); el texto original del autor queda en
+  L78 de `odd/tasks/v0.1.1-polish.md`. Los marcados **decide** necesitan una elección del autor antes de empezar (regla 9).
+  - **P1 (decide)** Panel del dataset: la card de la organización antes que el historial (historial al final), **o** scroll propio
+    del panel, **o** historial plegable que siempre muestre la última solicitud.
+  - **P2** Unificar dónde va el copiar del #id en las fichas del dataset (a la izquierda aparece en el segundo título; a la
+    derecha, en el primero).
+  - **P3** La ficha de recurso no tiene el copiar del #id.
+  - **P4** La ficha de recurso muestra la insignia «activo», y las insignias de tipo no respetan sus colores.
+  - **P5 (decide)** Mostrar el GeoJSON como texto por ahora. Choca con el guion: la Demo 3 usa el GeoJSON para mostrar «sin vista
+    previa».
+  - **P8** La altura fija de las vistas previas (tablas y gráficos) queda mal en FHD 27": una tabla de 10 filas queda chica en una
+    card grande y una dona ocupa ~la mitad del espacio reservado.
+  - **P10** Con una sola organización, volver a mostrar el contador a la izquierda en solicitudes; con varias, no.
+  - **P11 (decide)** En el create, el resumen lleva el título en el encabezado y la ficha del dataset en el cuerpo: unificar y
+    retocar el resumen en general.
+  - **P12** En el mini-formulario de recursos del create, las cards e insignias no tienen los colores de la ficha.
+  - **P13** En el resumen del create, el aviso de que falta el título debería resaltar (en rojo).
+  - **P15** Un dataset sin recursos con una descripción larga en markdown, tipo «noticias», aclarando que **NO** reemplaza los docs.
+  - **P21** Botón de copiar en los ejemplos de uso (curl); hoy sólo lo tiene la URL de la API.
+  - **P22** Revisar el diseño de la sección de la API y de los ejemplos de DataStore (las dos funcionan).
+  - **P23 (decide)** El home muestra «— Recursos» a propósito (`src/routes/+page.svelte:64`): odp-docker agrega una acción
+    pública de estadísticas con el total, **o** se quita la cifra.
+  - **Observado por odp-docker:** una URL de dataset inexistente responde **200** con la carcasa «Cargando… — UMSS» (el SSR no
+    da 404; la API sí niega los privados). Y entrar directo a `/catalog` da un bucle 301/308 entre nginx (`location /catalog/`)
+    y el `trailingSlash` de SvelteKit; nada enlaza ahí, y si alguna vez se enlaza lo arregla odp-docker en el proxy.
+
 
 
 
