@@ -157,6 +157,11 @@ async function cargar(generation: number = ++loadId) {
 		url: paquete.url,
 		maintainer: paquete.maintainer,
 		maintainer_email: paquete.maintainer_email,
+		resources: (paquete.resources ?? []).map((r) => ({
+			id: r.id,
+			name: r.name || r.url || r.id,
+			kind: r.url_type === "upload" ? ("archivo" as const) : ("enlace" as const),
+		})),
 	};
 
 	// Pregunta de permiso, fail-closed: `unknown` no es un permiso y no habilita el formulario.
