@@ -2921,6 +2921,8 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   y existe el script de migración `scripts/normalize-licenses.mjs`. Falta: (1) que `odp-docker` lo corra (primero en seco) una vez que el
   PR #112 llegue a `main`, para que el facet no parta «sin licencia» en dos cubetas; (2) la unificación de las etiquetas de licencia (S33,
   en curso).
+  **Dev migrado (2026-10-20):** odp-docker corrió `normalize-licenses.mjs` (dry-run, luego `--apply` con OK del autor):
+  3 datasets de prueba pasaron a `notspecified`; un segundo dry-run da 0. **Falta prod**, sólo si el autor lo pide.
 
 - [ ] **Deuda de la revisión nativa de T3a (endurecimiento del token)** — la compuerta `review-f2582d4570d1e94f`
   (tier `medium`, lentes `risk`/`readability`/`reliability`) **aprobó y quedó reconocida**, con **tres avisos no
