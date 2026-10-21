@@ -2641,9 +2641,9 @@ por enlace) quedó **archivado** el 2026-09-12 y su spec canónica vive en
 
 Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19). Su expediente es `odd/tasks/v0.1.1-polish.md`.
 
-> **Estado al cierre (2026-10-20):** los PR #107 a #111 están mergeados en `main`; el #112 lleva las rondas 2 y 3 a `main`
-> y el trabajo sigue en la rama `fix/v011-review-round5`. El traspaso y las decisiones están en `odd/tasks/v0.1.1-polish.md`
-> (L35–L55). Las hojas de `/dev/` son borradores sin versionar en `src/routes/dev/`.
+> **Estado al cierre (2026-10-21):** `main` tiene #107–#115. Queda la rama local `feat/v011-review-round7` (sin publicar) y la
+> hoja sin versionar `/dev/tabs-overflow`. El traspaso completo —qué sigue, en orden, y la coordinación con odp-docker para la
+> demo— está en **L72** de `odd/tasks/v0.1.1-polish.md`.
 
 
 
