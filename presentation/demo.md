@@ -266,7 +266,7 @@ saltar a uno con archivo subido. Plan B: capturas.
 
 ## Demo 4 · Gráficos sobre un CSV
 
-- Desde la tabla de un CSV, **«Crear gráfico»**: barras, líneas o torta.
+- Desde la tabla de un CSV, **«Crear gráfico»**: barras, líneas o pastel.
 - Se guardan como **vistas del recurso** y aparecen como pestañas.
 - *(Sólo se menciona)* Cada gráfico se puede **incrustar** en otra página con un `<iframe>`: no se muestra en vivo.
 

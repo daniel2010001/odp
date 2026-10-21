@@ -59,3 +59,23 @@ pnpm dlx @marp-team/marp-cli --theme theme.css --html --notes demo.md -o dist/no
 Cada recuadro «CAPTURA PENDIENTE» es un `<div class="captura">…</div>` en `demo.md`. Cuando la interfaz esté terminada,
 sustitúyalo por `![h:260](capturas/<nombre>.png)` (la carpeta `capturas/` se crea entonces; en el PDF añada
 `--allow-local-files`).
+
+## Documentos para entregar
+
+Dos documentos A4 para imprimir y dejar a los asistentes: la **ficha resumen** (una página) y el **documento del proyecto**
+(cuatro a seis páginas). Las fuentes están en `handouts/`: `ficha.md`, `proyecto.md` y la hoja de estilo `handout.css`, que
+reutiliza los valores visuales de `theme.css`. Como las diapositivas, no agregan dependencias: `build.sh` usa `pnpm dlx`
+(`marked` para el HTML, `qrcode` para los códigos QR en SVG) y el Chromium del sistema para imprimir a PDF.
+
+```sh
+handouts/build.sh
+```
+
+Salen en `dist/` (ignorado por git): `ficha-resumen.pdf` y `documento-proyecto.pdf`. El script imprime el número de páginas
+de cada uno (con `pdfinfo`); la ficha debe quedar en **1** y el documento del proyecto entre **4 y 6**. Como las
+diapositivas, necesita red para las tipografías de Google Fonts y para `pnpm dlx`; `CHROME_PATH` cambia el Chromium.
+
+Queda por completar, antes de imprimir, el bloque **«Autoría y contacto»** (nombre, cargo y correo,
+marcados con «— completar») al final de `ficha.md` y de `proyecto.md`. La dirección de la demostración
+(`https://demo.odp.hs.lan`) sólo responde desde la red donde está instalada; el código QR la lleva impresa junto a ese aviso.
+Si cambia la dirección, se actualiza en `build.sh` (el QR) y en el bloque final de ambos fuentes.
