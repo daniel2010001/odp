@@ -2,7 +2,6 @@
 // resume el dataset de una solicitud. Sin Svelte ni red, para probarlo sin montar nada.
 
 import type { PublicationRequestStatus } from "$lib/api/publication";
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import { estadoDelHistorial, nombreDelHistorial } from "$lib/copy/publication";
 import { normalizeFormats } from "$lib/resources/formats";
 import { CkanApiError } from "$lib/types/api";
@@ -10,7 +9,36 @@ import type { CkanPackage } from "$lib/types/ckan";
 import { formatDate } from "$lib/utils";
 import { labelFor } from "$lib/utils/licenses";
 
-export type QueueItem = PublicationQueueItem;
+// ─── Tipos de la cola de solicitudes ──────────────────────────────────
+// Lo que el portal necesita mostrar de una solicitud: de qué dataset es, quién la pidió y cuándo.
+// Los campos de presentación (`dataset_title`, `organization_title`, `requested_by_name`) son valores
+// ya resueltos por la capa de API; si faltan, la fila simplemente no los muestra. `requested_by` es
+// el **id** de usuario y sólo se usa para la comparación de cuatro ojos: nunca se renderiza. El
+// estado reusa el vocabulario de `PublicationRequest`, que es el dueño de la tabla.
+export interface QueueItem {
+	id: string;
+	/** Id del dataset de la solicitud; es lo que la cola relee para confirmar una aprobación. */
+	dataset_id: string;
+	dataset_title: string;
+	organization_title?: string;
+	/** Id de usuario de quien creó la solicitud; sólo alimenta la comparación de cuatro ojos. */
+	requested_by?: string;
+	/**
+	 * La respuesta del catálogo: `true` sólo si `publication_request_decide` autorizaría a quien mira
+	 * sobre esta fila. Es lo que permite la excepción de auto-aprobación y lo que lee el plegado; ausente
+	 * en un catálogo anterior al campo.
+	 */
+	decidable_by_caller?: boolean | null;
+	/** Nombre visible de quien creó la solicitud; es lo que la fila muestra. */
+	requested_by_name?: string;
+	/** Nombre visible de quien decidió la solicitud; sólo lo traen las filas ya resueltas. */
+	approved_by_name?: string;
+	created_at?: string;
+	/** Cuándo se resolvió; ordena las resueltas. Ausente en las pendientes y en filas anteriores a la 0002. */
+	decided_at?: string;
+	status: PublicationRequestStatus;
+	comments?: string | null;
+}
 
 export type Tab = "pendientes" | "resueltas" | "todas";
 export const TABS: { id: Tab; label: string }[] = [

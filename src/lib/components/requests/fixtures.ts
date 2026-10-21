@@ -1,8 +1,8 @@
 // Fixtures de las pruebas de la cola de solicitudes. Sólo datos: ninguna lógica de producto vive acá. Los tipos
 // salen de la cola, así que si el vocabulario de una solicitud cambia, esto deja de compilar.
 
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import type { CkanPackage } from "$lib/types/ckan";
+import type { QueueItem } from "./requests-model";
 
 /** Reloj fijo: la antigüedad de cada fila no depende de cuándo se mire la hoja. */
 export const AHORA = new Date("2026-10-20T12:00:00");
@@ -22,8 +22,8 @@ function row(
 	title: string,
 	organization: string | undefined,
 	created: string,
-	overrides: Partial<PublicationQueueItem> = {},
-): PublicationQueueItem {
+	overrides: Partial<QueueItem> = {},
+): QueueItem {
 	return {
 		id,
 		dataset_id: `pkg-${id}`,
@@ -38,7 +38,7 @@ function row(
 	};
 }
 
-const PENDIENTES: PublicationQueueItem[] = [
+const PENDIENTES: QueueItem[] = [
 	row("p1", "Matrícula 2026", TECNOLOGIA, "2026-10-17T00:00:00", {
 		requested_by: EDITOR_ID,
 		requested_by_name: "editor.tecnologia",
@@ -79,7 +79,7 @@ const ESTADOS_RESUELTOS = [
 ] as const;
 
 /** `n` solicitudes resueltas, de la más nueva a la más vieja, repartidas entre tres organizaciones. */
-function resueltas(n: number): PublicationQueueItem[] {
+function resueltas(n: number): QueueItem[] {
 	return Array.from({ length: n }, (_, i) => {
 		const status = ESTADOS_RESUELTOS[i % ESTADOS_RESUELTOS.length];
 		const dia = String(18 - i).padStart(2, "0");
@@ -114,7 +114,7 @@ export type Caso =
 	| "propia"
 	| "obsoleta";
 
-export function itemsDelCaso(caso: Caso): PublicationQueueItem[] {
+export function itemsDelCaso(caso: Caso): QueueItem[] {
 	switch (caso) {
 		case "vacia":
 			return [];

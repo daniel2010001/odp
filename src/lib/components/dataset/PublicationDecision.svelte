@@ -2,7 +2,7 @@
 // El cuerpo de **decidir** una solicitud —el motivo, aprobar, rechazar y el desenlace—, sin saber
 // **dónde** se lo está mirando.
 //
-// Nació extrayéndolo de `PublicationQueue` (la fila de la cola) para que la **ficha del dataset**
+// Nació extrayéndolo de la fila de la cola de solicitudes para que la **ficha del dataset**
 // pueda ofrecer lo mismo sin una segunda copia de las reglas: dos copias divergen, y la gobernanza
 // no admite dos formas de aprobar. La extracción se probó con la suite de la cola, que no cambió.
 //

@@ -195,10 +195,8 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > - **Decisión del autor, ya registrada arriba**: el quirk del sysadmin (`R4-sysadmin-gate-ineffective`).
 > - **Queda abierto:**
 >
-> - [ ] **La hoja y la ficha tienen cada una su `reflejarDecision`** (`dev/publication/+page.svelte` vs
->   `dataset/[id]/+page.svelte`): el mismo reflejo del estado, escrito dos veces. Es superficie **sólo de
->   desarrollo**, así que el costo es **deriva**, no comportamiento; si se unifican, la ocasión natural es
->   el **TODO de localización** de arriba, que ya va a tocar esa tarjeta. **Tier: lo define el autor.**
+> - ~~**La hoja y la ficha tienen cada una su `reflejarDecision`.**~~ **CERRADO (2026-10-21):** la hoja
+>   `/dev/publication` se borró (T36), así que ya no hay una segunda copia.
 
 > **Pregunta del autor (2026-10-15): si en una organización sólo existe quien la administra, y es además quien pidió
 > la publicación, ¿quién la revisa?** Medido en la acción del store —`ckanext-umss/logic/auth/publication.py`,
@@ -427,7 +425,6 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > - **El mecanismo de tooltip de las acciones del hero** — los tres deberían usar el `Tooltip` vendorizado (que
 >   alcanza el foco del teclado), no el `title` nativo.
 > - **El diseño del grupo «Resueltas»** de la cola, que el autor puso **después de promover**.
-> - **Su revisión en el navegador de la hoja `/dev/publication`**.
 > - ~~**Si un `admin` ve las dos affordances o sólo la cola.**~~ **CERRADA (2026-10-08):** nadie ve el control
 >   directo, el `sysadmin` incluido (punto 1 de arriba). El ítem se cierra acá **en vez de agregarse la
 >   respuesta al lado**: la pregunta se le hizo al autor cuatro veces justamente por haber quedado abierta en
@@ -2709,11 +2706,10 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   basta, pero sería una buena forma de "sobresalir" de otras plataformas, volvamos a preguntar para v1 o v1+»). Hoy el PDF lo
   dibuja el visor del navegador; un diseño propio exige `pdfjs-dist` (dependencia de varios MB con worker) y rehacer buscar e
   imprimir. **Volver a preguntar al autor al planear v1/v1+**; el tier no es definitivo.
-- [ ] **[v1] Rediseño de la página «Solicitudes»** (autor, 2026-10-20, L53: «tocar el diseño de esa page de request, podemos
-  hacerlo después?»). Con playground. **L55: se planifica EN ESTA SESIÓN (S36), tras terminar los workers.** Antes, S30: la página sólo
-  pide las pendientes; hay que cargar también las resueltas.
+- [ ] **[v1] Pasada de refactor tras las promociones de v0.1.1** (pregunta del autor, L53): cada unidad hizo su refactor en el
   ciclo de test, pero no hubo una pasada que junte lo duplicado entre promociones (tarjetas, botones, mapas). Hacerla con
   la suite verde y sin cambiar comportamiento.
+  - `/dev/kind` se borra si la página del recurso adopta los iconos por formato (`ResourceKindChip` es hoy su único componente vivo).
 
 - [ ] **[v1] El seed choca con los cuatro ojos en una instalación con usuarios** (medido por odp-docker al correr el seed en
   dev, 2026-10-20): `seed-ckan.mjs` pide y aprueba la publicación como `ckan_admin`, y eso sólo pasa la regla «the approver

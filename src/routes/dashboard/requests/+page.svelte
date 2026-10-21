@@ -3,8 +3,7 @@
 
 	Existe porque **descubrir la cola es parte de la compuerta**: si un editor pide publicar y nadie ve la
 	solicitud, la pared se vuelve un **bloqueo mudo**. La cola estaba en la hoja de revisión y en el panel; acá
-	vive donde el trabajo se hace, con la presentación que el autor eligió (`RequestsQueue`, C1 de la hoja
-	`/dev/requests`): las organizaciones como pestañas —que no aparecen cuando hay una sola: un filtro que no
+	vive donde el trabajo se hace, con la presentación que el autor eligió (`RequestsQueue`, la variante C1): las organizaciones como pestañas —que no aparecen cuando hay una sola: un filtro que no
 	filtra es ruido—, «Mostrar» pendientes o resueltas, las pendientes en orden de llegada y, abierta una fila, el
 	resumen de su dataset y el control de decidir.
 
@@ -21,8 +20,8 @@ import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import { createSessionApi } from "$lib/api/session";
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import RequestsQueue from "$lib/components/requests/RequestsQueue.svelte";
+import type { QueueItem } from "$lib/components/requests/requests-model";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { endInvalidSession } from "$lib/session-guard";
@@ -62,7 +61,7 @@ function tituloLegible(fila: PublicationRequest): string {
  * el contrato y admite los huecos. Traducir de una a la otra acá evita que cada consumidor improvise su
  * propia versión del fallback.
  */
-function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
+function paraLaCola(fila: PublicationRequest): QueueItem {
 	return {
 		id: fila.id,
 		dataset_id: fila.dataset_id,
@@ -85,8 +84,7 @@ function paraLaCola(fila: PublicationRequest): PublicationQueueItem {
  * El cargador de la cola: una llamada, sin estado —pendientes y resueltas juntas; el catálogo ya acota lo visible—.
  * Cada vez que la cola pide la lista (al montar, «Reintentar», «Actualizar la lista») es una lectura nueva.
  */
-const list = async (): Promise<PublicationQueueItem[]> =>
-	(await publicationApi.list()).map(paraLaCola);
+const list = async (): Promise<QueueItem[]> => (await publicationApi.list()).map(paraLaCola);
 
 /** La decisión tal como el catálogo la devuelve; la cola la lee para dejar la fila resuelta. */
 const decide = (requestId: string, approve: boolean, comments?: string) =>

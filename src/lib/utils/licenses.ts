@@ -141,11 +141,3 @@ export function mapLicenseItems<T extends { name: string; count: number }>(
 		display_name: labelFor(item.name),
 	}));
 }
-
-/**
- * @deprecated Sólo lo usa el playground `/dev/dataset-edit` (fuera del alcance de la unificación);
- * usar `labelFor`. Se borra con ese playground.
- */
-export function curatedLicenseLabel(id: string): string | null {
-	return LICENSES[id]?.label ?? null;
-}

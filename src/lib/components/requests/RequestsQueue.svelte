@@ -1,5 +1,5 @@
 <!--
-	La cola de solicitudes de publicación, con la presentación que el autor eligió (C1 de `/dev/requests`, ronda 6, L65):
+	La cola de solicitudes de publicación, con la presentación que el autor eligió (la variante C1, ronda 6):
 	las organizaciones como pestañas (`OrgTabs`, como las vistas del recurso), el estado —Pendientes / Resueltas / Todas,
 	con su conteo— como «Mostrar» en la misma fila, las filas en acordeón con los datos «con rótulos» y, abierta una
 	pendiente, el resumen de su dataset y el control real de decidir.
@@ -19,7 +19,6 @@
 <script lang="ts">
 import { CheckCircle2, CircleAlert, LoaderCircle, RefreshCw } from "@lucide/svelte";
 import { onMount, tick } from "svelte";
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import type { DecidePublicationRequest } from "$lib/components/dataset/publication-decision";
 import Button from "$lib/components/ui/button/button.svelte";
 import { currentUser as currentUserStore } from "$lib/stores/auth";
@@ -27,6 +26,7 @@ import type { CkanPackage } from "$lib/types/ckan";
 import OrgTabs from "./OrgTabs.svelte";
 import { QueueState } from "./queue-state.svelte";
 import RequestRow from "./RequestRow.svelte";
+import type { QueueItem } from "./requests-model";
 import {
 	acotarResueltas,
 	emptyState,
@@ -54,7 +54,7 @@ let {
 	class: className = "",
 }: {
 	/** Lee las solicitudes; una sola vez al montar y otra por «Reintentar» o «Actualizar la lista». */
-	list: () => Promise<PublicationQueueItem[]>;
+	list: () => Promise<QueueItem[]>;
 	decide: DecidePublicationRequest;
 	/**
 	 * Relee el dataset almacenado. Confirma una aprobación y, al abrir una fila, alimenta el resumen de su dataset.

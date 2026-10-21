@@ -230,9 +230,8 @@ async function loadHistory() {
 	}
 }
 
-// La oración del estado de la solicitud vive en `$lib/copy/publication.ts`: la hoja de revisión
-// `/dev/publication` muestra la misma tarjeta para decidir dónde va el control de decidir, y tiene que
-// renderizar **esta** frase, no una copia que puede quedar vieja.
+// La oración del estado de la solicitud vive en `$lib/copy/publication.ts`: cualquier superficie que
+// muestre la tarjeta tiene que renderizar **esta** frase, no una copia que puede quedar vieja.
 
 // La tarjeta sólo existe mientras hay algo que decir de la solicitud: pendiente, o rechazada (el
 // dataset sigue privado). Una aprobada ya es un dataset público y no la muestra, para nadie — así las
@@ -774,7 +773,7 @@ const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}
 					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]"
 				>
 					<!-- La tarjeta del estado de la solicitud **encabeza la columna lateral** (variante C de
-					     `/dev/requests-position`, elegida por el autor el 2026-10-19): la columna es pegajosa en
+					     la posición de las solicitudes, elegida por el autor el 2026-10-19): la columna es pegajosa en
 					     escritorio, así que el aprobador decide sin bajar. Antes era la segunda de la columna
 					     principal, después de la información textual.
 					     Muestra en qué está y, desde el 2026-10-14, también **deja decidirla** —cuando quien mira

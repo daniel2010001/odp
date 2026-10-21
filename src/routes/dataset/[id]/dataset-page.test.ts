@@ -951,7 +951,7 @@ describe("Página de dataset — la solicitud de publicación", () => {
 	});
 
 	it("la tarjeta encabeza la columna lateral, antes de «Citar como»: el aprobador no tiene que bajar", async () => {
-		// Variante C de `/dev/requests-position`, elegida por el autor (2026-10-19, textual: «para
+		// Variante C de la posición de las solicitudes, elegida por el autor (2026-10-19, textual: «para
 		// dev/requests-position creo que me voy por la C»). La columna lateral es pegajosa en escritorio.
 		setParams({ id: "matricula-2026" });
 		mocks.showDataset.mockResolvedValue(

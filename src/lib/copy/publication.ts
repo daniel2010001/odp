@@ -1,11 +1,9 @@
 // Copia de la solicitud de publicación: la oración que resume **en qué está** una solicitud.
 //
 // ─── Por qué vive acá y no en la página ──────────────────────────────
-// La oración la muestran **dos** superficies: la tarjeta de la ficha del dataset (la página real) y
-// la hoja de revisión `/dev/publication`, que tiene que mostrar la misma tarjeta para que el autor
-// juzgue dónde va el control de decidir. Una hoja que repite la cadena a mano puede mostrar un texto
-// que la aplicación nunca renderiza: por eso la hoja llama a **esta misma función**, y estos tests de
-// la página siguen mirando el texto por el DOM.
+// La oración vive aparte de la página para que cualquier superficie que muestre la tarjeta llame a
+// **esta misma función** y no repita la cadena a mano: una copia puede mostrar un texto que la
+// aplicación nunca renderiza. Los tests de la página siguen mirando el texto por el DOM.
 //
 // ─── El vocabulario es el de la tabla, no el de la página ────────────
 // Por eso la frase se arma con un `switch` **exhaustivo**: si la tabla gana un estado, esto no

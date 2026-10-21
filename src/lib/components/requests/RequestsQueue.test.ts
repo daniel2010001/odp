@@ -1,10 +1,9 @@
-// Pruebas de `RequestsQueue`, la cola de la page de solicitudes (C1 de `/dev/requests`, ronda 6, promovida).
+// Pruebas de `RequestsQueue`, la cola de la page de solicitudes (variante C1, ronda 6).
 // jsdom no resuelve media ni container queries: lo que depende del ancho (la fila de pestañas y «Mostrar», el pie
 // en filas o en línea) se afirma por sus clases y se midió en Chromium sobre la page real.
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import type { DecidePublicationRequest } from "$lib/components/dataset/publication-decision";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
@@ -19,6 +18,7 @@ import {
 	itemsDelCaso,
 } from "./fixtures";
 import RequestsQueue from "./RequestsQueue.svelte";
+import type { QueueItem } from "./requests-model";
 
 // El alto de la barra pegada se mide con `ResizeObserver`, que jsdom no trae.
 beforeAll(() => {
@@ -70,8 +70,8 @@ const readDataset = vi.fn(async (id: string): Promise<CkanPackage> => {
 interface Opciones {
 	caso?: Caso;
 	rol?: "admin" | "solicitante";
-	items?: PublicationQueueItem[];
-	list?: () => Promise<PublicationQueueItem[]>;
+	items?: QueueItem[];
+	list?: () => Promise<QueueItem[]>;
 	surface?: "card" | "background";
 }
 
@@ -122,7 +122,7 @@ describe("RequestsQueue — la carga", () => {
 
 	it("un fallo al cargar no se disfraza de lista vacía: lo dice y ofrece reintentar", async () => {
 		const lista = vi
-			.fn<() => Promise<PublicationQueueItem[]>>()
+			.fn<() => Promise<QueueItem[]>>()
 			.mockRejectedValueOnce(new CkanApiError("Boom", 500, "Server Error", {}))
 			.mockResolvedValue(itemsDelCaso("varias"));
 		abrir({ list: lista });
@@ -287,7 +287,7 @@ describe("RequestsQueue — lo que ya estaba decidido se conserva", () => {
 	it("la fila obsoleta dice «ya fue decidida» y «Actualizar la lista» vuelve a pedir la lista al catálogo", async () => {
 		const base = itemsDelCaso("obsoleta");
 		const lista = vi
-			.fn<() => Promise<PublicationQueueItem[]>>()
+			.fn<() => Promise<QueueItem[]>>()
 			.mockResolvedValueOnce(base)
 			.mockResolvedValue(
 				base.map((i) =>

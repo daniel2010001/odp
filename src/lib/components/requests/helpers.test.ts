@@ -3,11 +3,11 @@
 import { CircleHelp } from "@lucide/svelte";
 import { describe, expect, it } from "vitest";
 import type { PublicationRequestStatus } from "$lib/api/publication";
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import { datasetLinks } from "./dataset-links";
+import type { QueueItem } from "./requests-model";
 import { statusIcon } from "./status-icons";
 
-function item(datasetId: string): PublicationQueueItem {
+function item(datasetId: string): QueueItem {
 	return {
 		id: "r",
 		dataset_id: datasetId,

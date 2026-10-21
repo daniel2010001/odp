@@ -1,9 +1,9 @@
 // Tests de los helpers puros de la page de solicitudes: cómo se reparte, se ordena, se filtra, se agrupa y se vacía la cola.
 
 import { describe, expect, it } from "vitest";
-import type { PublicationQueueItem } from "$lib/components/dataset/PublicationQueue.svelte";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanPackage } from "$lib/types/ckan";
+import type { QueueItem } from "./requests-model";
 import {
 	acotarResueltas,
 	actionLabel,
@@ -31,7 +31,7 @@ import {
 
 const YO = "me";
 
-function item(overrides: Partial<PublicationQueueItem> = {}): PublicationQueueItem {
+function item(overrides: Partial<QueueItem> = {}): QueueItem {
 	return {
 		id: "r",
 		dataset_id: "d",
