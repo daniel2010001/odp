@@ -36,6 +36,7 @@ import {
 	itemsForTab,
 	LIMITE_RESUELTAS,
 	organizationTabs,
+	requestCountLabel,
 	type Tab,
 	tabCounts,
 } from "./requests-model";
@@ -100,6 +101,8 @@ const firstOpen = $derived(firstDecidable(visibles, viewer)?.id ?? null);
 // Las resueltas crecen sin parar: se acota la parte resuelta de la pestaña, no las pendientes.
 const acotadas = $derived(acotarResueltas(rows, LIMITE_RESUELTAS));
 const shown = $derived(verTodas ? rows : acotadas.shown);
+// «N solicitudes»: las de la organización activa y el estado elegido, sin repetir el estado (ya lo dice «Mostrar»).
+const totalFilas = $derived(requestCountLabel("todas", rows.length));
 const empty = $derived(emptyState(tab, counts));
 const hayResueltasDeMas = $derived(
 	rows.filter((i) => i.status !== "pending").length > LIMITE_RESUELTAS,
@@ -123,6 +126,13 @@ onMount(() => {
 
 {#snippet mostrar()}
 	<StatusSelect {tab} {counts} ontab={(t) => (tab = t)} class="w-full @lg:w-auto" />
+{/snippet}
+
+{#snippet conteo()}
+	<p data-testid="conteo-solicitudes" class="flex items-baseline gap-2" aria-live="polite">
+		<span class="font-heading text-2xl font-bold text-foreground">{totalFilas.number}</span>
+		<span class="text-sm text-muted-foreground">{totalFilas.text}</span>
+	</p>
 {/snippet}
 
 <div style:--barra-h="{altoBarra}px" class={className}>
@@ -156,6 +166,7 @@ onMount(() => {
 			tabs={orgTabs}
 			value={orgActiva}
 			onchange={(o) => (org = o)}
+			leading={conteo}
 			trailing={mostrar}
 			bind:barHeight={altoBarra}
 			{surface}

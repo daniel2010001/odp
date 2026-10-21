@@ -1,6 +1,8 @@
 <!--
 	Las organizaciones como pestañas, con la forma de las vistas del recurso (`ResourceCharts`): `Tabs` de bits-ui,
-	línea inferior, la activa en azul, «Todas» primero y el conteo de cada una. Bajo 32 rem de contenedor (el
+	línea inferior, la activa en azul, «Todas» primero y, en cada una, la insignia de sus pendientes (ninguna si no
+	tiene; «Todas», la suma). `leading` es el conteo «N solicitudes»: arriba del desplegable o de las pestañas y, desde 64 rem, al
+	extremo izquierdo de la fila. Bajo 32 rem de contenedor (el
 	mismo punto en que esa página pasa a su desplegable «Vista») las pestañas no caben en una línea y pasan a un
 	desplegable. Con una sola organización no se dibuja nada: una pestaña que no filtra es ruido.
 	`trailing` es lo que acompaña a las pestañas (el control de estado) y tiene tres formas según el contenedor:
@@ -21,6 +23,7 @@ import { cn } from "$lib/utils";
 import {
 	hasOrganizationTabs,
 	type OrganizationTab,
+	pendingBadgeLabel,
 	TODAS_LAS_ORGANIZACIONES,
 } from "./requests-model";
 import { barraPegada, type Surface, surfaceClass } from "./sticky-bar";
@@ -29,6 +32,7 @@ let {
 	tabs,
 	value,
 	onchange,
+	leading,
 	trailing,
 	barHeight = $bindable(0),
 	surface = "background",
@@ -38,6 +42,8 @@ let {
 	/** La organización activa, o `null` para «Todas». */
 	value: string | null;
 	onchange: (org: string | null) => void;
+	/** Lo que va al extremo izquierdo de la fila, antes de las pestañas (el conteo de solicitudes). */
+	leading?: Snippet;
 	/** Lo que comparte la fila con las pestañas, a su derecha. */
 	trailing?: Snippet;
 	/** Alto de la barra pegada (pestañas + `trailing`); 0 mientras no se pega. */
@@ -52,6 +58,9 @@ const triggerClass =
 
 const active = $derived(value ?? TODAS_LAS_ORGANIZACIONES);
 const activeTab = $derived(tabs.find((t) => t.id === active) ?? tabs[0]);
+/** «Todas (4 pendientes)»; sin pendientes, sólo el nombre. */
+const withPending = (t: OrganizationTab) =>
+	t.pending > 0 ? `${t.label} (${pendingBadgeLabel(t.pending)})` : t.label;
 const choose = (id: string) => onchange(id === TODAS_LAS_ORGANIZACIONES ? null : id);
 </script>
 
@@ -65,19 +74,26 @@ const choose = (id: string) => onchange(id === TODAS_LAS_ORGANIZACIONES ? null :
 				use:barraPegada={(alto) => (barHeight = alto)}
 				class="flex flex-col gap-2 border-b border-border {surfaceClass(surface)} pb-3 transition-[top] duration-200 ease-out motion-reduce:transition-none @lg:sticky @lg:top-[calc(var(--header-h)+1px)] @lg:z-20 @lg:gap-0 @5xl:flex-row @5xl:items-start @5xl:justify-between @5xl:gap-x-4 @5xl:pb-0"
 			>
+				{#if leading}
+					<div class="@5xl:flex @5xl:h-12 @5xl:shrink-0 @5xl:items-center">{@render leading()}</div>
+				{/if}
 				<div class="hidden min-w-0 @lg:block @5xl:flex-1 @lg:border-b @lg:border-border @5xl:border-b-0">
 				<Tabs.List class="-mb-px flex min-w-0 flex-wrap gap-1" aria-label="Organización">
 					{#each tabs as t (t.id)}
 						<Tabs.Trigger value={t.id} title={t.label} class="{triggerClass} max-w-64">
 							<span class="truncate">{t.label}</span>
-							<span
-								class={cn(
-									"rounded-full border px-1.5 text-xs font-semibold tabular-nums",
-									active === t.id
-										? "border-primary/30 bg-primary/10 text-primary"
-										: "border-border bg-muted text-muted-foreground",
-								)}>{t.count}</span
-							>
+							{#if t.pending > 0}
+								<span
+									data-testid="insignia"
+									aria-label={pendingBadgeLabel(t.pending)}
+									class={cn(
+										"rounded-full border px-1.5 text-xs font-semibold tabular-nums",
+										active === t.id
+											? "border-primary/30 bg-primary/10 text-primary"
+											: "border-border bg-muted text-muted-foreground",
+									)}>{t.pending}</span
+								>
+							{/if}
 						</Tabs.Trigger>
 					{/each}
 				</Tabs.List>
@@ -87,13 +103,13 @@ const choose = (id: string) => onchange(id === TODAS_LAS_ORGANIZACIONES ? null :
 						type="single"
 						value={active}
 						onValueChange={choose}
-						items={tabs.map((t) => ({ value: t.id, label: `${t.label} (${t.count})` }))}
+						items={tabs.map((t) => ({ value: t.id, label: withPending(t) }))}
 					>
 						<Select.Trigger
 							aria-label="Organización"
 							class="flex h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
 						>
-							<span class="truncate">{activeTab.label} ({activeTab.count})</span>
+							<span class="truncate">{withPending(activeTab)}</span>
 							<ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 						</Select.Trigger>
 						<Select.Portal>
@@ -105,11 +121,11 @@ const choose = (id: string) => onchange(id === TODAS_LAS_ORGANIZACIONES ? null :
 									{#each tabs as t (t.id)}
 										<Select.Item
 											value={t.id}
-											label={`${t.label} (${t.count})`}
+											label={withPending(t)}
 											class="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-2 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground motion-reduce:transition-none"
 										>
 											{#snippet children({ selected })}
-												<span>{t.label} ({t.count})</span>
+												<span>{withPending(t)}</span>
 												{#if selected}<Check class="size-4 shrink-0 text-primary" aria-hidden="true" />{/if}
 											{/snippet}
 										</Select.Item>

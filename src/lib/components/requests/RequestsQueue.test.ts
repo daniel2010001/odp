@@ -380,13 +380,49 @@ describe("RequestsQueue — los datos «con rótulos»", () => {
 });
 
 describe("RequestsQueue — las organizaciones son las pestañas", () => {
-	it("«Todas» va primero, con el total, y cada organización con su conteo", async () => {
+	it("«Todas» va primero; su insignia es la suma de las pendientes de las organizaciones", async () => {
 		await abrirYEsperar({ caso: "varias" });
 		const tabs = within(tablist() as HTMLElement).getAllByRole("tab");
-		expect(tabs[0]).toHaveTextContent(/^Todas\s*10$/);
+		expect(tabs[0]).toHaveTextContent(/^Todas\s*4$/);
 		expect(tabs[0]).toHaveAttribute("aria-selected", "true");
 		expect(tabs.length).toBeGreaterThan(2);
-		expect(tabs[1].textContent).toMatch(/\d+$/);
+		const insignias = tabs
+			.slice(1)
+			.map((t) => t.querySelector("[data-testid=insignia]")?.textContent);
+		expect(insignias.map(Number).reduce((a, b) => a + b, 0)).toBe(4);
+	});
+
+	it("la insignia cuenta sólo las pendientes de la organización y se nombra «N pendientes»", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const tec = within(tablist() as HTMLElement).getByRole("tab", {
+			name: /Facultad de Tecnología/,
+		});
+		expect(tec).toHaveTextContent(/Facultad de Tecnología\s*2$/);
+		expect(within(tec).getByLabelText("2 pendientes")).toBeInTheDocument();
+		const med = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Medicina/ });
+		expect(within(med).getByLabelText("1 pendiente")).toBeInTheDocument();
+	});
+
+	it("una organización sin pendientes no lleva insignia", async () => {
+		const items = [
+			...itemsDelCaso("varias"),
+			{
+				...(itemsDelCaso("varias").find((i) => i.status !== "pending") as QueueItem),
+				id: "der1",
+				organization_title: "Facultad de Derecho",
+			},
+		];
+		await abrirYEsperar({ items });
+		const der = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Derecho/ });
+		expect(der.textContent?.trim()).toBe("Facultad de Derecho");
+		expect(der.querySelector("[data-testid=insignia]")).toBeNull();
+		expect(tablist()?.querySelectorAll("[data-testid=insignia]")).toHaveLength(4);
+	});
+
+	it("sin ninguna pendiente tampoco «Todas» lleva insignia", async () => {
+		const items = itemsDelCaso("varias").filter((i) => i.status !== "pending");
+		await abrirYEsperar({ items });
+		expect(tablist()?.querySelector("[data-testid=insignia]")).toBeNull();
 	});
 
 	it("con una sola organización no se dibujan ni las pestañas ni el desplegable", async () => {
@@ -412,7 +448,7 @@ describe("RequestsQueue — las organizaciones son las pestañas", () => {
 		expect(tablist()?.parentElement?.className).toMatch(/hidden .*@lg:block/);
 		const trigger = screen.getByRole("button", { name: "Organización" });
 		expect(trigger.parentElement?.className).toMatch(/@lg:hidden/);
-		expect(trigger).toHaveTextContent("Todas (10)");
+		expect(trigger).toHaveTextContent("Todas (4 pendientes)");
 	});
 
 	it("las pestañas llevan la forma de las vistas del recurso: línea inferior y la activa en azul", async () => {
@@ -487,6 +523,41 @@ describe("RequestsQueue — «Mostrar» al nivel de las pestañas", () => {
 		expect(label.className).toMatch(/w-full/);
 		expect(label.className).toMatch(/@lg:w-auto/);
 		expect(mostrar().className).toMatch(/flex-1/);
+	});
+});
+
+describe("RequestsQueue — «N solicitudes» a la izquierda de las pestañas", () => {
+	const conteo = () => textoDe(screen.getByTestId("conteo-solicitudes"));
+
+	it("va en la barra de pestañas, antes de ellas, y sigue a «Mostrar» (pendientes por defecto)", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const barra = screen.getByTestId("barra-pestanas");
+		const el = screen.getByTestId("conteo-solicitudes");
+		expect(barra).toContainElement(el);
+		expect(
+			el.compareDocumentPosition(tablist() as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(conteo()).toBe("4 solicitudes");
+		await fireEvent.change(mostrar(), { target: { value: "resueltas" } });
+		expect(conteo()).toBe("6 solicitudes");
+		await fireEvent.change(mostrar(), { target: { value: "todas" } });
+		expect(conteo()).toBe("10 solicitudes");
+	});
+
+	it("sigue a la organización activa, y en singular dice «1 solicitud»", async () => {
+		await abrirYEsperar({ caso: "varias" });
+		const tab = within(tablist() as HTMLElement).getByRole("tab", { name: /Facultad de Medicina/ });
+		await fireEvent.mouseDown(tab);
+		await fireEvent.click(tab);
+		await waitFor(() => expect(conteo()).toBe("1 solicitud"));
+		await fireEvent.change(mostrar(), { target: { value: "todas" } });
+		expect(conteo()).toBe("3 solicitudes");
+	});
+
+	it("con cero filas dice «0 solicitudes»", async () => {
+		const items = itemsDelCaso("varias").filter((i) => i.status !== "pending");
+		await abrirYEsperar({ items });
+		expect(conteo()).toBe("0 solicitudes");
 	});
 });
 

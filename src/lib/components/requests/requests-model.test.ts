@@ -143,11 +143,11 @@ describe("organizaciones", () => {
 		expect(filterByOrganization(items, null)).toHaveLength(6);
 	});
 
-	it("pestañas de organización: «Todas» primero con el total, y cada organización con sus solicitudes", () => {
+	it("pestañas de organización: «Todas» primero con la suma de pendientes, y cada organización con las suyas", () => {
 		expect(organizationTabs(items)).toEqual([
-			{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", count: 6 },
-			{ id: "Medicina", label: "Medicina", count: 2 },
-			{ id: "Tecnología", label: "Tecnología", count: 3 },
+			{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", pending: 3 },
+			{ id: "Medicina", label: "Medicina", pending: 1 },
+			{ id: "Tecnología", label: "Tecnología", pending: 2 },
 		]);
 	});
 
@@ -164,7 +164,7 @@ describe("organizaciones", () => {
 
 	it("pestañas de organización: sin solicitudes sólo queda «Todas» en cero", () => {
 		expect(organizationTabs([])).toEqual([
-			{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", count: 0 },
+			{ id: TODAS_LAS_ORGANIZACIONES, label: "Todas", pending: 0 },
 		]);
 	});
 
