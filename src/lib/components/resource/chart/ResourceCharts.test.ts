@@ -523,14 +523,15 @@ describe("ResourceCharts — ventanas, ids y enlaces", () => {
 		expect(screen.getByRole("tab", { name: "Tabla" })).toHaveAttribute("data-state", "active");
 	});
 
-	it("bajo 32 rem de contenedor las pestañas son un desplegable «Vista» (misma regla: @lg)", async () => {
+	it("bajo 32 rem de contenedor las pestañas son un desplegable «Vistas del recurso» de 44 px (misma regla: @lg)", async () => {
 		renderCharts(two());
 
 		const tablist = await screen.findByRole("tablist");
-		expect(tablist.className).toContain("hidden");
-		expect(tablist.className).toContain("@lg:flex");
-		const trigger = screen.getByRole("button", { name: "Vista" });
-		expect(trigger.closest("div")?.className).toContain("@lg:hidden");
+		expect(tablist.closest("[data-list]")?.parentElement?.className).toContain("@lg:block");
+		const trigger = screen.getByRole("button", { name: "Vistas del recurso" });
+		expect(trigger.parentElement?.className).toContain("@lg:hidden");
+		expect(trigger.className).toContain("h-11");
+		expect(trigger).toHaveTextContent("Tabla");
 	});
 
 	it("la barra de pestañas fija --tabs-h para las alturas y el scroll-margin de las ventanas", async () => {

@@ -125,7 +125,7 @@ onMount(() => {
 </script>
 
 {#snippet mostrar()}
-	<StatusSelect {tab} {counts} ontab={(t) => (tab = t)} class="w-full @lg:w-auto" />
+	<StatusSelect {tab} {counts} ontab={(t) => (tab = t)} inBar />
 {/snippet}
 
 {#snippet conteo()}
