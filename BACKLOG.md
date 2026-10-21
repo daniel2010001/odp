@@ -2668,6 +2668,14 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
+- [ ] **[v1] XLSX en el DataStore** (autor, 2026-10-21, L69 de `odd/tasks/v0.1.1-polish.md`: «para la demo no es tan importante […]
+  podemos dejarlo para v1 o luego de hacer la feature de "análisis de datos"»). Medir qué hace el XLoader 2.6.0 con un XLSX
+  (consultado a odp-docker) y, si no lo carga, decidir entre configurarlo o convertir a CSV al subir. Hoy un XLSX no tiene
+  vista de tabla ni gráficos. Va junto con la feature de análisis de datos.
+- [ ] **[v1] Aviso suave al crear muchos gráficos en un recurso** (propuesta aceptada, L69): sin tope fijo (la regla del
+  BACKLOG: el límite lo da el sistema que guarda), pero al crear, por ejemplo, el gráfico 11: «Este recurso ya tiene 10
+  gráficos; considere editar uno existente». El tope real de CKAN/umss_chart se consultó a odp-docker.
+
 - [ ] **[v1] Historial de solicitudes paginado y con filtros** (propuesta aceptada por el autor, 2026-10-21, L65 de
   `odd/tasks/v0.1.1-polish.md`). Hoy «Solicitudes» pide todas las filas visibles en una llamada y muestra las pendientes y las
   últimas resueltas con «Ver N más»: no escala. Pendientes = trabajo (todas, de la más vieja a la más nueva; paginar si
