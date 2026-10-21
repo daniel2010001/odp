@@ -246,6 +246,12 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   `v2` con la justificación escrita** —no `v1+`—, porque es un requerimiento fuerte de este documento; y eso se decide
   **al verlo en detalle**, no ahora. Lo que **sí** está construido de este módulo es la vista previa de CSV (RF-31), que
   es otra cosa (ver «Modelo de vistas»).
+  *Estado (2026-10-21):* **`v1`, decisión del autor** (textual: «[v1] (recomendado)»; «esta es la feature más fuerte de
+  todos, es el propósito del proyecto»). **Ya construido:** los gráficos configurables (barras, líneas, pastel) sobre la
+  tabla del DataStore, con la agregación del lado del servidor, guardados, editables y para insertar
+  (`odd/tasks/csv-charts.md`). **Falta:** el perfil de los datos (tipos detectados, vacíos, distintos, frecuencias), la
+  corrección de tipos por quien publica —que también resuelve los XLSX y CSV que hoy quedan como texto— y la exportación
+  (RF-32). Mapas (RF-25) e IA (RF-26) son extras, fuera de `v1`.
 - RF-25: Para mapas, se requiere columnas con latitud/longitud o geocodificación (pospuesto a v2).
 - RF-26: La IA para sugerencias es opcional y se implementará en versiones posteriores.
 
@@ -271,10 +277,12 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   (gráficos, mapas). Viven en el **Módulo de Análisis de Datos** (RF-24/25/26), en página propia; RF-32
   sólo los exporta. Los gráficos no son parte de la vista previa.
 
-La vista creada se guarda como **definición de vista** (`tipo` + columnas + opciones) en JSON, en un
-`__extras` del recurso (o tabla propia del portal más adelante). **No se usa `resource_view` de CKAN**:
-el proyecto es CKAN headless y el portal es dueño de toda la UI. La IA es un *autor alternativo* de esa
-misma definición, no un tipo de vista nuevo. La conversión PDF→markdown es una *pipeline de
+La vista creada se guarda como **vista del recurso de CKAN** (`resource_view` con `view_type: "umss_chart"`, de la
+extensión propia `ckanext-umss`): su configuración (tipo + columnas + opciones) y una acción `umss_chart_data` que agrupa
+del lado del servidor. El portal sigue siendo dueño de toda la UI: CKAN sólo guarda y agrega. **Decisión aprobada por el
+autor (2026-10-21)**, que reemplaza al plan anterior de guardar la definición en un `__extras` del recurso (textual: «lo
+implementamos y funciona muy bien, me gusta mucho. considero aprobado este método y mejor que el anterior»). Contrato:
+`odd/tasks/csv-charts.md`. La IA es un *autor alternativo* de esa misma definición, no un tipo de vista nuevo. La conversión PDF→markdown es una *pipeline de
 procesamiento* aparte (v1+), no un "tipo de vista".
 
 ### Módulo de Auditoría y Seguridad

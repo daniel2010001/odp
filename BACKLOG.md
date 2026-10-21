@@ -70,7 +70,7 @@ cambio toca la **infraestructura**, que es lo que se recuerda haber hecho acá (
 > | RF-27 | Todos los metadatos indexados en Solr | `[v1]` | Cumplido: indexa CKAN y el portal lo consume con `package_search` |
 > | RF-28 | Filtros por org, etiquetas, visibilidad, fechas y tipo de recurso | `[v1]` | **Parcial**: los filtros existen (`src/routes/search/+page.svelte`); el de visibilidad depende del backend |
 > | RF-29 | Facetas en los resultados | `[v1]` | Cumplido (`src/lib/api/datasets.ts:19` + `FacetFilter.svelte`) |
-> | RF-32 | Exportar gráficos (PNG/JPEG) y datos (CSV) | `[v1+]` | **NO existe**: depende del módulo de análisis (RF-24); si ese cae a `v2`, este cae con él |
+> | RF-32 | Exportar gráficos (PNG/JPEG) y datos (CSV) | `[v1]` | **NO existe todavía**: es parte del módulo de análisis (RF-24), que el autor pasó a `v1` el 2026-10-21 (ítem «Módulo de Análisis de Datos») |
 > | RF-35 | Soft-delete con `deleted_at` | `[v2]` | Equivalente nativo en CKAN (`state='deleted'`; `dataset_purge` sólo `sysadmin`), sin `deleted_at` |
 > | RF-36 | Bloqueo con `access_status` reversible | `[v2]` | **Ausente**; sin equivalente en CKAN (sólo existe el tipo) |
 > | RF-37 | API REST para consumir los datasets | `[v1+]` | **Existe, pero la del catálogo**: la de acciones de CKAN (`package_show` y compañía) responde **metadatos** y **ya la usa el portal**; su **API Key** es nativa. Lo que **no** existe es el **apartado de consumo** con ejemplos (Python/JS/cURL) que el autor señala de portales como `data.gov.sg` → `v1+` |
@@ -2715,6 +2715,16 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   seed) y arrancarla. Cada cambio lo decide el autor en la sesión de odp-docker.
 ## v1 — producto usable en producción
 
+- [ ] **[v1] Módulo de Análisis de Datos — el propósito del proyecto** (decisión del autor, 2026-10-21, L92 de
+  `odd/tasks/v0.1.1-polish.md`: «esta es la feature más fuerte de todos, es el propósito del proyecto»; etiqueta
+  «[v1] (recomendado)»). PRD §2.4, RF-24 y RF-32. **Hecho:** gráficos configurables (barras, líneas, pastel) sobre la tabla
+  del DataStore, guardados como `resource_view` `umss_chart` (método aprobado, PRD «Modelo de vistas»), con agregación del
+  lado del servidor, edición, borrado e inserción (`odd/tasks/csv-charts.md`). **Falta, en orden:** (1) **perfil de los
+  datos** por columna: tipo detectado, vacíos, valores distintos, mínimo y máximo, más frecuentes; (2) **corrección de
+  tipos** por quien publica y recarga de la tabla con esos tipos (resuelve los XLSX y CSV que hoy quedan como texto; toca
+  la carga del DataStore, trabajo con odp-docker); (3) que los gráficos usen esos tipos; (4) **exportar** el gráfico como
+  imagen y los datos como CSV (RF-32). Mapas (RF-25) e IA (RF-26): extras, fuera de `v1`. Estimación del 2026-10-21: la
+  feature va por la mitad del esfuerzo.
 - [ ] **[v1 o v1+] Al aplicar un filtro, las demás opciones de ese mismo filtro desaparecen** (autor, 2026-10-21, L90 de
   `odd/tasks/v0.1.1-polish.md`, textual: «al aplicar algún filtro los otros filtros desaparecen, eg: seleccionar alguna org
   todas las otras orgs desaparecen. v1 o v1+»). Es cómo responde CKAN: las facetas cuentan sólo sobre los resultados ya
@@ -3358,14 +3368,6 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
   `modified` caen a `metadata_created`/`metadata_modified`, el publisher cae a la organización
   dueña y el creator a `author`. **Antes de implementar esto hay que decidir el perfil DCAT.**
   _Origen: verificación contra la fuente de ckanext-dcat, 2026-09-11._
-
-- [ ] **[v1+] Módulo de Análisis de CSV** — página 11 del inventario: cargar CSV, tabla
-  normalizada, selector de columnas X/Y, gráficos (barras/líneas/pastel) con export PNG/CSV. Sin
-  nada de código hoy. Es el **diferencial real del portal** frente al UI de CKAN.
-  **Modelo de vistas (2026-09-13):** aquí viven las *vistas creadas* — una **definición de vista**
-  (`tipo` + columnas + opciones) guardada en JSON en un `__extras` del recurso (no `resource_view`
-  de CKAN), renderizada por el portal. La IA es un autor alternativo de esa misma definición.
-  _Referencias: PRD §3 (módulo de análisis + modelo de vistas), PRD RF-24, design-system §9 item 11._
 
 - [ ] **[v1+] Colecciones (grupos de datasets)** — mapea a `group` + `group_member`. El flujo de
   aprobación por cada organización propietaria (RF-23) es custom y depende del ciclo de vida.
