@@ -25,7 +25,12 @@ let selectedFormats = $state<string[]>($page.url.searchParams.get("format")?.spl
 let selectedTags = $state<string[]>($page.url.searchParams.get("tags")?.split(",") ?? []);
 let selectedLicenses = $state<string[]>($page.url.searchParams.get("license")?.split(",") ?? []);
 let currentPage = $state(Number($page.url.searchParams.get("page")) || 1);
-let sortBy = $state($page.url.searchParams.get("sort") ?? "metadata_modified desc");
+// El orden que la persona **eligió** (o trajo en la URL); `null` = no eligió. El efectivo se deriva: con un texto
+// buscado el defecto es «Relevancia» (decisión del autor, L70 de `odd/tasks/v0.1.1-polish.md`); sin texto no hay
+// relevancia que medir y el catálogo empieza por lo más reciente.
+let sortChoice = $state<string | null>($page.url.searchParams.get("sort"));
+const defaultSort = $derived(query.trim() ? "score desc" : "metadata_modified desc");
+const sortBy = $derived(sortChoice ?? defaultSort);
 
 // ─── Result state ─────────────────────────────────────────────────
 let results = $state<CkanPackage[]>([]);
@@ -167,7 +172,7 @@ function syncUrl() {
 	if (selectedTags.length) params.set("tags", selectedTags.join(","));
 	if (selectedLicenses.length) params.set("license", selectedLicenses.join(","));
 	if (currentPage > 1) params.set("page", String(currentPage));
-	if (sortBy !== "metadata_modified desc") params.set("sort", sortBy);
+	if (sortChoice !== null && sortChoice !== defaultSort) params.set("sort", sortChoice);
 
 	// Se preserva el fragmento del enlace copiado: sin él, `replaceState` lo borra de la
 	// barra de direcciones y `$page.url.hash` queda desincronizado (un valor viejo que ya
@@ -750,7 +755,7 @@ const emptyStateMessage = $derived.by(() => {
 					<select
 						value={sortBy}
 						onchange={(e) => {
-							sortBy = (e.target as HTMLSelectElement).value;
+							sortChoice = (e.target as HTMLSelectElement).value;
 							currentPage = 1;
 						}}
 						class="h-11 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
