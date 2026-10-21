@@ -13,6 +13,7 @@ import { FILE_CHART_VIEWS } from "./seed-charts.mjs";
 import {
 	buildBaseDatasets,
 	buildMoreDatasets,
+	CHARTS_NOTE,
 	DEMOS,
 	MAX_SUMMARY_LENGTH,
 	ORGS,
@@ -22,6 +23,7 @@ import {
 	seedChartsLast,
 	seedFileDataset,
 	sessionHeaders,
+	summaryWithChartsNote,
 	uploadForm,
 } from "./seed-ckan.mjs";
 
@@ -421,6 +423,17 @@ test("S52/S54: siembra los gráficos que faltan y toca al final sólo los datase
 		"toca después de crear",
 	);
 	assert.equal(fake.calls.at(-1), touches[0], "el toque es lo último que se hace");
+	// El toque es un cambio de verdad (CKAN 2.12 no mueve `metadata_modified` con un patch idéntico): el
+	// resumen pasa a anunciar los gráficos.
+	const summary = fake.packages
+		.get(csvDataset.name)
+		.extras.find((extra) => extra.key === SUMMARY_EXTRA_KEY).value;
+	assert.ok(summary.endsWith(CHARTS_NOTE), summary);
+	assert.ok(summary.length <= MAX_SUMMARY_LENGTH);
+	const plainSummary = fake.packages
+		.get(plainDataset.name)
+		.extras.find((extra) => extra.key === SUMMARY_EXTRA_KEY).value;
+	assert.ok(!plainSummary.includes(CHARTS_NOTE), "sin gráficos, el resumen no los anuncia");
 
 	// Segunda corrida: no duplica vistas.
 	fake.calls.length = 0;
@@ -430,7 +443,22 @@ test("S52/S54: siembra los gráficos que faltan y toca al final sólo los datase
 	assert.equal(again.created, 0);
 	assert.equal(fake.calls.filter((call) => call === "resource_view_create").length, 0);
 	assert.equal(
+		fake.calls.filter((call) => call === "package_patch").length,
+		0,
+		"con el resumen ya anunciando los gráficos, la segunda corrida no escribe",
+	);
+	assert.equal(
 		fake.views.get(fake.packages.get(csvDataset.name).resources[0].id).length,
 		FILE_CHART_VIEWS[csvDataset.name].length,
 	);
+});
+
+test("S54: el anuncio de los gráficos cabe en el tope del resumen y no se repite", () => {
+	assert.equal(summaryWithChartsNote("Matrícula ficticia."), `Matrícula ficticia. ${CHARTS_NOTE}`);
+	assert.equal(summaryWithChartsNote(`Ya está. ${CHARTS_NOTE}`), `Ya está. ${CHARTS_NOTE}`);
+	assert.equal(summaryWithChartsNote(""), CHARTS_NOTE);
+	const long = `${"palabra ".repeat(30).trim()}.`;
+	const fitted = summaryWithChartsNote(long);
+	assert.ok(fitted.length <= MAX_SUMMARY_LENGTH, String(fitted.length));
+	assert.ok(fitted.endsWith(`… ${CHARTS_NOTE}`), fitted);
 });
