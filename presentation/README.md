@@ -104,8 +104,9 @@ nuevo y se reemplaza el archivo.
 
 ## Documentos para entregar
 
-Dos documentos A4 para imprimir y dejar a los asistentes: la **ficha resumen** (una página) y el **documento del proyecto**
-(cuatro a seis páginas). Las fuentes están en `handouts/`: `ficha.md`, `proyecto.md` y la hoja de estilo `handout.css`, que
+Dos documentos en tamaño carta para imprimir y dejar a los asistentes: la **ficha resumen** (una página) y el **documento del proyecto**
+(cuatro a seis páginas). Están en carta (`@page` de `handout.css`) porque es el papel que se usa; en A4 impreso sobre carta
+se pierde el pie de página. Las fuentes están en `handouts/`: `ficha.md`, `proyecto.md` y la hoja de estilo `handout.css`, que
 reutiliza los valores visuales de `theme.css`. Como las diapositivas, no agregan dependencias: `build.sh` usa `pnpm dlx`
 (`marked` para el HTML, `qrcode` para los códigos QR en SVG) y el Chromium del sistema para imprimir a PDF.
 

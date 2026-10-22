@@ -1,5 +1,5 @@
 /*
- * Hoja de estilo de los documentos para entregar (ficha y documento del proyecto), A4 impreso.
+ * Hoja de estilo de los documentos para entregar (ficha y documento del proyecto), impreso en tamaño carta.
  * Los valores visuales salen de ../theme.css (que a su vez los copia de src/app.css, la verdad): mismos colores,
  * mismas tipografías. Si un token cambia, se actualiza a mano acá y en theme.css.
  */
@@ -22,8 +22,8 @@
 }
 
 @page {
-	size: A4;
-	margin: 16mm 16mm 18mm;
+	size: letter; /* tamaño carta: el papel del autor (L95); en A4 el pie quedaba fuera de la hoja */
+	margin: 13mm 15mm 15mm;
 	@bottom-left {
 		content: "Portal de datos abiertos de la UMSS · versión 0.1.1";
 		font:
