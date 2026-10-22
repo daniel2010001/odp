@@ -117,7 +117,7 @@ Salen en `dist/` (ignorado por git): `ficha-resumen.pdf` y `documento-proyecto.p
 de cada uno (con `pdfinfo`); la ficha debe quedar en **1** y el documento del proyecto entre **4 y 6**. Como las
 diapositivas, necesita red para las tipografías de Google Fonts y para `pnpm dlx`; `CHROME_PATH` cambia el Chromium.
 
-Queda por completar, antes de imprimir, el bloque **«Autoría y contacto»** (nombre, cargo y correo,
-marcados con «— completar») al final de `ficha.md` y de `proyecto.md`. La dirección de la demostración
+El bloque **«Autoría y contacto»** está al final de `ficha.md` y de `proyecto.md`; si cambia, se edita en los dos. La
+dirección de la demostración
 (`https://demo.odp.hs.lan`) sólo responde desde la red donde está instalada; el código QR la lleva impresa junto a ese aviso.
 Si cambia la dirección, se actualiza en `build.sh` (el QR) y en el bloque final de ambos fuentes.

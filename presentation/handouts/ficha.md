@@ -58,8 +58,9 @@ Sin fechas comprometidas: es lo que el proyecto tiene previsto.
 </div>
 <div class="autoria">
 <p class="rotulo">Autoría y contacto</p>
-<p class="pendiente">[Nombre y apellido — completar]</p>
-<p class="pendiente">[Cargo / unidad — completar]</p>
-<p class="pendiente">[Correo — completar]</p>
+<p>Daniel Boris Limachi Cuiza</p>
+<p>Estudiante de Ingeniería de Sistemas · Facultad de Ciencias y Tecnología, UMSS</p>
+<p>201900395@est.umss.edu</p>
+<p>daniel.boris.limachi.cuiza@gmail.com</p>
 </div>
 </div>
