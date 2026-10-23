@@ -58,18 +58,23 @@ const mock = SCREENS.filter((s) => s.kind === "mock");
 		<ul class="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
 			{#each mock as item (item.title)}
 				<li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3">
-					<div class="flex items-center gap-2">
-						<a
-							href={item.href}
-							class="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
-						>
-							{item.title}
-							<ArrowUpRight class="size-3.5" aria-hidden="true" />
-						</a>
-						{#if !item.ready}
-							<span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-								En preparación
-							</span>
+					<div>
+						<div class="flex items-center gap-2">
+							<a
+								href={item.href}
+								class="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+							>
+								{item.title}
+								<ArrowUpRight class="size-3.5" aria-hidden="true" />
+							</a>
+							{#if !item.ready}
+								<span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+									En preparación
+								</span>
+							{/if}
+						</div>
+						{#if item.note}
+							<p class="text-xs text-muted-foreground">{item.note}</p>
 						{/if}
 					</div>
 					<span class="text-xs text-muted-foreground">{item.audience}</span>

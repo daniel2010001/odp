@@ -80,7 +80,8 @@ export const SCREENS: Screen[] = [
 		title: "Administración de usuarios",
 		href: "/dev/prototype/users",
 		audience: "Superadministrador",
-		ready: false,
+		ready: true,
+		note: "Con ?vista=nuevo se abre el formulario de alta.",
 	},
 	{
 		kind: "mock",
