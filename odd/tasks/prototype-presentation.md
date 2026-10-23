@@ -50,14 +50,17 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 
 | ID | Specs | Task | Route | Commit |
 |---|---|---|---|---|
-| T1 | S1, S2 | `/dev/prototype` index (map of every screen, built and mock) + DEV guard | inline | — |
-| T2 | S1, S3 | P1 user administration | inline | — |
+| T1 | S1, S2 | `/dev/prototype` index (map of every screen, built and mock) + DEV guard | inline | `75e02cf` ✓ |
+| T2 | S1, S3 | P1 user administration (`?vista=nuevo` opens the create form) | inline | `9f29cad` — awaiting author review |
 | T3 | S1, S3 | P2 + P3 organization management | inline | — |
 | T4 | S1, S3 | P4 dataset collaborators | inline | — |
 | T5 | S1, S3, S4 | P5 collections | inline | — |
 | T6 | S1, S3 | P6–P9 (as time allows) | inline | — |
 | T7 | S2 | Import pipeline check: author imports one page with html.to.design | author | — |
 | T8 | S5 | Q&A sheet for the presentation | inline | — |
+
+**Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
+screen by screen in the browser. It is not merged to `main` before the presentation unless the author asks.
 
 ## Log
 
