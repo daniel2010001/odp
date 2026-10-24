@@ -28,7 +28,13 @@ export const SCREENS: Screen[] = [
 		audience: "Visitante",
 		note: "Capturar también una búsqueda sin resultados.",
 	},
-	{ kind: "built", title: "Organizaciones", href: "/organizations", audience: "Visitante" },
+	{
+		kind: "built",
+		title: "Organizaciones",
+		href: "/organizations",
+		audience: "Visitante",
+		note: "La propuesta de cambios se revisa en el playground /dev/organizations.",
+	},
 	{
 		kind: "built",
 		title: "Ficha de organización",
