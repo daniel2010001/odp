@@ -25,6 +25,12 @@ Toda afirmación sobre CKAN dice si fue **medida** (contra la instancia `odp-dev
 | Q8 | Usuarios | El PRD habla de una «organización principal» (RF-02); CKAN no la tiene: un usuario es miembro de varias organizaciones, con un rol en cada una. ¿Se descarta la «principal»? | Abierta. La maqueta ya muestra varias organizaciones por usuario. |
 | Q9 | Nuevo usuario | El alta nativa para un administrador de organización es `user_invite`: crea la cuenta y envía un correo para definir la contraseña (medido en el código: su autorización es la de `group_member_create`). **Requiere correo saliente**, que hoy es un valor de relleno (`CKAN_SMTP_SERVER=localhost:25`, medido). ¿Se configura un SMTP real para `v1`? | Abierta. |
 
+## Colecciones
+
+| ID | Pantalla | Pregunta | Estado |
+|---|---|---|---|
+| Q10 | Colecciones, ficha de colección | ¿Qué significa «Interna» para una colección que reúne datasets de **varias** organizaciones? La maqueta la lee como «sólo la ven los usuarios con sesión»; el PRD (RF-21) lista `private`, `internal` y `public` sin definirlos para colecciones. Además, en CKAN un `group` es **siempre público**: cualquier visibilidad distinta es lógica propia. | Abierta. |
+
 ### Quién ve qué (medido en CKAN 2.12.0, configuración actual)
 
 | Caso | Puede |
