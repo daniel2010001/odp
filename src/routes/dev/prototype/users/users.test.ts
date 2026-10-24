@@ -34,3 +34,29 @@ describe("maqueta — administración de usuarios", () => {
 		expect(screen.getByRole("dialog", { name: "Nuevo usuario" })).toBeTruthy();
 	});
 });
+
+describe("maqueta — usuarios con varias organizaciones", () => {
+	afterEach(() => at("http://localhost/"));
+
+	it("muestra un rol por organización, el superadministrador aparte y el usuario sin organización", () => {
+		at("http://localhost/dev/prototype/users");
+		render(UsersMock);
+
+		// Un rol por organización: la sigla con su rol, y el resto resumido en «+N».
+		expect(screen.getAllByTitle("Dirección de Investigación").length).toBeGreaterThan(1);
+		expect(screen.getByText("+1")).toBeTruthy();
+		// El superadministrador es una marca de la cuenta, no un rol de organización.
+		expect(screen.getByText("Superadministrador", { selector: "span" })).toBeTruthy();
+		expect(screen.getByText("Sin organización")).toBeTruthy();
+		// No queda la «organización principal», que CKAN no tiene (Q8).
+		expect(screen.queryByText(/organización principal/i)).toBeNull();
+	});
+
+	it("el alta es una invitación con una o más organizaciones", () => {
+		at("http://localhost/dev/prototype/users?vista=nuevo");
+		render(UsersMock);
+
+		expect(screen.getByRole("button", { name: "Enviar invitación" })).toBeTruthy();
+		expect(screen.getByRole("button", { name: "Agregar otra organización" })).toBeTruthy();
+	});
+});
