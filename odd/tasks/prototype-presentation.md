@@ -71,3 +71,9 @@ screen by screen in the browser. It is not merged to `main` before the presentat
   un ejemplo que me involucra, podemos intentar "adaptarlo" para que no tenga malos entendidos, te parece?"
 - **L2** (2026-10-23, author): has a Figma account without a paid plan; proposed "creamos en otra herramienta y
   luego la importamos a figma".
+- **L3** (2026-10-23, author, verbatim): "lo de las collections es en ambos sentidos, es decir: ds1, ds2
+  pertenecen a la cl1 y dl2 y dl3 a cl2, y podemos llegar a ds3 por: ds1 -> cl1 -> ds2 -> cls -> ds3, o algo
+  así." Collections were "en principio algo extra". Also recalled, origin unsure: "poder clonar datasets, de
+  una org en otra para que así la otra pueda hacer los cambios que quiera, o incluso users de la misma org,
+  pero con una ref al dataset original". Recorded in `BACKLOG.md` under the collections item; whether cloning
+  enters the prototype is pending the author's answer.

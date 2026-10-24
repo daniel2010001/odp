@@ -3372,6 +3372,20 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
 - [ ] **[v1+] Colecciones (grupos de datasets)** — mapea a `group` + `group_member`. El flujo de
   aprobación por cada organización propietaria (RF-23) es custom y depende del ciclo de vida.
 
+  **Precisiones del autor (2026-10-23), para cuando se diseñe:**
+  - **Es un «extra»**, no el núcleo: una organización puede **referenciar** datasets de otra sin copiarlos.
+  - **La relación se navega en los dos sentidos.** Un dataset puede estar en varias colecciones y una
+    colección contiene varios datasets, así que se forma un grafo que se recorre: si `ds1` y `ds2` están en
+    `cl1`, y `ds2` y `ds3` en `cl2`, se llega de `ds1` a `ds3` por `ds1 → cl1 → ds2 → cl2 → ds3`. En el
+    producto: la ficha del dataset muestra **en qué colecciones aparece**, y la ficha de la colección
+    lista sus datasets.
+  - **Idea relacionada, sin origen confirmado: clonar un dataset.** Copiarlo a otra organización (o a otro
+    usuario de la misma) para que la copia se pueda modificar libremente, **conservando una referencia al
+    dataset original**. El autor no recuerda si se habló en este proyecto o en el anterior; **no está en el
+    `PRD.md` ni en este backlog antes de hoy**. Abierto: si es un requerimiento o una idea, y qué se
+    sincroniza (o no) entre la copia y el original.
+  _Origen: conversación del 2026-10-23 al preparar el prototipo (`odd/tasks/prototype-presentation.md`)._
+
 - [ ] **[v1+] Gestión de usuarios y roles en el portal** — RF-03 pide que un `org_admin` cree
   usuarios de su organización. **Choca con el endurecimiento ya aplicado:** la autorización de
   `user_create` depende de `ckan.auth.create_user_via_api`, que hoy está en `false`. Además, en
