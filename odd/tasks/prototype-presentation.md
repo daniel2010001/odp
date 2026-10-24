@@ -75,7 +75,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T5 | S1, S3, S4 | P5 collections | inline | — |
 | T6 | S1, S3 | P6–P9 (as time allows) | inline | — |
 | T7 | S2 | Import pipeline check: author imports one page with html.to.design | author | — |
-| T9 | S7, S9, S6 | Organizations playground `/dev/organizations` | worker | — |
+| T9 | S7, S9, S6 | Organizations playground `/dev/organizations` | worker | `8af97fc` — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
