@@ -3386,6 +3386,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
     sincroniza (o no) entre la copia y el original.
   _Origen: conversación del 2026-10-23 al preparar el prototipo (`odd/tasks/prototype-presentation.md`)._
 
+- [ ] **[v1]** **Preguntas abiertas de diseño de usuarios, roles y organizaciones (Q3–Q9)** — viven en
+  `design-system/datos-umss/preguntas-abiertas.md`, con lo medido en CKAN. La más urgente es **Q7**: hoy cualquier
+  usuario con sesión puede crear una organización (`ckan.auth.user_create_organizations = true`, configuración de
+  `odp-docker`), contra el PRD. _Origen: diseño del prototipo, 2026-10-23._
+
 - [ ] **[v1+] Gestión de usuarios y roles en el portal** — RF-03 pide que un `org_admin` cree
   usuarios de su organización. **Choca con el endurecimiento ya aplicado:** la autorización de
   `user_create` depende de `ckan.auth.create_user_via_api`, que hoy está en `false`. Además, en

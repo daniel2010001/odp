@@ -211,6 +211,11 @@ duplicar estilos.
 - **El copy visible no nombra la implementación:** sin nombres de tecnología, sin nombres de
   servicios internos y sin identificadores de campo crudos; el visitante lee «catálogo»,
   «conjunto de datos», «dirección web». La excepción declarada vive en «Acerca de» (ver `AGENTS.md`).
+- **Nombres de los roles de organización** (decisión del autor, 2026-10-23): `member` → **«Lector»**,
+  `editor` → **«Editor»**, `admin` → **«Administrador»** (de la organización); la marca `sysadmin` de la
+  cuenta → **«Superadministrador»**. «Lector» y no «Miembro», porque los tres roles son miembros de la
+  organización y el nombre debe decir qué puede hacer. Las dudas de diseño abiertas viven en
+  `preguntas-abiertas.md`.
 
 ---
 

@@ -153,6 +153,10 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   navegador y mina el token ahí. Un JWT propio sería un **segundo sistema de identidad** en paralelo, sin usuarios que
   lo justifiquen, mientras que lo que RF-05 sí pedía —el login desacoplado del SSO— está cumplido.
 - RF-05: El login es desacoplado del SSO; se proveerán endpoints estándar para futura integración.
+  *Decisión del autor (2026-10-23):* **los perfiles de usuario son públicos**, como en CKAN
+  (`ckan.auth.public_user_details = true`): una vista pública por usuario, **sin el correo**, que CKAN no expone. Un
+  usuario puede ser miembro de **varias** organizaciones con un rol distinto en cada una; la «organización principal» de
+  RF-02 queda en discusión (`design-system/datos-umss/preguntas-abiertas.md`, Q8).
 
 ### Módulo de Organizaciones
 - RF-06: Las organizaciones tienen: nombre, slug único, descripción, jerarquía (padre opcional, solo figurativa), metadatos de creación.
