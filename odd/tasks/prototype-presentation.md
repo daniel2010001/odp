@@ -17,6 +17,14 @@ imported into Figma and presented as a click-through prototype before the tribun
 - **S5** — Prepared answers for the questions the author could not answer: "qué busca solucionar la
   plataforma?", "por qué una plataforma todo en uno", "qué tipo de documentos" (by content, not format).
 
+- **S6** — Every mock is checked against what CKAN offers: "no prometamos fotos de perfil para user si ckan no lo
+  soporta, o comprobación de email y cosas así", but what we can implement (like the charts) may be shown, "siempre
+  anotando y señalando esto".
+- **S7** — Built pages are reviewed too: for each one the agent asks "si esta page va tal cual o hacer cambios o
+  rehacerla" (e.g. the organizations grid) — not because they are wrong, but to improve the UI faster now.
+- **S8** — Multi-organization membership and "qué user ve qué cosas" are designed explicitly, with cases (member of one
+  org, member + admin of different orgs, no org, edge cases), including whether user profiles are public.
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -77,3 +85,8 @@ screen by screen in the browser. It is not merged to `main` before the presentat
   una org en otra para que así la otra pueda hacer los cambios que quiera, o incluso users de la misma org,
   pero con una ref al dataset original". Recorded in `BACKLOG.md` under the collections item; whether cloning
   enters the prototype is pending the author's answer.
+- **L4** (2026-10-23, author): cloning does **not** enter (was likely the previous project; clarified it would copy a
+  specific version into an independent new dataset, with traceability of who/when, not a git-like merge). Users screen:
+  "la ui de users me gusta". Asked for multi-org cases, who sees what, whether profiles are public, why «Lector» vs
+  CKAN's `member`, and how to keep the design questions that arise visible ("un .md o una ventana ... o un dialog").
+  Reviewing `presentation/preguntas.md` [validar] answers on their side.
