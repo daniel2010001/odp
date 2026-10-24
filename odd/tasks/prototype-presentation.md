@@ -25,6 +25,16 @@ imported into Figma and presented as a click-through prototype before the tribun
 - **S8** — Multi-organization membership and "qué user ve qué cosas" are designed explicitly, with cases (member of one
   org, member + admin of different orgs, no org, edge cases), including whether user profiles are public.
 
+- **S9** — Organizations page (`/organizations`): the author chose **«Cambios: la propuesta»** (not as-is, not redo).
+  The proposal, verbatim from the agent's message the author accepted: (1) «Buscador y filtro por tipo arriba
+  (Facultad, Dirección, Instituto), con la cantidad de cada uno»; (2) «Agrupar por tipo, con un encabezado por grupo,
+  en vez de una sola cuadrícula»; (3) «Mostrar la jerarquía: la tarjeta de una facultad indica "3 unidades
+  dependientes" y las enlaza»; (4) «Agregar a la tarjeta la sigla y la fecha de la última actualización». It is built
+  as a playground `/dev/organizations` that duplicates the real page (AGENTS.md rule 8): control panel with case
+  presets, a per-section variant switch next to what it changes, so the author compares against the current grid.
+  CKAN feasibility (S6): counts and dates are native; type and acronym would be organization `extras`
+  (implementable, not present today); hierarchy needs `ckanext-hierarchy` (implementable; ties to Q6).
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -65,6 +75,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T5 | S1, S3, S4 | P5 collections | inline | — |
 | T6 | S1, S3 | P6–P9 (as time allows) | inline | — |
 | T7 | S2 | Import pipeline check: author imports one page with html.to.design | author | — |
+| T9 | S7, S9, S6 | Organizations playground `/dev/organizations` | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -90,3 +101,6 @@ screen by screen in the browser. It is not merged to `main` before the presentat
   "la ui de users me gusta". Asked for multi-org cases, who sees what, whether profiles are public, why «Lector» vs
   CKAN's `member`, and how to keep the design questions that arise visible ("un .md o una ventana ... o un dialog").
   Reviewing `presentation/preguntas.md` [validar] answers on their side.
+- **L5** (2026-10-23, author): decisions — open questions in one `.md` (`design-system/datos-umss/preguntas-abiertas.md`);
+  profiles public like CKAN; `member` shown as «Lector»; built pages reviewed one by one, starting with organizations.
+  For organizations: «Cambios: la propuesta» (S9).
