@@ -15,21 +15,18 @@ Toda afirmación sobre CKAN dice si fue **medida** (contra la instancia `odp-dev
 
 | ID | Pantalla | Pregunta | Estado |
 |---|---|---|---|
-| Q1 | Usuarios, perfil | ¿Los perfiles de usuario son públicos? | **Decidida (2026-10-23): públicos, como CKAN.** Vista pública `/user/<nombre>`, sin correo. Medido: `user_list` anónimo responde, sin el campo `email` (sólo `email_hash`); `ckan.auth.public_user_details = true`. |
+| Q1 | Usuarios, perfil | ¿Los perfiles de usuario son públicos? | **Decidida (2026-10-23, confirmada 2026-10-24): públicos, como CKAN.** El perfil es una vista pública `/user/<nombre>` (la ruta de CKAN), sin correo; la **administración** de usuarios sigue en el panel. Como hay portales que hacen las dos cosas, se le **pregunta al tribunal** cuál prefiere (`presentation/preguntas.md`). Medido: `user_list` anónimo responde, sin el campo `email` (sólo `email_hash`); `ckan.auth.public_user_details = true`. |
 | Q2 | Todas | ¿Cómo se llama en pantalla el rol `member` de CKAN? | **Decidida (2026-10-23): «Lector».** El valor interno sigue siendo `member`. Ver `README.md` §10. |
-| Q3 | Gestión de la organización | ¿Qué pasa si el último administrador de una organización se quita o cambia de rol? El PRD exige al menos uno (RF-07). | Abierta. **A verificar** si CKAN lo impide. |
-| Q4 | Gestión de la organización, solicitudes | ¿Qué pasa con una solicitud de publicación pendiente si a quien la pidió lo quitan de la organización? | Abierta. |
-| Q5 | Usuarios | «Bloqueado»: CKAN sólo tiene `active` / `deleted` (medido en `user_list`: campo `state`). Los estados «solo lectura» y «bloqueo total» del PRD no son nativos. ¿El prototipo muestra sólo «Activo / Bloqueado»? | Abierta. |
-| Q6 | Organizaciones | El PRD dice jerarquía **figurativa, sin herencia** de permisos, pero el `ckan.ini` tiene `ckan.auth.roles_that_cascade_to_sub_groups = admin` (medido): un admin de la organización madre heredaría la administración de las hijas. Hoy no aplica porque no hay jerarquía instalada. ¿Se apaga cuando se agregue la jerarquía? | Abierta. |
-| Q7 | Nueva organización | Hoy **cualquier usuario con sesión puede crear una organización**: `ckan.auth.user_create_organizations = true` (medido). El PRD la reserva al superadministrador. Es configuración de `odp-docker`. ¿Se cierra? | Abierta. |
+| Q3 | Gestión de la organización | ¿Qué pasa si el último administrador de una organización se quita o cambia de rol? El PRD exige al menos uno (RF-07). | Abierta. **Medido (2026-10-24): CKAN no lo impide** — `member_delete` borra la membresía sin mirar el rol (`logic/action/delete.py`). La organización no queda inaccesible: **el superadministrador puede todo** en cualquier organización (`authz.py`, «Sys admins can do anything»). Falta decidir si el portal bloquea quitar al último administrador (RF-07) o sólo lo advierte. |
+| Q4 | Gestión de la organización, solicitudes | ¿Qué pasa con una solicitud de publicación pendiente si a quien la pidió lo quitan de la organización? | **Dirección decidida (2026-10-24): resolución en cascada, no borrado.** La solicitud pendiente se cierra como **cancelada** con un motivo del sistema («el solicitante ya no pertenece a la organización»), y queda en el historial. Es la primera de una familia de casos (ver Q4b). Implementable: una acción encadenada (`chained_action`) sobre `organization_member_delete` en la extensión propia. |
+| Q4b | Gestión de la organización | Un usuario deja la organización con datasets sin publicar o incompletos, y era su único editor. | Abierta, con lo medido (2026-10-24): **los datasets son de la organización, no del usuario** (`owner_org`), así que no quedan huérfanos: el administrador de la organización puede editarlos todos (en `authz.py` el permiso `admin` «allows anything for the group»), y `creator_user_id` conserva quién lo creó. Al borrar al usuario, CKAN borra sus membresías (`user_delete`). Falta decidir si el portal avisa al administrador de que quedan borradores sin editor. |
+| Q5 | Usuarios | «Bloqueado»: CKAN sólo tiene `active` / `pending` / `deleted` para un usuario (campo `state`); `deleted` impide iniciar sesión y es reversible. El PRD (RF-36) pide otra cosa: un `access_status` (`accessible` / `readonly` / `locked`) **sobre las entidades** —datasets, recursos, colecciones—, no sobre las personas, y lo marca «sin equivalente, requiere extensión propia» (§7). Motivos reales de bloquear a una persona: dejó la universidad (fin de contrato, jubilación, egreso), cuenta comprometida, suspensión temporal. ¿El prototipo muestra sólo «Activo / Bloqueado» para usuarios? | Abierta. |
+| Q6 | Organizaciones | El PRD dice jerarquía **figurativa, sin herencia** de permisos, pero el `ckan.ini` tiene `ckan.auth.roles_that_cascade_to_sub_groups = admin` (medido): un admin de la organización madre heredaría la administración de las hijas. Hoy no aplica porque no hay jerarquía instalada. ¿Se apaga cuando se agregue la jerarquía? | **Postergada (2026-10-24):** se verá con calma; puede adoptarse la jerarquía de CKAN o quedar **figurativa**, como un campo propio de la organización que no da permisos. |
+| Q7 | Nueva organización | Hoy **cualquier usuario con sesión puede crear una organización**: `ckan.auth.user_create_organizations = true` (medido). El PRD la reserva al superadministrador. Es configuración de `odp-docker`. ¿Se cierra? | **Decidida (2026-10-24): se corrige** (`false`). Pedido a la sesión de `odp-docker`; pendiente su confirmación. |
 | Q8 | Usuarios | El PRD habla de una «organización principal» (RF-02); CKAN no la tiene: un usuario es miembro de varias organizaciones, con un rol en cada una. ¿Se descarta la «principal»? | Abierta. La maqueta ya muestra varias organizaciones por usuario. |
-| Q9 | Nuevo usuario | El alta nativa para un administrador de organización es `user_invite`: crea la cuenta y envía un correo para definir la contraseña (medido en el código: su autorización es la de `group_member_create`). **Requiere correo saliente**, que hoy es un valor de relleno (`CKAN_SMTP_SERVER=localhost:25`, medido). ¿Se configura un SMTP real para `v1`? | Abierta. |
-
-## Colecciones
-
-| ID | Pantalla | Pregunta | Estado |
-|---|---|---|---|
-| Q10 | Colecciones, ficha de colección | ¿Qué significa «Interna» para una colección que reúne datasets de **varias** organizaciones? La maqueta la lee como «sólo la ven los usuarios con sesión»; el PRD (RF-21) lista `private`, `internal` y `public` sin definirlos para colecciones. Además, en CKAN un `group` es **siempre público**: cualquier visibilidad distinta es lógica propia. | Abierta. |
+| Q9 | Nuevo usuario | El alta nativa para un administrador de organización es `user_invite`: crea la cuenta y envía un correo para definir la contraseña (medido en el código: su autorización es la de `group_member_create`). **Requiere correo saliente**, que hoy es un valor de relleno (`CKAN_SMTP_SERVER=localhost:25`, medido). ¿Se configura un SMTP real para `v1`? | Abierta. Cómo funciona (medido en `logic/action/create.py`): el administrador indica **correo, organización y rol**; CKAN crea la cuenta en estado `pending` con un nombre de usuario aleatorio derivado del correo, **la agrega a esa organización con ese rol** y envía el correo con un enlace para definir la contraseña. **Si el correo no se puede enviar, borra la cuenta** y devuelve un error: sin SMTP, invitar no funciona. |
+| Q14 | Usuarios | ¿Cuándo existe un usuario **sin organización**? Con la invitación, toda cuenta nace dentro de una. Quedan: (a) lo quitaron de su única organización (cambió de unidad o la dejó); (b) lo creó un superadministrador sin asignarle una; (c) si algún día se abre el registro público (`create_user_via_web`, hoy `false`), cualquier persona: un investigador externo que sólo arma colecciones. ¿Se muestra el caso en la maqueta? | Abierta. |
+| Q15 | Usuarios | Las etiquetas de organización de la tabla de usuarios muestran la sigla; el nombre completo va hoy en `title` del navegador. ¿Un tooltip propio por etiqueta? Se puede (`$lib/components/ui/tooltip`), pero en Figma sólo se ve si se captura abierto. | **Decidida (2026-10-24): se deja para la implementación.** |
 
 ### Quién ve qué (medido en CKAN 2.12.0, configuración actual)
 
@@ -44,6 +41,20 @@ Toda afirmación sobre CKAN dice si fue **medida** (contra la instancia `odp-dev
 | Superadministrador | Todo. Es una marca de la cuenta (`sysadmin`), no un rol de organización. |
 
 Roles y permisos de CKAN: `ckan/authz.py`, `ROLE_PERMISSIONS` (`admin`, `editor`, `member`).
+
+## Organizaciones
+
+| ID | Pantalla | Pregunta | Estado |
+|---|---|---|---|
+| Q11 | Nueva organización, organizaciones | ¿Cómo se declara que una organización «es una facultad»? Propuesta: un **tipo único y excluyente** elegido de una **lista cerrada** (Rectorado, Facultad, Dirección, Instituto, Carrera, Departamento…) con un `select` al crearla — no una etiqueta, que es múltiple y libre. En CKAN es un campo propio de la organización (`extras` o un esquema con opciones); hoy el tipo se **adivina por el título** (`OrganizationCard.svelte`). ¿Quién mantiene la lista? | Abierta. |
+| Q12 | Organizaciones | Con la agrupación por tipo, ¿cómo se pagina? Si se pagina la lista entera, el grupo «Rectorado» podría aparecer recién en la página 2. Propuesta: **no paginar las organizaciones** (son decenas, no miles) y, si un grupo es largo, mostrar los primeros y «Ver las 12 facultades». Dato medido: `organization_list` con todos los campos devuelve **25 como máximo** por pedido (`ckan.group_and_organization_list_all_fields_max = 25`), así que traerlas todas son varios pedidos. | Abierta. |
+| Q13 | Organizaciones | La sigla («FCyT») es un campo propio, como el tipo. ¿Qué va en la URL: la sigla o el slug? El slug de CKAN (`name`) **es** la URL (`/organization/fcyt`) y sólo admite minúsculas; hoy ya coincide con la sigla en minúsculas. Propuesta: slug = sigla en minúsculas, y la sigla con su escritura («FCyT») como campo aparte para mostrar. | Abierta (de implementación). |
+
+## Colecciones
+
+| ID | Pantalla | Pregunta | Estado |
+|---|---|---|---|
+| Q10 | Colecciones, ficha de colección | ¿Qué significa «Interna» para una colección que reúne datasets de **varias** organizaciones? La maqueta la lee como «sólo la ven los usuarios con sesión»; el PRD (RF-21) lista `private`, `internal` y `public` sin definirlos para colecciones. Además, en CKAN un `group` es **siempre público**: cualquier visibilidad distinta es lógica propia. | Abierta. |
 
 ## Lo que CKAN ofrece (para no prometer de más)
 

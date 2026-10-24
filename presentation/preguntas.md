@@ -126,6 +126,30 @@ Tener claro, pantalla por pantalla, cuál es cuál: el índice `/dev/prototype` 
 
 ---
 
+### ¿En qué casos un usuario pertenece a más de una organización? **[validar]**
+
+> Es lo habitual en una universidad: la misma persona trabaja para varias unidades. Por ejemplo, un **docente** de la
+> Facultad de Ciencias y Tecnología que además **investiga** en un instituto publica en las dos; una **directora de
+> carrera** administra los datos de su carrera y sólo consulta los de su facultad; un funcionario de **Planificación**
+> carga los datos que le envían varias unidades. Por eso el rol se asigna **por organización**: la misma persona puede
+> ser administradora en una y lectora en otra, y cada rol vale sólo donde se le dio.
+
+### ¿Por qué se bloquearía a un usuario? **[validar]**
+
+> Porque **dejó la universidad** (fin de contrato, jubilación, egreso), porque su cuenta **se vio comprometida**, o por
+> una **suspensión temporal**. Bloquear no borra nada: los datos que publicó **son de su organización**, siguen
+> publicados y queda registrado quién los creó. El bloqueo se puede revertir.
+
+---
+
+## Preguntas para hacerle al tribunal
+
+- **¿Los perfiles de usuario deben ser públicos?** Hay portales que los muestran (como el motor que usamos: nombre,
+  organizaciones y datasets publicados, **nunca el correo**) y otros que los reservan para usuarios con sesión. La
+  propuesta es que sean públicos; se adapta a lo que prefieran. *(Decisión del autor, 2026-10-24.)*
+
+---
+
 ## Ideas que **no** se presentan como parte del proyecto
 
 - **Clonar un dataset** a otra organización conservando la referencia al original: está anotada en `BACKLOG.md`, sin

@@ -104,3 +104,13 @@ screen by screen in the browser. It is not merged to `main` before the presentat
 - **L5** (2026-10-23, author): decisions — open questions in one `.md` (`design-system/datos-umss/preguntas-abiertas.md`);
   profiles public like CKAN; `member` shown as «Lector»; built pages reviewed one by one, starting with organizations.
   For organizations: «Cambios: la propuesta» (S9).
+- **L6** (2026-10-24, author): answered the edge cases — (a) last admin: check what happens ("creo que el superadmin
+  se queda"); (b) pending request of a removed user "tiene que morir como cascada … se resuelva como cancelada bajo la
+  glosa de user fuera de la org", and the sole-editor case keeps "creator user id"; (c) asked what the PRD says about
+  blocking vs CKAN; (d) hierarchy postponed, maybe figurative via org extras; Q7 "hay que corregirlo, dile a
+  odp-docker que lo haga"; profiles: "usemos lo de ckan y hagamos como que es visible para todos como ckan", and ask the
+  tribunal which they prefer. Organizations proposal: "me gusta", with open questions on org type (enum/select vs tag,
+  exclusive), pagination with groups, acronym as extra and URL (Q11–Q13). Tooltips on org chips: leave for
+  implementation. **Responsive: "por ahora no lo toquemos, solo en el dev … todo en 16x9"** — mocks and playgrounds
+  are reviewed and captured at 16:9 desktop only; mobile is deferred to implementation.
+
