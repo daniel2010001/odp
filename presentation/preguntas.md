@@ -166,6 +166,46 @@ Tener claro, pantalla por pantalla, cuál es cuál: el índice `/dev/prototype` 
 > una **suspensión temporal**. Bloquear no borra nada: los datos que publicó **son de su organización**, siguen
 > publicados y queda registrado quién los creó. El bloqueo se puede revertir.
 
+### ¿Cuál es el diferenciador frente a lo que ya tiene la universidad?
+
+Investigación del 2026-10-24 (fuentes abajo). **Comprobado en la página:** UMSSSTAT. **El resto, por búsqueda**, con lo
+no verificado marcado.
+
+> Lo que hoy existe **muestra** información o **guarda documentos**; ninguno **publica datos reutilizables** de todas las
+> unidades. UMSSSTAT muestra estadísticas en la página, el SAGAA los horarios de la FCyT, el repositorio guarda tesis y
+> artículos, Moodle es para enseñar y Drive guarda archivos sueltos. La plataforma es **el catálogo único donde cada
+> unidad publica sus datos en tablas descargables, con metadatos, licencia, aprobación previa y acceso por API**.
+> **No reemplaza** a esos sistemas: los **complementa**, y lo que ellos ya producen puede publicarse acá como datos.
+
+| Sistema | Para qué sirve | ¿Datos reutilizables (tabla descargable, API)? | Diferencia |
+|---|---|---|---|
+| **UMSSSTAT** (DPA + DTIC) | Estadísticas: matrícula, rendimiento, docentes | Tablas **en la página**; no se ve descarga, API ni licencia (sólo un manual de usuario) | Lo publica una sola unidad; la plataforma deja publicar a todas, y como datos descargables |
+| **SAGAA** (FCyT) | Oferta académica: grupos y horarios | Páginas de consulta; descarga o API no vistas | Un tema, una facultad |
+| **Repositorio UMSS** (DSpace) | Tesis, libros, artículos | Documentos, no tablas | Guarda documentos; la plataforma publica datos |
+| **Moodle** (aulas virtuales) | Cursos | No | Su fin es enseñar |
+| **Google Drive** | Guardar y compartir archivos | Archivos sueltos | Sin catálogo, metadatos, licencia ni aprobación |
+| **Sitio de la FCyT, umss.edu.bo** | Comunicar: avisos, noticias | No verificado | Comunican; no son catálogos de datos |
+| **datos.gob.bo** (AGETIC) | Datos abiertos del Estado | Sí | Es el nivel **nacional**; la plataforma sería el nivel **institucional** y podría alimentarlo |
+
+**El contexto nacional, con cuidado.** El DS 5340 (26/02/2025) crea la plataforma «gob.bo» con un componente de **datos
+abiertos del Estado**, con lineamientos de AGETIC. **No está verificado** que obligue a una universidad autónoma («podrán
+solicitar su inclusión»): decirlo como **alineación**, no como obligación, hasta leer su art. 3.
+
+**No decir:** «muchas universidades usan CKAN» (no hay fuente), ni cifras de ahorro o de adopción. Ninguna universidad
+boliviana con portal de datos abiertos apareció en la búsqueda: decirlo como **«no encontré»**, no como «no existe».
+Ejemplos de fuera: el portal de datos abiertos de la UNAM y el repositorio de datos de investigación de la Universidad de
+Chile (Dataverse, que es otra cosa: datos de investigación, no institucionales).
+
+**[validar]** Antes del jueves, abrir UMSSSTAT y confirmar que no tiene botón de descarga: es la comparación más probable
+y la más fuerte.
+
+Fuentes: UMSSSTAT `https://umssstat.umss.edu.bo/site/index` · SAGAA `https://sagaa.fcyt.umss.edu.bo/oferta/` · Repositorio
+`http://bibliotecas.umss.edu.bo/site/php/index.php`, `http://ddigital.umss.edu/handle/123456789/48821` · Moodle
+`https://www.umss.edu.bo/plataformas-educativas-estudiantes/` · AGETIC
+`https://agetic.gob.bo/tramites-y-servicios/herramientas-y-servicios-digitales/datos-abiertos` · DS 5340
+`https://www.lexivox.org/norms/BO-DS-N5340.xhtml` · UNAM `https://datosabiertos.unam.mx/` · U. de Chile
+`https://datos.uchile.cl/`.
+
 ---
 
 ## Preguntas para hacerle al tribunal
