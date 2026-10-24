@@ -57,6 +57,12 @@ Roles y permisos de CKAN: `ckan/authz.py`, `ROLE_PERMISSIONS` (`admin`, `editor`
 |---|---|---|---|
 | Q10 | Colecciones, ficha de colección | ¿Qué significa «Interna» para una colección que reúne datasets de **varias** organizaciones? La maqueta la lee como «sólo la ven los usuarios con sesión»; el PRD (RF-21) lista `private`, `internal` y `public` sin definirlos para colecciones. Además, en CKAN un `group` es **siempre público**: cualquier visibilidad distinta es lógica propia. | Abierta. |
 
+## Versiones
+
+| ID | Pantalla | Pregunta | Estado |
+|---|---|---|---|
+| Q17 | Versiones del dataset | **¿Qué es un cambio «menor»?** RF-17 dice que título, descripción y metadatos no crean versión; RF-14, que la versión la crea el usuario a propósito; RF-16, que cada aprobación o rechazo de una revisión genera una versión. Propuesta: **versión = cambio en los datos** (agregar, reemplazar o quitar un recurso); **menor = cambio en los metadatos** (título, descripción, etiquetas, licencia), que queda en el historial de actividad pero no es versión. Caso dudoso: cambiar la **licencia** o la **visibilidad** — ¿menor o versión? En CKAN, el historial de actividad guarda una copia del dataset en cada cambio (nativo); una versión con estado de aprobación propio **no es nativa** (PRD §7). | Abierta. |
+
 ## Lo que CKAN ofrece (para no prometer de más)
 
 | Funcionalidad | CKAN | Medido |

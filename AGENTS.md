@@ -88,7 +88,10 @@ El portal vive en los contenedores de `../odp-docker`. Se levantan con
 `docker compose -p odp-dev -f docker-compose.dev.unified.yml up -d`.
 
 - **Para ver el portal: `http://localhost:8082`** — el contenedor `frontend-proxy` publica 8082. Ésa es la
-  única URL del portal, y es la que hay que darle al autor para revisar.
+  URL **desde esta máquina** (para `curl` y mediciones).
+- **La URL que se le da al autor es `https://odp.hs.lan`** (decisión del autor, 2026-10-24): suele revisar
+  desde otros dispositivos de la red, no desde `localhost`. Mismo portal, por el dominio local; por ejemplo
+  `https://odp.hs.lan/dev/prototype`.
 - **Para ver el portal, no corras `pnpm dev` en el host.** El servidor de desarrollo ya corre **dentro** de
   `odp-dev-frontend-dev-1` (su 5173 es interno y no está publicado al host), y un segundo servidor no lo ve
   el proxy: ocupa un puerto y queda vivo sin servirle a nadie.

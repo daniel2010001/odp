@@ -8,6 +8,14 @@ autor las confirma con lo que conoce de la UMSS antes del jueves. El plan del pr
 Regla para todas: **responder con lo que la plataforma hace o tiene planificado en el `PRD.md`**. Si la pregunta apunta a
 algo que no está, se dice que no está y se anota; no se improvisa una promesa.
 
+**Lo que el tribunal necesita oír (lectura del autor, 2026-10-24).** En la charla del 2026-10-23 **no se mostró la demo**:
+sólo se habló del proyecto. Para el tribunal, el prototipo del jueves **es** la demo, y lo que quiere saber es **si les
+sirve**. Todavía no le encuentran el valor, o no lo terminan de entender. Por eso cada respuesta conviene anclarla en
+**un caso de uso concreto de la universidad**, no en una lista de funciones.
+
+**Es una plataforma administrativa.** Publican **las unidades** (facultades, direcciones, institutos) por medio de su
+personal; los estudiantes y el público **consultan**. No es un lugar donde cualquiera sube lo que quiera.
+
 ---
 
 ## Las que ya hicieron (2026-10-23)
@@ -54,10 +62,12 @@ siguiente).
 ### El caso de la carta: «una carta se presenta muchas veces a diferentes lugares»
 
 Decisión del autor (2026-10-23): responder con lo que la plataforma **cumple** — subir una vez, aparecer en varios
-lugares — sin prometer el seguimiento de un trámite.
+lugares — sin prometer el seguimiento de un trámite. Precisión (2026-10-24): **el estudiante no es usuario de la
+plataforma**; quien publica es **la unidad**. El ejemplo se adapta así:
 
-> Hoy un mismo documento se entrega **en copias** a varias instancias. En la plataforma se publica **una sola vez**, en
-> la organización que lo emite, y cada instancia que lo necesita **lo incluye en su colección**. No se duplica, todos ven
+> El estudiante entrega su carta, como hoy. Pero lo que la universidad **produce** con esas cartas —el informe, la
+> resolución, la estadística— hoy también se copia a varias instancias. En la plataforma, **la unidad que lo emite lo
+> publica una sola vez**, y cada instancia que lo necesita **lo incluye en su colección**. No se duplica, todos ven
 > **la misma versión oficial**, y queda registrado quién lo publicó y cuándo.
 
 Si insisten en el **seguimiento** («saber si la carta llegó, en qué oficina está, quién la observó»):
@@ -97,14 +107,30 @@ lugares, o que se le haga seguimiento como trámite?»*
 
 ### ¿Qué pasa cuando un dato se actualiza? (versiones)
 
-> El dataset tiene **versiones**: «Matrículas 2024 v1», «v2»… Cada versión la crea el usuario a propósito, con su fecha,
-> su autor y su propia aprobación. Corregir un título no crea una versión; cambiar los datos, sí. *(PRD RF-14 a RF-17;
-> se muestra en el prototipo, no está construido.)*
+> El dataset tiene **versiones**: «Matrícula 2024 v1», «v2»… Una versión es **una entrega aprobada de los datos**: la
+> crea el editor cuando cambia el contenido y pasa por la misma revisión que la primera publicación. Corregir un error de
+> escritura en el título no es una versión; reemplazar el archivo de datos, sí. El historial queda: se puede ver qué se
+> publicó antes. *(PRD RF-14 a RF-17; no está construido; la frontera exacta entre «menor» y «versión» es una pregunta
+> abierta, Q17 en `design-system/datos-umss/preguntas-abiertas.md`.)*
+
+### ¿Por qué licencias? ¿Qué son?
+
+> Una licencia es **la regla escrita de qué puede hacer otro con el dato**: copiarlo, modificarlo, usarlo con fines
+> comerciales, y si debe citar a la fuente. Sin licencia, legalmente **nadie sabe si puede reutilizarlo**, y entonces
+> nadie lo reutiliza: un dato publicado sin licencia es un dato «abierto» sólo de nombre. Cada dataset declara la suya
+> al publicarse. Lo habitual en datos públicos es **CC BY**: se puede usar libremente **citando a la UMSS**; para
+> datos que se entregan al dominio público, **CC0**.
+
+El formulario ofrece las licencias estándar de datos abiertos (CC BY, CC BY-SA, CC0, ODbL, ODC-BY, entre otras; ver
+`src/lib/utils/licenses.ts`). **[validar]** si la universidad tiene una política de licencias propia.
 
 ### ¿Quién administra los usuarios y las organizaciones?
 
-> Un **superadministrador** crea las cuentas y las organizaciones; cada **administrador de organización** gestiona a sus
-> miembros y sus roles (lector, editor, administrador). *(PRD RF-01 a RF-08; se muestra en el prototipo.)*
+> Las **organizaciones** las crea sólo el **superadministrador**. Las **personas** entran por **invitación**: el
+> administrador de una organización (o el superadministrador) escribe el correo y elige el rol; la persona recibe un
+> correo para definir su contraseña y queda dentro de esa organización. Cada administrador gestiona a los miembros de
+> **su** organización; nadie se registra solo. *(PRD RF-01 a RF-08; se muestra en el prototipo. La invitación es nativa
+> del motor, pero necesita un servidor de correo configurado.)*
 
 ### ¿Por qué CKAN y no algo hecho desde cero?
 
