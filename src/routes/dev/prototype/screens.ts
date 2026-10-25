@@ -123,7 +123,7 @@ export const SCREENS: Screen[] = [
 		href: "/dev/prototype/collection",
 		audience: "Visitante",
 		ready: true,
-		note: "Con ?c=investigacion-laboratorios-fcyt se ve una colección ya publicada.",
+		note: "?vista=publica (por defecto) es lo que ve un visitante; ?vista=curador, el bloque de aprobación por organización. Con ?c=investigacion-laboratorios-fcyt se ve una colección ya publicada.",
 	},
 	{
 		kind: "mock",

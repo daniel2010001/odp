@@ -2,7 +2,8 @@
 // importa capturar es que una colección reúne datasets de varias organizaciones, que la relación se recorre
 // en los dos sentidos —«También en» desde la colección, «Aparece en las colecciones» desde el dataset— y
 // que el mismo dataset está en colecciones de curadores distintos sin duplicarse. Ninguna pantalla promete
-// circulación de documentos.
+// circulación de documentos. La ficha se compara en dos vistas (S10): la pública, sin el avance de las
+// aprobaciones, y la del curador, con el bloque «Publicación».
 
 import { render, screen, within } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
@@ -63,10 +64,50 @@ describe("maqueta — ficha de colección", () => {
 		expect(link.getAttribute("href")).toMatch(/^\/dev\/prototype\/collection\?c=/);
 	});
 
-	it("muestra la aprobación por organización con una pendiente", () => {
+	it("renderiza la descripción en markdown como HTML, no como texto crudo", () => {
 		at("http://localhost/dev/prototype/collection");
 		render(CollectionMock);
 
+		const card = screen.getByTestId("collection-description");
+		expect(within(card).getByRole("heading", { level: 3, name: "Qué reúne" })).toBeTruthy();
+		expect(within(card).getAllByRole("listitem").length).toBeGreaterThan(1);
+		expect(card.querySelector("strong")).toHaveTextContent("rendición pública de cuentas");
+		expect(card.textContent).not.toMatch(/(^|\n)\s*(#{1,6} |- )|\*\*/);
+	});
+
+	it("la vista pública (por defecto) no muestra el avance de las aprobaciones y sí la tarjeta de información", () => {
+		at("http://localhost/dev/prototype/collection");
+		render(CollectionMock);
+
+		expect(screen.getByTestId("view-publica").getAttribute("aria-current")).toBe("page");
+		expect(screen.queryByTestId("publication-status")).toBeNull();
+		expect(screen.queryByRole("progressbar")).toBeNull();
+		expect(document.body.textContent).not.toMatch(
+			/organizaciones aprobaron|Pendiente|Solicitar publicación/,
+		);
+		expect(screen.queryByRole("button", { name: "Agregar dataset" })).toBeNull();
+
+		const info = screen.getByTestId("collection-info");
+		expect(info).toHaveTextContent("Curada por");
+		expect(info).toHaveTextContent("Rectorado UMSS");
+		expect(info).toHaveTextContent("Creada");
+		expect(info).toHaveTextContent("Última actualización");
+		expect(info).toHaveTextContent("Cada dataset conserva su licencia");
+		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Pública");
+		// La colección no está publicada: lo dice la franja de revisión, no el producto.
+		expect(screen.getByTestId("review-note")).toHaveTextContent(
+			"se muestra como se verá una vez publicada",
+		);
+		expect(document.body.textContent).not.toMatch(TRAMITE);
+	});
+
+	it("la vista del curador muestra la aprobación por organización con una pendiente", () => {
+		at("http://localhost/dev/prototype/collection?vista=curador");
+		render(CollectionMock);
+
+		expect(screen.getByTestId("view-curador").getAttribute("aria-current")).toBe("page");
+		expect(screen.queryByTestId("collection-info")).toBeNull();
+		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Todavía no es pública");
 		const block = screen.getByTestId("publication-status");
 		expect(within(block).getByTestId("approval-summary")).toHaveTextContent(
 			"2 de 3 organizaciones aprobaron",
@@ -76,6 +117,13 @@ describe("maqueta — ficha de colección", () => {
 		expect(document.body.textContent).not.toMatch(TRAMITE);
 	});
 
+	it("la vista del curador ofrece «Solicitar publicación» si no se pidió", () => {
+		at("http://localhost/dev/prototype/collection?c=seguridad-alimentaria-salud&vista=curador");
+		render(CollectionMock);
+
+		expect(screen.getByRole("button", { name: "Solicitar publicación" })).toBeTruthy();
+	});
+
 	it("elige la colección con ?c=", () => {
 		at("http://localhost/dev/prototype/collection?c=investigacion-laboratorios-fcyt");
 		render(CollectionMock);
@@ -83,6 +131,10 @@ describe("maqueta — ficha de colección", () => {
 		expect(
 			screen.getByRole("heading", { level: 1, name: "Investigación y laboratorios de la FCyT" }),
 		).toBeTruthy();
+		// El interruptor de vista conserva la colección elegida.
+		expect(screen.getByTestId("view-curador").getAttribute("href")).toBe(
+			"/dev/prototype/collection?c=investigacion-laboratorios-fcyt&vista=curador",
+		);
 	});
 });
 

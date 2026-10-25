@@ -10,6 +10,7 @@
 // Factibilidad en CKAN (S6): una colección es un `group` y su pertenencia, `group_member` (nativos; medido:
 // `ckan.auth.user_create_groups = true`, cualquier usuario con sesión puede crear una). La aprobación por
 // organización de RF-23 **no es nativa**: sería una extensión propia, como las solicitudes de publicación.
+// La descripción en markdown (`markdown`) es el `description` nativo del `group`; el resumen corto, un `extra`.
 
 export type Visibility = "Pública" | "Interna";
 
@@ -106,8 +107,13 @@ export type Approval = "Aprobada" | "Pendiente";
 export interface MockCollection {
 	slug: string;
 	name: string;
+	/** Resumen corto, bajo el título. */
 	description: string;
+	/** Descripción larga en markdown, como la de un dataset (RF-39). */
+	markdown: string;
 	curator: Curator;
+	created: string;
+	updated: string;
 	visibility: Visibility;
 	datasets: string[];
 	/** Una decisión por organización dueña de algún dataset (RF-23). Falta si la colección es interna y no pidió publicarse. */
@@ -120,7 +126,24 @@ export const COLLECTIONS: MockCollection[] = [
 		name: "Rendición pública de cuentas 2025",
 		description:
 			"Informes de gestión e indicadores académicos que la universidad presenta en la rendición pública de cuentas de la gestión 2025.",
+		markdown: `### Propósito
+
+Esta colección reúne la información que la Universidad presenta en la **rendición pública de cuentas** de la gestión 2025, para que cualquier persona pueda revisar los datos detrás de cada informe.
+
+### Qué reúne
+
+- Los informes de gestión de cada facultad participante.
+- La matrícula estudiantil por carrera de los últimos cinco años.
+- Los titulados por facultad, con su serie histórica.
+
+Cada dataset se publica en su organización dueña; la colección sólo los referencia, de modo que una corrección hecha en el dataset original se refleja aquí sin pasos adicionales.
+
+### Curaduría y actualización
+
+La cura el **Rectorado**. Se revisa una vez al año, antes del acto de rendición de cuentas, y se incorporan los informes de las facultades que se sumen.`,
 		curator: { kind: "org", org: "rectorado" },
+		created: "3 ago. 2026",
+		updated: "14 oct. 2026",
 		visibility: "Interna",
 		datasets: [
 			"informe-gestion-2025-fcyt",
@@ -135,7 +158,23 @@ export const COLLECTIONS: MockCollection[] = [
 		name: "Investigación y laboratorios de la FCyT",
 		description:
 			"Proyectos, publicaciones y equipamiento de la Facultad de Ciencias y Tecnología, reunidos para la evaluación de la investigación.",
+		markdown: `### Propósito
+
+Reúne la producción de investigación de la **Facultad de Ciencias y Tecnología** para su evaluación anual.
+
+### Qué reúne
+
+- Los proyectos de investigación financiados en 2025.
+- Las publicaciones científicas indexadas.
+- El equipamiento disponible en los laboratorios.
+- El informe de gestión de la facultad, como contexto.
+
+### Curaduría y actualización
+
+La cura la **Dirección de Investigación**, que la actualiza cada semestre al cierre de la convocatoria de proyectos.`,
 		curator: { kind: "org", org: "direccion-investigacion" },
+		created: "12 may. 2026",
+		updated: "20 oct. 2026",
 		visibility: "Pública",
 		datasets: [
 			"informe-gestion-2025-fcyt",
@@ -150,7 +189,22 @@ export const COLLECTIONS: MockCollection[] = [
 		name: "Indicadores académicos para tesis",
 		description:
 			"Series de matrícula, titulación, producción científica y producción agrícola que uso como base para una tesis de maestría.",
+		markdown: `### Propósito
+
+Series de datos que sirven de base para una tesis de maestría sobre **indicadores académicos** de la Universidad.
+
+### Qué reúne
+
+- Matrícula y titulación, para medir la eficiencia terminal.
+- Publicaciones indexadas, como indicador de producción científica.
+- Rendimiento de cultivos andinos, para el capítulo de extensión.
+
+### Curaduría y actualización
+
+La cura una investigadora a título personal. Se actualiza cuando las organizaciones dueñas publican nuevas series.`,
 		curator: { kind: "user", name: "María Fernanda Rojas Vargas" },
+		created: "20 feb. 2026",
+		updated: "17 oct. 2026",
 		visibility: "Pública",
 		datasets: [
 			"matricula-por-carrera",
@@ -165,7 +219,21 @@ export const COLLECTIONS: MockCollection[] = [
 		name: "Seguridad alimentaria y salud",
 		description:
 			"Datos de salud y de producción agrícola para un proyecto conjunto entre la Facultad de Ciencias de la Salud y la de Ciencias Agrícolas.",
+		markdown: `### Propósito
+
+Datos para un **proyecto conjunto** entre la Facultad de Ciencias de la Salud y la Facultad de Ciencias Agrícolas sobre seguridad alimentaria.
+
+### Qué reúne
+
+- El informe de gestión 2025 de la Facultad de Ciencias de la Salud.
+- El rendimiento de las parcelas experimentales de cultivos andinos.
+
+### Curaduría y actualización
+
+La cura la coordinadora del proyecto. Se actualiza al cierre de cada etapa del proyecto.`,
 		curator: { kind: "user", name: "Ana Gabriela Céspedes" },
+		created: "1 sep. 2026",
+		updated: "9 oct. 2026",
 		visibility: "Interna",
 		datasets: ["informe-gestion-2025-fcs", "rendimiento-cultivos-andinos"],
 	},
