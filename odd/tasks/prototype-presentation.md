@@ -35,6 +35,14 @@ imported into Figma and presented as a click-through prototype before the tribun
   CKAN feasibility (S6): counts and dates are native; type and acronym would be organization `extras`
   (implementable, not present today); hierarchy needs `ckanext-hierarchy` (implementable; ties to Q6).
 
+- **S10** — Collection sheet (`/dev/prototype/collection`), author's review 2026-10-25: "me gusta … quisas podamos darle
+  más info, como un markdown como los datasets, pero como base me gusta, podemos probar con esto que te digo? también
+  preguntar cómo se vería ya publicada y cómo se vería privada". On the right-hand «Publicación» card: "hay partes como
+  "2 de 2 org aprobaron", esto parece algo así como si fuera un form o que no es la versión final o pública … creo que
+  para el privado puede estar bien, pero en el público se ve raro." → (a) a markdown description like the dataset
+  sheet (RF-39); (b) two views to compare: **public** (what any visitor sees: no approval progress) and **private /
+  curator** (the approval block lives here).
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -76,6 +84,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T6 | S1, S3 | P6–P9 (as time allows) | inline | — |
 | T7 | S2 | Import pipeline check: author imports one page with html.to.design | author | — |
 | T9 | S7, S9, S6 | Organizations playground `/dev/organizations` | worker | `8af97fc` — awaiting author review |
+| T10 | S10 | Collection sheet: markdown description + public vs curator view | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -113,4 +122,9 @@ screen by screen in the browser. It is not merged to `main` before the presentat
   exclusive), pagination with groups, acronym as extra and URL (Q11–Q13). Tooltips on org chips: leave for
   implementation. **Responsive: "por ahora no lo toquemos, solo en el dev … todo en 16x9"** — mocks and playgrounds
   are reviewed and captured at 16:9 desktop only; mobile is deferred to implementation.
+- **L7** (2026-10-25, author): collections list "me gusta"; asks where the list lives (top nav like search/about, on each
+  curator org's sheet, or both), whether it is a logged-in view, and "privados para quién exactamente?". Collection
+  sheet: S10. Navigation between pages works in code but wiring it in Figma is hard ("eso de saber a dónde ir y de
+  dónde ir"). The "same dataset in several collections" example "se puede mostrar con esto que hiciste". Q-IDs were
+  hard to follow: the author did not know which file/number "Q10" referred to.
 
