@@ -11,8 +11,13 @@
 // `ckan.auth.user_create_groups = true`, cualquier usuario con sesión puede crear una). La aprobación por
 // organización de RF-23 **no es nativa**: sería una extensión propia, como las solicitudes de publicación.
 // La descripción en markdown (`markdown`) es el `description` nativo del `group`; el resumen corto, un `extra`.
+//
+// Visibilidad (Q10 de `design-system/datos-umss/preguntas-abiertas.md`, decidida el 2026-10-26): la privada
+// depende de quién cura la colección —la de una persona la ve sólo esa persona; la de una organización, sus
+// miembros—; la interna, cualquier usuario con sesión; la pública, cualquiera. Ni la privada ni la interna son
+// nativas (un `group` de CKAN es siempre público), y que una organización sea dueña de una colección tampoco.
 
-export type Visibility = "Pública" | "Interna";
+export type Visibility = "Pública" | "Interna" | "Privada";
 
 export interface Org {
 	name: string;
@@ -58,8 +63,10 @@ export const DATASETS: MockDataset[] = [
 	},
 	{
 		slug: "matricula-por-carrera",
-		title: "Matrícula estudiantil por carrera 2021–2025",
-		org: "rectorado",
+		// El título y la organización del dataset real de la instancia de demostración, para que el salto de la
+		// ficha real a esta maqueta no se note (`presentation/guion.md`, historia 2).
+		title: "Matrícula estudiantil por carrera y gestión",
+		org: "fcs",
 		formats: ["CSV", "XLSX"],
 		updated: "2 oct. 2026",
 	},
@@ -144,7 +151,7 @@ La cura el **Rectorado**. Se revisa una vez al año, antes del acto de rendició
 		curator: { kind: "org", org: "rectorado" },
 		created: "3 ago. 2026",
 		updated: "14 oct. 2026",
-		visibility: "Interna",
+		visibility: "Privada",
 		datasets: [
 			"informe-gestion-2025-fcyt",
 			"informe-gestion-2025-fcs",
@@ -212,7 +219,12 @@ La cura una investigadora a título personal. Se actualiza cuando las organizaci
 			"publicaciones-indexadas",
 			"rendimiento-cultivos-andinos",
 		],
-		approvals: { rectorado: "Aprobada", "direccion-investigacion": "Aprobada", fca: "Aprobada" },
+		approvals: {
+			fcs: "Aprobada",
+			rectorado: "Aprobada",
+			"direccion-investigacion": "Aprobada",
+			fca: "Aprobada",
+		},
 	},
 	{
 		slug: "seguridad-alimentaria-salud",
@@ -258,6 +270,27 @@ export function ownerOrgs(collection: MockCollection): Org[] {
 /** Las colecciones que incluyen un dataset, menos la que se excluye (la que se está mirando). */
 export function collectionsOf(datasetSlug: string, except?: string): MockCollection[] {
 	return COLLECTIONS.filter((c) => c.slug !== except && c.datasets.includes(datasetSlug));
+}
+
+/** Quién mira la maqueta: un visitante sin sesión o un miembro de una organización. */
+export type Viewer = { kind: "visitor" } | { kind: "member"; org: string };
+
+/** Q10: si quien mira puede ver la colección. */
+export function canSee(collection: MockCollection, viewer: Viewer): boolean {
+	if (collection.visibility === "Pública") return true;
+	if (viewer.kind === "visitor") return false;
+	if (collection.visibility === "Interna") return true;
+	// Privada: la de una organización, sus miembros; la de una persona, sólo esa persona.
+	return collection.curator.kind === "org" && collection.curator.org === viewer.org;
+}
+
+/** Q10: quién ve la colección, dicho en una frase. */
+export function audienceLabel(collection: MockCollection): string {
+	if (collection.visibility === "Pública") return "La ve cualquier persona";
+	if (collection.visibility === "Interna") return "La ven los usuarios con sesión";
+	return collection.curator.kind === "org"
+		? `Sólo la ven los miembros de ${ORGS[collection.curator.org].title}`
+		: "Sólo la ve quien la cura";
 }
 
 export function curatorLabel(curator: Curator): string {

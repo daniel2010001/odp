@@ -131,6 +131,7 @@ export const SCREENS: Screen[] = [
 		href: "/dev/prototype/dataset-collections",
 		audience: "Visitante",
 		ready: true,
+		note: "?como=visitante (por defecto) sólo lista las colecciones públicas; ?como=rectorado, además las internas y las privadas del Rectorado (Q10).",
 	},
 	{
 		kind: "mock",

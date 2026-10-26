@@ -35,10 +35,14 @@ describe("maqueta — colecciones", () => {
 
 		const list = screen.getByTestId("collections-list");
 		expect(within(list).getAllByRole("heading", { level: 2 }).length).toBeGreaterThan(2);
-		expect(within(list).getAllByText("4 datasets de 3 organizaciones").length).toBe(2);
+		expect(within(list).getByText("4 datasets de 3 organizaciones")).toBeTruthy();
+		expect(within(list).getByText("4 datasets de 4 organizaciones")).toBeTruthy();
 		expect(within(list).getByText("2 datasets de 2 organizaciones")).toBeTruthy();
 		expect(within(list).getAllByText("Interna").length).toBeGreaterThan(0);
 		expect(within(list).getAllByText("Pública").length).toBeGreaterThan(0);
+		expect(within(list).getAllByText("Privada").length).toBeGreaterThan(0);
+		const visibility = screen.getByRole("combobox", { name: "Visibilidad" });
+		expect(within(visibility).getByRole("option", { name: "Privada" })).toBeTruthy();
 		expect(document.body.textContent).not.toMatch(TRAMITE);
 	});
 });
@@ -107,7 +111,11 @@ describe("maqueta — ficha de colección", () => {
 
 		expect(screen.getByTestId("view-curador").getAttribute("aria-current")).toBe("page");
 		expect(screen.queryByTestId("collection-info")).toBeNull();
-		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Todavía no es pública");
+		// Q10: una colección privada de una organización la ven sólo sus miembros.
+		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Privada");
+		expect(screen.getByTestId("visibility-audience")).toHaveTextContent(
+			"Sólo la ven los miembros de Rectorado UMSS",
+		);
 		const block = screen.getByTestId("publication-status");
 		expect(within(block).getByTestId("approval-summary")).toHaveTextContent(
 			"2 de 3 organizaciones aprobaron",
@@ -117,11 +125,22 @@ describe("maqueta — ficha de colección", () => {
 		expect(document.body.textContent).not.toMatch(TRAMITE);
 	});
 
+	it("«También en» no le muestra a un visitante una colección privada (Q10)", () => {
+		at("http://localhost/dev/prototype/collection?c=indicadores-academicos");
+		render(CollectionMock);
+
+		expect(document.body.textContent).not.toContain("Rendición pública de cuentas 2025");
+	});
+
 	it("la vista del curador ofrece «Solicitar publicación» si no se pidió", () => {
 		at("http://localhost/dev/prototype/collection?c=seguridad-alimentaria-salud&vista=curador");
 		render(CollectionMock);
 
 		expect(screen.getByRole("button", { name: "Solicitar publicación" })).toBeTruthy();
+		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Interna");
+		expect(screen.getByTestId("visibility-audience")).toHaveTextContent(
+			"La ven los usuarios con sesión",
+		);
 	});
 
 	it("elige la colección con ?c=", () => {
@@ -141,9 +160,33 @@ describe("maqueta — ficha de colección", () => {
 describe("maqueta — colecciones de un dataset", () => {
 	afterEach(() => at("http://localhost/"));
 
-	it("el mismo dataset aparece en colecciones de curadores distintos, publicado una vez", () => {
-		at("http://localhost/dev/prototype/dataset-collections");
+	it("un visitante sin sesión (por defecto) sólo ve las colecciones públicas", () => {
+		at("http://localhost/dev/prototype/dataset-collections?d=matricula-por-carrera");
 		render(DatasetCollectionsMock);
+
+		// Alineado con el dataset real de la instancia de demostración (guión, historia 2).
+		expect(
+			screen.getByRole("heading", {
+				level: 1,
+				name: "Matrícula estudiantil por carrera y gestión",
+			}),
+		).toBeTruthy();
+		expect(document.body.textContent).toContain("Facultad de Ciencias de la Salud");
+		expect(screen.getByTestId("viewer-visitante").getAttribute("aria-current")).toBe("page");
+
+		const section = screen.getByTestId("dataset-collections");
+		const items = within(section).getAllByTestId("dataset-collection");
+		expect(items.map((item) => item.textContent)).toEqual([
+			expect.stringContaining("Indicadores académicos para tesis"),
+		]);
+		expect(section.textContent).not.toMatch(/Rendición pública de cuentas|Interna|Privada/);
+	});
+
+	it("el mismo dataset aparece en colecciones de curadores distintos, publicado una vez", () => {
+		at("http://localhost/dev/prototype/dataset-collections?como=rectorado");
+		render(DatasetCollectionsMock);
+
+		expect(screen.getByTestId("viewer-rectorado").getAttribute("aria-current")).toBe("page");
 
 		expect(
 			screen.getByRole("heading", {
@@ -165,6 +208,8 @@ describe("maqueta — colecciones de un dataset", () => {
 		for (const item of items) {
 			expect(item.getAttribute("href")).toMatch(/^\/dev\/prototype\/collection\?c=/);
 		}
+		// La del Rectorado es privada: la ve porque es miembro.
+		expect(within(section).getByText("Privada")).toBeTruthy();
 		expect(document.body.textContent).not.toMatch(TRAMITE);
 	});
 });

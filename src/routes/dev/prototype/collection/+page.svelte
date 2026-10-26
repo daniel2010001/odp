@@ -20,7 +20,8 @@
 	(nativo), renderizada con `renderMarkdown` como la de un dataset. «También en» sale de los `groups` de
 	cada dataset (nativo). La aprobación de cada organización dueña para publicarla (RF-23) **no es nativa**:
 	es una extensión propia, y también lo es ocultar la colección mientras no se publica (un `group` de CKAN
-	es siempre público; ver Q10 en `design-system/datos-umss/preguntas-abiertas.md`).
+	es siempre público). La vista del curador dice la visibilidad y quién la ve, con la regla de Q10
+	(`design-system/datos-umss/preguntas-abiertas.md`).
 -->
 <script lang="ts">
 import {
@@ -32,7 +33,6 @@ import {
 	Database,
 	Globe,
 	Library,
-	Lock,
 	Plus,
 	Scale,
 	Send,
@@ -44,6 +44,8 @@ import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { renderMarkdown } from "$lib/utils/markdown";
 import {
+	audienceLabel,
+	canSee,
 	collectionBySlug,
 	collectionHref,
 	collectionsOf,
@@ -52,13 +54,15 @@ import {
 	datasetHref,
 	ORGS,
 	ownerOrgs,
+	type Viewer,
 } from "../collections/data";
+import VisibilityBadge from "../collections/VisibilityBadge.svelte";
 
 type View = "publica" | "curador";
 
 const VIEWS: { value: View; label: string }[] = [
 	{ value: "publica", label: "Pública" },
-	{ value: "curador", label: "Del curador (privada)" },
+	{ value: "curador", label: "Del curador" },
 ];
 
 const collection = $derived(collectionBySlug($page.url.searchParams.get("c")));
@@ -66,6 +70,16 @@ const view = $derived<View>(
 	$page.url.searchParams.get("vista") === "curador" ? "curador" : "publica",
 );
 const published = $derived(collection.visibility === "Pública");
+// «También en» sólo lista lo que quien mira puede ver (Q10): la vista pública es la de un visitante; la del
+// curador, la de un miembro de la organización que la cura (o de un usuario con sesión, si la cura una persona).
+const viewer = $derived<Viewer>(
+	view === "publica"
+		? { kind: "visitor" }
+		: {
+				kind: "member",
+				org: collection.curator.kind === "org" ? collection.curator.org : "",
+			},
+);
 // La descripción es markdown (RF-39), con el mismo render seguro que la de un dataset.
 const description = $derived(renderMarkdown(collection.markdown));
 const datasets = $derived(collection.datasets.map(datasetBySlug));
@@ -160,13 +174,10 @@ const linkClass =
 							Pública
 						</span>
 					{:else}
-						<span
-							class="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
-							data-testid="visibility-badge"
+						<VisibilityBadge visibility={collection.visibility} testid="visibility-badge" />
+						<span class="text-muted-foreground" data-testid="visibility-audience"
+							>{audienceLabel(collection)}</span
 						>
-							<Lock class="size-3" aria-hidden="true" />
-							Todavía no es pública
-						</span>
 					{/if}
 				</div>
 			</div>
@@ -201,7 +212,9 @@ const linkClass =
 
 					<ul class="mt-4 divide-y divide-border" data-testid="collection-datasets">
 						{#each datasets as dataset (dataset.slug)}
-							{@const others = collectionsOf(dataset.slug, collection.slug)}
+							{@const others = collectionsOf(dataset.slug, collection.slug).filter((c) =>
+								canSee(c, viewer),
+							)}
 							<li class="py-4" data-testid="collection-dataset">
 								<div class="flex items-start gap-3">
 									<Database class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />

@@ -69,7 +69,7 @@ usuarios?», «¿Cuál es el diferenciador?».
 | 3 | Búsqueda «matrícula» | construida | `/search?q=matrícula` | Encuentra datos de **varias unidades** en un solo lugar. |
 | 4 | Ficha del dataset | construida | `Matrícula estudiantil por carrera y gestión` | Qué contiene, quién lo publicó, cuándo, con qué licencia. |
 | 5 | Recurso CSV: tabla y gráfico | construida | el CSV de esa ficha | Se ve antes de descargar; el gráfico se arma sin programar. Botón para copiar el acceso por API. |
-| 6 | «Aparece en las colecciones» | maqueta | `/dev/prototype/dataset-collections?d=matricula-por-carrera` | Este dato está **reunido con otros** en colecciones. |
+| 6 | «Aparece en las colecciones» | maqueta | `/dev/prototype/dataset-collections?d=matricula-por-carrera` | Este dato está **reunido con otros** en colecciones. Sin sesión sólo se ven las **públicas**. |
 | 7 | Ficha de colección de una persona | maqueta | `/dev/prototype/collection?c=indicadores-academicos` | Una investigadora juntó datos de **tres unidades** para su tesis. Desde aquí se salta a otro dataset, y de ese a otra colección. |
 
 **Mensaje.** *«No hace falta saber qué oficina tiene el dato: se busca en un solo lugar. Y lo que alguien ya reunió
@@ -77,10 +77,6 @@ le sirve al siguiente.»*
 
 Responde: «¿Por qué una plataforma "todo en uno"?», «¿Qué tipo de documentos se suben?», «¿En qué se diferencia del
 repositorio institucional?».
-
-> **Costura entre el paso 5 y el 6.** La ficha real es la de la FCS («Matrícula estudiantil por carrera y gestión»); la
-> maqueta muestra «Matrícula estudiantil por carrera 2021–2025» del Rectorado. En Figma el salto se nota. Antes de
-> capturar, conviene alinear el dataset de la maqueta con el real (título y organización) — ver «Pendientes».
 
 ---
 
@@ -93,17 +89,21 @@ facultades.
 
 | # | Pantalla | Estado | Ruta | Qué decir |
 |---|---|---|---|---|
-| 1 | Colecciones (las del panel) | maqueta | `/dev/prototype/collections` | Las colecciones que cura el Rectorado y las que le comparten. |
-| 2 | Ficha de colección, vista del curador | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador` | Datasets del Rectorado, la FCyT y la FCS. Para publicarla, **cada unidad dueña aprueba**: van 2 de 3. |
+| 1 | Colecciones (las del panel) | maqueta | `/dev/prototype/collections` | Las colecciones que ve un miembro del Rectorado: las suyas, las internas y las públicas. |
+| 2 | Ficha de colección, vista del curador | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador` | Mientras se prepara es **privada**: sólo la ven los miembros del Rectorado. Reúne datasets del Rectorado, la FCyT y la FCS; para publicarla, **cada unidad dueña aprueba**: van 2 de 3. |
 | 3 | Ficha de colección, vista pública | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` | Así la ve cualquiera cuando las tres aprueban: sin el tablero de aprobaciones. |
-| 4 | Un dataset en dos colecciones | maqueta | `/dev/prototype/dataset-collections?d=informe-gestion-2025-fcyt` | El informe de gestión de la FCyT se publicó **una vez** y está en la colección del Rectorado **y** en la de la Dirección de Investigación. |
+| 4 | Un dataset en dos colecciones | maqueta | `/dev/prototype/dataset-collections?d=informe-gestion-2025-fcyt&como=rectorado` | El informe de gestión de la FCyT se publicó **una vez** y está en la colección del Rectorado **y** en la de la Dirección de Investigación. |
 
 **Mensaje — el caso de la carta.** *«La unidad publica el documento una sola vez y cada instancia que lo necesita lo
 incluye en su colección. Nadie lo copia, todos ven la misma versión oficial y queda registrado quién lo publicó.»*
 Si preguntan por el **seguimiento** de un trámite: es gestión documental, otro producto (`preguntas.md`, «El caso de la
 carta»).
 
-Responde: «El caso de la carta», «¿Quién ve qué?».
+Responde: «El caso de la carta», «¿Quién ve qué?». Si preguntan por las colecciones privadas: una persona puede
+tener las suyas para revisar datos sin publicarlas, y una organización las suyas, que ven sólo sus miembros.
+
+> **Al capturar:** la franja punteada de arriba («Vista», «Quién mira») es de revisión, no del producto. No entra en
+> el frame.
 
 ---
 
@@ -144,6 +144,5 @@ elemento que se pulsaría en la página real.
 ## Pendientes antes del jueves
 
 1. **Probar la importación con html.to.design** con una página (T7). Si falla, cambia todo el camino a Figma.
-2. Alinear el dataset de matrícula de la maqueta con el real (costura de la historia 2).
-3. Capturar los frames de cada historia a **16:9 de escritorio**, con el usuario que corresponde a cada paso.
-4. Validar la duración y las respuestas **[validar]** de `preguntas.md`.
+2. Capturar los frames de cada historia a **16:9 de escritorio**, con el usuario que corresponde a cada paso.
+3. Validar la duración y las respuestas **[validar]** de `preguntas.md`.

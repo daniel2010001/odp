@@ -6,25 +6,18 @@
 	curador es una persona o una organización.
 
 	Factibilidad en CKAN (S6): una colección es un `group` y su contenido, `group_member` (nativos; medido:
-	`ckan.auth.user_create_groups = true`, cualquier usuario puede crearlas hoy). La visibilidad «Interna» y la
+	`ckan.auth.user_create_groups = true`, cualquier usuario puede crearlas hoy). Las visibilidades «Interna» y
+	«Privada» (Q10) y la
 	aprobación por organización para publicarla (RF-23) **no son nativas**: un `group` de CKAN es siempre
 	público; serían una extensión propia.
 -->
 <script lang="ts">
-import {
-	Building2,
-	Database,
-	FolderPlus,
-	Globe,
-	Library,
-	Lock,
-	Search,
-	User,
-} from "@lucide/svelte";
+import { Building2, Database, FolderPlus, Library, Search, User } from "@lucide/svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { COLLECTIONS, collectionHref, curatorLabel, ownerOrgs } from "./data";
+import VisibilityBadge from "./VisibilityBadge.svelte";
 
 const selectClass =
 	"h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -66,6 +59,7 @@ const inputClass =
 				</label>
 				<select class={selectClass} aria-label="Visibilidad">
 					<option>Todas las visibilidades</option>
+					<option>Privada</option>
 					<option>Interna</option>
 					<option>Pública</option>
 				</select>
@@ -92,21 +86,7 @@ const inputClass =
 								<h2 class="font-heading text-xl font-bold text-primary group-hover:underline">
 									{collection.name}
 								</h2>
-								{#if collection.visibility === "Pública"}
-									<span
-										class="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground"
-									>
-										<Globe class="size-3" aria-hidden="true" />
-										Pública
-									</span>
-								{:else}
-									<span
-										class="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-									>
-										<Lock class="size-3" aria-hidden="true" />
-										Interna
-									</span>
-								{/if}
+								<VisibilityBadge visibility={collection.visibility} />
 							</div>
 							<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
 								{collection.description}

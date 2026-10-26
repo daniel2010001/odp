@@ -89,7 +89,8 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T7 | S2 | Import pipeline check: author imports one page with html.to.design | author | — |
 | T9 | S7, S9, S6 | Organizations playground `/dev/organizations` | worker | `8af97fc` — awaiting author review |
 | T10 | S10 | Collection sheet: markdown description + public vs curator view | worker | `89a7d5a` — awaiting author review |
-| T11 | S11 | Story-based script (`presentation/guion.md`) + Figma link map | inline | — awaiting author review |
+| T11 | S11 | Story-based script (`presentation/guion.md`) + Figma link map | inline | `01a10ed` — awaiting author review |
+| T12 | S6, S11 | Collection mocks follow Q10 (Privada, viewer-aware lists) + matrícula aligned with the real dataset | inline | (this commit) |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -107,10 +108,11 @@ Environment: `odp-dev` is up (`odp-demo` stopped, volumes kept). Give the author
 - Collection sheet, public vs curator (T10): `https://odp.hs.lan/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` / `&vista=curador`.
 - Collections list and the first collection sheet: **reviewed, liked** (L7).
 
-**Decisions pending from the author** (ask by file + topic, not by bare ID — L7). Resolved 2026-10-26 (L9): collections
-list location (Q18), script (S11, T11), Q16. Still open:
-1. Q10 in `design-system/datos-umss/preguntas-abiertas.md` (collection visibility): the owner-based proposal awaits confirmation.
-2. The other open questions in that file: Q3, Q4b, Q5, Q8, Q9, Q11–Q14, Q17.
+**Decisions pending from the author** (ask by file + topic, not by bare ID — L7). Resolved 2026-10-26 (L9, L10): collections
+list location (Q18), script (S11, T11), Q16, Q10. Still open: the other questions in
+`design-system/datos-umss/preguntas-abiertas.md`: Q3, Q4b, Q5, Q8, Q9, Q11–Q14, Q17.
+Not mocked yet: Q18 splits the collections list in two (public list in the main menu, «Mis colecciones» in the panel);
+`/dev/prototype/collections` is still the single list, read as the panel one in the script.
 
 **On the author's side:** finish re-reading `presentation/preguntas.md` and validate the **[validar]** answers; open UMSSSTAT and
 confirm it has no data download; **test the html.to.design import with one page as soon as possible** (T7 — if it fails, the
@@ -167,3 +169,6 @@ merging to `main` (after the presentation).
   que los user tengan sus propias colecciones, algo como un grupo de datasets para que las pueda revisar, pero sin necesidad
   de publicarlo, pero por otro quisiera que las orgs también las tengan, entiendes?" → owner-based proposal in Q10.
   Script note: the demo instance has no Planificación organization and its test users are FCyT, so journey 1 uses the FCyT.
+- **L10** (2026-10-26, author): Q10 — accepted the owner-based proposal («Sí, así»). Asked to align the mock matrícula dataset
+  with the real one («Sí, alíneelo»). Applying Q10 surfaced that the dataset sheet and «También en» listed internal and private
+  collections to a visitor; both now filter by who is looking (T12).
