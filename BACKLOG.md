@@ -3386,6 +3386,11 @@ Pendientes que entran en la versión `v0.1.1` (decisión del autor, 2026-10-19).
     sincroniza (o no) entre la copia y el original.
   _Origen: conversación del 2026-10-23 al preparar el prototipo (`odd/tasks/prototype-presentation.md`)._
 
+- [ ] **[demo] Prototipo para la presentación formal del jueves 2026-10-29, 16:00** — en curso en la rama
+  `feat/prototype-presentation` (sin mergear). Pendientes, decisiones del autor y URLs de revisión: sección **«Handoff»**
+  de `odd/tasks/prototype-presentation.md`. Hoja de preguntas y respuestas: `presentation/preguntas.md`.
+  _Origen: charla con el tribunal del 2026-10-23._
+
 - [ ] **[v1]** **Preguntas abiertas de diseño de usuarios, roles y organizaciones (Q3–Q9)** — viven en
   `design-system/datos-umss/preguntas-abiertas.md`, con lo medido en CKAN. La más urgente es **Q7**: hoy cualquier
   usuario con sesión puede crear una organización (`ckan.auth.user_create_organizations = true`, configuración de

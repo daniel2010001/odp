@@ -90,6 +90,36 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
 screen by screen in the browser. It is not merged to `main` before the presentation unless the author asks.
 
+## Handoff (session closed 2026-10-26)
+
+**Presentation: Thursday 2026-10-29, 16:00.** Branch `feat/prototype-presentation`, pushed, **not merged to `main`**.
+Environment: `odp-dev` is up (`odp-demo` stopped, volumes kept). Give the author `https://odp.hs.lan/...` URLs.
+
+**Awaiting the author's review** (screens are reviewed and captured at desktop 16:9 only, L6):
+- Users (multi-org corrected after the first review): `https://odp.hs.lan/dev/prototype/users` and `?vista=nuevo`.
+- Organizations playground (T9): `https://odp.hs.lan/dev/organizations` — mock names and acronyms need checking against the real UMSS.
+- Dataset → collections (T5): `https://odp.hs.lan/dev/prototype/dataset-collections?d=matricula-por-carrera`.
+- Collection sheet, public vs curator (T10): `https://odp.hs.lan/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` / `&vista=curador`.
+- Collections list and the first collection sheet: **reviewed, liked** (L7).
+
+**Decisions pending from the author** (ask by file + topic, not by bare ID — L7):
+1. Where the collections list lives. Proposal: main menu (public collections only, no visibility filter) + «Colecciones que cura» on each organization sheet + «Mis colecciones» in the panel (where the visibility filter belongs).
+2. Q10 in `design-system/datos-umss/preguntas-abiertas.md` (collection visibility): private for whom — only the curator, or the curator's organization.
+3. Whether to write the **story-based script** for Thursday (2–3 journeys: Planificación publishes enrollment — compares with UMSSSTAT; a lecturer looks for data; the Rectorado builds the accountability collection — answers the letter case). It also decides which screens get linked in Figma: html.to.design imports frames without links, so only the journeys are wired by hand.
+4. Q16 in `preguntas-abiertas.md` (an org admin can delete their organization): close it like Q7 (relay to `odp-docker`)?
+5. The other open questions in that file: Q3, Q4b, Q5, Q8, Q9, Q11–Q14, Q17.
+
+**On the author's side:** finish re-reading `presentation/preguntas.md` and validate the **[validar]** answers; open UMSSSTAT and
+confirm it has no data download; **test the html.to.design import with one page as soon as possible** (T7 — if it fails, the
+pipeline changes).
+
+**Next on the agent's side, after the reviews:** T3 organization management (members tab, one role per org, invitation), T4
+dataset collaborators, T6 public profile `/user/<name>` (Q1) and versions (Q17); then Figma assembly support.
+
+**Outside this repository:** `odp-docker` has the Q7 fix on branch `fix/org-create-sysadmin-only` (`620fd73`), **not pushed** —
+the author decides push/merge there. Delivery: this branch is ~3,400 lines in 20 commits; split into several PRs before
+merging to `main` (after the presentation).
+
 ## Log
 
 - **L1** (2026-10-23, author, verbatim): "dijeron que presente todo lo que será el proyecto, o lo que
@@ -127,4 +157,5 @@ screen by screen in the browser. It is not merged to `main` before the presentat
   sheet: S10. Navigation between pages works in code but wiring it in Figma is hard ("eso de saber a dónde ir y de
   dónde ir"). The "same dataset in several collections" example "se puede mostrar con esto que hiciste". Q-IDs were
   hard to follow: the author did not know which file/number "Q10" referred to.
-
+- **L8** (2026-10-26, author): "creo que vamos a cerrar la sesión por hoy, puedes dejar todo lo pendiente para la próxima
+  sesión?" → Handoff section above.
