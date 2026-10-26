@@ -43,6 +43,10 @@ imported into Figma and presented as a click-through prototype before the tribun
   sheet (RF-39); (b) two views to compare: **public** (what any visitor sees: no approval progress) and **private /
   curator** (the approval block lives here).
 
+- **S11** — Story-based script for Thursday, accepted 2026-10-26 («Sí, escríbalo») on the agent's proposal: «2–3
+  journeys: Planificación publishes enrollment — compares with UMSSSTAT; a lecturer looks for data; the Rectorado builds
+  the accountability collection — answers the letter case». It also decides which screens get linked in Figma.
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -85,6 +89,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T7 | S2 | Import pipeline check: author imports one page with html.to.design | author | — |
 | T9 | S7, S9, S6 | Organizations playground `/dev/organizations` | worker | `8af97fc` — awaiting author review |
 | T10 | S10 | Collection sheet: markdown description + public vs curator view | worker | `89a7d5a` — awaiting author review |
+| T11 | S11 | Story-based script (`presentation/guion.md`) + Figma link map | inline | — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -102,12 +107,10 @@ Environment: `odp-dev` is up (`odp-demo` stopped, volumes kept). Give the author
 - Collection sheet, public vs curator (T10): `https://odp.hs.lan/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` / `&vista=curador`.
 - Collections list and the first collection sheet: **reviewed, liked** (L7).
 
-**Decisions pending from the author** (ask by file + topic, not by bare ID — L7):
-1. Where the collections list lives. Proposal: main menu (public collections only, no visibility filter) + «Colecciones que cura» on each organization sheet + «Mis colecciones» in the panel (where the visibility filter belongs).
-2. Q10 in `design-system/datos-umss/preguntas-abiertas.md` (collection visibility): private for whom — only the curator, or the curator's organization.
-3. Whether to write the **story-based script** for Thursday (2–3 journeys: Planificación publishes enrollment — compares with UMSSSTAT; a lecturer looks for data; the Rectorado builds the accountability collection — answers the letter case). It also decides which screens get linked in Figma: html.to.design imports frames without links, so only the journeys are wired by hand.
-4. Q16 in `preguntas-abiertas.md` (an org admin can delete their organization): close it like Q7 (relay to `odp-docker`)?
-5. The other open questions in that file: Q3, Q4b, Q5, Q8, Q9, Q11–Q14, Q17.
+**Decisions pending from the author** (ask by file + topic, not by bare ID — L7). Resolved 2026-10-26 (L9): collections
+list location (Q18), script (S11, T11), Q16. Still open:
+1. Q10 in `design-system/datos-umss/preguntas-abiertas.md` (collection visibility): the owner-based proposal awaits confirmation.
+2. The other open questions in that file: Q3, Q4b, Q5, Q8, Q9, Q11–Q14, Q17.
 
 **On the author's side:** finish re-reading `presentation/preguntas.md` and validate the **[validar]** answers; open UMSSSTAT and
 confirm it has no data download; **test the html.to.design import with one page as soon as possible** (T7 — if it fails, the
@@ -159,3 +162,8 @@ merging to `main` (after the presentation).
   hard to follow: the author did not know which file/number "Q10" referred to.
 - **L8** (2026-10-26, author): "creo que vamos a cerrar la sesión por hoy, puedes dejar todo lo pendiente para la próxima
   sesión?" → Handoff section above.
+- **L9** (2026-10-26, author): collections list — accepted the proposal (Q18). Script — «Sí, escríbalo» (S11). Q16 — «Sí,
+  como Q7» (relayed to the `odp-docker` session). Q10, verbatim: "esto es un poco complicado de responder: un lado quisiera
+  que los user tengan sus propias colecciones, algo como un grupo de datasets para que las pueda revisar, pero sin necesidad
+  de publicarlo, pero por otro quisiera que las orgs también las tengan, entiendes?" → owner-based proposal in Q10.
+  Script note: the demo instance has no Planificación organization and its test users are FCyT, so journey 1 uses the FCyT.
