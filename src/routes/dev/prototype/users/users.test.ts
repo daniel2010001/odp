@@ -1,5 +1,6 @@
 // Tests de la maqueta de administración de usuarios: lo que importa capturar es la lista con sus
-// roles y estados, y el formulario de alta, que se abre con `?vista=nuevo`.
+// roles, sólo con usuarios activos (Q5: los bloqueados quedan para la implementación), y el formulario
+// de alta, que se abre con `?vista=nuevo`.
 
 import { render, screen } from "@testing-library/svelte";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,14 +18,22 @@ function at(url: string) {
 describe("maqueta — administración de usuarios", () => {
 	afterEach(() => at("http://localhost/"));
 
-	it("muestra la lista con rol y estado, sin el formulario abierto", () => {
+	it("muestra la lista con su rol, sin el formulario abierto", () => {
 		at("http://localhost/dev/prototype/users");
 		render(UsersMock);
 
 		expect(screen.getByRole("heading", { level: 1, name: "Usuarios" })).toBeTruthy();
 		expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
-		expect(screen.getByText("Bloqueado", { selector: "span" })).toBeTruthy();
 		expect(screen.queryByRole("dialog")).toBeNull();
+	});
+
+	it("sólo muestra usuarios activos: ni estado «Bloqueado» ni filtro por estado (Q5)", () => {
+		at("http://localhost/dev/prototype/users");
+		render(UsersMock);
+
+		expect(document.body.textContent).not.toMatch(/bloque/i);
+		expect(screen.queryByRole("combobox", { name: "Estado" })).toBeNull();
+		expect(screen.queryByRole("columnheader", { name: "Estado" })).toBeNull();
 	});
 
 	it("abre el formulario de alta con ?vista=nuevo", () => {

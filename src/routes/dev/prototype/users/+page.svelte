@@ -1,9 +1,12 @@
 <!--
 	Maqueta — Administración de usuarios (superadministrador). PRD RF-01..RF-03.
 
-	Pantalla sin funcionamiento, con datos de ejemplo: muestra cómo el portal creará cuentas, asignará
-	organizaciones y roles, y bloqueará el acceso, tareas que hoy se hacen desde la interfaz nativa de CKAN.
-	`?vista=nuevo` abre el formulario de alta, para capturar ese estado por separado.
+	Pantalla sin funcionamiento, con datos de ejemplo: muestra cómo el portal creará cuentas y asignará
+	organizaciones y roles, tareas que hoy se hacen desde la interfaz nativa de CKAN. `?vista=nuevo` abre el
+	formulario de alta, para capturar ese estado por separado.
+
+	Sólo hay usuarios activos (Q5, decidida el 2026-10-26): los bloqueados, su estado y su filtro quedan para la
+	implementación.
 
 	Modelo de CKAN (medido, ver `design-system/datos-umss/preguntas-abiertas.md`): un usuario es miembro de
 	**varias** organizaciones con **un rol en cada una** (`member` → «Lector», `editor`, `admin`); el
@@ -11,7 +14,7 @@
 	una invitación por correo (`user_invite`, Q9).
 -->
 <script lang="ts">
-import { Ban, MoreHorizontal, Plus, Search, ShieldCheck, UserPlus, Users, X } from "@lucide/svelte";
+import { MoreHorizontal, Plus, Search, ShieldCheck, UserPlus, Users, X } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
@@ -19,7 +22,6 @@ import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 
 type Role = "Lector" | "Editor" | "Administrador";
-type State = "Activo" | "Bloqueado";
 
 interface Membership {
 	org: string;
@@ -31,7 +33,6 @@ interface MockUser {
 	email: string;
 	memberships: Membership[];
 	sysadmin?: boolean;
-	state: State;
 	lastSeen: string;
 }
 
@@ -43,14 +44,12 @@ const USERS: MockUser[] = [
 			{ org: "Dirección de Investigación", role: "Administrador" },
 			{ org: "Facultad de Ciencias y Tecnología", role: "Lector" },
 		],
-		state: "Activo",
 		lastSeen: "Hoy, 09:42",
 	},
 	{
 		name: "Jorge Luis Mamani Quispe",
 		email: "jl.mamani@umss.edu.bo",
 		memberships: [{ org: "Facultad de Ciencias y Tecnología", role: "Editor" }],
-		state: "Activo",
 		lastSeen: "Ayer",
 	},
 	{
@@ -60,7 +59,6 @@ const USERS: MockUser[] = [
 			{ org: "Facultad de Ciencias de la Salud", role: "Editor" },
 			{ org: "Dirección de Investigación", role: "Editor" },
 		],
-		state: "Activo",
 		lastSeen: "Hace 3 días",
 	},
 	{
@@ -68,14 +66,12 @@ const USERS: MockUser[] = [
 		email: "c.villarroel@umss.edu.bo",
 		memberships: [{ org: "Rectorado UMSS", role: "Administrador" }],
 		sysadmin: true,
-		state: "Activo",
 		lastSeen: "Hoy, 08:15",
 	},
 	{
 		name: "Lucía Andrea Torrico",
 		email: "l.torrico@umss.edu.bo",
 		memberships: [{ org: "Facultad de Ciencias Agrícolas", role: "Lector" }],
-		state: "Activo",
 		lastSeen: "Hace 1 semana",
 	},
 	{
@@ -86,21 +82,18 @@ const USERS: MockUser[] = [
 			{ org: "Facultad de Ciencias Agrícolas", role: "Lector" },
 			{ org: "Dirección de Investigación", role: "Lector" },
 		],
-		state: "Activo",
 		lastSeen: "Hace 2 días",
 	},
 	{
 		name: "Patricia Soliz Herrera",
 		email: "p.soliz@umss.edu.bo",
 		memberships: [{ org: "Facultad de Ciencias de la Salud", role: "Editor" }],
-		state: "Bloqueado",
 		lastSeen: "Hace 4 meses",
 	},
 	{
 		name: "Diego Alejandro Paz",
 		email: "d.paz@umss.edu.bo",
 		memberships: [],
-		state: "Activo",
 		lastSeen: "Hace 5 días",
 	},
 ];
@@ -154,8 +147,7 @@ const inputClass =
 			<div>
 				<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Usuarios</h1>
 				<p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-					Cree las cuentas de la plataforma, asigne a cada persona su organización y su rol, y
-					bloquee el acceso cuando corresponda.
+					Cree las cuentas de la plataforma y asigne a cada persona su organización y su rol.
 				</p>
 			</div>
 			<Button onclick={() => (creating = true)}>
@@ -187,11 +179,6 @@ const inputClass =
 						<option>{role}</option>
 					{/each}
 				</select>
-				<select class={selectClass} aria-label="Estado">
-					<option>Todos los estados</option>
-					<option>Activo</option>
-					<option>Bloqueado</option>
-				</select>
 			</div>
 
 			<div class="mt-5 overflow-x-auto">
@@ -200,7 +187,6 @@ const inputClass =
 						<tr>
 							<th class="py-3 pr-4 font-medium">Usuario</th>
 							<th class="py-3 pr-4 font-medium">Organizaciones y rol</th>
-							<th class="py-3 pr-4 font-medium">Estado</th>
 							<th class="py-3 pr-4 font-medium">Último acceso</th>
 							<th class="py-3 font-medium"><span class="sr-only">Acciones</span></th>
 						</tr>
@@ -250,21 +236,6 @@ const inputClass =
 												</li>
 											{/if}
 										</ul>
-									{/if}
-								</td>
-								<td class="py-3 pr-4">
-									{#if user.state === "Activo"}
-										<span
-											class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground"
-											>Activo</span
-										>
-									{:else}
-										<span
-											class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive"
-										>
-											<Ban class="size-3" aria-hidden="true" />
-											Bloqueado
-										</span>
 									{/if}
 								</td>
 								<td class="py-3 pr-4 text-muted-foreground">{user.lastSeen}</td>
