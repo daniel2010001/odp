@@ -129,8 +129,8 @@ pipeline changes).
 **Next on the agent's side, after the reviews:** T3 organization management (members tab, one role per org, invitation), T4
 dataset collaborators, T6 public profile `/user/<name>` (Q1) and versions (Q17); then Figma assembly support.
 
-**Outside this repository:** `odp-docker` has the Q7 fix (`620fd73`) and the Q16 fix (`9b5eb55`, verified live 2026-10-26) on branch `fix/org-create-sysadmin-only`, **not pushed** —
-the author decides push/merge there. Delivery: this branch is ~3,400 lines in 20 commits; split into several PRs before
+**Outside this repository:** `odp-docker` has the Q7 fix (`620fd73`) and the Q16 fix (`9b5eb55`, verified live 2026-10-26) merged into `master` (PR #40, merge `8ea8582`, 2026-10-26).
+`odp-dev` runs with both; the stopped demo needs `up -d` of `ckan` and `ckan-worker` to pick them up. Delivery: this branch is ~4,000 lines in 31 commits; split into several PRs before
 merging to `main` (after the presentation).
 
 ## Log
