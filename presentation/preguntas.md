@@ -162,6 +162,9 @@ Tener claro, pantalla por pantalla, cuál es cuál: el índice `/dev/prototype` 
 
 ### ¿Por qué se bloquearía a un usuario? **[validar]**
 
+*El prototipo muestra sólo usuarios activos; el bloqueo se define en la implementación (Q5, 2026-10-26). Responder sólo si
+preguntan.*
+
 > Porque **dejó la universidad** (fin de contrato, jubilación, egreso), porque su cuenta **se vio comprometida**, o por
 > una **suspensión temporal**. Bloquear no borra nada: los datos que publicó **son de su organización**, siguen
 > publicados y queda registrado quién los creó. El bloqueo se puede revertir.

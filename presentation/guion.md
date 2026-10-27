@@ -2,7 +2,7 @@
 
 En vez de recorrer las pantallas una por una, la presentación cuenta **tres historias**. Cada una sigue a una persona
 que necesita algo y muestra las pantallas en el orden en que las usaría. Las historias deciden también **qué frames se
-enlazan en Figma**: html.to.design importa las páginas sin enlaces, así que sólo se enlazan a mano los pasos de estos
+enlazan en Figma**: los enlaces se arman a mano (ver «Importar a Figma»), así que sólo se enlazan los pasos de estos
 recorridos. El resto de las pantallas se importa igual y se muestra desde el índice si alguien la pide.
 
 **Duración:** unos 4 minutos por historia, más apertura y cierre: alrededor de **15 minutos**. **[validar]** cuánto
@@ -140,6 +140,53 @@ elemento que se pulsaría en la página real.
 | H3-1 Colecciones | «Rendición pública de cuentas 2025» | H3-2 |
 | H3-2 Vista del curador | selector de vista, «Pública» | H3-3 |
 | H3-3 Vista pública | «Informe de gestión 2025 — FCyT» | H3-4 |
+
+## Importar a Figma
+
+**Límite que manda:** el plan gratuito de html.to.design permite **10 importaciones cada 30 días** (ventana móvil;
+`html.to.design/docs/pro-plan`). Este guion tiene 18 pasos. Cada captura es una importación, también las de prueba.
+
+Hay dos formas de llevar una pantalla a Figma; para un prototipo que se recorre con clics, las dos sirven igual:
+
+| | html.to.design | Captura de pantalla (imagen) |
+|---|---|---|
+| Resultado en Figma | capas editables (textos, colores, auto layout) | una imagen |
+| Costo | 1 de las 10 importaciones | ninguno |
+| Enlaces | a mano | a mano, con zonas pulsables sobre la imagen |
+| Si la pantalla cambia | otra importación | otra captura |
+
+Como los cambios se hacen en el código (regla 8 de `AGENTS.md`) y no en Figma, editar en Figma no hace falta para
+presentar.
+
+### Con html.to.design (la prueba de T7)
+
+1. **Plugin de Figma.** En un archivo de diseño de Figma: menú *Actions* (o *Plugins*) → buscar **html.to.design** →
+   *Run*. La primera vez se instala desde Figma Community.
+2. **Extensión del navegador.** Instalar la extensión **html.to.design** desde la Chrome Web Store. Funciona en navegadores
+   Chromium (Chrome, Edge, Brave); **no en Firefox**. Hay que tener la sesión de Figma abierta en ese mismo navegador.
+3. **Abrir la página** en ese navegador, con la ventana a ancho de escritorio (16:9, por ejemplo 1920 × 1080). Para la
+   prueba: `https://odp.hs.lan/dev/prototype/users`.
+4. **Capturar.** Abrir la extensión → elegir **Send to Figma plugin** → **Capture**. Para dejar afuera la franja punteada de
+   revisión de las maquetas, capturar **una selección** (el área de producto) en vez de la página entera. Chrome avisa que la
+   extensión «está depurando este navegador»: es normal, la usa para leer la página tal como se ve.
+5. **Importar.** En Figma, en el plugin, pestaña **Extension**: la captura aparece ahí (o se importa sola). Importar.
+6. **Revisar:** las tipografías (EB Garamond, Poppins y JetBrains Mono están en Figma; si el plugin dice que falta alguna,
+   ofrece reemplazarla), los colores, los iconos y que nada se haya desarmado.
+
+Si algo falla, la alternativa sin plugin es la captura de pantalla.
+
+### Con captura de pantalla (sin límite)
+
+1. Abrir la página en Chrome y pulsar `F12` (herramientas de desarrollo).
+2. `Ctrl+Shift+M` → arriba, *Responsive* → escribir **1920 × 1080**.
+3. `Ctrl+Shift+P` → escribir **Capture full size screenshot** → `Enter`. Se descarga un PNG de la página entera.
+4. En Figma: crear un frame de 1920 de ancho, arrastrar el PNG adentro y nombrarlo como el paso (`H1-4 Nuevo dataset`).
+
+### Enlazar en Figma (para las dos formas)
+
+En el modo *Prototype* (arriba a la derecha): seleccionar el elemento o dibujar un rectángulo transparente sobre el botón de
+la imagen → arrastrar el círculo que aparece hasta el frame de destino → *On click* → *Navigate to*. El orden está en la
+tabla «Enlaces en Figma».
 
 ## Pendientes antes del jueves
 
