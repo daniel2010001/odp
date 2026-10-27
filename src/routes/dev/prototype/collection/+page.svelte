@@ -71,14 +71,13 @@ const view = $derived<View>(
 );
 const published = $derived(collection.visibility === "Pública");
 // «También en» sólo lista lo que quien mira puede ver (Q10): la vista pública es la de un visitante; la del
-// curador, la de un miembro de la organización que la cura (o de un usuario con sesión, si la cura una persona).
+// curador, la de un miembro de la organización que la cura (o la de esa persona, si la cura una persona).
 const viewer = $derived<Viewer>(
 	view === "publica"
 		? { kind: "visitor" }
-		: {
-				kind: "member",
-				org: collection.curator.kind === "org" ? collection.curator.org : "",
-			},
+		: collection.curator.kind === "org"
+			? { kind: "member", org: collection.curator.org }
+			: { kind: "member", org: "", name: collection.curator.name },
 );
 // La descripción es markdown (RF-39), con el mismo render seguro que la de un dataset.
 const description = $derived(renderMarkdown(collection.markdown));

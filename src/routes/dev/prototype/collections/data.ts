@@ -1,7 +1,7 @@
 // Datos fijos de las maquetas de colecciones (P5 de `odd/tasks/prototype-presentation.md`, S4 y L3).
 //
-// Las tres maquetas —«Colecciones», «Ficha de colección» y «Colecciones de un dataset»— leen de acá, para que
-// el recorrido en los dos sentidos sea coherente: `ds1 → cl1 → ds2 → cl2 → ds3`. Por ejemplo, el informe de
+// Las tres maquetas —«Colecciones» (la del menú principal y «Mis colecciones» del panel), «Ficha de
+// colección» y «Colecciones de un dataset»— leen de acá, para que el recorrido en los dos sentidos sea coherente: `ds1 → cl1 → ds2 → cl2 → ds3`. Por ejemplo, el informe de
 // gestión de la FCyT está en «Rendición pública de cuentas 2025» (la cura el Rectorado) y en «Investigación y
 // laboratorios de la FCyT» (la cura la Dirección de Investigación): **un solo dataset**, publicado una vez por
 // su organización dueña y referenciado desde las dos. Es la respuesta al ejemplo de la carta del tribunal (S4):
@@ -249,6 +249,30 @@ La cura la coordinadora del proyecto. Se actualiza al cierre de cada etapa del p
 		visibility: "Interna",
 		datasets: ["informe-gestion-2025-fcs", "rendimiento-cultivos-andinos"],
 	},
+	{
+		slug: "capitulo-eficiencia-terminal",
+		name: "Lista de trabajo: capítulo de eficiencia terminal",
+		description:
+			"Datasets que reviso para el capítulo de eficiencia terminal de mi tesis, antes de decidir cuáles cito.",
+		markdown: `### Propósito
+
+Una **lista de trabajo** para el capítulo de eficiencia terminal de una tesis de maestría: reúne los datasets que se están revisando, sin necesidad de publicarlos.
+
+### Qué reúne
+
+- La matrícula estudiantil por carrera.
+- Los titulados por facultad.
+- El informe de gestión 2025 de la Facultad de Ciencias de la Salud, como contexto.
+
+### Curaduría y actualización
+
+La cura una investigadora a título personal y sólo la ve ella. Si el capítulo se publica, puede pasar a interna o solicitar su publicación.`,
+		curator: { kind: "user", name: "María Fernanda Rojas Vargas" },
+		created: "21 oct. 2026",
+		updated: "24 oct. 2026",
+		visibility: "Privada",
+		datasets: ["matricula-por-carrera", "titulados-por-facultad", "informe-gestion-2025-fcs"],
+	},
 ];
 
 export function datasetBySlug(slug: string): MockDataset {
@@ -272,8 +296,26 @@ export function collectionsOf(datasetSlug: string, except?: string): MockCollect
 	return COLLECTIONS.filter((c) => c.slug !== except && c.datasets.includes(datasetSlug));
 }
 
-/** Quién mira la maqueta: un visitante sin sesión o un miembro de una organización. */
-export type Viewer = { kind: "visitor" } | { kind: "member"; org: string };
+/**
+ * Quién mira la maqueta: un visitante sin sesión o un miembro de una organización. `name` es la persona, para
+ * sus colecciones privadas; sin él, el miembro no cura ninguna a título personal.
+ */
+export type Viewer = { kind: "visitor" } | { kind: "member"; org: string; name?: string };
+
+/** Quien mira «Mis colecciones» en el panel: una persona fija, miembro del Rectorado. */
+export const PANEL_VIEWER = {
+	kind: "member",
+	org: "rectorado",
+	name: "María Fernanda Rojas Vargas",
+} as const satisfies Viewer;
+
+/** Las colecciones que cura quien mira: a título personal o por una de sus organizaciones. */
+export function curatedBy(collection: MockCollection, viewer: Viewer): boolean {
+	if (viewer.kind === "visitor") return false;
+	return collection.curator.kind === "org"
+		? collection.curator.org === viewer.org
+		: collection.curator.name === viewer.name;
+}
 
 /** Q10: si quien mira puede ver la colección. */
 export function canSee(collection: MockCollection, viewer: Viewer): boolean {
@@ -281,7 +323,7 @@ export function canSee(collection: MockCollection, viewer: Viewer): boolean {
 	if (viewer.kind === "visitor") return false;
 	if (collection.visibility === "Interna") return true;
 	// Privada: la de una organización, sus miembros; la de una persona, sólo esa persona.
-	return collection.curator.kind === "org" && collection.curator.org === viewer.org;
+	return curatedBy(collection, viewer);
 }
 
 /** Q10: quién ve la colección, dicho en una frase. */

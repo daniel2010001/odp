@@ -11,6 +11,7 @@ import { page } from "$app/stores";
 import CollectionMock from "../collection/+page.svelte";
 import DatasetCollectionsMock from "../dataset-collections/+page.svelte";
 import CollectionsMock from "./+page.svelte";
+import { COLLECTIONS, canSee, collectionBySlug, DATASETS } from "./data";
 
 const pageStore = page as unknown as {
 	set: (value: { params: Record<string, string>; url: URL }) => void;
@@ -25,25 +26,101 @@ const TRAMITE = /recibid|enviado a|derivad|en tr[aá]mite/i;
 describe("maqueta — colecciones", () => {
 	afterEach(() => at("http://localhost/"));
 
-	it("lista las colecciones con sus datasets y organizaciones, y permite crear una", () => {
+	const listNames = () =>
+		within(screen.getByTestId("collections-list"))
+			.getAllByRole("heading", { level: 2 })
+			.map((el) => el.textContent?.trim());
+
+	it("la vista del menú principal (por defecto) sólo lista las públicas, sin filtro de visibilidad ni alta (Q18)", () => {
 		at("http://localhost/dev/prototype/collections");
 		render(CollectionsMock);
 
+		expect(screen.getByTestId("view-publica").getAttribute("aria-current")).toBe("page");
+		expect(screen.getByTestId("review-note")).toHaveTextContent("menú principal");
 		expect(screen.getByRole("heading", { level: 1, name: "Colecciones" })).toBeTruthy();
-		expect(screen.getByRole("button", { name: "Nueva colección" })).toBeTruthy();
 		expect(screen.getByRole("textbox", { name: "Buscar colecciones" })).toBeTruthy();
+		expect(screen.queryByRole("combobox", { name: "Visibilidad" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Nueva colección" })).toBeNull();
 
+		expect(listNames()).toEqual(
+			COLLECTIONS.filter((c) => canSee(c, { kind: "visitor" })).map((c) => c.name),
+		);
 		const list = screen.getByTestId("collections-list");
-		expect(within(list).getAllByRole("heading", { level: 2 }).length).toBeGreaterThan(2);
-		expect(within(list).getByText("4 datasets de 3 organizaciones")).toBeTruthy();
 		expect(within(list).getByText("4 datasets de 4 organizaciones")).toBeTruthy();
-		expect(within(list).getByText("2 datasets de 2 organizaciones")).toBeTruthy();
-		expect(within(list).getAllByText("Interna").length).toBeGreaterThan(0);
-		expect(within(list).getAllByText("Pública").length).toBeGreaterThan(0);
-		expect(within(list).getAllByText("Privada").length).toBeGreaterThan(0);
-		const visibility = screen.getByRole("combobox", { name: "Visibilidad" });
-		expect(within(visibility).getByRole("option", { name: "Privada" })).toBeTruthy();
+		expect(list.textContent).not.toMatch(/Privada|Interna/);
 		expect(document.body.textContent).not.toMatch(TRAMITE);
+	});
+
+	it("«Mis colecciones» del panel lista las que cura la persona y las de su organización, con el filtro de visibilidad", () => {
+		at("http://localhost/dev/prototype/collections?vista=panel");
+		render(CollectionsMock);
+
+		expect(screen.getByTestId("view-panel").getAttribute("aria-current")).toBe("page");
+		expect(screen.getByTestId("review-note")).toHaveTextContent("María Fernanda Rojas Vargas");
+		expect(screen.getByRole("heading", { level: 1, name: "Mis colecciones" })).toBeTruthy();
+		const crumbs = screen.getByRole("navigation", { name: "Ruta de navegación" });
+		expect(within(crumbs).getByRole("link", { name: /Panel/ }).getAttribute("href")).toBe(
+			"/dashboard",
+		);
+		expect(crumbs).toHaveTextContent("Mis colecciones");
+		expect(screen.getByRole("button", { name: "Nueva colección" })).toBeTruthy();
+
+		const visibility = screen.getByRole("combobox", { name: "Visibilidad" });
+		for (const option of ["Privada", "Interna", "Pública"]) {
+			expect(within(visibility).getByRole("option", { name: option })).toBeTruthy();
+		}
+		const curator = screen.getByRole("combobox", { name: "Curador" });
+		expect(within(curator).getByRole("option", { name: "Curadas por mí" })).toBeTruthy();
+		expect(within(curator).getByRole("option", { name: "De mis organizaciones" })).toBeTruthy();
+
+		// Las suyas (una pública y una privada, su lista de trabajo) y la privada del Rectorado; no las ajenas.
+		expect(listNames()).toEqual([
+			"Rendición pública de cuentas 2025",
+			"Indicadores académicos para tesis",
+			"Lista de trabajo: capítulo de eficiencia terminal",
+		]);
+		const list = screen.getByTestId("collections-list");
+		expect(within(list).getByText("3 datasets de 2 organizaciones")).toBeTruthy();
+		expect(within(list).getAllByText("Privada").length).toBe(2);
+		// Desde el panel se abre la ficha en la vista del curador.
+		expect(within(list).getAllByRole("link")[0].getAttribute("href")).toBe(
+			"/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador",
+		);
+		expect(document.body.textContent).not.toMatch(TRAMITE);
+	});
+
+	it("la lista de trabajo privada de una persona no la ve nadie más (Q10)", () => {
+		const draft = collectionBySlug("capitulo-eficiencia-terminal");
+		expect(draft.visibility).toBe("Privada");
+		expect(draft.approvals).toBeUndefined();
+		expect(canSee(draft, { kind: "visitor" })).toBe(false);
+		expect(canSee(draft, { kind: "member", org: "rectorado" })).toBe(false);
+		expect(
+			canSee(draft, { kind: "member", org: "rectorado", name: "María Fernanda Rojas Vargas" }),
+		).toBe(true);
+	});
+});
+
+describe("maqueta — un visitante nunca ve una colección privada (Q10)", () => {
+	afterEach(() => at("http://localhost/"));
+
+	const hidden = COLLECTIONS.filter((c) => !canSee(c, { kind: "visitor" })).map((c) => c.name);
+
+	it.each(DATASETS.map((d) => d.slug))("«Aparece en las colecciones» de %s", (slug) => {
+		at(`http://localhost/dev/prototype/dataset-collections?d=${slug}`);
+		render(DatasetCollectionsMock);
+
+		const section = screen.getByTestId("dataset-collections");
+		for (const name of hidden) expect(section.textContent).not.toContain(name);
+	});
+
+	it.each(COLLECTIONS.map((c) => c.slug))("«También en» de %s", (slug) => {
+		at(`http://localhost/dev/prototype/collection?c=${slug}`);
+		render(CollectionMock);
+
+		for (const el of screen.queryAllByTestId("also-in")) {
+			for (const name of hidden) expect(el.textContent).not.toContain(name);
+		}
 	});
 });
 

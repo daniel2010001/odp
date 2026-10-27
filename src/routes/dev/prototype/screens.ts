@@ -116,6 +116,7 @@ export const SCREENS: Screen[] = [
 		href: "/dev/prototype/collections",
 		audience: "Investigador",
 		ready: true,
+		note: "?vista=publica (por defecto) es la lista del menú principal, sólo con las públicas; ?vista=panel, «Mis colecciones» en el panel de un miembro del Rectorado, con el filtro de visibilidad (Q18).",
 	},
 	{
 		kind: "mock",
