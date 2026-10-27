@@ -43,6 +43,8 @@ const USERS: MockUser[] = [
 		memberships: [
 			{ org: "Dirección de Investigación", role: "Administrador" },
 			{ org: "Facultad de Ciencias y Tecnología", role: "Lector" },
+			// Editora del Rectorado: es quien cura sus colecciones en la maqueta de «Mis colecciones».
+			{ org: "Rectorado UMSS", role: "Editor" },
 		],
 		lastSeen: "Hoy, 09:42",
 	},

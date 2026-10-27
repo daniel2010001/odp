@@ -70,6 +70,7 @@ usuarios?», «¿Cuál es el diferenciador?».
 | 4 | Ficha del dataset | construida | `Matrícula estudiantil por carrera y gestión` | Qué contiene, quién lo publicó, cuándo, con qué licencia. |
 | 5 | Recurso CSV: tabla y gráfico | construida | el CSV de esa ficha | Se ve antes de descargar; el gráfico se arma sin programar. Botón para copiar el acceso por API. |
 | 6 | «Aparece en las colecciones» | maqueta | `/dev/prototype/dataset-collections?d=matricula-por-carrera` | Este dato está **reunido con otros** en colecciones. Sin sesión sólo se ven las **públicas**. |
+| 6b | Colecciones (menú principal) | maqueta | `/dev/prototype/collections` | *(opcional)* Desde el menú: todas las colecciones **públicas**, de personas y de unidades. |
 | 7 | Ficha de colección de una persona | maqueta | `/dev/prototype/collection?c=indicadores-academicos` | Una investigadora juntó datos de **tres unidades** para su tesis. Desde aquí se salta a otro dataset, y de ese a otra colección. |
 
 **Mensaje.** *«No hace falta saber qué oficina tiene el dato: se busca en un solo lugar. Y lo que alguien ya reunió
@@ -89,7 +90,7 @@ facultades.
 
 | # | Pantalla | Estado | Ruta | Qué decir |
 |---|---|---|---|---|
-| 1 | Colecciones (las del panel) | maqueta | `/dev/prototype/collections` | Las colecciones que ve un miembro del Rectorado: las suyas, las internas y las públicas. |
+| 1 | Mis colecciones (panel) | maqueta | `/dev/prototype/collections?vista=panel` | En su panel, María Fernanda Rojas Vargas, editora del Rectorado, ve las colecciones que cura ella y las del Rectorado, con su visibilidad: una lista de trabajo **privada** suya, que nadie más ve, y la de rendición de cuentas. |
 | 2 | Ficha de colección, vista del curador | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador` | Mientras se prepara es **privada**: sólo la ven los miembros del Rectorado. Reúne datasets del Rectorado, la FCyT y la FCS; para publicarla, **cada unidad dueña aprueba**: van 2 de 3. |
 | 3 | Ficha de colección, vista pública | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` | Así la ve cualquiera cuando las tres aprueban: sin el tablero de aprobaciones. |
 | 4 | Un dataset en dos colecciones | maqueta | `/dev/prototype/dataset-collections?d=informe-gestion-2025-fcyt&como=rectorado` | El informe de gestión de la FCyT se publicó **una vez** y está en la colección del Rectorado **y** en la de la Dirección de Investigación. |
@@ -137,7 +138,7 @@ elemento que se pulsaría en la página real.
 | H2-4 Ficha | el recurso CSV | H2-5 |
 | H2-5 Recurso | «Volver al dataset» (abajo, la sección de colecciones) | H2-6 |
 | H2-6 Colecciones del dataset | «Indicadores académicos para tesis» | H2-7 |
-| H3-1 Colecciones | «Rendición pública de cuentas 2025» | H3-2 |
+| H3-1 Mis colecciones | «Rendición pública de cuentas 2025» | H3-2 |
 | H3-2 Vista del curador | selector de vista, «Pública» | H3-3 |
 | H3-3 Vista pública | «Informe de gestión 2025 — FCyT» | H3-4 |
 

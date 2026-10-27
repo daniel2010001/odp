@@ -53,7 +53,7 @@ describe("maqueta — usuarios con varias organizaciones", () => {
 
 		// Un rol por organización: la sigla con su rol, y el resto resumido en «+N».
 		expect(screen.getAllByTitle("Dirección de Investigación").length).toBeGreaterThan(1);
-		expect(screen.getByText("+1")).toBeTruthy();
+		expect(screen.getAllByText("+1").length).toBeGreaterThan(0);
 		// El superadministrador es una marca de la cuenta, no un rol de organización.
 		expect(screen.getByText("Superadministrador", { selector: "span" })).toBeTruthy();
 		expect(screen.getByText("Sin organización")).toBeTruthy();
