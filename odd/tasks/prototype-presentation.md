@@ -47,6 +47,12 @@ imported into Figma and presented as a click-through prototype before the tribun
   journeys: Planificación publishes enrollment — compares with UMSSSTAT; a lecturer looks for data; the Rectorado builds
   the accountability collection — answers the letter case». It also decides which screens get linked in Figma.
 
+- **S12** — Collections list split (Q18, decided 2026-10-26), mocked as its own screen: «si, hagamoslo». Decision verbatim from
+  Q18: «en el **menú principal**, sólo las públicas y sin filtro de visibilidad; «**Colecciones que cura**» en la ficha de cada
+  organización; «**Mis colecciones**» en el panel, que es donde va el filtro de visibilidad». Visibility follows Q10.
+- **S13** — Users mock, Q5 (2026-10-26), verbatim: "q5 por ahora solo activos, los bloqueados lo veremos en la implementación,
+  creo que ni siquiera creo que podrán hacer el login, pero lo veremos después."
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -91,6 +97,8 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T10 | S10 | Collection sheet: markdown description + public vs curator view | worker | `89a7d5a` — awaiting author review |
 | T11 | S11 | Story-based script (`presentation/guion.md`) + Figma link map | inline | `01a10ed` — awaiting author review |
 | T12 | S6, S11 | Collection mocks follow Q10 (Privada, viewer-aware lists) + matrícula aligned with the real dataset | inline | `f0c8b11` — awaiting author review |
+| T13 | S12 | Public collections list (main menu) vs «Mis colecciones» (panel) as two mock screens | worker | — |
+| T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -172,3 +180,19 @@ merging to `main` (after the presentation).
 - **L10** (2026-10-26, author): Q10 — accepted the owner-based proposal («Sí, así»). Asked to align the mock matrícula dataset
   with the real one («Sí, alíneelo»). Applying Q10 surfaced that the dataset sheet and «También en» listed internal and private
   collections to a visitor; both now filter by who is looking (T12).
+- **L11** (2026-10-26, author): push and merge of `odp-docker` `fix/org-create-sysadmin-only` — «hazlo» (relayed to the
+  `odp-docker` session). Asked how to run the html.to.design import. Q18 mock — «si, hagamoslo» (S12, T13). Answers to the open
+  questions, verbatim: "q3: lo admine, q4b: por ahora no lo pongamos en la presentación, solo en el doc y la respuesta es que sí
+  se avisé, pero lo veremos a más detalle cuando lleguemos a eso en la implementación. q5 por ahora solo activos, los bloqueados
+  lo veremos en la implementación, creo que ni siquiera creo que podrán hacer el login, pero lo veremos después. q8: esto era
+  para cuando quedrámos exterionalizar (creo que así se dice) la plataforma, algo así como un padre para todos las orgs de la
+  universidad que vedría siendo el nivel más bajo, ahora mismo no se lo tiene, pero esto tampoco está como para ser hecho ahora
+  mismo, esto porque no sabemos si se aprueba el proyecto o no. q9: creo que está bien, respecto a lo de configurar un smtp creo
+  que lo podemos ahacer, o es complicado? por ahora lo dejo abierto ya que creo que necesito más info sobre esto del smtp, si
+  podemos hacer algo sencillo/básico para mostrar cómo funciona bien, creo que la uni tiene un servidor de correos, podemos
+  simular el nuestro, pero esto lo hablamos después. q14: por mi podemos dejar esto de los users sin orgs para después, creo que
+  esto generaria más dudas que respuestas en la presentación. q11 me gusta la propuesta, considero que mantener el select es
+  cosa de los dev, algo así como dejarlo "hardcodeado", pero cosa que sea fácil modificarlo, se puede? q12: propongo algo así:
+  intentar recuperar todos los grupos, aunque sea uno de cada uno, luego hacemos algo así como "ver más" y que eso active el
+  filtro y muestre solo de su grupo, qué dices? q17 acepto la propuesta, anotala." Found: the html.to.design FREE plan allows
+  «Up to 10 imports every 30 days» (html.to.design/docs/pro-plan); the script has 18 steps.
