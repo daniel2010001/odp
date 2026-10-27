@@ -159,6 +159,26 @@ Hay dos formas de llevar una pantalla a Figma; para un prototipo que se recorre 
 Como los cambios se hacen en el código (regla 8 de `AGENTS.md`) y no en Figma, editar en Figma no hace falta para
 presentar.
 
+### Las herramientas, comparadas (2026-10-26)
+
+| | html.to.design | Export to Figma (Eftikharul Alam Shoun) |
+|---|---|---|
+| Navegador | Chromium (Chrome, Edge, Brave) | Chrome y **Firefox** (en Firefox figura como «vista previa») |
+| Cómo llega a Figma | extensión → plugin de Figma | extensión → **copiar y pegar** (`Ctrl+V`), sin plugin |
+| Gratis | **10 importaciones cada 30 días** | **10 exportaciones por mes** |
+| Pago | PRO | Pro: **US$ 1 al mes** (precio de lanzamiento), ilimitado |
+| Páginas locales | sí (con la extensión) | sí («localhost and local HTML files») |
+
+Fuentes: `html.to.design/docs/pro-plan`, `exporttofigma.com/pricing`, ficha de la Chrome Web Store. Su ficha declara que
+maneja «Website content»; su política dice que no guarda los datos de las páginas capturadas, pero no aclara si las procesa
+en su servidor. Las pantallas del prototipo sólo tienen datos de ejemplo; **no capture** una página con una contraseña o una
+clave de API escrita.
+
+**Los `<select>` salen vacíos** (observado por el autor con Export to Figma). Los desplegables nativos los dibuja el
+navegador, no la página, y estas herramientas no los leen bien. Están en: H1-1 (organización y rol del alta), H1-4
+(organización y licencia), H1-6 (estado de las solicitudes), H2-3 (orden de los resultados) y H3-1 (filtros de «Mis
+colecciones»). Para esos frames: **captura de pantalla**, o escribir el texto encima en Figma.
+
 ### Con html.to.design (la prueba de T7)
 
 1. **Plugin de Figma.** En un archivo de diseño de Figma: menú *Actions* (o *Plugins*) → buscar **html.to.design** →
@@ -188,6 +208,21 @@ Si algo falla, la alternativa sin plugin es la captura de pantalla.
 En el modo *Prototype* (arriba a la derecha): seleccionar el elemento o dibujar un rectángulo transparente sobre el botón de
 la imagen → arrastrar el círculo que aparece hasta el frame de destino → *On click* → *Navigate to*. El orden está en la
 tabla «Enlaces en Figma».
+
+## Orden en Figma
+
+Un archivo de Figma con tres páginas (las «páginas» del panel izquierdo de Figma):
+
+1. **Historias**: los frames de la presentación, **una fila por historia**, de izquierda a derecha en el orden de los
+   pasos: fila 1 `H1-1` … `H1-7`, fila 2 `H2-1` … `H2-7`, fila 3 `H3-1` … `H3-4`. El punto de partida del prototipo
+   (*Flow starting point*) va en `H1-1`, o en `H1-2` si se salta el alta de usuario. Son **19 frames**.
+2. **Otras pantallas**: lo que no está en las historias, para mostrar si alguien lo pide (organización, acerca de, página
+   de error, constructor de gráficos, la búsqueda sin resultados, la vista pública de una colección ya publicada).
+3. **Pruebas**: las importaciones de prueba; se borra antes de presentar.
+
+Qué capturar primero, si las importaciones no alcanzan: las **maquetas** de las historias (son lo nuevo y lo que el
+tribunal no vio): `H1-1`, `H2-2`, `H2-6`, `H2-6b`, `H2-7`, `H3-1` … `H3-4` (9). Las páginas construidas (`H1-2` … `H1-7`,
+`H2-1`, `H2-3` … `H2-5`, 10) pueden ir como captura de pantalla.
 
 ## Pendientes antes del jueves
 
