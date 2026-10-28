@@ -59,6 +59,14 @@ imported into Figma and presented as a click-through prototype before the tribun
   «Agrego a las páginas reales los accesos a lo nuevo, visibles sólo en desarrollo y nunca en producción: «Colecciones» en el
   menú, la sección en la ficha del dataset y los accesos del panel.»
 
+- **S15** — The prototype is presented on the Gentle Design canvas instead of Figma (2026-10-28). The tribunal accepted
+  it, the author verbatim: "creo que sí, les pregunté y dijeron que sí, mientras podamos compartirlo, como se puede hacer con
+  figma." The tribunal wants the **design** process, not the implementation: "primero tenermos que presentar el proyecto, o sea
+  qué es, para qué sirve, etc. luego son los prototipos, pero no como que ya está instalado, sino como que estamos "diseñando"
+  sin implementar". The screens move to the canvas step by step, verbatim: "vamos paso a paso, te parece? algo como: tú haces
+  algo como 3 pages, más o menos (o las que sugieras, no cerremos este número), y yo voy revisando para el feetback, te parece?
+  algo como hicimos en las devs pages." Each screen is one self-contained artboard under `design/prototipo/`, shareable.
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -106,6 +114,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T13 | S12 | Public collections list (main menu) vs «Mis colecciones» (panel) as two mock screens | worker | `511df08` — awaiting author review |
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
 | T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | `18e1409` — awaiting author review |
+| T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | — batch 1 in progress |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -207,3 +216,7 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
 - **L12** (2026-10-28, author): Q3 — «si, usar tu sugerencia»; Q8 — «si» (RF-02 discarded); screenshots for the prototype,
   html.to.design only for the test — «si»; push the branch — «si» (pushed). Export to Figma: will try it. Raised S14 (built pages
   do not show the new entry points) → option A (T15). Presentation is tomorrow, 2026-10-29 16:00.
+- **L13** (2026-10-28, author): the tribunal wants the design process (S15) and accepted the Gentle Design canvas if it can be
+  shared like Figma. Asked to commit `design/` — «hazlo» (`624daa5`). Batch 1 of T16: H2-4 dataset sheet (built), H2-7
+  collection of a person (mock), H3-1 «Mis colecciones» (mock, with selects). Design `design/prototipo/` links to this
+  feature; `design/inicio/` (three home directions) is a standalone trial.
