@@ -22,16 +22,20 @@
 	es una extensión propia, y también lo es ocultar la colección mientras no se publica (un `group` de CKAN
 	es siempre público). La vista del curador dice la visibilidad y quién la ve, con la regla de Q10
 	(`design-system/datos-umss/preguntas-abiertas.md`).
+
+	S22: la columna derecha queda pegada bajo el encabezado, con el mismo `top` que la de la ficha del dataset
+	(`DatasetSidebar`). Una colección pública no lleva etiqueta de visibilidad (`VisibilityBadge`), y ninguna
+	etiqueta lleva ícono. «Curada por» dice si la cura una organización o una persona a título personal (Q10). La
+	vista pública lista las organizaciones dueñas de los datasets con el diseño de la tarjeta «Organización» de la
+	ficha del dataset (`OrganizationLogo`, el título y la flecha del pie), en lista: cada una enlaza a su ficha.
 -->
 <script lang="ts">
 import {
 	Building2,
 	CalendarClock,
 	CalendarPlus,
-	CircleCheck,
-	Clock,
+	ChevronRight,
 	Database,
-	Globe,
 	Library,
 	Plus,
 	Scale,
@@ -39,6 +43,7 @@ import {
 	User,
 } from "@lucide/svelte";
 import { page } from "$app/stores";
+import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -50,6 +55,7 @@ import {
 	collectionHref,
 	collectionsOf,
 	curatorLabel,
+	curatorPhrase,
 	datasetBySlug,
 	datasetHref,
 	ORGS,
@@ -76,19 +82,25 @@ const viewer = $derived<Viewer>(
 	view === "publica"
 		? { kind: "visitor" }
 		: collection.curator.kind === "org"
-			? { kind: "member", org: collection.curator.org }
-			: { kind: "member", org: "", name: collection.curator.name },
+			? { kind: "member", orgs: [collection.curator.org] }
+			: { kind: "member", orgs: [], name: collection.curator.name },
 );
 // La descripción es markdown (RF-39), con el mismo render seguro que la de un dataset.
 const description = $derived(renderMarkdown(collection.markdown));
 const datasets = $derived(collection.datasets.map(datasetBySlug));
 const orgs = $derived(ownerOrgs(collection));
+const curator = $derived(curatorPhrase(collection.curator));
+const datasetsOf = (org: string) => datasets.filter((d) => d.org === org).length;
 const approvals = $derived(collection.approvals);
 const approvedCount = $derived(
 	approvals ? Object.values(approvals).filter((a) => a === "Aprobada").length : 0,
 );
 
 const viewHref = (next: View) => `${collectionHref(collection.slug)}&vista=${next}`;
+
+// El chip de las siglas y los formatos (S22: sin ícono), como `VisibilityBadge`.
+const chipClass =
+	"inline-flex shrink-0 items-center rounded-md border border-border px-2 py-0.5 text-xs font-medium";
 
 const linkClass =
 	"rounded-sm font-medium text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -155,24 +167,20 @@ const linkClass =
 					{collection.description}
 				</p>
 				<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-					<span class="inline-flex items-center gap-1.5">
+					<span class="inline-flex items-center gap-1.5" data-testid="hero-curator">
 						{#if collection.curator.kind === "org"}
-							<Building2 class="size-4 text-primary" aria-hidden="true" />
+							<Building2 class="size-4 text-primary" aria-hidden="true" data-icon="org" />
 						{:else}
-							<User class="size-4 text-primary" aria-hidden="true" />
+							<User class="size-4 text-primary" aria-hidden="true" data-icon="user" />
 						{/if}
-						<span class="text-muted-foreground">Curada por</span>
-						<span class="font-medium">{curatorLabel(collection.curator)}</span>
-					</span>
-					{#if view === "publica" || published}
+						<span class="text-muted-foreground">{curator.before}</span>
 						<span
-							class="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground"
-							data-testid="visibility-badge"
+							><span class="font-medium">{curator.name}</span
+							>{#if curator.after}<span class="text-muted-foreground">{curator.after}</span>{/if}</span
 						>
-							<Globe class="size-3" aria-hidden="true" />
-							Pública
-						</span>
-					{:else}
+					</span>
+					<!-- Publicada (o vista como publicada), sin etiqueta: sólo la llevan la interna y la privada. -->
+					{#if view === "curador" && !published}
 						<VisibilityBadge visibility={collection.visibility} testid="visibility-badge" />
 						<span class="text-muted-foreground" data-testid="visibility-audience"
 							>{audienceLabel(collection)}</span
@@ -240,7 +248,7 @@ const linkClass =
 												<span class="text-muted-foreground">También en:</span>
 												{#each others as other, i (other.slug)}
 													<a href={collectionHref(other.slug)} class={linkClass}>{other.name}</a
-													>{#if i < others.length - 1}<span class="text-muted-foreground">, </span>{/if}
+													>{#if i < others.length - 1}<span class="text-muted-foreground">{", "}</span>{/if}
 												{/each}
 											{:else}
 												<span class="text-muted-foreground">Sólo en esta colección.</span>
@@ -254,7 +262,10 @@ const linkClass =
 				</Card>
 			</div>
 
-			<aside class="min-w-0 space-y-6">
+			<aside
+				class="min-w-0 space-y-6 transition-[top] duration-200 ease-out motion-reduce:transition-none lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]"
+				data-testid="collection-aside"
+			>
 				{#if view === "publica"}
 					<Card class="p-6 sm:p-8" data-testid="collection-info">
 						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Información</p>
@@ -294,16 +305,6 @@ const linkClass =
 									<dd class="text-sm font-semibold leading-snug text-foreground">{datasets.length}</dd>
 								</div>
 							</div>
-							<div class="flex items-start gap-3">
-								<Building2 class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-								<div class="min-w-0">
-									<dt class="text-xs text-muted-foreground">Organizaciones</dt>
-									<dd class="text-sm font-semibold leading-snug text-foreground">{orgs.length}</dd>
-									<dd class="mt-1 text-xs leading-relaxed text-muted-foreground">
-										{orgs.map((org) => org.title).join(" · ")}
-									</dd>
-								</div>
-							</div>
 						</dl>
 						<p
 							class="mt-5 flex items-start gap-2 rounded-lg bg-accent/60 p-3 text-xs leading-relaxed text-accent-foreground"
@@ -311,6 +312,39 @@ const linkClass =
 							<Scale class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
 							Cada dataset conserva su licencia y se publica en su organización dueña.
 						</p>
+					</Card>
+
+					<Card class="p-6 sm:p-8" data-testid="collection-orgs">
+						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organizaciones</p>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
+							Dueñas de los datasets
+							<span class="font-normal text-muted-foreground">({orgs.length})</span>
+						</h2>
+						<ul class="mt-3 space-y-1">
+							{#each orgs as org (org.name)}
+								{@const count = datasetsOf(org.name)}
+								<li>
+									<a
+										href="/organization/{org.name}"
+										class="group -mx-3 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+										data-testid="collection-org"
+									>
+										<OrganizationLogo name={org.title} abbr={org.acronym} />
+										<span class="min-w-0 flex-1">
+											<span class="block font-heading text-sm font-bold text-foreground">{org.title}</span>
+											<span class="mt-0.5 block text-xs text-muted-foreground">
+												{count}
+												{count === 1 ? "dataset" : "datasets"} en esta colección
+											</span>
+										</span>
+										<ChevronRight
+											class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+											aria-hidden="true"
+										/>
+									</a>
+								</li>
+							{/each}
+						</ul>
 					</Card>
 				{:else}
 					<Card class="p-6 sm:p-8" data-testid="publication-status">
@@ -343,21 +377,11 @@ const linkClass =
 											<span class="block font-medium text-foreground">{org.title}</span>
 											<span class="text-xs text-muted-foreground">Administrador de {org.acronym}</span>
 										</span>
-										{#if state === "Aprobada"}
-											<span
-												class="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground"
-											>
-												<CircleCheck class="size-3" aria-hidden="true" />
-												Aprobada
-											</span>
-										{:else}
-											<span
-												class="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
-											>
-												<Clock class="size-3" aria-hidden="true" />
-												Pendiente
-											</span>
-										{/if}
+										<span
+											class="{chipClass} {state === 'Aprobada'
+												? 'bg-accent text-accent-foreground'
+												: 'bg-muted/50 text-muted-foreground'}">{state}</span
+										>
 									</li>
 								{/each}
 							</ul>

@@ -273,6 +273,83 @@ La cura una investigadora a título personal y sólo la ve ella. Si el capítulo
 		visibility: "Privada",
 		datasets: ["matricula-por-carrera", "titulados-por-facultad", "informe-gestion-2025-fcs"],
 	},
+	{
+		slug: "produccion-cientifica-2025",
+		name: "Producción científica 2025",
+		description:
+			"Los proyectos financiados y las publicaciones indexadas de la gestión 2025, para el informe anual de investigación.",
+		markdown: `### Propósito
+
+Reúne la **producción científica** de la Universidad en la gestión 2025 para el informe anual de investigación.
+
+### Qué reúne
+
+- Los proyectos de investigación financiados en 2025.
+- Las publicaciones científicas indexadas.
+
+### Curaduría y actualización
+
+La cura la **Dirección de Investigación**, que la actualiza al cierre de cada gestión.`,
+		curator: { kind: "org", org: "direccion-investigacion" },
+		created: "4 mar. 2026",
+		updated: "20 oct. 2026",
+		visibility: "Pública",
+		datasets: ["proyectos-investigacion-2025", "publicaciones-indexadas"],
+		approvals: { "direccion-investigacion": "Aprobada" },
+	},
+	{
+		slug: "autoevaluacion-acreditacion-fcyt",
+		name: "Autoevaluación para la acreditación de la FCyT",
+		description:
+			"Gestión, equipamiento y titulación de la Facultad de Ciencias y Tecnología, reunidos para la autoevaluación de sus carreras.",
+		markdown: `### Propósito
+
+Reúne la información que la **Facultad de Ciencias y Tecnología** presenta en la autoevaluación de sus carreras para la acreditación.
+
+### Qué reúne
+
+- El informe de gestión 2025 de la facultad.
+- El equipamiento de sus laboratorios.
+- Los titulados por facultad, con su serie histórica.
+
+### Curaduría y actualización
+
+La cura la **Facultad de Ciencias y Tecnología**. Se actualiza antes de cada proceso de acreditación.`,
+		curator: { kind: "org", org: "fcyt" },
+		created: "18 jun. 2026",
+		updated: "14 oct. 2026",
+		visibility: "Pública",
+		datasets: [
+			"informe-gestion-2025-fcyt",
+			"equipamiento-laboratorios-fcyt",
+			"titulados-por-facultad",
+		],
+		approvals: { fcyt: "Aprobada", rectorado: "Aprobada" },
+	},
+	{
+		slug: "produccion-agricola-experimental",
+		name: "Producción agrícola experimental",
+		description:
+			"Rendimiento de las parcelas experimentales y los proyectos de investigación agrícola de la Facultad de Ciencias Agrícolas.",
+		markdown: `### Propósito
+
+Reúne los datos de las **parcelas experimentales** de la Facultad de Ciencias Agrícolas y los proyectos que las financian.
+
+### Qué reúne
+
+- El rendimiento de cultivos andinos en las parcelas experimentales.
+- Los proyectos de investigación financiados en 2025.
+
+### Curaduría y actualización
+
+La cura la **Facultad de Ciencias Agrícolas**, al cierre de cada campaña agrícola.`,
+		curator: { kind: "org", org: "fca" },
+		created: "9 abr. 2026",
+		updated: "6 oct. 2026",
+		visibility: "Pública",
+		datasets: ["rendimiento-cultivos-andinos", "proyectos-investigacion-2025"],
+		approvals: { fca: "Aprobada", "direccion-investigacion": "Aprobada" },
+	},
 ];
 
 export function datasetBySlug(slug: string): MockDataset {
@@ -297,15 +374,21 @@ export function collectionsOf(datasetSlug: string, except?: string): MockCollect
 }
 
 /**
- * Quién mira la maqueta: un visitante sin sesión o un miembro de una organización. `name` es la persona, para
- * sus colecciones privadas; sin él, el miembro no cura ninguna a título personal.
+ * Quién mira la maqueta: un visitante sin sesión o un usuario con sesión, miembro de cero o más organizaciones
+ * (Q8: una persona puede ser miembro de varias). `name` es la persona, para sus colecciones privadas; sin él,
+ * no cura ninguna a título personal.
  */
-export type Viewer = { kind: "visitor" } | { kind: "member"; org: string; name?: string };
+export type Viewer =
+	| { kind: "visitor" }
+	| { kind: "member"; orgs: readonly string[]; name?: string };
 
-/** Quien mira «Mis colecciones» en el panel: una persona fija, miembro del Rectorado. */
+/**
+ * Quien mira «Mis colecciones» en el panel: una persona fija, con las tres organizaciones de la maqueta de
+ * usuarios (`../users/+page.svelte`): Dirección de Investigación, FCyT y Rectorado.
+ */
 export const PANEL_VIEWER = {
 	kind: "member",
-	org: "rectorado",
+	orgs: ["direccion-investigacion", "fcyt", "rectorado"],
 	name: "María Fernanda Rojas Vargas",
 } as const satisfies Viewer;
 
@@ -313,7 +396,7 @@ export const PANEL_VIEWER = {
 export function curatedBy(collection: MockCollection, viewer: Viewer): boolean {
 	if (viewer.kind === "visitor") return false;
 	return collection.curator.kind === "org"
-		? collection.curator.org === viewer.org
+		? viewer.orgs.includes(collection.curator.org)
 		: collection.curator.name === viewer.name;
 }
 
@@ -338,6 +421,64 @@ export function audienceLabel(collection: MockCollection): string {
 export function curatorLabel(curator: Curator): string {
 	return curator.kind === "org" ? ORGS[curator.org].title : curator.name;
 }
+
+/**
+ * «Curada por» sin ambigüedad (Q10, S22): la cura una organización o una persona a título personal. El hero de
+ * la ficha lo dice en una frase; `name` va resaltado.
+ */
+export function curatorPhrase(curator: Curator): { before: string; name: string; after: string } {
+	return curator.kind === "org"
+		? { before: "Curada por la organización", name: ORGS[curator.org].title, after: "" }
+		: { before: "Curada por", name: curator.name, after: ", a título personal" };
+}
+
+// ─── Pestañas de organización (S22) ──────────────────────────────
+
+/** La pestaña de las colecciones que cura una persona, no una organización. */
+export const PERSONALES = "__personales__";
+
+export interface CuratorTab {
+	/** `TODAS_LAS_ORGANIZACIONES`, `PERSONALES` o el nombre de la organización. */
+	id: string;
+	label: string;
+	count: number;
+}
+
+/**
+ * Las pestañas de organización de una lista de colecciones, con la forma de las de «Solicitudes»
+ * (`$lib/components/requests/requests-model.ts`): «Todas» primero, después la de las personales —si hay alguna—
+ * y una por organización, en orden alfabético (es). `orgs` fija qué organizaciones tienen pestaña aunque no
+ * curen ninguna (las de quien mira, en «Mis colecciones»); sin él, las que curan alguna de la lista.
+ */
+export function curatorTabs(
+	collections: MockCollection[],
+	{ todas, personales, orgs }: { todas: string; personales: string; orgs?: readonly string[] },
+): CuratorTab[] {
+	const byOrg = (org: string) =>
+		collections.filter((c) => c.curator.kind === "org" && c.curator.org === org).length;
+	const names = orgs ?? [
+		...new Set(collections.flatMap((c) => (c.curator.kind === "org" ? [c.curator.org] : []))),
+	];
+	const organizations = names
+		.map((name) => ({ id: name, label: ORGS[name].title, count: byOrg(name) }))
+		.sort((a, b) => a.label.localeCompare(b.label, "es"));
+	const personal = collections.filter((c) => c.curator.kind === "user").length;
+	return [
+		{ id: todas, label: "Todas", count: collections.length },
+		...(personal > 0 ? [{ id: PERSONALES, label: personales, count: personal }] : []),
+		...organizations,
+	];
+}
+
+/** Las colecciones de una pestaña de organización; cualquier otra pestaña («Todas») no filtra. */
+export function inCuratorTab(collections: MockCollection[], tab: string): MockCollection[] {
+	if (tab === PERSONALES) return collections.filter((c) => c.curator.kind === "user");
+	if (!(tab in ORGS)) return collections;
+	return collections.filter((c) => c.curator.kind === "org" && c.curator.org === tab);
+}
+
+/** El nombre accesible del conteo de una pestaña: «1 colección», «3 colecciones». */
+export const collectionsCountLabel = (n: number) => `${n} ${n === 1 ? "colección" : "colecciones"}`;
 
 /**
  * Ficha real (slug de CKAN) → dataset de maqueta, para la sección de colecciones de la ficha real en modo

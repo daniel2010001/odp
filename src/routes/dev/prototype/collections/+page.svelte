@@ -8,10 +8,18 @@
 	`?vista=publica` (por defecto) o `?vista=panel` eligen entre las dos pantallas que Q18 separa, con la franja
 	de revisión de arriba (fuera del área de producto). La **pública** es la lista del menú principal: sólo las
 	colecciones públicas, sin filtro de visibilidad y sin «Nueva colección» (un visitante sin sesión no puede
-	crear una). La **del panel** es «Mis colecciones» de una persona fija, miembro del Rectorado
-	(`PANEL_VIEWER`): las que cura a título personal y las que cura el Rectorado, con el filtro de visibilidad y
-	«Nueva colección». «Colecciones que cura» en la ficha de cada organización, la tercera ubicación de Q18,
-	no está en esta maqueta.
+	crear una). La **del panel** es «Mis colecciones» de una persona fija, miembro de tres organizaciones
+	(`PANEL_VIEWER`): las que cura a título personal y las que curan sus organizaciones, con el filtro de
+	visibilidad y «Nueva colección». «Colecciones que cura» en la ficha de cada organización, la tercera ubicación
+	de Q18, no está en esta maqueta.
+
+	S22: las dos filtran por quien cura con las pestañas de organización de «Solicitudes»: el mismo `OverflowTabs`,
+	con los mismos parámetros que `OrgTabs` (pestañas desde 611 px de contenedor, desplegable debajo, «Más (n)»
+	para las que no caben, barra pegada bajo el encabezado) y su modelo (`TODAS_LAS_ORGANIZACIONES`,
+	`hasOrganizationTabs`). No se monta `OrgTabs` tal cual porque su insignia se nombra «N pendientes»: acá cuenta
+	colecciones. «Todas» · las de personas · una por organización —en el panel, una por cada organización de quien
+	mira—, cada una con su conteo. En el panel reemplazan al desplegable «Curadas por…», que no escalaba a varias
+	organizaciones; el filtro de visibilidad queda a la derecha de la fila, como «Mostrar» en «Solicitudes».
 
 	Factibilidad en CKAN (S6): una colección es un `group` y su contenido, `group_member` (nativos; medido:
 	`ckan.auth.user_create_groups = true`, cualquier usuario puede crearlas hoy). Las visibilidades «Interna» y
@@ -19,19 +27,45 @@
 	CKAN es siempre público; serían una extensión propia.
 -->
 <script lang="ts">
-import { Building2, Database, FolderPlus, Library, Search, User } from "@lucide/svelte";
+import {
+	Building2,
+	ChevronDown,
+	Database,
+	FolderPlus,
+	Library,
+	Search,
+	User,
+} from "@lucide/svelte";
+import { Tabs } from "bits-ui";
 import { page } from "$app/stores";
+import {
+	hasOrganizationTabs,
+	TODAS_LAS_ORGANIZACIONES,
+} from "$lib/components/requests/requests-model";
+import { surfaceClass } from "$lib/components/requests/sticky-bar";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
+import OverflowTabs from "$lib/components/ui/tabs/OverflowTabs.svelte";
+import {
+	FIELD_CHEVRON_CLASS,
+	FIELD_CLASS,
+	FORMS,
+	type OverflowItem,
+} from "$lib/components/ui/tabs/overflow-tabs";
+import { cn } from "$lib/utils";
 import {
 	COLLECTIONS,
 	canSee,
 	collectionHref,
+	collectionsCountLabel,
 	curatedBy,
 	curatorLabel,
+	curatorTabs,
+	inCuratorTab,
 	ownerOrgs,
 	PANEL_VIEWER,
+	type Visibility,
 } from "./data";
 import VisibilityBadge from "./VisibilityBadge.svelte";
 
@@ -46,23 +80,48 @@ const VIEWS: { value: View; label: string; note: string }[] = [
 	{
 		value: "panel",
 		label: "Panel",
-		note: `«Mis colecciones» en el panel de ${PANEL_VIEWER.name}, miembro del Rectorado: las que cura a título personal y las del Rectorado.`,
+		note: `«Mis colecciones» en el panel de ${PANEL_VIEWER.name}, miembro de la Dirección de Investigación, la FCyT y el Rectorado: las que cura a título personal y las de sus organizaciones.`,
 	},
 ];
 
 const view = $derived<View>($page.url.searchParams.get("vista") === "panel" ? "panel" : "publica");
 const current = $derived(VIEWS.find((v) => v.value === view) ?? VIEWS[0]);
-const collections = $derived(
+const all = $derived(
 	view === "panel"
 		? COLLECTIONS.filter((c) => curatedBy(c, PANEL_VIEWER))
 		: COLLECTIONS.filter((c) => canSee(c, { kind: "visitor" })),
+);
+
+// Las pestañas de organización (S22). En el panel, una por cada organización de quien mira, aunque no cure
+// ninguna; en el menú principal, las que curan alguna pública.
+const tabs = $derived(
+	curatorTabs(all, {
+		todas: TODAS_LAS_ORGANIZACIONES,
+		personales: view === "panel" ? "Personales" : "De personas",
+		orgs: view === "panel" ? PANEL_VIEWER.orgs : undefined,
+	}),
+);
+const tabItems = $derived<OverflowItem[]>(
+	tabs.map((t) => ({ id: t.id, label: t.label, count: t.count })),
+);
+// La misma regla que «Solicitudes»: sólo hay pestañas si filtran algo («Todas» y al menos dos más).
+const withTabs = $derived(
+	hasOrganizationTabs(tabs.map((t) => ({ id: t.id, label: t.label, pending: t.count }))),
+);
+let tab = $state(TODAS_LAS_ORGANIZACIONES);
+const activeTab = $derived(tabs.some((t) => t.id === tab) ? tab : TODAS_LAS_ORGANIZACIONES);
+
+const VISIBILITIES: Visibility[] = ["Privada", "Interna", "Pública"];
+let visibility = $state<Visibility | "">("");
+
+const collections = $derived(
+	inCuratorTab(all, activeTab).filter((c) => !visibility || c.visibility === visibility),
 );
 // Desde el panel, quien cura abre la ficha en la vista del curador.
 const cardHref = (slug: string) =>
 	view === "panel" ? `${collectionHref(slug)}&vista=curador` : collectionHref(slug);
 
-const selectClass =
-	"h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+const form = FORMS["611px"];
 const inputClass =
 	"h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-primary placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 </script>
@@ -70,6 +129,84 @@ const inputClass =
 <svelte:head>
 	<title>{view === "panel" ? "Mis colecciones — Panel" : "Colecciones"} — UMSS</title>
 </svelte:head>
+
+{#snippet visibilityFilter()}
+	<!-- Como «Mostrar» de «Solicitudes» (`StatusSelect`): el mismo campo que el desplegable de organización. -->
+	<label class="flex items-center gap-2 text-xs font-medium text-muted-foreground @max-[18rem]:w-full">
+		<span class={cn("sr-only @max-[18rem]:not-sr-only", form.wideLabel)} aria-hidden="true">Visibilidad:</span>
+		<span class="relative min-w-0 flex-1">
+			<select
+				aria-label="Visibilidad"
+				bind:value={visibility}
+				class={cn(FIELD_CLASS, "w-full appearance-none", form.wideFieldH)}
+			>
+				<option value="">Todas las visibilidades</option>
+				{#each VISIBILITIES as option (option)}
+					<option value={option}>{option}</option>
+				{/each}
+			</select>
+			<ChevronDown class={FIELD_CHEVRON_CLASS} aria-hidden="true" />
+		</span>
+	</label>
+{/snippet}
+
+{#snippet list()}
+	<ul class="grid gap-4 md:grid-cols-2" data-testid="collections-list">
+		{#each collections as collection (collection.slug)}
+			{@const orgs = ownerOrgs(collection)}
+			<li>
+				<a
+					href={cardHref(collection.slug)}
+					class="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+				>
+					<Card
+						class="flex h-full flex-col p-6 transition-colors duration-200 group-hover:border-primary/40 group-hover:bg-accent/30"
+					>
+						<div class="flex items-start justify-between gap-3">
+							<h2 class="font-heading text-xl font-bold text-primary group-hover:underline">
+								{collection.name}
+							</h2>
+							<VisibilityBadge visibility={collection.visibility} />
+						</div>
+						<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+							{collection.description}
+						</p>
+						<p class="mt-4 flex items-center gap-1.5 text-sm text-foreground">
+							{#if collection.curator.kind === "org"}
+								<Building2 class="size-4 shrink-0 text-primary" aria-hidden="true" />
+							{:else}
+								<User class="size-4 shrink-0 text-primary" aria-hidden="true" />
+							{/if}
+							<span class="text-muted-foreground">Curada por</span>
+							<span class="min-w-0 truncate font-medium">{curatorLabel(collection.curator)}</span>
+						</p>
+						<div
+							class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 pt-4 text-sm text-muted-foreground"
+						>
+							<span class="inline-flex items-center gap-1.5" data-testid="collection-counts">
+								<Database class="size-4" aria-hidden="true" />
+								{collection.datasets.length} datasets de {orgs.length} organizaciones
+							</span>
+							<ul class="flex flex-wrap gap-1.5">
+								{#each orgs as org (org.name)}
+									<li
+										class="rounded-md border border-border bg-background px-2 py-0.5 text-xs font-semibold text-foreground"
+										title={org.title}
+									>
+										{org.acronym}
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</Card>
+				</a>
+			</li>
+		{/each}
+	</ul>
+	{#if collections.length === 0}
+		<p class="text-sm text-muted-foreground">No hay colecciones con esta visibilidad en esta pestaña.</p>
+	{/if}
+{/snippet}
 
 <div class="min-h-screen bg-background font-sans text-foreground">
 	<!-- ─── Franja de revisión (DEV, fuera del producto) ──────────────── -->
@@ -142,73 +279,31 @@ const inputClass =
 					/>
 					<input class="{inputClass} pl-9" placeholder="Buscar por nombre, descripción o curador" />
 				</label>
-				{#if view === "panel"}
-					<select class={selectClass} aria-label="Visibilidad">
-						<option>Todas las visibilidades</option>
-						<option>Privada</option>
-						<option>Interna</option>
-						<option>Pública</option>
-					</select>
-					<select class={selectClass} aria-label="Curador">
-						<option>Todos los curadores</option>
-						<option>Curadas por mí</option>
-						<option>De mis organizaciones</option>
-					</select>
-				{/if}
 			</div>
 		</Card>
 
-		<ul class="mt-6 grid gap-4 md:grid-cols-2" data-testid="collections-list">
-			{#each collections as collection (collection.slug)}
-				{@const orgs = ownerOrgs(collection)}
-				<li>
-					<a
-						href={cardHref(collection.slug)}
-						class="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-					>
-						<Card
-							class="flex h-full flex-col p-6 transition-colors duration-200 group-hover:border-primary/40 group-hover:bg-accent/30"
-						>
-							<div class="flex items-start justify-between gap-3">
-								<h2 class="font-heading text-xl font-bold text-primary group-hover:underline">
-									{collection.name}
-								</h2>
-								<VisibilityBadge visibility={collection.visibility} />
-							</div>
-							<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-								{collection.description}
-							</p>
-							<p class="mt-4 flex items-center gap-1.5 text-sm text-foreground">
-								{#if collection.curator.kind === "org"}
-									<Building2 class="size-4 shrink-0 text-primary" aria-hidden="true" />
-								{:else}
-									<User class="size-4 shrink-0 text-primary" aria-hidden="true" />
-								{/if}
-								<span class="text-muted-foreground">Curada por</span>
-								<span class="min-w-0 truncate font-medium">{curatorLabel(collection.curator)}</span>
-							</p>
-							<div
-								class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 pt-4 text-sm text-muted-foreground"
-							>
-								<span class="inline-flex items-center gap-1.5" data-testid="collection-counts">
-									<Database class="size-4" aria-hidden="true" />
-									{collection.datasets.length} datasets de {orgs.length} organizaciones
-								</span>
-								<ul class="flex flex-wrap gap-1.5">
-									{#each orgs as org (org.name)}
-										<li
-											class="rounded-md border border-border bg-background px-2 py-0.5 text-xs font-semibold text-foreground"
-											title={org.title}
-										>
-											{org.acronym}
-										</li>
-									{/each}
-								</ul>
-							</div>
-						</Card>
-					</a>
-				</li>
-			{/each}
-		</ul>
+		<div class="mt-6">
+			{#if withTabs}
+				<OverflowTabs
+					items={tabItems}
+					value={activeTab}
+					onchange={(id) => (tab = id)}
+					label="Organización"
+					mobileBelow="611px"
+					countLabel={collectionsCountLabel}
+					class={surfaceClass("background")}
+					barTestId="barra-pestanas"
+					trailing={view === "panel" ? visibilityFilter : undefined}
+				>
+					{#each tabs as t (t.id)}
+						<Tabs.Content value={t.id} class="pt-4">
+							{#if activeTab === t.id}{@render list()}{/if}
+						</Tabs.Content>
+					{/each}
+				</OverflowTabs>
+			{:else}
+				{@render list()}
+			{/if}
+		</div>
 	</div>
 </div>

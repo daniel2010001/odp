@@ -5,13 +5,14 @@
 // circulación de documentos. La ficha se compara en dos vistas (S10): la pública, sin el avance de las
 // aprobaciones, y la del curador, con el bloque «Publicación».
 
-import { render, screen, within } from "@testing-library/svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { page } from "$app/stores";
 import CollectionMock from "../collection/+page.svelte";
 import DatasetCollectionsMock from "../dataset-collections/+page.svelte";
 import CollectionsMock from "./+page.svelte";
 import { COLLECTIONS, canSee, collectionBySlug, DATASETS } from "./data";
+import VisibilityBadge from "./VisibilityBadge.svelte";
 
 const pageStore = page as unknown as {
 	set: (value: { params: Record<string, string>; url: URL }) => void;
@@ -21,7 +22,33 @@ function at(url: string) {
 	pageStore.set({ params: {}, url: new URL(url) });
 }
 
+// Las pestañas de organización (`OverflowTabs` de bits-ui) miden con `ResizeObserver`, que jsdom no trae: el
+// mismo doble que `RequestsQueue.test.ts`.
+beforeAll(() => {
+	vi.stubGlobal(
+		"ResizeObserver",
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		},
+	);
+});
+
 const TRAMITE = /recibid|enviado a|derivad|en tr[aá]mite/i;
+
+// Las pestañas de organización (S22): las de «Solicitudes» (`OverflowTabs`), con el conteo de colecciones.
+const orgTabs = () => screen.getByRole("tablist", { name: "Organización" });
+const tabTexts = () =>
+	within(orgTabs())
+		.getAllByRole("tab")
+		.map((t) => t.textContent?.replace(/\s+/g, " ").trim());
+async function chooseTab(name: RegExp) {
+	const tab = within(orgTabs()).getByRole("tab", { name });
+	await fireEvent.mouseDown(tab);
+	await fireEvent.click(tab);
+	await waitFor(() => expect(tab).toHaveAttribute("aria-selected", "true"));
+}
 
 describe("maqueta — colecciones", () => {
 	afterEach(() => at("http://localhost/"));
@@ -48,10 +75,42 @@ describe("maqueta — colecciones", () => {
 		const list = screen.getByTestId("collections-list");
 		expect(within(list).getByText("4 datasets de 4 organizaciones")).toBeTruthy();
 		expect(list.textContent).not.toMatch(/Privada|Interna/);
+		// S22: una colección pública no lleva etiqueta de visibilidad.
+		expect(within(list).queryByText("Pública")).toBeNull();
 		expect(document.body.textContent).not.toMatch(TRAMITE);
+		// El primer render compila la page y sus pestañas: con la máquina cargada pasa de los 5 s por defecto.
+	}, 15_000);
+
+	it("la vista del menú principal filtra por quien cura con las pestañas de organización de «Solicitudes» (S22)", async () => {
+		at("http://localhost/dev/prototype/collections");
+		render(CollectionsMock);
+
+		expect(tabTexts()).toEqual([
+			"Todas 5",
+			"De personas 1",
+			"Dirección de Investigación 2",
+			"Facultad de Ciencias Agrícolas 1",
+			"Facultad de Ciencias y Tecnología 1",
+		]);
+		const dicyt = within(orgTabs()).getByRole("tab", { name: /Dirección de Investigación/ });
+		expect(within(dicyt).getByLabelText("2 colecciones")).toBeTruthy();
+		// La misma pestaña que las vistas del recurso y «Solicitudes».
+		expect(dicyt.className).toContain("h-12");
+		expect(dicyt.className).toContain("data-[state=active]:border-primary");
+		expect(screen.getByRole("button", { name: "Organización" })).toHaveTextContent(
+			"Todas (5 colecciones)",
+		);
+
+		await chooseTab(/Dirección de Investigación/);
+		expect(listNames()).toEqual([
+			"Investigación y laboratorios de la FCyT",
+			"Producción científica 2025",
+		]);
+		await chooseTab(/De personas/);
+		expect(listNames()).toEqual(["Indicadores académicos para tesis"]);
 	});
 
-	it("«Mis colecciones» del panel lista las que cura la persona y las de su organización, con el filtro de visibilidad", () => {
+	it("«Mis colecciones» del panel lista las que cura la persona y las de sus organizaciones, con el filtro de visibilidad", () => {
 		at("http://localhost/dev/prototype/collections?vista=panel");
 		render(CollectionsMock);
 
@@ -69,19 +128,22 @@ describe("maqueta — colecciones", () => {
 		for (const option of ["Privada", "Interna", "Pública"]) {
 			expect(within(visibility).getByRole("option", { name: option })).toBeTruthy();
 		}
-		const curator = screen.getByRole("combobox", { name: "Curador" });
-		expect(within(curator).getByRole("option", { name: "Curadas por mí" })).toBeTruthy();
-		expect(within(curator).getByRole("option", { name: "De mis organizaciones" })).toBeTruthy();
+		// S22: el desplegable «Curador» se reemplaza por las pestañas de organización.
+		expect(screen.queryByRole("combobox", { name: "Curador" })).toBeNull();
 
-		// Las suyas (una pública y una privada, su lista de trabajo) y la privada del Rectorado; no las ajenas.
+		// Las suyas, las de sus tres organizaciones (Q8: es miembro de varias); no las ajenas.
 		expect(listNames()).toEqual([
 			"Rendición pública de cuentas 2025",
+			"Investigación y laboratorios de la FCyT",
 			"Indicadores académicos para tesis",
 			"Lista de trabajo: capítulo de eficiencia terminal",
+			"Producción científica 2025",
+			"Autoevaluación para la acreditación de la FCyT",
 		]);
 		const list = screen.getByTestId("collections-list");
-		expect(within(list).getByText("3 datasets de 2 organizaciones")).toBeTruthy();
+		expect(within(list).getAllByText("3 datasets de 2 organizaciones").length).toBeGreaterThan(0);
 		expect(within(list).getAllByText("Privada").length).toBe(2);
+		expect(within(list).queryByText("Pública")).toBeNull();
 		// Desde el panel se abre la ficha en la vista del curador.
 		expect(within(list).getAllByRole("link")[0].getAttribute("href")).toBe(
 			"/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador",
@@ -89,15 +151,75 @@ describe("maqueta — colecciones", () => {
 		expect(document.body.textContent).not.toMatch(TRAMITE);
 	});
 
+	it("«Mis colecciones»: Todas · Personales · una pestaña por organización de quien mira, con su conteo (S22)", async () => {
+		at("http://localhost/dev/prototype/collections?vista=panel");
+		render(CollectionsMock);
+
+		expect(tabTexts()).toEqual([
+			"Todas 6",
+			"Personales 2",
+			"Dirección de Investigación 2",
+			"Facultad de Ciencias y Tecnología 1",
+			"Rectorado UMSS 1",
+		]);
+		await chooseTab(/Rectorado UMSS/);
+		expect(listNames()).toEqual(["Rendición pública de cuentas 2025"]);
+		await chooseTab(/Personales/);
+		expect(listNames()).toEqual([
+			"Indicadores académicos para tesis",
+			"Lista de trabajo: capítulo de eficiencia terminal",
+		]);
+	});
+
+	it("«Mis colecciones»: el filtro de visibilidad se suma a la pestaña", async () => {
+		at("http://localhost/dev/prototype/collections?vista=panel");
+		render(CollectionsMock);
+
+		const visibility = screen.getByRole("combobox", { name: "Visibilidad" });
+		await fireEvent.change(visibility, { target: { value: "Privada" } });
+		expect(listNames()).toEqual([
+			"Rendición pública de cuentas 2025",
+			"Lista de trabajo: capítulo de eficiencia terminal",
+		]);
+		await chooseTab(/Personales/);
+		expect(listNames()).toEqual(["Lista de trabajo: capítulo de eficiencia terminal"]);
+	});
+
 	it("la lista de trabajo privada de una persona no la ve nadie más (Q10)", () => {
 		const draft = collectionBySlug("capitulo-eficiencia-terminal");
 		expect(draft.visibility).toBe("Privada");
 		expect(draft.approvals).toBeUndefined();
 		expect(canSee(draft, { kind: "visitor" })).toBe(false);
-		expect(canSee(draft, { kind: "member", org: "rectorado" })).toBe(false);
+		expect(canSee(draft, { kind: "member", orgs: ["rectorado"] })).toBe(false);
 		expect(
-			canSee(draft, { kind: "member", org: "rectorado", name: "María Fernanda Rojas Vargas" }),
+			canSee(draft, {
+				kind: "member",
+				orgs: ["rectorado"],
+				name: "María Fernanda Rojas Vargas",
+			}),
 		).toBe(true);
+	});
+});
+
+describe("maqueta — etiqueta de visibilidad (S22)", () => {
+	it("una colección pública no lleva etiqueta", () => {
+		const { container } = render(VisibilityBadge, { visibility: "Pública", testid: "badge" });
+		expect(screen.queryByTestId("badge")).toBeNull();
+		expect(container.textContent?.trim()).toBe("");
+	});
+
+	it.each([
+		"Privada",
+		"Interna",
+	] as const)("«%s» es un chip como los demás, sin ícono", (visibility) => {
+		render(VisibilityBadge, { visibility, testid: "badge" });
+		const badge = screen.getByTestId("badge");
+		expect(badge).toHaveTextContent(visibility);
+		expect(badge.querySelector("svg")).toBeNull();
+		// El chip de las siglas y formatos de estas pantallas: borde, radio `md`, texto `xs`.
+		for (const c of ["rounded-md", "border", "border-border", "px-2", "py-0.5", "text-xs"]) {
+			expect(badge.classList).toContain(c);
+		}
 	});
 });
 
@@ -145,6 +267,17 @@ describe("maqueta — ficha de colección", () => {
 		expect(link.getAttribute("href")).toMatch(/^\/dev\/prototype\/collection\?c=/);
 	});
 
+	it("«También en» separa las colecciones con coma y espacio", () => {
+		at("http://localhost/dev/prototype/collection");
+		render(CollectionMock);
+
+		const many = screen
+			.getAllByTestId("also-in")
+			.find((el) => within(el).queryAllByRole("link").length > 1) as HTMLElement;
+		expect(many.textContent).toMatch(/[^\s], \S/);
+		expect(many.textContent).not.toMatch(/\S,\S/);
+	});
+
 	it("renderiza la descripción en markdown como HTML, no como texto crudo", () => {
 		at("http://localhost/dev/prototype/collection");
 		render(CollectionMock);
@@ -174,7 +307,10 @@ describe("maqueta — ficha de colección", () => {
 		expect(info).toHaveTextContent("Creada");
 		expect(info).toHaveTextContent("Última actualización");
 		expect(info).toHaveTextContent("Cada dataset conserva su licencia");
-		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Pública");
+		// S22: publicada, sin etiqueta de visibilidad.
+		expect(screen.queryByTestId("visibility-badge")).toBeNull();
+		const hero = screen.getByRole("heading", { level: 1 }).closest("header") as HTMLElement;
+		expect(hero.textContent).not.toMatch(/Pública/);
 		// La colección no está publicada: lo dice la franja de revisión, no el producto.
 		expect(screen.getByTestId("review-note")).toHaveTextContent(
 			"se muestra como se verá una vez publicada",
@@ -190,6 +326,7 @@ describe("maqueta — ficha de colección", () => {
 		expect(screen.queryByTestId("collection-info")).toBeNull();
 		// Q10: una colección privada de una organización la ven sólo sus miembros.
 		expect(screen.getByTestId("visibility-badge")).toHaveTextContent("Privada");
+		expect(screen.getByTestId("visibility-badge").querySelector("svg")).toBeNull();
 		expect(screen.getByTestId("visibility-audience")).toHaveTextContent(
 			"Sólo la ven los miembros de Rectorado UMSS",
 		);
@@ -218,6 +355,60 @@ describe("maqueta — ficha de colección", () => {
 		expect(screen.getByTestId("visibility-audience")).toHaveTextContent(
 			"La ven los usuarios con sesión",
 		);
+	});
+
+	it("la columna derecha queda pegada bajo el encabezado, como la de la ficha del dataset (S22)", () => {
+		at("http://localhost/dev/prototype/collection?vista=publica");
+		render(CollectionMock);
+
+		const aside = screen.getByTestId("collection-aside");
+		expect(aside.classList).toContain("lg:sticky");
+		expect(aside.classList).toContain("lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]");
+	});
+
+	it("la vista pública lista las organizaciones dueñas de los datasets, con la tarjeta de la ficha del dataset (S22)", () => {
+		at("http://localhost/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica");
+		render(CollectionMock);
+
+		const card = screen.getByTestId("collection-orgs");
+		expect(card).toHaveTextContent("Organizaciones");
+		const items = within(card).getAllByTestId("collection-org");
+		expect(items.map((el) => el.getAttribute("href"))).toEqual([
+			"/organization/fcyt",
+			"/organization/fcs",
+			"/organization/rectorado",
+		]);
+		expect(items[0]).toHaveTextContent("Facultad de Ciencias y Tecnología");
+		// El mosaico con la sigla, como `OrganizationLogo` en la tarjeta de la ficha.
+		expect(items[0]).toHaveTextContent("FCyT");
+		expect(items[0]).toHaveTextContent("1 dataset en esta colección");
+		expect(items[1]).toHaveTextContent("2 datasets en esta colección");
+	});
+
+	it("la vista del curador no repite la lista de organizaciones: la tiene el bloque de aprobación", () => {
+		at("http://localhost/dev/prototype/collection?vista=curador");
+		render(CollectionMock);
+
+		expect(screen.queryByTestId("collection-orgs")).toBeNull();
+	});
+
+	it("«Curada por» dice si la cura una organización o una persona, con su ícono (Q10, S22)", () => {
+		at("http://localhost/dev/prototype/collection?c=rendicion-cuentas-2025");
+		const first = render(CollectionMock);
+		const org = screen.getByTestId("hero-curator");
+		expect(org.textContent?.replace(/\s+/g, " ").trim()).toBe(
+			"Curada por la organización Rectorado UMSS",
+		);
+		expect(org.querySelector("[data-icon=org]")).toBeTruthy();
+		first.unmount();
+
+		at("http://localhost/dev/prototype/collection?c=indicadores-academicos");
+		render(CollectionMock);
+		const person = screen.getByTestId("hero-curator");
+		expect(person.textContent?.replace(/\s+/g, " ").trim()).toBe(
+			"Curada por María Fernanda Rojas Vargas, a título personal",
+		);
+		expect(person.querySelector("[data-icon=user]")).toBeTruthy();
 	});
 
 	it("elige la colección con ?c=", () => {
@@ -285,8 +476,9 @@ describe("maqueta — colecciones de un dataset", () => {
 		for (const item of items) {
 			expect(item.getAttribute("href")).toMatch(/^\/dev\/prototype\/collection\?c=/);
 		}
-		// La del Rectorado es privada: la ve porque es miembro.
-		expect(within(section).getByText("Privada")).toBeTruthy();
+		// La del Rectorado es privada: la ve porque es miembro. Las públicas no llevan etiqueta (S22).
+		expect(within(section).getByText("Privada").querySelector("svg")).toBeNull();
+		expect(within(section).queryByText("Pública")).toBeNull();
 		expect(document.body.textContent).not.toMatch(TRAMITE);
 	});
 });

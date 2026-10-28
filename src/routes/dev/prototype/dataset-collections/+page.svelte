@@ -44,7 +44,7 @@ const VIEWERS: { value: ViewerKey; label: string; viewer: Viewer; note: string }
 	{
 		value: "rectorado",
 		label: "Miembro del Rectorado",
-		viewer: { kind: "member", org: "rectorado" },
+		viewer: { kind: "member", orgs: ["rectorado"] },
 		note: "Lo que ve un miembro del Rectorado: además, las internas y las privadas del Rectorado.",
 	},
 ];
