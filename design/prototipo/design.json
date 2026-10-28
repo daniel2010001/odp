@@ -1,0 +1,28 @@
+{
+	"title": "Prototipo de la plataforma — pantallas",
+	"brief": "Las pantallas del portal de datos abiertos de la UMSS presentadas como diseño ante el tribunal, en lugar de Figma (S15): primero qué es la plataforma y para qué sirve, luego los prototipos como un diseño en proceso, no como algo ya instalado. Cada pantalla es un artboard autocontenido y compartible, igual a lo que el portal dibuja hoy; las que todavía no están construidas se señalan como diseño para después. Se suben por lotes y el autor las revisa en el lienzo.",
+	"feature": "odd/tasks/prototype-presentation.md",
+	"artboards": [
+		{
+			"file": "h2-4-ficha-dataset.html",
+			"title": "H2-4 · Ficha del dataset",
+			"tradeoff": "Construida hoy: la ficha real de «Matrícula estudiantil por carrera y gestión», con recursos, metadatos y licencia; sólo la sección «Aparece en las colecciones» es diseño para después (colecciones aún no existen en el portal)",
+			"width": 1440,
+			"height": 2472
+		},
+		{
+			"file": "h2-7-coleccion-de-una-persona.html",
+			"title": "H2-7 · Colección de una persona",
+			"tradeoff": "Diseño para después, no construido: la vista pública de una colección curada por una persona, que reúne datasets de varias organizaciones sin copiarlos",
+			"width": 1440,
+			"height": 1915
+		},
+		{
+			"file": "h3-1-mis-colecciones.html",
+			"title": "H3-1 · Mis colecciones",
+			"tradeoff": "Diseño para después, no construido: la lista de colecciones propias en el panel, con filtros de visibilidad y de curador; el panel existe hoy, esta sección no",
+			"width": 1440,
+			"height": 1358
+		}
+	]
+}

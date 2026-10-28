@@ -1,0 +1,28 @@
+{
+	"origin": "http://localhost:8082",
+	"cookies": [{ "name": "odp_prototype", "value": "on" }],
+	"width": 1440,
+	"outDir": "design/prototipo",
+	"removeSelectors": [
+		"[data-testid=\"review-strip\"]",
+		"button[aria-label=\"Editar colores del tema\"]"
+	],
+	"screens": [
+		{
+			"file": "h2-4-ficha-dataset.html",
+			"url": "/dataset/matricula-estudiantil-por-carrera-y-gestion",
+			"waitForText": ["Aparece en las colecciones"],
+			"waitForSelector": "a[href*=\"/resource/\"]",
+			"aliases": ["/dev/prototype/dataset-collections?d=matricula-por-carrera"]
+		},
+		{
+			"file": "h2-7-coleccion-de-una-persona.html",
+			"url": "/dev/prototype/collection?c=indicadores-academicos&vista=publica",
+			"aliases": ["/dev/prototype/collection?c=indicadores-academicos"]
+		},
+		{
+			"file": "h3-1-mis-colecciones.html",
+			"url": "/dev/prototype/collections?vista=panel"
+		}
+	]
+}
