@@ -139,7 +139,7 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 
 ### Módulo de Usuarios y Autenticación
 - RF-01: El sistema tendrá roles: `superadmin`, `org_admin`, `editor`, `viewer` (a nivel de organización) y roles específicos por dataset (`viewer`, `editor`, `steward`).
-- RF-02: Los usuarios pertenecen a una organización principal (tabla `user_organizations` para soporte multi-org en el futuro).
+- RF-02: ~~Los usuarios pertenecen a una organización principal~~ **Descartado (2026-10-26):** un usuario es miembro de una o varias organizaciones, con un rol en cada una; no hay organización principal (`design-system/datos-umss/preguntas-abiertas.md`, Q8).
 - RF-03: La creación de usuarios solo la realiza un `superadmin` o un `org_admin` (para su organización).
   *Estado medido (2026-10-09):* **es un requerimiento de `v1` (decisión del autor, 2026-10-09)**, y hoy **no lo hace el portal**: la creación
   de usuarios ocurre en la **UI nativa de CKAN** (su `create_user_via_api` está **desactivado** por defecto), así que
@@ -156,7 +156,7 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   *Decisión del autor (2026-10-23):* **los perfiles de usuario son públicos**, como en CKAN
   (`ckan.auth.public_user_details = true`): una vista pública por usuario, **sin el correo**, que CKAN no expone. Un
   usuario puede ser miembro de **varias** organizaciones con un rol distinto en cada una; la «organización principal» de
-  RF-02 queda en discusión (`design-system/datos-umss/preguntas-abiertas.md`, Q8).
+  RF-02 se descartó (2026-10-26, Q8).
 
 ### Módulo de Organizaciones
 - RF-06: Las organizaciones tienen: nombre, slug único, descripción, jerarquía (padre opcional, solo figurativa), metadatos de creación.

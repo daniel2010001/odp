@@ -209,6 +209,10 @@ En el modo *Prototype* (arriba a la derecha): seleccionar el elemento o dibujar 
 la imagen → arrastrar el círculo que aparece hasta el frame de destino → *On click* → *Navigate to*. El orden está en la
 tabla «Enlaces en Figma».
 
+## Decisión de captura (2026-10-26)
+
+Pantallas como **captura de pantalla** en frames de Figma; html.to.design sólo para la prueba de T7.
+
 ## Orden en Figma
 
 Un archivo de Figma con tres páginas (las «páginas» del panel izquierdo de Figma):
