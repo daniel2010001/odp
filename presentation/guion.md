@@ -1,9 +1,12 @@
 # Guion por historias — presentación formal del prototipo (jueves 2026-10-29, 16:00)
 
 En vez de recorrer las pantallas una por una, la presentación cuenta **tres historias**. Cada una sigue a una persona
-que necesita algo y muestra las pantallas en el orden en que las usaría. Las historias deciden también **qué frames se
-enlazan en Figma**: los enlaces se arman a mano (ver «Importar a Figma»), así que sólo se enlazan los pasos de estos
-recorridos. El resto de las pantallas se importa igual y se muestra desde el índice si alguien la pide.
+que necesita algo y muestra las pantallas en el orden en que las usaría.
+
+**Soporte (decidido el 2026-10-28):** el tribunal quiere ver el **proceso de diseño**, no la implementación, y aceptó el
+lienzo de **Gentle Design** en lugar de Figma, siempre que se pueda compartir. Las historias se recorren **desde el portal
+con el modo prototipo activado** (las páginas enlazan entre sí, como un prototipo de Figma); las pantallas como diseños
+están en el lienzo y publicadas en `https://daniel2010001.github.io/odp/design/`. No hay PDF de respaldo.
 
 **Duración:** unos 4 minutos por historia, más apertura y cierre: alrededor de **15 minutos**. **[validar]** cuánto
 tiempo le dan para exponer.
@@ -12,7 +15,7 @@ tiempo le dan para exponer.
 una **maqueta** (diseño de lo que viene, sin funcionamiento). Conviene decirlo en voz alta al pasar a una maqueta:
 *«esta pantalla todavía no funciona; es el diseño»*.
 
-**Antes de capturar: active el modo prototipo** en `https://odp.hs.lan/dev/prototype` (interruptor «Modo prototipo»,
+**Antes de presentar: active el modo prototipo** en `https://odp.hs.lan/dev/prototype` (interruptor «Modo prototipo»,
 arriba de «Pantallas construidas»). Con él, las páginas reales muestran los accesos a lo nuevo: «Colecciones» en el menú,
 «Aparece en las colecciones» en la ficha de la matrícula, «Colecciones que cura» en la ficha de una organización y «Mis
 colecciones» y «Usuarios» en el panel. Sólo existe en desarrollo; en producción no aparece. Se queda activado (cookie)
@@ -114,6 +117,24 @@ tener las suyas para revisar datos sin publicarlas, y una organización las suya
 
 ---
 
+## Cómo diseñamos (2 minutos)
+
+**Qué mostrar:** el lienzo de Gentle Design con el diseño `inicio` (`https://daniel2010001.github.io/odp/design/` si se
+abre desde otro equipo).
+
+1. **El sistema de diseño** (`system.html`): colores, tipografías y componentes. *«Todas las pantallas salen de estos
+   tokens; el mismo archivo los usa el portal, así que lo que se diseña es lo que se implementa.»*
+2. **Tres direcciones para el Inicio** (01, 02, 03): cada una con lo que gana y lo que pierde. *«No se diseña una sola
+   opción: se comparan alternativas.»*
+3. **La iteración** (04): *«Revisé las tres, me quedé con partes de cada una y salió esta síntesis.»* Nombrar uno o dos
+   ejemplos concretos: el encabezado de la 03, «Cómo llega un dato al catálogo» de la 02, la ficha de ejemplo de la 01.
+4. **Comentarios sobre el diseño:** se comenta sobre el elemento mismo y el cambio queda en el historial del repositorio.
+
+Si preguntan **por qué no Figma**: el diseño vive en el repositorio, versionado junto al código, y usa los mismos tokens
+que el portal; no hay un archivo aparte que se desactualice. Es gratuito, sin límite de uso y local.
+
+---
+
 ## Cierre (1 minuto)
 
 - **Lo que viene** (se menciona, no se muestra): gestión de miembros de la organización, colaboradores de un dataset,
@@ -125,119 +146,7 @@ tener las suyas para revisar datos sin publicarlas, y una organización las suya
 
 ---
 
-## Enlaces en Figma
-
-Un frame por paso; el nombre del frame es `H<historia>-<paso>` (por ejemplo `H1-4 Nuevo dataset`). El enlace sale del
-elemento que se pulsaría en la página real.
-
-| Desde | Elemento | Hacia |
-|---|---|---|
-| H1-1 Alta de usuario | botón «Enviar invitación» | H1-2 |
-| H1-2 Inicio de sesión | botón «Iniciar Sesión» | H1-3 |
-| H1-3 Panel | «Crear dataset» | H1-4 |
-| H1-4 Nuevo dataset | botón «Crear dataset» | H1-5 |
-| H1-5 Ficha del editor | «Solicitar publicación» | H1-6 |
-| H1-6 Solicitudes | «Aprobar» | H1-7 |
-| H2-1 Inicio | «Organizaciones» en el menú | H2-2 |
-| H2-1 / H2-2 | buscador, con «matrícula» escrito | H2-3 |
-| H2-3 Resultados | el título del dataset | H2-4 |
-| H2-4 Ficha | el recurso CSV | H2-5 |
-| H2-5 Recurso | «Volver al dataset» | H2-6 (la ficha, en la sección de colecciones) |
-| H2-1 Inicio | «Colecciones» en el menú | H2-6b |
-| H2-6 Colecciones del dataset | «Indicadores académicos para tesis» | H2-7 |
-| H1-3 Panel | «Mis colecciones» | H3-1 |
-| H3-1 Mis colecciones | «Rendición pública de cuentas 2025» | H3-2 |
-| H3-2 Vista del curador | selector de vista, «Pública» | H3-3 |
-| H3-3 Vista pública | «Informe de gestión 2025 — FCyT» | H3-4 |
-
-## Importar a Figma
-
-**Límite que manda:** el plan gratuito de html.to.design permite **10 importaciones cada 30 días** (ventana móvil;
-`html.to.design/docs/pro-plan`). Este guion tiene 18 pasos. Cada captura es una importación, también las de prueba.
-
-Hay dos formas de llevar una pantalla a Figma; para un prototipo que se recorre con clics, las dos sirven igual:
-
-| | html.to.design | Captura de pantalla (imagen) |
-|---|---|---|
-| Resultado en Figma | capas editables (textos, colores, auto layout) | una imagen |
-| Costo | 1 de las 10 importaciones | ninguno |
-| Enlaces | a mano | a mano, con zonas pulsables sobre la imagen |
-| Si la pantalla cambia | otra importación | otra captura |
-
-Como los cambios se hacen en el código (regla 8 de `AGENTS.md`) y no en Figma, editar en Figma no hace falta para
-presentar.
-
-### Las herramientas, comparadas (2026-10-26)
-
-| | html.to.design | Export to Figma (Eftikharul Alam Shoun) |
-|---|---|---|
-| Navegador | Chromium (Chrome, Edge, Brave) | Chrome y **Firefox** (en Firefox figura como «vista previa») |
-| Cómo llega a Figma | extensión → plugin de Figma | extensión → **copiar y pegar** (`Ctrl+V`), sin plugin |
-| Gratis | **10 importaciones cada 30 días** | **10 exportaciones por mes** |
-| Pago | PRO | Pro: **US$ 1 al mes** (precio de lanzamiento), ilimitado |
-| Páginas locales | sí (con la extensión) | sí («localhost and local HTML files») |
-
-Fuentes: `html.to.design/docs/pro-plan`, `exporttofigma.com/pricing`, ficha de la Chrome Web Store. Su ficha declara que
-maneja «Website content»; su política dice que no guarda los datos de las páginas capturadas, pero no aclara si las procesa
-en su servidor. Las pantallas del prototipo sólo tienen datos de ejemplo; **no capture** una página con una contraseña o una
-clave de API escrita.
-
-**Los `<select>` salen vacíos** (observado por el autor con Export to Figma). Los desplegables nativos los dibuja el
-navegador, no la página, y estas herramientas no los leen bien. Están en: H1-1 (organización y rol del alta), H1-4
-(organización y licencia), H1-6 (estado de las solicitudes), H2-3 (orden de los resultados) y H3-1 (filtros de «Mis
-colecciones»). Para esos frames: **captura de pantalla**, o escribir el texto encima en Figma.
-
-### Con html.to.design (la prueba de T7)
-
-1. **Plugin de Figma.** En un archivo de diseño de Figma: menú *Actions* (o *Plugins*) → buscar **html.to.design** →
-   *Run*. La primera vez se instala desde Figma Community.
-2. **Extensión del navegador.** Instalar la extensión **html.to.design** desde la Chrome Web Store. Funciona en navegadores
-   Chromium (Chrome, Edge, Brave); **no en Firefox**. Hay que tener la sesión de Figma abierta en ese mismo navegador.
-3. **Abrir la página** en ese navegador, con la ventana a ancho de escritorio (16:9, por ejemplo 1920 × 1080). Para la
-   prueba: `https://odp.hs.lan/dev/prototype/users`.
-4. **Capturar.** Abrir la extensión → elegir **Send to Figma plugin** → **Capture**. Para dejar afuera la franja punteada de
-   revisión de las maquetas, capturar **una selección** (el área de producto) en vez de la página entera. Chrome avisa que la
-   extensión «está depurando este navegador»: es normal, la usa para leer la página tal como se ve.
-5. **Importar.** En Figma, en el plugin, pestaña **Extension**: la captura aparece ahí (o se importa sola). Importar.
-6. **Revisar:** las tipografías (EB Garamond, Poppins y JetBrains Mono están en Figma; si el plugin dice que falta alguna,
-   ofrece reemplazarla), los colores, los iconos y que nada se haya desarmado.
-
-Si algo falla, la alternativa sin plugin es la captura de pantalla.
-
-### Con captura de pantalla (sin límite)
-
-1. Abrir la página en Chrome y pulsar `F12` (herramientas de desarrollo).
-2. `Ctrl+Shift+M` → arriba, *Responsive* → escribir **1920 × 1080**.
-3. `Ctrl+Shift+P` → escribir **Capture full size screenshot** → `Enter`. Se descarga un PNG de la página entera.
-4. En Figma: crear un frame de 1920 de ancho, arrastrar el PNG adentro y nombrarlo como el paso (`H1-4 Nuevo dataset`).
-
-### Enlazar en Figma (para las dos formas)
-
-En el modo *Prototype* (arriba a la derecha): seleccionar el elemento o dibujar un rectángulo transparente sobre el botón de
-la imagen → arrastrar el círculo que aparece hasta el frame de destino → *On click* → *Navigate to*. El orden está en la
-tabla «Enlaces en Figma».
-
-## Decisión de captura (2026-10-26)
-
-Pantallas como **captura de pantalla** en frames de Figma; html.to.design sólo para la prueba de T7.
-
-## Orden en Figma
-
-Un archivo de Figma con tres páginas (las «páginas» del panel izquierdo de Figma):
-
-1. **Historias**: los frames de la presentación, **una fila por historia**, de izquierda a derecha en el orden de los
-   pasos: fila 1 `H1-1` … `H1-7`, fila 2 `H2-1` … `H2-7`, fila 3 `H3-1` … `H3-4`. El punto de partida del prototipo
-   (*Flow starting point*) va en `H1-1`, o en `H1-2` si se salta el alta de usuario. Son **19 frames**.
-2. **Otras pantallas**: lo que no está en las historias, para mostrar si alguien lo pide (organización, acerca de, página
-   de error, constructor de gráficos, la búsqueda sin resultados, la vista pública de una colección ya publicada).
-3. **Pruebas**: las importaciones de prueba; se borra antes de presentar.
-
-Qué capturar primero, si las importaciones no alcanzan: las **maquetas** de las historias (son lo nuevo y lo que el
-tribunal no vio): `H1-1`, `H2-2`, `H2-6`, `H2-6b`, `H2-7`, `H3-1` … `H3-4` (9). Las páginas construidas (`H1-2` … `H1-7`,
-`H2-1`, `H2-3` … `H2-5`, 10) pueden ir como captura de pantalla.
-
 ## Pendientes antes del jueves
 
-1. **Probar la importación con html.to.design** con una página (T7). Si falla, cambia todo el camino a Figma.
-2. Capturar los frames de cada historia a **16:9 de escritorio**, con el usuario que corresponde a cada paso.
-3. Validar la duración y las respuestas **[validar]** de `preguntas.md`.
+1. Elegir o ajustar la dirección del Inicio (04) para la parte «Cómo diseñamos».
+2. Validar la duración y las respuestas **[validar]** de `preguntas.md`.

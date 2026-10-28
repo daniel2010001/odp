@@ -221,3 +221,15 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   shared like Figma. Asked to commit `design/` — «hazlo» (`624daa5`). Batch 1 of T16: H2-4 dataset sheet (built), H2-7
   collection of a person (mock), H3-1 «Mis colecciones» (mock, with selects). Design `design/prototipo/` links to this
   feature; `design/inicio/` (three home directions) is a standalone trial.
+- **L14** (2026-10-28, author): present the stories from the portal in prototype mode — «si, mejor»; no backup PDF — «creo que
+  no hará falta»; add «cómo diseñamos» to the script — «hazlo» (done, `presentation/guion.md`; the Figma sections were removed);
+  citation on dataset sheets — «hazlo, pero no es necesario que funcione, solo mostrarlo» (the real sheet already shows «Citar
+  como»). Canvas from the desktop: the canvas only accepts loopback (HTTP 421 to any other Host), so it needs an SSH tunnel
+  or Gentle Shell on the desktop. Inicio feedback, verbatim: "inicio: 1: el hero no me termina de gustar, lo rescatable es eso
+  que ponemos en el lado derecho, eso indica las partes de los datasets, también me gusta la parte de "novedades", es buena
+  idea, no tanto así el diseño. 2: hero más formal, me gusta. la parte de "cómo llega un dato al catálogo" me gusta. índice de
+  unidades también gusta, el de temas y sections no termina de gustar. el "para su investigación" me gusta mucho. 3: hero me
+  gusta mucho, pero no esas cards de "por unidad", etc. "qué encontrará" me encanta, y el "para empezar" también es buena idea.
+  Podemos iterar el inicio con estas preferencias?" → artboard 04. H2-4, verbatim: "podemos implementar las observaciones que
+  hice anteriormente? creo que están como TODOs. y creo que faltaría eso de la card de publicación en la parte derecha." →
+  candidates found in BACKLOG («Detalles» vs «Información técnica», hero tooltips, metadata card E4); asked which.
