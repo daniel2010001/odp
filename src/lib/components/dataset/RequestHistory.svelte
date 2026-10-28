@@ -7,6 +7,10 @@
 	Sólo muestra lo que la fila trae: un campo ausente se omite en vez de inventarse. Eso cubre las filas
 	anteriores a la migración 0002 (cancelaciones sin fecha ni autor; aprobaciones con el comentario sin
 	atribuir en `comments`, que se rotula «Comentario» a secas). Sin filas no dibuja nada.
+
+	`limit` y `reveal` son las variantes de `/dev/dataset-panel` (S17 de `odd/tasks/prototype-presentation.md`):
+	con `limit={1}` el historial queda plegado y siempre muestra la última solicitud; `reveal="card"` hace
+	aparecer el botón del enlace con toda la tarjeta (ver `AnchorLink`). Sin ellas, la tarjeta es la de la ficha.
 -->
 <script lang="ts">
 import { Ban, CircleCheck, CircleHelp, CircleX, Clock, Undo2 } from "@lucide/svelte";
@@ -18,10 +22,18 @@ import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
 import AnchorLink from "./AnchorLink.svelte";
 
-let { rows }: { rows: PublicationRequest[] } = $props();
+let {
+	rows,
+	limit = 4,
+	reveal = "title",
+}: {
+	rows: PublicationRequest[];
+	/** Cuántas entradas se ven antes de «Ver más». */
+	limit?: number;
+	reveal?: "title" | "card";
+} = $props();
 
-/** Cuántas entradas se ven antes de «Ver más». */
-const LIMITE = 4;
+const LIMITE = $derived(limit);
 let showAll = $state(false);
 const visibles = $derived(showAll ? rows : rows.slice(0, LIMITE));
 const ocultas = $derived(rows.length - visibles.length);
@@ -89,14 +101,17 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 {#if rows.length > 0}
 	<Card
 		id="history"
-		class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
+		class={cn(
+			"scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5",
+			reveal === "card" && "group/tarjeta",
+		)}
 		data-testid="historial-solicitudes"
 	>
 		<div class="group/ancla flex h-4 items-center gap-2">
 			<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 				Historial de solicitudes
 			</p>
-			<AnchorLink id="history" title="Historial de solicitudes" />
+			<AnchorLink id="history" title="Historial de solicitudes" {reveal} />
 		</div>
 		<ol class="relative mt-3">
 			<span class="absolute bottom-2 left-2.5 top-2 w-px bg-border" aria-hidden="true"></span>

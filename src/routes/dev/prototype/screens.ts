@@ -47,7 +47,7 @@ export const SCREENS: Screen[] = [
 		title: "Ficha de dataset",
 		href: "/search",
 		audience: "Visitante",
-		note: "Abrir un dataset con varios recursos desde el catálogo.",
+		note: "Abrir un dataset con varios recursos desde el catálogo. El orden y el desplazamiento del panel derecho se revisan en el playground /dev/dataset-panel.",
 	},
 	{
 		kind: "built",

@@ -3,13 +3,28 @@
 	un ícono de enlace junto al título de la sección que copia la URL completa con su fragmento (`#summary`,
 	`#license`…) sin cambiar la URL de la página. Aparece al pasar el cursor o enfocar y queda siempre visible en
 	pantallas táctiles (donde no hay cursor). La fila del título debe llevar `group/ancla`.
+
+	`reveal="card"` es la variante «Unificado» de `/dev/dataset-panel` (S17 de
+	`odd/tasks/prototype-presentation.md`): el botón aparece al pasar el cursor por **toda la tarjeta** o al
+	enfocar cualquier cosa dentro de ella, y entonces la tarjeta debe llevar `group/tarjeta`.
 -->
 <script lang="ts">
 import { page } from "$app/stores";
 import { shareLink } from "$lib/components/resource/preview-views";
 import { CopyButton } from "$lib/components/ui/copy-button";
 
-let { id, title }: { id: string; title: string } = $props();
+let {
+	id,
+	title,
+	reveal = "title",
+}: { id: string; title: string; reveal?: "title" | "card" } = $props();
+
+// Clases literales: Tailwind sólo genera las que lee escritas.
+const REVEAL = {
+	title:
+		"opacity-0 transition-opacity group-hover/ancla:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100",
+	card: "opacity-0 transition-opacity group-hover/tarjeta:opacity-100 group-focus-within/tarjeta:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100",
+} as const;
 </script>
 
 <CopyButton
@@ -18,5 +33,5 @@ let { id, title }: { id: string; title: string } = $props();
 	copiedLabel="Enlace copiado"
 	icon="link"
 	size="sm"
-	class="opacity-0 transition-opacity group-hover/ancla:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100"
+	class={REVEAL[reveal]}
 />

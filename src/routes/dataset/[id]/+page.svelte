@@ -1,14 +1,5 @@
 <script lang="ts">
-import {
-	Check,
-	ChevronRight,
-	Copy,
-	Database,
-	ExternalLink,
-	FileText,
-	Inbox,
-	Pencil,
-} from "@lucide/svelte";
+import { Database, Pencil } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
@@ -26,36 +17,30 @@ import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import ActionsMenu from "$lib/components/dataset/ActionsMenu.svelte";
 import AnchorLink from "$lib/components/dataset/AnchorLink.svelte";
+import DatasetSidebar from "$lib/components/dataset/DatasetSidebar.svelte";
 import type { MenuItem } from "$lib/components/dataset/more-menu";
 import OverflowBadges, { type BadgeItem } from "$lib/components/dataset/OverflowBadges.svelte";
-import PublicationDecision from "$lib/components/dataset/PublicationDecision.svelte";
 import type { PublicationDecisionResult } from "$lib/components/dataset/publication-decision";
-import RequestHistory from "$lib/components/dataset/RequestHistory.svelte";
 import RequestPublicationControl from "$lib/components/dataset/RequestPublicationControl.svelte";
 import ResourceCard from "$lib/components/dataset/ResourceCard.svelte";
 import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
-import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import { rewriteLegacyFragment } from "$lib/components/resource/legacy-fragment";
 import { upgradeFragment } from "$lib/components/resource/preview-views";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup } from "$lib/components/ui/meta";
-import { estadoDeLaSolicitud, insigniaDeLaSolicitud } from "$lib/copy/publication";
+import { insigniaDeLaSolicitud } from "$lib/copy/publication";
 import { stateLabel } from "$lib/copy/states";
-import { summaryFacts, technicalGroups } from "$lib/datasets/details";
+import { technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
 import { isPrototypeMode } from "$lib/prototype/mode";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanPackage } from "$lib/types/ckan";
-import { cn } from "$lib/utils";
-import { copyToClipboard, formatCitationAPA, formatCitationBibTeX } from "$lib/utils/citation";
 import { formatDate, ownerOrgIdOf } from "$lib/utils/ckan";
 import { SUMMARY_EXTRA_KEY } from "$lib/utils/dataset-summary";
-import { safeExternalUrl } from "$lib/utils/external-url";
-import { licenseTermsUrl } from "$lib/utils/licenses";
 import { renderMarkdown } from "$lib/utils/markdown";
 import DatasetCollections from "../../dev/prototype/collections/DatasetCollections.svelte";
 import { collectionsOfRealDataset } from "../../dev/prototype/collections/data";
@@ -91,8 +76,6 @@ let pendingRequestCount = $state(0);
 let historialDeSolicitudes = $state<PublicationRequest[]>([]);
 let loading = $state(true);
 let failure = $state<DatasetFailure | null>(null);
-let citationFormat = $state<"apa" | "bibtex">("apa");
-let copied = $state(false);
 
 // Una URL incompleta es un estado propio, no un fallo del catálogo: reintentar no puede arreglar
 // una dirección mal formada, así que se ofrece sólo el enlace de vuelta y la página no afirma nada
@@ -239,14 +222,7 @@ async function loadHistory() {
 // La oración del estado de la solicitud vive en `$lib/copy/publication.ts`: cualquier superficie que
 // muestre la tarjeta tiene que renderizar **esta** frase, no una copia que puede quedar vieja.
 
-// La tarjeta sólo existe mientras hay algo que decir de la solicitud: pendiente, o rechazada (el
-// dataset sigue privado). Una aprobada ya es un dataset público y no la muestra, para nadie — así las
-// fichas públicas quedan iguales entre sí (decisión del autor, 2026-10-18); una cancelada o anulada
-// tampoco tiene nada en curso. Es una lista positiva: un estado nuevo no dibuja la tarjeta hasta
-// nombrarlo acá.
-const tarjetaDeSolicitudVisible = $derived(
-	solicitudVigente?.status === "pending" || solicitudVigente?.status === "rejected",
-);
+// Qué tarjeta de la solicitud dibuja la columna lateral lo decide `DatasetSidebar`.
 
 async function loadDataset() {
 	if (!datasetId) {
@@ -459,12 +435,7 @@ const activeResources = $derived(
 const visibleTags = $derived(dataset?.tags?.slice(0, 5) ?? []);
 const hiddenTagCount = $derived((dataset?.tags?.length ?? 0) - 5);
 
-// El «Resumen» del sidebar y los grupos de «Información técnica» (ver `$lib/datasets/details`).
-const summary = $derived(dataset ? summaryFacts(dataset) : []);
-// Los términos sólo se ofrecen con un destino web: el catálogo guarda la dirección que alguien escribió.
-const termsUrl = $derived(
-	safeExternalUrl(licenseTermsUrl(dataset?.license_id, dataset?.license_url)),
-);
+// Los grupos de «Información técnica» (ver `$lib/datasets/details`); el «Resumen» lo arma `DatasetSidebar`.
 const technical = $derived(dataset ? technicalGroups(dataset) : []);
 
 // ─── Breadcrumb ─────────────────────────────────────────────────
@@ -500,12 +471,8 @@ const searchHref = (key: "org" | "tags" | "license", value: string) =>
 // «Activo» es el estado por defecto y el hero no lo repite; cualquier otro, conocido o no, se dice.
 const stateBadge = $derived(dataset?.state === "active" ? null : stateLabel(dataset?.state));
 
-// La página de la organización es la de la miga y la tarjeta lateral; la insignia del hero filtra el catálogo.
-const orgHref = $derived(
-	dataset?.organization?.name
-		? `/organization/${encodeURIComponent(dataset.organization.name)}`
-		: null,
-);
+// La página de la organización es la de la miga y la tarjeta lateral (`DatasetSidebar`); la insignia del hero
+// filtra el catálogo.
 
 const heroBadges = $derived.by((): BadgeItem[] => {
 	if (!dataset) return [];
@@ -563,25 +530,7 @@ const puedeEditarDataset = $derived.by(() => {
 // «Copiar enlace» es sólo ícono y va siempre a la izquierda del título (T4, v0.1.1; decisión del autor,
 // 2026-10-19).
 
-// ─── Citation ───────────────────────────────────────────────────
-const citationText = $derived(
-	citationFormat === "apa" && dataset
-		? formatCitationAPA(dataset)
-		: dataset
-			? formatCitationBibTeX(dataset)
-			: "",
-);
-
-async function handleCopyCitation() {
-	if (!citationText) return;
-	const ok = await copyToClipboard(citationText);
-	if (ok) {
-		copied = true;
-		setTimeout(() => {
-			copied = false;
-		}, 2000);
-	}
-}
+// La cita («Citar como») la arma `DatasetSidebar`.
 
 // Enlace canónico del dataset (usa el slug, no el id interno).
 // Modo prototipo (`$lib/prototype/mode.ts`, sólo en desarrollo): las colecciones de la maqueta que incluyen
@@ -836,229 +785,17 @@ const resumenEditorial = $derived(
 					</Card>
 				</div>
 
-				<!-- Sidebar -->
-				<aside
-					class="min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]"
-				>
-					<!-- La tarjeta del estado de la solicitud **encabeza la columna lateral** (variante C de
-					     la posición de las solicitudes, elegida por el autor el 2026-10-19): la columna es pegajosa en
-					     escritorio, así que el aprobador decide sin bajar. Antes era la segunda de la columna
-					     principal, después de la información textual.
-					     Muestra en qué está y, desde el 2026-10-14, también **deja decidirla** —cuando quien mira
-					     administra la organización dueña, la solicitud está pendiente y no es suya—: la gobernanza
-					     pide revisar **y** decidir, y el dataset está privado, así que no está en el catálogo y el
-					     revisor no tiene otro camino hasta él. El control es el **mismo** de la cola
-					     (`PublicationDecision`), así que las reglas no se duplican en ningún lado. La acción de
-					     **pedir** o cancelar sigue en el hero, que es la del solicitante. -->
-					{#if tarjetaDeSolicitudVisible && solicitudVigente}
-						<Card class="p-6 sm:p-8">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-								Solicitud de publicación
-							</p>
-							<p
-								class="mt-2 flex items-center gap-2 text-sm leading-relaxed text-foreground"
-								data-testid="estado-solicitud"
-							>
-								<Inbox class="size-4 shrink-0 text-primary" aria-hidden="true" />
-								{estadoDeLaSolicitud(solicitudVigente)}
-							</p>
-							{#if pendingRequestCount > 1}
-								<p
-									class="mt-1 text-xs text-muted-foreground"
-									data-testid="pending-requests-count"
-								>
-									Hay {pendingRequestCount} solicitudes pendientes para este dataset.
-								</p>
-							{/if}
-							{#if solicitudVigente.status === "pending" && puedeDecidirSolicitud}
-								<PublicationDecision
-									item={solicitudVigente}
-									decide={decidir}
-									readDataset={readStoredDataset}
-									ondecided={reflejarDecision}
-								/>
-							{/if}
-						</Card>
-					{/if}
-
-					<!-- Cite card -->
-					<Card id="cite" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
-						<div class="group/ancla flex h-4 items-center gap-2">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
-							<AnchorLink id="cite" title="Citar como" />
-						</div>
-						<div class="mt-3 flex items-center gap-2">
-							<button
-								type="button"
-								onclick={() => (citationFormat = "apa")}
-								class={cn(
-									"rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-									citationFormat === "apa"
-										? "bg-primary text-primary-foreground"
-										: "border border-border bg-background text-muted-foreground hover:bg-accent",
-								)}
-							>
-								APA
-							</button>
-							<button
-								type="button"
-								onclick={() => (citationFormat = "bibtex")}
-								class={cn(
-									"rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-									citationFormat === "bibtex"
-										? "bg-primary text-primary-foreground"
-										: "border border-border bg-background text-muted-foreground hover:bg-accent",
-								)}
-							>
-								BibTeX
-							</button>
-							<div class="flex-1"></div>
-							<button
-								type="button"
-								onclick={handleCopyCitation}
-								aria-label="Copiar cita"
-								title="Copiar al portapapeles"
-								class="inline-flex size-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-							>
-								{#if copied}
-									<Check class="size-4 text-positive" />
-								{:else}
-									<Copy class="size-4" />
-								{/if}
-							</button>
-						</div>
-						<p class="mt-3 whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs leading-relaxed text-foreground">
-							{citationText}
-						</p>
-					</Card>
-
-					<!-- Resumen: lo que responde «¿me sirve esto?». Reemplaza a «Detalles» (variante C de
-					     `/dev/dataset-details`); el resto vive en «Información técnica». -->
-					<Card id="summary" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
-						<div class="group/ancla flex h-4 items-center gap-2">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
-							<AnchorLink id="summary" title="Resumen" />
-						</div>
-						<dl class="mt-3 space-y-3">
-							{#each summary as fact (fact.key)}
-								<!-- `#license` es la fila «Términos» (el destino de los términos de uso) y, sin enlace a los
-								     términos, la fila de la licencia. -->
-								{@const licenciaAqui = fact.key === "license" && !termsUrl}
-								<div
-									id={licenciaAqui ? "license" : undefined}
-									class={cn(
-										"flex items-start gap-3",
-										licenciaAqui &&
-											"group/ancla scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]",
-									)}
-								>
-									<fact.icon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-									<div class="min-w-0">
-										<dt class="text-xs text-muted-foreground">{fact.label}</dt>
-										<dd class="text-sm font-semibold leading-snug text-foreground">
-											{#if fact.key === "license" && dataset.license_id}
-												<!-- El nombre de la licencia filtra el catálogo (`/search?license=`). -->
-												<a
-													href={searchHref("license", dataset.license_id)}
-													aria-label={`Ver datasets con licencia ${fact.value} en el catálogo`}
-													class="relative inline-flex underline decoration-dotted underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-3.5 after:content-[''] hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													>{fact.value}</a
-												>
-											{:else}
-												{fact.value}
-											{/if}
-										</dd>
-									</div>
-									{#if licenciaAqui}
-										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Licencia" /></div>
-									{/if}
-								</div>
-								{#if fact.key === "license" && termsUrl}
-									<!-- Los términos de la licencia son otro destino —un sitio externo— y tienen su propia fila
-									     (variante L3 de `/dev/responsive-actions`, elegida por el autor el 2026-10-20): mezclarlos
-									     con el nombre en una misma insignia dejaba dos destinos en un solo control. -->
-									<div
-										id="license"
-										class="group/ancla flex scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] items-start gap-3"
-									>
-										<FileText class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-										<div class="min-w-0">
-											<dt class="text-xs text-muted-foreground">Términos</dt>
-											<dd class="text-sm">
-												<a
-													href={termsUrl}
-													target="_blank"
-													rel="noopener noreferrer"
-													aria-label={`Ver los términos de la licencia ${fact.value} (sitio externo, se abre en otra pestaña)`}
-													class="relative inline-flex min-h-8 items-center gap-1 font-medium text-primary underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													>Ver los términos<ExternalLink class="size-4" aria-hidden="true" /></a
-												>
-											</dd>
-										</div>
-										<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Términos" /></div>
-									</div>
-								{/if}
-							{/each}
-						</dl>
-						<!-- Fila de pie (variante C de `/dev/card-links`): el enlace ocupa el ancho de la tarjeta
-						     y llega a 44 px de alto. -->
-						<a
-							href="#technical-info"
-							class="group -mx-5 -mb-5 mt-4 flex min-h-11 items-center justify-between gap-3 rounded-b-xl border-t border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-						>
-							Ver la información técnica
-							<ChevronRight
-								class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-								aria-hidden="true"
-							/>
-						</a>
-					</Card>
-
-					<!-- Historial de solicitudes (variante H2 de `/dev/request-history`, elegida por el autor el
-					     2026-10-20): tarjeta propia bajo «Resumen». Sólo existe si el catálogo devolvió filas. -->
-					<RequestHistory rows={historialDeSolicitudes} />
-
-					<!-- Organization card -->
-					{#if dataset.organization?.title}
-						<Card id="organization" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5">
-							<div class="group/ancla flex h-4 items-center gap-2">
-								<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
-								<AnchorLink id="organization" title="Organización" />
-							</div>
-							<div class="mt-3 flex items-start gap-3">
-								<OrganizationLogo
-									imageUrl={dataset.organization.image_url}
-									name={dataset.organization.title}
-								/>
-								<div class="min-w-0 flex-1">
-									<p class="font-heading text-sm font-bold text-foreground">
-										{dataset.organization.title}
-									</p>
-									{#if dataset.organization.description}
-										<p class="mt-1 line-clamp-3 text-xs text-muted-foreground">
-											{dataset.organization.description}
-										</p>
-									{/if}
-								</div>
-							</div>
-							{#if orgHref}
-								<!-- Fila de pie (variante C de `/dev/card-links`). El texto no repite el título de la
-								     organización: la tarjeta ya lo muestra arriba y un título largo partía el enlace. -->
-								<a
-									href={orgHref}
-									class="group -mx-5 -mb-5 mt-4 flex min-h-11 items-center justify-between gap-3 rounded-b-xl border-t border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-								>
-									Ver los datasets de la organización
-									<ChevronRight
-										class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-										aria-hidden="true"
-									/>
-								</a>
-							{/if}
-						</Card>
-					{/if}
-
-				</aside>
+				<!-- Sidebar: la columna lateral vive en `DatasetSidebar` (la monta también `/dev/dataset-panel`). -->
+				<DatasetSidebar
+					{dataset}
+					{solicitudVigente}
+					{pendingRequestCount}
+					{puedeDecidirSolicitud}
+					{decidir}
+					{readStoredDataset}
+					{reflejarDecision}
+					{historialDeSolicitudes}
+				/>
 			</div>
 		</section>
 	{/if}
