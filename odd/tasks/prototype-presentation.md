@@ -172,7 +172,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T17 | S16 | Inicio direction 05 (second iteration) | worker | `273603b` — awaiting author review |
 | T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | `39666ce` — awaiting author review |
 | T20 | S18 | Promote the dataset panel to the real sheet (+ panel scroll resets at page top, scrollbar hidden at rest); delete the playground | worker | — |
-| T21 | S19 | Organizations playground: sticky search/filters and sticky group titles (promotion after the presentation: needs type/acronym fields, Q11–Q13) | worker | — |
+| T21 | S19 | Organizations playground: sticky search/filters and sticky group titles (promotion after the presentation: needs type/acronym fields, Q11–Q13) | worker | `fac2965` — awaiting author review |
 | T22 | S22 | Collections mocks: org filter reusing the requests org tabs (H2-6b, Mis colecciones), sticky panel, visibility tag only when not public and in the common tag style, H3-3 panel lists the owner organizations reusing the dataset sheet's org card | worker | — |
 | T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | — |
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | — |
