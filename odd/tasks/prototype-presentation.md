@@ -299,4 +299,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   units, and a new design for the hero type cards. Data: every artboard is static HTML with the demo's values copied in
   (0 scripts, 0 fetch, checked).
 - **L17** (2026-10-28, author): batch 2 with the six screens without login — «si, me gusta, cuándo arrancamos?» (T19).
-\n- **L18** (2026-10-28, author): review of the dataset panel playground and of batch 2 → S18–S23 (verbatim there). Search hero and «la barra no se anima» asked before touching the real search page.\n
+- **L18** (2026-10-28, author): review of the dataset panel playground and of batch 2 → S18–S23 (verbatim there). Search hero and «la barra no se anima» asked before touching the real search page.
