@@ -114,7 +114,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T13 | S12 | Public collections list (main menu) vs «Mis colecciones» (panel) as two mock screens | worker | `511df08` — awaiting author review |
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
 | T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | `18e1409` — awaiting author review |
-| T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | — batch 1 in progress |
+| T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | batch 1 `91611cd` (H2-4, H2-7, H3-1) — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
