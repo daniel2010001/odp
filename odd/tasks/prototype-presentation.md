@@ -174,7 +174,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T20 | S18 | Promote the dataset panel to the real sheet (+ panel scroll resets at page top, scrollbar hidden at rest); delete the playground | worker | — |
 | T21 | S19 | Organizations playground: sticky search/filters and sticky group titles (promotion after the presentation: needs type/acronym fields, Q11–Q13) | worker | `fac2965` — awaiting author review |
 | T22 | S22 | Collections mocks: org filter reusing the requests org tabs (H2-6b, Mis colecciones), sticky panel, visibility tag only when not public and in the common tag style, H3-3 panel lists the owner organizations reusing the dataset sheet's org card | worker | — |
-| T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | — |
+| T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | (this commit) — awaiting author review |
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | `ddfc67a` — awaiting author review |
 | T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | — |
 | T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | — |
@@ -309,3 +309,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
 - **L19** (2026-10-28, author): curator icon — "el ícono del curador sí me gusta, pero no el que va dento del tag, esto rompe un
   poco lo que es los badges de las otras pages."; collection curator chosen at creation — «apecto tu propuesta de escoger quién
   lo cura, anota eso» (Q19, PRD RF-21); search bar and hero → S24 (T25, T26).
+- **L20** (2026-10-28, design): `design/organizacion/` (T23) — three directions for the organization sheet, each with its empty state: `01-ficha-con-panel` + `01b-…-vacia`, `02-portada-con-pestanas` + `02b-…-vacia`, `03-dossier-con-indice` + `03b-…-vacia`; each ends with a feasibility note (nativo / implementable / no disponible).

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Ficha de organización — Portada con pestañas (sin publicaciones) · Datos UMSS</title>
+<style>
+/* Tokens de design/system.md (modo claro). Ningún color fuera de estas variables, salvo el negro de las
+   sombras documentadas (DS §5). */
+:root {
+	--background: oklch(0.973 0.006 250);
+	--foreground: oklch(0.26 0.03 257);
+	--card: oklch(0.995 0.001 250);
+	--card-foreground: oklch(0.26 0.03 257);
+	--primary: oklch(0.52 0.085 257);
+	--primary-foreground: oklch(0.985 0.002 250);
+	--secondary: oklch(0.74 0.06 250);
+	--secondary-foreground: oklch(0.28 0.04 257);
+	--muted: oklch(0.945 0.008 250);
+	--muted-foreground: oklch(0.42 0.02 257);
+	--accent: oklch(0.93 0.018 250);
+	--accent-foreground: oklch(0.42 0.07 257);
+	--destructive: oklch(0.55 0.09 15);
+	--destructive-foreground: oklch(0.985 0.002 250);
+	--positive: oklch(0.5 0.08 175);
+	--border: oklch(0.905 0.01 250);
+	--input: oklch(0.905 0.01 250);
+	--ring: oklch(0.62 0.08 257);
+	--chart-1: oklch(0.56 0.13 257);
+	--chart-2: oklch(0.64 0.13 25);
+	--chart-3: oklch(0.6 0.1 185);
+	--chart-4: oklch(0.64 0.12 75);
+	--chart-5: oklch(0.58 0.12 300);
+	--footer: oklch(0.44 0.09 257);
+	--footer-foreground: oklch(0.985 0.002 250);
+	--radius: 0.5rem;
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-heading: "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	--shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+	--shadow-md: 0 4px 6px rgba(0,0,0,.10);
+	--shadow-lg: 0 10px 15px rgba(0,0,0,.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-md); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-xs { width: 14px; height: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+.eyebrow { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--destructive); }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: 0; transition: background-color .2s, color .2s; white-space: nowrap; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary:hover { background: color-mix(in oklch, var(--primary) 90%, transparent); }
+.btn-outline { border: 1px solid var(--input); background: var(--background); color: var(--foreground); }
+.btn-outline:hover { background: var(--accent); color: var(--accent-foreground); }
+.btn-sm { height: 36px; padding: 0 12px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.pill-accent { background: var(--accent); color: var(--accent-foreground); }
+.pill-muted { background: var(--muted); color: var(--muted-foreground); }
+.chip-format { display: inline-block; border: 1px solid var(--border); background: color-mix(in oklch, var(--muted) 50%, transparent); font-family: var(--font-mono); color: var(--muted-foreground); border-radius: 999px; padding: 1px 9px; font-size: 12px; white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--primary); text-underline-offset: 4px; }
+.link:hover { text-decoration: underline; }
+.muted { color: var(--muted-foreground); }
+/* Tipo y sigla: el mismo rótulo de las tarjetas de H2-2 */
+.type-tag { display: inline-flex; align-items: center; border-radius: var(--radius-md); background: var(--accent); color: var(--accent-foreground); padding: 3px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.acronym { font-size: 13px; font-weight: 600; color: var(--foreground); letter-spacing: .02em; }
+.logo { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-lg); background: var(--primary); color: var(--primary-foreground); font-family: var(--font-heading); font-size: 24px; font-weight: 700; flex-shrink: 0; }
+.avatar { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; background: var(--accent); color: var(--accent-foreground); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.crumbs ol { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+.crumbs a { color: var(--muted-foreground); transition: color .2s; }
+.crumbs a:hover { color: var(--foreground); }
+.crumbs [aria-current] { font-weight: 500; color: var(--foreground); }
+.crumbs .icon { color: var(--muted-foreground); }
+.field { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--input); border-radius: var(--radius-md); background: var(--background); color: var(--muted-foreground); font-size: 14px; }
+.field input { border: 0; background: transparent; outline: none; flex: 1; color: var(--foreground); }
+.field input::placeholder { color: var(--muted-foreground); }
+.field:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
+.select { height: 40px; padding: 0 12px; border: 1px solid var(--input); border-radius: var(--radius-md); background: var(--background); font-size: 14px; cursor: pointer; }
+
+/* Encabezado: el de las capturas de design/prototipo */
+.site-header { background: var(--card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.site-header .container { height: 80px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-name { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+.brand-sub { font-size: 12px; color: var(--muted-foreground); }
+.main-nav ul { display: flex; gap: 4px; }
+.main-nav a { display: block; padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; transition: background-color .2s, color .2s; }
+.main-nav a:hover { background: var(--accent); color: var(--primary); }
+.main-nav a[aria-current] { color: var(--primary); }
+.nav-right { display: flex; align-items: center; gap: 32px; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.icon-btn { display: inline-flex; padding: 8px; border-radius: var(--radius-md); background: transparent; border: 0; color: var(--muted-foreground); cursor: pointer; transition: background-color .2s, color .2s; }
+.icon-btn:hover { background: var(--accent); color: var(--primary); }
+
+/* Pie: el de las capturas de design/prototipo */
+.site-footer { background: var(--footer); color: var(--footer-foreground); }
+.site-footer .container { padding-top: 64px; padding-bottom: 40px; }
+.footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; }
+.footer-grid .footer-brand { color: var(--footer-foreground); font-family: var(--font-heading); font-size: 24px; font-weight: 700; }
+.footer-grid p, .footer-grid li { font-size: 14px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.footer-grid h2 { font-family: var(--font-heading); font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.footer-grid ul { display: grid; gap: 8px; }
+.footer-grid a:hover { color: var(--footer-foreground); text-decoration: underline; text-underline-offset: 4px; }
+.footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 20%, transparent); display: flex; justify-content: space-between; font-size: 12px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+
+/* Notas de factibilidad: anotación de la lámina, fuera de la página */
+.notes { background: var(--card); border-top: 4px solid var(--destructive); padding: 48px 0 56px; }
+.notes h2 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: var(--primary); margin-top: 6px; }
+.notes .intro { margin-top: 8px; font-size: 14px; color: var(--muted-foreground); max-width: 880px; }
+.notes table { margin-top: 24px; width: 100%; border-collapse: collapse; font-size: 14px; }
+.notes th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); padding: 10px 16px; background: var(--muted); }
+.notes td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.notes td:first-child { font-weight: 500; width: 26%; }
+.notes td:nth-child(2) { width: 15%; }
+.feas { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.feas::before { content: ""; width: 8px; height: 8px; border-radius: 999px; }
+.feas-n { background: color-mix(in oklch, var(--positive) 10%, transparent); color: var(--positive); }
+.feas-n::before { background: var(--positive); }
+.feas-i { background: var(--accent); color: var(--accent-foreground); }
+.feas-i::before { background: var(--primary); }
+.feas-x { background: color-mix(in oklch, var(--destructive) 10%, transparent); color: var(--destructive); }
+.feas-x::before { background: var(--destructive); }
+
+/* 02 · Portada con pestañas: banda de identidad con cifras, pestañas y un resumen que se lee de arriba abajo */
+.band { background: var(--footer); color: var(--footer-foreground); padding: 32px 0 0; }
+.crumbs-dark a, .crumbs-dark .icon { color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.crumbs-dark a:hover { color: var(--footer-foreground); }
+.crumbs-dark [aria-current] { color: var(--footer-foreground); }
+.band-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 64px; align-items: end; padding: 36px 0 40px; }
+.band .logo { width: 64px; height: 64px; font-size: 28px; background: var(--card); color: var(--primary); }
+.band-id { display: flex; gap: 12px; align-items: center; margin-top: 20px; }
+.band .type-tag { background: color-mix(in oklch, var(--footer-foreground) 15%, transparent); color: var(--footer-foreground); }
+.band .acronym { color: var(--footer-foreground); }
+.band h1 { margin-top: 8px; font-family: var(--font-heading); font-size: 52px; line-height: 1.08; font-weight: 600; letter-spacing: -.01em; }
+.band .lede { margin-top: 14px; font-size: 17px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); max-width: 620px; }
+.band-links { margin-top: 20px; display: flex; gap: 20px; font-size: 14px; }
+.band-links a { display: inline-flex; gap: 8px; align-items: center; color: var(--footer-foreground); text-underline-offset: 4px; }
+.band-links a:hover { text-decoration: underline; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 30%, transparent); }
+.stats > div { padding: 18px 0 16px; border-bottom: 1px solid color-mix(in oklch, var(--footer-foreground) 30%, transparent); }
+.stats > div:nth-child(2n) { padding-left: 24px; border-left: 1px solid color-mix(in oklch, var(--footer-foreground) 30%, transparent); }
+.stat-n { font-family: var(--font-heading); font-size: 44px; line-height: 1; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; }
+.stat-l { margin-top: 6px; font-size: 13px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.stats-foot { padding-top: 12px; font-size: 13px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.new-note { border: 1px solid color-mix(in oklch, var(--footer-foreground) 30%, transparent); border-radius: var(--radius-xl); padding: 24px; }
+.new-note h2 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; }
+.new-note p { margin-top: 6px; font-size: 14px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.new-note dl { margin-top: 16px; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
+.new-note dt { color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+
+/* Pestañas (OverflowTabs) */
+.tabs { background: var(--background); border-bottom: 1px solid var(--border); }
+.tabs ul { display: flex; gap: 4px; }
+.tabs a { display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px; font-size: 14px; font-weight: 500; color: var(--muted-foreground); border-bottom: 2px solid transparent; transition: color .2s; }
+.tabs a:hover { color: var(--foreground); }
+.tabs a[aria-current] { color: var(--primary); border-bottom-color: var(--primary); }
+.badge { display: inline-flex; border-radius: 999px; border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground); padding: 0 6px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tabs a[aria-current] .badge { border-color: color-mix(in oklch, var(--primary) 30%, transparent); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
+
+/* Resumen */
+.summary { padding: 48px 32px 80px; display: grid; gap: 56px; }
+.block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; margin-bottom: 20px; }
+.block-head h2 { font-family: var(--font-heading); font-size: 28px; font-weight: 600; color: var(--primary); line-height: 1.2; }
+.block-head p { font-size: 14px; color: var(--muted-foreground); }
+.two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; align-items: start; }
+.prose p { font-size: 15px; line-height: 1.7; }
+.prose p + p { margin-top: 12px; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); }
+.facts > div { padding: 14px 18px; display: flex; gap: 12px; }
+.facts > div:nth-child(2n) { border-left: 1px solid color-mix(in oklch, var(--border) 60%, transparent); }
+.facts > div:nth-child(n+3) { border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent); }
+.facts .icon { color: var(--primary); margin-top: 2px; }
+.facts dt { font-size: 12px; color: var(--muted-foreground); }
+.facts dd { font-size: 14px; font-weight: 500; }
+.facts a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.types { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.type { display: block; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); transition: border-color .2s, background-color .2s; }
+.type:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); background: color-mix(in oklch, var(--accent) 30%, var(--card)); }
+.type:hover .type-name { text-decoration: underline; text-underline-offset: 4px; }
+.type .icon { color: var(--primary); width: 24px; height: 24px; }
+.type-n { margin-top: 14px; font-family: var(--font-heading); font-size: 40px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
+.type-name { margin-top: 6px; display: block; font-size: 14px; font-weight: 600; }
+.type small { display: block; margin-top: 2px; font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+.types-empty .type { box-shadow: none; background: transparent; border-style: dashed; }
+.types-empty .type-name { margin-top: 14px; }
+.type-does { display: block; margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
+.latest { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.card { display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); transition: border-color .2s; }
+.card:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
+.card:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+.card time { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--destructive); }
+.card h3 { margin-top: 8px; font-family: var(--font-heading); font-size: 21px; line-height: 1.25; font-weight: 600; color: var(--primary); }
+.card p { margin-top: 8px; font-size: 14px; line-height: 1.55; color: var(--muted-foreground); flex: 1; }
+.card-foot { margin-top: 16px; padding-top: 14px; border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted-foreground); }
+.coll { display: flex; gap: 16px; align-items: flex-start; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); transition: border-color .2s; }
+.coll:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
+.coll:hover .coll-name { text-decoration: underline; text-underline-offset: 4px; }
+.coll-icon { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: var(--radius-lg); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); flex-shrink: 0; }
+.coll-name { font-family: var(--font-heading); font-size: 21px; font-weight: 600; color: var(--primary); line-height: 1.25; }
+.coll p { margin-top: 6px; font-size: 14px; color: var(--muted-foreground); line-height: 1.55; }
+.coll-meta { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; color: var(--muted-foreground); }
+.people { display: grid; gap: 12px; }
+.person { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); transition: border-color .2s; }
+.person:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
+.person:hover .pname { text-decoration: underline; text-underline-offset: 4px; }
+.pname { display: block; font-size: 15px; font-weight: 500; }
+.prole { display: block; font-size: 13px; color: var(--muted-foreground); }
+.person .avatar { width: 40px; height: 40px; }
+.acts { border-top: 1px solid var(--border); }
+.acts li { display: grid; grid-template-columns: 140px 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.acts time { color: var(--muted-foreground); }
+.acts a.what { color: var(--primary); font-weight: 500; text-underline-offset: 4px; }
+.acts a.what:hover { text-decoration: underline; }
+.acts b { font-weight: 500; }
+.empty { display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; padding: 32px; border: 1px dashed var(--border); border-radius: var(--radius-xl); background: color-mix(in oklch, var(--muted) 50%, transparent); }
+.empty-icon { display: inline-flex; width: 56px; height: 56px; align-items: center; justify-content: center; border-radius: 999px; background: var(--card); border: 1px solid var(--border); color: var(--primary); }
+.empty h2 { font-family: var(--font-heading); font-size: 26px; font-weight: 600; color: var(--primary); line-height: 1.2; }
+.empty p { margin-top: 6px; font-size: 15px; line-height: 1.6; color: var(--muted-foreground); max-width: 640px; }
+.empty-actions { display: flex; flex-direction: column; gap: 8px; }
+.sibs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.sib { display: block; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); transition: border-color .2s; }
+.sib:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
+.sib:hover .sname { text-decoration: underline; text-underline-offset: 4px; }
+.sib .acronym { font-size: 12px; color: var(--muted-foreground); }
+.sname { display: block; margin-top: 4px; font-family: var(--font-heading); font-size: 19px; font-weight: 600; color: var(--primary); line-height: 1.25; }
+.sib .n { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--muted-foreground); }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+	<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+	<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></symbol>
+	<symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+	<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+	<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+	<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+	<symbol id="i-sheet" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="3" x2="21" y1="15" y2="15"/><line x1="9" x2="9" y1="9" y2="21"/><line x1="15" x2="15" y1="9" y2="21"/></symbol>
+	<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+	<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+	<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+	<symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+	<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+	<symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol>
+	<symbol id="i-network" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></symbol>
+	<symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+	<symbol id="i-log-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></symbol>
+	<symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+	<symbol id="i-plus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
+	<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+	<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3"/></symbol>
+	<symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol>
+	<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+	<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+</svg>
+
+<header class="site-header">
+	<div class="container">
+		<a class="brand" href="#">
+			<span class="brand-name">Datos UMSS</span>
+			<span class="brand-sub">Plataforma de Datos Abiertos</span>
+		</a>
+		<div class="nav-right">
+			<nav class="main-nav" aria-label="Principal">
+				<ul>
+					<li><a href="#">Catálogo</a></li>
+					<li><a href="#" aria-current="page">Organizaciones</a></li>
+					<li><a href="#">Colecciones</a></li>
+					<li><a href="#">Acerca de</a></li>
+				</ul>
+			</nav>
+			<div class="nav-actions">
+				<button class="icon-btn" type="button" aria-label="Cambiar tema: claro, oscuro o sistema"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></button>
+				<a class="btn btn-primary" href="#">Iniciar Sesión</a>
+			</div>
+		</div>
+	</div>
+</header>
+
+<main>
+	<section class="band" aria-labelledby="org-title">
+		<div class="container">
+			<nav class="crumbs crumbs-dark" aria-label="Ruta de navegación">
+			<ol>
+				<li><a href="#">Organizaciones</a></li>
+				<li><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+				<li><a href="#">Direcciones</a></li>
+				<li><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+				<li><span aria-current="page">Dirección de Investigación</span></li>
+			</ol>
+		</nav>
+			<div class="band-grid">
+				<div>
+					<span class="logo" aria-hidden="true">DI</span>
+					<div class="band-id"><span class="type-tag">Dirección</span><span class="acronym">DICyT</span></div>
+					<h1 id="org-title">Dirección de Investigación</h1>
+					<p class="lede">Coordinación y gestión de proyectos de investigación universitarios.</p>
+					<div class="band-links">
+						<a href="#"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-globe"/></svg>dicyt.umss.edu.bo</a>
+						<a href="#"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-mail"/></svg>dicyt@umss.edu.bo</a>
+					</div>
+				</div>
+				<div class="new-note">
+					<h2>Nueva en el catálogo</h2>
+					<p>La unidad ya tiene sus datos y sus miembros; todavía no publicó datasets ni cura colecciones.</p>
+					<dl><dt>En el catálogo desde</dt><dd>25 sept 2026</dd><dt>Miembros</dt><dd>3</dd></dl>
+				</div>
+			</div>
+		</div>
+	</section>
+	<nav class="tabs" aria-label="Secciones de la organización">
+		<div class="container">
+			<ul>
+				<li><a href="#" aria-current="page">Resumen</a></li>
+				<li><a href="#">Datasets <span class="badge">0</span></a></li>
+				<li><a href="#">Colecciones <span class="badge">0</span></a></li>
+				<li><a href="#">Miembros <span class="badge">3</span></a></li>
+				<li><a href="#">Actividad</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div class="container summary">
+		<section class="empty" aria-labelledby="empty-t">
+			<span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span>
+			<div>
+				<h2 id="empty-t">Todavía no hay datasets ni colecciones</h2>
+				<p>Cuando la Dirección de Investigación publique su primer dataset, aparecerá aquí con sus archivos y su fecha, y las pestañas «Datasets» y «Colecciones» se llenarán solas.</p>
+			</div>
+			<div class="empty-actions">
+				<a class="btn btn-primary" href="#"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-log-in"/></svg>Iniciar sesión para publicar</a>
+				<a class="btn btn-outline" href="#">Explorar el catálogo</a>
+			</div>
+		</section><div class="two">
+			<section aria-labelledby="about-t">
+				<div class="block-head"><h2 id="about-t">Acerca de la unidad</h2></div>
+				<div class="prose"><p>La Dirección de Investigación coordina la investigación de la Universidad: administra las convocatorias internas, lleva el registro de los grupos y centros de investigación y acompaña la protección de la propiedad intelectual.</p><p>En el catálogo publicará los datos de esa gestión —convocatorias y proyectos, grupos y centros, colaboraciones internacionales, patentes, eventos científicos y tesis de posgrado— para que docentes, investigadores y estudiantes los consulten, los reutilicen y los citen.</p></div>
+			</section>
+			<section aria-labelledby="unit-t">
+				<div class="block-head"><h2 id="unit-t">Datos de la unidad</h2></div>
+				<dl class="facts">
+					<div><svg class="icon icon-sm" aria-hidden="true"><use href="#i-building"/></svg><div><dt>Tipo</dt><dd>Dirección</dd></div></div>
+					<div><svg class="icon icon-sm" aria-hidden="true"><use href="#i-info"/></svg><div><dt>Sigla</dt><dd>DICyT</dd></div></div>
+					<div><svg class="icon icon-sm" aria-hidden="true"><use href="#i-network"/></svg><div><dt>Depende de</dt><dd>Ninguna: primer nivel</dd></div></div>
+					<div><svg class="icon icon-sm" aria-hidden="true"><use href="#i-layers"/></svg><div><dt>Unidades dependientes</dt><dd>Ninguna registrada</dd></div></div>
+					<div><svg class="icon icon-sm" aria-hidden="true"><use href="#i-globe"/></svg><div><dt>Sitio web</dt><dd><a href="#">dicyt.umss.edu.bo</a></dd></div></div>
+					<div><svg class="icon icon-sm" aria-hidden="true"><use href="#i-calendar"/></svg><div><dt>En el catálogo desde</dt><dd>25 sept 2026</dd></div></div>
+				</dl>
+			</section>
+		</div><section aria-labelledby="types-t">
+			<div class="block-head"><h2 id="types-t">Qué podrá publicar</h2><p>Los tipos de recurso que reúne el catálogo</p></div>
+			<div class="types types-empty"><a class="type" href="#"><svg class="icon" aria-hidden="true"><use href="#i-sheet"/></svg><span class="type-name">Tablas</span><small>CSV, XLSX</small><span class="type-does">Con vista previa en tabla y gráficos</span></a><a class="type" href="#"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg><span class="type-name">Documentos PDF</span><small>PDF</small><span class="type-does">Se leen en el portal</span></a><a class="type" href="#"><svg class="icon" aria-hidden="true"><use href="#i-map"/></svg><span class="type-name">Datos geográficos</span><small>GeoJSON</small><span class="type-does">Se descargan para su uso en mapas</span></a><a class="type" href="#"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg><span class="type-name">Otros archivos</span><small>JSON, TXT, PNG, JPEG</small><span class="type-does">Se descargan tal cual</span></a><a class="type" href="#"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span class="type-name">Enlaces externos</span><small>Enlace</small><span class="type-does">Llevan al sitio de origen</span></a></div>
+		</section><div class="two">
+			<section aria-labelledby="act-t">
+				<div class="block-head"><h2 id="act-t">Actividad</h2></div>
+				<ol class="acts"><li><time>27 sept 2026</time><span><b>María Fernanda Rojas Vargas</b> actualizó los datos de la unidad</span></li><li><time>25 sept 2026</time><span><b>Carlos Eduardo Villarroel</b> registró la unidad en el catálogo</span></li></ol>
+			</section>
+			<section aria-labelledby="mem-t">
+				<div class="block-head"><h2 id="mem-t">Miembros</h2><a class="link" href="#">Ver los 3<svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a></div>
+				<div class="people"><a class="person" href="#"><span class="avatar" aria-hidden="true">MR</span><span><span class="pname">María Fernanda Rojas Vargas</span><span class="prole">Administrador</span></span></a><a class="person" href="#"><span class="avatar" aria-hidden="true">AC</span><span><span class="pname">Ana Gabriela Céspedes</span><span class="prole">Editor</span></span></a><a class="person" href="#"><span class="avatar" aria-hidden="true">RA</span><span><span class="pname">Rodrigo Antezana Flores</span><span class="prole">Lector</span></span></a></div>
+			</section>
+		</div><section aria-labelledby="sib-t">
+			<div class="block-head"><h2 id="sib-t">Otras direcciones que publican</h2><a class="link" href="#">Ver todas las direcciones<svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a></div>
+			<div class="sibs"><a class="sib" href="#"><span class="acronym">DISU</span><span class="sname">Dirección de Interacción Social Universitaria</span><span class="n"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-database"/></svg>6 datasets</span></a><a class="sib" href="#"><span class="acronym">DPA</span><span class="sname">Dirección de Planificación Académica</span><span class="n"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-database"/></svg>24 datasets</span></a><a class="sib" href="#"><span class="acronym">DUEA</span><span class="sname">Dirección Universitaria de Evaluación y Acreditación</span><span class="n"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-database"/></svg>9 datasets</span></a></div>
+		</section>
+	</div>
+</main>
+
+<footer class="site-footer">
+	<div class="container">
+		<div class="footer-grid">
+			<div>
+				<p class="footer-brand">Datos UMSS</p>
+				<p style="margin-top:16px;max-width:280px">Universidad Mayor de San Simón — Plataforma de Datos Abiertos. Conjuntos de datos académicos y administrativos bajo principios FAIR.</p>
+			</div>
+			<div><h2>Plataforma</h2><ul><li><a href="#">Catálogo</a></li><li><a href="#">Organizaciones</a></li><li><a href="#">Colecciones</a></li><li><a href="#">Acerca de</a></li><li><a href="#">Panel</a></li></ul></div>
+			<div><h2>Datos</h2><ul><li><a href="#">Explorar datasets</a></li><li><a href="#">Por organización</a></li><li><a href="#">Sobre la plataforma</a></li></ul></div>
+			<div><h2>Contacto</h2><ul><li>Cochabamba, Bolivia</li><li><a href="#">datos@umss.edu.bo</a></li></ul></div>
+		</div>
+		<div class="footer-bottom"><span>© 2026 Universidad Mayor de San Simón. Todos los derechos reservados.</span><span>Plataforma de Datos Abiertos</span></div>
+	</div>
+</footer>
+
+<aside class="notes" aria-labelledby="notes-title">
+	<div class="container">
+		<p class="eyebrow">Anotación de la lámina — no forma parte de la página</p>
+		<h2 id="notes-title">Qué puede mostrar hoy el catálogo y qué hay que construir</h2>
+		<p class="intro">La misma portada sin datasets ni colecciones: la banda cambia las cifras por «Nueva en el catálogo», el resumen abre con el aviso y su siguiente paso, y «Qué podrá publicar» explica con los mismos tipos qué llenará la página.</p>
+		<table>
+			<thead><tr><th scope="col">Bloque</th><th scope="col">Factibilidad</th><th scope="col">Qué hace falta</th></tr></thead>
+			<tbody>
+				<tr><td>Logo o iniciales</td><td><span class="feas feas-n">Nativo</span></td><td>El logo es un campo de la organización; sin logo se muestran las iniciales, como hoy.</td></tr>
+				<tr><td>Tipo (Dirección)</td><td><span class="feas feas-i">Implementable</span></td><td>Campo propio de la organización, elegido de una lista cerrada (Q11, decidida). Hoy el tipo se adivina por el título.</td></tr>
+				<tr><td>Sigla (DICyT)</td><td><span class="feas feas-i">Implementable</span></td><td>Campo propio, como el tipo (Q13, abierta: si la dirección web usa la sigla o el identificador).</td></tr>
+				<tr><td>Ruta Organizaciones › Direcciones</td><td><span class="feas feas-i">Implementable</span></td><td>Sale del tipo; la página de organizaciones agrupada por tipo es la propuesta aprobada (H2-2).</td></tr>
+				<tr><td>Descripción</td><td><span class="feas feas-n">Nativo</span></td><td>La organización ya tiene una descripción con formato. El texto ampliado de «Acerca de» es de ejemplo: hoy la descripción real es una línea.</td></tr>
+				<tr><td>Sitio web y correo de la unidad</td><td><span class="feas feas-i">Implementable</span></td><td>Campos propios de la organización. Es el correo institucional de la unidad, no el de una persona. Los valores son de ejemplo.</td></tr>
+				<tr><td>En el catálogo desde / última actualización</td><td><span class="feas feas-n">Nativo</span></td><td>Fecha de registro de la organización y fecha del dataset modificado más recientemente.</td></tr>
+				<tr><td>Depende de / unidades dependientes</td><td><span class="feas feas-i">Implementable</span></td><td>Requiere la jerarquía de organizaciones (Q6, postergada): la del catálogo o un campo figurativo sin permisos. Una dirección no depende de otra unidad; en una facultad, este bloque lista sus unidades dependientes, como en H2-2.</td></tr>
+				<tr><td>«Iniciar sesión para publicar»</td><td><span class="feas feas-n">Nativo</span></td><td>Lleva al inicio de sesión; publicar sigue pasando por la solicitud de publicación de la unidad.</td></tr>
+				<tr><td>Otras direcciones</td><td><span class="feas feas-i">Implementable</span></td><td>Sale del tipo: las demás organizaciones del mismo tipo, con su cantidad de datasets.</td></tr>
+				<tr><td>Miembros con su rol</td><td><span class="feas feas-n">Nativo</span></td><td>Lista de miembros con su rol en la organización; los perfiles son públicos (Q1), y nunca se muestra el correo de una persona.</td></tr>
+				<tr><td>Actividad reciente</td><td><span class="feas feas-n">Nativo</span></td><td>Historial de actividad de la organización: quién publicó o actualizó qué y cuándo.</td></tr>
+				<tr><td>Pestañas Datasets, Colecciones, Miembros, Actividad</td><td><span class="feas feas-n">Nativo</span></td><td>Cada pestaña es una de las listas nativas de arriba en su propia página; sólo «Colecciones» depende de la lógica propia de colecciones.</td></tr>
+			</tbody>
+		</table>
+	</div>
+</aside>
+</body>
+</html>

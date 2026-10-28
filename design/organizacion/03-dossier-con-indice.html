@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Ficha de organización — Dossier con índice · Datos UMSS</title>
+<style>
+/* Tokens de design/system.md (modo claro). Ningún color fuera de estas variables, salvo el negro de las
+   sombras documentadas (DS §5). */
+:root {
+	--background: oklch(0.973 0.006 250);
+	--foreground: oklch(0.26 0.03 257);
+	--card: oklch(0.995 0.001 250);
+	--card-foreground: oklch(0.26 0.03 257);
+	--primary: oklch(0.52 0.085 257);
+	--primary-foreground: oklch(0.985 0.002 250);
+	--secondary: oklch(0.74 0.06 250);
+	--secondary-foreground: oklch(0.28 0.04 257);
+	--muted: oklch(0.945 0.008 250);
+	--muted-foreground: oklch(0.42 0.02 257);
+	--accent: oklch(0.93 0.018 250);
+	--accent-foreground: oklch(0.42 0.07 257);
+	--destructive: oklch(0.55 0.09 15);
+	--destructive-foreground: oklch(0.985 0.002 250);
+	--positive: oklch(0.5 0.08 175);
+	--border: oklch(0.905 0.01 250);
+	--input: oklch(0.905 0.01 250);
+	--ring: oklch(0.62 0.08 257);
+	--chart-1: oklch(0.56 0.13 257);
+	--chart-2: oklch(0.64 0.13 25);
+	--chart-3: oklch(0.6 0.1 185);
+	--chart-4: oklch(0.64 0.12 75);
+	--chart-5: oklch(0.58 0.12 300);
+	--footer: oklch(0.44 0.09 257);
+	--footer-foreground: oklch(0.985 0.002 250);
+	--radius: 0.5rem;
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-heading: "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	--shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+	--shadow-md: 0 4px 6px rgba(0,0,0,.10);
+	--shadow-lg: 0 10px 15px rgba(0,0,0,.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-md); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-xs { width: 14px; height: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+.eyebrow { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--destructive); }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: 0; transition: background-color .2s, color .2s; white-space: nowrap; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary:hover { background: color-mix(in oklch, var(--primary) 90%, transparent); }
+.btn-outline { border: 1px solid var(--input); background: var(--background); color: var(--foreground); }
+.btn-outline:hover { background: var(--accent); color: var(--accent-foreground); }
+.btn-sm { height: 36px; padding: 0 12px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.pill-accent { background: var(--accent); color: var(--accent-foreground); }
+.pill-muted { background: var(--muted); color: var(--muted-foreground); }
+.chip-format { display: inline-block; border: 1px solid var(--border); background: color-mix(in oklch, var(--muted) 50%, transparent); font-family: var(--font-mono); color: var(--muted-foreground); border-radius: 999px; padding: 1px 9px; font-size: 12px; white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--primary); text-underline-offset: 4px; }
+.link:hover { text-decoration: underline; }
+.muted { color: var(--muted-foreground); }
+/* Tipo y sigla: el mismo rótulo de las tarjetas de H2-2 */
+.type-tag { display: inline-flex; align-items: center; border-radius: var(--radius-md); background: var(--accent); color: var(--accent-foreground); padding: 3px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.acronym { font-size: 13px; font-weight: 600; color: var(--foreground); letter-spacing: .02em; }
+.logo { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-lg); background: var(--primary); color: var(--primary-foreground); font-family: var(--font-heading); font-size: 24px; font-weight: 700; flex-shrink: 0; }
+.avatar { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; background: var(--accent); color: var(--accent-foreground); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.crumbs ol { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+.crumbs a { color: var(--muted-foreground); transition: color .2s; }
+.crumbs a:hover { color: var(--foreground); }
+.crumbs [aria-current] { font-weight: 500; color: var(--foreground); }
+.crumbs .icon { color: var(--muted-foreground); }
+.field { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--input); border-radius: var(--radius-md); background: var(--background); color: var(--muted-foreground); font-size: 14px; }
+.field input { border: 0; background: transparent; outline: none; flex: 1; color: var(--foreground); }
+.field input::placeholder { color: var(--muted-foreground); }
+.field:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
+.select { height: 40px; padding: 0 12px; border: 1px solid var(--input); border-radius: var(--radius-md); background: var(--background); font-size: 14px; cursor: pointer; }
+
+/* Encabezado: el de las capturas de design/prototipo */
+.site-header { background: var(--card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.site-header .container { height: 80px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-name { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+.brand-sub { font-size: 12px; color: var(--muted-foreground); }
+.main-nav ul { display: flex; gap: 4px; }
+.main-nav a { display: block; padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; transition: background-color .2s, color .2s; }
+.main-nav a:hover { background: var(--accent); color: var(--primary); }
+.main-nav a[aria-current] { color: var(--primary); }
+.nav-right { display: flex; align-items: center; gap: 32px; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.icon-btn { display: inline-flex; padding: 8px; border-radius: var(--radius-md); background: transparent; border: 0; color: var(--muted-foreground); cursor: pointer; transition: background-color .2s, color .2s; }
+.icon-btn:hover { background: var(--accent); color: var(--primary); }
+
+/* Pie: el de las capturas de design/prototipo */
+.site-footer { background: var(--footer); color: var(--footer-foreground); }
+.site-footer .container { padding-top: 64px; padding-bottom: 40px; }
+.footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; }
+.footer-grid .footer-brand { color: var(--footer-foreground); font-family: var(--font-heading); font-size: 24px; font-weight: 700; }
+.footer-grid p, .footer-grid li { font-size: 14px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.footer-grid h2 { font-family: var(--font-heading); font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.footer-grid ul { display: grid; gap: 8px; }
+.footer-grid a:hover { color: var(--footer-foreground); text-decoration: underline; text-underline-offset: 4px; }
+.footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 20%, transparent); display: flex; justify-content: space-between; font-size: 12px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+
+/* Notas de factibilidad: anotación de la lámina, fuera de la página */
+.notes { background: var(--card); border-top: 4px solid var(--destructive); padding: 48px 0 56px; }
+.notes h2 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: var(--primary); margin-top: 6px; }
+.notes .intro { margin-top: 8px; font-size: 14px; color: var(--muted-foreground); max-width: 880px; }
+.notes table { margin-top: 24px; width: 100%; border-collapse: collapse; font-size: 14px; }
+.notes th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); padding: 10px 16px; background: var(--muted); }
+.notes td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.notes td:first-child { font-weight: 500; width: 26%; }
+.notes td:nth-child(2) { width: 15%; }
+.feas { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.feas::before { content: ""; width: 8px; height: 8px; border-radius: 999px; }
+.feas-n { background: color-mix(in oklch, var(--positive) 10%, transparent); color: var(--positive); }
+.feas-n::before { background: var(--positive); }
+.feas-i { background: var(--accent); color: var(--accent-foreground); }
+.feas-i::before { background: var(--primary); }
+.feas-x { background: color-mix(in oklch, var(--destructive) 10%, transparent); color: var(--destructive); }
+.feas-x::before { background: var(--destructive); }
+
+/* 03 · Dossier con índice: una sola página por capítulos numerados, con el índice fijo a la izquierda */
+.wrap { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 64px; padding: 32px 32px 96px; align-items: start; }
+.wrap > .crumbs { grid-column: 1 / -1; }
+.rail { position: sticky; top: 24px; }
+.rail .logo { width: 48px; height: 48px; font-size: 20px; }
+.rail-name { margin-top: 12px; font-family: var(--font-heading); font-size: 20px; font-weight: 600; color: var(--primary); line-height: 1.2; }
+.rail-tags { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+.toc { margin-top: 24px; border-top: 1px solid var(--foreground); }
+.toc a { display: grid; grid-template-columns: 28px 1fr auto; gap: 4px; align-items: baseline; padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; transition: color .2s, background-color .2s; }
+.toc a:hover { color: var(--primary); background: color-mix(in oklch, var(--accent) 50%, transparent); }
+.toc a[aria-current] { color: var(--primary); font-weight: 600; }
+.toc .num { font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); padding-left: 4px; }
+.toc .cnt { font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.rail-links { margin-top: 20px; display: grid; gap: 8px; }
+
+.title-page { padding: 8px 0 40px; border-bottom: 1px solid var(--foreground); }
+.title-page h1 { margin-top: 12px; font-family: var(--font-heading); font-size: 60px; line-height: 1.05; font-weight: 600; color: var(--primary); letter-spacing: -.015em; }
+.title-page .lede { margin-top: 16px; font-family: var(--font-heading); font-size: 24px; line-height: 1.4; color: var(--foreground); max-width: 760px; }
+.facts-line { margin-top: 28px; display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 0; }
+.facts-line > div { padding: 0 28px; border-left: 1px solid var(--border); }
+.facts-line > div:first-child { padding-left: 0; border-left: 0; }
+.facts-line dt { font-size: 12px; color: var(--muted-foreground); }
+.facts-line dd { margin-top: 2px; font-size: 15px; font-weight: 500; }
+.facts-line a { color: var(--primary); text-underline-offset: 4px; }
+.facts-line a:hover { text-decoration: underline; }
+
+.chapter { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 40px; padding: 48px 0; border-bottom: 1px solid var(--border); }
+.chapter.wide { grid-template-columns: 1fr; gap: 20px; }
+.chapter.wide .ch-head { display: grid; grid-template-columns: 200px 1fr; column-gap: 40px; align-items: baseline; }
+.chapter.wide .ch-head .eyebrow { grid-column: 1; grid-row: 1; }
+.chapter.wide .ch-head h2 { grid-column: 1; grid-row: 2; }
+.chapter.wide .ch-head p:not(.eyebrow) { grid-column: 2; grid-row: 2; margin-top: 0; align-self: center; }
+.ch-head .eyebrow { font-family: var(--font-mono); letter-spacing: .04em; }
+.ch-head h2 { margin-top: 6px; font-family: var(--font-heading); font-size: 30px; line-height: 1.15; font-weight: 600; color: var(--primary); }
+.ch-head p:not(.eyebrow) { margin-top: 10px; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+.prose p { font-size: 16px; line-height: 1.75; }
+.prose p + p { margin-top: 14px; }
+
+/* Lugar en la universidad */
+.tree { border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); padding: 28px; }
+.tree-root { display: inline-flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 600; }
+.tree-root .icon { color: var(--primary); }
+.tree-level { margin-top: 14px; margin-left: 9px; padding-left: 24px; border-left: 1px solid var(--border); }
+.tree-level > p { font-size: 12px; color: var(--muted-foreground); padding: 4px 0 10px; }
+.tree-nodes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.node { display: block; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); transition: border-color .2s; }
+.node:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
+.node b { display: block; font-size: 13px; font-weight: 600; }
+.node span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted-foreground); line-height: 1.4; }
+.node[aria-current] { border: 2px solid var(--primary); background: color-mix(in oklch, var(--primary) 10%, var(--card)); }
+.node[aria-current] b { color: var(--primary); }
+.tree-note { margin-top: 18px; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted-foreground); }
+.tree-note .icon { margin-top: 2px; }
+
+/* Qué publica */
+.bignums { display: flex; gap: 0; }
+.bignums > div { padding-right: 40px; margin-right: 40px; border-right: 1px solid var(--border); }
+.bignums > div:last-child { border-right: 0; }
+.bignum { font-family: var(--font-heading); font-size: 56px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
+.bignum-l { margin-top: 6px; font-size: 13px; color: var(--muted-foreground); }
+.hbars { margin-top: 32px; display: grid; gap: 12px; }
+.hbar { display: grid; grid-template-columns: 200px 1fr 40px; gap: 16px; align-items: center; font-size: 14px; }
+.hbar-name { display: flex; gap: 10px; align-items: center; }
+.hbar-name .icon { color: var(--primary); }
+.hbar-name small { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+.track { height: 14px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.track span { display: block; height: 100%; border-radius: 999px; }
+.hbar b { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Datasets en tabla */
+.tbl-tools { display: flex; gap: 8px; margin-bottom: 16px; }
+.tbl-tools .field { flex: 1; }
+table.ds { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.ds th { text-align: left; padding: 10px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); border-bottom: 1px solid var(--foreground); }
+table.ds td { padding: 14px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.ds tbody tr { transition: background-color .2s; }
+table.ds tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent); }
+table.ds td:first-child a { font-family: var(--font-heading); font-size: 18px; font-weight: 600; color: var(--primary); line-height: 1.3; text-underline-offset: 4px; }
+table.ds td:first-child a:hover { text-decoration: underline; }
+table.ds td.num, table.ds th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.ds td.date { white-space: nowrap; color: var(--muted-foreground); }
+
+/* Colección */
+.coll { display: grid; grid-template-columns: auto 1fr auto; gap: 20px; align-items: start; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); transition: border-color .2s; }
+.coll:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
+.coll:hover .coll-name { text-decoration: underline; text-underline-offset: 4px; }
+.coll-icon { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: var(--radius-lg); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
+.coll-name { font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); line-height: 1.25; }
+.coll p { margin-top: 6px; font-size: 14px; color: var(--muted-foreground); line-height: 1.55; }
+.coll-n { text-align: right; }
+.coll-n b { display: block; font-family: var(--font-heading); font-size: 36px; line-height: 1; font-weight: 600; color: var(--primary); }
+.coll-n span { font-size: 12px; color: var(--muted-foreground); }
+.coll-meta { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; color: var(--muted-foreground); }
+
+/* Integrantes */
+.members { border-top: 1px solid var(--foreground); }
+.members li { display: grid; grid-template-columns: 40px 280px 1fr; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.members .avatar { width: 40px; height: 40px; }
+.members a { font-size: 15px; font-weight: 500; text-underline-offset: 4px; }
+.members a:hover { text-decoration: underline; color: var(--primary); }
+.members .role { display: block; margin-top: 2px; font-size: 13px; color: var(--primary); font-weight: 500; }
+.members p { font-size: 14px; color: var(--muted-foreground); }
+.privacy { margin-top: 14px; font-size: 13px; color: var(--muted-foreground); display: flex; gap: 8px; align-items: flex-start; }
+.privacy .icon { margin-top: 2px; }
+
+/* Actividad: la cronología de Inicio 05 (fecha en el margen) */
+.timeline { border-top: 1px solid var(--foreground); }
+.timeline li { display: grid; grid-template-columns: 96px 1fr; border-bottom: 1px solid var(--border); }
+.when { position: relative; padding: 18px 22px 18px 0; text-align: right; border-right: 1px solid var(--border); }
+.when::after { content: ""; position: absolute; top: 28px; right: -6px; width: 11px; height: 11px; border-radius: 999px; background: var(--card); border: 2px solid var(--primary); }
+.timeline li:first-child .when::after { background: var(--primary); }
+.when .day { display: block; font-family: var(--font-heading); font-size: 30px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
+.when .month { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+.entry { padding: 20px 0 20px 28px; font-size: 15px; line-height: 1.55; }
+.entry b { font-weight: 500; }
+.entry a.what { color: var(--primary); font-weight: 500; text-underline-offset: 4px; }
+.entry a.what:hover { text-decoration: underline; }
+.more { margin-top: 16px; }
+
+/* Vacío */
+.keep { text-transform: none; }
+table.ds .chips { flex-wrap: nowrap; }
+.org-chips { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-org { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 500; transition: background-color .2s; }
+.chip-org:hover { background: var(--accent); }
+.chip-org .icon { color: var(--primary); }
+.empty { padding: 32px; border: 1px dashed var(--border); border-radius: var(--radius-xl); background: color-mix(in oklch, var(--muted) 50%, transparent); }
+.empty-head { display: flex; gap: 16px; align-items: flex-start; }
+.empty-icon { display: inline-flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 999px; background: var(--card); border: 1px solid var(--border); color: var(--primary); flex-shrink: 0; }
+.empty h3 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: var(--primary); line-height: 1.2; }
+.empty p { margin-top: 6px; font-size: 15px; line-height: 1.6; color: var(--muted-foreground); }
+.empty-actions { margin-top: 20px; display: flex; gap: 8px; }
+.empty-list { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); display: grid; gap: 10px; font-size: 14px; }
+.empty-list li { display: grid; grid-template-columns: 28px 1fr; gap: 4px; }
+.empty-list .num { font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); padding-top: 2px; }
+.empty-list b { font-weight: 600; }
+.empty-list span.muted { display: block; font-size: 13px; }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+	<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+	<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></symbol>
+	<symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+	<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+	<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+	<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+	<symbol id="i-sheet" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="3" x2="21" y1="15" y2="15"/><line x1="9" x2="9" y1="9" y2="21"/><line x1="15" x2="15" y1="9" y2="21"/></symbol>
+	<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+	<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+	<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+	<symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+	<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+	<symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol>
+	<symbol id="i-network" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></symbol>
+	<symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+	<symbol id="i-log-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></symbol>
+	<symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+	<symbol id="i-plus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
+	<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+	<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3"/></symbol>
+	<symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol>
+	<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+	<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+</svg>
+
+<header class="site-header">
+	<div class="container">
+		<a class="brand" href="#">
+			<span class="brand-name">Datos UMSS</span>
+			<span class="brand-sub">Plataforma de Datos Abiertos</span>
+		</a>
+		<div class="nav-right">
+			<nav class="main-nav" aria-label="Principal">
+				<ul>
+					<li><a href="#">Catálogo</a></li>
+					<li><a href="#" aria-current="page">Organizaciones</a></li>
+					<li><a href="#">Colecciones</a></li>
+					<li><a href="#">Acerca de</a></li>
+				</ul>
+			</nav>
+			<div class="nav-actions">
+				<button class="icon-btn" type="button" aria-label="Cambiar tema: claro, oscuro o sistema"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></button>
+				<a class="btn btn-primary" href="#">Iniciar Sesión</a>
+			</div>
+		</div>
+	</div>
+</header>
+
+<main class="container wrap">
+		<nav class="crumbs" aria-label="Ruta de navegación">
+			<ol>
+				<li><a href="#">Organizaciones</a></li>
+				<li><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+				<li><a href="#">Direcciones</a></li>
+				<li><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+				<li><span aria-current="page">Dirección de Investigación</span></li>
+			</ol>
+		</nav>
+		<aside class="rail" aria-label="Índice de la ficha">
+			<span class="logo" aria-hidden="true">DI</span>
+			<p class="rail-name">Dirección de Investigación</p>
+			<div class="rail-tags"><span class="type-tag">Dirección</span><span class="acronym">DICyT</span></div>
+			<nav aria-label="Capítulos"><ol class="toc"><li><a href="#ch-01" aria-current="true"><span class="num">01</span><span>Presentación</span><span class="cnt"></span></a></li><li><a href="#ch-02"><span class="num">02</span><span>Lugar en la universidad</span><span class="cnt"></span></a></li><li><a href="#ch-03"><span class="num">03</span><span>Qué publica</span><span class="cnt"></span></a></li><li><a href="#ch-04"><span class="num">04</span><span>Datasets</span><span class="cnt">10</span></a></li><li><a href="#ch-05"><span class="num">05</span><span>Colecciones que cura</span><span class="cnt">1</span></a></li><li><a href="#ch-06"><span class="num">06</span><span>Integrantes</span><span class="cnt">3</span></a></li><li><a href="#ch-07"><span class="num">07</span><span>Actividad</span><span class="cnt"></span></a></li></ol></nav>
+			<div class="rail-links">
+				<a class="link" href="#"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-globe"/></svg>dicyt.umss.edu.bo</a>
+				<a class="link" href="#"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-mail"/></svg>dicyt@umss.edu.bo</a>
+			</div>
+		</aside>
+		<article>
+			<header class="title-page">
+				<p class="eyebrow">Dirección · <span class="keep">DICyT</span></p>
+				<h1>Dirección de Investigación</h1>
+				<p class="lede">Coordinación y gestión de proyectos de investigación universitarios.</p>
+				<dl class="facts-line"><div><dt>Datasets</dt><dd>10, con 19 recursos</dd></div><div><dt>Última actualización</dt><dd>20 oct 2026</dd></div><div><dt>En el catálogo desde</dt><dd>25 sept 2026</dd></div><div><dt>Sitio web</dt><dd><a href="#">dicyt.umss.edu.bo</a></dd></div></dl>
+			</header>
+			<section class="chapter" id="ch-01" aria-labelledby="ch-01-t">
+				<div class="ch-head"><p class="eyebrow">01</p><h2 id="ch-01-t">Presentación</h2></div>
+				<div><div class="prose"><p>La Dirección de Investigación coordina la investigación de la Universidad: administra las convocatorias internas, lleva el registro de los grupos y centros de investigación y acompaña la protección de la propiedad intelectual.</p><p>Publica en el catálogo los datos de esa gestión —convocatorias y proyectos, grupos y centros, colaboraciones internacionales, patentes, eventos científicos y tesis de posgrado— para que docentes, investigadores y estudiantes los consulten, los reutilicen y los citen.</p></div></div>
+			</section><section class="chapter" id="ch-02" aria-labelledby="ch-02-t">
+				<div class="ch-head"><p class="eyebrow">02</p><h2 id="ch-02-t">Lugar en la universidad</h2><p>Según su tipo y su dependencia.</p></div>
+				<div><div class="tree">
+					<span class="tree-root"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-building"/></svg>Universidad Mayor de San Simón</span>
+					<div class="tree-level">
+						<p>Direcciones (4)</p>
+						<div class="tree-nodes"><a class="node" href="#"><b>DISU</b><span>Dirección de Interacción Social Universitaria</span></a><span class="node" aria-current="page"><b>DICyT</b><span>Dirección de Investigación</span></span><a class="node" href="#"><b>DPA</b><span>Dirección de Planificación Académica</span></a><a class="node" href="#"><b>DUEA</b><span>Dirección Universitaria de Evaluación y Acreditación</span></a></div>
+					</div>
+					<p class="tree-note"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-network"/></svg><span>Es una unidad de primer nivel: no depende de otra organización del catálogo y no tiene unidades dependientes registradas. En una facultad, aquí aparecen sus carreras, institutos y departamentos.</span></p>
+				</div></div>
+			</section><section class="chapter" id="ch-03" aria-labelledby="ch-03-t">
+				<div class="ch-head"><p class="eyebrow">03</p><h2 id="ch-03-t">Qué publica</h2><p>Recursos de todos sus datasets, agrupados por tipo.</p></div>
+				<div><div class="bignums">
+					<div><p class="bignum">10</p><p class="bignum-l">datasets</p></div>
+					<div><p class="bignum">19</p><p class="bignum-l">recursos</p></div>
+					<div><p class="bignum">5</p><p class="bignum-l">tipos de recurso</p></div>
+				</div>
+				<div class="hbars" role="img" aria-label="Recursos por tipo: 3 tablas, 2 documentos PDF, 2 datos geográficos, 6 otros archivos y 6 enlaces externos"><div class="hbar"><span class="hbar-name"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sheet"/></svg><span>Tablas<br><small>CSV, XLSX</small></span></span><span class="track"><span style="width:50%;background:var(--chart-1)"></span></span><b>3</b></div><div class="hbar"><span class="hbar-name"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-file-text"/></svg><span>Documentos PDF<br><small>PDF</small></span></span><span class="track"><span style="width:33%;background:var(--chart-2)"></span></span><b>2</b></div><div class="hbar"><span class="hbar-name"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-map"/></svg><span>Datos geográficos<br><small>GeoJSON</small></span></span><span class="track"><span style="width:33%;background:var(--chart-3)"></span></span><b>2</b></div><div class="hbar"><span class="hbar-name"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-file"/></svg><span>Otros archivos<br><small>JSON, TXT, PNG, JPEG</small></span></span><span class="track"><span style="width:100%;background:var(--chart-4)"></span></span><b>6</b></div><div class="hbar"><span class="hbar-name"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-link"/></svg><span>Enlaces externos<br><small>Enlace</small></span></span><span class="track"><span style="width:100%;background:var(--chart-5)"></span></span><b>6</b></div></div></div>
+			</section><section class="chapter wide" id="ch-04" aria-labelledby="ch-04-t">
+				<div class="ch-head"><p class="eyebrow">04</p><h2 id="ch-04-t">Datasets</h2><p>Los 10 datasets de la unidad, del más reciente al más antiguo.</p></div>
+				<div><div class="tbl-tools">
+					<label class="field"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only">Buscar en los datasets de la unidad</span><input placeholder="Buscar en los datasets de la unidad"></label>
+					<label><span class="sr-only">Ordenar</span><select class="select"><option>Actualizados recientemente</option><option>Título (A–Z)</option></select></label>
+				</div>
+				<table class="ds">
+					<thead><tr><th scope="col">Título</th><th scope="col">Formatos</th><th scope="col" class="num">Recursos</th><th scope="col">Actualizado</th></tr></thead>
+					<tbody><tr><td><a href="#">Grupos y centros de investigación registrados</a></td><td><span class="chips"><span class="chip-format">XLSX</span><span class="chip-format">PDF</span></span></td><td class="num">2</td><td class="date">20 oct 2026</td></tr><tr><td><a href="#">Convocatorias de investigación y proyectos adjudicados</a></td><td><span class="chips"><span class="chip-format">CSV</span></span></td><td class="num">1</td><td class="date">20 oct 2026</td></tr><tr><td><a href="#">Colaboraciones internacionales de investigación por país</a></td><td><span class="chips"><span class="chip-format">PNG</span><span class="chip-format">JPEG</span><span class="chip-format">TXT</span></span></td><td class="num">3</td><td class="date">20 oct 2026</td></tr><tr><td><a href="#">Patentes y registros de propiedad intelectual</a></td><td><span class="chips"><span class="chip-format">GEOJSON</span><span class="chip-format">PNG</span></span></td><td class="num">2</td><td class="date">20 oct 2026</td></tr><tr><td><a href="#">Eventos científicos organizados por gestión</a></td><td><span class="chips"><span class="chip-format">JSON</span></span></td><td class="num">1</td><td class="date">20 oct 2026</td></tr><tr><td><a href="#">Tesis de posgrado defendidas por programa</a></td><td><span class="chips"><span class="chip-format">PDF</span><span class="chip-format">JSON</span><span class="chip-format">GEOJSON</span></span></td><td class="num">3</td><td class="date">20 oct 2026</td></tr><tr><td><a href="#">Producción de investigación ficticia — Datos ficticios para demostración</a></td><td><span class="chips"><span class="chip-format">CSV</span></span></td><td class="num">1</td><td class="date">18 oct 2026</td></tr><tr><td><a href="#">Encuestas de satisfacción estudiantil</a></td><td><span class="chips"><span class="chip-format">Enlace</span></span></td><td class="num">3</td><td class="date">25 sept 2026</td></tr><tr><td><a href="#">Consumo energético por edificio</a></td><td><span class="chips"><span class="chip-format">Enlace</span></span></td><td class="num">1</td><td class="date">25 sept 2026</td></tr><tr><td><a href="#">Proyectos de investigación activos</a></td><td><span class="chips"><span class="chip-format">Enlace</span></span></td><td class="num">2</td><td class="date">25 sept 2026</td></tr></tbody>
+				</table></div>
+			</section><section class="chapter" id="ch-05" aria-labelledby="ch-05-t">
+				<div class="ch-head"><p class="eyebrow">05</p><h2 id="ch-05-t">Colecciones que cura</h2><p>Selecciones de datasets que la unidad reúne y mantiene.</p></div>
+				<div><a class="coll" href="#">
+					<span class="coll-icon"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg></span>
+					<span>
+						<span class="coll-name">Investigación y laboratorios de la FCyT</span>
+						<p>Proyectos, publicaciones y equipamiento de la Facultad de Ciencias y Tecnología, reunidos para la evaluación de la investigación.</p>
+						<span class="coll-meta"><span>De DICyT y FCyT</span><span>Actualizada el 20 oct 2026</span></span>
+					</span>
+					<span class="coll-n"><b>4</b><span>datasets</span></span>
+				</a></div>
+			</section><section class="chapter" id="ch-06" aria-labelledby="ch-06-t">
+				<div class="ch-head"><p class="eyebrow">06</p><h2 id="ch-06-t">Integrantes</h2><p>Las personas de la unidad y lo que puede hacer cada una.</p></div>
+				<div><ol class="members"><li><span class="avatar" aria-hidden="true">MR</span><span><a href="#">María Fernanda Rojas Vargas</a><span class="role">Administrador</span></span><p>Gestiona los miembros y aprueba las publicaciones de la unidad.</p></li><li><span class="avatar" aria-hidden="true">AC</span><span><a href="#">Ana Gabriela Céspedes</a><span class="role">Editor</span></span><p>Prepara los datasets de la unidad y solicita su publicación.</p></li><li><span class="avatar" aria-hidden="true">RA</span><span><a href="#">Rodrigo Antezana Flores</a><span class="role">Lector</span></span><p>Consulta los datasets de la unidad que todavía no son públicos.</p></li></ol>
+				<p class="privacy"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-info"/></svg><span>Cada nombre lleva a su perfil público. El portal no muestra correos personales; para escribir a la unidad, use su correo institucional.</span></p></div>
+			</section><section class="chapter" id="ch-07" aria-labelledby="ch-07-t">
+				<div class="ch-head"><p class="eyebrow">07</p><h2 id="ch-07-t">Actividad</h2><p>Lo último que publicó o actualizó la unidad.</p></div>
+				<div><ol class="timeline"><li><span class="when"><span class="day">20</span><span class="month">oct 2026</span></span><p class="entry"><b>Ana Gabriela Céspedes</b> publicó <a class="what" href="#">«Tesis de posgrado defendidas por programa»</a></p></li><li><span class="when"><span class="day">20</span><span class="month">oct 2026</span></span><p class="entry"><b>Ana Gabriela Céspedes</b> publicó <a class="what" href="#">«Eventos científicos organizados por gestión»</a></p></li><li><span class="when"><span class="day">20</span><span class="month">oct 2026</span></span><p class="entry"><b>María Fernanda Rojas Vargas</b> publicó <a class="what" href="#">«Grupos y centros de investigación registrados»</a></p></li><li><span class="when"><span class="day">18</span><span class="month">oct 2026</span></span><p class="entry"><b>María Fernanda Rojas Vargas</b> publicó <a class="what" href="#">«Producción de investigación ficticia — Datos ficticios para demostración»</a></p></li><li><span class="when"><span class="day">25</span><span class="month">sept 2026</span></span><p class="entry"><b>María Fernanda Rojas Vargas</b> publicó <a class="what" href="#">«Proyectos de investigación activos»</a></p></li></ol><p class="more"><a class="link" href="#">Ver toda la actividad<svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a></p></div>
+			</section>
+		</article>
+</main>
+
+<footer class="site-footer">
+	<div class="container">
+		<div class="footer-grid">
+			<div>
+				<p class="footer-brand">Datos UMSS</p>
+				<p style="margin-top:16px;max-width:280px">Universidad Mayor de San Simón — Plataforma de Datos Abiertos. Conjuntos de datos académicos y administrativos bajo principios FAIR.</p>
+			</div>
+			<div><h2>Plataforma</h2><ul><li><a href="#">Catálogo</a></li><li><a href="#">Organizaciones</a></li><li><a href="#">Colecciones</a></li><li><a href="#">Acerca de</a></li><li><a href="#">Panel</a></li></ul></div>
+			<div><h2>Datos</h2><ul><li><a href="#">Explorar datasets</a></li><li><a href="#">Por organización</a></li><li><a href="#">Sobre la plataforma</a></li></ul></div>
+			<div><h2>Contacto</h2><ul><li>Cochabamba, Bolivia</li><li><a href="#">datos@umss.edu.bo</a></li></ul></div>
+		</div>
+		<div class="footer-bottom"><span>© 2026 Universidad Mayor de San Simón. Todos los derechos reservados.</span><span>Plataforma de Datos Abiertos</span></div>
+	</div>
+</footer>
+
+<aside class="notes" aria-labelledby="notes-title">
+	<div class="container">
+		<p class="eyebrow">Anotación de la lámina — no forma parte de la página</p>
+		<h2 id="notes-title">Qué puede mostrar hoy el catálogo y qué hay que construir</h2>
+		<p class="intro">Cada capítulo del dossier, con lo que el catálogo ya guarda (nativo), lo que se puede agregar con campos o lógica propios (implementable) y lo que no se puede prometer.</p>
+		<table>
+			<thead><tr><th scope="col">Bloque</th><th scope="col">Factibilidad</th><th scope="col">Qué hace falta</th></tr></thead>
+			<tbody>
+				<tr><td>Logo o iniciales</td><td><span class="feas feas-n">Nativo</span></td><td>El logo es un campo de la organización; sin logo se muestran las iniciales, como hoy.</td></tr>
+				<tr><td>Tipo (Dirección)</td><td><span class="feas feas-i">Implementable</span></td><td>Campo propio de la organización, elegido de una lista cerrada (Q11, decidida). Hoy el tipo se adivina por el título.</td></tr>
+				<tr><td>Sigla (DICyT)</td><td><span class="feas feas-i">Implementable</span></td><td>Campo propio, como el tipo (Q13, abierta: si la dirección web usa la sigla o el identificador).</td></tr>
+				<tr><td>Ruta Organizaciones › Direcciones</td><td><span class="feas feas-i">Implementable</span></td><td>Sale del tipo; la página de organizaciones agrupada por tipo es la propuesta aprobada (H2-2).</td></tr>
+				<tr><td>Descripción</td><td><span class="feas feas-n">Nativo</span></td><td>La organización ya tiene una descripción con formato. El texto ampliado de «Acerca de» es de ejemplo: hoy la descripción real es una línea.</td></tr>
+				<tr><td>Sitio web y correo de la unidad</td><td><span class="feas feas-i">Implementable</span></td><td>Campos propios de la organización. Es el correo institucional de la unidad, no el de una persona. Los valores son de ejemplo.</td></tr>
+				<tr><td>En el catálogo desde / última actualización</td><td><span class="feas feas-n">Nativo</span></td><td>Fecha de registro de la organización y fecha del dataset modificado más recientemente.</td></tr>
+				<tr><td>Depende de / unidades dependientes</td><td><span class="feas feas-i">Implementable</span></td><td>Requiere la jerarquía de organizaciones (Q6, postergada): la del catálogo o un campo figurativo sin permisos. Una dirección no depende de otra unidad; en una facultad, este bloque lista sus unidades dependientes, como en H2-2.</td></tr>
+				<tr><td>Otras direcciones</td><td><span class="feas feas-i">Implementable</span></td><td>Sale del tipo: las demás organizaciones del mismo tipo, con su cantidad de datasets.</td></tr>
+				<tr><td>Cifras: datasets, colecciones, miembros</td><td><span class="feas feas-n">Nativo</span></td><td>Conteos de las listas anteriores.</td></tr>
+				<tr><td>Cifras: recursos por tipo</td><td><span class="feas feas-i">Implementable</span></td><td>El catálogo cuenta datasets por formato; contar recursos y agruparlos en tipos (tablas, PDF, geográficos…) es una suma en el portal.</td></tr>
+				<tr><td>Descargas o visitas</td><td><span class="feas feas-x">No disponible</span></td><td>No se muestran: hoy el catálogo no mide descargas. Se podría activar un seguimiento de visitas (a verificar en la versión instalada) y recién entonces mostrarlas.</td></tr>
+				<tr><td>Datasets con formatos, recursos y fecha</td><td><span class="feas feas-n">Nativo</span></td><td>Búsqueda de datasets de la organización, la misma de la ficha actual.</td></tr>
+				<tr><td>Buscar y ordenar dentro de la unidad</td><td><span class="feas feas-n">Nativo</span></td><td>La búsqueda del catálogo acepta la organización como filtro y un orden.</td></tr>
+				<tr><td>Colecciones que cura</td><td><span class="feas feas-i">Implementable</span></td><td>Lógica propia, con el diseño ya decidido (Q10, Q18): que una organización sea dueña de una colección y su visibilidad no los trae el catálogo. Sólo se listan las públicas; la etiqueta de visibilidad aparece sólo si no es pública.</td></tr>
+				<tr><td>Miembros con su rol</td><td><span class="feas feas-n">Nativo</span></td><td>Lista de miembros con su rol en la organización; los perfiles son públicos (Q1), y nunca se muestra el correo de una persona.</td></tr>
+				<tr><td>Actividad reciente</td><td><span class="feas feas-n">Nativo</span></td><td>Historial de actividad de la organización: quién publicó o actualizó qué y cuándo.</td></tr>
+			</tbody>
+		</table>
+	</div>
+</aside>
+</body>
+</html>
