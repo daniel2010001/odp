@@ -147,7 +147,8 @@ dataset collaborators, T6 public profile `/user/<name>` (Q1) and versions (Q17);
 
 **Outside this repository:** `odp-docker` has the Q7 fix (`620fd73`) and the Q16 fix (`9b5eb55`, verified live 2026-10-26) merged into `master` (PR #40, merge `8ea8582`, 2026-10-26).
 `odp-dev` runs with both; the stopped demo needs `up -d` of `ckan` and `ckan-worker` to pick them up. Delivery: this branch is ~4,000 lines in 31 commits; split into several PRs before
-merging to `main` (after the presentation). Before that merge, decide whether prototype mode (T15) stays: real pages import
+merging to `main` (after the presentation). GitHub Pages (enabled 2026-10-28) serves this branch at `https://daniel2010001.github.io/odp/design/`: after the merge,
+switch its source to `main`. Before that merge, decide whether prototype mode (T15) stays: real pages import
 the mock data from `src/routes/dev/prototype/collections/` (dead code in production, but a coupling to undo).
 
 ## Log
