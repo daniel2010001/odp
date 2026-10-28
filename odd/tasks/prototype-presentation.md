@@ -67,6 +67,26 @@ imported into Figma and presented as a click-through prototype before the tribun
   algo como 3 pages, más o menos (o las que sugieras, no cerremos este número), y yo voy revisando para el feetback, te parece?
   algo como hicimos en las devs pages." Each screen is one self-contained artboard under `design/prototipo/`, shareable.
 
+- **S16** — Inicio, second iteration (2026-10-28), verbatim: "04: En el hero, la descripción no termina de gustarme. Creo que
+  deberíamos hacer más énfasis en que podemos tener diferentes tipos de documentos. Creo que, por lo general, las secciones
+  están bien, pero solo en la idea, el diseño no termina de gustarme y tampoco el orden. Volver a iterar. Algo que me gustó
+  mucho es eso de "Novedades", el nuevo diseño me gusta más que el anterior. Respecto a lo que dices que la section 2 y 3 se
+  repiten, podemos unificarlas? algo así como unir ambas sections en uno solo. Respecto a la sección "para su
+  investigación", no termina de gustarme el formato en lo que estamos presentando. Parece como si este fuera el resultado
+  final, pero es diferente a la ficha de dataset que tenemos ahora mismo, no digo que la copiemos tal cual está ahora mismo,
+  sino que la presentemos de otra forma."
+- **S17** — Dataset sheet right panel (BACKLOG P1, P2), verbatim: "p1: la 1 y 3, el orden actual es: citar, resumen y
+  organización, y si tiene historíal de solicitudes va al final y si tiene una solicitud creo que va despues de la cita.
+  podemos reordenarlas? lo que propongas, pero quisiera verlas todas por ahora, sin importar el login. cuando se publica
+  quisiera ver su historial, pero creo que esto estará solo para los logins, no para el annonimus" … "creo que sí [scroll
+  para el panel], porque ahora mismo tenemos que bajar hasta abajo para poder ver las últimas cards, por ejemplo el del
+  historial de solicitudes, esto no termina de gustarme y creo que depende mucho de la pantalla, podemos hacer algo como
+  hicimos con las vistas de los gráficos? algo así como tener un alto responsive?" P2: "el botón de copiar links que copiamos
+  de github … en la parte izquierda las cards tienen dos titles, pero en la parte [derecha] no, solo uno, quisiera que ambos
+  estén en el mismo title, y que el botón sea con hover group, se puede? eso de estar esperando a que se haga hover en el
+  title no termina de gustar, quisas nadie lo note". Request history: not for anonymous visitors; sin/con login become
+  separate pages later.
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -115,6 +135,8 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
 | T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | `18e1409` — awaiting author review |
 | T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | batch 1 `91611cd` (H2-4, H2-7, H3-1) — awaiting author review |
+| T17 | S16 | Inicio direction 05 (second iteration) | worker | — |
+| T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -233,3 +255,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   Podemos iterar el inicio con estas preferencias?" → artboard 04. H2-4, verbatim: "podemos implementar las observaciones que
   hice anteriormente? creo que están como TODOs. y creo que faltaría eso de la card de publicación en la parte derecha." →
   candidates found in BACKLOG («Detalles» vs «Información técnica», hero tooltips, metadata card E4); asked which.
+- **L15** (2026-10-28, author): S16 and S17 (verbatim above). P21/P22 belong to the resource sheet (DataStore resources).
