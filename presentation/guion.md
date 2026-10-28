@@ -77,7 +77,7 @@ usuarios?», «¿Cuál es el diferenciador?».
 | 2 | Organizaciones (propuesta) | maqueta | `/dev/organizations` | *(opcional)* Las unidades agrupadas por tipo —facultades, direcciones— con su sigla y la fecha de su último dato. |
 | 3 | Búsqueda «matrícula» | construida | `/search?q=matrícula` | Encuentra datos de **varias unidades** en un solo lugar. |
 | 4 | Ficha del dataset | construida | `Matrícula estudiantil por carrera y gestión` | Qué contiene, quién lo publicó, cuándo, con qué licencia. |
-| 5 | Recurso CSV: tabla y gráfico | construida | el CSV de esa ficha | Se ve antes de descargar; el gráfico se arma sin programar. Botón para copiar el acceso por API. |
+| 5 | Recurso CSV: tabla y gráfico | construida | el CSV de «Matrícula por facultad y gestión» (Rectorado), otro resultado de la misma búsqueda | Se ve antes de descargar; el gráfico se arma sin programar. Botón para copiar el acceso por API. *(La matrícula de la FCS es un XLSX que no está cargado para vista previa: por eso este paso usa el CSV del Rectorado.)* |
 | 6 | «Aparece en las colecciones» | construida + maqueta | la misma ficha real de la matrícula, más abajo (modo prototipo) | Este dato está **reunido con otros** en colecciones. Sin sesión sólo se ven las **públicas**. |
 | 6b | Colecciones (menú principal) | maqueta | `/dev/prototype/collections` | *(opcional)* Desde el menú: todas las colecciones **públicas**, de personas y de unidades. |
 | 7 | Ficha de colección de una persona | maqueta | `/dev/prototype/collection?c=indicadores-academicos` | Una investigadora juntó datos de **tres unidades** para su tesis. Desde aquí se salta a otro dataset, y de ese a otra colección. |
