@@ -12,6 +12,15 @@ import { page } from "$app/stores";
 import OrganizationsPlayground from "./+page.svelte";
 import { CURRENT_ORG_NAMES, orgsForCase } from "./orgs";
 
+// La barra pegada mide su alto con `bind:clientHeight`, que usa un `ResizeObserver` que jsdom no
+// implementa; acá no se mide el layout (eso se mide en Chromium).
+class ResizeObserverStub {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
 const pageStore = page as unknown as {
 	set: (value: { params: Record<string, string>; url: URL }) => void;
 };
@@ -52,6 +61,16 @@ describe("playground de organizaciones — la cuadrícula actual", () => {
 		}
 		expect(screen.queryByRole("searchbox")).toBeNull();
 		expect(screen.queryByTestId("org-proposed")).toBeNull();
+	});
+
+	it("no pega nada: la barra y los títulos pegados son sólo de la propuesta", () => {
+		at("?vista=actual&caso=completa");
+		render(OrganizationsPlayground);
+
+		const product = screen.getByTestId("org-page");
+		expect(screen.queryByTestId("org-sticky-bar")).toBeNull();
+		expect(product.querySelector(".sticky")).toBeNull();
+		expect(product.innerHTML).not.toMatch(/--org-bar-h|--sticky-air/);
 	});
 });
 
@@ -153,6 +172,41 @@ describe("playground de organizaciones — la propuesta", () => {
 		const card = screen.getByTestId("org-card-cep");
 		expect(card).toHaveTextContent("Aún sin datasets publicados");
 		expect(card.querySelector("time")).toBeNull();
+	});
+
+	it("el buscador y el filtro se pegan bajo el encabezado, con fondo opaco y el aire común", () => {
+		at("?vista=propuesta&caso=completa");
+		render(OrganizationsPlayground);
+
+		const bar = screen.getByTestId("org-sticky-bar");
+		expect(within(bar).getByRole("searchbox", { name: "Buscar organizaciones" })).toBeTruthy();
+		expect(within(bar).getByRole("group", { name: "Filtrar por tipo" })).toBeTruthy();
+		expect(bar).toHaveClass(
+			"sticky",
+			"top-[calc(var(--header-h)+1px)]",
+			"pt-[var(--sticky-air)]",
+			"bg-background",
+			"motion-reduce:transition-none",
+		);
+		// El alto de la barra se mide en una variable: de ahí sale el tope de los títulos de grupo.
+		expect(screen.getByTestId("org-proposed").style.getPropertyValue("--org-bar-h")).toMatch(/px$/);
+	});
+
+	it("cada título de grupo se pega justo debajo de la barra", () => {
+		at("?vista=propuesta&caso=completa");
+		render(OrganizationsPlayground);
+
+		for (const id of ["rectorado", "facultad", "direccion"]) {
+			const title = within(screen.getByTestId(`org-group-${id}`)).getByRole("heading", {
+				level: 2,
+			});
+			expect(title).toHaveClass(
+				"sticky",
+				"top-[calc(var(--header-h)+1px+var(--org-bar-h,0px))]",
+				"bg-background",
+				"motion-reduce:transition-none",
+			);
+		}
 	});
 
 	it("el área de producto no nombra la implementación", () => {

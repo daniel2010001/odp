@@ -105,6 +105,8 @@ let hierarchy = $state(paramOr("jerarquia", YES_NO, "si") === "si");
 let fields = $state(paramOr("campos", YES_NO, "si") === "si");
 let query = $state(url.searchParams.get("q") ?? "");
 let typeFilter = $state<OrgType | "todas">(paramOr("tipo", [...TYPE_IDS, "todas"], "todas"));
+/** Alto medido de la barra pegada: de él sale el tope de los títulos de grupo (`--org-bar-h`). */
+let barHeight = $state(0);
 
 const all = $derived(orgsForCase(orgCase));
 const byQuery = $derived(all.filter((org) => matchesQuery(org, query)));
@@ -235,9 +237,18 @@ const inputClass =
 			{/each}
 		</div>
 	{:else}
-		<div data-testid="org-proposed">
-			<!-- (1) Buscador y filtro por tipo -->
-			<div class="flex flex-col gap-4">
+		<div data-testid="org-proposed" style:--org-bar-h="{barHeight}px">
+			<!-- (1) Buscador y filtro por tipo, pegados bajo el encabezado (S19): el tope sale de
+			     `--header-h` más su borde de 1px, y el aire común `--sticky-air` va como relleno *dentro*
+			     del fondo opaco, para que las tarjetas no asomen por el hueco. El relleno existe también sin
+			     pegar, así que pegarse no mueve nada. Los márgenes negativos estiran el fondo sobre el relleno
+			     del contenedor y tapan la sombra de las tarjetas. El `top` sigue al encabezado cuando se
+			     achica, con la misma transición que él; `prefers-reduced-motion` la apaga. -->
+			<div
+				data-testid="org-sticky-bar"
+				bind:clientHeight={barHeight}
+				class="sticky top-[calc(var(--header-h)+1px)] z-20 -mx-4 flex flex-col gap-4 bg-background px-4 pt-[var(--sticky-air)] pb-[var(--sticky-air)] transition-[top] duration-200 ease-out motion-reduce:transition-none sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+			>
 				<label class="relative block max-w-xl">
 					<span class="sr-only">Buscar organizaciones</span>
 					<Search
@@ -347,13 +358,14 @@ const inputClass =
 					</Button>
 				</div>
 			{:else if grouped}
-				<!-- (2) Un encabezado por tipo -->
+				<!-- (2) Un encabezado por tipo. El título se pega justo debajo de la barra mientras su grupo
+				     está a la vista (el `<section>` lo contiene), para saber siempre en qué grupo se está. -->
 				<div class="mt-4 space-y-10">
 					{#each groups as group (group.type.id)}
 						<section aria-labelledby={`group-${group.type.id}`} data-testid={`org-group-${group.type.id}`}>
 							<h2
 								id={`group-${group.type.id}`}
-								class="flex items-baseline gap-2 border-b border-border pb-2 font-heading text-xl font-semibold text-primary"
+								class="sticky top-[calc(var(--header-h)+1px+var(--org-bar-h,0px))] z-10 flex items-baseline gap-2 border-b border-border bg-background pb-2 font-heading text-xl font-semibold text-primary transition-[top] duration-200 ease-out motion-reduce:transition-none"
 							>
 								{group.type.plural}
 								<span class="font-sans text-sm font-normal text-muted-foreground">{group.orgs.length}</span>
