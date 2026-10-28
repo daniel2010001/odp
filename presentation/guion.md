@@ -12,6 +12,12 @@ tiempo le dan para exponer.
 una **maqueta** (diseño de lo que viene, sin funcionamiento). Conviene decirlo en voz alta al pasar a una maqueta:
 *«esta pantalla todavía no funciona; es el diseño»*.
 
+**Antes de capturar: active el modo prototipo** en `https://odp.hs.lan/dev/prototype` (interruptor «Modo prototipo»,
+arriba de «Pantallas construidas»). Con él, las páginas reales muestran los accesos a lo nuevo: «Colecciones» en el menú,
+«Aparece en las colecciones» en la ficha de la matrícula, «Colecciones que cura» en la ficha de una organización y «Mis
+colecciones» y «Usuarios» en el panel. Sólo existe en desarrollo; en producción no aparece. Se queda activado (cookie)
+hasta que lo apague.
+
 Las rutas se abren en `https://odp.hs.lan`. Las respuestas largas están en `preguntas.md`; acá sólo se cita cuál
 responde cada historia.
 
@@ -69,7 +75,7 @@ usuarios?», «¿Cuál es el diferenciador?».
 | 3 | Búsqueda «matrícula» | construida | `/search?q=matrícula` | Encuentra datos de **varias unidades** en un solo lugar. |
 | 4 | Ficha del dataset | construida | `Matrícula estudiantil por carrera y gestión` | Qué contiene, quién lo publicó, cuándo, con qué licencia. |
 | 5 | Recurso CSV: tabla y gráfico | construida | el CSV de esa ficha | Se ve antes de descargar; el gráfico se arma sin programar. Botón para copiar el acceso por API. |
-| 6 | «Aparece en las colecciones» | maqueta | `/dev/prototype/dataset-collections?d=matricula-por-carrera` | Este dato está **reunido con otros** en colecciones. Sin sesión sólo se ven las **públicas**. |
+| 6 | «Aparece en las colecciones» | construida + maqueta | la misma ficha real de la matrícula, más abajo (modo prototipo) | Este dato está **reunido con otros** en colecciones. Sin sesión sólo se ven las **públicas**. |
 | 6b | Colecciones (menú principal) | maqueta | `/dev/prototype/collections` | *(opcional)* Desde el menú: todas las colecciones **públicas**, de personas y de unidades. |
 | 7 | Ficha de colección de una persona | maqueta | `/dev/prototype/collection?c=indicadores-academicos` | Una investigadora juntó datos de **tres unidades** para su tesis. Desde aquí se salta a otro dataset, y de ese a otra colección. |
 
@@ -136,8 +142,10 @@ elemento que se pulsaría en la página real.
 | H2-1 / H2-2 | buscador, con «matrícula» escrito | H2-3 |
 | H2-3 Resultados | el título del dataset | H2-4 |
 | H2-4 Ficha | el recurso CSV | H2-5 |
-| H2-5 Recurso | «Volver al dataset» (abajo, la sección de colecciones) | H2-6 |
+| H2-5 Recurso | «Volver al dataset» | H2-6 (la ficha, en la sección de colecciones) |
+| H2-1 Inicio | «Colecciones» en el menú | H2-6b |
 | H2-6 Colecciones del dataset | «Indicadores académicos para tesis» | H2-7 |
+| H1-3 Panel | «Mis colecciones» | H3-1 |
 | H3-1 Mis colecciones | «Rendición pública de cuentas 2025» | H3-2 |
 | H3-2 Vista del curador | selector de vista, «Pública» | H3-3 |
 | H3-3 Vista pública | «Informe de gestión 2025 — FCyT» | H3-4 |

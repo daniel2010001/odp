@@ -105,7 +105,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T12 | S6, S11 | Collection mocks follow Q10 (Privada, viewer-aware lists) + matrícula aligned with the real dataset | inline | `f0c8b11` — awaiting author review |
 | T13 | S12 | Public collections list (main menu) vs «Mis colecciones» (panel) as two mock screens | worker | `511df08` — awaiting author review |
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
-| T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | — |
+| T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | `18e1409` — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -138,7 +138,8 @@ dataset collaborators, T6 public profile `/user/<name>` (Q1) and versions (Q17);
 
 **Outside this repository:** `odp-docker` has the Q7 fix (`620fd73`) and the Q16 fix (`9b5eb55`, verified live 2026-10-26) merged into `master` (PR #40, merge `8ea8582`, 2026-10-26).
 `odp-dev` runs with both; the stopped demo needs `up -d` of `ckan` and `ckan-worker` to pick them up. Delivery: this branch is ~4,000 lines in 31 commits; split into several PRs before
-merging to `main` (after the presentation).
+merging to `main` (after the presentation). Before that merge, decide whether prototype mode (T15) stays: real pages import
+the mock data from `src/routes/dev/prototype/collections/` (dead code in production, but a coupling to undo).
 
 ## Log
 
