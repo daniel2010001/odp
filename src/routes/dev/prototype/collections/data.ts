@@ -339,5 +339,31 @@ export function curatorLabel(curator: Curator): string {
 	return curator.kind === "org" ? ORGS[curator.org].title : curator.name;
 }
 
+/**
+ * Ficha real (slug de CKAN) → dataset de maqueta, para la sección de colecciones de la ficha real en modo
+ * prototipo (`$lib/prototype/mode.ts`). Los slugs reales no coinciden con los de la maqueta; un dataset real
+ * sin entrada acá no muestra la sección.
+ */
+export const REAL_TO_MOCK_DATASET: Record<string, string> = {
+	"matricula-estudiantil-por-carrera-y-gestion": "matricula-por-carrera",
+};
+
+/** Las colecciones de una ficha real que quien mira puede ver; `null` si el dataset real no tiene maqueta. */
+export function collectionsOfRealDataset(
+	realSlug: string,
+	viewer: Viewer,
+): MockCollection[] | null {
+	const mock = REAL_TO_MOCK_DATASET[realSlug];
+	if (!mock) return null;
+	return collectionsOf(mock).filter((c) => canSee(c, viewer));
+}
+
+/** «Colecciones que cura» una organización (Q18), con su slug real (igual a la clave de `ORGS`). */
+export function collectionsCuratedByOrg(org: string, viewer: Viewer): MockCollection[] {
+	return COLLECTIONS.filter(
+		(c) => c.curator.kind === "org" && c.curator.org === org && canSee(c, viewer),
+	);
+}
+
 export const collectionHref = (slug: string) => `/dev/prototype/collection?c=${slug}`;
 export const datasetHref = (slug: string) => `/dev/prototype/dataset-collections?d=${slug}`;

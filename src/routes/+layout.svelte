@@ -6,6 +6,7 @@ import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
 import UserMenu from "$lib/components/auth/UserMenu.svelte";
 import ThemePlayground from "$lib/components/ThemePlayground.svelte";
+import { isPrototypeMode } from "$lib/prototype/mode";
 import { validateStoredSession } from "$lib/session-guard";
 import { auth, isAuthenticated } from "$lib/stores/auth";
 import { theme } from "$lib/stores/theme";
@@ -34,6 +35,10 @@ const inBrowser = typeof window !== "undefined";
 // En el SSR el store está vacío, así que el encabezado se dibuja con la identidad que trajo el servidor; en
 // el navegador manda el store (que el efecto de arriba ya alineó con el servidor y que el logout limpia).
 const signedIn = $derived(inBrowser ? $isAuthenticated : data.sessionUser !== null);
+
+// Modo prototipo (`$lib/prototype/mode.ts`): sólo en desarrollo y con su cookie puesta, el menú suma
+// «Colecciones», que lleva a la maqueta. Apagado, el menú es el de siempre.
+const prototype = $derived(isPrototypeMode(data));
 
 let mobileMenuOpen = $state(false);
 let currentTheme: "light" | "dark" | "system" = $state("system");
@@ -147,6 +152,14 @@ $effect(() => {
 					>
 						Organizaciones
 					</a>
+					{#if prototype}
+						<a
+							href="/dev/prototype/collections"
+							class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-accent hover:text-primary"
+						>
+							Colecciones
+						</a>
+					{/if}
 					<a
 						href="/about"
 						class="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-accent hover:text-primary"
@@ -224,6 +237,15 @@ $effect(() => {
 					>
 						Organizaciones
 					</a>
+					{#if prototype}
+						<a
+							href="/dev/prototype/collections"
+							class="block rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-primary"
+							onclick={closeMobileMenu}
+						>
+							Colecciones
+						</a>
+					{/if}
 					<a
 						href="/about"
 						class="block rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-primary"
@@ -306,6 +328,16 @@ $effect(() => {
 								Organizaciones
 							</a>
 						</li>
+						{#if prototype}
+							<li>
+								<a
+									href="/dev/prototype/collections"
+									class="transition-colors duration-200 hover:text-footer-foreground"
+								>
+									Colecciones
+								</a>
+							</li>
+						{/if}
 						<li>
 							<a href="/about" class="transition-colors duration-200 hover:text-footer-foreground">
 								Acerca de

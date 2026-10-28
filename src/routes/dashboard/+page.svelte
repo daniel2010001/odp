@@ -5,16 +5,19 @@ import {
 	ChevronRight,
 	Database,
 	Inbox,
+	Library,
 	Lock,
 	Pencil,
 	Plus,
 	RotateCw,
 	ShieldCheck,
 	TriangleAlert,
+	UsersRound,
 } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { get } from "svelte/store";
 import { goto } from "$app/navigation";
+import { page } from "$app/stores";
 import { createPortalClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
 import { createOrganizationApi } from "$lib/api/organizations";
@@ -30,6 +33,7 @@ import {
 	EMPTY_STATE_PRIMARY_ACTION_LABEL,
 	emptyStateMessage,
 } from "$lib/copy/dashboard";
+import { isPrototypeMode } from "$lib/prototype/mode";
 import { endInvalidSession } from "$lib/session-guard";
 import { auth, currentUser, isAuthenticated, isSuperAdmin } from "$lib/stores/auth";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
@@ -296,6 +300,27 @@ const actions = $derived.by(() => {
 			badge: decide ? plural(decidibles, "pendiente", "pendientes") : undefined,
 			count: decide ? decidibles : undefined,
 		});
+	}
+	// Modo prototipo (`$lib/prototype/mode.ts`, sólo en desarrollo): accesos a las maquetas, con las mismas
+	// reglas de rol que tendrán. «Mis colecciones» para cualquiera con sesión; «Usuarios», sólo la
+	// superadministración.
+	if (isPrototypeMode($page.data)) {
+		lista.push({
+			id: "mis-colecciones",
+			title: "Mis colecciones",
+			description: "Consulte y organice las colecciones que cura.",
+			href: "/dev/prototype/collections?vista=panel",
+			icon: Library,
+		});
+		if ($isSuperAdmin) {
+			lista.push({
+				id: "usuarios",
+				title: "Usuarios",
+				description: "Administre las cuentas de la plataforma.",
+				href: "/dev/prototype/users",
+				icon: UsersRound,
+			});
+		}
 	}
 	return lista;
 });

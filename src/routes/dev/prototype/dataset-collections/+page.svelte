@@ -19,21 +19,18 @@
 	de colección).
 -->
 <script lang="ts">
-import { Building2, Database, Library, User } from "@lucide/svelte";
+import { Building2, Database } from "@lucide/svelte";
 import { page } from "$app/stores";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
-import Card from "$lib/components/ui/card/card.svelte";
+import DatasetCollections from "../collections/DatasetCollections.svelte";
 import {
 	canSee,
-	collectionHref,
 	collectionsOf,
-	curatorLabel,
 	DATASETS,
 	datasetBySlug,
 	ORGS,
 	type Viewer,
 } from "../collections/data";
-import VisibilityBadge from "../collections/VisibilityBadge.svelte";
 
 type ViewerKey = "visitante" | "rectorado";
 
@@ -139,57 +136,7 @@ const viewerHref = (next: ViewerKey) =>
 	<section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 		<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
 			<div class="min-w-0 space-y-6">
-				<Card class="p-6 sm:p-8" data-testid="dataset-collections">
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Colecciones</p>
-					<h2 class="mt-1 font-heading text-xl font-bold text-primary">
-						Aparece en las colecciones
-						<span class="font-normal text-muted-foreground">({collections.length})</span>
-					</h2>
-					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-						Este dataset se publica una sola vez, en {org.title}. Las colecciones lo referencian sin
-						copiarlo: siempre muestran esta misma versión.
-					</p>
-
-					{#if collections.length === 0}
-						<p class="mt-4 text-sm text-muted-foreground">Este dataset todavía no está en ninguna colección.</p>
-					{:else}
-						<ul class="mt-4 space-y-2">
-							{#each collections as collection (collection.slug)}
-								<li>
-									<a
-										href={collectionHref(collection.slug)}
-										class="group flex items-start gap-3 rounded-lg border border-border bg-background p-4 transition-colors duration-200 hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-										data-testid="dataset-collection"
-									>
-										<Library class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
-										<span class="min-w-0 flex-1">
-											<span class="block font-medium text-primary group-hover:underline">
-												{collection.name}
-											</span>
-											<span
-												class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"
-											>
-												<span class="inline-flex items-center gap-1.5">
-													{#if collection.curator.kind === "org"}
-														<Building2 class="size-3.5" aria-hidden="true" />
-													{:else}
-														<User class="size-3.5" aria-hidden="true" />
-													{/if}
-													Curada por
-													<span class="text-foreground" data-testid="collection-curator"
-														>{curatorLabel(collection.curator)}</span
-													>
-												</span>
-												<span>{collection.datasets.length} datasets</span>
-											</span>
-										</span>
-										<VisibilityBadge visibility={collection.visibility} />
-									</a>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</Card>
+				<DatasetCollections {collections} orgTitle={org.title} />
 			</div>
 		</div>
 	</section>

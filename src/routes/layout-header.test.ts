@@ -348,3 +348,49 @@ describe("El encabezado se achica cuando la página deja el tope", () => {
 		expect(document.documentElement.hasAttribute("data-header-shrunk")).toBe(true);
 	});
 });
+
+// Modo prototipo (S14 de `odd/tasks/prototype-presentation.md`): con él activado, «Colecciones» aparece en el
+// menú —escritorio, móvil y pie— después de «Organizaciones» y lleva a la lista pública de la maqueta.
+// Apagado, el menú es el de siempre.
+describe("Modo prototipo en el encabezado", () => {
+	const COLLECTIONS_HREF = "/dev/prototype/collections";
+
+	async function openMobileMenu() {
+		screen.getByRole("button", { name: "Abrir menú" }).click();
+		await tick();
+	}
+
+	it("activado: «Colecciones» va después de «Organizaciones» en el menú, el menú móvil y el pie", async () => {
+		render(Layout, { children, data: { ...anonymousData, prototype: true } });
+		await openMobileMenu();
+
+		const links = screen.getAllByRole("link", { name: "Colecciones" });
+		expect(links).toHaveLength(3);
+		for (const link of links) {
+			expect(link).toHaveAttribute("href", COLLECTIONS_HREF);
+			const previous =
+				link.closest("li")?.previousElementSibling?.querySelector("a") ??
+				link.previousElementSibling;
+			expect(previous).toHaveAttribute("href", "/organizations");
+			// Mismo estilo que el ítem vecino.
+			expect(link.className).toBe((previous as HTMLElement).className);
+		}
+	});
+
+	it("apagado (por defecto): ningún «Colecciones» en el menú, el menú móvil ni el pie", async () => {
+		render(Layout, { children, data: anonymousData });
+		await openMobileMenu();
+
+		expect(screen.queryByRole("link", { name: "Colecciones" })).not.toBeInTheDocument();
+		expect(screen.getAllByRole("link", { name: "Organizaciones" })).toHaveLength(3);
+	});
+
+	it("fuera de desarrollo no aparece aunque el dato venga activado", async () => {
+		vi.stubEnv("DEV", false);
+		render(Layout, { children, data: { ...anonymousData, prototype: true } });
+		await openMobileMenu();
+
+		expect(screen.queryByRole("link", { name: "Colecciones" })).not.toBeInTheDocument();
+		vi.unstubAllEnvs();
+	});
+});

@@ -46,6 +46,7 @@ import { estadoDeLaSolicitud, insigniaDeLaSolicitud } from "$lib/copy/publicatio
 import { stateLabel } from "$lib/copy/states";
 import { summaryFacts, technicalGroups } from "$lib/datasets/details";
 import { getMockDatasetById } from "$lib/mock/data";
+import { isPrototypeMode } from "$lib/prototype/mode";
 import { resolveUnauthorized, type UnauthorizedResolution } from "$lib/session-guard";
 import { auth } from "$lib/stores/auth";
 import type { CkanPackage } from "$lib/types/ckan";
@@ -56,6 +57,8 @@ import { SUMMARY_EXTRA_KEY } from "$lib/utils/dataset-summary";
 import { safeExternalUrl } from "$lib/utils/external-url";
 import { licenseTermsUrl } from "$lib/utils/licenses";
 import { renderMarkdown } from "$lib/utils/markdown";
+import DatasetCollections from "../../dev/prototype/collections/DatasetCollections.svelte";
+import { collectionsOfRealDataset } from "../../dev/prototype/collections/data";
 
 // ─── State ───────────────────────────────────────────────────────
 
@@ -581,6 +584,15 @@ async function handleCopyCitation() {
 }
 
 // Enlace canónico del dataset (usa el slug, no el id interno).
+// Modo prototipo (`$lib/prototype/mode.ts`, sólo en desarrollo): las colecciones de la maqueta que incluyen
+// este dataset, vistas como un visitante (Q10: sólo las públicas). `null` si el dataset real no tiene maqueta,
+// y entonces no hay sección.
+const prototypeCollections = $derived(
+	isPrototypeMode($page.data) && dataset
+		? collectionsOfRealDataset(dataset.name, { kind: "visitor" })
+		: null,
+);
+
 const shareUrl = $derived(dataset ? `${$page.url.origin}/dataset/${dataset.name}` : "");
 // El resumen corto que escribió quien publica (extra `summary`); vacío si no lo hay.
 const resumenEditorial = $derived(
@@ -793,6 +805,13 @@ const resumenEditorial = $derived(
 							{/if}
 						</div>
 					</Card>
+
+					{#if prototypeCollections}
+						<DatasetCollections
+							collections={prototypeCollections}
+							orgTitle={dataset.organization?.title ?? dataset.organization?.name ?? ""}
+						/>
+					{/if}
 
 					<!-- Información técnica: todos los campos registrados, en grupos (variante C / 3b de
 					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la

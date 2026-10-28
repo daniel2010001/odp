@@ -7,7 +7,19 @@
 -->
 <script lang="ts">
 import { ArrowUpRight } from "@lucide/svelte";
+import { invalidateAll } from "$app/navigation";
+import { page } from "$app/stores";
+import { isPrototypeMode, setPrototypeModeCookie } from "$lib/prototype/mode";
 import { SCREENS } from "./screens";
+
+// Modo prototipo (`$lib/prototype/mode.ts`): con él activado, las páginas reales muestran los accesos a las
+// maquetas. La cookie la lee `+layout.server.ts`; `invalidateAll()` vuelve a pedir ese dato para todo el sitio.
+const prototype = $derived(isPrototypeMode($page.data));
+
+async function togglePrototype() {
+	setPrototypeModeCookie(!prototype);
+	await invalidateAll();
+}
 
 const built = SCREENS.filter((s) => s.kind === "built");
 const mock = SCREENS.filter((s) => s.kind === "mock");
@@ -25,6 +37,27 @@ const mock = SCREENS.filter((s) => s.kind === "mock");
 			Cada una se abre y se captura en Figma.
 		</p>
 	</header>
+
+	<section
+		class="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dashed border-border bg-muted/50 px-4 py-3"
+		aria-label="Modo prototipo"
+	>
+		<p class="max-w-2xl text-sm text-muted-foreground">
+			Con el modo prototipo activado, las páginas construidas muestran los accesos a las pantallas nuevas: el
+			menú, la ficha del dataset, la ficha de la organización y el panel. Sólo en desarrollo.
+		</p>
+		<button
+			type="button"
+			role="switch"
+			aria-checked={prototype}
+			onclick={togglePrototype}
+			class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-input px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {prototype
+				? 'bg-primary text-primary-foreground'
+				: 'bg-background text-foreground hover:bg-accent'}"
+		>
+			Modo prototipo: {prototype ? "activado" : "desactivado"}
+		</button>
+	</section>
 
 	<section class="mt-10" data-testid="prototype-built">
 		<h2 class="font-heading text-xl font-semibold text-primary">Pantallas construidas</h2>

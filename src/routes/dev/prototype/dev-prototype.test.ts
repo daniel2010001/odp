@@ -4,8 +4,11 @@
 //
 // La compuerta de producción vive en `+layout.ts` y cubre todas las maquetas de la carpeta.
 
-import { render, screen, within } from "@testing-library/svelte";
+import { fireEvent, render, screen, within } from "@testing-library/svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { invalidateAll } from "$app/navigation";
+import { page } from "$app/stores";
+import { PROTOTYPE_COOKIE, PROTOTYPE_COOKIE_ON, setPrototypeModeCookie } from "$lib/prototype/mode";
 import { load } from "./+layout";
 import PrototypeIndex from "./+page.svelte";
 import { SCREENS } from "./screens";
@@ -56,5 +59,55 @@ describe("compuerta de producción", () => {
 	it("deja pasar en desarrollo", () => {
 		vi.stubEnv("DEV", true);
 		expect(() => load({} as Parameters<typeof load>[0])).not.toThrow();
+	});
+});
+
+// El interruptor del modo prototipo (S14): pone o quita la cookie que lee `+layout.server.ts` y vuelve a
+// cargar los datos, para que todo el sitio —incluido el SSR— vea el cambio.
+describe("interruptor del modo prototipo", () => {
+	const pageStore = page as unknown as {
+		set: (value: {
+			params: Record<string, string>;
+			url: URL;
+			data?: Record<string, unknown>;
+		}) => void;
+	};
+
+	function open(prototype: boolean) {
+		pageStore.set({
+			params: {},
+			url: new URL("http://localhost/dev/prototype"),
+			data: { prototype },
+		});
+		render(PrototypeIndex);
+	}
+
+	afterEach(() => {
+		pageStore.set({ params: {}, url: new URL("http://localhost/") });
+		setPrototypeModeCookie(false);
+		vi.clearAllMocks();
+	});
+
+	it("apagado por defecto: dice «desactivado» y al pulsarlo pone la cookie y recarga los datos", async () => {
+		open(false);
+		const toggle = screen.getByRole("switch", { name: /Modo prototipo: desactivado/ });
+		expect(toggle).toHaveAttribute("aria-checked", "false");
+
+		await fireEvent.click(toggle);
+
+		expect(document.cookie).toContain(`${PROTOTYPE_COOKIE}=${PROTOTYPE_COOKIE_ON}`);
+		expect(invalidateAll).toHaveBeenCalledTimes(1);
+	});
+
+	it("activado: dice «activado» y al pulsarlo quita la cookie", async () => {
+		setPrototypeModeCookie(true);
+		open(true);
+		const toggle = screen.getByRole("switch", { name: /Modo prototipo: activado/ });
+		expect(toggle).toHaveAttribute("aria-checked", "true");
+
+		await fireEvent.click(toggle);
+
+		expect(document.cookie).not.toContain(PROTOTYPE_COOKIE);
+		expect(invalidateAll).toHaveBeenCalledTimes(1);
 	});
 });

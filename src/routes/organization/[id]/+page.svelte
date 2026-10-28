@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowLeft, Database } from "@lucide/svelte";
+import { ArrowLeft, Database, Library } from "@lucide/svelte";
 import { page } from "$app/stores";
 import { createCkanClient } from "$lib/api/client";
 import { createDatasetApi } from "$lib/api/datasets";
@@ -8,8 +8,11 @@ import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.sve
 import DatasetCard from "$lib/components/search/DatasetCard.svelte";
 import { env } from "$lib/env";
 import { getMockDatasetsByOrg, getMockOrgById } from "$lib/mock/data";
+import { isPrototypeMode } from "$lib/prototype/mode";
 import { CkanApiError } from "$lib/types/api";
 import type { CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import { collectionHref, collectionsCuratedByOrg } from "../../dev/prototype/collections/data";
+import VisibilityBadge from "../../dev/prototype/collections/VisibilityBadge.svelte";
 
 // ─── State ───────────────────────────────────────────────────────
 let org = $state<CkanOrganization | null>(null);
@@ -91,6 +94,13 @@ const description = $derived(
 	org?.description ? org.description.replace(/<[^>]*>/g, "").trim() : null,
 );
 const datasetCount = $derived(datasets.length);
+
+// Modo prototipo (`$lib/prototype/mode.ts`, sólo en desarrollo): «Colecciones que cura» (Q18), con las
+// colecciones de la maqueta curadas por esta organización que un visitante puede ver (Q10). El slug real es
+// la clave de la maqueta. Sin ninguna, no hay sección.
+const curatedCollections = $derived(
+	isPrototypeMode($page.data) && org ? collectionsCuratedByOrg(org.name, { kind: "visitor" }) : [],
+);
 </script>
 
 <svelte:head>
@@ -196,6 +206,36 @@ const datasetCount = $derived(datasets.length);
 				</div>
 			</div>
 		</div>
+
+		{#if curatedCollections.length > 0}
+			<section class="mb-8" data-testid="org-curated-collections">
+				<h2 class="mb-3 font-heading text-lg font-semibold text-foreground">
+					Colecciones que cura
+					<span class="font-normal text-muted-foreground">({curatedCollections.length})</span>
+				</h2>
+				<ul class="space-y-2">
+					{#each curatedCollections as collection (collection.slug)}
+						<li>
+							<a
+								href={collectionHref(collection.slug)}
+								class="group flex items-start gap-3 rounded-lg border border-border bg-card p-4 transition-colors duration-200 hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								<Library class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+								<span class="min-w-0 flex-1">
+									<span class="block font-medium text-primary group-hover:underline">
+										{collection.name}
+									</span>
+									<span class="mt-1 block text-sm text-muted-foreground">
+										{collection.datasets.length} datasets
+									</span>
+								</span>
+								<VisibilityBadge visibility={collection.visibility} />
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
 
 		<!-- Datasets -->
 		<div>
