@@ -135,6 +135,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
 | T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | `18e1409` — awaiting author review |
 | T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | batch 1 `91611cd` (H2-4, H2-7, H3-1) — awaiting author review |
+| T19 | S15 | Batch 2 (no login): H2-2 organizations proposal, H2-3 search, H2-5 CSV resource, H2-6b collections menu, organization sheet, H3-3 public collection | worker | — |
 | T17 | S16 | Inicio direction 05 (second iteration) | worker | `273603b` — awaiting author review |
 | T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
@@ -263,3 +264,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   hacer? por mi queda." → 05 is the chosen direction; edit 05 in place: «Quién publica» must not read as a closed set of five
   units, and a new design for the hero type cards. Data: every artboard is static HTML with the demo's values copied in
   (0 scripts, 0 fetch, checked).
+- **L17** (2026-10-28, author): batch 2 with the six screens without login — «si, me gusta, cuándo arrancamos?» (T19).
