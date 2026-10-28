@@ -135,7 +135,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
 | T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | `18e1409` — awaiting author review |
 | T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | batch 1 `91611cd` (H2-4, H2-7, H3-1) — awaiting author review |
-| T19 | S15 | Batch 2 (no login): H2-2 organizations proposal, H2-3 search, H2-5 CSV resource, H2-6b collections menu, organization sheet, H3-3 public collection | worker | — |
+| T19 | S15 | Batch 2 (no login): H2-2 organizations proposal, H2-3 search, H2-5 CSV resource, H2-6b collections menu, organization sheet, H3-3 public collection | worker | `93890f1` — awaiting author review; pixel check: letter anti-aliasing only (≤63/255, 13 px at 129 on H2-2) |
 | T17 | S16 | Inicio direction 05 (second iteration) | worker | `273603b` — awaiting author review |
 | T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | `39666ce` — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
