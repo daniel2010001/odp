@@ -233,7 +233,7 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
 - RF-20: Los equipos tienen: nombre, descripción, organización propietaria, miembros (con roles dentro del equipo: member, manager).
 
 ### Módulo de Colecciones (Grupos de Datasets)
-- RF-21: Cualquier usuario registrado puede crear una colección (agrupación de datasets) con: nombre, descripción, visibilidad (`private`, `internal`, `public`).
+- RF-21: Cualquier usuario registrado puede crear una colección (agrupación de datasets) con: nombre, descripción, visibilidad (`private`, `internal`, `public`). *Decisión del autor (2026-10-28):* al crearla elige el **curador**: él mismo o una de las organizaciones donde es editor o administrador (`design-system/datos-umss/preguntas-abiertas.md`, Q19; visibilidad privada según Q10).
 - RF-22: Una colección puede contener datasets de diferentes organizaciones.
 - RF-23: Para que una colección sea pública, todos los datasets incluidos deben estar aprobados y su visibilidad debe ser compatible. Además, se requiere una solicitud de publicación que debe ser aprobada por los `org_admin` de cada dataset involucrado (o por un superadmin).
 

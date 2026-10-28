@@ -116,6 +116,10 @@ imported into Figma and presented as a click-through prototype before the tribun
   datasets se vería vacía, podríamos agregar más cosas? se puede? cosa que se vea más como una ficha de una org. escucho
   propuestas."
 
+- **S24** — Search bar and hero (2026-10-28). «La barra no se anima», verbatim: "sí, eso de pasar de ocupar ambas columnas a
+  colo una y mostrar el input del buscador." Hero: three directions on the canvas — «hazlo, me gusta este método». The sticky
+  filter menu's top is too low (S20).
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -172,6 +176,8 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T22 | S22 | Collections mocks: org filter reusing the requests org tabs (H2-6b, Mis colecciones), sticky panel, visibility tag only when not public and in the common tag style, H3-3 panel lists the owner organizations reusing the dataset sheet's org card | worker | — |
 | T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | — |
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | — |
+| T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | — |
+| T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -300,3 +306,6 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   (0 scripts, 0 fetch, checked).
 - **L17** (2026-10-28, author): batch 2 with the six screens without login — «si, me gusta, cuándo arrancamos?» (T19).
 - **L18** (2026-10-28, author): review of the dataset panel playground and of batch 2 → S18–S23 (verbatim there). Search hero and «la barra no se anima» asked before touching the real search page.
+- **L19** (2026-10-28, author): curator icon — "el ícono del curador sí me gusta, pero no el que va dento del tag, esto rompe un
+  poco lo que es los badges de las otras pages."; collection curator chosen at creation — «apecto tu propuesta de escoger quién
+  lo cura, anota eso» (Q19, PRD RF-21); search bar and hero → S24 (T25, T26).
