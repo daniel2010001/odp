@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Inicio — Tipos de documento al frente · Datos UMSS</title>
+<style>
+/* Tokens de design/system.md (modo claro). Ningún color fuera de estas variables, salvo el negro de las
+   sombras documentadas (DS §5). */
+:root {
+	--background: oklch(0.973 0.006 250);
+	--foreground: oklch(0.26 0.03 257);
+	--card: oklch(0.995 0.001 250);
+	--card-foreground: oklch(0.26 0.03 257);
+	--primary: oklch(0.52 0.085 257);
+	--primary-foreground: oklch(0.985 0.002 250);
+	--secondary: oklch(0.74 0.06 250);
+	--secondary-foreground: oklch(0.28 0.04 257);
+	--muted: oklch(0.945 0.008 250);
+	--muted-foreground: oklch(0.42 0.02 257);
+	--accent: oklch(0.93 0.018 250);
+	--accent-foreground: oklch(0.42 0.07 257);
+	--destructive: oklch(0.55 0.09 15);
+	--destructive-foreground: oklch(0.985 0.002 250);
+	--positive: oklch(0.5 0.08 175);
+	--border: oklch(0.905 0.01 250);
+	--input: oklch(0.905 0.01 250);
+	--ring: oklch(0.62 0.08 257);
+	--footer: oklch(0.44 0.09 257);
+	--footer-foreground: oklch(0.985 0.002 250);
+	--radius: 0.5rem;
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-heading: "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	--shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+	--shadow-md: 0 4px 6px rgba(0,0,0,.10);
+	--shadow-lg: 0 10px 15px rgba(0,0,0,.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-md); }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-xs { width: 14px; height: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+.eyebrow { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--destructive); }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: 0; transition: background-color .2s, color .2s; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary:hover { background: color-mix(in oklch, var(--primary) 90%, transparent); }
+.btn-coral { background: var(--destructive); color: var(--destructive-foreground); }
+.btn-coral:hover { background: color-mix(in oklch, var(--destructive) 90%, transparent); }
+.btn-outline { border: 1px solid var(--input); background: var(--background); color: var(--foreground); }
+.btn-outline:hover { background: var(--accent); color: var(--accent-foreground); }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+.pill-accent { background: var(--accent); color: var(--accent-foreground); }
+.pill-muted { background: var(--muted); color: var(--muted-foreground); }
+.chip-format { border: 1px solid var(--border); background: color-mix(in oklch, var(--muted) 50%, transparent); font-family: var(--font-mono); color: var(--muted-foreground); border-radius: 999px; padding: 2px 10px; font-size: 12px; white-space: nowrap; }
+.link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--primary); text-underline-offset: 4px; }
+.link:hover { text-decoration: underline; }
+.copy { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--background); color: var(--muted-foreground); font-size: 13px; cursor: pointer; transition: background-color .2s, color .2s; }
+.copy:hover { background: var(--accent); color: var(--foreground); }
+.marker { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: var(--destructive); color: var(--destructive-foreground); font-size: 12px; font-weight: 600; flex-shrink: 0; font-family: var(--font-sans); font-style: normal; }
+.marker-sm { width: 18px; height: 18px; font-size: 10px; }
+
+/* Encabezado (igual que 01–04) */
+.site-header { background: var(--card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.site-header .container { height: 80px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-name { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+.brand-sub { font-size: 12px; color: var(--muted-foreground); }
+.main-nav ul { display: flex; gap: 4px; }
+.main-nav a { display: block; padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; transition: background-color .2s, color .2s; }
+.main-nav a:hover { background: var(--accent); color: var(--primary); }
+.nav-right { display: flex; align-items: center; gap: 32px; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.icon-btn { display: inline-flex; padding: 8px; border-radius: var(--radius-md); background: transparent; border: 0; color: var(--muted-foreground); cursor: pointer; transition: background-color .2s, color .2s; }
+.icon-btn:hover { background: var(--accent); color: var(--primary); }
+
+/* Secciones: encabezado común */
+.section { padding: 80px 0; }
+.section h2.title { font-family: var(--font-heading); font-size: 36px; line-height: 1.15; font-weight: 600; color: var(--primary); margin-top: 8px; }
+.section .intro { margin-top: 16px; font-size: 16px; line-height: 1.6; color: var(--muted-foreground); }
+.on-card { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.head-center { text-align: center; max-width: 720px; margin: 0 auto; }
+
+/* 1 · Banda: qué es, qué tipos de documento publica una unidad y búsqueda */
+.band { background: var(--footer); color: var(--footer-foreground); padding: 56px 0 56px; }
+.band-top { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid color-mix(in oklch, var(--footer-foreground) 40%, transparent); }
+.band .kicker { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.band .meta { font-size: 13px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.band-grid { display: grid; grid-template-columns: 6fr 6fr; gap: 64px; padding-top: 48px; align-items: end; }
+.band h1 { font-family: var(--font-heading); font-size: 56px; line-height: 1.1; font-weight: 600; letter-spacing: -.01em; }
+.band .lede { margin-top: 24px; font-size: 17px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); max-width: 560px; }
+.band .lede b { color: var(--footer-foreground); font-weight: 600; }
+.side-label { font-size: 14px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.scoped { margin-top: 12px; background: var(--card); color: var(--card-foreground); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: 8px; }
+.scopes { display: flex; gap: 4px; padding: 4px; background: var(--muted); border-radius: var(--radius-lg); }
+.scopes button { flex: 1 1 auto; white-space: nowrap; padding: 0 12px; height: 36px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--muted-foreground); font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color .2s, color .2s; }
+.scopes button:hover { color: var(--foreground); }
+.scopes button[aria-pressed="true"] { background: var(--card); color: var(--primary); box-shadow: var(--shadow-sm); }
+.scoped-field { display: flex; align-items: center; gap: 12px; padding: 12px 8px 8px 16px; }
+.scoped-field .icon { color: var(--muted-foreground); }
+.scoped-field input { flex: 1; height: 44px; border: 0; background: transparent; font-size: 17px; outline: none; }
+.scoped-field input::placeholder { color: var(--muted-foreground); }
+.scoped:focus-within { outline: 2px solid var(--ring); outline-offset: 3px; }
+.scoped .btn { height: 44px; padding: 0 20px; }
+.scoped-hint { padding: 4px 16px 12px; font-size: 13px; color: var(--muted-foreground); }
+.scoped-hint a { color: var(--primary); font-weight: 500; text-underline-offset: 4px; }
+.scoped-hint a:hover { text-decoration: underline; }
+.types-label { margin-top: 56px; display: flex; align-items: center; gap: 16px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.types-label::after { content: ""; flex: 1; height: 1px; background: color-mix(in oklch, var(--footer-foreground) 25%, transparent); }
+.types { margin-top: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.type { display: flex; flex-direction: column; border-radius: var(--radius-xl); background: color-mix(in oklch, var(--footer-foreground) 8%, transparent); border: 1px solid color-mix(in oklch, var(--footer-foreground) 22%, transparent); padding: 20px; transition: background-color .2s, border-color .2s; }
+.type:hover { background: color-mix(in oklch, var(--footer-foreground) 14%, transparent); border-color: color-mix(in oklch, var(--footer-foreground) 40%, transparent); }
+.type-top { display: flex; justify-content: space-between; align-items: center; }
+.type-icon { display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: var(--radius-lg); background: var(--card); color: var(--primary); }
+.type-formats { display: flex; gap: 6px; }
+.type-formats span { font-family: var(--font-mono); font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in oklch, var(--footer-foreground) 40%, transparent); color: var(--footer-foreground); }
+.type h2 { margin-top: 16px; font-family: var(--font-heading); font-size: 24px; font-weight: 600; line-height: 1.2; }
+.type .eg { margin-top: 6px; font-size: 14px; line-height: 1.55; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); flex: 1; }
+.type .does { margin-top: 16px; padding-top: 12px; border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 22%, transparent); display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 500; }
+
+/* 2 · Qué trae cada conjunto de datos: un ejemplo real con sus partes señaladas alrededor */
+.anatomy .head-center { margin-bottom: 56px; }
+.anatomy-grid { display: grid; grid-template-columns: 1fr 600px 1fr; gap: 40px; align-items: stretch; }
+.callouts { position: relative; }
+.callout { position: absolute; left: 0; right: 0; }
+.callout h3 { display: flex; gap: 10px; align-items: center; font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); line-height: 1.2; }
+.callout p { margin-top: 6px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+.callouts-left .callout { text-align: right; padding-right: 8px; }
+.callouts-left .callout h3 { flex-direction: row-reverse; }
+.callouts-left .callout::after, .callouts-right .callout::before { content: ""; position: absolute; top: 12px; width: 32px; height: 1px; background: var(--destructive); }
+.callouts-left .callout::after { right: -40px; }
+.callouts-right .callout { padding-left: 8px; }
+.callouts-right .callout::before { left: -40px; }
+.ds-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); overflow: hidden; }
+.ds-card-head { padding: 24px 28px 20px; }
+.ds-org { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted-foreground); }
+.ds-org .icon { color: var(--primary); }
+.ds-card h3 { font-family: var(--font-heading); font-size: 26px; line-height: 1.2; font-weight: 700; color: var(--primary); margin-top: 8px; }
+.ds-card-head > p { margin-top: 10px; font-size: 14px; line-height: 1.55; color: var(--muted-foreground); }
+.ds-meta { display: flex; gap: 8px; margin-top: 16px; }
+.files-title { padding: 12px 28px; border-top: 1px solid var(--border); background: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); }
+.files li { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 12px; align-items: center; padding: 11px 28px; border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent); font-size: 14px; }
+.files li:first-child { border-top: 0; }
+.file-icon { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: var(--radius-lg); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
+.file-name { font-weight: 500; }
+.file-view { font-size: 12px; color: var(--muted-foreground); min-width: 112px; text-align: right; }
+.ds-foot { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 16px 28px; border-top: 1px solid var(--border); }
+.api { margin-top: 72px; display: grid; grid-template-columns: 4fr 8fr; gap: 48px; align-items: center; border-top: 1px solid var(--border); padding-top: 40px; }
+.api h3 { display: flex; gap: 10px; align-items: center; font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); }
+.api p { margin-top: 6px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+.code-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); overflow: hidden; }
+.code-tabs { display: flex; align-items: center; border-bottom: 1px solid var(--border); padding: 0 8px 0 8px; }
+.code-tabs button[role="tab"] { height: 44px; padding: 0 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted-foreground); font-size: 14px; font-weight: 500; cursor: pointer; transition: color .2s; }
+.code-tabs button[role="tab"]:hover { color: var(--foreground); }
+.code-tabs button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+.code-tabs .copy { margin-left: auto; }
+pre { font-family: var(--font-mono); font-size: 14px; line-height: 1.7; background: var(--muted); padding: 18px 24px; color: var(--foreground); white-space: pre-wrap; }
+pre .c { color: var(--muted-foreground); }
+pre .k { color: var(--primary); font-weight: 600; }
+
+/* 3 · Novedades: la cronología de 04, sin cambios */
+.news .container { display: grid; grid-template-columns: 3fr 9fr; gap: 64px; }
+.news .intro { font-size: 15px; }
+.news-aside .link { margin-top: 24px; }
+.legend { margin-top: 24px; display: grid; gap: 8px; font-size: 13px; color: var(--muted-foreground); }
+.legend li { display: flex; gap: 8px; align-items: center; }
+.timeline { border-top: 1px solid var(--foreground); }
+.timeline li { display: grid; grid-template-columns: 104px 1fr; border-bottom: 1px solid var(--border); }
+.when { position: relative; padding: 22px 24px 22px 0; text-align: right; border-right: 1px solid var(--border); }
+.when::after { content: ""; position: absolute; top: 34px; right: -6px; width: 11px; height: 11px; border-radius: 999px; background: var(--card); border: 2px solid var(--primary); }
+.timeline li:first-child .when::after { background: var(--primary); }
+.when .day { display: block; font-family: var(--font-heading); font-size: 36px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
+.when .month { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+.entry { display: grid; grid-template-columns: 1fr auto; gap: 8px 32px; align-items: start; padding: 20px 16px 20px 32px; transition: background-color .2s; }
+.entry:hover { background: var(--accent); }
+.entry:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+.entry h3 { font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); line-height: 1.25; }
+.entry .desc { margin-top: 4px; font-size: 14px; line-height: 1.55; color: var(--muted-foreground); }
+.entry .org { margin-top: 10px; display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--foreground); }
+.entry .org .icon { color: var(--primary); }
+.entry-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.entry-side .formats { display: flex; gap: 6px; }
+
+/* 4 · Quién publica: cinco columnas con la proporción del catálogo arriba */
+.units-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 40px; }
+.units-head .intro { max-width: 640px; }
+.share { display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 3px; }
+.share span { background: var(--primary); }
+.share span:nth-child(2n) { background: color-mix(in oklch, var(--primary) 55%, var(--card)); }
+.units { margin-top: 24px; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--foreground); }
+.units li { border-right: 1px solid var(--border); }
+.units li:last-child { border-right: 0; }
+.unit { display: flex; flex-direction: column; height: 100%; padding: 24px 20px 24px; transition: background-color .2s; }
+.unit:hover { background: var(--accent); }
+.unit:hover .unit-name { text-decoration: underline; text-underline-offset: 4px; }
+.unit-count { font-family: var(--font-heading); font-size: 56px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
+.unit-count small { display: block; margin-top: 6px; font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
+.unit-name { margin-top: 20px; font-family: var(--font-heading); font-size: 22px; font-weight: 600; line-height: 1.2; color: var(--primary); }
+.unit-abbr { margin-top: 4px; font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
+.unit-eg { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.5; color: var(--muted-foreground); flex: 1; }
+.unit-eg i { display: block; margin-top: 2px; font-family: var(--font-heading); font-size: 16px; color: var(--foreground); }
+
+/* 5 · Cómo llega un dato al catálogo: recorrido con nodos */
+.flow { margin-top: 56px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; position: relative; }
+.flow::before { content: ""; position: absolute; top: 28px; left: 12.5%; right: 12.5%; height: 2px; background: var(--border); }
+.flow li { position: relative; text-align: center; }
+.node { position: relative; display: inline-flex; width: 56px; height: 56px; align-items: center; justify-content: center; border-radius: 999px; background: var(--card); border: 2px solid var(--primary); color: var(--primary); }
+.flow li:last-child .node { background: var(--primary); color: var(--primary-foreground); }
+.node .icon { width: 24px; height: 24px; }
+.flow .n { display: block; margin-top: 16px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--destructive); }
+.flow h3 { margin-top: 4px; font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); line-height: 1.25; }
+.flow p { margin: 8px auto 0; max-width: 260px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+
+/* 6 · Para su investigación: la referencia, desarmada */
+.cite .container { display: grid; grid-template-columns: 4fr 8fr; gap: 64px; align-items: start; }
+.cite .intro { font-size: 15px; }
+.cite-note { margin-top: 24px; display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+.cite-note .icon { color: var(--primary); margin-top: 2px; }
+.cite-note b { color: var(--foreground); font-weight: 600; }
+.biblio-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.biblio-label p { font-size: 14px; color: var(--muted-foreground); }
+
+.biblio { border-left: 3px solid var(--primary); background: var(--card); padding: 28px 32px; border-radius: 0 var(--radius-xl) var(--radius-xl) 0; box-shadow: var(--shadow-sm); }
+.ref { font-family: var(--font-heading); font-size: 20px; line-height: 1.9; color: var(--foreground); padding-left: 32px; text-indent: -32px; }
+.ref .part { border-bottom: 2px solid color-mix(in oklch, var(--destructive) 45%, transparent); padding-bottom: 1px; }
+.ref .marker { vertical-align: 2px; margin: 0 4px 0 2px; text-indent: 0; }
+.ref .nw { white-space: nowrap; }
+.ref .url { font-family: var(--font-mono); font-size: 15px; white-space: nowrap; }
+.keys { margin-top: 28px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; border-top: 1px solid var(--border); padding-top: 24px; }
+.keys li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; }
+.keys b { display: block; font-size: 14px; font-weight: 600; }
+.keys span span { display: block; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
+.bibtex { margin-top: 16px; }
+.bibtex summary { cursor: pointer; font-size: 14px; font-weight: 500; color: var(--primary); display: inline-flex; gap: 6px; align-items: center; border-radius: var(--radius-md); }
+.bibtex summary:hover { text-decoration: underline; text-underline-offset: 4px; }
+.bibtex pre { margin-top: 12px; font-size: 13px; border-radius: var(--radius-lg); }
+
+/* 7 · Para empezar: tres puertas en lista, con el botón al catálogo al lado */
+.start .container { display: grid; grid-template-columns: 4fr 8fr; gap: 64px; align-items: start; }
+.start .btn { margin-top: 28px; height: 44px; padding: 0 20px; }
+.picks { border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); overflow: hidden; }
+.picks li + li { border-top: 1px solid var(--border); }
+.pick { display: grid; grid-template-columns: 1fr auto 20px; gap: 24px; align-items: center; padding: 20px 24px; transition: background-color .2s; }
+.pick:hover { background: var(--accent); }
+.pick:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+.pick h3 { font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); line-height: 1.25; }
+.pick p { margin-top: 4px; font-size: 14px; line-height: 1.55; color: var(--muted-foreground); }
+.pick .org { margin-top: 8px; display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--foreground); }
+.pick .org .icon { color: var(--primary); }
+.pick .tags { display: flex; gap: 6px; align-items: center; }
+.pick > .icon { color: var(--muted-foreground); }
+
+/* Pie (igual que 01–04) */
+.site-footer { background: var(--footer); color: var(--footer-foreground); }
+.site-footer .container { padding-top: 64px; padding-bottom: 40px; }
+.footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; }
+.footer-grid .footer-brand { color: var(--footer-foreground); font-family: var(--font-heading); font-size: 24px; font-weight: 700; }
+.footer-grid p, .footer-grid li { font-size: 14px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.footer-grid h2 { font-family: var(--font-heading); font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.footer-grid ul { display: grid; gap: 8px; }
+.footer-grid a:hover { color: var(--footer-foreground); text-decoration: underline; text-underline-offset: 4px; }
+.footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 20%, transparent); display: flex; justify-content: space-between; font-size: 12px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+	<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+	<symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+	<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+	<symbol id="i-code" viewBox="0 0 24 24"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></symbol>
+	<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+	<symbol id="i-table" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></symbol>
+	<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+	<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+	<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+	<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+	<symbol id="i-files" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+	<symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/></symbol>
+	<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+	<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
+	<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></symbol>
+	<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+	<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+	<symbol id="i-quote" viewBox="0 0 24 24"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></symbol>
+</svg>
+
+<header class="site-header">
+	<div class="container">
+		<a class="brand" href="#">
+			<span class="brand-name">Datos UMSS</span>
+			<span class="brand-sub">Plataforma de Datos Abiertos</span>
+		</a>
+		<div class="nav-right">
+			<nav class="main-nav" aria-label="Principal">
+				<ul>
+					<li><a href="#">Catálogo</a></li>
+					<li><a href="#">Organizaciones</a></li>
+					<li><a href="#">Colecciones</a></li>
+					<li><a href="#">Acerca de</a></li>
+				</ul>
+			</nav>
+			<div class="nav-actions">
+				<button class="icon-btn" type="button" aria-label="Cambiar tema: claro, oscuro o sistema"><svg class="icon"><use href="#i-monitor"/></svg></button>
+				<a class="btn btn-coral" href="#">Iniciar sesión</a>
+			</div>
+		</div>
+	</div>
+</header>
+
+<main>
+	<!-- 1 · Qué es, qué tipos de documento publica una unidad, y búsqueda -->
+	<section class="band" aria-labelledby="band-title">
+		<div class="container">
+			<div class="band-top">
+				<p class="kicker">Portal de datos abiertos · Universidad Mayor de San Simón</p>
+				<p class="meta">52 conjuntos de datos · 5 unidades · actualizado el 24 de octubre de 2026</p>
+			</div>
+			<div class="band-grid">
+				<div>
+					<h1 id="band-title">¿Qué datos de la universidad necesita?</h1>
+					<p class="lede">Facultades y direcciones publican aquí lo que producen: <b>estadísticas y presupuestos en tablas</b>, <b>informes y resoluciones en PDF</b>, <b>datos geográficos</b> y otros archivos. Cada publicación lleva su descripción, su licencia y la aprobación de la unidad.</p>
+				</div>
+				<div>
+					<p class="side-label" id="scope-label">Busque en todo el catálogo o elija dónde buscar:</p>
+					<form class="scoped" role="search" action="#">
+						<div class="scopes" role="group" aria-labelledby="scope-label">
+							<button type="button" aria-pressed="true">Todo</button>
+							<button type="button" aria-pressed="false">Conjuntos de datos</button>
+							<button type="button" aria-pressed="false">Unidades</button>
+							<button type="button" aria-pressed="false">Temas</button>
+							<button type="button" aria-pressed="false">Colecciones</button>
+						</div>
+						<div class="scoped-field">
+							<label class="sr-only" for="q">Buscar en el catálogo</label>
+							<svg class="icon"><use href="#i-search"/></svg>
+							<input id="q" type="search" placeholder="Buscar datasets, organizaciones, temas...">
+							<button class="btn btn-primary" type="submit">Buscar</button>
+						</div>
+						<p class="scoped-hint">Pruebe con <a href="#">matrícula</a>, <a href="#">informe de gestión</a> o <a href="#">calidad del agua</a>.</p>
+					</form>
+				</div>
+			</div>
+
+			<p class="types-label" id="types-title">Lo que una unidad puede publicar</p>
+			<ul class="types" aria-labelledby="types-title">
+				<li><a class="type" href="#">
+					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-table"/></svg></span><span class="type-formats"><span>CSV</span><span>XLSX</span></span></span>
+					<h2>Tablas</h2>
+					<p class="eg">Estadísticas de matrícula y titulación, presupuestos y su ejecución, encuestas.</p>
+					<span class="does"><svg class="icon icon-sm"><use href="#i-chart"/></svg>Vista previa y gráficos en el portal</span>
+				</a></li>
+				<li><a class="type" href="#">
+					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-file-text"/></svg></span><span class="type-formats"><span>PDF</span></span></span>
+					<h2>Documentos</h2>
+					<p class="eg">Informes de gestión, memorias anuales, resoluciones, reglamentos y tesis.</p>
+					<span class="does"><svg class="icon icon-sm"><use href="#i-book-open"/></svg>Se leen en el portal, sin descargar</span>
+				</a></li>
+				<li><a class="type" href="#">
+					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-map"/></svg></span><span class="type-formats"><span>GeoJSON</span></span></span>
+					<h2>Datos geográficos</h2>
+					<p class="eg">Rutas, puntos de muestreo, parcelas y ubicaciones de cada unidad.</p>
+					<span class="does"><svg class="icon icon-sm"><use href="#i-download"/></svg>Se descargan para su programa de mapas</span>
+				</a></li>
+				<li><a class="type" href="#">
+					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-files"/></svg></span><span class="type-formats"><span>JSON</span><span>PNG</span><span>TXT</span></span></span>
+					<h2>Otros archivos</h2>
+					<p class="eg">Diccionarios de datos, imágenes, textos y series en otros formatos.</p>
+					<span class="does"><svg class="icon icon-sm"><use href="#i-download"/></svg>Imágenes y textos se ven; el resto se descarga</span>
+				</a></li>
+			</ul>
+		</div>
+	</section>
+
+	<!-- 2 · Qué trae cada conjunto de datos (unifica «Qué es un conjunto de datos» y «Qué encontrará» de 04) -->
+	<section class="section anatomy" aria-labelledby="anatomy-title">
+		<div class="container">
+			<div class="head-center">
+				<p class="eyebrow">Qué encontrará</p>
+				<h2 class="title" id="anatomy-title">Qué trae cada conjunto de datos</h2>
+				<p class="intro">Una unidad no publica archivos sueltos: los reúne por tema, y el catálogo les suma lo necesario para usarlos con confianza. Este es uno real, con sus partes señaladas.</p>
+			</div>
+			<div class="anatomy-grid">
+				<div class="callouts callouts-left">
+					<div class="callout" style="top:127px">
+						<h3><span class="marker" aria-hidden="true">1</span>Descripción</h3>
+						<p>Qué contiene, de qué periodo es y qué unidad lo mantiene.</p>
+					</div>
+					<div class="callout" style="top:380px">
+						<h3><span class="marker" aria-hidden="true">3</span>Varios archivos</h3>
+						<p>Tablas, documentos y mapas sobre un mismo tema, juntos en una sola ficha. Cada uno se abre según su tipo.</p>
+					</div>
+				</div>
+
+				<article class="ds-card" aria-label="Ejemplo: Observatorio de Movilidad Urbana — Cochabamba">
+					<div class="ds-card-head">
+						<span class="ds-org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Facultad de Ciencias y Tecnología</span>
+						<h3>Observatorio de Movilidad Urbana — Cochabamba</h3>
+						<p>Flujos vehiculares, encuesta de origen-destino, rutas del transporte público y accidentalidad vial en el área metropolitana, de 2019 a 2025.</p>
+						<div class="ds-meta"><span class="pill pill-accent"><span class="marker marker-sm" aria-hidden="true">2</span><svg class="icon icon-xs"><use href="#i-shield"/></svg>CC BY — Atribución</span></div>
+					</div>
+					<p class="files-title">Archivos (5)</p>
+					<ul class="files">
+						<li><span class="file-icon"><svg class="icon icon-sm"><use href="#i-table"/></svg></span><span class="file-name">Flujos vehiculares por punto de conteo (2019–2025)</span><span class="chip-format">CSV</span><span class="file-view">Tabla y gráficos</span></li>
+						<li><span class="file-icon"><svg class="icon icon-sm"><use href="#i-table"/></svg></span><span class="file-name">Encuesta de origen-destino 2024</span><span class="chip-format">XLSX</span><span class="file-view">Tabla</span></li>
+						<li><span class="file-icon"><svg class="icon icon-sm"><use href="#i-table"/></svg></span><span class="file-name">Accidentalidad vial (2019–2025)</span><span class="chip-format">CSV</span><span class="file-view">Tabla y gráficos</span></li>
+						<li><span class="file-icon"><svg class="icon icon-sm"><use href="#i-map"/></svg></span><span class="file-name">Rutas y paradas del transporte público</span><span class="chip-format">GeoJSON</span><span class="file-view">Descarga</span></li>
+						<li><span class="file-icon"><svg class="icon icon-sm"><use href="#i-file-text"/></svg></span><span class="file-name">Informe metodológico y diccionario de datos</span><span class="chip-format">PDF</span><span class="file-view">Lectura en el portal</span></li>
+					</ul>
+					<div class="ds-foot">
+						<span class="pill pill-accent"><span class="marker marker-sm" aria-hidden="true">4</span><svg class="icon icon-xs"><use href="#i-circle-check"/></svg>Aprobado por la unidad</span>
+					</div>
+				</article>
+
+				<div class="callouts callouts-right">
+					<div class="callout" style="top:188px">
+						<h3><span class="marker" aria-hidden="true">2</span>Licencia</h3>
+						<p>Indica en qué condiciones puede reutilizarlo y cómo reconocer a la unidad.</p>
+					</div>
+					<div class="callout" style="top:562px">
+						<h3><span class="marker" aria-hidden="true">4</span>Aprobación previa</h3>
+						<p>Un responsable de la unidad lo revisó antes de que fuera público.</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="api">
+				<div>
+					<h3><span class="marker" aria-hidden="true">5</span>También desde sus programas</h3>
+					<p>Las tablas se consultan por su dirección web, sin descargarlas a mano, desde Python, R o una hoja de cálculo.</p>
+				</div>
+				<div class="code-card">
+					<div class="code-tabs" role="tablist" aria-label="Cómo leer los datos">
+						<button role="tab" aria-selected="true" type="button">Python</button>
+						<button role="tab" aria-selected="false" type="button">R</button>
+						<button role="tab" aria-selected="false" type="button">Hoja de cálculo</button>
+						<button class="copy" type="button"><svg class="icon icon-sm"><use href="#i-copy"/></svg>Copiar código</button>
+					</div>
+<pre role="tabpanel"><span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="c"># Flujos vehiculares por punto de conteo · Observatorio de Movilidad Urbana</span>
+flujos = pd.read_csv(<span class="k">"https://datos.umss.edu/…/flujos-vehiculares.csv"</span>)</pre>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- 3 · Novedades: la cronología de 04, tal cual; las entradas muestran tipos distintos -->
+	<section class="section news on-card" aria-labelledby="news-title">
+		<div class="container">
+			<div class="news-aside">
+				<p class="eyebrow">Novedades</p>
+				<h2 class="title" id="news-title">Actualizados recientemente</h2>
+				<p class="intro">Los conjuntos de datos que las unidades publicaron o actualizaron en las últimas semanas, del más reciente al más antiguo.</p>
+				<ul class="legend" aria-label="Qué indica cada etiqueta">
+					<li><span class="pill pill-accent"><svg class="icon icon-xs"><use href="#i-file-plus"/></svg>Nuevo</span>se publicó por primera vez</li>
+					<li><span class="pill pill-muted"><svg class="icon icon-xs"><use href="#i-refresh"/></svg>Actualizado</span>la unidad cambió sus datos</li>
+				</ul>
+				<a class="link" href="#">Ver el catálogo por fecha<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
+			</div>
+			<ol class="timeline">
+				<li>
+					<p class="when"><time datetime="2026-10-24"><span class="day">24</span><span class="month">oct. 2026</span></time></p>
+					<a class="entry" href="#">
+						<div>
+							<h3>Estaciones meteorológicas del campus</h3>
+							<p class="desc">Temperatura, humedad y precipitación diaria por estación.</p>
+							<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Facultad de Ciencias y Tecnología</span>
+						</div>
+						<div class="entry-side">
+							<span class="pill pill-muted"><svg class="icon icon-xs"><use href="#i-refresh"/></svg>Actualizado</span>
+							<span class="formats"><span class="chip-format">CSV</span><span class="chip-format">JSON</span></span>
+						</div>
+					</a>
+				</li>
+				<li>
+					<p class="when"><time datetime="2026-10-20"><span class="day">20</span><span class="month">oct. 2026</span></time></p>
+					<a class="entry" href="#">
+						<div>
+							<h3>Informe de matrícula 2015–2025</h3>
+							<p class="desc">Informe de la evolución de la matrícula universitaria por facultad en la última década.</p>
+							<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Rectorado UMSS</span>
+						</div>
+						<div class="entry-side">
+							<span class="pill pill-accent"><svg class="icon icon-xs"><use href="#i-file-plus"/></svg>Nuevo</span>
+							<span class="formats"><span class="chip-format">PDF</span></span>
+						</div>
+					</a>
+				</li>
+				<li>
+					<p class="when"><time datetime="2026-10-15"><span class="day">15</span><span class="month">oct. 2026</span></time></p>
+					<a class="entry" href="#">
+						<div>
+							<h3>Proyectos de investigación activos</h3>
+							<p class="desc">Proyectos vigentes con su unidad ejecutora, fuente de financiamiento, plazo y ubicación.</p>
+							<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Dirección de Investigación</span>
+						</div>
+						<div class="entry-side">
+							<span class="pill pill-accent"><svg class="icon icon-xs"><use href="#i-file-plus"/></svg>Nuevo</span>
+							<span class="formats"><span class="chip-format">CSV</span><span class="chip-format">GeoJSON</span></span>
+						</div>
+					</a>
+				</li>
+				<li>
+					<p class="when"><time datetime="2026-10-09"><span class="day">9</span><span class="month">oct. 2026</span></time></p>
+					<a class="entry" href="#">
+						<div>
+							<h3>Rendimiento de cultivos por parcela experimental</h3>
+							<p class="desc">Rendimiento por parcela, variedad y campaña agrícola.</p>
+							<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Facultad de Ciencias Agrícolas</span>
+						</div>
+						<div class="entry-side">
+							<span class="pill pill-muted"><svg class="icon icon-xs"><use href="#i-refresh"/></svg>Actualizado</span>
+							<span class="formats"><span class="chip-format">CSV</span><span class="chip-format">XLSX</span></span>
+						</div>
+					</a>
+				</li>
+				<li>
+					<p class="when"><time datetime="2026-10-02"><span class="day">2</span><span class="month">oct. 2026</span></time></p>
+					<a class="entry" href="#">
+						<div>
+							<h3>Atenciones del policlínico universitario por especialidad</h3>
+							<p class="desc">Atenciones mensuales según especialidad y población atendida.</p>
+							<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Facultad de Ciencias de la Salud</span>
+						</div>
+						<div class="entry-side">
+							<span class="pill pill-muted"><svg class="icon icon-xs"><use href="#i-refresh"/></svg>Actualizado</span>
+							<span class="formats"><span class="chip-format">XLSX</span></span>
+						</div>
+					</a>
+				</li>
+			</ol>
+		</div>
+	</section>
+
+	<!-- 4 · Quién publica: cinco columnas, con la parte del catálogo de cada unidad -->
+	<section class="section units-section" aria-labelledby="units-title">
+		<div class="container">
+			<div class="units-head">
+				<div>
+					<p class="eyebrow">Quién publica</p>
+					<h2 class="title" id="units-title">Cinco unidades, un solo catálogo</h2>
+					<p class="intro">Cada conjunto de datos tiene una unidad responsable. Empiece por la que produce la información que necesita.</p>
+				</div>
+				<a class="link" href="#">Ver las organizaciones<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
+			</div>
+			<div class="share" role="img" aria-label="Parte del catálogo de cada unidad, de un total de 52 conjuntos de datos">
+				<span style="flex:9"></span><span style="flex:7"></span><span style="flex:9"></span><span style="flex:15"></span><span style="flex:12"></span>
+			</div>
+			<ol class="units">
+				<li><a class="unit" href="#">
+					<span class="unit-count">9<small>conjuntos de datos</small></span>
+					<span class="unit-name">Dirección de Investigación</span>
+					<span class="unit-abbr">DICyT</span>
+					<span class="unit-eg">Por ejemplo,<i>Tesis de posgrado defendidas por programa</i></span>
+				</a></li>
+				<li><a class="unit" href="#">
+					<span class="unit-count">7<small>conjuntos de datos</small></span>
+					<span class="unit-name">Facultad de Ciencias Agrícolas</span>
+					<span class="unit-abbr">FCAPyF</span>
+					<span class="unit-eg">Por ejemplo,<i>Registro de especies forestales del vivero universitario</i></span>
+				</a></li>
+				<li><a class="unit" href="#">
+					<span class="unit-count">9<small>conjuntos de datos</small></span>
+					<span class="unit-name">Facultad de Ciencias de la Salud</span>
+					<span class="unit-abbr">FCS</span>
+					<span class="unit-eg">Por ejemplo,<i>Campañas de vacunación estudiantil</i></span>
+				</a></li>
+				<li><a class="unit" href="#">
+					<span class="unit-count">15<small>conjuntos de datos</small></span>
+					<span class="unit-name">Facultad de Ciencias y Tecnología</span>
+					<span class="unit-abbr">FCyT</span>
+					<span class="unit-eg">Por ejemplo,<i>Calidad del agua en puntos de muestreo del valle</i></span>
+				</a></li>
+				<li><a class="unit" href="#">
+					<span class="unit-count">12<small>conjuntos de datos</small></span>
+					<span class="unit-name">Rectorado UMSS</span>
+					<span class="unit-abbr" aria-hidden="true">&nbsp;</span>
+					<span class="unit-eg">Por ejemplo,<i>Ejecución del plan operativo anual por unidad</i></span>
+				</a></li>
+			</ol>
+		</div>
+	</section>
+
+	<!-- 5 · Cómo llega un dato al catálogo: el recorrido, de la unidad a usted -->
+	<section class="section on-card" aria-labelledby="process-title">
+		<div class="container">
+			<div class="head-center">
+				<p class="eyebrow">Por qué confiar</p>
+				<h2 class="title" id="process-title">Cómo llega un dato al catálogo</h2>
+				<p class="intro">Todo lo que ve en el catálogo hizo este recorrido. Lo que no se aprobó no es público.</p>
+			</div>
+			<ol class="flow">
+				<li>
+					<span class="node"><svg class="icon"><use href="#i-upload"/></svg></span>
+					<span class="n">Paso 1</span>
+					<h3>La unidad lo publica</h3>
+					<p>El personal de la facultad o dirección carga sus archivos con su propia cuenta.</p>
+				</li>
+				<li>
+					<span class="node"><svg class="icon"><use href="#i-pen"/></svg></span>
+					<span class="n">Paso 2</span>
+					<h3>Lo describe y lo licencia</h3>
+					<p>Indica qué contiene, de qué periodo es y con qué licencia puede reutilizarse.</p>
+				</li>
+				<li>
+					<span class="node"><svg class="icon"><use href="#i-circle-check"/></svg></span>
+					<span class="n">Paso 3</span>
+					<h3>Un responsable lo aprueba</h3>
+					<p>Quien administra la unidad lo revisa y decide su publicación.</p>
+				</li>
+				<li>
+					<span class="node"><svg class="icon"><use href="#i-download"/></svg></span>
+					<span class="n">Paso 4</span>
+					<h3>Usted lo utiliza</h3>
+					<p>Lo consulta en la ficha, lo descarga o lo lee desde sus programas.</p>
+				</li>
+			</ol>
+		</div>
+	</section>
+
+	<!-- 6 · Para su investigación: qué ofrece la cita, sin dibujar una ficha -->
+	<section class="section cite" aria-labelledby="cite-title">
+		<div class="container">
+			<div>
+				<p class="eyebrow">Para su investigación</p>
+				<h2 class="title" id="cite-title">Cada conjunto de datos se puede citar</h2>
+				<p class="intro">La ficha de cada conjunto de datos trae la tarjeta «Citar como», con la referencia lista para copiar en APA o en BibTeX.</p>
+				<p class="cite-note"><svg class="icon icon-sm"><use href="#i-shield"/></svg><span>Junto a la cita, la ficha indica la <b>licencia</b>: en este ejemplo, CC BY-SA — Atribución-CompartirIgual, que permite reutilizar los datos citando la fuente y manteniendo la misma licencia.</span></p>
+			</div>
+			<div>
+				<div class="biblio-label">
+					<p>Así queda la referencia en su bibliografía:</p>
+					<span class="pill pill-muted">En APA y en BibTeX</span>
+				</div>
+				<figure class="biblio">
+					<figcaption class="sr-only">Referencia en formato APA de «Indicadores de eficiencia terminal», con sus partes numeradas</figcaption>
+					<p class="ref"><span class="part">Facultad de Ciencias y Tecnología</span><span class="marker marker-sm" aria-hidden="true">1</span> <span class="part">(2026)</span><span class="marker marker-sm" aria-hidden="true">2</span>. <i>Indicadores de eficiencia terminal</i> [Data set]. <span class="part">Universidad Mayor de San Simón, Facultad de Ciencias y</span><span class="part"> </span><span class="nw"><span class="part">Tecnología</span><span class="marker marker-sm" aria-hidden="true">3</span>.</span> <span class="part url">https://datos.umss.edu/dataset/indicadores-de-eficiencia-terminal</span><span class="marker marker-sm" aria-hidden="true">4</span></p>
+					<ol class="keys">
+						<li><span class="marker" aria-hidden="true">1</span><span><b>Quién lo publicó</b><span>La unidad responsable.</span></span></li>
+						<li><span class="marker" aria-hidden="true">2</span><span><b>Cuándo</b><span>El año de publicación en el catálogo.</span></span></li>
+						<li><span class="marker" aria-hidden="true">3</span><span><b>Editor</b><span>La universidad y la unidad que lo respaldan.</span></span></li>
+						<li><span class="marker" aria-hidden="true">4</span><span><b>Enlace estable</b><span>La dirección de la ficha en el portal.</span></span></li>
+					</ol>
+				</figure>
+				<details class="bibtex">
+					<summary><svg class="icon icon-sm"><use href="#i-quote"/></svg>Ver la misma referencia en BibTeX</summary>
+<pre>@dataset{universidad2026indicadores,
+  author    = {Universidad Mayor de San Simón},
+  title     = {Indicadores de eficiencia terminal},
+  year      = {2026},
+  version   = {1.0},
+  publisher = {Universidad Mayor de San Simón, Facultad de Ciencias y Tecnología},
+  url       = {https://datos.umss.edu/dataset/indicadores-de-eficiencia-terminal},
+  note      = {Data set}
+}</pre>
+				</details>
+			</div>
+		</div>
+	</section>
+
+	<!-- 7 · Para empezar: tres conjuntos de datos y el acceso al catálogo -->
+	<section class="section start on-card" aria-labelledby="start-title">
+		<div class="container">
+			<div>
+				<p class="eyebrow">Para empezar</p>
+				<h2 class="title" id="start-title">Tres conjuntos de datos para conocer el catálogo</h2>
+				<p class="intro">Una muestra de lo que publican tres unidades distintas. Desde cualquiera de ellos puede llegar a los demás de su unidad.</p>
+				<a class="btn btn-primary" href="#">Explorar los 52 conjuntos de datos<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
+			</div>
+			<ul class="picks">
+				<li><a class="pick" href="#">
+					<div>
+						<h3>Matrícula estudiantil por carrera y gestión</h3>
+						<p>Estudiantes matriculados en cada carrera de la facultad, por gestión académica y modalidad de ingreso.</p>
+						<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Facultad de Ciencias de la Salud</span>
+					</div>
+					<span class="tags"><span class="chip-format">CSV</span><span class="chip-format">XLSX</span></span>
+					<svg class="icon"><use href="#i-chevron-right"/></svg>
+				</a></li>
+				<li><a class="pick" href="#">
+					<div>
+						<h3>Ejecución presupuestaria</h3>
+						<p>Presupuesto aprobado y ejecutado por partida y unidad, en cada gestión.</p>
+						<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Rectorado UMSS</span>
+					</div>
+					<span class="tags"><span class="chip-format">CSV</span><span class="chip-format">XLSX</span></span>
+					<svg class="icon"><use href="#i-chevron-right"/></svg>
+				</a></li>
+				<li><a class="pick" href="#">
+					<div>
+						<h3>Tasas de graduación por cohorte</h3>
+						<p>Porcentaje de titulados por carrera y año de ingreso.</p>
+						<span class="org"><svg class="icon icon-xs"><use href="#i-building"/></svg>Facultad de Ciencias y Tecnología</span>
+					</div>
+					<span class="tags"><span class="chip-format">CSV</span><span class="chip-format">XLSX</span></span>
+					<svg class="icon"><use href="#i-chevron-right"/></svg>
+				</a></li>
+			</ul>
+		</div>
+	</section>
+</main>
+
+<footer class="site-footer">
+	<div class="container">
+		<div class="footer-grid">
+			<div>
+				<p class="footer-brand">Datos UMSS</p>
+				<p style="margin-top:16px;max-width:280px">Universidad Mayor de San Simón — Portal de datos abiertos. Conjuntos de datos académicos y administrativos publicados por sus unidades.</p>
+			</div>
+			<div><h2>Plataforma</h2><ul><li><a href="#">Catálogo</a></li><li><a href="#">Organizaciones</a></li><li><a href="#">Colecciones</a></li><li><a href="#">Acerca de</a></li></ul></div>
+			<div><h2>Datos</h2><ul><li><a href="#">Explorar conjuntos de datos</a></li><li><a href="#">Por organización</a></li><li><a href="#">Uso de la API</a></li></ul></div>
+			<div><h2>Contacto</h2><ul><li>Cochabamba, Bolivia</li><li><a href="#">datos@umss.edu.bo</a></li></ul></div>
+		</div>
+		<div class="footer-bottom"><span>© 2026 Universidad Mayor de San Simón. Todos los derechos reservados.</span><span>Portal de datos abiertos</span></div>
+	</div>
+</footer>
+</body>
+</html>
