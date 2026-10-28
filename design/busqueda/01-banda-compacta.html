@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Banda compacta · Búsqueda · Datos UMSS</title>
+<style>
+/* Tokens de design/system.md (modo claro). Ningún color fuera de estas variables, salvo el negro de las
+   sombras documentadas (DS §5). */
+:root {
+	--background: oklch(0.973 0.006 250);
+	--foreground: oklch(0.26 0.03 257);
+	--card: oklch(0.995 0.001 250);
+	--card-foreground: oklch(0.26 0.03 257);
+	--primary: oklch(0.52 0.085 257);
+	--primary-foreground: oklch(0.985 0.002 250);
+	--secondary: oklch(0.74 0.06 250);
+	--secondary-foreground: oklch(0.28 0.04 257);
+	--muted: oklch(0.945 0.008 250);
+	--muted-foreground: oklch(0.42 0.02 257);
+	--accent: oklch(0.93 0.018 250);
+	--accent-foreground: oklch(0.42 0.07 257);
+	--destructive: oklch(0.55 0.09 15);
+	--destructive-foreground: oklch(0.985 0.002 250);
+	--border: oklch(0.905 0.01 250);
+	--input: oklch(0.905 0.01 250);
+	--ring: oklch(0.62 0.08 257);
+	--chart-1: oklch(0.56 0.13 257);
+	--chart-2: oklch(0.64 0.13 25);
+	--footer: oklch(0.44 0.09 257);
+	--footer-foreground: oklch(0.985 0.002 250);
+	--radius: 0.5rem;
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-heading: "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	--shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+	--shadow-md: 0 4px 6px rgba(0,0,0,.10);
+	--shadow-lg: 0 10px 15px rgba(0,0,0,.10);
+	--header-h-max: 80px;
+	--header-h-min: 64px;
+	--sticky-air: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-md); }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-xs { width: 14px; height: 14px; }
+.icon-2xs { width: 12px; height: 12px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+.eyebrow { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--destructive); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: 0; transition: background-color .2s, color .2s; white-space: nowrap; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary:hover { background: color-mix(in oklch, var(--primary) 90%, transparent); }
+.btn-coral { background: var(--destructive); color: var(--destructive-foreground); }
+.btn-coral:hover { background: color-mix(in oklch, var(--destructive) 90%, transparent); }
+
+/* Lienzo: cada estado es un marco de página; entre marcos, un rótulo que no es parte de la página. */
+.state { padding: 20px 32px 16px; background: var(--muted); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.state:first-child { border-top: 0; }
+.state-row { max-width: 1216px; margin: 0 auto; display: flex; gap: 16px; align-items: baseline; }
+.state-n { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: var(--destructive); color: var(--destructive-foreground); font-size: 12px; font-weight: 600; flex-shrink: 0; transform: translateY(-2px); }
+.state h2 { font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); line-height: 1.2; white-space: nowrap; }
+.state p { font-size: 14px; line-height: 1.55; color: var(--muted-foreground); }
+.state p b { color: var(--foreground); font-weight: 600; }
+.frame { position: relative; background: var(--background); overflow: hidden; }
+.viewport { height: 760px; }
+
+/* Encabezado global: 80 px en el tope, 64 px achicado (tokens --header-h-max / --header-h-min). */
+.site-header { position: relative; z-index: 30; background: var(--card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.site-header .container { height: var(--header-h-max); display: flex; align-items: center; justify-content: space-between; }
+.site-header.shrunk .container { height: var(--header-h-min); }
+.brand { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-name { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+.shrunk .brand-name { font-size: 22px; }
+.brand-sub { font-size: 12px; color: var(--muted-foreground); }
+.main-nav ul { display: flex; gap: 4px; }
+.main-nav a { display: block; padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; transition: background-color .2s, color .2s; }
+.main-nav a:hover { background: var(--accent); color: var(--primary); }
+.main-nav a[aria-current="page"] { color: var(--primary); }
+.nav-right { display: flex; align-items: center; gap: 32px; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.icon-btn { display: inline-flex; padding: 8px; border-radius: var(--radius-md); background: transparent; border: 0; color: var(--muted-foreground); cursor: pointer; transition: background-color .2s, color .2s; }
+.icon-btn:hover { background: var(--accent); color: var(--primary); }
+
+/* Cuerpo: columna de filtros de 280 px + columna de resultados (igual que /search). */
+.body { padding-bottom: 48px; }
+.grid { display: grid; grid-template-columns: 280px 1fr; gap: 32px; align-items: start; }
+
+/* Barra de resultados. Estado 1: ocupa las dos columnas. Estado 2: sólo la de resultados. */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); background: var(--background); }
+.count { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.count b { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--foreground); line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.count span { font-size: 14px; color: var(--muted-foreground); }
+.count q { font-weight: 500; color: var(--foreground); quotes: "«" "»"; }
+.sort { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; }
+.select { position: relative; display: inline-flex; align-items: center; }
+.select select { appearance: none; height: 44px; padding: 0 36px 0 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); font-size: 12px; font-weight: 600; color: var(--foreground); cursor: pointer; transition: background-color .2s; }
+.select select:hover { background: var(--accent); }
+.select .icon { position: absolute; right: 12px; pointer-events: none; color: var(--muted-foreground); }
+.bar-field { flex: 1; max-width: 448px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 12px; border: 1px solid var(--input); border-radius: var(--radius-lg); background: var(--card); }
+.bar-field:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
+.bar-field > .icon { color: var(--muted-foreground); }
+.bar-field input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 14px; outline: none; }
+.bar-field .clear { display: inline-flex; padding: 6px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--muted-foreground); cursor: pointer; transition: background-color .2s, color .2s; }
+.bar-field .clear:hover { background: var(--accent); color: var(--foreground); }
+.reveal { position: relative; }
+.reveal::before { content: ""; position: absolute; inset: -6px; border: 2px dashed color-mix(in oklch, var(--destructive) 55%, transparent); border-radius: var(--radius-xl); pointer-events: none; }
+
+/* Filtros activos */
+.active { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 16px; }
+.active > span { font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 500; color: var(--primary); background: color-mix(in oklch, var(--primary) 10%, transparent); border: 0; box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary) 30%, transparent); cursor: pointer; transition: background-color .2s; }
+.chip:hover { background: color-mix(in oklch, var(--primary) 20%, transparent); }
+.chip small { font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
+.clear-all { border: 0; background: none; font-size: 12px; font-weight: 500; color: var(--muted-foreground); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; transition: color .2s; }
+.clear-all:hover { color: var(--primary); }
+
+/* Columna de filtros */
+.filters-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); padding: 24px; }
+.filters-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.filters-head h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--destructive); }
+.filters-head button { border: 0; background: none; font-size: 12px; font-weight: 600; color: var(--destructive); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.facets { padding-top: 12px; display: grid; gap: 20px; }
+.facet-title { display: flex; width: 100%; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: none; cursor: pointer; }
+.facet-title span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--primary); }
+.facet-title .n { border-radius: 999px; background: color-mix(in oklch, var(--primary) 10%, transparent); padding: 2px 6px; font-size: 10px; letter-spacing: 0; line-height: 1; }
+.facet-title i { flex: 1; border-top: 1px solid var(--border); }
+.facet-title .icon { color: var(--muted-foreground); }
+.filters, .filters-card, .facet { min-width: 0; }
+.facet ul { margin-top: 4px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.facet-row { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--radius-md); font-size: 14px; cursor: pointer; transition: background-color .2s; }
+.facet-row:hover { background: var(--accent); }
+.facet-row input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+.facet-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.facet-row.on .name { font-weight: 600; color: var(--primary); }
+.facet-row .c { border-radius: var(--radius-sm); background: color-mix(in oklch, var(--muted) 60%, transparent); padding: 2px 6px; font-size: 11px; font-weight: 500; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.facet-more { margin-top: 4px; display: flex; width: 100%; justify-content: center; align-items: center; gap: 4px; padding: 6px 8px; border: 0; border-radius: var(--radius-md); background: none; font-size: 12px; font-weight: 600; color: var(--primary); cursor: pointer; }
+.facet-more:hover { background: color-mix(in oklch, var(--primary) 5%, transparent); }
+
+/* Tarjetas de resultado (DatasetCard) */
+.results { display: grid; gap: 16px; }
+.result { display: block; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); padding: 24px; transition: box-shadow .2s; }
+.result:hover { box-shadow: var(--shadow-md); }
+.result:hover h3 { text-decoration: underline; text-underline-offset: 2px; }
+.result h3 { font-family: var(--font-heading); font-size: 20px; font-weight: 700; line-height: 1.2; color: var(--primary); }
+.result-org { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+.result-desc { margin-top: 10px; font-size: 14px; color: var(--muted-foreground); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tags { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tags li { border-radius: var(--radius-md); background: color-mix(in oklch, var(--muted) 60%, transparent); padding: 2px 8px; font-size: 12px; color: var(--muted-foreground); }
+.tags li.more { background: none; padding: 0; }
+.result-foot { margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in oklch, var(--border) 70%, transparent); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.fmt { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); background: color-mix(in oklch, var(--muted) 50%, transparent); padding: 2px 8px; font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+.dot { width: 8px; height: 8px; border-radius: 999px; background: var(--muted-foreground); }
+.dot-csv { background: var(--chart-1); }
+.dot-pdf { background: var(--chart-2); }
+.foot-meta { display: flex; gap: 12px; font-size: 12px; color: var(--muted-foreground); }
+.foot-meta span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Selector de alcance (de Inicio 05) */
+.scopes { display: flex; gap: 4px; padding: 4px; background: var(--muted); border-radius: var(--radius-lg); }
+.scopes button { flex: 1 1 auto; white-space: nowrap; padding: 0 12px; height: 36px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--muted-foreground); font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color .2s, color .2s; }
+.scopes button:hover { color: var(--foreground); }
+.scopes button[aria-pressed="true"] { background: var(--card); color: var(--primary); box-shadow: var(--shadow-sm); }
+
+/* Estado 2: la página ya desplazada. Las tarjetas siguen bajo la barra pegada. */
+.scrolled .grid { padding-top: var(--sticky-air); }
+.scrolled .bar { margin-top: calc(-1 * var(--sticky-air)); position: relative; z-index: 2; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+.band { background: var(--footer); color: var(--footer-foreground); padding: 32px 0 36px; }
+.band-top { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 14px; border-bottom: 1px solid color-mix(in oklch, var(--footer-foreground) 40%, transparent); }
+.band .kicker { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.band .meta { font-size: 13px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.band-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 56px; padding-top: 28px; align-items: center; }
+.band h1 { font-family: var(--font-heading); font-size: 44px; line-height: 1.1; font-weight: 600; letter-spacing: -.01em; }
+.band .lede { margin-top: 12px; font-size: 15px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.scoped { background: var(--card); color: var(--card-foreground); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: 8px; }
+.scoped-field { display: flex; align-items: center; gap: 12px; padding: 10px 8px 4px 16px; }
+.scoped-field > .icon { color: var(--muted-foreground); }
+.scoped-field input { flex: 1; height: 44px; border: 0; background: transparent; font-size: 17px; outline: none; }
+.scoped:focus-within { outline: 2px solid var(--ring); outline-offset: 3px; }
+.scoped .btn { height: 44px; padding: 0 20px; }
+.bar-scope { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 8px; margin-right: 4px; border: 0; border-right: 1px solid var(--border); background: none; font-size: 12px; font-weight: 600; color: var(--primary); cursor: pointer; white-space: nowrap; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+	<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+	<symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+	<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+	<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+	<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+	<symbol id="i-table" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></symbol>
+	<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+	<symbol id="i-files" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+	<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></symbol>
+	<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+</svg>
+<div class="state" role="note"><div class="state-row"><span class="state-n" aria-hidden="true">1</span><h2>Al llegar</h2><p>La banda azul de Inicio 05, en versión baja: mismo rótulo, misma línea de cifras y la misma tarjeta de búsqueda con su selector de alcance. Debajo, la barra de resultados <b>ocupa las dos columnas</b>.</p></div></div>
+<div class="frame" aria-label="Estado 1: al llegar">
+<header class="site-header">
+	<div class="container">
+		<a class="brand" href="#">
+			<span class="brand-name">Datos UMSS</span>
+			<span class="brand-sub">Plataforma de Datos Abiertos</span>
+		</a>
+		<div class="nav-right">
+			<nav class="main-nav" aria-label="Principal">
+				<ul>
+					<li><a href="#" aria-current="page">Catálogo</a></li>
+					<li><a href="#">Organizaciones</a></li>
+					<li><a href="#">Colecciones</a></li>
+					<li><a href="#">Acerca de</a></li>
+				</ul>
+			</nav>
+			<div class="nav-actions">
+				<button class="icon-btn" type="button" aria-label="Cambiar tema: claro, oscuro o sistema"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></button>
+				<a class="btn btn-coral" href="#">Iniciar sesión</a>
+			</div>
+		</div>
+	</div>
+</header>
+<main>
+	<section class="band" aria-labelledby="h1-01">
+		<div class="container">
+			<div class="band-top">
+				<p class="kicker">Catálogo de datos · Universidad Mayor de San Simón</p>
+				<p class="meta">52 conjuntos de datos · 5 unidades · actualizado el 24 de octubre de 2026</p>
+			</div>
+			<div class="band-grid">
+				<div>
+					<h1 id="h1-01">Explore el catálogo</h1>
+					<p class="lede">Tablas, documentos y datos geográficos que publican las unidades de la universidad, cada uno con su descripción, su licencia y la aprobación de la unidad.</p>
+				</div>
+				<form class="scoped" role="search" action="#">
+					<div class="scopes" role="group" aria-label="Dónde buscar">
+		<button type="button" aria-pressed="true">Todo</button>
+		<button type="button" aria-pressed="false">Conjuntos de datos</button>
+		<button type="button" aria-pressed="false">Unidades</button>
+		<button type="button" aria-pressed="false">Temas</button>
+		<button type="button" aria-pressed="false">Colecciones</button>
+	</div>
+					<div class="scoped-field">
+						<label class="sr-only" for="q01">Buscar en el catálogo</label>
+						<svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+						<input id="q01" type="search" value="matrícula">
+						<button class="btn btn-primary" type="submit">Buscar</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</section>
+	<div class="body container">
+		<div class="bar">
+			<p class="count"><b>3</b><span>resultados para <q>matrícula</q> en 2 unidades</span></p>
+			<label class="sort" for="s01a">Ordenar:
+	<span class="select"><select id="s01a"><option>Relevancia</option><option>Más recientes</option><option>Más antiguos</option><option>A-Z</option><option>Z-A</option></select><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></span>
+</label>
+		</div>
+		<div class="grid" style="padding-top:24px">
+			<aside class="filters" aria-label="Filtros"><div class="filters-card">
+	<div class="filters-head"><h2>Filtros</h2></div>
+	<div class="facets"><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Organización</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row"><input type="checkbox"><span class="name">Rectorado UMSS</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">Facultad de Ciencias de la Salud</span><span class="c">1</span></label></li></ul>
+</div><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Formato</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row"><input type="checkbox"><span class="name">PDF</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">CSV</span><span class="c">1</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">XLSX</span><span class="c">1</span></label></li></ul>
+</div><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Etiquetas</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row"><input type="checkbox"><span class="name">demostración</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">estudiantes</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">matrícula</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">agricultura</span><span class="c">1</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">documentos</span><span class="c">1</span></label></li></ul><button class="facet-more" type="button">Ver 3 más <svg class="icon icon-2xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+</div><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Licencia</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row"><input type="checkbox"><span class="name">CC BY — Atribución</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">CC BY-SA — Atribución-CompartirIgual</span><span class="c">1</span></label></li></ul>
+</div></div>
+</div></aside>
+			<div><ol class="results" aria-label="Resultados"><li><a class="result" href="#">
+	<h3>Matrícula estudiantil por carrera y gestión</h3>
+	<p class="result-org"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-building"/></svg> Facultad de Ciencias de la Salud</p>
+	<p class="result-desc">Registro detallado de estudiantes matriculados por carrera, semestre y gestión académica. Incluye datos demográficos y distribución por sexo. Datos de la gestión 2025. Para consultas técnicas contacte a la unidad.</p>
+	<ul class="tags" aria-label="Etiquetas"><li>#agricultura</li><li>#educación</li><li>#estudiantes</li></ul>
+	<div class="result-foot">
+		<span class="fmt"><span class="dot " aria-hidden="true"></span>Enlace</span>
+		<span class="foot-meta"><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-file-text"/></svg> 2 recursos</span><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-calendar"/></svg> Actualizado 25 sept 2026</span></span>
+	</div>
+</a></li>
+<li><a class="result" href="#">
+	<h3>Informe de matrícula 2015–2025 ficticio — Datos ficticios para demostración</h3>
+	<p class="result-org"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-building"/></svg> Rectorado UMSS</p>
+	<p class="result-desc">Datos ficticios para demostración. Informe inventado de tres páginas con la matrícula de ocho facultades, gestiones 2015–2025, para probar la vista previa de documentos PDF sin conexión a internet.</p>
+	<ul class="tags" aria-label="Etiquetas"><li>#demostración</li><li>#documentos</li><li>#informes</li><li class="more">+1</li></ul>
+	<div class="result-foot">
+		<span class="fmt"><span class="dot dot-pdf" aria-hidden="true"></span>PDF</span>
+		<span class="foot-meta"><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-file-text"/></svg> 1 recurso</span><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-calendar"/></svg> Actualizado 19 oct 2026</span></span>
+	</div>
+</a></li>
+<li><a class="result" href="#">
+	<h3>Matrícula por facultad y gestión ficticia — Datos ficticios para demostración</h3>
+	<p class="result-org"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-building"/></svg> Rectorado UMSS</p>
+	<p class="result-desc">Datos ficticios para demostración. Matrícula inventada de carreras de ocho facultades, gestiones 2015–2025, para probar las vistas de gráficos. Columnas: facultad, carrera, gestión (año), número entero de matriculados.</p>
+	<ul class="tags" aria-label="Etiquetas"><li>#demostración</li><li>#estudiantes</li><li>#facultades</li><li class="more">+1</li></ul>
+	<div class="result-foot">
+		<span class="fmt"><span class="dot dot-csv" aria-hidden="true"></span>CSV</span>
+		<span class="foot-meta"><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-file-text"/></svg> 1 recurso</span><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-calendar"/></svg> Actualizado 18 oct 2026</span></span>
+	</div>
+</a></li></ol></div>
+		</div>
+	</div>
+</main>
+</div><div class="state" role="note"><div class="state-row"><span class="state-n" aria-hidden="true">2</span><h2>Al desplazarse</h2><p>El encabezado se achica a 64 px y la barra deja la columna de filtros: se recoge a la columna de resultados y en el espacio que libera aparece el campo de búsqueda (marcado con trazos). La columna de filtros se pega con su borde superior a la altura del contenido de la barra, no más abajo. Ejemplo con un filtro aplicado: «Rectorado UMSS». El alcance elegido en la banda viaja con el campo, como un rótulo a su izquierda que abre el mismo selector.</p></div></div>
+<div class="frame viewport scrolled" aria-label="Estado 2: al desplazarse">
+<header class="site-header shrunk">
+	<div class="container">
+		<a class="brand" href="#">
+			<span class="brand-name">Datos UMSS</span>
+			<span class="brand-sub">Plataforma de Datos Abiertos</span>
+		</a>
+		<div class="nav-right">
+			<nav class="main-nav" aria-label="Principal">
+				<ul>
+					<li><a href="#" aria-current="page">Catálogo</a></li>
+					<li><a href="#">Organizaciones</a></li>
+					<li><a href="#">Colecciones</a></li>
+					<li><a href="#">Acerca de</a></li>
+				</ul>
+			</nav>
+			<div class="nav-actions">
+				<button class="icon-btn" type="button" aria-label="Cambiar tema: claro, oscuro o sistema"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></button>
+				<a class="btn btn-coral" href="#">Iniciar sesión</a>
+			</div>
+		</div>
+	</div>
+</header>
+<div class="body container">
+	<div class="grid">
+		<aside class="filters" aria-label="Filtros"><div class="filters-card">
+	<div class="filters-head"><h2>Filtros</h2><button type="button">Limpiar (1)</button></div>
+	<div class="facets"><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Organización</span><span class="n">1</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row on"><input type="checkbox" checked><span class="name">Rectorado UMSS</span><span class="c">2</span></label></li></ul>
+</div><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Formato</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row"><input type="checkbox"><span class="name">CSV</span><span class="c">1</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">PDF</span><span class="c">1</span></label></li></ul>
+</div><div class="facet">
+	<button class="facet-title" type="button" aria-expanded="true"><span>Etiquetas</span><i></i><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+	<ul><li><label class="facet-row"><input type="checkbox"><span class="name">demostración</span><span class="c">2</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">documentos</span><span class="c">1</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">estudiantes</span><span class="c">1</span></label></li><li><label class="facet-row"><input type="checkbox"><span class="name">facultades</span><span class="c">1</span></label></li></ul><button class="facet-more" type="button">Ver más <svg class="icon icon-2xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+</div></div>
+</div></aside>
+		<div>
+			<div class="bar">
+				<p class="count"><b>2</b><span>resultados</span></p>
+				<div class="reveal" style="flex:1;max-width:448px;display:flex"><div class="bar-field">
+	<button class="bar-scope" type="button" aria-label="Dónde buscar: Todo">Todo <svg class="icon icon-2xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></button><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"/></svg>
+	<label class="sr-only" for="q01b">Buscar en el catálogo</label>
+	<input id="q01b" type="search" value="matrícula">
+	<button class="clear" type="button" aria-label="Borrar la búsqueda"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-x"/></svg></button>
+</div></div>
+				<label class="sort" for="s01b">Ordenar:
+	<span class="select"><select id="s01b"><option>Relevancia</option><option>Más recientes</option><option>Más antiguos</option><option>A-Z</option><option>Z-A</option></select><svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron-down"/></svg></span>
+</label>
+			</div>
+			<div class="active">
+	<span>Filtros activos:</span>
+	<button class="chip" type="button" aria-label="Quitar filtro Organización: Rectorado UMSS"><small>Organización:</small> Rectorado UMSS <svg class="icon icon-2xs" aria-hidden="true"><use href="#i-x"/></svg></button>
+	<button class="clear-all" type="button">Limpiar todos</button>
+</div>
+			<div style="padding-top:16px"><ol class="results" aria-label="Resultados"><li><a class="result" href="#">
+	<h3>Informe de matrícula 2015–2025 ficticio — Datos ficticios para demostración</h3>
+	<p class="result-org"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-building"/></svg> Rectorado UMSS</p>
+	<p class="result-desc">Datos ficticios para demostración. Informe inventado de tres páginas con la matrícula de ocho facultades, gestiones 2015–2025, para probar la vista previa de documentos PDF sin conexión a internet.</p>
+	<ul class="tags" aria-label="Etiquetas"><li>#demostración</li><li>#documentos</li><li>#informes</li><li class="more">+1</li></ul>
+	<div class="result-foot">
+		<span class="fmt"><span class="dot dot-pdf" aria-hidden="true"></span>PDF</span>
+		<span class="foot-meta"><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-file-text"/></svg> 1 recurso</span><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-calendar"/></svg> Actualizado 19 oct 2026</span></span>
+	</div>
+</a></li>
+<li><a class="result" href="#">
+	<h3>Matrícula por facultad y gestión ficticia — Datos ficticios para demostración</h3>
+	<p class="result-org"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-building"/></svg> Rectorado UMSS</p>
+	<p class="result-desc">Datos ficticios para demostración. Matrícula inventada de carreras de ocho facultades, gestiones 2015–2025, para probar las vistas de gráficos. Columnas: facultad, carrera, gestión (año), número entero de matriculados.</p>
+	<ul class="tags" aria-label="Etiquetas"><li>#demostración</li><li>#estudiantes</li><li>#facultades</li><li class="more">+1</li></ul>
+	<div class="result-foot">
+		<span class="fmt"><span class="dot dot-csv" aria-hidden="true"></span>CSV</span>
+		<span class="foot-meta"><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-file-text"/></svg> 1 recurso</span><span><svg class="icon icon-xs" aria-hidden="true"><use href="#i-calendar"/></svg> Actualizado 18 oct 2026</span></span>
+	</div>
+</a></li></ol></div>
+		</div>
+	</div>
+</div>
+</div>
+</body>
+</html>

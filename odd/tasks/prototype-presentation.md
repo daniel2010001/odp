@@ -177,7 +177,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | (this commit) — awaiting author review |
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | `ddfc67a` — awaiting author review |
 | T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | — |
-| T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | — |
+| T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | (see L22) — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -310,3 +310,9 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   poco lo que es los badges de las otras pages."; collection curator chosen at creation — «apecto tu propuesta de escoger quién
   lo cura, anota eso» (Q19, PRD RF-21); search bar and hero → S24 (T25, T26).
 - **L20** (2026-10-28, design): `design/organizacion/` (T23) — three directions for the organization sheet, each with its empty state: `01-ficha-con-panel` + `01b-…-vacia`, `02-portada-con-pestanas` + `02b-…-vacia`, `03-dossier-con-indice` + `03b-…-vacia`; each ends with a feasibility note (nativo / implementable / no disponible).
+- **L21** (2026-10-28, author) on `/dev/organizations`, verbatim: "me gusta, pero hay partes donde sobre salen del bg del sections
+  title, creo que es por el import! o algo así, los que veo que hacen esto son: en las unidades pedendientes y dependiente de.
+  corregir esto." Cause: the cards' hierarchy links are `relative z-10`, the same level as the sticky titles, and come later in
+  the DOM; the titles now use `z-[15]` (below the bar's `z-20`).
+- **L22** (2026-10-28, design): `design/busqueda/` (T26) — three search hero directions, each with «Al llegar» and «Al
+  desplazarse» states: `01-banda-compacta`, `02-consulta-como-titulo`, `03-tarjeta-sobre-la-banda`.
