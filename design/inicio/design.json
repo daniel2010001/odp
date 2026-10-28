@@ -1,0 +1,27 @@
+{
+	"title": "Inicio — Portal de datos abiertos de la UMSS",
+	"brief": "Rediseño de la página de inicio: que en segundos se entienda qué es la plataforma (un catálogo donde cada unidad publica sus datos como tablas descargables, con descripción, licencia y aprobación previa, también por API) y que el visitante pueda buscar o explorar por unidad, por tema y por colección. Público: personal, docentes, investigadores, estudiantes, público general y el tribunal del proyecto.",
+	"artboards": [
+		{
+			"file": "01-buscador-con-ficha.html",
+			"title": "Buscador con ficha de ejemplo",
+			"tradeoff": "Explica el producto mostrando un conjunto de datos real anotado junto al buscador; la portada queda más densa y la ficha compite con la búsqueda por la atención",
+			"width": 1440,
+			"height": 2605
+		},
+		{
+			"file": "02-indice-editorial.html",
+			"title": "Índice editorial",
+			"tradeoff": "Máxima credibilidad institucional: cuenta el proceso de publicación y presenta unidades, temas y colecciones como un índice de libro; la búsqueda es discreta y la página es la más larga",
+			"width": 1440,
+			"height": 3162
+		},
+		{
+			"file": "03-tres-puertas.html",
+			"title": "Tres puertas de entrada",
+			"tradeoff": "La ruta más rápida: búsqueda con alcance y tres accesos (unidad, tema, colección) arriba del pliegue; la explicación de qué es un conjunto de datos queda debajo y el bloque de código habla más al público técnico",
+			"width": 1440,
+			"height": 2467
+		}
+	]
+}

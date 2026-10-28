@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Inicio — Índice editorial · Datos UMSS</title>
+<style>
+/* Tokens de design/system.md (modo claro). Ningún color fuera de estas variables, salvo el negro de las
+   sombras documentadas (DS §5). */
+:root {
+	--background: oklch(0.973 0.006 250);
+	--foreground: oklch(0.26 0.03 257);
+	--card: oklch(0.995 0.001 250);
+	--card-foreground: oklch(0.26 0.03 257);
+	--primary: oklch(0.52 0.085 257);
+	--primary-foreground: oklch(0.985 0.002 250);
+	--secondary: oklch(0.74 0.06 250);
+	--secondary-foreground: oklch(0.28 0.04 257);
+	--muted: oklch(0.945 0.008 250);
+	--muted-foreground: oklch(0.42 0.02 257);
+	--accent: oklch(0.93 0.018 250);
+	--accent-foreground: oklch(0.42 0.07 257);
+	--destructive: oklch(0.55 0.09 15);
+	--destructive-foreground: oklch(0.985 0.002 250);
+	--positive: oklch(0.5 0.08 175);
+	--border: oklch(0.905 0.01 250);
+	--input: oklch(0.905 0.01 250);
+	--ring: oklch(0.62 0.08 257);
+	--footer: oklch(0.44 0.09 257);
+	--footer-foreground: oklch(0.985 0.002 250);
+	--radius: 0.5rem;
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-heading: "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	--shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+	--shadow-md: 0 4px 6px rgba(0,0,0,.10);
+	--shadow-lg: 0 10px 15px rgba(0,0,0,.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-md); }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-xs { width: 14px; height: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+.eyebrow { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--destructive); }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: 0; transition: background-color .2s, color .2s; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-primary:hover { background: color-mix(in oklch, var(--primary) 90%, transparent); }
+.btn-coral { background: var(--destructive); color: var(--destructive-foreground); }
+.btn-coral:hover { background: color-mix(in oklch, var(--destructive) 90%, transparent); }
+.btn-ghost { background: transparent; color: var(--muted-foreground); }
+.btn-ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+.pill-accent { background: var(--accent); color: var(--accent-foreground); }
+.chip-format { border: 1px solid var(--border); background: color-mix(in oklch, var(--muted) 50%, transparent); font-family: var(--font-mono); color: var(--muted-foreground); border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+
+/* Encabezado */
+.site-header { background: var(--card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.site-header .container { height: 80px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-name { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+.brand-sub { font-size: 12px; color: var(--muted-foreground); }
+.main-nav ul { display: flex; gap: 4px; }
+.main-nav a { display: block; padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; transition: background-color .2s, color .2s; }
+.main-nav a:hover { background: var(--accent); color: var(--primary); }
+.nav-right { display: flex; align-items: center; gap: 32px; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.icon-btn { display: inline-flex; padding: 8px; border-radius: var(--radius-md); background: transparent; border: 0; color: var(--muted-foreground); cursor: pointer; transition: background-color .2s, color .2s; }
+.icon-btn:hover { background: var(--accent); color: var(--primary); }
+
+
+/* Hero editorial: título a lo ancho, buscador en línea */
+.hero { padding: 80px 0 64px; }
+.hero-top { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 2px solid var(--foreground); }
+.hero-top .meta { font-size: 13px; color: var(--muted-foreground); }
+.hero-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 64px; padding-top: 40px; align-items: end; }
+.hero h1 { font-family: var(--font-heading); font-size: 56px; line-height: 1.1; font-weight: 600; color: var(--foreground); letter-spacing: -.01em; }
+.hero h1 span { color: var(--primary); font-style: italic; font-weight: 500; }
+.hero-side p { font-size: 17px; line-height: 1.6; color: var(--muted-foreground); }
+.line-search { margin-top: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--primary); padding: 8px 0; }
+.line-search:focus-within { outline: 2px solid var(--ring); outline-offset: 4px; border-radius: var(--radius-sm); }
+.line-search .icon { color: var(--primary); }
+.line-search input { flex: 1; border: 0; background: transparent; font-size: 17px; outline: none; }
+.line-search input::placeholder { color: var(--muted-foreground); }
+.line-search button { border: 0; background: transparent; color: var(--primary); cursor: pointer; display: inline-flex; padding: 4px; border-radius: var(--radius-md); transition: background-color .2s; }
+.line-search button:hover { background: var(--accent); }
+.hero-side .link { margin-top: 12px; }
+
+/* Proceso */
+.process { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--card); }
+.process .container { padding-top: 48px; padding-bottom: 56px; }
+.process-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 32px; }
+.process-title h2 { font-family: var(--font-heading); font-size: 28px; font-weight: 600; color: var(--primary); }
+.process-title p { font-size: 14px; color: var(--muted-foreground); }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); counter-reset: step; }
+.steps li { padding: 0 32px; border-left: 1px solid var(--border); }
+.steps li:first-child { padding-left: 0; border-left: 0; }
+.step-num { font-family: var(--font-heading); font-size: 48px; line-height: 1; font-weight: 500; color: var(--destructive); font-variant-numeric: lining-nums; }
+.steps h3 { margin-top: 16px; font-size: 16px; font-weight: 600; color: var(--foreground); display: flex; align-items: center; gap: 8px; }
+.steps h3 .icon { color: var(--primary); }
+.steps p { margin-top: 8px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+
+/* Índice de unidades */
+.section { padding: 80px 0; }
+.section-label { display: grid; grid-template-columns: 3fr 9fr; gap: 64px; }
+.section-label h2 { font-family: var(--font-heading); font-size: 36px; line-height: 1.15; font-weight: 600; color: var(--primary); margin-top: 8px; }
+.section-label .intro { margin-top: 16px; font-size: 15px; line-height: 1.6; color: var(--muted-foreground); }
+.toc { border-top: 1px solid var(--foreground); }
+.toc li { border-bottom: 1px solid var(--border); }
+.toc a { display: grid; grid-template-columns: 1fr 200px 56px; gap: 24px; align-items: center; padding: 20px 8px; transition: background-color .2s; }
+.toc a:hover { background: var(--accent); }
+.toc a:hover .toc-name { text-decoration: underline; text-underline-offset: 4px; }
+.toc-name { font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: var(--primary); line-height: 1.2; }
+.toc-abbr { font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--muted-foreground); margin-left: 8px; }
+.toc-eg { display: block; margin-top: 4px; font-size: 14px; color: var(--muted-foreground); }
+.toc-eg i { font-family: var(--font-heading); font-size: 16px; color: var(--foreground); }
+.bar { height: 6px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.toc-count { text-align: right; font-family: var(--font-heading); font-size: 28px; font-weight: 600; color: var(--primary); font-variant-numeric: tabular-nums; }
+.toc-foot { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; font-size: 13px; color: var(--muted-foreground); }
+
+/* Temas + colecciones */
+.duo { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.duo .container { display: grid; grid-template-columns: 5fr 7fr; gap: 80px; }
+.duo h2 { font-family: var(--font-heading); font-size: 32px; font-weight: 600; color: var(--primary); margin-top: 8px; line-height: 1.15; }
+.duo .intro { margin-top: 12px; font-size: 15px; line-height: 1.6; color: var(--muted-foreground); }
+.subject-index { margin-top: 32px; border-top: 1px solid var(--foreground); }
+.subject-index li a { display: flex; align-items: baseline; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 16px; transition: color .2s; }
+.subject-index li a:hover { color: var(--primary); }
+.subject-index .dots { flex: 1; border-bottom: 1px dotted var(--secondary); transform: translateY(-4px); }
+.subject-index .n { font-variant-numeric: tabular-nums; color: var(--muted-foreground); font-size: 14px; }
+.colls { margin-top: 32px; display: grid; gap: 24px; }
+.coll { display: grid; grid-template-columns: 1fr auto; gap: 24px; padding: 28px 32px; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: var(--radius-lg); background: var(--background); transition: background-color .2s, border-color .2s; }
+.coll:hover { background: var(--accent); }
+.coll h3 { font-family: var(--font-heading); font-size: 26px; font-style: italic; font-weight: 500; color: var(--primary); line-height: 1.2; }
+.coll .by { margin-top: 6px; font-size: 14px; color: var(--muted-foreground); }
+.coll .by b { color: var(--foreground); font-weight: 500; }
+.coll ul { margin-top: 16px; display: grid; gap: 6px; }
+.coll ul li { font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.coll ul li::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--secondary); flex-shrink: 0; }
+.coll .side { text-align: right; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; }
+.coll .side strong { font-family: var(--font-heading); font-size: 36px; line-height: 1; color: var(--primary); }
+.coll .side span { font-size: 13px; color: var(--muted-foreground); }
+
+/* Cita */
+.cite .container { display: grid; grid-template-columns: 3fr 9fr; gap: 64px; align-items: start; }
+.cite h2 { font-family: var(--font-heading); font-size: 32px; font-weight: 600; color: var(--primary); line-height: 1.15; margin-top: 8px; }
+.cite-box { border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }
+.cite-box .row { display: grid; grid-template-columns: 160px 1fr; gap: 24px; padding: 16px 24px; border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent); align-items: baseline; }
+.cite-box .row:first-child { border-top: 0; }
+.cite-box dt { font-size: 12px; color: var(--muted-foreground); }
+.cite-box dd { font-size: 14px; font-weight: 500; }
+.cite-box dd.mono { font-family: var(--font-mono); font-size: 13px; font-weight: 400; line-height: 1.6; }
+.cite-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.cite-head h3 { font-family: var(--font-heading); font-size: 22px; font-weight: 600; color: var(--primary); }
+.copy { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--background); color: var(--muted-foreground); font-size: 13px; cursor: pointer; transition: background-color .2s, color .2s; }
+.copy:hover { background: var(--accent); color: var(--foreground); }
+.link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--primary); text-underline-offset: 4px; }
+.link:hover { text-decoration: underline; }
+
+/* Pie */
+.site-footer { background: var(--footer); color: var(--footer-foreground); }
+.site-footer .container { padding-top: 64px; padding-bottom: 40px; }
+.footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; }
+.footer-grid .footer-brand { color: var(--footer-foreground); font-family: var(--font-heading); font-size: 24px; font-weight: 700; }
+.footer-grid p, .footer-grid li { font-size: 14px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+.footer-grid h2 { font-family: var(--font-heading); font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.footer-grid ul { display: grid; gap: 8px; }
+.footer-grid a:hover { color: var(--footer-foreground); text-decoration: underline; text-underline-offset: 4px; }
+.footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 20%, transparent); display: flex; justify-content: space-between; font-size: 12px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+	<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+	<symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+	<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+	<symbol id="i-library" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol>
+	<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+	<symbol id="i-code" viewBox="0 0 24 24"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></symbol>
+	<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+	<symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
+	<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
+	<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></symbol>
+	<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+</svg>
+
+<header class="site-header">
+	<div class="container">
+		<a class="brand" href="#">
+			<span class="brand-name">Datos UMSS</span>
+			<span class="brand-sub">Plataforma de Datos Abiertos</span>
+		</a>
+		<div class="nav-right">
+			<nav class="main-nav" aria-label="Principal">
+				<ul>
+					<li><a href="#">Catálogo</a></li>
+					<li><a href="#">Organizaciones</a></li>
+					<li><a href="#">Colecciones</a></li>
+					<li><a href="#">Acerca de</a></li>
+				</ul>
+			</nav>
+			<div class="nav-actions">
+				<button class="icon-btn" type="button" aria-label="Cambiar tema: claro, oscuro o sistema"><svg class="icon"><use href="#i-monitor"/></svg></button>
+				<a class="btn btn-coral" href="#">Iniciar sesión</a>
+			</div>
+		</div>
+	</div>
+</header>
+
+<main>
+	<section class="hero" aria-labelledby="hero-title">
+		<div class="container">
+			<div class="hero-top">
+				<p class="eyebrow">Portal de datos abiertos · Universidad Mayor de San Simón</p>
+				<p class="meta">52 conjuntos de datos · 5 unidades · actualizado el 24 de octubre de 2026</p>
+			</div>
+			<div class="hero-grid">
+				<h1 id="hero-title">Los datos que produce la universidad, publicados por <span>cada unidad</span> y abiertos a todos.</h1>
+				<div class="hero-side">
+					<p>Un catálogo único donde facultades y direcciones publican sus datos como tablas descargables, cada una con su descripción, su licencia y la aprobación de la unidad.</p>
+					<form class="line-search" role="search" action="#">
+						<label class="sr-only" for="q">Buscar en el catálogo</label>
+						<svg class="icon"><use href="#i-search"/></svg>
+						<input id="q" type="search" placeholder="Buscar datasets, organizaciones, temas...">
+						<button type="submit" aria-label="Buscar"><svg class="icon"><use href="#i-arrow-right"/></svg></button>
+					</form>
+					<a class="link" href="#">O recorra el catálogo completo<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="process" aria-labelledby="process-title">
+		<div class="container">
+			<div class="process-title">
+				<h2 id="process-title">Cómo llega un dato al catálogo</h2>
+				<p>Todo lo que ve en el catálogo pasó por estos cuatro pasos.</p>
+			</div>
+			<ol class="steps">
+				<li>
+					<span class="step-num" aria-hidden="true">1</span>
+					<h3><svg class="icon icon-sm"><use href="#i-upload"/></svg>La unidad lo publica</h3>
+					<p>Cada facultad o dirección carga sus propias tablas con la cuenta de su personal.</p>
+				</li>
+				<li>
+					<span class="step-num" aria-hidden="true">2</span>
+					<h3><svg class="icon icon-sm"><use href="#i-pen"/></svg>Lo describe y lo licencia</h3>
+					<p>Indica qué contiene, de qué periodo es y con qué licencia puede reutilizarse.</p>
+				</li>
+				<li>
+					<span class="step-num" aria-hidden="true">3</span>
+					<h3><svg class="icon icon-sm"><use href="#i-circle-check"/></svg>Se aprueba</h3>
+					<p>Un responsable de la unidad lo revisa. Sólo lo aprobado se vuelve público.</p>
+				</li>
+				<li>
+					<span class="step-num" aria-hidden="true">4</span>
+					<h3><svg class="icon icon-sm"><use href="#i-download"/></svg>Usted lo utiliza</h3>
+					<p>Lo descarga en CSV o XLSX, o lo consulta desde sus programas mediante la API.</p>
+				</li>
+			</ol>
+		</div>
+	</section>
+
+	<section class="section" aria-labelledby="units-title">
+		<div class="container section-label">
+			<div>
+				<p class="eyebrow">Índice de unidades</p>
+				<h2 id="units-title">Quién publica</h2>
+				<p class="intro">Cada conjunto de datos tiene una unidad responsable. Empiece por la que produce la información que necesita.</p>
+			</div>
+			<div>
+				<ol class="toc">
+					<li><a href="#">
+						<span><span class="toc-name">Dirección de Investigación</span><span class="toc-abbr">DICyT</span><span class="toc-eg">Por ejemplo, <i>Proyectos de investigación activos</i></span></span>
+						<span class="bar" aria-hidden="true"><span style="width:60%"></span></span>
+						<span class="toc-count" aria-label="9 conjuntos de datos">9</span>
+					</a></li>
+					<li><a href="#">
+						<span><span class="toc-name">Facultad de Ciencias Agrícolas</span><span class="toc-abbr">FCAPyF</span><span class="toc-eg">Por ejemplo, <i>Rendimiento de cultivos por parcela experimental</i></span></span>
+						<span class="bar" aria-hidden="true"><span style="width:46.7%"></span></span>
+						<span class="toc-count" aria-label="7 conjuntos de datos">7</span>
+					</a></li>
+					<li><a href="#">
+						<span><span class="toc-name">Facultad de Ciencias de la Salud</span><span class="toc-abbr">FCS</span><span class="toc-eg">Por ejemplo, <i>Matrícula estudiantil por carrera y gestión</i></span></span>
+						<span class="bar" aria-hidden="true"><span style="width:60%"></span></span>
+						<span class="toc-count" aria-label="9 conjuntos de datos">9</span>
+					</a></li>
+					<li><a href="#">
+						<span><span class="toc-name">Facultad de Ciencias y Tecnología</span><span class="toc-abbr">FCyT</span><span class="toc-eg">Por ejemplo, <i>Tasas de graduación por cohorte</i> y <i>Estaciones meteorológicas del campus</i></span></span>
+						<span class="bar" aria-hidden="true"><span style="width:100%"></span></span>
+						<span class="toc-count" aria-label="15 conjuntos de datos">15</span>
+					</a></li>
+					<li><a href="#">
+						<span><span class="toc-name">Rectorado UMSS</span><span class="toc-eg">Por ejemplo, <i>Ejecución presupuestaria</i></span></span>
+						<span class="bar" aria-hidden="true"><span style="width:80%"></span></span>
+						<span class="toc-count" aria-label="12 conjuntos de datos">12</span>
+					</a></li>
+				</ol>
+				<div class="toc-foot"><span>Cifras: conjuntos de datos aprobados y públicos de cada unidad.</span><a class="link" href="#">Ver las organizaciones<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a></div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section duo" aria-label="Temas y colecciones">
+		<div class="container">
+			<div>
+				<p class="eyebrow">Índice temático</p>
+				<h2>Por tema</h2>
+				<p class="intro">Los mismos datos, agrupados por el asunto que tratan, sin importar qué unidad los publicó.</p>
+				<ul class="subject-index">
+					<li><a href="#">Agropecuario y ambiente<span class="dots" aria-hidden="true"></span><span class="n">7</span></a></li>
+					<li><a href="#">Gestión académica<span class="dots" aria-hidden="true"></span><span class="n">14</span></a></li>
+					<li><a href="#">Infraestructura y campus<span class="dots" aria-hidden="true"></span><span class="n">6</span></a></li>
+					<li><a href="#">Investigación<span class="dots" aria-hidden="true"></span><span class="n">11</span></a></li>
+					<li><a href="#">Presupuesto y finanzas<span class="dots" aria-hidden="true"></span><span class="n">8</span></a></li>
+					<li><a href="#">Salud<span class="dots" aria-hidden="true"></span><span class="n">6</span></a></li>
+				</ul>
+			</div>
+			<div>
+				<p class="eyebrow">Selecciones</p>
+				<h2>Colecciones públicas</h2>
+				<p class="intro">Conjuntos de datos reunidos por una persona o una unidad con un propósito concreto.</p>
+				<div class="colls">
+					<a class="coll" href="#">
+						<div>
+							<h3>Indicadores académicos para tesis</h3>
+							<p class="by">Curada por <b>María Fernanda Rojas Vargas</b></p>
+							<ul>
+								<li>Matrícula estudiantil por carrera y gestión</li>
+								<li>Tasas de graduación por cohorte</li>
+							</ul>
+						</div>
+						<div class="side"><strong>8</strong><span>conjuntos de datos</span></div>
+					</a>
+					<a class="coll" href="#">
+						<div>
+							<h3>Investigación y laboratorios de la FCyT</h3>
+							<p class="by">Curada por <b>la Dirección de Investigación</b></p>
+							<ul>
+								<li>Proyectos de investigación activos</li>
+								<li>Estaciones meteorológicas del campus</li>
+							</ul>
+						</div>
+						<div class="side"><strong>6</strong><span>conjuntos de datos</span></div>
+					</a>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section cite" aria-labelledby="cite-title">
+		<div class="container">
+			<div>
+				<p class="eyebrow">Para su investigación</p>
+				<h2 id="cite-title">Cada conjunto de datos se puede citar</h2>
+				<p class="intro" style="margin-top:16px;font-size:15px;line-height:1.6;color:var(--muted-foreground)">La ficha indica la unidad responsable, la licencia y una referencia lista para su bibliografía.</p>
+			</div>
+			<article class="cite-box">
+				<div class="cite-head">
+					<h3>Tasas de graduación por cohorte</h3>
+					<span class="pill pill-accent"><svg class="icon icon-xs"><use href="#i-circle-check"/></svg>Aprobado por la unidad</span>
+				</div>
+				<dl>
+					<div class="row"><dt>Unidad responsable</dt><dd>Facultad de Ciencias y Tecnología</dd></div>
+					<div class="row"><dt>Licencia</dt><dd>Creative Commons Atribución 4.0 (CC BY 4.0)</dd></div>
+					<div class="row"><dt>Formatos</dt><dd><span class="chip-format">CSV</span> <span class="chip-format">XLSX</span></dd></div>
+					<div class="row"><dt>Cómo citarlo</dt><dd class="mono">Facultad de Ciencias y Tecnología, UMSS (2026). Tasas de graduación por cohorte [conjunto de datos]. Portal de datos abiertos de la UMSS.</dd></div>
+				</dl>
+				<div class="cite-head" style="border-bottom:0;border-top:1px solid var(--border)">
+					<a class="link" href="#">Abrir la ficha completa<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
+					<button class="copy" type="button"><svg class="icon icon-sm"><use href="#i-copy"/></svg>Copiar referencia</button>
+				</div>
+			</article>
+		</div>
+	</section>
+</main>
+
+<footer class="site-footer">
+	<div class="container">
+		<div class="footer-grid">
+			<div>
+				<p class="footer-brand">Datos UMSS</p>
+				<p style="margin-top:16px;max-width:280px">Universidad Mayor de San Simón — Portal de datos abiertos. Conjuntos de datos académicos y administrativos publicados por sus unidades.</p>
+			</div>
+			<div><h2>Plataforma</h2><ul><li><a href="#">Catálogo</a></li><li><a href="#">Organizaciones</a></li><li><a href="#">Colecciones</a></li><li><a href="#">Acerca de</a></li></ul></div>
+			<div><h2>Datos</h2><ul><li><a href="#">Explorar conjuntos de datos</a></li><li><a href="#">Por organización</a></li><li><a href="#">Uso de la API</a></li></ul></div>
+			<div><h2>Contacto</h2><ul><li>Cochabamba, Bolivia</li><li><a href="#">datos@umss.edu.bo</a></li></ul></div>
+		</div>
+		<div class="footer-bottom"><span>© 2026 Universidad Mayor de San Simón. Todos los derechos reservados.</span><span>Portal de datos abiertos</span></div>
+	</div>
+</footer>
+</body>
+</html>
