@@ -53,6 +53,12 @@ imported into Figma and presented as a click-through prototype before the tribun
 - **S13** — Users mock, Q5 (2026-10-26), verbatim: "q5 por ahora solo activos, los bloqueados lo veremos en la implementación,
   creo que ni siquiera creo que podrán hacer el login, pero lo veremos después."
 
+- **S14** — Prototype mode (2026-10-28). The author, verbatim: "me dijiste que podíamos "copiar" los pages que ya están, pero
+  creo que no están porque revisando veo que faltan cosas como que el header tenga eso de las collections, las fichas del
+  dataset tengan esa parte de las collections y cosas así, o me equivoco?" Chose option A, verbatim from the agent's offer:
+  «Agrego a las páginas reales los accesos a lo nuevo, visibles sólo en desarrollo y nunca en producción: «Colecciones» en el
+  menú, la sección en la ficha del dataset y los accesos del panel.»
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -99,6 +105,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T12 | S6, S11 | Collection mocks follow Q10 (Privada, viewer-aware lists) + matrícula aligned with the real dataset | inline | `f0c8b11` — awaiting author review |
 | T13 | S12 | Public collections list (main menu) vs «Mis colecciones» (panel) as two mock screens | worker | `511df08` — awaiting author review |
 | T14 | S13 | Users mock shows only active users (no «Bloqueado») | worker | `54900f9` (+ María Fernanda also Rectorado editor, consistent with the panel) — awaiting author review |
+| T15 | S14 | Prototype mode: DEV-only entry points to the mocks in the real header, dataset sheet, panel and organization sheet | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -196,3 +203,6 @@ merging to `main` (after the presentation).
   intentar recuperar todos los grupos, aunque sea uno de cada uno, luego hacemos algo así como "ver más" y que eso active el
   filtro y muestre solo de su grupo, qué dices? q17 acepto la propuesta, anotala." Found: the html.to.design FREE plan allows
   «Up to 10 imports every 30 days» (html.to.design/docs/pro-plan); the script has 18 steps.
+- **L12** (2026-10-28, author): Q3 — «si, usar tu sugerencia»; Q8 — «si» (RF-02 discarded); screenshots for the prototype,
+  html.to.design only for the test — «si»; push the branch — «si» (pushed). Export to Figma: will try it. Raised S14 (built pages
+  do not show the new entry points) → option A (T15). Presentation is tomorrow, 2026-10-29 16:00.
