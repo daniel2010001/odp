@@ -25,6 +25,18 @@
 > que se hizo, en `BITACORA.md`; los **requisitos y el alcance**, en `PRD.md`; los **contratos de comportamiento**, en
 > `openspec/specs/`; la narrativa de cada unidad, en `odd/tasks/`.
 
+## El README del sistema de diseño quedó atrás de `src/app.css` (hallado en la sincronización de Gentle Design, 2026-10-28)
+
+- [ ] `[v1+]` Corregir `design-system/datos-umss/README.md` donde contradice el código (manda el código, según `AGENTS.md`).
+  El detalle está en `design/system.md`, sección «Discrepancias»:
+  1. `--primary` oscuro: el README dice `oklch(0.6 0.1 257)`; `app.css` dice `oklch(0.66 0.1 257)` desde el cambio de
+     contraste del 2026-10-19.
+  2. Sombra de la tarjeta: README §8 pide `shadow-md`; `card.svelte` usa `shadow-sm`.
+  3. Radio de botones y campos: README §5 dice 8 px; los componentes usan `rounded-md` (6 px).
+  4. Botón secundario: README §8 lo describe con borde azul transparente; `button.svelte` lo rellena (`bg-secondary`).
+  5. JetBrains Mono: el README dice que se carga de Google Fonts; `app.css` sólo importa EB Garamond y Poppins.
+  Además, `app.css` no define escala de espaciado ni sombras (rige Tailwind); el README sí, y no se verificó que coincidan.
+
 ## Límites: de dónde salen los números (2026-10-09)
 
 > **El caso que lo disparó: RF-12, el tope por recurso.** El PRD dice **50 MB** y CKAN admite **100 MB** por defecto. El
