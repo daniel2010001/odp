@@ -137,7 +137,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T16 | S15 | Screens to the canvas, batch by batch (`design/prototipo/`), reviewed by the author on the canvas | worker | batch 1 `91611cd` (H2-4, H2-7, H3-1) — awaiting author review |
 | T19 | S15 | Batch 2 (no login): H2-2 organizations proposal, H2-3 search, H2-5 CSV resource, H2-6b collections menu, organization sheet, H3-3 public collection | worker | — |
 | T17 | S16 | Inicio direction 05 (second iteration) | worker | `273603b` — awaiting author review |
-| T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | — |
+| T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | `39666ce` — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
