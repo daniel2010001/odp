@@ -1,6 +1,6 @@
 <!--
 	Historial de solicitudes de publicación de un dataset (S12/S19 de v0.1.1, variante H2 de
-	`/dev/request-history`): una tarjeta propia de la columna lateral, bajo «Resumen». Una entrada por
+	`/dev/request-history`): una tarjeta propia de la columna lateral, la última. Una entrada por
 	solicitud, la más nueva primero (el orden lo da el catálogo): estado, quién la pidió y cuándo, quién la
 	resolvió y cuándo, la nota de quien pidió, el comentario de la decisión y, si se anuló, la causa.
 
@@ -8,9 +8,9 @@
 	anteriores a la migración 0002 (cancelaciones sin fecha ni autor; aprobaciones con el comentario sin
 	atribuir en `comments`, que se rotula «Comentario» a secas). Sin filas no dibuja nada.
 
-	`limit` y `reveal` son las variantes de `/dev/dataset-panel` (S17 de `odd/tasks/prototype-presentation.md`):
-	con `limit={1}` el historial queda plegado y siempre muestra la última solicitud; `reveal="card"` hace
-	aparecer el botón del enlace con toda la tarjeta (ver `AnchorLink`). Sin ellas, la tarjeta es la de la ficha.
+	Va plegado (variante «Plegado» de `/dev/dataset-panel`, S18 de `odd/tasks/prototype-presentation.md`): siempre
+	muestra la última solicitud y «Ver N más» despliega el resto. El botón del enlace aparece con toda la
+	tarjeta (variante «Unificado», ver `AnchorLink`).
 -->
 <script lang="ts">
 import { Ban, CircleCheck, CircleHelp, CircleX, Clock, Undo2 } from "@lucide/svelte";
@@ -22,18 +22,10 @@ import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
 import AnchorLink from "./AnchorLink.svelte";
 
-let {
-	rows,
-	limit = 4,
-	reveal = "title",
-}: {
-	rows: PublicationRequest[];
-	/** Cuántas entradas se ven antes de «Ver más». */
-	limit?: number;
-	reveal?: "title" | "card";
-} = $props();
+let { rows }: { rows: PublicationRequest[] } = $props();
 
-const LIMITE = $derived(limit);
+/** Cuántas entradas se ven antes de «Ver más»: la última solicitud. */
+const LIMITE = 1;
 let showAll = $state(false);
 const visibles = $derived(showAll ? rows : rows.slice(0, LIMITE));
 const ocultas = $derived(rows.length - visibles.length);
@@ -101,17 +93,14 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 {#if rows.length > 0}
 	<Card
 		id="history"
-		class={cn(
-			"scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5",
-			reveal === "card" && "group/tarjeta",
-		)}
+		class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
 		data-testid="historial-solicitudes"
 	>
-		<div class="group/ancla flex h-4 items-center gap-2">
+		<div class="flex h-4 items-center gap-2">
 			<p class="text-xs font-medium uppercase tracking-wider text-destructive">
 				Historial de solicitudes
 			</p>
-			<AnchorLink id="history" title="Historial de solicitudes" {reveal} />
+			<AnchorLink id="history" title="Historial de solicitudes" />
 		</div>
 		<ol class="relative mt-3">
 			<span class="absolute bottom-2 left-2.5 top-2 w-px bg-border" aria-hidden="true"></span>

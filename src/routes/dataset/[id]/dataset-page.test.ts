@@ -1696,6 +1696,9 @@ describe("Página de dataset — el historial de solicitudes (T14)", () => {
 		const tarjeta = await screen.findByTestId("historial-solicitudes");
 		expect(mocks.historyRequests).toHaveBeenCalledWith("pkg-1");
 		expect(within(tarjeta).getByText(HISTORIAL)).toBeTruthy();
+		// Va plegado (S18): la última solicitud, y «Ver 1 más» despliega la otra.
+		expect(within(tarjeta).getAllByTestId("historial-entrada")).toHaveLength(1);
+		await fireEvent.click(within(tarjeta).getByRole("button", { name: "Ver 1 más" }));
 		expect(within(tarjeta).getAllByTestId("historial-entrada")).toHaveLength(2);
 		expect(tarjeta.textContent).toContain("Rechazada por Marta Quispe el 18 de octubre de 2026");
 		expect(tarjeta.textContent).toContain("Motivo del rechazo: Falta la licencia.");
@@ -1734,6 +1737,27 @@ describe("Página de dataset — el historial de solicitudes (T14)", () => {
 		expect(await screen.findByRole("heading", { level: 1, name: "Matrícula 2026" })).toBeTruthy();
 		await waitFor(() => expect(mocks.historyRequests).toHaveBeenCalled());
 		expect(screen.queryByTestId("historial-solicitudes")).toBeNull();
+	});
+
+	it("orden «Propuesta» de la columna: solicitud, Resumen, Organización, Citar como y el historial al final", async () => {
+		// S18 de `odd/tasks/prototype-presentation.md`: el autor aprobó el orden de `/dev/dataset-panel`.
+		auth.setUser(makeUser());
+		mocks.showDataset.mockResolvedValue(
+			makeDataset({ owner_org: "org-1", private: true, organization: makeOrganization() }),
+		);
+		mocks.listUpdatableOrganizationIds.mockResolvedValue({ state: "known", ids: ["org-1"] });
+		const pendiente = makeRow({ status: "pending" });
+		mocks.listRequests.mockResolvedValue([pendiente]);
+		mocks.historyRequests.mockResolvedValue([pendiente]);
+
+		render(DatasetPage);
+
+		const tarjeta = await screen.findByTestId("historial-solicitudes");
+		await screen.findByTestId("estado-solicitud");
+		const aside = tarjeta.closest("aside") as HTMLElement;
+		expect(
+			Array.from(aside.children).map((c) => c.querySelector("p")?.textContent?.trim()),
+		).toEqual(["Solicitud de publicación", "Resumen", "Organización", "Citar como", HISTORIAL]);
 	});
 
 	it("convive con la tarjeta de la solicitud vigente sin reemplazarla", async () => {
@@ -1809,15 +1833,26 @@ describe("Página de dataset — anclas de sección", () => {
 		expect(window.location.hash).toBe("");
 	});
 
-	it("el ícono es sólo ícono, aparece al pasar el cursor o enfocar y queda siempre visible en táctil", async () => {
+	// Variante «Unificado» de `/dev/dataset-panel` (S18 de `odd/tasks/prototype-presentation.md`): antes el
+	// botón iba junto al `h2` y aparecía sólo al pasar por el título (`group-hover/ancla`); ahora va junto a la
+	// línea en mayúsculas de la tarjeta, como a la derecha, y aparece con toda la tarjeta.
+	it.each([
+		["resources", "Recursos"],
+		["technical-info", "Información técnica"],
+	])("#%s: el ícono va junto a la línea del título y aparece al pasar o enfocar en toda la tarjeta; siempre en táctil", async (id, titulo) => {
 		await renderCompleta();
 
-		const boton = within(document.getElementById("resources") as HTMLElement).getByRole("button", {
-			name: "Copiar enlace a la sección Recursos",
+		const tarjeta = document.getElementById(id) as HTMLElement;
+		expect(tarjeta.className).toContain("group/tarjeta");
+		const boton = within(tarjeta).getByRole("button", {
+			name: `Copiar enlace a la sección ${titulo}`,
 		});
 		expect(boton.textContent?.trim()).toBe("");
+		expect(boton.parentElement?.querySelector("p")?.textContent?.trim()).toBe(titulo);
+		expect(boton.parentElement?.querySelector("h2")).toBeNull();
 		expect(boton.className).toContain("opacity-0");
-		expect(boton.className).toContain("group-hover/ancla:opacity-100");
+		expect(boton.className).toContain("group-hover/tarjeta:opacity-100");
+		expect(boton.className).toContain("group-focus-within/tarjeta:opacity-100");
 		expect(boton.className).toContain("focus-visible:opacity-100");
 		expect(boton.className).toContain("[@media(hover:none)]:opacity-100");
 		expect(boton.className).toContain("motion-reduce:transition-none");

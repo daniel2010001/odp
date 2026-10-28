@@ -1,12 +1,13 @@
 <!--
 	El enlace de una sección de la ficha (variante A, elegida por el autor el 2026-10-20):
-	un ícono de enlace junto al título de la sección que copia la URL completa con su fragmento (`#summary`,
-	`#license`…) sin cambiar la URL de la página. Aparece al pasar el cursor o enfocar y queda siempre visible en
-	pantallas táctiles (donde no hay cursor). La fila del título debe llevar `group/ancla`.
+	un ícono de enlace que copia la URL completa con su fragmento (`#summary`, `#license`…) sin cambiar la URL de
+	la página. Queda siempre visible en pantallas táctiles (donde no hay cursor).
 
-	`reveal="card"` es la variante «Unificado» de `/dev/dataset-panel` (S17 de
-	`odd/tasks/prototype-presentation.md`): el botón aparece al pasar el cursor por **toda la tarjeta** o al
-	enfocar cualquier cosa dentro de ella, y entonces la tarjeta debe llevar `group/tarjeta`.
+	Por defecto (`reveal="card"`, variante «Unificado» de `/dev/dataset-panel`, S18 de
+	`odd/tasks/prototype-presentation.md`) va junto a la línea del título de una tarjeta y aparece al pasar el
+	cursor por **toda la tarjeta** o al enfocar cualquier cosa dentro de ella: la tarjeta debe llevar
+	`group/tarjeta`. `reveal="title"` es para una fila dentro de una tarjeta (la licencia y los términos del
+	«Resumen»): aparece al pasar por esa fila, que debe llevar `group/ancla`.
 -->
 <script lang="ts">
 import { page } from "$app/stores";
@@ -16,7 +17,7 @@ import { CopyButton } from "$lib/components/ui/copy-button";
 let {
 	id,
 	title,
-	reveal = "title",
+	reveal = "card",
 }: { id: string; title: string; reveal?: "title" | "card" } = $props();
 
 // Clases literales: Tailwind sólo genera las que lee escritas.

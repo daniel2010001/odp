@@ -1,15 +1,12 @@
 <!--
 	La columna lateral de la ficha del dataset: la solicitud de publicación (cuando hay algo que decir de ella),
-	«Citar como», «Resumen», el historial de solicitudes y la organización. Vive aparte para que el playground
-	`/dev/dataset-panel` (S17 de `odd/tasks/prototype-presentation.md`) la monte con datos fijos y compare sus
-	variantes contra la de la ficha; la ficha la monta con sus valores por defecto, que son exactamente los de hoy.
-
-	Las variantes (sólo las usa el playground):
-	- `order`: el orden de las tarjetas. Una tarjeta que no tiene nada que mostrar no se dibuja en ningún orden.
-	- `scroll`: `"page"` es la columna pegajosa de hoy (la página se baja para ver las últimas tarjetas);
-	  `"own"` la deja pegajosa y le da su propio desplazamiento, con un alto que sigue a la ventana.
-	- `reveal`: dónde aparece el botón del enlace de cada tarjeta (ver `AnchorLink`).
-	- `historyLimit`: cuántas entradas del historial se ven antes de «Ver más».
+	«Resumen», la organización, «Citar como» y el historial de solicitudes. Lleva las cuatro variantes que el
+	autor aprobó en `/dev/dataset-panel` (S18 de `odd/tasks/prototype-presentation.md`):
+	- el orden «Propuesta» (`SIDEBAR_ORDER`);
+	- el «Scroll propio»: pegajosa, con su propio desplazamiento y un alto que sigue a la ventana
+	  (`OWN_SCROLL_CLASS`), la barra oculta en reposo y la vuelta arriba al subir la página (`panelScrollReset`);
+	- el botón del enlace «Unificado»: junto a la línea del título y visible con toda la tarjeta (`AnchorLink`);
+	- el historial «Plegado» (`RequestHistory`).
 -->
 <script lang="ts">
 import { Check, ChevronRight, Copy, ExternalLink, FileText, Inbox } from "@lucide/svelte";
@@ -27,7 +24,7 @@ import AnchorLink from "./AnchorLink.svelte";
 import PublicationDecision from "./PublicationDecision.svelte";
 import type { DecidePublicationRequest, PublicationDecisionResult } from "./publication-decision";
 import RequestHistory from "./RequestHistory.svelte";
-import { CURRENT_SIDEBAR_ORDER, OWN_SCROLL_CLASS, type SidebarCard } from "./sidebar";
+import { OWN_SCROLL_CLASS, panelScrollReset, SIDEBAR_ORDER } from "./sidebar";
 
 let {
 	dataset,
@@ -38,11 +35,6 @@ let {
 	readStoredDataset,
 	reflejarDecision,
 	historialDeSolicitudes,
-	order = CURRENT_SIDEBAR_ORDER,
-	scroll = "page",
-	reveal = "title",
-	historyLimit,
-	element = $bindable(),
 }: {
 	dataset: CkanPackage;
 	/** La solicitud vigente de este dataset (ver la ficha), o `null`. */
@@ -53,13 +45,17 @@ let {
 	readStoredDataset: (id: string) => Promise<CkanPackage>;
 	reflejarDecision: (respuesta: PublicationDecisionResult) => void;
 	historialDeSolicitudes: PublicationRequest[];
-	order?: readonly SidebarCard[];
-	scroll?: "page" | "own";
-	reveal?: "title" | "card";
-	historyLimit?: number;
-	/** El `<aside>`, para quien necesite medirlo (el instrumento del playground). */
-	element?: HTMLElement;
 } = $props();
+
+let element = $state<HTMLElement | undefined>();
+
+// La columna vuelve arriba cuando la página vuelve al tope o la columna se despega (ver `panelScrollReset`).
+$effect(() => {
+	if (!element) return;
+	const onScroll = panelScrollReset(element);
+	window.addEventListener("scroll", onScroll, { passive: true });
+	return () => window.removeEventListener("scroll", onScroll);
+});
 
 let citationFormat = $state<"apa" | "bibtex">("apa");
 let copied = $state(false);
@@ -88,9 +84,6 @@ const orgHref = $derived(
 		? `/organization/${encodeURIComponent(dataset.organization.name)}`
 		: null,
 );
-
-/** Con `reveal="card"` la tarjeta entera es el grupo que hace aparecer el botón del enlace. */
-const tarjeta = $derived(reveal === "card" && "group/tarjeta");
 
 // ─── Citation ───────────────────────────────────────────────────
 const citationText = $derived(
@@ -156,11 +149,11 @@ async function handleCopyCitation() {
 		<!-- Cite card -->
 		<Card
 			id="cite"
-			class={cn("scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5", tarjeta)}
+			class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
 		>
-			<div class="group/ancla flex h-4 items-center gap-2">
+			<div class="flex h-4 items-center gap-2">
 				<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
-				<AnchorLink id="cite" title="Citar como" {reveal} />
+				<AnchorLink id="cite" title="Citar como" />
 			</div>
 			<div class="mt-3 flex items-center gap-2">
 				<button
@@ -213,11 +206,11 @@ async function handleCopyCitation() {
 		     `/dev/dataset-details`); el resto vive en «Información técnica». -->
 		<Card
 			id="summary"
-			class={cn("scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5", tarjeta)}
+			class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
 		>
-			<div class="group/ancla flex h-4 items-center gap-2">
+			<div class="flex h-4 items-center gap-2">
 				<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
-				<AnchorLink id="summary" title="Resumen" {reveal} />
+				<AnchorLink id="summary" title="Resumen" />
 			</div>
 			<dl class="mt-3 space-y-3">
 				{#each summary as fact (fact.key)}
@@ -250,7 +243,7 @@ async function handleCopyCitation() {
 							</dd>
 						</div>
 						{#if licenciaAqui}
-							<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Licencia" /></div>
+							<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Licencia" reveal="title" /></div>
 						{/if}
 					</div>
 					{#if fact.key === "license" && termsUrl}
@@ -275,7 +268,7 @@ async function handleCopyCitation() {
 									>
 								</dd>
 							</div>
-							<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Términos" /></div>
+							<div class="ml-auto flex h-4 shrink-0 items-center"><AnchorLink id="license" title="Términos" reveal="title" /></div>
 						</div>
 					{/if}
 				{/each}
@@ -297,8 +290,9 @@ async function handleCopyCitation() {
 
 {#snippet history()}
 		<!-- Historial de solicitudes (variante H2 de `/dev/request-history`, elegida por el autor el
-		     2026-10-20): tarjeta propia bajo «Resumen». Sólo existe si el catálogo devolvió filas. -->
-		<RequestHistory rows={historialDeSolicitudes} limit={historyLimit} {reveal} />
+		     2026-10-20): tarjeta propia, la última de la columna (orden «Propuesta», S18). Sólo existe si el
+		     catálogo devolvió filas. -->
+		<RequestHistory rows={historialDeSolicitudes} />
 {/snippet}
 
 {#snippet organization()}
@@ -306,11 +300,11 @@ async function handleCopyCitation() {
 		{#if dataset.organization?.title}
 			<Card
 				id="organization"
-				class={cn("scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5", tarjeta)}
+				class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
 			>
-				<div class="group/ancla flex h-4 items-center gap-2">
+				<div class="flex h-4 items-center gap-2">
 					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
-					<AnchorLink id="organization" title="Organización" {reveal} />
+					<AnchorLink id="organization" title="Organización" />
 				</div>
 				<div class="mt-3 flex items-start gap-3">
 					<OrganizationLogo
@@ -350,10 +344,10 @@ async function handleCopyCitation() {
 	bind:this={element}
 	class={cn(
 		"min-w-0 space-y-6 transition-[top] duration-200 ease-out lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))]",
-		scroll === "own" && OWN_SCROLL_CLASS,
+		OWN_SCROLL_CLASS,
 	)}
 >
-	{#each order as card (card)}
+	{#each SIDEBAR_ORDER as card (card)}
 		{#if card === "request"}
 			{@render request()}
 		{:else if card === "cite"}

@@ -731,17 +731,23 @@ const resumenEditorial = $derived(
 					</Card>
 
 					<!-- Resources -->
-					<Card id="resources" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
-						<div class="group/ancla mt-1 flex items-center gap-2">
-							<h2 class="font-heading text-xl font-bold text-primary">
-								Archivos disponibles
-								{#if activeResources.length > 0}
-									<span class="font-normal text-muted-foreground">({activeResources.length})</span>
-								{/if}
-							</h2>
+					<!-- El botón del enlace va junto a la línea del título y aparece con toda la tarjeta, como en la
+					     columna lateral (variante «Unificado» de `/dev/dataset-panel`, S18 de
+					     `odd/tasks/prototype-presentation.md`). -->
+					<Card
+						id="resources"
+						class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8"
+					>
+						<div class="flex h-4 items-center gap-2">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
 							<AnchorLink id="resources" title="Recursos" />
 						</div>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
+							Archivos disponibles
+							{#if activeResources.length > 0}
+								<span class="font-normal text-muted-foreground">({activeResources.length})</span>
+							{/if}
+						</h2>
 						<div class="mt-4 space-y-2">
 							{#if activeResources.length === 0}
 								<p class="text-sm text-muted-foreground">
@@ -766,14 +772,17 @@ const resumenEditorial = $derived(
 					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la
 					     información técnica completa» del «Resumen»; `scroll-mt` deja el título bajo el encabezado fijo,
 					     como `#preview` en la página del recurso. -->
-					<Card id="technical-info" class="scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-							Información técnica
-						</p>
-						<div class="group/ancla mt-1 flex items-center gap-2">
-							<h2 class="font-heading text-xl font-bold text-primary">Ficha completa</h2>
+					<Card
+						id="technical-info"
+						class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8"
+					>
+						<div class="flex h-4 items-center gap-2">
+							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
+								Información técnica
+							</p>
 							<AnchorLink id="technical-info" title="Información técnica" />
 						</div>
+						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Ficha completa</h2>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 							Todos los datos que el catálogo registra de este dataset.
 						</p>
@@ -785,7 +794,7 @@ const resumenEditorial = $derived(
 					</Card>
 				</div>
 
-				<!-- Sidebar: la columna lateral vive en `DatasetSidebar` (la monta también `/dev/dataset-panel`). -->
+				<!-- Sidebar: la columna lateral vive en `DatasetSidebar`. -->
 				<DatasetSidebar
 					{dataset}
 					{solicitudVigente}

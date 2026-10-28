@@ -22,6 +22,11 @@ function entradas() {
 	return screen.getAllByTestId("historial-entrada");
 }
 
+/** El historial va plegado (S18): para leer varias entradas, primero se despliega. */
+async function desplegar() {
+	await fireEvent.click(screen.getByRole("button", { name: /^Ver \d+ más$/ }));
+}
+
 describe("RequestHistory", () => {
 	it("un estado que el portal no conoce no rompe la tarjeta: se lee «Estado desconocido»", () => {
 		const futura = fila({ status: "escalated" as unknown as PublicationRequest["status"] });
@@ -97,7 +102,7 @@ describe("RequestHistory", () => {
 		expect(entradas()[0].textContent).not.toMatch(/Nota de quien pidió|Comentario/);
 	});
 
-	it("una anulada dice la causa con el copy del portal, no el token", () => {
+	it("una anulada dice la causa con el copy del portal, no el token", async () => {
 		render(RequestHistory, {
 			rows: [
 				fila({ id: "a", status: "annulled", motive: "dataset_deleted" }),
@@ -105,6 +110,7 @@ describe("RequestHistory", () => {
 				fila({ id: "c", status: "annulled", motive: "algo_nuevo" }),
 			],
 		});
+		await desplegar();
 		const [a, b, c] = entradas();
 		expect(a.textContent).toContain("Causa de la anulación: El dataset se eliminó.");
 		expect(b.textContent).toContain("Causa de la anulación: El dataset se publicó por otra vía.");
@@ -172,7 +178,7 @@ describe("RequestHistory", () => {
 		expect(entradas()[0].textContent?.match(/Todo en orden/g)).toHaveLength(1);
 	});
 
-	it("nombres: vacío se omite y «unknown» es una etiqueta neutra, nunca el valor crudo", () => {
+	it("nombres: vacío se omite y «unknown» es una etiqueta neutra, nunca el valor crudo", async () => {
 		render(RequestHistory, {
 			rows: [
 				fila({ id: "a", requested_by_name: null }),
@@ -185,6 +191,7 @@ describe("RequestHistory", () => {
 				}),
 			],
 		});
+		await desplegar();
 		const [a, b] = entradas();
 		expect(within(a).getByText("Pedida el 17 de octubre de 2026")).toBeTruthy();
 		expect(
@@ -196,12 +203,19 @@ describe("RequestHistory", () => {
 		expect(document.body.textContent).not.toContain("unknown");
 	});
 
-	it("muestra cuatro entradas y «Ver N más» despliega el resto", async () => {
+	// Historial «Plegado» (S18 de `odd/tasks/prototype-presentation.md`): antes mostraba cuatro entradas.
+	it("plegado: muestra la última solicitud y «Ver N más» despliega el resto", async () => {
 		const rows = Array.from({ length: 6 }, (_, i) => fila({ id: `r${i}` }));
 		render(RequestHistory, { rows });
-		expect(entradas()).toHaveLength(4);
-		await fireEvent.click(screen.getByRole("button", { name: "Ver 2 más" }));
+		expect(entradas()).toHaveLength(1);
+		await fireEvent.click(screen.getByRole("button", { name: "Ver 5 más" }));
 		expect(entradas()).toHaveLength(6);
 		expect(screen.getByRole("button", { name: "Ver menos" })).toBeTruthy();
+	});
+
+	it("con una sola solicitud no ofrece «Ver más»", () => {
+		render(RequestHistory, { rows: [fila()] });
+		expect(entradas()).toHaveLength(1);
+		expect(screen.queryByRole("button", { name: /Ver/ })).toBeNull();
 	});
 });
