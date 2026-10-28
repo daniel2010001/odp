@@ -1,0 +1,66 @@
+{
+	"origin": "http://localhost:8082",
+	"cookies": [{ "name": "odp_prototype", "value": "on" }],
+	"width": 1440,
+	"outDir": "design/prototipo",
+	"removeSelectors": [
+		"[data-testid=\"review-strip\"]",
+		"button[aria-label=\"Editar colores del tema\"]",
+		"div:has(> [data-testid=\"control-panel\"])",
+		"[data-testid=\"section-toggles\"]"
+	],
+	"screens": [
+		{
+			"file": "h2-2-organizaciones.html",
+			"url": "/dev/organizations?caso=completa&vista=propuesta&grupos=si&jerarquia=si&campos=si",
+			"waitForSelector": "[data-testid=\"org-proposed\"]",
+			"aliases": ["/organizations", "/dev/organizations"]
+		},
+		{
+			"file": "h2-3-busqueda.html",
+			"url": "/search?q=matrícula",
+			"waitForText": ["resultados para"],
+			"waitForSelector": "a[href=\"/dataset/matricula-facultad-gestion-ficticia\"]"
+		},
+		{
+			"file": "h2-4-ficha-dataset.html",
+			"url": "/dataset/matricula-estudiantil-por-carrera-y-gestion",
+			"waitForText": ["Aparece en las colecciones"],
+			"waitForSelector": "a[href*=\"/resource/\"]",
+			"aliases": ["/dev/prototype/dataset-collections?d=matricula-por-carrera"],
+			"linkOnly": true
+		},
+		{
+			"file": "h2-5-recurso-csv.html",
+			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98",
+			"waitForText": ["inscritos", "Acceso por API"],
+			"waitForSelector": "#preview table td"
+		},
+		{
+			"file": "h2-6b-colecciones.html",
+			"url": "/dev/prototype/collections?vista=publica",
+			"aliases": ["/dev/prototype/collections"]
+		},
+		{
+			"file": "h2-7-coleccion-de-una-persona.html",
+			"url": "/dev/prototype/collection?c=indicadores-academicos&vista=publica",
+			"aliases": ["/dev/prototype/collection?c=indicadores-academicos"],
+			"linkOnly": true
+		},
+		{
+			"file": "ficha-organizacion.html",
+			"url": "/organization/direccion-investigacion",
+			"waitForText": ["Colecciones que cura", "Datasets (10)"]
+		},
+		{
+			"file": "h3-1-mis-colecciones.html",
+			"url": "/dev/prototype/collections?vista=panel",
+			"linkOnly": true
+		},
+		{
+			"file": "h3-3-coleccion-publica.html",
+			"url": "/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica",
+			"aliases": ["/dev/prototype/collection?c=rendicion-cuentas-2025"]
+		}
+	]
+}

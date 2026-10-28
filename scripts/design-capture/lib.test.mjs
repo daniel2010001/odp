@@ -15,6 +15,7 @@ import {
 	freezeViewportUnits,
 	freezeViewportUnitsInStyles,
 	mapHref,
+	planBatch,
 	urlKey,
 } from "./lib.mjs";
 
@@ -72,6 +73,32 @@ test("buildLinkMap rechaza una dirección que apunta a dos artboards", () => {
 				ORIGIN,
 			),
 		/dos artboards/,
+	);
+});
+
+test("planBatch no captura las pantallas linkOnly, pero siguen siendo destino de los enlaces", () => {
+	const screens = [
+		{ file: "h2-4.html", url: "/dataset/matricula", linkOnly: true },
+		{ file: "h2-3.html", url: "/search?q=matrícula" },
+	];
+	const existing = new Set(["h2-4.html"]);
+	const plan = planBatch(screens, (file) => existing.has(file));
+	assert.deepEqual(
+		plan.capture.map((screen) => screen.file),
+		["h2-3.html"],
+	);
+	assert.deepEqual(
+		plan.linkOnly.map((screen) => screen.file),
+		["h2-4.html"],
+	);
+	assert.equal(mapHref("/dataset/matricula", ORIGIN, buildLinkMap(screens, ORIGIN)), "h2-4.html");
+});
+
+test("planBatch rechaza una pantalla linkOnly cuyo artboard no existe", () => {
+	assert.throws(
+		() =>
+			planBatch([{ file: "h2-4.html", url: "/dataset/matricula", linkOnly: true }], () => false),
+		/h2-4\.html: linkOnly, pero el artboard no existe/,
 	);
 });
 

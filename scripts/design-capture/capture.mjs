@@ -12,13 +12,16 @@
 //                    se fijan a ese alto (ver `freezeViewportUnits`)
 //   outDir           carpeta del diseño (design/prototipo), relativa a la raíz del repo
 //   removeSelectors  lo que no es producto (las franjas de revisión DEV)
-//   screens[]        { file, url, aliases?, waitForText?, waitForSelector? }
+//   screens[]        { file, url, aliases?, waitForText?, waitForSelector?, linkOnly? }
 //                    `aliases`: otras direcciones de la misma pantalla, para que sus enlaces lleven al artboard.
+//                    `linkOnly`: no se captura ni se escribe; sólo es destino de los enlaces de las demás (su
+//                    artboard ya tiene que existir). Un lote lista todas las pantallas y recaptura las que no lo son.
 //
 // Los enlaces a una pantalla del lote (por su `url` o un alias) apuntan al archivo hermano; los demás quedan
 // inertes (sin `href`). Si `outDir/design.json` existe, actualiza el `height` de cada artboard capturado.
 // Requiere Chromium (`/usr/bin/chromium`, o la variable CHROMIUM). Verificación: `verify.mjs`.
 
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,6 +42,7 @@ import {
 	freezeViewportUnits,
 	freezeViewportUnitsInStyles,
 	mapHref,
+	planBatch,
 	urlKey,
 } from "./lib.mjs";
 import { serializePage } from "./serialize-page.mjs";
@@ -119,10 +123,13 @@ async function main() {
 	const batch = JSON.parse(await readFile(batchPath, "utf8"));
 	const outDir = join(REPO, batch.outDir);
 	const linkMap = buildLinkMap(batch.screens, batch.origin);
+	const plan = planBatch(batch.screens, (file) => existsSync(join(outDir, file)));
+	for (const screen of plan.linkOnly)
+		console.log(`${screen.file}: sólo destino de enlaces (linkOnly)`);
 	const { browser, close } = await launch();
 	const heights = {};
 	try {
-		for (const screen of batch.screens) {
+		for (const screen of plan.capture) {
 			const { html, height, inertLinks, warnings } = await captureScreen(
 				browser,
 				batch,

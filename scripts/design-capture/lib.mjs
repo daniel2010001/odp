@@ -44,6 +44,27 @@ export function buildLinkMap(screens, origin) {
 }
 
 /**
+ * Separa las pantallas que se capturan de las `linkOnly`: éstas no se cargan ni se escriben, sólo son destino de
+ * los enlaces (entran igual en `buildLinkMap`). Su artboard ya tiene que existir (`fileExists(file)`), para que
+ * ningún enlace lleve a un archivo que no está. Pasar `linkOnly` a `false` las vuelve a capturar.
+ */
+export function planBatch(screens, fileExists) {
+	const capture = [];
+	const linkOnly = [];
+	for (const screen of screens) {
+		if (!screen.linkOnly) {
+			capture.push(screen);
+			continue;
+		}
+		if (!fileExists(screen.file)) {
+			throw new Error(`${screen.file}: linkOnly, pero el artboard no existe`);
+		}
+		linkOnly.push(screen);
+	}
+	return { capture, linkOnly };
+}
+
+/**
  * Destino de un enlace dentro del artboard: el archivo hermano si lleva a una pantalla capturada, el
  * fragmento si es un ancla de la misma página, o `null` (enlace inerte: se quita el `href`).
  */

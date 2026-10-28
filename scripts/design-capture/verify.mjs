@@ -9,13 +9,15 @@
 // Sale con código 1 si algo no coincide. `tolerancia` (0 por defecto, de 0 a 255 por canal) absorbe el
 // antialiasing de los bordes de un elemento `sticky` en la captura más allá del viewport (la barra lateral de
 // la ficha del dataset: diferencias de ≤ 48/255 sólo en sus bordes redondeados); se informan los dos conteos.
+// Las pantallas `linkOnly` no se verifican: no se capturaron en este lote.
 
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadScreen, measureHeight } from "./capture.mjs";
 import { evaluate, launch, navigate, openPage, screenshot, setViewport, sleep } from "./cdp.mjs";
-import { decodePng, diffImages, encodePng, externalReferences } from "./lib.mjs";
+import { decodePng, diffImages, encodePng, externalReferences, planBatch } from "./lib.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -30,10 +32,12 @@ async function main() {
 		process.exit(2);
 	}
 	const batch = JSON.parse(await readFile(batchPath, "utf8"));
+	const plan = planBatch(batch.screens, (file) => existsSync(join(REPO, batch.outDir, file)));
+	for (const screen of plan.linkOnly) console.log(`--  ${screen.file}: linkOnly, no se verifica`);
 	const { browser, close } = await launch();
 	let failed = false;
 	try {
-		for (const screen of batch.screens) {
+		for (const screen of plan.capture) {
 			const path = join(REPO, batch.outDir, screen.file);
 			const html = await readFile(path, "utf8");
 			const external = externalReferences(html);
