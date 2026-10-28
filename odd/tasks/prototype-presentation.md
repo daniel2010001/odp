@@ -87,6 +87,35 @@ imported into Figma and presented as a click-through prototype before the tribun
   title no termina de gustar, quisas nadie lo note". Request history: not for anonymous visitors; sin/con login become
   separate pages later.
 
+- **S18** — Promote the dataset panel (T18), verbatim: "me gsuta mucho la propuesta del dataset panel, las acepto, las 4:
+  unificado, propuesta, scroll propio, plegado. detalles: al bajar todo el panel y luego subir la page el scroll del panel sigue
+  abajo, alguna forma de solucionarlo? algo como: cuando se suba toda la page el scroll del panel vuelva a subir? es solo
+  detalle, otra cosa es que si se puede "ocultar" el scroll, ahroa mismo se lo ve, no es un bloqueante, pero me gustaría si se
+  pudiera. aprobado por lo pronto las propuestas." H2-4: "bien, solo falta agregar los cambios nuevos."
+- **S19** — Organizations proposal, verbatim: "h2-2: me gusta cómo se ve ahora, pero un detalle es si se puede sticky para el
+  buscador y los filtros, y para los titles por sections, se puede? está listo para promover."
+- **S20** — Search, verbatim: "h2-3: errores en el filter menu: sticky con top muy bajo. la barra no se anima, podemos tocar el
+  hero? escucho propuestas. también me gustaría que mostremos la page sin resultados."
+- **S21** — Resource, verbatim: "h2-5: bien, solo creo que las otras vistas no funcionan, intento ver los gráficos pero no dan,
+  quisas sea por que es prototipo, no hay problema si no dan, solo decirme antes para no estar en aprietos cuando presente, me
+  gustaría mostrar otros formatos más, no solo csv, quisas pdf, si no se puede usar el iframe podemos hacer ese ejemplo de html
+  que hicimos en la dev page de las vistas."
+- **S22** — Collections, verbatim: "h2-6b: me gusta, solo quisiera saber si se puede poner algo así como un filtro para ver las
+  collections de una org en específico, algo como dijimos en el panel solicitudes, quisiera "reutilizarlo", de esta forma
+  tenemos algo más "unificado", te parece? h2-7: sticky en el panel. en el hero hay una parte donde dice quién la curo, esto
+  está bien? esto me genera una duda muy grande: las collections están ligadas a una org? porque creo que también dijimos que
+  los user podrían crear sus collections, no? o me equivoco? encontes, cuándo es de un users y cuándo de una org? esto me
+  confunde un poco. mismo problema de los tags: hay tag de "público", quitar, solo mostrar el tag si es privado, y usar el
+  mismo estilo de los otros tags, este tag tiene un ícono, pero creo que los otros no lo tienen, corregir y unificar." …
+  "Mis collections: me gusta. solo corregir eso del sellect de "cuaradas por...", esto es solo para el caso de una org, qué
+  pasa cuando son muchas? podemos hacer algo similar a lo que tenemos para el panel/requests? cosa que sea unificado" … "h3-3:
+  mismas observaciones que en h2-7, panel sin sticky y tag de "público" con ícono. veo el panel un poco vacío, podemos poner
+  algo así como las orgs de los datasets? algo como una lista similar a la card de org de la ficha de los datasets, pero en
+  lista. cosa que reutilicemos el mismo diseño y podamos unificarlo, se puede?"
+- **S23** — Organization sheet, verbatim: "ficha de org: la noto un poco "vacía", cuando la org no tenga ni collections ni
+  datasets se vería vacía, podríamos agregar más cosas? se puede? cosa que se vea más como una ficha de una org. escucho
+  propuestas."
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -138,6 +167,11 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T19 | S15 | Batch 2 (no login): H2-2 organizations proposal, H2-3 search, H2-5 CSV resource, H2-6b collections menu, organization sheet, H3-3 public collection | worker | `93890f1` — awaiting author review; pixel check: letter anti-aliasing only (≤63/255, 13 px at 129 on H2-2) |
 | T17 | S16 | Inicio direction 05 (second iteration) | worker | `273603b` — awaiting author review |
 | T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | `39666ce` — awaiting author review |
+| T20 | S18 | Promote the dataset panel to the real sheet (+ panel scroll resets at page top, scrollbar hidden at rest); delete the playground | worker | — |
+| T21 | S19 | Organizations playground: sticky search/filters and sticky group titles (promotion after the presentation: needs type/acronym fields, Q11–Q13) | worker | — |
+| T22 | S22 | Collections mocks: org filter reusing the requests org tabs (H2-6b, Mis colecciones), sticky panel, visibility tag only when not public and in the common tag style, H3-3 panel lists the owner organizations reusing the dataset sheet's org card | worker | — |
+| T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | — |
+| T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -265,3 +299,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   units, and a new design for the hero type cards. Data: every artboard is static HTML with the demo's values copied in
   (0 scripts, 0 fetch, checked).
 - **L17** (2026-10-28, author): batch 2 with the six screens without login — «si, me gusta, cuándo arrancamos?» (T19).
+\n- **L18** (2026-10-28, author): review of the dataset panel playground and of batch 2 → S18–S23 (verbatim there). Search hero and «la barra no se anima» asked before touching the real search page.\n
