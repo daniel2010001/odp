@@ -26,14 +26,16 @@ export function urlKey(href, base) {
 
 /**
  * Mapa clave → archivo del artboard, con la dirección de cada pantalla y sus alias (otras direcciones que
- * muestran la misma pantalla, p. ej. el enlace sin `vista=`).
+ * muestran la misma pantalla, p. ej. el enlace sin `vista=`). Una dirección con fragmento entra con él
+ * (`/recurso#chart-a`): así cada vista de una misma página (las pestañas de un recurso) tiene su artboard.
  */
 export function buildLinkMap(screens, origin) {
 	const map = {};
 	for (const screen of screens) {
 		for (const href of [screen.url, ...(screen.aliases ?? [])]) {
-			const key = urlKey(href, origin);
+			let key = urlKey(href, origin);
 			if (key === null) throw new Error(`Dirección fuera del portal: ${href}`);
+			key += new URL(href, origin).hash;
 			if (map[key] && map[key] !== screen.file) {
 				throw new Error(`${href} apunta a dos artboards: ${map[key]} y ${screen.file}`);
 			}
@@ -65,15 +67,69 @@ export function planBatch(screens, fileExists) {
 }
 
 /**
- * Destino de un enlace dentro del artboard: el archivo hermano si lleva a una pantalla capturada, el
- * fragmento si es un ancla de la misma página, o `null` (enlace inerte: se quita el `href`).
+ * Destino de un enlace dentro del artboard: el archivo hermano si lleva a una pantalla capturada (el de su
+ * vista, si el fragmento tiene artboard propio), el fragmento si es un ancla de la misma página, o `null`
+ * (enlace inerte: se quita el `href`).
  */
 export function mapHref(href, base, linkMap) {
 	if (href.startsWith("#")) return href;
 	const key = urlKey(href, base);
-	if (key === null || !(key in linkMap)) return null;
+	if (key === null) return null;
 	const hash = new URL(href, base).hash;
+	if (hash && key + hash in linkMap) return linkMap[key + hash];
+	if (!(key in linkMap)) return null;
 	return linkMap[key] + hash;
+}
+
+/**
+ * Artboard al que lleva una pestaña: su vista es la página `base` con el fragmento de `template`, donde
+ * `{value}` es el `data-value` de la pestaña (`#chart-{value}`). Sólo si esa vista tiene artboard propio;
+ * si no, `null` y la pestaña queda como botón.
+ */
+export function tabTarget(template, value, base, linkMap) {
+	const url = new URL(template.replaceAll("{value}", value), base);
+	const key = urlKey(url.href, base);
+	if (key === null || !url.hash) return null;
+	return linkMap[key + url.hash] ?? null;
+}
+
+/**
+ * ¿La espera de red en reposo cuenta esta petición? No las de HMR de Vite, que quedan abiertas, ni lo que no
+ * es http(s): el visor de PDF de Chromium (`chrome-extension://…`) nunca termina su carga.
+ */
+export function waitsForRequest(url) {
+	return /^https?:/.test(url) && !/\/@vite\/|__vite_ping|hmr/.test(url);
+}
+
+const escapeHtml = (text) =>
+	String(text).replace(
+		/[&<>"]/g,
+		(char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char],
+	);
+
+/**
+ * Reemplazo estático de un `<iframe>` con un PDF: un artboard no puede llevar el visor del navegador, así
+ * que se dibuja uno con las primeras páginas como imágenes (`pages`: `{ src, width, height }` en CSS px, al
+ * 100 %). Lleva la clase del iframe (mismo tamaño) y los colores del visor de Chromium: barra #3c3c3c con el
+ * título y el contador, fondo #282828. Las páginas se recorren con el scroll del propio visor.
+ */
+export function pdfStandIn({ className, title, pageCount, pages }) {
+	const images = pages
+		.map(
+			({ src, width, height }, index) =>
+				`<img src="${src}" width="${width}" height="${height}" alt="Página ${index + 1} de ${pageCount}" style="display:block;flex:none;max-width:none;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">`,
+		)
+		.join("");
+	return (
+		`<div class="${escapeHtml(className)}" data-stand-in="pdf" style="display:flex;flex-direction:column;background:#282828;overflow:hidden">` +
+		`<div style="flex:none;display:flex;align-items:center;gap:24px;height:56px;padding:0 24px;background:#3c3c3c;color:#f1f1f1;font-size:14px;font-weight:500">` +
+		`<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(title)}</span>` +
+		`<span style="flex:none;font-variant-numeric:tabular-nums">1 / ${pageCount}</span>` +
+		`<span style="flex:none;padding:2px 8px;background:#191919">100%</span>` +
+		`</div>` +
+		`<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:16px;padding:4px 0 16px">${images}</div>` +
+		`</div>`
+	);
 }
 
 /**

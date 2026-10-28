@@ -1,0 +1,121 @@
+{
+	"origin": "http://localhost:8082",
+	"cookies": [
+		{
+			"name": "odp_prototype",
+			"value": "on"
+		}
+	],
+	"width": 1440,
+	"outDir": "design/prototipo",
+	"removeSelectors": [
+		"[data-testid=\"review-strip\"]",
+		"button[aria-label=\"Editar colores del tema\"]",
+		"div:has(> [data-testid=\"control-panel\"])",
+		"[data-testid=\"section-toggles\"]"
+	],
+	"tabLinks": [
+		{
+			"selector": "[role=\"tab\"][data-value=\"table\"]",
+			"href": "#table"
+		},
+		{
+			"selector": "[role=\"tab\"][data-value]:not([data-value=\"table\"])",
+			"href": "#chart-{value}"
+		}
+	],
+	"screens": [
+		{
+			"file": "h2-2-organizaciones.html",
+			"url": "/dev/organizations?caso=completa&vista=propuesta&grupos=si&jerarquia=si&campos=si",
+			"waitForSelector": "[data-testid=\"org-proposed\"]",
+			"aliases": ["/organizations", "/dev/organizations"],
+			"linkOnly": true
+		},
+		{
+			"file": "h2-3-busqueda.html",
+			"url": "/search?q=matrícula",
+			"waitForText": ["resultados para"],
+			"waitForSelector": "a[href=\"/dataset/matricula-facultad-gestion-ficticia\"]",
+			"linkOnly": true
+		},
+		{
+			"file": "h2-3b-busqueda-sin-resultados.html",
+			"url": "/search?q=calendario académico 1998",
+			"waitForText": ["Sin resultados", "Mientras tanto, lo más reciente"]
+		},
+		{
+			"file": "h2-4-ficha-dataset.html",
+			"url": "/dataset/matricula-estudiantil-por-carrera-y-gestion",
+			"waitForText": ["Aparece en las colecciones"],
+			"waitForSelector": "a[href*=\"/resource/\"]",
+			"aliases": ["/dev/prototype/dataset-collections?d=matricula-por-carrera"],
+			"linkOnly": true
+		},
+		{
+			"file": "h2-5-recurso-csv.html",
+			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98",
+			"waitForText": ["inscritos", "Acceso por API"],
+			"waitForSelector": "#preview table td",
+			"aliases": [
+				"/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#table"
+			]
+		},
+		{
+			"file": "h2-5b-grafico-por-facultad.html",
+			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#chart-60e30b46-de72-4204-97b0-55b0f4b01e50",
+			"waitForText": ["Matrícula por facultad (2015–2025)", "Acceso por API"],
+			"waitForSelector": "[role=\"tabpanel\"][data-value=\"60e30b46-de72-4204-97b0-55b0f4b01e50\"]:not([hidden]) .lc-layout-svg :is(path, rect)"
+		},
+		{
+			"file": "h2-5c-grafico-por-gestion.html",
+			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#chart-f54c8804-ce10-4580-8dff-6a3bd9d5aa6d",
+			"waitForText": ["Matrícula por gestión", "Acceso por API"],
+			"waitForSelector": "[role=\"tabpanel\"][data-value=\"f54c8804-ce10-4580-8dff-6a3bd9d5aa6d\"]:not([hidden]) .lc-layout-svg :is(path, rect)"
+		},
+		{
+			"file": "h2-5d-grafico-por-modalidad.html",
+			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#chart-fa6cea87-8238-4047-812f-561aef386cd1",
+			"waitForText": ["Matrícula por modalidad", "Acceso por API"],
+			"waitForSelector": "[role=\"tabpanel\"][data-value=\"fa6cea87-8238-4047-812f-561aef386cd1\"]:not([hidden]) .lc-layout-svg :is(path, rect)"
+		},
+		{
+			"file": "h2-5e-recurso-pdf.html",
+			"url": "/dataset/informe-matricula-ficticio/resource/7aca73c7-6400-48d4-8ecf-cbb87976f0d9",
+			"waitForSelector": "iframe[src^=\"/catalog/download/\"]",
+			"replaceIframes": {
+				"selector": "iframe[src^=\"/catalog/download/\"]",
+				"pages": 2
+			}
+		},
+		{
+			"file": "h2-6b-colecciones.html",
+			"url": "/dev/prototype/collections?vista=publica",
+			"aliases": ["/dev/prototype/collections"],
+			"linkOnly": true
+		},
+		{
+			"file": "h2-7-coleccion-de-una-persona.html",
+			"url": "/dev/prototype/collection?c=indicadores-academicos&vista=publica",
+			"aliases": ["/dev/prototype/collection?c=indicadores-academicos"],
+			"linkOnly": true
+		},
+		{
+			"file": "ficha-organizacion.html",
+			"url": "/organization/direccion-investigacion",
+			"waitForText": ["Colecciones que cura", "Datasets (10)"],
+			"linkOnly": true
+		},
+		{
+			"file": "h3-1-mis-colecciones.html",
+			"url": "/dev/prototype/collections?vista=panel",
+			"linkOnly": true
+		},
+		{
+			"file": "h3-3-coleccion-publica.html",
+			"url": "/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica",
+			"aliases": ["/dev/prototype/collection?c=rendicion-cuentas-2025"],
+			"linkOnly": true
+		}
+	]
+}

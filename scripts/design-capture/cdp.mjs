@@ -6,6 +6,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { waitsForRequest } from "./lib.mjs";
+
 const CHROMIUM = process.env.CHROMIUM ?? "/usr/bin/chromium";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -141,11 +143,11 @@ export function trackNetwork(page) {
 	return {
 		requested,
 		finished,
-		/** Espera a que no haya peticiones en curso durante `quietMs` (las de HMR quedan abiertas: se ignoran). */
+		/** Espera a que no haya peticiones en curso durante `quietMs` (salvo las que nunca cierran: `waitsForRequest`). */
 		async idle(quietMs = 1000, timeoutMs = 30000) {
 			const start = Date.now();
 			for (;;) {
-				const open = [...inflight.values()].filter((url) => !/\/@vite\/|__vite_ping|hmr/.test(url));
+				const open = [...inflight.values()].filter(waitsForRequest);
 				if (open.length === 0 && Date.now() - lastActivity >= quietMs) return;
 				if (Date.now() - start > timeoutMs) throw new Error(`Red sin reposo: ${open.join(", ")}`);
 				await sleep(100);

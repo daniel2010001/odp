@@ -1,13 +1,18 @@
 // Lo que corre DENTRO de la página ya renderizada: congela el estado de los controles, clona el DOM, quita
 // lo que no es producto (scripts, artefactos de Vite/Svelte, franjas de revisión DEV), reescribe los enlaces
 // y recoge el CSS aplicado. Se inyecta como texto con `toString()`, así que no usa nada de afuera salvo
-// `mapHref`/`urlKey`, que `capture.mjs` le pasa también como texto.
+// `mapHref`/`tabTarget`/`urlKey`, que `capture.mjs` le pasa también como texto.
+//
+// `tabLinks` ([{ selector, href }]): las pestañas que cambian de vista sin navegar pasan a ser enlaces al
+// artboard de su vista (ver `tabTarget`); las que no tienen artboard quedan como botones. `standIns`
+// ({ selector, html[] }): cada elemento que cumple `selector` (en orden) se reemplaza por el HTML de su mismo
+// índice; así se cambia el `<iframe>` de un PDF por su reemplazo estático (`pdfStandIn`).
 //
 // Devuelve `{ html, css, imports, warnings }`: en `html`, el marcador `/*@@CSS@@*/` va dentro del único
 // <style>; en `css`, el marcador `/*@@IMPORT:<n>@@*/` ocupa el lugar de cada hoja externa (`imports[n]`),
 // que `capture.mjs` resuelve con lo que el navegador descargó.
 
-export async function serializePage({ linkMap, removeSelectors }) {
+export async function serializePage({ linkMap, removeSelectors, tabLinks = [], standIns = null }) {
 	const warnings = [];
 	const base = location.href;
 
@@ -83,6 +88,37 @@ export async function serializePage({ linkMap, removeSelectors }) {
 			anchor.setAttribute("href", target);
 		}
 	}
+	let tabs = 0;
+	for (const { selector, href } of tabLinks) {
+		for (const tab of root.querySelectorAll(selector)) {
+			const target = tabTarget(href, tab.getAttribute("data-value") ?? "", base, linkMap);
+			if (target === null) continue;
+			const anchor = document.createElement("a");
+			for (const { name, value } of tab.attributes) {
+				if (name !== "type" && name !== "tabindex") anchor.setAttribute(name, value);
+			}
+			anchor.setAttribute("href", target);
+			anchor.append(...tab.childNodes);
+			tab.replaceWith(anchor);
+			tabs++;
+		}
+	}
+	if (standIns) {
+		const targets = [...root.querySelectorAll(standIns.selector)];
+		if (targets.length !== standIns.html.length) {
+			throw new Error(
+				`${standIns.selector}: ${targets.length} en la página, ${standIns.html.length} reemplazos`,
+			);
+		}
+		for (const [index, element] of targets.entries()) {
+			const template = document.createElement("template");
+			template.innerHTML = standIns.html[index];
+			element.replaceWith(template.content);
+		}
+	}
+	for (const iframe of root.querySelectorAll("iframe")) {
+		warnings.push(`<iframe> sin reemplazo: ${iframe.getAttribute("src")}`);
+	}
 	for (const form of root.querySelectorAll("form")) form.removeAttribute("action");
 	for (const button of root.querySelectorAll("[formaction]")) button.removeAttribute("formaction");
 
@@ -156,6 +192,7 @@ export async function serializePage({ linkMap, removeSelectors }) {
 		css: parts.join("\n"),
 		imports,
 		inertLinks: inert,
+		tabLinks: tabs,
 		warnings,
 	};
 }

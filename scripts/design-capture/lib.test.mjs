@@ -15,8 +15,11 @@ import {
 	freezeViewportUnits,
 	freezeViewportUnitsInStyles,
 	mapHref,
+	pdfStandIn,
 	planBatch,
+	tabTarget,
 	urlKey,
+	waitsForRequest,
 } from "./lib.mjs";
 
 const ORIGIN = "http://localhost:8082";
@@ -74,6 +77,82 @@ test("buildLinkMap rechaza una dirección que apunta a dos artboards", () => {
 			),
 		/dos artboards/,
 	);
+});
+
+// Una misma página con varias vistas (las pestañas de un recurso), cada una en su artboard por su fragmento.
+const VIEWS = [
+	{ file: "h2-5.html", url: "/recurso", aliases: ["/recurso#table"] },
+	{ file: "h2-5b.html", url: "/recurso#chart-a" },
+];
+
+test("buildLinkMap distingue por fragmento las vistas de una misma página", () => {
+	const map = buildLinkMap(VIEWS, ORIGIN);
+	assert.equal(mapHref("/recurso#chart-a", ORIGIN, map), "h2-5b.html");
+	assert.equal(mapHref("http://localhost:8082/recurso#table", ORIGIN, map), "h2-5.html");
+	assert.equal(mapHref("/recurso", ORIGIN, map), "h2-5.html");
+	// Un fragmento sin artboard propio sigue siendo un ancla dentro de la página.
+	assert.equal(mapHref("/recurso#metadata", ORIGIN, map), "h2-5.html#metadata");
+	assert.throws(
+		() =>
+			buildLinkMap(
+				[
+					{ file: "a.html", url: "/x#v" },
+					{ file: "b.html", url: "/y", aliases: ["/x#v"] },
+				],
+				ORIGIN,
+			),
+		/dos artboards/,
+	);
+});
+
+test("tabTarget lleva una pestaña al artboard de su vista sólo si esa vista se capturó", () => {
+	const map = buildLinkMap(VIEWS, ORIGIN);
+	const page = `${ORIGIN}/recurso#chart-a`;
+	assert.equal(tabTarget("#chart-{value}", "a", page, map), "h2-5b.html");
+	assert.equal(tabTarget("#table", "table", page, map), "h2-5.html");
+	assert.equal(tabTarget("#chart-{value}", "z", page, map), null);
+	assert.equal(tabTarget("#chart-{value}", "a", `${ORIGIN}/otro`, map), null);
+});
+
+test("waitsForRequest ignora HMR y lo que no es http(s), como el visor de PDF de Chromium", () => {
+	assert.equal(waitsForRequest("http://localhost:8082/src/lib/utils.ts"), true);
+	assert.equal(waitsForRequest("https://fonts.gstatic.com/s/poppins/latin.woff2"), true);
+	assert.equal(waitsForRequest("http://localhost:8082/@vite/client"), false);
+	assert.equal(waitsForRequest("ws://localhost:8082/?token=x&hmr"), false);
+	assert.equal(
+		waitsForRequest("chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.html"),
+		false,
+	);
+});
+
+test("pdfStandIn dibuja el visor con las páginas como imágenes, con la clase del iframe y sin red", () => {
+	const html = pdfStandIn({
+		className: "h-[760px] w-full",
+		title: 'Informe <2025> & "anexo"',
+		pageCount: 3,
+		pages: [
+			{ src: "data:image/png;base64,AAA", width: 794, height: 1123 },
+			{ src: "data:image/png;base64,BBB", width: 794, height: 1123 },
+		],
+	});
+	assert.doesNotMatch(html, /<iframe|<script/i);
+	assert.deepEqual(externalReferences(html), []);
+	assert.match(html, /^<div class="h-\[760px\] w-full" /);
+	assert.match(html, /data-stand-in="pdf"/);
+	assert.match(html, /Informe &lt;2025&gt; &amp; &quot;anexo&quot;/);
+	assert.match(html, />1 \/ 3</);
+	const images = [
+		...html.matchAll(/<img src="([^"]+)" width="(\d+)" height="(\d+)" alt="([^"]+)"/g),
+	];
+	assert.deepEqual(
+		images.map(([, src, width, height, alt]) => [src, width, height, alt]),
+		[
+			["data:image/png;base64,AAA", "794", "1123", "Página 1 de 3"],
+			["data:image/png;base64,BBB", "794", "1123", "Página 2 de 3"],
+		],
+	);
+	// Las páginas se recorren dentro del visor, como en el iframe: el artboard no tiene scripts, pero sí scroll.
+	assert.match(html, /overflow-y:auto/);
 });
 
 test("planBatch no captura las pantallas linkOnly, pero siguen siendo destino de los enlaces", () => {
