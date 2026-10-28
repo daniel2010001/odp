@@ -256,3 +256,10 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   hice anteriormente? creo que están como TODOs. y creo que faltaría eso de la card de publicación en la parte derecha." →
   candidates found in BACKLOG («Detalles» vs «Información técnica», hero tooltips, metadata card E4); asked which.
 - **L15** (2026-10-28, author): S16 and S17 (verbatim above). P21/P22 belong to the resource sheet (DataStore resources).
+- **L16** (2026-10-28, author) on Inicio 05, verbatim: "me gusta más, pero creo que el "quién publica" no me gusta, no por el
+  diseño, que parece bonito, sino porque ahora estamos "cerrando" a que solo tendrá 5 orgs, qué pasa con otros nuevas orgs?
+  respecto a lo de "rescatar" datos reales desde ckan, podemos hacerlo, pero quisiera que estén harcodeados, estamo haciendolo
+  así? las cards del hero no termina de gustarme, me gusta la idea, pero no el diseño. me gusta mucho más ahora, qué más podemos
+  hacer? por mi queda." → 05 is the chosen direction; edit 05 in place: «Quién publica» must not read as a closed set of five
+  units, and a new design for the hero type cards. Data: every artboard is static HTML with the demo's values copied in
+  (0 scripts, 0 fetch, checked).
