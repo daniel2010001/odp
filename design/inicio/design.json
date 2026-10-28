@@ -33,9 +33,9 @@
 		{
 			"file": "05-tipos-de-documento.html",
 			"title": "Tipos de documento al frente",
-			"tradeoff": "Segunda iteración de 04: la banda presenta lo que una unidad puede publicar (tablas con vista previa y gráficos, documentos PDF que se leen en el portal, datos geográficos y otros archivos que se descargan), y las secciones 2 y 3 de 04 se funden en un único ejemplo real con sus cinco partes señaladas. Orden nuevo: qué es y qué tipos → qué trae cada conjunto de datos → novedades → quién publica → cómo llega al catálogo → cómo citarlo → por dónde empezar; va de lo que hay a por qué confiar y termina en la acción. La cita se explica desarmando una referencia APA, sin dibujar una ficha. Siete secciones en vez de ocho, pero la página es algo más larga que 04 por la franja de tipos y el ejemplo anotado",
+			"tradeoff": "Dirección elegida (L16), segunda iteración de 04. Los tipos de documento (tablas con vista previa y gráficos, PDF que se leen en el portal, datos geográficos y otros archivos que se descargan) pasan a ser el pie de la tarjeta de búsqueda, como atajos para buscar por tipo: acompañan al campo en vez de competir con él, pero pierden los ejemplos propios de cada tipo, que quedan en el texto de la izquierda. «Quién publica» agrupa las unidades por tipo, con las que más publican primero, un enlace a todas y una invitación para las que todavía no publican: se lee igual con pocas o muchas unidades, aunque con el catálogo de hoy algunos grupos tienen una sola. Las secciones 2 y 3 de 04 se funden en un único ejemplo real con sus cinco partes señaladas. Orden: qué es y qué tipos → qué trae cada conjunto de datos → novedades → quién publica → cómo llega al catálogo → cómo citarlo → por dónde empezar. Siete secciones, un poco más larga que 04",
 			"width": 1440,
-			"height": 5573
+			"height": 5319
 		}
 	]
 }

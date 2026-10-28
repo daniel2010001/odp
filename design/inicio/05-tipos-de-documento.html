@@ -96,7 +96,7 @@ button, input { font: inherit; color: inherit; }
 .band-top { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid color-mix(in oklch, var(--footer-foreground) 40%, transparent); }
 .band .kicker { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
 .band .meta { font-size: 13px; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
-.band-grid { display: grid; grid-template-columns: 6fr 6fr; gap: 64px; padding-top: 48px; align-items: end; }
+.band-grid { display: grid; grid-template-columns: 6fr 6fr; gap: 64px; padding-top: 48px; align-items: start; }
 .band h1 { font-family: var(--font-heading); font-size: 56px; line-height: 1.1; font-weight: 600; letter-spacing: -.01em; }
 .band .lede { margin-top: 24px; font-size: 17px; line-height: 1.6; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); max-width: 560px; }
 .band .lede b { color: var(--footer-foreground); font-weight: 600; }
@@ -115,18 +115,18 @@ button, input { font: inherit; color: inherit; }
 .scoped-hint { padding: 4px 16px 12px; font-size: 13px; color: var(--muted-foreground); }
 .scoped-hint a { color: var(--primary); font-weight: 500; text-underline-offset: 4px; }
 .scoped-hint a:hover { text-decoration: underline; }
-.types-label { margin-top: 56px; display: flex; align-items: center; gap: 16px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); }
-.types-label::after { content: ""; flex: 1; height: 1px; background: color-mix(in oklch, var(--footer-foreground) 25%, transparent); }
-.types { margin-top: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.type { display: flex; flex-direction: column; border-radius: var(--radius-xl); background: color-mix(in oklch, var(--footer-foreground) 8%, transparent); border: 1px solid color-mix(in oklch, var(--footer-foreground) 22%, transparent); padding: 20px; transition: background-color .2s, border-color .2s; }
-.type:hover { background: color-mix(in oklch, var(--footer-foreground) 14%, transparent); border-color: color-mix(in oklch, var(--footer-foreground) 40%, transparent); }
-.type-top { display: flex; justify-content: space-between; align-items: center; }
-.type-icon { display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: var(--radius-lg); background: var(--card); color: var(--primary); }
-.type-formats { display: flex; gap: 6px; }
-.type-formats span { font-family: var(--font-mono); font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in oklch, var(--footer-foreground) 40%, transparent); color: var(--footer-foreground); }
-.type h2 { margin-top: 16px; font-family: var(--font-heading); font-size: 24px; font-weight: 600; line-height: 1.2; }
-.type .eg { margin-top: 6px; font-size: 14px; line-height: 1.55; color: color-mix(in oklch, var(--footer-foreground) 80%, transparent); flex: 1; }
-.type .does { margin-top: 16px; padding-top: 12px; border-top: 1px solid color-mix(in oklch, var(--footer-foreground) 22%, transparent); display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 500; }
+/* Los tipos de documento viven dentro de la tarjeta de búsqueda, como su pie: son atajos para buscar por tipo, no
+   tarjetas propias que compitan con el campo. */
+.types { border-top: 1px solid var(--border); padding: 14px 8px 4px; }
+.types-label { padding: 0 8px; font-size: 12px; font-weight: 500; color: var(--muted-foreground); }
+.types ul { margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
+.type { display: grid; grid-template-columns: 16px 1fr; gap: 2px 10px; padding: 8px; border-radius: var(--radius-md); transition: background-color .2s; }
+.type:hover { background: var(--accent); }
+.type:hover .type-name { text-decoration: underline; text-underline-offset: 4px; }
+.type .icon { color: var(--primary); margin-top: 3px; }
+.type-name { font-size: 14px; font-weight: 600; color: var(--foreground); }
+.type-name small { margin-left: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--muted-foreground); }
+.type-does { grid-column: 2; font-size: 13px; line-height: 1.45; color: var(--muted-foreground); }
 
 /* 2 · Qué trae cada conjunto de datos: un ejemplo real con sus partes señaladas alrededor */
 .anatomy .head-center { margin-bottom: 56px; }
@@ -191,24 +191,32 @@ pre .k { color: var(--primary); font-weight: 600; }
 .entry-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .entry-side .formats { display: flex; gap: 6px; }
 
-/* 4 · Quién publica: cinco columnas con la proporción del catálogo arriba */
-.units-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 40px; }
+/* 4 · Quién publica: un grupo por tipo de unidad (Q11), en el orden de la lista de tipos; en cada grupo, las tres
+   que más publican (Q12). La cuadrícula se llena sola: con más tipos, más grupos; con más unidades, el grupo sigue
+   mostrando tres y su encabezado lleva a la lista completa de ese tipo. La invitación ocupa siempre la última celda. */
+.units-head { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 40px; }
 .units-head .intro { max-width: 640px; }
-.share { display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 3px; }
-.share span { background: var(--primary); }
-.share span:nth-child(2n) { background: color-mix(in oklch, var(--primary) 55%, var(--card)); }
-.units { margin-top: 24px; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--foreground); }
-.units li { border-right: 1px solid var(--border); }
-.units li:last-child { border-right: 0; }
-.unit { display: flex; flex-direction: column; height: 100%; padding: 24px 20px 24px; transition: background-color .2s; }
+.unit-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 40px 24px; align-items: start; }
+.group { border-top: 1px solid var(--foreground); }
+.group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 16px 8px 4px; border-radius: var(--radius-md); transition: background-color .2s; }
+.group-head:hover { background: var(--accent); }
+.group-head:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+.group-head h3 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; line-height: 1.2; color: var(--primary); }
+.group-head .icon { color: var(--muted-foreground); }
+.group-meta { padding: 0 8px 12px; font-size: 13px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.group-units li { border-top: 1px solid var(--border); }
+.unit { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 12px 8px; transition: background-color .2s; }
 .unit:hover { background: var(--accent); }
 .unit:hover .unit-name { text-decoration: underline; text-underline-offset: 4px; }
-.unit-count { font-family: var(--font-heading); font-size: 56px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
-.unit-count small { display: block; margin-top: 6px; font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
-.unit-name { margin-top: 20px; font-family: var(--font-heading); font-size: 22px; font-weight: 600; line-height: 1.2; color: var(--primary); }
-.unit-abbr { margin-top: 4px; font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
-.unit-eg { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.5; color: var(--muted-foreground); flex: 1; }
-.unit-eg i { display: block; margin-top: 2px; font-family: var(--font-heading); font-size: 16px; color: var(--foreground); }
+.unit-name { display: block; font-size: 15px; font-weight: 500; line-height: 1.35; color: var(--foreground); }
+.unit-abbr { display: block; margin-top: 2px; font-size: 12px; color: var(--muted-foreground); }
+.unit-count { text-align: right; font-family: var(--font-heading); font-size: 28px; line-height: 1; font-weight: 600; color: var(--primary); font-variant-numeric: lining-nums tabular-nums; }
+.unit-count small { display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 11px; font-weight: 400; color: var(--muted-foreground); }
+.join { border-radius: var(--radius-xl); border: 1px dashed var(--border); background: color-mix(in oklch, var(--muted) 50%, transparent); padding: 24px; }
+.join > .icon { color: var(--primary); }
+.join h3 { margin-top: 12px; font-family: var(--font-heading); font-size: 22px; font-weight: 600; line-height: 1.2; color: var(--primary); }
+.join p { margin-top: 8px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+.join .link { margin-top: 16px; }
 
 /* 5 · Cómo llega un dato al catálogo: recorrido con nodos */
 .flow { margin-top: 56px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; position: relative; }
@@ -285,9 +293,7 @@ pre .k { color: var(--primary); font-weight: 600; }
 	<symbol id="i-code" viewBox="0 0 24 24"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></symbol>
 	<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
 	<symbol id="i-table" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></symbol>
-	<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
 	<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
-	<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
 	<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
 	<symbol id="i-files" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
 	<symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/></symbol>
@@ -296,6 +302,7 @@ pre .k { color: var(--primary); font-weight: 600; }
 	<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></symbol>
 	<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
 	<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+	<symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
 	<symbol id="i-quote" viewBox="0 0 24 24"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></symbol>
 </svg>
 
@@ -333,7 +340,7 @@ pre .k { color: var(--primary); font-weight: 600; }
 			<div class="band-grid">
 				<div>
 					<h1 id="band-title">¿Qué datos de la universidad necesita?</h1>
-					<p class="lede">Facultades y direcciones publican aquí lo que producen: <b>estadísticas y presupuestos en tablas</b>, <b>informes y resoluciones en PDF</b>, <b>datos geográficos</b> y otros archivos. Cada publicación lleva su descripción, su licencia y la aprobación de la unidad.</p>
+					<p class="lede">Las unidades de la universidad publican aquí lo que producen, en el tipo de archivo que corresponde a cada dato: <b>estadísticas y presupuestos en tablas</b>, <b>informes y resoluciones en PDF</b>, <b>datos geográficos</b> y otros archivos. Cada publicación lleva su descripción, su licencia y la aprobación de la unidad.</p>
 				</div>
 				<div>
 					<p class="side-label" id="scope-label">Busque en todo el catálogo o elija dónde buscar:</p>
@@ -352,37 +359,36 @@ pre .k { color: var(--primary); font-weight: 600; }
 							<button class="btn btn-primary" type="submit">Buscar</button>
 						</div>
 						<p class="scoped-hint">Pruebe con <a href="#">matrícula</a>, <a href="#">informe de gestión</a> o <a href="#">calidad del agua</a>.</p>
+						<!-- Lo que hace el portal con cada tipo sale de src/lib/resources/preview.ts: tabla cuando hay vista previa de
+						     datos, PDF incrustado, imagen y texto (TXT, JSON) a la vista, y el resto (GeoJSON incluido) se descarga. -->
+						<div class="types">
+							<p class="types-label" id="types-title">Lo que una unidad puede publicar · busque por tipo</p>
+							<ul aria-labelledby="types-title">
+								<li><a class="type" href="#">
+									<svg class="icon icon-sm"><use href="#i-table"/></svg>
+									<span class="type-name">Tablas<small>CSV · XLSX</small></span>
+									<span class="type-does">Vista previa y gráficos en el portal</span>
+								</a></li>
+								<li><a class="type" href="#">
+									<svg class="icon icon-sm"><use href="#i-file-text"/></svg>
+									<span class="type-name">Documentos<small>PDF</small></span>
+									<span class="type-does">Se leen en el portal, sin descargar</span>
+								</a></li>
+								<li><a class="type" href="#">
+									<svg class="icon icon-sm"><use href="#i-map"/></svg>
+									<span class="type-name">Datos geográficos<small>GeoJSON</small></span>
+									<span class="type-does">Se descargan para su programa de mapas</span>
+								</a></li>
+								<li><a class="type" href="#">
+									<svg class="icon icon-sm"><use href="#i-files"/></svg>
+									<span class="type-name">Otros archivos<small>JSON · PNG · TXT</small></span>
+									<span class="type-does">Imágenes y textos se ven; el resto se descarga</span>
+								</a></li>
+							</ul>
+						</div>
 					</form>
 				</div>
 			</div>
-
-			<p class="types-label" id="types-title">Lo que una unidad puede publicar</p>
-			<ul class="types" aria-labelledby="types-title">
-				<li><a class="type" href="#">
-					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-table"/></svg></span><span class="type-formats"><span>CSV</span><span>XLSX</span></span></span>
-					<h2>Tablas</h2>
-					<p class="eg">Estadísticas de matrícula y titulación, presupuestos y su ejecución, encuestas.</p>
-					<span class="does"><svg class="icon icon-sm"><use href="#i-chart"/></svg>Vista previa y gráficos en el portal</span>
-				</a></li>
-				<li><a class="type" href="#">
-					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-file-text"/></svg></span><span class="type-formats"><span>PDF</span></span></span>
-					<h2>Documentos</h2>
-					<p class="eg">Informes de gestión, memorias anuales, resoluciones, reglamentos y tesis.</p>
-					<span class="does"><svg class="icon icon-sm"><use href="#i-book-open"/></svg>Se leen en el portal, sin descargar</span>
-				</a></li>
-				<li><a class="type" href="#">
-					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-map"/></svg></span><span class="type-formats"><span>GeoJSON</span></span></span>
-					<h2>Datos geográficos</h2>
-					<p class="eg">Rutas, puntos de muestreo, parcelas y ubicaciones de cada unidad.</p>
-					<span class="does"><svg class="icon icon-sm"><use href="#i-download"/></svg>Se descargan para su programa de mapas</span>
-				</a></li>
-				<li><a class="type" href="#">
-					<span class="type-top"><span class="type-icon"><svg class="icon"><use href="#i-files"/></svg></span><span class="type-formats"><span>JSON</span><span>PNG</span><span>TXT</span></span></span>
-					<h2>Otros archivos</h2>
-					<p class="eg">Diccionarios de datos, imágenes, textos y series en otros formatos.</p>
-					<span class="does"><svg class="icon icon-sm"><use href="#i-download"/></svg>Imágenes y textos se ven; el resto se descarga</span>
-				</a></li>
-			</ul>
 		</div>
 	</section>
 
@@ -546,52 +552,50 @@ flujos = pd.read_csv(<span class="k">"https://datos.umss.edu/…/flujos-vehicula
 		</div>
 	</section>
 
-	<!-- 4 · Quién publica: cinco columnas, con la parte del catálogo de cada unidad -->
+	<!-- 4 · Quién publica: grupos por tipo de unidad (Q11), las que más publican primero (Q12), y la invitación al final.
+	     Las cifras son las del catálogo de demostración, copiadas a mano. -->
 	<section class="section units-section" aria-labelledby="units-title">
 		<div class="container">
 			<div class="units-head">
 				<div>
 					<p class="eyebrow">Quién publica</p>
-					<h2 class="title" id="units-title">Cinco unidades, un solo catálogo</h2>
-					<p class="intro">Cada conjunto de datos tiene una unidad responsable. Empiece por la que produce la información que necesita.</p>
+					<h2 class="title" id="units-title">Cada dato tiene una unidad responsable</h2>
+					<p class="intro">Las unidades están agrupadas por tipo y, en cada grupo, primero las que más publican. Empiece por la que produce la información que necesita.</p>
 				</div>
-				<a class="link" href="#">Ver las organizaciones<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
+				<a class="link" href="#">Ver todas las unidades<svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></a>
 			</div>
-			<div class="share" role="img" aria-label="Parte del catálogo de cada unidad, de un total de 52 conjuntos de datos">
-				<span style="flex:9"></span><span style="flex:7"></span><span style="flex:9"></span><span style="flex:15"></span><span style="flex:12"></span>
+			<div class="unit-groups">
+				<section class="group" aria-labelledby="g-rectorado">
+					<a class="group-head" href="#" aria-label="Ver las unidades de tipo Rectorado"><h3 id="g-rectorado">Rectorado</h3><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
+					<p class="group-meta">1 unidad · 12 conjuntos de datos</p>
+					<ol class="group-units">
+						<li><a class="unit" href="#"><span><span class="unit-name">Rectorado UMSS</span></span><span class="unit-count">12<small>conjuntos</small></span></a></li>
+					</ol>
+				</section>
+				<section class="group" aria-labelledby="g-facultades">
+					<a class="group-head" href="#" aria-label="Ver todas las facultades"><h3 id="g-facultades">Facultades</h3><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
+					<p class="group-meta">3 unidades · 31 conjuntos de datos</p>
+					<ol class="group-units">
+						<li><a class="unit" href="#"><span><span class="unit-name">Facultad de Ciencias y Tecnología</span><span class="unit-abbr">FCyT</span></span><span class="unit-count">15<small>conjuntos</small></span></a></li>
+						<li><a class="unit" href="#"><span><span class="unit-name">Facultad de Ciencias de la Salud</span><span class="unit-abbr">FCS</span></span><span class="unit-count">9<small>conjuntos</small></span></a></li>
+						<li><a class="unit" href="#"><span><span class="unit-name">Facultad de Ciencias Agrícolas</span><span class="unit-abbr">FCAPyF</span></span><span class="unit-count">7<small>conjuntos</small></span></a></li>
+					</ol>
+				</section>
+				<section class="group" aria-labelledby="g-direcciones">
+					<a class="group-head" href="#" aria-label="Ver todas las direcciones"><h3 id="g-direcciones">Direcciones</h3><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
+					<p class="group-meta">1 unidad · 9 conjuntos de datos</p>
+					<ol class="group-units">
+						<li><a class="unit" href="#"><span><span class="unit-name">Dirección de Investigación</span><span class="unit-abbr">DICyT</span></span><span class="unit-count">9<small>conjuntos</small></span></a></li>
+					</ol>
+				</section>
+				<!-- Las unidades las crea el superadministrador (Q7): la invitación no ofrece un alta propia, lleva a pedirla. -->
+				<aside class="join" aria-labelledby="join-title">
+					<svg class="icon" aria-hidden="true"><use href="#i-building"/></svg>
+					<h3 id="join-title">¿Su unidad todavía no publica?</h3>
+					<p>Facultades, direcciones, institutos y carreras pueden sumarse al catálogo. La autoridad de la unidad lo solicita a la administración de la plataforma, que habilita su espacio y da acceso a sus responsables.</p>
+					<a class="link" href="mailto:datos@umss.edu.bo">Escribir a la administración<svg class="icon icon-sm" aria-hidden="true"><use href="#i-mail"/></svg></a>
+				</aside>
 			</div>
-			<ol class="units">
-				<li><a class="unit" href="#">
-					<span class="unit-count">9<small>conjuntos de datos</small></span>
-					<span class="unit-name">Dirección de Investigación</span>
-					<span class="unit-abbr">DICyT</span>
-					<span class="unit-eg">Por ejemplo,<i>Tesis de posgrado defendidas por programa</i></span>
-				</a></li>
-				<li><a class="unit" href="#">
-					<span class="unit-count">7<small>conjuntos de datos</small></span>
-					<span class="unit-name">Facultad de Ciencias Agrícolas</span>
-					<span class="unit-abbr">FCAPyF</span>
-					<span class="unit-eg">Por ejemplo,<i>Registro de especies forestales del vivero universitario</i></span>
-				</a></li>
-				<li><a class="unit" href="#">
-					<span class="unit-count">9<small>conjuntos de datos</small></span>
-					<span class="unit-name">Facultad de Ciencias de la Salud</span>
-					<span class="unit-abbr">FCS</span>
-					<span class="unit-eg">Por ejemplo,<i>Campañas de vacunación estudiantil</i></span>
-				</a></li>
-				<li><a class="unit" href="#">
-					<span class="unit-count">15<small>conjuntos de datos</small></span>
-					<span class="unit-name">Facultad de Ciencias y Tecnología</span>
-					<span class="unit-abbr">FCyT</span>
-					<span class="unit-eg">Por ejemplo,<i>Calidad del agua en puntos de muestreo del valle</i></span>
-				</a></li>
-				<li><a class="unit" href="#">
-					<span class="unit-count">12<small>conjuntos de datos</small></span>
-					<span class="unit-name">Rectorado UMSS</span>
-					<span class="unit-abbr" aria-hidden="true">&nbsp;</span>
-					<span class="unit-eg">Por ejemplo,<i>Ejecución del plan operativo anual por unidad</i></span>
-				</a></li>
-			</ol>
 		</div>
 	</section>
 
