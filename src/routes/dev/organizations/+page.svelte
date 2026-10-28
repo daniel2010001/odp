@@ -365,7 +365,7 @@ const inputClass =
 						<section aria-labelledby={`group-${group.type.id}`} data-testid={`org-group-${group.type.id}`}>
 							<h2
 								id={`group-${group.type.id}`}
-								class="sticky top-[calc(var(--header-h)+1px+var(--org-bar-h,0px))] z-10 flex items-baseline gap-2 border-b border-border bg-background pb-2 font-heading text-xl font-semibold text-primary transition-[top] duration-200 ease-out motion-reduce:transition-none"
+								class="sticky top-[calc(var(--header-h)+1px+var(--org-bar-h,0px))] z-[15] flex items-baseline gap-2 border-b border-border bg-background pb-2 font-heading text-xl font-semibold text-primary transition-[top] duration-200 ease-out motion-reduce:transition-none"
 							>
 								{group.type.plural}
 								<span class="font-sans text-sm font-normal text-muted-foreground">{group.orgs.length}</span>

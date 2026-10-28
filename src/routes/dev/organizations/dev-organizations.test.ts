@@ -205,6 +205,9 @@ describe("playground de organizaciones — la propuesta", () => {
 				"top-[calc(var(--header-h)+1px+var(--org-bar-h,0px))]",
 				"bg-background",
 				"motion-reduce:transition-none",
+				// Por encima de los enlaces de jerarquía de las tarjetas (`relative z-10`) y por debajo de la
+				// barra (`z-20`): con `z-10` las tarjetas, que vienen después, se pintaban encima del título.
+				"z-[15]",
 			);
 		}
 	});
