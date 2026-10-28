@@ -196,7 +196,9 @@ describe("Alto del encabezado: una sola fuente", () => {
 			// La barra de acciones del panel vive en su componente desde la promoción de T18 (`108ca03`).
 			["../lib/components/dashboard/ActionBar.svelte", "la barra de acciones"],
 			["search/+page.svelte", "la barra de resultados"],
-			["dataset/[id]/+page.svelte", "el panel de la ficha del dataset"],
+			// El panel de la ficha del dataset vive en su componente desde T18 de
+			// `odd/tasks/prototype-presentation.md` (`39666ce`).
+			["../lib/components/dataset/DatasetSidebar.svelte", "el panel de la ficha del dataset"],
 			// El panel pegajoso del asistente vive ahora en el formulario extraído: el ancla lo sigue
 			// hasta su casa nueva, que es el punto de la prueba (si el token se consumiera en un literal,
 			// esto se pone rojo). La página del asistente ya no consume el token, así que sale de la lista.
