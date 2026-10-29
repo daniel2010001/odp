@@ -406,3 +406,8 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   highlight via `:target`) and Miembros; share icon per section. 04b: 1b's empty card first, 2b's «Qué podrá publicar», 1b's
   other units. Fonts embedded in all eight boards (no JetBrains Mono). 04 is long (~7000 px); the three newest datasets show
   twice (cards and table) — stated in its tradeoff.
+- **L29** (2026-10-29 11:05, agent): T28–T35 closed and pushed (`ece9c1c`, `26c6256`, `05e3c4c`, `3bb9dfb`; designs `08af48f`,
+  `f68b0ea`, `26b4b9b`; Pages index `ad27069`). Awaiting the author: H2-3 scroll on Pages in Chrome; share links (dataset sheet,
+  resource page, collection sheet); H2-5 ↔ H2-5e as one dataset; organization 04/04b, search 04, Inicio 06. Still pending after
+  the presentation: promote the search bar animation (decision 4), the seed follow-up in `BACKLOG.md`, the decisions on Q6, Q9,
+  Q13, Q17.
