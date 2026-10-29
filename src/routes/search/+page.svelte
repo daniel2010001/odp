@@ -61,34 +61,56 @@ let altoBarra = $state(0);
 // `clip-path`. Ni `transform` ni `clip-path` cambian el flujo: el alto de la barra y la posición de lo de
 // abajo no se mueven durante la transición (anclaje de desplazamiento, commit 4ffbd2d). Bajo 1024px no hay
 // columna al lado: la barra queda arriba del bloque de filtros, de borde a borde, como antes.
+// Al pegarse, en el mismo movimiento entra el campo compacto (S24/S35 de `odd/tasks/prototype-presentation.md`,
+// aprobado en el playground que ya no existe): aparece y baja medio rem en un hueco que la barra ya tenía
+// reservado, así nada de la barra ni de los resultados se corre. Al volver arriba, todo se deshace.
 // Cuánto asoma, a cada lado de la columna, la sombra de una tarjeta (`shadow-md` al pasar el cursor).
 const SOMBRA_PX = 8;
-const DURACION_BARRA = 250;
+const DURACION_BARRA = 320;
 const CURVA_BARRA = "cubic-bezier(0.22, 1, 0.36, 1)";
 let enColumna = $state(false); // ≥ 1024px
 let ventanaAncha = $state(false); // ≥ 640px: el campo de búsqueda sólo entra en la barra desde aquí
 let reducido = $state(false); // prefers-reduced-motion: las transiciones son instantáneas
 let pegada = $state(false); // la barra llegó a su tope, bajo el encabezado
-let heroFuera = $state(false); // el campo del hero salió de la vista, por arriba del encabezado
 
 let barraEl = $state<HTMLElement>();
 let columnaEl = $state<HTMLElement>();
 let heroEl = $state<HTMLElement>();
+let campoEl = $state<HTMLElement>();
 let resultadosEl = $state<HTMLElement>();
 
-const buscadorEnBarra = $derived(heroFuera && ventanaAncha);
+// El campo compacto va atado al momento en que la barra se pega, no a que el del hero salga de la vista: las
+// dos cosas se ven como un solo movimiento.
+const buscadorEnBarra = $derived(pegada && ventanaAncha);
+const compacta = $derived(enColumna && pegada);
 const animada = $derived(!reducido);
 const transicionBarra = $derived(animada ? `clip-path ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none");
 const transicionContador = $derived(
 	animada ? `transform ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none",
 );
+const transicionCampo = $derived(
+	animada
+		? `opacity ${DURACION_BARRA}ms ${CURVA_BARRA}, transform ${DURACION_BARRA}ms ${CURVA_BARRA}`
+		: "none",
+);
+
+// Foco: si el campo compacto se esconde con el foco adentro, el foco pasa al del hero, sin desplazar.
+$effect(() => {
+	if (buscadorEnBarra) return;
+	untrack(() => {
+		if (campoEl?.contains(document.activeElement)) {
+			heroEl
+				?.querySelector<HTMLInputElement>('input[type="search"]')
+				?.focus({ preventScroll: true });
+		}
+	});
+});
 
 function medirPegados() {
 	const encabezado = document.querySelector("[data-site-header]")?.getBoundingClientRect();
 	if (!encabezado || !barraEl) return;
 	const barra = barraEl.getBoundingClientRect();
 	pegada = barra.top <= encabezado.bottom + 0.5;
-	heroFuera = heroEl ? heroEl.getBoundingClientRect().bottom < encabezado.bottom : false;
 	// Geometría del recorte: cuánto sobra del fondo a cada lado de la columna. Sólo cambia al
 	// redimensionar; va a variables CSS del propio elemento para no pasar por el estado reactivo.
 	if (!columnaEl) return;
@@ -670,6 +692,7 @@ const emptyStateMessage = $derived.by(() => {
 		bind:this={barraEl}
 		bind:clientHeight={altoBarra}
 		data-results-bar
+		data-state={compacta ? 'compacta' : 'expandida'}
 		class="pointer-events-none sticky top-[calc(var(--header-h)+1px)] z-20 transition-[top] duration-200 ease-out motion-reduce:transition-none"
 	>
 		<!-- Fondo y filete en capas aparte: sólo se recortan con `clip-path` (compositor). La caja de la
@@ -685,7 +708,7 @@ const emptyStateMessage = $derived.by(() => {
 			class="absolute inset-y-0 bg-background {enColumna ? '' : 'inset-x-0'}"
 			style:left={enColumna ? 'calc(-1 * var(--bleed-l, 0px))' : undefined}
 			style:right={enColumna ? 'calc(-1 * var(--bleed-r, 0px))' : undefined}
-			style:clip-path={enColumna && pegada
+			style:clip-path={compacta
 				? 'inset(0 var(--cover-r, 0px) 0 var(--cover-l, 0px))'
 				: 'inset(0 0 0 0)'}
 			style:transition={transicionBarra}
@@ -696,7 +719,7 @@ const emptyStateMessage = $derived.by(() => {
 			class="absolute bottom-0 h-px bg-border {enColumna ? '' : 'inset-x-0'}"
 			style:left={enColumna ? 'calc(-1 * var(--bleed-l, 0px))' : undefined}
 			style:right={enColumna ? 'calc(-1 * var(--bleed-r, 0px))' : undefined}
-			style:clip-path={enColumna && pegada
+			style:clip-path={compacta
 				? 'inset(0 var(--bleed-r, 0px) 0 var(--bleed-l, 0px))'
 				: 'inset(0 0 0 0)'}
 			style:transition={transicionBarra}
@@ -724,16 +747,21 @@ const emptyStateMessage = $derived.by(() => {
 					{/if}
 				</p>
 
-				<!-- El campo de la barra sólo se muestra cuando el del hero salió de la vista. Siempre está
-				     montado: así entra con una transición y la barra no cambia de alto. `inert` lo saca del
-				     orden de tabulación y del árbol de accesibilidad mientras no se ve. El relleno y el margen
-				     negativo dejan sitio al anillo de foco, que `overflow-hidden` recortaría. Bajo 640px no
-				     entra (la barra pasaría a dos filas). -->
+				<!-- El campo de la barra sólo se muestra con la barra pegada. Siempre está montado y su hueco
+				     siempre reservado: sólo cambian la opacidad y el `transform`, así la barra no se reacomoda ni
+				     cambia de alto, y una captura sin script reproduce el estado pegado con estilos computados.
+				     `inert` lo saca del orden de tabulación y del árbol de accesibilidad mientras no se ve. El
+				     relleno y el margen negativo dejan sitio al anillo de foco. Bajo 640px no entra (la barra
+				     pasaría a dos filas). -->
 				<div
+					bind:this={campoEl}
 					data-bar-search
-					class="-m-1.5 min-w-0 overflow-hidden p-1.5 transition-[max-width,opacity] duration-200 ease-out max-sm:hidden motion-reduce:transition-none {buscadorEnBarra
-						? 'max-w-md flex-1 opacity-100'
-						: 'max-w-0 opacity-0'}"
+					class="-m-1.5 min-w-0 max-w-md flex-1 p-1.5 max-sm:hidden {buscadorEnBarra
+						? ''
+						: 'pointer-events-none'}"
+					style:opacity={buscadorEnBarra ? '1' : '0'}
+					style:transform={buscadorEnBarra ? 'none' : 'translateY(-0.5rem)'}
+					style:transition={transicionCampo}
 					inert={!buscadorEnBarra}
 				>
 					<SearchBar

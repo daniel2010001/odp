@@ -1242,7 +1242,7 @@ describe("Página de búsqueda — los pegados", () => {
 			);
 		});
 
-		it("en reposo el fondo no se recorta; pegada, se recorta a la columna con clip-path en 250 ms", async () => {
+		it("en reposo el fondo no se recorta; pegada, se recorta a la columna con clip-path en 320 ms", async () => {
 			fijarVentana(1280);
 			fijarGeometria({ barTop: 400, heroBottom: 300 });
 			await montarConFacetas();
@@ -1258,7 +1258,7 @@ describe("Página de búsqueda — los pegados", () => {
 
 			const style = fondo().getAttribute("style") ?? "";
 			expect(style).toContain("clip-path: inset(0 var(--cover-r");
-			expect(style).toContain("clip-path 250ms cubic-bezier(0.22, 1, 0.36, 1)");
+			expect(style).toContain("clip-path 320ms cubic-bezier(0.22, 1, 0.36, 1)");
 		});
 
 		it("con movimiento reducido el recorte es instantáneo", async () => {
@@ -1268,8 +1268,9 @@ describe("Página de búsqueda — los pegados", () => {
 			await desplazar();
 
 			const style = fondo().getAttribute("style") ?? "";
-			expect(style).not.toContain("250ms");
-			expect(aside().getAttribute("style") ?? "").not.toContain("250ms");
+			expect(style).not.toMatch(/\d+ms/);
+			expect(fondo().style.transition).toBe("none");
+			expect(aside().getAttribute("style") ?? "").not.toMatch(/\d+ms/);
 		});
 
 		it("no cambia nada del flujo al pegarse: la transición sólo toca clip-path y transform", async () => {
@@ -1359,6 +1360,101 @@ describe("Página de búsqueda — los pegados", () => {
 
 			expect(aside().className).not.toMatch(/(?:^|\s)mt-\[/);
 			expect(aside().getAttribute("style") ?? "").not.toMatch(/--aside-y|transform/);
+		});
+	});
+
+	// S24/S35 de `odd/tasks/prototype-presentation.md`: «pasar de ocupar ambas columnas a solo una y mostrar el
+	// input del buscador», en un solo movimiento. Es la variante «animada» que el autor aprobó en el playground.
+	describe("la barra animada", () => {
+		// La barra pegada con el campo del hero todavía a la vista: el campo entra igual, atado a la barra.
+		const PEGADA_HERO_VISIBLE = { barTop: 65, heroBottom: 300 };
+		const EN_REPOSO = { barTop: 400, heroBottom: 300 };
+
+		async function mover(geometria: { barTop: number; heroBottom: number }) {
+			rectSpy?.mockRestore();
+			header?.remove();
+			fijarGeometria(geometria);
+			await desplazar();
+			await tick();
+		}
+
+		it("al pegarse pasa a la columna y entra el campo en el mismo momento, aunque el del hero se vea", async () => {
+			fijarVentana(1280);
+			fijarGeometria(EN_REPOSO);
+			await montarConFacetas();
+			await mover(PEGADA_HERO_VISIBLE);
+
+			expect(barra().dataset.state).toBe("compacta");
+			expect(inerte()).toBe(false);
+			expect(campo().style.opacity).toBe("1");
+			expect(campo().style.transform).toBe("none");
+			expect(campo().className).not.toContain("pointer-events-none");
+			expect(campo().style.transition).toContain("opacity 320ms cubic-bezier(0.22, 1, 0.36, 1)");
+			expect(campo().style.transition).toContain("transform 320ms cubic-bezier(0.22, 1, 0.36, 1)");
+			expect(barra().querySelector("p")?.style.transition).toContain("transform 320ms");
+		});
+
+		it("en reposo ocupa las dos columnas y el campo está escondido en un hueco ya reservado, fuera del foco y sin clics", async () => {
+			fijarVentana(1280);
+			fijarGeometria(EN_REPOSO);
+			await montarConFacetas();
+			await desplazar();
+
+			expect(barra().dataset.state).toBe("expandida");
+			expect(inerte()).toBe(true);
+			expect(campo().style.opacity).toBe("0");
+			expect(campo().style.transform).toBe("translateY(-0.5rem)");
+			expect(campo().className).toContain("pointer-events-none");
+			// El hueco no depende del estado: el campo no cambia el ancho de nada al entrar.
+			const clase = (c: string) =>
+				c
+					.replace(/\s*pointer-events-none/, "")
+					.trim()
+					.split(/\s+/)
+					.sort()
+					.join(" ");
+			const enReposo = clase(campo().className);
+			expect(enReposo).toContain("max-w-md");
+			expect(enReposo).toContain("flex-1");
+			expect(enReposo).not.toContain("max-w-0");
+
+			await mover(PEGADA_HERO_VISIBLE);
+			expect(clase(campo().className)).toBe(enReposo);
+
+			await mover(EN_REPOSO);
+			expect(barra().dataset.state).toBe("expandida");
+			expect(inerte()).toBe(true);
+			expect(campo().style.opacity).toBe("0");
+		});
+
+		it("con movimiento reducido cambia de estado sin transición", async () => {
+			fijarVentana(1280, true);
+			fijarGeometria(EN_REPOSO);
+			await montarConFacetas();
+			await mover(PEGADA_HERO_VISIBLE);
+
+			expect(barra().dataset.state).toBe("compacta");
+			expect(inerte()).toBe(false);
+			expect(campo().style.transition).toBe("none");
+			expect(fondo().style.transition).toBe("none");
+			expect(filete().style.transition).toBe("none");
+			expect(barra().querySelector("p")?.style.transition).toBe("none");
+		});
+
+		it("si el campo se esconde con el foco adentro, el foco pasa al del hero", async () => {
+			fijarVentana(1280);
+			fijarGeometria(EN_REPOSO);
+			await montarConFacetas();
+			await mover(PEGADA_HERO_VISIBLE);
+
+			const compacto = within(campo()).getByRole("searchbox", { name: "Buscar datasets" });
+			compacto.focus();
+			expect(document.activeElement).toBe(compacto);
+
+			await mover(EN_REPOSO);
+
+			const hero = document.querySelector("[data-hero-search]") as HTMLElement;
+			expect(document.activeElement).toBe(within(hero).getByRole("searchbox"));
 		});
 	});
 
