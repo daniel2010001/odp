@@ -125,6 +125,40 @@ imported into Figma and presented as a click-through prototype before the tribun
   current guess from the title until the Q11 field exists; acronym and hierarchy are shown only when the data exists (Q13,
   Q6); nothing is invented. Then the playground is deleted and H2-2 is captured from the real page.
 
+- **S26** — H2-3 artboard scroll (2026-10-29), verbatim: "h2-3: sigue fallando la animación del scroll, cuando hago scroll no
+  se comport como la page real, qué pasa?" Diagnose why the captured artboard scrolls differently from `/search` and make it
+  behave like the real page without scripts in the artboard.
+- **S27** — Share sections everywhere, verbatim: "h2-4: la nueva sectión de Colecciones falta eso de compartir la sectión,
+  agregar esto y refactoring, esto para las siguientes sectiones nuevas, si es que habrá." … (h2-5) "también noto que no
+  tenemos eso de compartir las sectiones, eso del url que revién vimos en la ficha de datasets." … "h2-7: ok, pero lo mismo que
+  con las fichas, falta eso de compartir sections." A section header with its share link must come from one shared piece, so a
+  new section gets it without copying markup.
+- **S28** — H2-5 one dataset, verbatim: "h2-5: me gusta, pero quisiera que sea un solo dataset, o sea que esos recursos sean del
+  mismo dataset y que se pueda navegar entre ellos con eso que tenemos en el hero para cambiar entre los resources de una misma
+  dataset."
+- **S29** — Organization sheet, iterate (decision 1: "iterar con mis preferencias."), verbatim: "1: la idea de tener un panel
+  como los datasets me gusta, pero creo que está un poco cargada. la parte de la izq con las 3 sections también creo que está
+  bien, esos 3 me gustan. 1b: me gusta mucho esa card de "no hay dataset" y la parte de "otras orgs". 2: hero bonito. Datos de
+  unidad en formato de tabla bonito, qué publica: bonito. últimas publicacioens: bonito. actividades recientes: bonito también.
+  2b: eso de "no hay datasets" a principio me gusta, eso de qué puede publicar también está bonito. 3: me gusta ese "lugar en la
+  uni", el formato de "qué publica" también está bonito. "datasets" esta mejor que en otros, pero creo que podemows mejorar.
+  actividades me gusta mucho este formato. algo que me gusta mucho es que tenemos algo así como un índice, me encanta. pero creo
+  que es el único lugar que tenemos algo así, no?"
+- **S30** — Search hero, iterate (decision 2: "iterar con mis preferencias."), verbatim: "01: me gusta que sea similar al
+  estilo del home. 02: me gusta que tengamos eso del "matricula", creo que es el punto fuerte, pero por lo otro creo que no
+  resalta mucho, y esto no está mal, lo que quiero decir es que es sencillo y simple, pero puede funcionar. 03: no termina de
+  gustarme eso de la cards en la mitad del hero, pero ese resumen puede ser interesante."
+- **S31** — Inicio, iterate, verbatim: "me gusta por lo general, creo que ya estamos en un punto maduro. Pero hay puntos a
+  mejorar: 1: el hero no termina de gustar. me gusta la idea, pero no tanto el diseño, lo noto muy cargado por eso del buscador,
+  me gusta la idea, como dije, pero ese card lo veo cargado, podemos tocarlo un poco? también quisiera saber si se puede hacer
+  algo similar a eso que hay en la ficha de orgs 3, eso del índice que te dige, pero no tan grande como en la ficha, que creo que
+  ocupa mucho espacio; también quisiera eso de "compartir" sections, esta función me gustó mucho, podemos iterar de nuevo?"
+- **S32** — Embed the web fonts in the hand-made artboards (inicio, organizacion, busqueda), verbatim: "3: hazlo."
+- **S33** — One collections tab label, verbatim: "7: intentemoslo, unificar por ahora, pero creo que no molesta tanto si no se
+  puede."
+- **S34** — Smoke dataset out of the demo catalog, verbatim: "5: hazlo" (asked to the `odp-docker` session, which owns the demo
+  catalog).
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -178,12 +212,20 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T18 | S17 | Playground `/dev/dataset-panel`: right-panel order, own scroll with responsive height, anchor button on card hover | worker | `39666ce` — awaiting author review |
 | T20 | S18 | Promote the dataset panel to the real sheet (+ panel scroll resets at page top, scrollbar hidden at rest); delete the playground | worker | `f459f7f` — promoted |
 | T21 | S19 | Organizations playground: sticky search/filters and sticky group titles (promotion after the presentation: needs type/acronym fields, Q11–Q13) | worker | `fac2965` — awaiting author review |
-| T22 | S22 | Collections mocks: org filter reusing the requests org tabs (H2-6b, Mis colecciones), sticky panel, visibility tag only when not public and in the common tag style, H3-3 panel lists the owner organizations reusing the dataset sheet's org card | worker | `bc2a71b` — awaiting author review |
+| T22 | S22 | Collections mocks: org filter reusing the requests org tabs (H2-6b, Mis colecciones), sticky panel, visibility tag only when not public and in the common tag style, H3-3 panel lists the owner organizations reusing the dataset sheet's org card | worker | `bc2a71b` — approved (L25) |
 | T23 | S23 | Organization sheet: design directions on the canvas (`design/organizacion/`) | worker | (this commit) — awaiting author review |
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | `ddfc67a` — awaiting author review |
-| T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | `7ebce71` — fix in; animation awaiting author review |
+| T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | `7ebce71` — fix in; animation approved (L25), promotion to `/search` pending |
 | T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | (see L22) — awaiting author review |
 | T27 | S25 | Promote the organizations proposal to `/organizations` (native data, graceful without type/acronym/hierarchy), delete the playground, re-capture H2-2 | worker | `d45095a` — promoted |
+| T28 | S26 | Diagnose and fix the H2-3 artboard scroll; re-capture H2-3 | worker | — |
+| T29 | S27 | One section-header piece with the share link; apply it to the dataset sheet's Colecciones, the resource page and the collection sheet | worker | — |
+| T30 | S28, S34 | Demo data: the PDF joins `matricula-facultad-gestion-ficticia`; smoke dataset out (`odp-docker` session); H2-5 captures link through the resource switcher | odp-docker + inline | — |
+| T31 | S29, S32 | Organization sheet direction 04 + fonts embedded in `design/organizacion/` | worker | — |
+| T32 | S30, S32 | Search hero direction 04 + fonts embedded in `design/busqueda/` | worker | — |
+| T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | — |
+| T34 | S33 | «Personales» in both collections views | inline | (this commit) |
+| T35 | S27, S28, S33 | Re-capture the prototype screens touched by T29, T30, T34 | inline | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -342,6 +384,14 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   desplazarse» states: `01-banda-compacta`, `02-consulta-como-titulo`, `03-tarjeta-sobre-la-banda`.
 - **L23** (2026-10-29, agent): full re-capture of the 14 prototype screens with every change of T20–T25 (`scripts/design-capture/batch-all.json`); verify at tolerance 64: 13 OK, the PDF differs by design (static stand-in). A first run aborted on the dev server's HMR recompilation and wrote nothing; the retry after the server settled passed.
 - **L24** (2026-10-29, author): "me gusta, promover. estoy un poco cansado,creo que me voy a dormir un rato,puedes dejar corriendo algunos workers mientras?y anota todo lo que falta revisar, preguntas y decisiones que falten." → S25/T27; handoff updated.
-- **L25** (2026-10-29, author) on the handoff review list, verbatim: "1: revisado, ok. 2: t22, mejor, mucho mejor. aprobado. 3: me
-  gusta mucho el nuevo, aprobado. 4: revisado, ok. 5: podrías darme las urls?" → dataset panel (T20) and `/organizations` (T27)
-  checked; collections mocks (T22) and the search bar animation (T25) approved; canvas URLs given (GitHub Pages).
+- **L26** (2026-10-29 10:20, author), verbatim: "h2-2: ok. h2-3: sigue fallando la animación del scroll, cuando hago scroll no se
+  comport como la page real, qué pasa? h2-3b: ok. h2-4: la nueva sectión de Colecciones falta eso de compartir la sectión,
+  agregar esto y refactoring, esto para las siguientes sectiones nuevas, si es que habrá. h2-5: me gusta, pero quisiera que sea
+  un solo dataset, o sea que esos recursos sean del mismo dataset y que se pueda navegar entre ellos con eso que tenemos en el
+  hero para cambiar entre los resources de una misma dataset. también noto que no tenemos eso de compartir las sectiones, eso del
+  url que revién vimos en la ficha de datasets. h2-6b: ok. h2-7: ok, pero lo mismo que con las fichas, falta eso de compartir
+  sections." — organization sheet, search and inicio feedback quoted in S29–S31 — "respondiendo las preguntas: 1: iterar con mis
+  preferencias. 2: iterar con mis preferencias. 3: hazlo. 4: por mi podemos aprobar, pero lo que digas. 5: hazlo 6: dejalo así,
+  como es demo/prototype creo que no hay problemas. 7: intentemoslo, unificar por ahora, pero creo que no molesta tanto si no se
+  puede." → S26–S34, T28–T35. Decision 4 (promote the bar animation to `/search`): after the presentation, to keep the demo page
+  stable today. Decision 6: `datos@umss.edu.bo` stays.

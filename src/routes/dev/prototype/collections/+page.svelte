@@ -17,7 +17,7 @@
 	con los mismos parámetros que `OrgTabs` (pestañas desde 611 px de contenedor, desplegable debajo, «Más (n)»
 	para las que no caben, barra pegada bajo el encabezado) y su modelo (`TODAS_LAS_ORGANIZACIONES`,
 	`hasOrganizationTabs`). No se monta `OrgTabs` tal cual porque su insignia se nombra «N pendientes»: acá cuenta
-	colecciones. «Todas» · las de personas · una por organización —en el panel, una por cada organización de quien
+	colecciones. «Todas» · «Personales» (una sola etiqueta en las dos vistas, L26) · una por organización —en el panel, una por cada organización de quien
 	mira—, cada una con su conteo. En el panel reemplazan al desplegable «Curadas por…», que no escalaba a varias
 	organizaciones; el filtro de visibilidad queda a la derecha de la fila, como «Mostrar» en «Solicitudes».
 
@@ -97,7 +97,7 @@ const all = $derived(
 const tabs = $derived(
 	curatorTabs(all, {
 		todas: TODAS_LAS_ORGANIZACIONES,
-		personales: view === "panel" ? "Personales" : "De personas",
+		personales: "Personales",
 		orgs: view === "panel" ? PANEL_VIEWER.orgs : undefined,
 	}),
 );

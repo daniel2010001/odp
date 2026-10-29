@@ -87,7 +87,7 @@ describe("maqueta — colecciones", () => {
 
 		expect(tabTexts()).toEqual([
 			"Todas 5",
-			"De personas 1",
+			"Personales 1",
 			"Dirección de Investigación 2",
 			"Facultad de Ciencias Agrícolas 1",
 			"Facultad de Ciencias y Tecnología 1",
@@ -106,7 +106,7 @@ describe("maqueta — colecciones", () => {
 			"Investigación y laboratorios de la FCyT",
 			"Producción científica 2025",
 		]);
-		await chooseTab(/De personas/);
+		await chooseTab(/Personales/);
 		expect(listNames()).toEqual(["Indicadores académicos para tesis"]);
 	});
 
