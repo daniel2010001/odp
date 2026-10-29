@@ -67,7 +67,7 @@ consulta.
 
 **Mensaje.** *«UMSSSTAT muestra una tabla en una página. Acá la unidad publica el dato mismo: se descarga, tiene
 licencia, tiene una aprobación detrás y se puede leer desde otro sistema.»*
-**[validar]** que UMSSSTAT no tenga descarga (está pendiente en `preguntas.md`).
+La portada de UMSSSTAT se revisó el 2026-10-29: muestra tablas sin descarga, exportación ni API (`preguntas.md`).
 
 Responde: «¿Quién puede publicar?», «¿Y si se publica algo por error?», «¿Por qué licencias?», «¿Quién administra los
 usuarios?», «¿Cuál es el diferenciador?».
