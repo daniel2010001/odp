@@ -8,14 +8,14 @@
 			"title": "H2-2 · Organizaciones",
 			"tradeoff": "Diseño para después, no construido: la propuesta elegida para /organizations (buscador y filtro por tipo con su cantidad, grupos por tipo, jerarquía, sigla y fecha); hoy el portal muestra una sola cuadrícula. Cantidad y fecha son nativas de CKAN; tipo y sigla serían campos propios de la organización y la jerarquía requiere ckanext-hierarchy",
 			"width": 1440,
-			"height": 4245
+			"height": 4269
 		},
 		{
 			"file": "h2-3-busqueda.html",
 			"title": "H2-3 · Búsqueda «matrícula»",
 			"tradeoff": "Construida hoy: la búsqueda real del catálogo, con filtros por organización, formato, etiqueta y licencia; encuentra datos de varias unidades en un solo lugar",
 			"width": 1440,
-			"height": 1956
+			"height": 2056
 		},
 		{
 			"file": "h2-3b-busqueda-sin-resultados.html",
@@ -71,7 +71,7 @@
 			"title": "H2-6b · Colecciones (menú principal)",
 			"tradeoff": "Diseño para después, no construido: la lista pública de colecciones que se abre desde el menú principal, sin filtro de visibilidad; las colecciones aún no existen en el portal",
 			"width": 1440,
-			"height": 1358
+			"height": 1573
 		},
 		{
 			"file": "h2-7-coleccion-de-una-persona.html",
@@ -85,14 +85,14 @@
 			"title": "Ficha de organización",
 			"tradeoff": "Construida hoy: la ficha real de la Dirección de Investigación con sus datasets; sólo la sección «Colecciones que cura» es diseño para después",
 			"width": 1440,
-			"height": 3349
+			"height": 3439
 		},
 		{
 			"file": "h3-1-mis-colecciones.html",
 			"title": "H3-1 · Mis colecciones",
 			"tradeoff": "Diseño para después, no construido: la lista de colecciones propias en el panel, con filtros de visibilidad y de curador; el panel existe hoy, esta sección no",
 			"width": 1440,
-			"height": 1358
+			"height": 1573
 		},
 		{
 			"file": "h3-3-coleccion-publica.html",

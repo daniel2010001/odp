@@ -316,3 +316,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
   the DOM; the titles now use `z-[15]` (below the bar's `z-20`).
 - **L22** (2026-10-28, design): `design/busqueda/` (T26) — three search hero directions, each with «Al llegar» and «Al
   desplazarse» states: `01-banda-compacta`, `02-consulta-como-titulo`, `03-tarjeta-sobre-la-banda`.
+- **L23** (2026-10-29, agent): full re-capture of the 14 prototype screens with every change of T20–T25 (`scripts/design-capture/batch-all.json`); verify at tolerance 64: 13 OK, the PDF differs by design (static stand-in). A first run aborted on the dev server's HMR recompilation and wrote nothing; the retry after the server settled passed.
