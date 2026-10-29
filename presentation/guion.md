@@ -43,6 +43,12 @@ Responde: «¿Qué busca solucionar la plataforma?» (`preguntas.md`).
 **Qué necesita.** Publicar las **tasas de graduación por cohorte**, que hoy sólo se ven como tabla en páginas de
 consulta.
 
+> **Datos de la demostración (2026-10-29).** Si no crea el dataset en vivo, use los que ya están: el borrador privado
+> «Asistencia a laboratorios de física básica por semestre» (paso 5: muestra «Solicitar publicación» con la sesión de
+> `editor-fcyt`) y «Proyectos de investigación por departamento», con una solicitud **pendiente** (paso 6, como
+> `admin-fcyt`). **Si la aprueba en vivo, deja de estar pendiente y el dataset pasa a público:** para repetir el ensayo
+> hay que pedir otra.
+>
 > En el handoff la historia era «Planificación publica la matrícula». La instancia de demostración no tiene una
 > organización de Planificación y sus usuarios de prueba son de la FCyT, así que la historia usa la FCyT. Se cuenta
 > igual: *una unidad* publica sus datos.
@@ -99,7 +105,7 @@ facultades.
 
 | # | Pantalla | Estado | Ruta | Qué decir |
 |---|---|---|---|---|
-| 1 | Mis colecciones (panel) | maqueta | `/dev/prototype/collections?vista=panel` | En su panel, María Fernanda Rojas Vargas, editora del Rectorado, ve las colecciones que cura ella y las del Rectorado, con su visibilidad: una lista de trabajo **privada** suya, que nadie más ve, y la de rendición de cuentas. |
+| 1 | Mis colecciones (panel) | maqueta | `/dev/prototype/collections?vista=panel` (entrar como `editor-rectorado`) | En su panel, María Fernanda Rojas Vargas, editora del Rectorado, ve las colecciones que cura ella y las del Rectorado, con su visibilidad: una lista de trabajo **privada** suya, que nadie más ve, y la de rendición de cuentas. |
 | 2 | Ficha de colección, vista del curador | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador` | Mientras se prepara es **privada**: sólo la ven los miembros del Rectorado. Reúne datasets del Rectorado, la FCyT y la FCS; para publicarla, **cada unidad dueña aprueba**: van 2 de 3. |
 | 3 | Ficha de colección, vista pública | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` | Así la ve cualquiera cuando las tres aprueban: sin el tablero de aprobaciones. |
 | 4 | Un dataset en varias colecciones | construida + maqueta | la ficha de «Matrícula estudiantil por carrera y gestión» (H2-4), sección «Aparece en las colecciones», en modo prototipo | Un dato se publica **una vez** y aparece en **varias** colecciones, de unidades distintas: nadie lo copia. (La maqueta aparte de H3-4 se retiró el 2026-10-29: repetía H2-4.) |
@@ -119,16 +125,21 @@ tener las suyas para revisar datos sin publicarlas, y una organización las suya
 
 ## Cómo diseñamos (2 minutos)
 
-**Qué mostrar:** el lienzo de Gentle Design con el diseño `inicio` (`https://daniel2010001.github.io/odp/design/` si se
-abre desde otro equipo).
+**Qué mostrar:** el lienzo de Gentle Design, o `https://daniel2010001.github.io/odp/` desde otro equipo (lleva al
+índice de los diseños). Cada diseño lleva el **paso del guion** al que pertenece: «H2-1 · Inicio», «H2-3 · Búsqueda»,
+«H2-2b · Ficha de organización».
 
 1. **El sistema de diseño** (`system.html`): colores, tipografías y componentes. *«Todas las pantallas salen de estos
    tokens; el mismo archivo los usa el portal, así que lo que se diseña es lo que se implementa.»*
-2. **Tres direcciones para el Inicio** (01, 02, 03): cada una con lo que gana y lo que pierde. *«No se diseña una sola
-   opción: se comparan alternativas.»*
-3. **La iteración** (04): *«Revisé las tres, me quedé con partes de cada una y salió esta síntesis.»* Nombrar uno o dos
-   ejemplos concretos: el encabezado de la 03, «Cómo llega un dato al catálogo» de la 02, la ficha de ejemplo de la 01.
-4. **Comentarios sobre el diseño:** se comenta sobre el elemento mismo y el cambio queda en el historial del repositorio.
+2. **Varias direcciones, no una** (H2-1 · Inicio 01, 02, 03): cada una con lo que gana y lo que pierde. *«No se diseña
+   una sola opción: se comparan alternativas.»*
+3. **La iteración** (H2-1 · Inicio 04 → 05, la elegida): *«Me quedé con partes de cada una, salió una síntesis, y la
+   síntesis se volvió a iterar.»* Nombrar uno o dos ejemplos concretos: el encabezado de la 03, «Cómo llega un dato al
+   catálogo» de la 02, la ficha de ejemplo de la 01.
+4. **El ciclo sigue abierto** *(opcional)*: la ficha de organización (H2-2b) va por la séptima dirección; para hoy se
+   usa la 02. *«Cuando una síntesis no convence, se vuelve a partir de la que más gustó.»*
+5. **Del diseño al portal:** una propuesta aprobada se prueba en una página de pruebas del portal y recién después se
+   pasa a la página real. Ejemplo de hoy: la barra de la búsqueda que se angosta al bajar (H2-3).
 
 Si preguntan **por qué no Figma**: el diseño vive en el repositorio, versionado junto al código, y usa los mismos tokens
 que el portal; no hay un archivo aparte que se desactualice. Es gratuito, sin límite de uso y local.
@@ -146,7 +157,18 @@ que el portal; no hay un archivo aparte que se desactualice. Es gratuito, sin l�
 
 ---
 
-## Pendientes antes del jueves
+## Antes de empezar (lista de verificación)
 
-1. Elegir o ajustar la dirección del Inicio (04) para la parte «Cómo diseñamos».
-2. Validar la duración y las respuestas **[validar]** de `preguntas.md`.
+1. **Modo prototipo** activado en el navegador con el que presenta (`https://odp.hs.lan/dev/prototype`).
+2. **Contraseñas** de `editor-fcyt`, `admin-fcyt` y `editor-rectorado` a mano, en una ventana que no se proyecta.
+3. **Pestañas abiertas** en orden: Inicio, la búsqueda «matrícula», el panel con sesión y el lienzo (o el índice de Pages).
+4. **No haga clic** en los botones de «Pruebe con» de una búsqueda **sin resultados**: hoy no filtran (anotado para
+   después).
+5. **La solicitud pendiente** del paso 6 de la historia 1 sirve para **un** ensayo: si la aprueba, pida otra antes de la
+   presentación.
+6. Los diseños con índice fijo (H2-3, H2-2b · 07) se ven bien en **Chrome**; en el lienzo no se desplazan.
+
+## Pendientes antes de presentar
+
+1. Validar la duración (**[validar]** cuánto tiempo le dan para exponer).
+2. Validar las respuestas **[validar]** de `preguntas.md` (siete) y confirmar que UMSSSTAT no tiene descarga.
