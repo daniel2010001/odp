@@ -8,21 +8,28 @@
 			"title": "Banda compacta",
 			"tradeoff": "La más continua con Inicio 05: la misma banda azul, la misma línea de cifras y la misma tarjeta con el selector de alcance, en versión baja, así que el visitante reconoce de dónde viene. La banda cuesta altura: la primera tarjeta empieza a 437 px (hoy, 704 px). Al desplazarse, el alcance viaja con el campo como un rótulo a su izquierda. Sólo «Conjuntos de datos» existe hoy como búsqueda; los demás alcances son diseño",
 			"width": 1440,
-			"height": 2196
+			"height": 2218
 		},
 		{
 			"file": "02-consulta-como-titulo.html",
 			"title": "La consulta como título",
 			"tradeoff": "Resultados primero: sin banda, la búsqueda es el título y el resumen dice cuántos y de qué unidades; el alcance pasa a pestañas que son la propia barra, así que no hay un elemento de más. Es la que antes muestra resultados (primera tarjeta a 384 px), pero rompe con la banda de Inicio y el campo queda en segundo plano, como herramienta para corregir. Las pestañas sin cantidad (Todo, Unidades, Temas, Colecciones) son diseño: hoy sólo se buscan conjuntos de datos",
 			"width": 1440,
-			"height": 2143
+			"height": 2165
 		},
 		{
 			"file": "03-tarjeta-sobre-la-banda.html",
 			"title": "Tarjeta sobre la banda",
-			"tradeoff": "Lleva la tarjeta de Inicio 05 entera, con sus tipos de documento convertidos en atajos con lo que hay de cada uno para esta búsqueda (Tablas 2, Documentos 2): explica qué tipos publica el catálogo justo donde se busca. Es el hero más alto (primera tarjeta a 565 px) y los tipos repiten el filtro «Formato» de la columna; el alcance queda como una línea secundaria. Al desplazarse, los tipos bajan a la barra como atajos pequeños",
+			"tradeoff": "Lleva la tarjeta de Inicio 05 entera, con sus tipos de documento convertidos en atajos con lo que hay de cada uno para esta búsqueda (Tablas 2, Documentos 2): explica qué tipos publica el catálogo justo donde se busca. Es el hero más alto (primera tarjeta a 585 px) y los tipos repiten el filtro «Formato» de la columna; el alcance queda como una línea secundaria. Al desplazarse, los tipos bajan a la barra como atajos pequeños",
 			"width": 1440,
-			"height": 2323
+			"height": 2365
+		},
+		{
+			"file": "04-sintesis.html",
+			"title": "Síntesis: la consulta en la banda",
+			"tradeoff": "Reúne lo que se eligió de cada una: la banda de Inicio 05 (01), «matrícula» como título con el resumen de qué encontró y de qué unidades (02) y, de 03, lo que hay para esta búsqueda por tipo de documento, pero como una línea al pie de la banda y no como tarjeta en medio del hero. Es sencilla: un título, una frase, un campo y una línea; el campo es el mismo rótulo de alcance + consulta que viaja a la barra al desplazarse. Cuesta altura: la primera tarjeta empieza a 496 px (01: 437, 02: 384; hoy, 704 px), y los tipos repiten el filtro «Formato» de la columna, como en 03. No lleva enlaces para compartir secciones: la página no tiene secciones que valga la pena enlazar, y lo que se comparte es la dirección de la búsqueda. Factible hoy: la cantidad y las unidades (faceta organization) y las cifras por formato (faceta res_format), que /search ya pide. Diseño: agrupar los formatos en los cuatro tipos (la correspondencia sale de src/lib/resources/preview.ts) y sumar sus cifras, que cuenta dos veces un conjunto con CSV y XLSX a la vez (la cifra exacta pide una consulta por tipo); las sugerencias «Pruebe también con»; los alcances distintos de «Conjuntos de datos»; y la barra que se recoge, aprobada en /dev/search-bar pero sin promover a /search",
+			"width": 1440,
+			"height": 2299
 		}
 	]
 }
