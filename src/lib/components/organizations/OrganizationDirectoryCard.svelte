@@ -1,39 +1,54 @@
 <!--
-	Tarjeta propuesta (S9, puntos 3 y 4). Parte de la real (`$lib/components/organizations/OrganizationCard.svelte`)
-	y le agrega, cada cosa con su interruptor:
+	Tarjeta del listado de organizaciones (`/organizations`, S25 de `odd/tasks/prototype-presentation.md`).
+	Parte de `OrganizationCard` y suma lo que la propuesta aprobada pidió:
 
-	- **Jerarquía**: la facultad dice «N unidades dependientes» y las enlaza; la unidad dice de quién depende.
-	- **Campos**: la sigla junto a la etiqueta y la fecha de la última actualización al pie.
+	- **Cantidad y fecha**: los datasets y la fecha de la última actualización, que el catálogo ya entrega.
+	- **Sigla** (Q13): junto al tipo, sólo si la organización la declara.
+	- **Jerarquía** (Q6): «Depende de …» y «N unidades dependientes», sólo si el dato existe. Sin dato no
+	  hay marca ni hueco.
 
-	Como la tarjeta ahora lleva enlaces propios, ya no puede ser un único `<a>` (un enlace dentro de otro
-	no es HTML válido): el título es el enlace y su `::after` cubre la tarjeta entera; los enlaces de la
-	jerarquía quedan por encima con `relative z-10`.
+	Como la tarjeta puede llevar enlaces propios, no es un único `<a>` (un enlace dentro de otro no es HTML
+	válido): el título es el enlace y su `::after` cubre la tarjeta entera; los enlaces de la jerarquía
+	quedan por encima con `relative z-10`.
 -->
 <script lang="ts">
 import { CalendarDays, Database, Network } from "@lucide/svelte";
-import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
-import { formatDate, type MockOrg, typeLabel } from "./orgs";
+import type { CkanOrganization } from "$lib/types/ckan";
+import { formatDate } from "$lib/utils/ckan";
+import OrganizationLogo from "./OrganizationLogo.svelte";
+import { orgTypeInfo, orgTypeOf } from "./org-type";
+
+interface OrgLink {
+	name: string;
+	title: string;
+}
 
 let {
 	org,
-	dependents,
+	count,
+	updated,
+	acronym,
 	parent,
-	hierarchy,
-	fields,
+	dependents = [],
 }: {
-	org: MockOrg;
-	dependents: MockOrg[];
-	parent?: MockOrg;
-	hierarchy: boolean;
-	fields: boolean;
+	org: CkanOrganization;
+	count: number;
+	/** Fecha ISO de la última actualización; sin ella no se muestra. */
+	updated?: string;
+	/** Sigla declarada por la organización. */
+	acronym?: string;
+	parent?: OrgLink;
+	dependents?: OrgLink[];
 } = $props();
 
-function hrefOf(target: MockOrg): string {
+function hrefOf(target: { name: string }): string {
 	return `/organization/${encodeURIComponent(target.name)}`;
 }
 
+const title = $derived(org.title || org.name);
 const titleId = $derived(`org-title-${org.name}`);
+const typeLabel = $derived(orgTypeInfo(orgTypeOf(org.title || "")).label);
 </script>
 
 <article aria-labelledby={titleId} class="group h-full" data-testid={`org-card-${org.name}`}>
@@ -44,18 +59,19 @@ const titleId = $derived(`org-title-${org.name}`);
 			<span
 				class="inline-flex w-fit items-center rounded-md bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary"
 			>
-				{typeLabel(org.type)}
+				{typeLabel}
 			</span>
-			{#if fields}
+			{#if acronym}
 				<span class="text-xs font-semibold tracking-wide text-muted-foreground" data-org-acronym
-					>{org.acronym}</span
+					>{acronym}</span
 				>
 			{/if}
 		</div>
 
 		<OrganizationLogo
-			imageUrl=""
-			name={org.title}
+			imageUrl={org.image_url}
+			name={title}
+			abbr={acronym}
 			class="size-11 rounded-lg bg-primary font-heading text-xl font-bold text-primary-foreground"
 		/>
 
@@ -65,12 +81,14 @@ const titleId = $derived(`org-title-${org.name}`);
 					href={hrefOf(org)}
 					class="rounded-sm no-underline underline-offset-2 transition-colors after:absolute after:inset-0 after:rounded-xl group-hover:text-primary/80 group-hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				>
-					{org.title}
+					{title}
 				</a>
 			</h3>
-			<p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{org.description}</p>
+			<p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+				{org.description || "Sin descripción"}
+			</p>
 
-			{#if hierarchy && parent}
+			{#if parent}
 				<p class="mt-3 text-xs text-muted-foreground">
 					Depende de
 					<a
@@ -82,7 +100,7 @@ const titleId = $derived(`org-title-${org.name}`);
 				</p>
 			{/if}
 
-			{#if hierarchy && dependents.length > 0}
+			{#if dependents.length > 0}
 				<div class="mt-3">
 					<p class="flex items-center gap-1.5 text-xs font-semibold text-primary">
 						<Network class="size-3.5" aria-hidden="true" />
@@ -106,11 +124,13 @@ const titleId = $derived(`org-title-${org.name}`);
 			{/if}
 		</div>
 
-		<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border pt-3">
-			{#if org.count > 0}
+		<div
+			class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border pt-3"
+		>
+			{#if count > 0}
 				<span class="flex items-center gap-1.5 text-[13px] font-semibold text-primary">
 					<Database class="size-4" aria-hidden="true" />
-					{org.count} dataset{org.count === 1 ? "" : "s"}
+					{count} dataset{count === 1 ? "" : "s"}
 				</span>
 			{:else}
 				<span class="flex items-center gap-1.5 text-[13px] text-muted-foreground">
@@ -118,10 +138,10 @@ const titleId = $derived(`org-title-${org.name}`);
 					Aún sin datasets publicados
 				</span>
 			{/if}
-			{#if fields && org.updated}
+			{#if count > 0 && updated}
 				<span class="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<CalendarDays class="size-3.5" aria-hidden="true" />
-					Actualizado el <time datetime={org.updated}>{formatDate(org.updated)}</time>
+					<span>Actualizado el <time datetime={updated}>{formatDate(updated)}</time></span>
 				</span>
 			{/if}
 		</div>

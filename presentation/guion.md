@@ -74,7 +74,7 @@ usuarios?», «¿Cuál es el diferenciador?».
 | # | Pantalla | Estado | Ruta | Qué decir |
 |---|---|---|---|---|
 | 1 | Inicio | construida | `/` | La puerta de entrada: buscar, o explorar por unidad o por tema. |
-| 2 | Organizaciones (propuesta) | maqueta | `/dev/organizations` | *(opcional)* Las unidades agrupadas por tipo —facultades, direcciones— con su sigla y la fecha de su último dato. |
+| 2 | Organizaciones | construida | `/organizations` | *(opcional)* Las unidades agrupadas por tipo —facultades, direcciones— con la fecha de su último dato. La sigla y la jerarquía aparecen cuando el catálogo tenga esos campos. |
 | 3 | Búsqueda «matrícula» | construida | `/search?q=matrícula` | Encuentra datos de **varias unidades** en un solo lugar. |
 | 4 | Ficha del dataset | construida | `Matrícula estudiantil por carrera y gestión` | Qué contiene, quién lo publicó, cuándo, con qué licencia. |
 | 5 | Recurso CSV: tabla y gráfico | construida | el CSV de «Matrícula por facultad y gestión» (Rectorado), otro resultado de la misma búsqueda | Se ve antes de descargar; el gráfico se arma sin programar. Botón para copiar el acceso por API. *(La matrícula de la FCS es un XLSX que no está cargado para vista previa: por eso este paso usa el CSV del Rectorado.)* |

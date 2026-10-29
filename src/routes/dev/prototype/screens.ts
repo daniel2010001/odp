@@ -33,7 +33,7 @@ export const SCREENS: Screen[] = [
 		title: "Organizaciones",
 		href: "/organizations",
 		audience: "Visitante",
-		note: "La propuesta de cambios se revisa en el playground /dev/organizations.",
+		note: "Con la propuesta aprobada: buscador, filtro por tipo y grupos por tipo.",
 	},
 	{
 		kind: "built",

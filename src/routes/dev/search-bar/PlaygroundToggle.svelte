@@ -1,7 +1,7 @@
 <!--
 	Interruptor del playground: un par (o más) de botones excluyentes. Va en la sección que cambia, no en
 	el panel (AGENTS.md, regla 8), con el borde punteado que lo separa del producto. Copia del de
-	`/dev/organizations`: cada playground se borra al promoverse, así que ninguno depende del otro.
+	otro playground (el de `/dev/organizations`, ya promovido y borrado): cada playground se borra al promoverse, así que ninguno depende del otro.
 -->
 <script lang="ts" generics="T extends string">
 let {

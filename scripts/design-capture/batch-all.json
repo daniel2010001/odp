@@ -27,9 +27,8 @@
 	"screens": [
 		{
 			"file": "h2-2-organizaciones.html",
-			"url": "/dev/organizations?caso=completa&vista=propuesta&grupos=si&jerarquia=si&campos=si",
-			"waitForSelector": "[data-testid=\"org-proposed\"]",
-			"aliases": ["/organizations", "/dev/organizations"]
+			"url": "/organizations",
+			"waitForSelector": "[data-testid=\"org-directory\"] time"
 		},
 		{
 			"file": "h2-3-busqueda.html",

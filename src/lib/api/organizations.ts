@@ -13,6 +13,64 @@ export function createOrganizationApi(client: CkanClient) {
 			});
 		},
 
+		/**
+		 * Todas las organizaciones, sin tope: la página de organizaciones no se pagina (Q12 de
+		 * `design-system/datos-umss/preguntas-abiertas.md`), pero `organization_list` con todos los campos
+		 * devuelve **25 como máximo** por pedido (`ckan.group_and_organization_list_all_fields_max`, medido).
+		 * Se piden de a 25 hasta que un pedido vuelva incompleto: con N organizaciones son ⌊N/25⌋ + 1
+		 * pedidos.
+		 *
+		 * `include_groups` trae los grupos en los que está cada organización, que es como CKAN declara de
+		 * quién depende (Q6); hoy vuelve vacío y la jerarquía no se muestra.
+		 */
+		async listAll(): Promise<ListedOrganization[]> {
+			const all: ListedOrganization[] = [];
+			// Tope de seguridad: 40 pedidos son 1000 organizaciones, muy por encima de las de la universidad.
+			for (let page = 0; page < MAX_LIST_PAGES; page++) {
+				const chunk = await client.post<ListedOrganization[]>("organization_list", {
+					all_fields: true,
+					include_extras: true,
+					include_groups: true,
+					limit: LIST_PAGE_SIZE,
+					offset: page * LIST_PAGE_SIZE,
+				});
+				all.push(...chunk);
+				if (chunk.length < LIST_PAGE_SIZE) break;
+			}
+			return all;
+		},
+
+		/**
+		 * Fecha de la última actualización de cada organización (por su `name`): la del dataset público
+		 * modificado más recientemente. Es **un** pedido a la búsqueda, ordenado del más reciente al más
+		 * antiguo y con sólo los dos campos que hacen falta, en vez de uno por organización. Si hubiera más
+		 * de 1000 datasets, una organización cuyo último cambio quede fuera de los primeros 1000 sale sin
+		 * fecha, nunca con una equivocada.
+		 *
+		 * Si la búsqueda falla devuelve un mapa vacío: la fecha es un dato de más y no debe tumbar la página.
+		 */
+		async lastUpdates(): Promise<Map<string, string>> {
+			try {
+				const result = await client.post<{
+					results: { organization?: string | null; metadata_modified?: string }[];
+				}>("package_search", {
+					q: "*:*",
+					fl: "organization,metadata_modified",
+					sort: "metadata_modified desc",
+					rows: 1000,
+				});
+				const updates = new Map<string, string>();
+				for (const { organization, metadata_modified } of result.results) {
+					if (organization && metadata_modified && !updates.has(organization)) {
+						updates.set(organization, metadata_modified);
+					}
+				}
+				return updates;
+			} catch {
+				return new Map();
+			}
+		},
+
 		/** Obtener detalle de una organización por ID o slug */
 		async show(id: string): Promise<CkanOrganization> {
 			return client.post<CkanOrganization>("organization_show", {
@@ -184,6 +242,12 @@ export function createOrganizationApi(client: CkanClient) {
 		},
 	};
 }
+
+const LIST_PAGE_SIZE = 25;
+const MAX_LIST_PAGES = 40;
+
+/** Una organización de `listAll`: con `groups`, los grupos en los que está (de quién depende). */
+export type ListedOrganization = CkanOrganization & { groups?: { name: string }[] };
 
 /**
  * Los tres estados de una pregunta de permiso al catálogo: **cerrados** y fail-closed.

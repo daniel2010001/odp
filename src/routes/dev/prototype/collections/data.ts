@@ -25,7 +25,7 @@ export interface Org {
 	acronym: string;
 }
 
-/** Las organizaciones de `src/lib/mock/data.ts`, con su sigla de `src/routes/dev/organizations/orgs.ts`. */
+/** Las organizaciones de `src/lib/mock/data.ts`, con la sigla que tenían en la propuesta de organizaciones (hoy promovida a `/organizations`, T27). */
 export const ORGS: Record<string, Org> = {
 	fcyt: { name: "fcyt", title: "Facultad de Ciencias y Tecnología", acronym: "FCyT" },
 	fcs: { name: "fcs", title: "Facultad de Ciencias de la Salud", acronym: "FCS" },

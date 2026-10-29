@@ -4,6 +4,7 @@ import Card from "$lib/components/ui/card/card.svelte";
 import type { CkanOrganization } from "$lib/types/ckan";
 import { cn } from "$lib/utils";
 import OrganizationLogo from "./OrganizationLogo.svelte";
+import { orgTypeInfo, orgTypeOf } from "./org-type";
 
 // El enlace a la organización se arma codificado en su única fuente: este valor por defecto. Para los
 // slugs de CKAN `encodeURIComponent` es un no-op, pero deja la regla en una sola forma y evita un enlace
@@ -25,15 +26,7 @@ let {
 const title = $derived(org.title || org.name);
 const description = $derived(org.description || "Sin descripción");
 
-const badgeLabel = $derived.by(() => {
-	if (badge) return badge;
-	const t = (org.title || "").toLowerCase();
-	if (t.includes("facultad")) return "Facultad";
-	if (t.includes("rectorado")) return "Rectorado";
-	if (t.includes("dirección") || t.includes("direccion")) return "Dirección";
-	if (t.includes("instituto") || t.includes("centro")) return "Instituto";
-	return "Unidad";
-});
+const badgeLabel = $derived(badge || orgTypeInfo(orgTypeOf(org.title || "")).label);
 </script>
 
 <a href={href} class="group block h-full no-underline">

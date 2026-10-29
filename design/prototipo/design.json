@@ -6,9 +6,9 @@
 		{
 			"file": "h2-2-organizaciones.html",
 			"title": "H2-2 · Organizaciones",
-			"tradeoff": "Diseño para después, no construido: la propuesta elegida para /organizations (buscador y filtro por tipo con su cantidad, grupos por tipo, jerarquía, sigla y fecha); hoy el portal muestra una sola cuadrícula. Cantidad y fecha son nativas de CKAN; tipo y sigla serían campos propios de la organización y la jerarquía requiere ckanext-hierarchy",
+			"tradeoff": "Construida hoy: la propuesta elegida, ya en /organizations, con datos reales: buscador y filtro por tipo con su cantidad (pegados al desplazarse), grupos por tipo con su título pegado, y en cada tarjeta la cantidad de datasets y la fecha de la última actualización. El tipo todavía se deduce del nombre de la organización; la sigla y la jerarquía («Depende de», «N unidades dependientes») aparecerán cuando la organización tenga esos campos (Q11, Q13, Q6): hoy no se muestran",
 			"width": 1440,
-			"height": 4269
+			"height": 1917
 		},
 		{
 			"file": "h2-3-busqueda.html",

@@ -296,3 +296,102 @@ describe("createOrganizationApi.listUpdatableOrganizationIds", () => {
 		expect(resultado).toEqual({ state: "unknown" });
 	});
 });
+
+describe("createOrganizationApi.listAll", () => {
+	// Q12: la página de organizaciones no se pagina, pero `organization_list` con todos los campos devuelve
+	// 25 como máximo por pedido (`ckan.group_and_organization_list_all_fields_max`). Se piden de a 25 hasta
+	// que un pedido vuelva incompleto.
+	function pagedClient(total: number) {
+		const all = Array.from({ length: total }, (_, index) =>
+			makeOrg({ id: `org-${index}`, name: `org-${index}` }),
+		);
+		const post = vi.fn(async (_action: string, params?: Record<string, unknown>) => {
+			const offset = Number(params?.offset ?? 0);
+			const limit = Number(params?.limit ?? 25);
+			return all.slice(offset, offset + limit);
+		});
+		return { client: { post } as unknown as CkanClient, post };
+	}
+
+	it("trae todas, de a 25 por pedido, con los campos, los extras y los grupos", async () => {
+		const { client, post } = pagedClient(60);
+
+		const orgs = await createOrganizationApi(client).listAll();
+
+		expect(orgs).toHaveLength(60);
+		expect(post.mock.calls.map(([action, params]) => [action, params])).toEqual(
+			[0, 25, 50].map((offset) => [
+				"organization_list",
+				{ all_fields: true, include_extras: true, include_groups: true, limit: 25, offset },
+			]),
+		);
+	});
+
+	it("con menos de 25 organizaciones hace un solo pedido", async () => {
+		const { client, post } = pagedClient(5);
+
+		expect(await createOrganizationApi(client).listAll()).toHaveLength(5);
+		expect(post).toHaveBeenCalledTimes(1);
+	});
+
+	it("con exactamente 25 confirma con un pedido más, que vuelve vacío", async () => {
+		const { client, post } = pagedClient(25);
+
+		expect(await createOrganizationApi(client).listAll()).toHaveLength(25);
+		expect(post).toHaveBeenCalledTimes(2);
+	});
+
+	it("propaga el error del catálogo: la página decide qué mostrar", async () => {
+		const post = vi.fn(async () => {
+			throw new Error("caído");
+		});
+
+		await expect(
+			createOrganizationApi({ post } as unknown as CkanClient).listAll(),
+		).rejects.toThrow("caído");
+	});
+});
+
+describe("createOrganizationApi.lastUpdates", () => {
+	it("da la fecha del dataset más reciente de cada organización, en un solo pedido", async () => {
+		const { client, post } = makeClient({
+			package_search: {
+				count: 4,
+				results: [
+					{ organization: "fca", metadata_modified: "2026-10-21T01:12:30.930Z" },
+					{ organization: "fcyt", metadata_modified: "2026-10-20T22:02:42.593Z" },
+					{ organization: "fca", metadata_modified: "2026-10-01T00:00:00.000Z" },
+					{ organization: null, metadata_modified: "2026-09-01T00:00:00.000Z" },
+				],
+			},
+		});
+
+		const updates = await createOrganizationApi(client).lastUpdates();
+
+		expect(updates).toEqual(
+			new Map([
+				["fca", "2026-10-21T01:12:30.930Z"],
+				["fcyt", "2026-10-20T22:02:42.593Z"],
+			]),
+		);
+		expect(post).toHaveBeenCalledTimes(1);
+		const [action, params] = post.mock.calls[0] as [string, Record<string, unknown>];
+		expect(action).toBe("package_search");
+		expect(params).toEqual({
+			q: "*:*",
+			fl: "organization,metadata_modified",
+			sort: "metadata_modified desc",
+			rows: 1000,
+		});
+	});
+
+	it("si la búsqueda falla devuelve un mapa vacío: la fecha es un dato de más, no tumba la página", async () => {
+		const { client } = makeClient({
+			package_search: () => {
+				throw new Error("caído");
+			},
+		});
+
+		expect(await createOrganizationApi(client).lastUpdates()).toEqual(new Map());
+	});
+});

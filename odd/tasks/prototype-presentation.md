@@ -183,7 +183,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | `ddfc67a` — awaiting author review |
 | T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | `7ebce71` — fix in; animation awaiting author review |
 | T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | (see L22) — awaiting author review |
-| T27 | S25 | Promote the organizations proposal to `/organizations` (native data, graceful without type/acronym/hierarchy), delete the playground, re-capture H2-2 | worker | — |
+| T27 | S25 | Promote the organizations proposal to `/organizations` (native data, graceful without type/acronym/hierarchy), delete the playground, re-capture H2-2 | worker | (this commit) — promoted |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -196,8 +196,8 @@ The prototype is presented on the Gentle Design canvas (S15) and the stories are
 on (S14). Shareable: `https://daniel2010001.github.io/odp/design/` (GitHub Pages serves this branch). Canvas (this machine
 only; SSH tunnel from the desktop): `http://127.0.0.1:34237/…/d/prototipo/`.
 
-**Running when the author left:** T27 — promote the organizations proposal to `/organizations` (native data only) and
-re-capture H2-2. The agent commits, runs the suite and pushes when it finishes.
+**T27 landed** (organizations proposal promoted to `/organizations`, native data only; playground deleted; H2-2 re-captured from
+the real page). The search placeholder is now «Buscar por nombre» (no organization has an acronym yet).
 
 **Awaiting the author's review**
 1. Dataset sheet with the promoted panel (T20): `https://odp.hs.lan/dataset/matricula-estudiantil-por-carrera-y-gestion`.
