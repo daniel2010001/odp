@@ -54,6 +54,9 @@
   la página de restablecer contraseña de CKAN, no al portal. Para un flujo del portal (aceptar y fijar contraseña) hace
   falta trabajo en el portal o personalizar la plantilla en `ckanext-umss`; el nombre de usuario lo genera CKAN desde el
   correo. Producción necesita un SMTP real de la universidad.
+  **Aprobado en principio y diferido (2026-10-29), el autor a `odp-docker`:** «podemos intentar usarlo, pero para luego de la
+  presentación de hoy, no es algo urgente, lo vemos cuando lleguemos a su feature». Al empezar la feature de invitaciones,
+  avisarle a la sesión de `odp-docker` para que agregue Mailpit según su estimación.
 
 ## El README del sistema de diseño quedó atrás de `src/app.css` (hallado en la sincronización de Gentle Design, 2026-10-28)
 
