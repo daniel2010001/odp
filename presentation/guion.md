@@ -102,7 +102,7 @@ facultades.
 | 1 | Mis colecciones (panel) | maqueta | `/dev/prototype/collections?vista=panel` | En su panel, María Fernanda Rojas Vargas, editora del Rectorado, ve las colecciones que cura ella y las del Rectorado, con su visibilidad: una lista de trabajo **privada** suya, que nadie más ve, y la de rendición de cuentas. |
 | 2 | Ficha de colección, vista del curador | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador` | Mientras se prepara es **privada**: sólo la ven los miembros del Rectorado. Reúne datasets del Rectorado, la FCyT y la FCS; para publicarla, **cada unidad dueña aprueba**: van 2 de 3. |
 | 3 | Ficha de colección, vista pública | maqueta | `/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` | Así la ve cualquiera cuando las tres aprueban: sin el tablero de aprobaciones. |
-| 4 | Un dataset en dos colecciones | maqueta | `/dev/prototype/dataset-collections?d=informe-gestion-2025-fcyt&como=rectorado` | El informe de gestión de la FCyT se publicó **una vez** y está en la colección del Rectorado **y** en la de la Dirección de Investigación. |
+| 4 | Un dataset en varias colecciones | construida + maqueta | la ficha de «Matrícula estudiantil por carrera y gestión» (H2-4), sección «Aparece en las colecciones», en modo prototipo | Un dato se publica **una vez** y aparece en **varias** colecciones, de unidades distintas: nadie lo copia. (La maqueta aparte de H3-4 se retiró el 2026-10-29: repetía H2-4.) |
 
 **Mensaje — el caso de la carta.** *«La unidad publica el documento una sola vez y cada instancia que lo necesita lo
 incluye en su colección. Nadie lo copia, todos ven la misma versión oficial y queda registrado quién lo publicó.»*

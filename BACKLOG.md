@@ -41,6 +41,21 @@
   (se revierte con `package_patch private=false`). No lo crea el seed: vino de una prueba de humo manual. Decidir si se
   borra.
 
+## Después de la presentación (2026-10-29): lo que el autor dejó para revisar
+
+- [ ] `[v1]` `/search`: un botón de «Pruebe con» en una búsqueda sin resultados **no filtra** (la página lee la URL una sola
+  vez y, al navegar dentro de la misma ruta, reescribe la URL vieja). El arreglo ya está en `/dev/search-extras` (releer la
+  URL en `afterNavigate`); el autor: «para después».
+- [ ] `[v1]` Decidir `/dev/search-extras` («Pruebe con» y «Lo más reciente del catálogo» también con resultados) y si un botón
+  de «Pruebe con» conserva el texto buscado (el autor: «creo que no, pero lo decidimos luego»).
+- [ ] `[v1]` Ruta de navegación de una colección personal: «Colecciones › Personales › …» queda por ahora; el autor: «no
+  termina de gustar, pero creo que es una buena alternativa por ahora, queda, pero TODO para revisarlo después en la
+  implementación».
+- [ ] `[v1]` La ficha de organización real no tiene ruta de navegación: arreglarlo al implementar, o cuando se elija entre las
+  propuestas de ficha (`design/organizacion/`).
+- [ ] `[v0]` Seed: los datos que `odp-docker` creó a mano el 2026-10-29 para las capturas (un borrador privado de la FCyT, otro
+  con solicitud pendiente, la editora del Rectorado) no los crea el seed.
+
 ## La invitación de usuarios depende de poder probar el correo (Q9, decidido 2026-10-29)
 
 - [ ] `[v1]` Probar el envío de correo con algo pequeño (por ejemplo, un receptor de correo de prueba en el entorno dev de

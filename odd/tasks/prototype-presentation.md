@@ -186,6 +186,13 @@ imported into Figma and presented as a click-through prototype before the tribun
 - **S41** — Search, verbatim: "search: revisado. ok, pero me gustaría saber si podemos poner eso que sale cuando no hay resultados,
   cosa que esté "siempre", podemos probrar? por ahora el search está muy bien, esto es solo un añadido que quisiera probar"
 
+- **S42** — Breadcrumbs and H3-4 (2026-10-29), verbatim: "en h2-6b: en el breadcrum aun hay "inicio", quitar, como se quedaría de
+  un solo nivel quitar todo el breadcrum del buscador, como los otros buscadores, el breadcrum solo en fichas, como los datasets o
+  las collections, no en buscadores, como el search o el de orgs." … "h3-2: en el breadcrum creo que falta la raíz, en este caso
+  creo que sería las collections. h3-4: creo que la ficha ya tiene esto, la h2-4, la h3-4 creo que no estra porque parece
+  repetido, o qué intentas mostrar? podemos poner más collections en la ficha de h2-4, así mostramos que tiene varios
+  collactions."
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -260,6 +267,8 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T40 | S39 | Root `index.html` redirecting GitHub Pages to `design/` | inline | (this commit) |
 | T41 | S40 | Organization sheet 07 from 06: sticky figures index, unit data out of the hero | worker | (this commit): a compact copy of the figures index sticks under the header (CSS `scroll-state(stuck)`, Chromium only; not on the canvas); unit data as its own section; band 369 px (06: 599) — awaiting author review |
 | T42 | S41 | Playground `/dev/search-extras`: the no-results blocks («Pruebe con», «Mientras tanto, lo más reciente») shown always, with switches | worker | (this commit): «Pruebe con» above the results, «Lo más reciente del catálogo» after the pagination (no repeated cards); same-route links re-read the URL (the fix for the real `/search` chip defect, to promote) — awaiting author review |
+| T43 | S42 | Collections mocks: no breadcrumb on the collections lists; «Colecciones» as the root of every collection-sheet breadcrumb; H2-4's dataset in more collections; drop H3-4 | worker | — |
+| T44 | S42 | Re-capture H1-5, H1-6 (new FCyT demo data), H2-4, H2-6b, H2-7, H3-1…H3-3 (Rectorado editor), drop H3-4 | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -463,3 +472,10 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   21 OK; H1-1 differs (fixed modal centered on the full-height artboard) and H2-5e (static PDF stand-in). Deviations: H1-5 shows an
   approved dataset with a session (no private FCyT draft without a request exists in the demo catalog); H1-6 shows 7 resolved
   requests (0 pending); story 3 shows `editor-fcyt` (no Rectorado account).
+- **L34** (2026-10-29 ~12:25, author): S42 (quoted there). Also: "h2-7 … hay una parte que dice "personales", esto no termina de
+  gustar, pero creo que es una buena alternativa por ahora, queda, pero TODO para revisarlo después en la implementación. h2-2b: no
+  tiene breadcrum, creo que es el que tenemos ahora, no? por ahora está bien, pero para implementar arreglar esto, o cuando hayamos
+  decidido entre las propuestas de las fichas de las orgs." Search: "lo del search lo dejamos por ahora, lo decido luego de la
+  presentación" — the «Pruebe con» chip defect on `/search`: "para después"; keep the query on a chip: "creo que no, pero lo
+  decidimos luego". `odp-docker` asked (approved: "hazlo") for a private FCyT draft without a request, one with a pending request,
+  and a Rectorado editor account (María Fernanda Rojas Vargas). `presentation/guion.md` story 3 step 4 now points to H2-4.
