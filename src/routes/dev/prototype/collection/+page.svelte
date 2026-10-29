@@ -29,10 +29,10 @@
 	vista pública lista las organizaciones dueñas de los datasets con el diseño de la tarjeta «Organización» de la
 	ficha del dataset (`OrganizationLogo`, el título y la flecha del pie), en lista: cada una enlaza a su ficha.
 
-	S36: la ruta de navegación no empieza en «Inicio» (`collectionTrail`). Curada por una organización, es el árbol de
-	esa organización —de la más alta hasta la curadora, cada una hacia su ficha— y después la colección; la
-	jerarquía es figurativa (Q6), sólo navegación. Curada por una persona no hay árbol: «Colecciones › Personales»,
-	hacia la lista con la pestaña «Personales» elegida.
+	S36: la ruta de navegación no empieza en «Inicio» (`collectionTrail`); S42: su raíz es «Colecciones», la lista.
+	Curada por una organización, sigue el árbol de esa organización —de la más alta hasta la curadora, cada una hacia
+	su ficha— y después la colección; la jerarquía es figurativa (Q6), sólo navegación. Curada por una persona no hay
+	árbol: «Colecciones › Personales», hacia la lista con la pestaña «Personales» elegida.
 
 	S27: cada sección se comparte como las de la ficha del dataset (`Section`): `#description`, `#datasets`,
 	`#information`, `#organizations` y, en la vista del curador, `#publication`.

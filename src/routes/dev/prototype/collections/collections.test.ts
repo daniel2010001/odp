@@ -11,7 +11,15 @@ import { page } from "$app/stores";
 import CollectionMock from "../collection/+page.svelte";
 import DatasetCollectionsMock from "../dataset-collections/+page.svelte";
 import CollectionsMock from "./+page.svelte";
-import { COLLECTIONS, canSee, collectionBySlug, DATASETS } from "./data";
+import {
+	COLLECTIONS,
+	canSee,
+	collectionBySlug,
+	collectionsOf,
+	DATASETS,
+	datasetBySlug,
+	ownerOrgs,
+} from "./data";
 import VisibilityBadge from "./VisibilityBadge.svelte";
 
 const pageStore = page as unknown as {
@@ -65,6 +73,9 @@ describe("maqueta — colecciones", () => {
 		expect(screen.getByTestId("view-publica").getAttribute("aria-current")).toBe("page");
 		expect(screen.getByTestId("review-note")).toHaveTextContent("menú principal");
 		expect(screen.getByRole("heading", { level: 1, name: "Colecciones" })).toBeTruthy();
+		// S42: una lista es un buscador, como `/search` y `/organizations`: sin ruta de navegación.
+		expect(screen.queryByRole("navigation", { name: "Ruta de navegación" })).toBeNull();
+		expect(document.body.textContent).not.toMatch(/Inicio/);
 		expect(screen.getByRole("textbox", { name: "Buscar colecciones" })).toBeTruthy();
 		expect(screen.queryByRole("combobox", { name: "Visibilidad" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Nueva colección" })).toBeNull();
@@ -86,11 +97,13 @@ describe("maqueta — colecciones", () => {
 		render(CollectionsMock);
 
 		expect(tabTexts()).toEqual([
-			"Todas 5",
+			"Todas 7",
 			"Personales 1",
 			"Dirección de Investigación 2",
 			"Facultad de Ciencias Agrícolas 1",
+			"Facultad de Ciencias de la Salud 1",
 			"Facultad de Ciencias y Tecnología 1",
+			"Vicerrectorado 1",
 		]);
 		const dicyt = within(orgTabs()).getByRole("tab", { name: /Dirección de Investigación/ });
 		expect(within(dicyt).getByLabelText("2 colecciones")).toBeTruthy();
@@ -98,7 +111,7 @@ describe("maqueta — colecciones", () => {
 		expect(dicyt.className).toContain("h-12");
 		expect(dicyt.className).toContain("data-[state=active]:border-primary");
 		expect(screen.getByRole("button", { name: "Organización" })).toHaveTextContent(
-			"Todas (5 colecciones)",
+			"Todas (7 colecciones)",
 		);
 
 		await chooseTab(/Dirección de Investigación/);
@@ -117,11 +130,8 @@ describe("maqueta — colecciones", () => {
 		expect(screen.getByTestId("view-panel").getAttribute("aria-current")).toBe("page");
 		expect(screen.getByTestId("review-note")).toHaveTextContent("María Fernanda Rojas Vargas");
 		expect(screen.getByRole("heading", { level: 1, name: "Mis colecciones" })).toBeTruthy();
-		const crumbs = screen.getByRole("navigation", { name: "Ruta de navegación" });
-		expect(within(crumbs).getByRole("link", { name: /Panel/ }).getAttribute("href")).toBe(
-			"/dashboard",
-		);
-		expect(crumbs).toHaveTextContent("Mis colecciones");
+		// S42: tampoco la lista del panel lleva ruta de navegación.
+		expect(screen.queryByRole("navigation", { name: "Ruta de navegación" })).toBeNull();
 		expect(screen.getByRole("button", { name: "Nueva colección" })).toBeTruthy();
 
 		const visibility = screen.getByRole("combobox", { name: "Visibilidad" });
@@ -425,9 +435,9 @@ describe("maqueta — ficha de colección", () => {
 	});
 });
 
-// S36: la ruta de navegación de la ficha no empieza en «Inicio». La de una colección curada por una organización es
-// el árbol de esa organización, de la más alta hasta la curadora (Q6: jerarquía figurativa, sólo navegación); la
-// de una curada por una persona, la lista de colecciones con su pestaña «Personales».
+// S36: la ruta de navegación de la ficha no empieza en «Inicio». S42: empieza en la raíz, «Colecciones» (la lista).
+// Después, la de una colección curada por una organización es el árbol de esa organización, de la más alta hasta la
+// curadora (Q6: jerarquía figurativa, sólo navegación); la de una curada por una persona, la pestaña «Personales».
 describe("maqueta — ruta de navegación de la ficha de colección (S36)", () => {
 	afterEach(() => at("http://localhost/"));
 
@@ -443,13 +453,14 @@ describe("maqueta — ruta de navegación de la ficha de colección (S36)", () =
 		};
 	};
 
-	it("ninguna colección lleva «Inicio» en la ruta", () => {
+	it("ninguna colección lleva «Inicio» en la ruta; todas empiezan en «Colecciones» (S42)", () => {
 		for (const collection of COLLECTIONS) {
 			at(`http://localhost/dev/prototype/collection?c=${collection.slug}`);
 			const view = render(CollectionMock);
 			const { nav, current } = trail();
 			expect(nav.textContent).not.toMatch(/Inicio/);
 			expect(within(nav).queryByRole("link", { name: "Inicio" })).toBeNull();
+			expect(trail().links[0]).toEqual(["Colecciones", "/dev/prototype/collections"]);
 			expect(current).toBe(collection.name);
 			view.unmount();
 		}
@@ -462,11 +473,12 @@ describe("maqueta — ruta de navegación de la ficha de colección (S36)", () =
 		// «Vicerrectorado» es un nivel sólo de la maqueta: no existe en el catálogo, así que se nombra sin enlace
 		// (un clic en vivo llevaría a «no encontrada»).
 		expect(trail().links).toEqual([
+			["Colecciones", "/dev/prototype/collections"],
 			["Rectorado UMSS", "/organization/rectorado"],
 			["Dirección de Investigación", "/organization/direccion-investigacion"],
 		]);
 		expect(trail().nav.querySelector("ol")?.textContent).toMatch(
-			/Rectorado UMSS.*Vicerrectorado.*Dirección de Investigación/s,
+			/Colecciones.*Rectorado UMSS.*Vicerrectorado.*Dirección de Investigación/s,
 		);
 		expect(trail().current).toBe("Investigación y laboratorios de la FCyT");
 	});
@@ -475,6 +487,7 @@ describe("maqueta — ruta de navegación de la ficha de colección (S36)", () =
 		at("http://localhost/dev/prototype/collection?c=autoevaluacion-acreditacion-fcyt");
 		const fcyt = render(CollectionMock);
 		expect(trail().links).toEqual([
+			["Colecciones", "/dev/prototype/collections"],
 			["Rectorado UMSS", "/organization/rectorado"],
 			["Facultad de Ciencias y Tecnología", "/organization/fcyt"],
 		]);
@@ -482,7 +495,10 @@ describe("maqueta — ruta de navegación de la ficha de colección (S36)", () =
 
 		at("http://localhost/dev/prototype/collection?c=rendicion-cuentas-2025");
 		render(CollectionMock);
-		expect(trail().links).toEqual([["Rectorado UMSS", "/organization/rectorado"]]);
+		expect(trail().links).toEqual([
+			["Colecciones", "/dev/prototype/collections"],
+			["Rectorado UMSS", "/organization/rectorado"],
+		]);
 		expect(trail().current).toBe("Rendición pública de cuentas 2025");
 	});
 
@@ -534,8 +550,20 @@ describe("maqueta — colecciones de un dataset", () => {
 
 		const section = screen.getByTestId("dataset-collections");
 		const items = within(section).getAllByTestId("dataset-collection");
+		// S42: H2-4 muestra que el dataset está en varias colecciones públicas, de curadores distintos.
 		expect(items.map((item) => item.textContent)).toEqual([
 			expect.stringContaining("Indicadores académicos para tesis"),
+			expect.stringContaining("Estadísticas académicas de pregrado"),
+			expect.stringContaining("La Facultad de Ciencias de la Salud en cifras"),
+		]);
+		expect(
+			within(section)
+				.getAllByTestId("collection-curator")
+				.map((el) => el.textContent),
+		).toEqual([
+			"María Fernanda Rojas Vargas",
+			"Vicerrectorado",
+			"Facultad de Ciencias de la Salud",
 		]);
 		expect(section.textContent).not.toMatch(/Rendición pública de cuentas|Interna|Privada/);
 	});
@@ -625,5 +653,49 @@ describe("maqueta — compartir las secciones (S27)", () => {
 		render(CollectionMock);
 
 		await expectShared(url, "publication", "Publicación");
+	});
+});
+
+// S42: H2-4 (la ficha real de la matrícula en modo prototipo) muestra el dataset en varias colecciones. Los datos de
+// la maqueta tienen que ser coherentes en los dos sentidos y con las reglas de la ficha.
+describe("maqueta — coherencia de los datos (S42)", () => {
+	afterEach(() => at("http://localhost/"));
+
+	it("la matrícula está en al menos tres colecciones públicas: una de una persona y una de otra unidad", () => {
+		const matricula = datasetBySlug("matricula-por-carrera");
+		const publicas = collectionsOf(matricula.slug).filter((c) => canSee(c, { kind: "visitor" }));
+		expect(publicas.length).toBeGreaterThanOrEqual(3);
+		expect(publicas.some((c) => c.curator.kind === "user")).toBe(true);
+		expect(publicas.some((c) => c.curator.kind === "org" && c.curator.org !== matricula.org)).toBe(
+			true,
+		);
+		const curators = publicas.map((c) => JSON.stringify(c.curator));
+		expect(new Set(curators).size).toBe(publicas.length);
+	});
+
+	it.each(
+		collectionsOf("matricula-por-carrera").map((c) => c.slug),
+	)("la ficha de %s lista la matrícula", (slug) => {
+		at(`http://localhost/dev/prototype/collection?c=${slug}&vista=curador`);
+		render(CollectionMock);
+
+		const list = screen.getByTestId("collection-datasets");
+		expect(list).toHaveTextContent("Matrícula estudiantil por carrera y gestión");
+	});
+
+	it.each(
+		COLLECTIONS.map((c) => c.slug),
+	)("%s: sus datasets existen y cada dueña tiene su decisión", (slug) => {
+		const collection = collectionBySlug(slug);
+		expect(collection.slug).toBe(slug);
+		const owners = ownerOrgs(collection).map((o) => o.name);
+		if (collection.approvals) {
+			expect(Object.keys(collection.approvals).sort()).toEqual([...owners].sort());
+		}
+		// Una pública ya la aprobaron todas sus dueñas (RF-23).
+		if (collection.visibility === "Pública") {
+			expect(Object.values(collection.approvals ?? {})).not.toContain("Pendiente");
+			expect(collection.approvals).toBeDefined();
+		}
 	});
 });

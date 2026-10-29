@@ -9,6 +9,9 @@
 
 	Copia el contenedor, el hero y el estilo de tarjetas de la ficha real; sólo el encabezado y esta sección.
 
+	S42: ya no es una pantalla del recorrido (H3-4 repetía la ficha real de la matrícula en modo prototipo, H2-4) ni
+	figura en el índice `/dev/prototype`. Sigue siendo el destino de cada dataset en la ficha de colección.
+
 	`?como=visitante` (por defecto) o `?como=rectorado` eligen quién mira, con la franja de revisión de arriba
 	(fuera del área de producto): la sección sólo lista las colecciones que esa persona puede ver (Q10). Un
 	visitante sin sesión ve las públicas; un miembro del Rectorado, además, las internas y las privadas del

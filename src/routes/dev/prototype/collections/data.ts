@@ -1,7 +1,9 @@
 // Datos fijos de las maquetas de colecciones (P5 de `odd/tasks/prototype-presentation.md`, S4 y L3).
 //
 // Las tres maquetas —«Colecciones» (la del menú principal y «Mis colecciones» del panel), «Ficha de
-// colección» y «Colecciones de un dataset»— leen de acá, para que el recorrido en los dos sentidos sea coherente: `ds1 → cl1 → ds2 → cl2 → ds3`. Por ejemplo, el informe de
+// colección» y «Colecciones de un dataset»— leen de acá, para que el recorrido en los dos sentidos sea coherente: `ds1 → cl1 → ds2 → cl2 → ds3`. La
+// matrícula está en tres colecciones públicas de curadores distintos —una persona, el Vicerrectorado y su propia
+// facultad— para que la ficha real (H2-4, en modo prototipo) muestre varias (S42). Por ejemplo, el informe de
 // gestión de la FCyT está en «Rendición pública de cuentas 2025» (la cura el Rectorado) y en «Investigación y
 // laboratorios de la FCyT» (la cura la Dirección de Investigación): **un solo dataset**, publicado una vez por
 // su organización dueña y referenciado desde las dos. Es la respuesta al ejemplo de la carta del tribunal (S4):
@@ -397,6 +399,55 @@ La cura la **Facultad de Ciencias Agrícolas**, al cierre de cada campaña agrí
 		datasets: ["rendimiento-cultivos-andinos", "proyectos-investigacion-2025"],
 		approvals: { fca: "Aprobada", "direccion-investigacion": "Aprobada" },
 	},
+	{
+		slug: "estadisticas-academicas-pregrado",
+		name: "Estadísticas académicas de pregrado",
+		description:
+			"Matrícula y titulación de las carreras de pregrado, reunidas para el seguimiento académico de la Universidad.",
+		markdown: `### Propósito
+
+Reúne las series que el **Vicerrectorado** consulta para el seguimiento académico de las carreras de pregrado.
+
+### Qué reúne
+
+- La matrícula estudiantil por carrera y gestión.
+- Los titulados por facultad, con su serie histórica.
+
+### Curaduría y actualización
+
+La cura el **Vicerrectorado**. Se actualiza al cierre de cada gestión académica, cuando las organizaciones dueñas publican sus nuevas series.`,
+		curator: { kind: "org", org: "vicerrectorado" },
+		created: "15 mar. 2026",
+		updated: "2 oct. 2026",
+		visibility: "Pública",
+		datasets: ["matricula-por-carrera", "titulados-por-facultad"],
+		approvals: { fcs: "Aprobada", rectorado: "Aprobada" },
+	},
+	{
+		slug: "ciencias-salud-en-cifras",
+		name: "La Facultad de Ciencias de la Salud en cifras",
+		description:
+			"Matrícula, titulación y gestión de la Facultad de Ciencias de la Salud, reunidas en un solo lugar.",
+		markdown: `### Propósito
+
+Reúne los datos con los que la **Facultad de Ciencias de la Salud** presenta su situación académica a estudiantes, docentes y público en general.
+
+### Qué reúne
+
+- La matrícula estudiantil por carrera y gestión.
+- Los titulados por facultad, con su serie histórica.
+- El informe de gestión 2025 de la facultad.
+
+### Curaduría y actualización
+
+La cura la **Facultad de Ciencias de la Salud**. Se actualiza al cierre de cada gestión.`,
+		curator: { kind: "org", org: "fcs" },
+		created: "7 jul. 2026",
+		updated: "9 oct. 2026",
+		visibility: "Pública",
+		datasets: ["matricula-por-carrera", "titulados-por-facultad", "informe-gestion-2025-fcs"],
+		approvals: { fcs: "Aprobada", rectorado: "Aprobada" },
+	},
 ];
 
 export function datasetBySlug(slug: string): MockDataset {
@@ -567,25 +618,28 @@ export function curatorTabFromUrl(url: URL, todas: string): string {
 	return value ?? todas;
 }
 
+export const collectionsHref = "/dev/prototype/collections";
+
 /**
- * La ruta de navegación de la ficha (S36), sin «Inicio». Curada por una organización: su árbol, de la más alta
- * hasta la curadora, cada una hacia su ficha. Curada por una persona no hay árbol: «Colecciones › Personales»,
- * hacia la lista con esa pestaña. Al final, la colección.
+ * La ruta de navegación de la ficha (S36), sin «Inicio»: la raíz es «Colecciones», la lista (S42). Curada por una
+ * organización: después, su árbol, de la más alta hasta la curadora, cada una hacia su ficha. Curada por una persona
+ * no hay árbol: «Personales», hacia la lista con esa pestaña. Al final, la colección.
  */
 export function collectionTrail(
 	collection: MockCollection,
 ): { label: string; href?: string; role?: string }[] {
-	const trail =
+	const curator =
 		collection.curator.kind === "org"
 			? orgAncestry(collection.curator.org).map((org) => ({
 					label: org.title,
 					href: org.mockOnly ? undefined : organizationHref(org.name),
 					role: "Organización",
 				}))
-			: [
-					{ label: "Colecciones", href: "/dev/prototype/collections", role: "Lista" },
-					{ label: "Personales", href: personalesHref, role: "Curador" },
-				];
-	return [...trail, { label: collection.name, role: "Colección" }];
+			: [{ label: "Personales", href: personalesHref, role: "Curador" }];
+	return [
+		{ label: "Colecciones", href: collectionsHref, role: "Lista" },
+		...curator,
+		{ label: collection.name, role: "Colección" },
+	];
 }
 export const datasetHref = (slug: string) => `/dev/prototype/dataset-collections?d=${slug}`;

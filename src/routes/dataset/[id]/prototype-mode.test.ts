@@ -108,7 +108,16 @@ describe("Ficha del dataset — modo prototipo", () => {
 			// Q10: un visitante nunca ve las privadas.
 			expect(section).not.toHaveTextContent("Rendición pública de cuentas 2025");
 			expect(section).not.toHaveTextContent("Lista de trabajo");
-			expect(within(section).getAllByTestId("dataset-collection")).toHaveLength(1);
+			// S42: varias colecciones públicas, de curadores distintos (H2-4).
+			expect(
+				within(section)
+					.getAllByTestId("dataset-collection")
+					.map((el) => el.getAttribute("href")),
+			).toEqual([
+				collectionHref("indicadores-academicos"),
+				collectionHref("estadisticas-academicas-pregrado"),
+				collectionHref("ciencias-salud-en-cifras"),
+			]);
 			// Va en la columna principal, después de los recursos.
 			const resources = document.getElementById("resources") as HTMLElement;
 			expect(

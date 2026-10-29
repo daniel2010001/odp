@@ -14,6 +14,9 @@
 	de Q18, no está en esta maqueta. `?curador=personales` (o el nombre de una organización) abre con esa pestaña
 	elegida: es el destino de «Personales» en la ruta de la ficha de una colección personal (S36).
 
+	S42: ninguna de las dos lleva ruta de navegación. Una lista es un buscador, como `/search` y `/organizations`; la
+	ruta queda para las fichas (la de una colección empieza en «Colecciones», esta lista).
+
 	S22: las dos filtran por quien cura con las pestañas de organización de «Solicitudes»: el mismo `OverflowTabs`,
 	con los mismos parámetros que `OrgTabs` (pestañas desde 611 px de contenedor, desplegable debajo, «Más (n)»
 	para las que no caben, barra pegada bajo el encabezado) y su modelo (`TODAS_LAS_ORGANIZACIONES`,
@@ -28,15 +31,7 @@
 	CKAN es siempre público; serían una extensión propia.
 -->
 <script lang="ts">
-import {
-	Building2,
-	ChevronDown,
-	Database,
-	FolderPlus,
-	Library,
-	Search,
-	User,
-} from "@lucide/svelte";
+import { Building2, ChevronDown, Database, FolderPlus, Search, User } from "@lucide/svelte";
 import { Tabs } from "bits-ui";
 import { page } from "$app/stores";
 import {
@@ -44,7 +39,6 @@ import {
 	TODAS_LAS_ORGANIZACIONES,
 } from "$lib/components/requests/requests-model";
 import { surfaceClass } from "$lib/components/requests/sticky-bar";
-import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import OverflowTabs from "$lib/components/ui/tabs/OverflowTabs.svelte";
@@ -242,12 +236,7 @@ const inputClass =
 	<!-- ─── Área de producto ──────────────────────────────────────────── -->
 	<div class="mx-auto max-w-7xl px-4 pt-6 pb-10 sm:px-6 lg:px-8">
 		{#if view === "panel"}
-			<Breadcrumb
-				items={[{ label: "Panel", href: "/dashboard" }, { label: "Mis colecciones" }]}
-				icon={Library}
-			/>
-
-			<header class="mt-5 flex flex-wrap items-end justify-between gap-4">
+			<header class="flex flex-wrap items-end justify-between gap-4">
 				<div>
 					<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Mis colecciones</h1>
 					<p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -261,9 +250,7 @@ const inputClass =
 				</Button>
 			</header>
 		{:else}
-			<Breadcrumb items={[{ label: "Inicio", href: "/" }, { label: "Colecciones" }]} icon={Library} />
-
-			<header class="mt-5">
+			<header>
 				<h1 class="font-heading text-3xl font-bold text-primary sm:text-4xl">Colecciones</h1>
 				<p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 					Datasets de distintas organizaciones reunidos en un solo lugar, sin copiarlos: cada

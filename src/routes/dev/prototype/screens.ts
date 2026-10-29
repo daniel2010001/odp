@@ -3,6 +3,9 @@
 // `built` son las páginas que ya existen y se capturan tal cual, desde su ruta real. `mock` son las
 // pantallas que todavía no se construyeron: viven como maquetas en `/dev/prototype/<slug>`. Una maqueta
 // que aún no se armó queda con `ready: false` y el índice la muestra sin enlace activo.
+//
+// «Colecciones de un dataset» (`/dev/prototype/dataset-collections`, H3-4) salió del recorrido (S42): repetía la ficha
+// real de la matrícula en modo prototipo (H2-4). La ruta queda porque la ficha de colección enlaza ahí sus datasets.
 
 export type ScreenKind = "built" | "mock";
 
@@ -125,14 +128,6 @@ export const SCREENS: Screen[] = [
 		audience: "Visitante",
 		ready: true,
 		note: "?vista=publica (por defecto) es lo que ve un visitante; ?vista=curador, el bloque de aprobación por organización. Con ?c=investigacion-laboratorios-fcyt se ve una colección ya publicada.",
-	},
-	{
-		kind: "mock",
-		title: "Colecciones de un dataset",
-		href: "/dev/prototype/dataset-collections",
-		audience: "Visitante",
-		ready: true,
-		note: "?como=visitante (por defecto) sólo lista las colecciones públicas; ?como=rectorado, además las internas y las privadas del Rectorado (Q10).",
 	},
 	{
 		kind: "mock",

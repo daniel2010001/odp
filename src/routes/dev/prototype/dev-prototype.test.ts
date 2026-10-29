@@ -35,6 +35,19 @@ describe("índice del prototipo", () => {
 		}
 	});
 
+	// S42: «Un dataset en dos colecciones» (H3-4) repetía la ficha real de la matrícula (H2-4) y salió del recorrido.
+	it("no lista «Colecciones de un dataset» como pantalla del recorrido", () => {
+		render(PrototypeIndex);
+
+		expect(SCREENS.some((s) => s.href.startsWith("/dev/prototype/dataset-collections"))).toBe(
+			false,
+		);
+		expect(screen.queryByRole("link", { name: /Colecciones de un dataset/ })).toBeNull();
+		for (const link of screen.getAllByRole("link")) {
+			expect(link.getAttribute("href") ?? "").not.toContain("dataset-collections");
+		}
+	});
+
 	it("rotula las maquetas como pantallas sin funcionamiento", () => {
 		render(PrototypeIndex);
 		expect(screen.getByTestId("prototype-mock")).toHaveTextContent(/sin funcionamiento/i);
