@@ -177,6 +177,15 @@ imported into Figma and presented as a click-through prototype before the tribun
   tenemos una section para eso, creo que es duplicado, revisar esto. 3: sigamos iterando hasta encontrar un punto bueno, por lo
   pronto la 2 es la más "madura", o la que queda para la presentación."
 
+- **S39** — Pages root, verbatim: "al intentar abrir el https://daniel2010001.github.io/odp/ que ofrece github me sale error 404,
+  podemos hacer un redirec a odp/design?"
+- **S40** — Organization sheet after 05/06, verbatim: "05: está peor, no me gusta, ahora el hero está más cargado, más que cualquiera
+  que recuerde, mal. 06 lo noto mejor, me gusta más que el 05, creo que me gusta más por eso del ref por #id, creo que me gusta por
+  eso, pero sería mejor si esto se quedará como sticky o algo así, respecto a lo de "datos de unidad", esto no termina de gustar del
+  todo, creo que "sobrecarga" el hero o algo así."
+- **S41** — Search, verbatim: "search: revisado. ok, pero me gustaría saber si podemos poner eso que sale cuando no hay resultados,
+  cosa que esté "siempre", podemos probrar? por ahora el search está muy bien, esto es solo un añadido que quisiera probar"
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -248,6 +257,9 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T37 | S36 | Collection sheet breadcrumb: the curator organization's tree instead of «Inicio» | worker | (this commit): org tree from the top ancestor (figurative `groups`, like `/organizations`); a mock-only «Vicerrectorado» level is named without a link; person-curated: «Colecciones › Personales» (`?curador=personales` opens that tab) — awaiting author review |
 | T38 | S38 | Organization sheet: new directions from 02 (compact index with counts, share links, no duplicated summary) | worker | (this commit): 05 «Portada con índice» (sticky index strip with counts; «Qué publica» merged into the band) and 06 «Cifras como índice» (the band figures are the index; the four-figure block removed), each with its empty state; all titles now «H2-2b · Ficha de organización · NN …» — awaiting author review |
 | T39 | S35, S36 | Re-capture H2-3, H2-3b, H2-7, H3-3 | inline | — |
+| T40 | S39 | Root `index.html` redirecting GitHub Pages to `design/` | inline | (this commit) |
+| T41 | S40 | Organization sheet 07 from 06: sticky figures index, unit data out of the hero | worker | — |
+| T42 | S41 | Playground `/dev/search-extras`: the no-results blocks («Pruebe con», «Mientras tanto, lo más reciente») shown always, with switches | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -444,3 +456,4 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   cosas más importantes o urgentes, dile que anote, pero que no sea bloqueante." (Mailpit in `odp-docker`, non-blocking). On the
   «máx 3 niveles» memory: not in this project's `PRD.md`, repo or memory — likely the previous project; S37 goes to Q6 for analysis.
   Organization sheet for the presentation: direction 02.
+- **L32** (2026-10-29 ~12:05, author): S39–S41 (quoted there). Search 04 and the real search: «revisado. ok».
