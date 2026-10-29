@@ -223,7 +223,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T30 | S28, S34 | Demo data: the PDF joins `matricula-facultad-gestion-ficticia`; smoke dataset out (`odp-docker` session); H2-5 captures link through the resource switcher | odp-docker + inline | data applied live by odp-docker (PDF `e45787b1…` at position 1, verified 200; smoke dataset and `informe-matricula-ficticio` private, author's decision); seed follow-up in `BACKLOG.md`; captures in T35 |
 | T31 | S29, S32 | Organization sheet direction 04 + fonts embedded in `design/organizacion/` | worker | — |
 | T32 | S30, S32 | Search hero direction 04 + fonts embedded in `design/busqueda/` | worker | (this commit) — awaiting author review; JetBrains Mono not embedded (no source in the repo; the portal does not load it either) |
-| T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | — |
+| T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | (this commit) — awaiting author review |
 | T34 | S33 | «Personales» in both collections views | inline | (this commit) |
 | T35 | S27, S28, S33 | Re-capture the prototype screens touched by T29, T30, T34 | inline | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
@@ -395,3 +395,8 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   como es demo/prototype creo que no hay problemas. 7: intentemoslo, unificar por ahora, pero creo que no molesta tanto si no se
   puede." → S26–S34, T28–T35. Decision 4 (promote the bar animation to `/search`): after the presentation, to keep the demo page
   stable today. Decision 6: `datos@umss.edu.bo` stays.
+- **L27** (2026-10-29, design): `design/busqueda/04-sintesis.html` (T32, `08af48f`) — the home's band, «matrícula» as the
+  title with one summary sentence, 03's summary as a plain strip at the band's foot; no share links (the search URL is what is
+  shared). `design/inicio/06-indice-y-enlaces.html` (T33) — one-row search card with the scope inside the field, document types
+  as pills on the band, a 52 px sticky section index, a CSS-only share link per section. Fonts embedded from the prototype
+  captures (EB Garamond and Poppins; JetBrains Mono and Garamond italic have no source in the repo and fall back to the system).

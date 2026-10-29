@@ -7,35 +7,43 @@
 			"title": "Buscador con ficha de ejemplo",
 			"tradeoff": "Explica el producto mostrando un conjunto de datos real anotado junto al buscador; la portada queda más densa y la ficha compite con la búsqueda por la atención",
 			"width": 1440,
-			"height": 2605
+			"height": 2703
 		},
 		{
 			"file": "02-indice-editorial.html",
 			"title": "Índice editorial",
 			"tradeoff": "Máxima credibilidad institucional: cuenta el proceso de publicación y presenta unidades, temas y colecciones como un índice de libro; la búsqueda es discreta y la página es la más larga",
 			"width": 1440,
-			"height": 3162
+			"height": 3153
 		},
 		{
 			"file": "03-tres-puertas.html",
 			"title": "Tres puertas de entrada",
 			"tradeoff": "La ruta más rápida: búsqueda con alcance y tres accesos (unidad, tema, colección) arriba del pliegue; la explicación de qué es un conjunto de datos queda debajo y el bloque de código habla más al público técnico",
 			"width": 1440,
-			"height": 2467
+			"height": 2576
 		},
 		{
 			"file": "04-sintesis.html",
 			"title": "Síntesis: puerta formal",
 			"tradeoff": "Reúne lo que gustó de 01–03: la banda azul de 03 con su pregunta y búsqueda por alcance, vuelta formal con la regla, la línea de cifras y el título serif de 02; la ficha anotada de 01 explica qué es un conjunto de datos fuera de la banda; las novedades pasan a una cronología con fecha en el margen. Se lee de arriba abajo, pero es la página más larga (ocho secciones) y la ficha anotada repite tres de los cuatro rasgos de «Qué encontrará»",
 			"width": 1440,
-			"height": 5064
+			"height": 5151
 		},
 		{
 			"file": "05-tipos-de-documento.html",
 			"title": "Tipos de documento al frente",
 			"tradeoff": "Dirección elegida (L16), segunda iteración de 04. Los tipos de documento (tablas con vista previa y gráficos, PDF que se leen en el portal, datos geográficos y otros archivos que se descargan) pasan a ser el pie de la tarjeta de búsqueda, como atajos para buscar por tipo: acompañan al campo en vez de competir con él, pero pierden los ejemplos propios de cada tipo, que quedan en el texto de la izquierda. «Quién publica» agrupa las unidades por tipo, con las que más publican primero, un enlace a todas y una invitación para las que todavía no publican: se lee igual con pocas o muchas unidades, aunque con el catálogo de hoy algunos grupos tienen una sola. Las secciones 2 y 3 de 04 se funden en un único ejemplo real con sus cinco partes señaladas. Orden: qué es y qué tipos → qué trae cada conjunto de datos → novedades → quién publica → cómo llega al catálogo → cómo citarlo → por dónde empezar. Siete secciones, un poco más larga que 04",
 			"width": 1440,
-			"height": 5319
+			"height": 5465
+		},
+		{
+			"file": "06-indice-y-enlaces.html",
+			"title": "Índice y enlaces por sección",
+			"tradeoff": "Tercera iteración de 05 (S31), con las mismas secciones y el mismo orden. La búsqueda deja de ser una tarjeta: es una sola fila con el alcance como selector dentro del campo, y las sugerencias y los tipos de documento quedan sobre la banda como pastillas. Se lee más liviana, pero el alcance queda escondido en un desplegable en vez de verse entero, y los tipos ya no dicen qué hace el portal con cada uno: eso lo muestra la lista de archivos del ejemplo de la sección 01. Un índice de 52 px, en una franja y no en una columna como el del dossier de organizacion/03, numera las seis secciones y se pega arriba al desplazarse. Sin scripts sólo marca la sección a la que llevó un enlace, no la que se está leyendo. Cada título lleva el enlace para compartir su sección, el de la ficha del dataset, que aparece al pasar por la sección.",
+			"width": 1440,
+			"height": 5432
 		}
-	]
+	],
+	"feature": "odd/tasks/prototype-presentation.md"
 }
