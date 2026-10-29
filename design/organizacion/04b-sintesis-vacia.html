@@ -240,7 +240,7 @@ html { scroll-behavior: smooth; }
 .hbar b { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 .hbar > .icon { color: var(--muted-foreground); }
 
-/* 04 · Datasets: lo más reciente (tarjetas de 02) y la lista completa en tabla con descripción y tipo */
+/* 04 · Datasets: la lista completa en tabla con descripción y tipo */
 .ds-tools { display: flex; gap: 8px; }
 .ds-tools .field { flex: 1; }
 .tfilter { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -250,14 +250,6 @@ html { scroll-behavior: smooth; }
 .tf[aria-current] { border-color: color-mix(in oklch, var(--primary) 40%, transparent); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
 .badge { display: inline-flex; border-radius: 999px; border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground); padding: 0 6px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tf[aria-current] .badge { border-color: color-mix(in oklch, var(--primary) 30%, transparent); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
-.latest { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.card { display: flex; flex-direction: column; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); transition: border-color .2s; }
-.card:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
-.card:hover h4 { text-decoration: underline; text-underline-offset: 4px; }
-.card time { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--destructive); }
-.card h4 { margin-top: 8px; font-family: var(--font-heading); font-size: 20px; line-height: 1.25; font-weight: 600; color: var(--primary); }
-.card p { margin-top: 8px; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); flex: 1; }
-.card-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted-foreground); }
 .all { margin-top: 32px; }
 .dsl { border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); overflow: hidden; }
 .dsl table { width: 100%; border-collapse: collapse; font-size: 14px; }

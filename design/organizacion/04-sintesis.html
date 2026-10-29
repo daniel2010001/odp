@@ -241,7 +241,7 @@ html { scroll-behavior: smooth; }
 .hbar b { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 .hbar > .icon { color: var(--muted-foreground); }
 
-/* 04 · Datasets: lo más reciente (tarjetas de 02) y la lista completa en tabla con descripción y tipo */
+/* 04 · Datasets: la lista completa en tabla con descripción y tipo */
 .ds-tools { display: flex; gap: 8px; }
 .ds-tools .field { flex: 1; }
 .tfilter { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -251,14 +251,6 @@ html { scroll-behavior: smooth; }
 .tf[aria-current] { border-color: color-mix(in oklch, var(--primary) 40%, transparent); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
 .badge { display: inline-flex; border-radius: 999px; border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground); padding: 0 6px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tf[aria-current] .badge { border-color: color-mix(in oklch, var(--primary) 30%, transparent); background: color-mix(in oklch, var(--primary) 10%, transparent); color: var(--primary); }
-.latest { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.card { display: flex; flex-direction: column; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); transition: border-color .2s; }
-.card:hover { border-color: color-mix(in oklch, var(--primary) 40%, transparent); }
-.card:hover h4 { text-decoration: underline; text-underline-offset: 4px; }
-.card time { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--destructive); }
-.card h4 { margin-top: 8px; font-family: var(--font-heading); font-size: 20px; line-height: 1.25; font-weight: 600; color: var(--primary); }
-.card p { margin-top: 8px; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); flex: 1; }
-.card-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted-foreground); }
 .all { margin-top: 32px; }
 .dsl { border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); overflow: hidden; }
 .dsl table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -519,10 +511,6 @@ body:has(#otras:target) .idx a[href="#otras"], body:not(:has(.sec:target)) .idx 
 						<a class="tf" href="#datasets"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Otros <span class="badge">4</span></a>
 						<a class="tf" href="#datasets"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>Enlaces <span class="badge">3</span></a>
 					</nav>
-					<div style="margin-top:32px">
-						<h3 class="sub">Lo más reciente</h3>
-						<div class="latest"><a class="card" href="#"><time>Actualizado el 20 oct 2026</time><h4>Grupos y centros de investigación registrados</h4><p>Grupos y centros de investigación registrados, con su área, facultad, número de investigadores y año de creación.</p><span class="card-foot"><span class="chips"><span class="chip-format">XLSX</span><span class="chip-format">PDF</span></span><span>2 recursos</span></span></a><a class="card" href="#"><time>Actualizado el 20 oct 2026</time><h4>Convocatorias de investigación y proyectos adjudicados</h4><p>Convocatorias internas de investigación, con sus postulaciones, proyectos adjudicados y monto asignado.</p><span class="card-foot"><span class="chips"><span class="chip-format">CSV</span></span><span>1 recurso</span></span></a><a class="card" href="#"><time>Actualizado el 20 oct 2026</time><h4>Colaboraciones internacionales de investigación por país</h4><p>Proyectos y publicaciones conjuntas con instituciones de otros países, por área y gestión.</p><span class="card-foot"><span class="chips"><span class="chip-format">PNG</span><span class="chip-format">JPEG</span><span class="chip-format">TXT</span></span><span>3 recursos</span></span></a></div>
-					</div>
 					<div class="all">
 						<h3 class="sub">Todos los datasets (10)</h3>
 						<div class="dsl"><table>
@@ -608,7 +596,7 @@ body:has(#otras:target) .idx a[href="#otras"], body:not(:has(.sec:target)) .idx 
 				<tr><td>Lugar en la universidad</td><td><span class="feas feas-i">Implementable</span></td><td>Sale del tipo y de la jerarquía de organizaciones (Q6, postergada): la del catálogo o un campo figurativo sin permisos. En una facultad, el diagrama lista sus unidades dependientes, como en H2-2.</td></tr>
 				<tr><td>Cifras: datasets, colecciones, miembros</td><td><span class="feas feas-n">Nativo</span></td><td>Conteos de las listas de la ficha.</td></tr>
 				<tr><td>Qué publica: recursos por tipo</td><td><span class="feas feas-i">Implementable</span></td><td>El catálogo cuenta datasets por formato; contar recursos y agruparlos en tipos (tablas, PDF, geográficos…) es una suma en el portal.</td></tr>
-				<tr><td>Datasets: lo más reciente y la tabla</td><td><span class="feas feas-n">Nativo</span></td><td>Búsqueda de datasets de la organización ordenada por fecha, la misma de la ficha actual. Las tres primeras también encabezan la tabla.</td></tr>
+				<tr><td>Datasets en tabla</td><td><span class="feas feas-n">Nativo</span></td><td>Búsqueda de datasets de la organización ordenada por fecha, la misma de la ficha actual.</td></tr>
 				<tr><td>Buscar y ordenar dentro de la unidad</td><td><span class="feas feas-n">Nativo</span></td><td>La búsqueda del catálogo acepta la organización como filtro y un orden.</td></tr>
 				<tr><td>Filtrar por tipo de recurso</td><td><span class="feas feas-i">Implementable</span></td><td>El catálogo filtra por formato; agrupar formatos en tipos es una regla del portal, la misma de «Qué publica».</td></tr>
 				<tr><td>Tipo principal de cada dataset</td><td><span class="feas feas-i">Implementable</span></td><td>Regla del portal: el tipo del recurso más representativo (tabla antes que documento, documento antes que enlace).</td></tr>
