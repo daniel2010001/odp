@@ -25,6 +25,18 @@
 > que se hizo, en `BITACORA.md`; los **requisitos y el alcance**, en `PRD.md`; los **contratos de comportamiento**, en
 > `openspec/specs/`; la narrativa de cada unidad, en `odd/tasks/`.
 
+## El catálogo de demostración cambió en vivo y el seed todavía no (2026-10-29, S28/S34 de `odd/tasks/prototype-presentation.md`)
+
+- [ ] `[v0]` `scripts/seed-ckan.mjs`: que `matricula-facultad-gestion-ficticia` lleve el PDF
+  `data/informe-matricula-ficticio.pdf` como **segundo recurso**, después del CSV. La sesión de `odp-docker` lo agregó
+  a mano en el dev que corre (2026-10-29; el id del recurso vale sólo para ese dev), pero el seed sube un solo recurso por
+  dataset de gráficos (`demo.resource`, con `ensureTyped` y vistas), así que hace falta que esa rama acepte un recurso más
+  sin tipar. Decidir también si `informe-matricula-ficticio` sigue existiendo: hoy queda activo; ojo con
+  `seed-charts.mjs` y los tests si sale.
+- [ ] `[v0]` `prueba-humo-flujo` («Dataset de humo del flujo completo», `fca`) quedó **privado** en el dev, no borrado
+  (se revierte con `package_patch private=false`). No lo crea el seed: vino de una prueba de humo manual. Decidir si se
+  borra.
+
 ## El README del sistema de diseño quedó atrás de `src/app.css` (hallado en la sincronización de Gentle Design, 2026-10-28)
 
 - [ ] `[v1+]` Corregir `design-system/datos-umss/README.md` donde contradice el código (manda el código, según `AGENTS.md`).

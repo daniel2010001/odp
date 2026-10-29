@@ -220,7 +220,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T27 | S25 | Promote the organizations proposal to `/organizations` (native data, graceful without type/acronym/hierarchy), delete the playground, re-capture H2-2 | worker | `d45095a` — promoted |
 | T28 | S26 | Diagnose and fix the H2-3 artboard scroll; re-capture H2-3 | worker | — |
 | T29 | S27 | One section-header piece with the share link; apply it to the dataset sheet's Colecciones, the resource page and the collection sheet | worker | — |
-| T30 | S28, S34 | Demo data: the PDF joins `matricula-facultad-gestion-ficticia`; smoke dataset out (`odp-docker` session); H2-5 captures link through the resource switcher | odp-docker + inline | — |
+| T30 | S28, S34 | Demo data: the PDF joins `matricula-facultad-gestion-ficticia`; smoke dataset out (`odp-docker` session); H2-5 captures link through the resource switcher | odp-docker + inline | data applied live by odp-docker (PDF `e45787b1…` at position 1, verified 200; smoke dataset private); seed follow-up in `BACKLOG.md`; captures in T35 |
 | T31 | S29, S32 | Organization sheet direction 04 + fonts embedded in `design/organizacion/` | worker | — |
 | T32 | S30, S32 | Search hero direction 04 + fonts embedded in `design/busqueda/` | worker | — |
 | T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | — |
