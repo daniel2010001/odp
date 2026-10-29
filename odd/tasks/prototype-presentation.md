@@ -159,6 +159,24 @@ imported into Figma and presented as a click-through prototype before the tribun
 - **S34** — Smoke dataset out of the demo catalog, verbatim: "5: hazlo" (asked to the `odp-docker` session, which owns the demo
   catalog).
 
+- **S35** — H2-3 bar animation (2026-10-29), verbatim: "h2-3 revisado: sigue el error de animación, no funciona, pero ahora el
+  sticky sí está bien, antes no estaba bien." Cause: `/search` still has the «hoy» bar; the approved animation (T25) lives only in
+  `/dev/search-bar?barra=animada`. Decision 4 (L26, "por mi podemos aprobar, pero lo que digas") → promote it now, delete the
+  playground, re-capture H2-3/H2-3b.
+- **S36** — Collection breadcrumb, verbatim: "En dev/prototype/collection: en el breadcrum está "inicio", quitar esto y lo que iría
+  es el arbol de la org, o sea si es hijo y cosas así, eg: org > org abuelo > org padre > org hijo".
+- **S37** — Hierarchy depth as a switch (for the hierarchy analysis, Q6), verbatim: "esto de máx no es algo cerrado, quisiera que
+  sea parametrizable con el .env y que no sea una restricción, sino algo así como un "interuptor", o sea que puede tener más hijos
+  pero no como algo natural, sino tenermos que decirlo explicitamente, no sé si esto está en el prd de este proyecto, pero sino lo
+  dejamos para análisis para cuando lleguemos a esto de las jerarquisas."
+- **S38** — Organization sheet, keep iterating, verbatim: "1: hazlo, sigamos iterando, pero no te cierres a "unir" todo en una sola
+  vista (04), puede proponer varias si lo quieres. 2: me molesta la card de la izq "en esta ficha", el indice me gustaba, pero este
+  diseño/formato no, algo que rescatar es que indica la cantidad de dataset y collections que hay, así es fácil de leer. también me
+  disgusta que el title 1, ese que está arriba del title de color azul, ahora es solo numeración, 0#, esto me disgusta. también
+  noto que hay algo repetido, en el hero tenemos algo así como un resumen de la org, sus datasets, resources, etc; pero también
+  tenemos una section para eso, creo que es duplicado, revisar esto. 3: sigamos iterando hasta encontrar un punto bueno, por lo
+  pronto la 2 es la más "madura", o la que queda para la presentación."
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -226,6 +244,10 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | (this commit) — awaiting author review |
 | T34 | S33 | «Personales» in both collections views | inline | (this commit) |
 | T35 | S27, S28, S33 | Re-capture the prototype screens touched by T29, T30, T34 | worker | `05e3c4c` (dataset «Descripción» shareable) + (this commit): all 14 re-captured; H2-5…5d ↔ H2-5e linked by the resource switcher («Recurso 1 de 2» / «2 de 2»); verify 13 OK, H2-5e differs only in the static PDF stand-in; suite 2168/2168 — awaiting author review |
+| T36 | S35 | Promote the animated search bar to `/search`, delete `/dev/search-bar` | worker | — |
+| T37 | S36 | Collection sheet breadcrumb: the curator organization's tree instead of «Inicio» | worker | — |
+| T38 | S38 | Organization sheet: new directions from 02 (compact index with counts, share links, no duplicated summary) | worker | — |
+| T39 | S35, S36 | Re-capture H2-3, H2-3b, H2-7, H3-3 | inline | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -418,3 +440,7 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   design o el prototype?" → 1: the `odp-docker` session renames the PDF resource, then H2-5…H2-5e are re-captured; 2: remove «Lo
   más reciente» from organization 04 (the author is still not convinced by 04); Q6 stays postponed, Q9/Q13/Q17 decided in
   `preguntas-abiertas.md` (RF-17 updated in `PRD.md`; Q9 test item in `BACKLOG.md`).
+- **L31** (2026-10-29 ~11:40, author): S35–S38 (quoted there). Also: "4: si, podemos probarlo, pero con calma, quisas haya otras
+  cosas más importantes o urgentes, dile que anote, pero que no sea bloqueante." (Mailpit in `odp-docker`, non-blocking). On the
+  «máx 3 niveles» memory: not in this project's `PRD.md`, repo or memory — likely the previous project; S37 goes to Q6 for analysis.
+  Organization sheet for the presentation: direction 02.
