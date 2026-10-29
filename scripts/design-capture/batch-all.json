@@ -59,7 +59,7 @@
 		{
 			"file": "h2-5-recurso-csv.html",
 			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98",
-			"waitForText": ["inscritos", "Acceso por API"],
+			"waitForText": ["inscritos", "Acceso por API", "Recurso 1 de 2"],
 			"waitForSelector": "#preview table td",
 			"aliases": [
 				"/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#table",
@@ -69,24 +69,25 @@
 		{
 			"file": "h2-5b-grafico-por-facultad.html",
 			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#chart-60e30b46-de72-4204-97b0-55b0f4b01e50",
-			"waitForText": ["Matrícula por facultad (2015–2025)", "Acceso por API"],
+			"waitForText": ["Matrícula por facultad (2015–2025)", "Acceso por API", "Recurso 1 de 2"],
 			"waitForSelector": "[role=\"tabpanel\"][data-value=\"60e30b46-de72-4204-97b0-55b0f4b01e50\"]:not([hidden]) .lc-layout-svg :is(path, rect)"
 		},
 		{
 			"file": "h2-5c-grafico-por-gestion.html",
 			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#chart-f54c8804-ce10-4580-8dff-6a3bd9d5aa6d",
-			"waitForText": ["Matrícula por gestión", "Acceso por API"],
+			"waitForText": ["Matrícula por gestión", "Acceso por API", "Recurso 1 de 2"],
 			"waitForSelector": "[role=\"tabpanel\"][data-value=\"f54c8804-ce10-4580-8dff-6a3bd9d5aa6d\"]:not([hidden]) .lc-layout-svg :is(path, rect)"
 		},
 		{
 			"file": "h2-5d-grafico-por-modalidad.html",
 			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/17645980-340e-4917-b77e-3223476e0b98#chart-fa6cea87-8238-4047-812f-561aef386cd1",
-			"waitForText": ["Matrícula por modalidad", "Acceso por API"],
+			"waitForText": ["Matrícula por modalidad", "Acceso por API", "Recurso 1 de 2"],
 			"waitForSelector": "[role=\"tabpanel\"][data-value=\"fa6cea87-8238-4047-812f-561aef386cd1\"]:not([hidden]) .lc-layout-svg :is(path, rect)"
 		},
 		{
 			"file": "h2-5e-recurso-pdf.html",
-			"url": "/dataset/informe-matricula-ficticio/resource/7aca73c7-6400-48d4-8ecf-cbb87976f0d9",
+			"url": "/dataset/matricula-facultad-gestion-ficticia/resource/e45787b1-29bf-4c2a-b129-3bbd78315973",
+			"waitForText": ["Recurso 2 de 2"],
 			"waitForSelector": "iframe[src^=\"/catalog/download/\"]",
 			"replaceIframes": {
 				"selector": "iframe[src^=\"/catalog/download/\"]",

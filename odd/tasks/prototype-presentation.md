@@ -225,7 +225,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T32 | S30, S32 | Search hero direction 04 + fonts embedded in `design/busqueda/` | worker | (this commit) — awaiting author review; JetBrains Mono not embedded (no source in the repo; the portal does not load it either) |
 | T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | (this commit) — awaiting author review |
 | T34 | S33 | «Personales» in both collections views | inline | (this commit) |
-| T35 | S27, S28, S33 | Re-capture the prototype screens touched by T29, T30, T34 | inline | — |
+| T35 | S27, S28, S33 | Re-capture the prototype screens touched by T29, T30, T34 | worker | `05e3c4c` (dataset «Descripción» shareable) + (this commit): all 14 re-captured; H2-5…5d ↔ H2-5e linked by the resource switcher («Recurso 1 de 2» / «2 de 2»); verify 13 OK, H2-5e differs only in the static PDF stand-in; suite 2168/2168 — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
