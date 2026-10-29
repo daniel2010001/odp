@@ -342,3 +342,6 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   desplazarse» states: `01-banda-compacta`, `02-consulta-como-titulo`, `03-tarjeta-sobre-la-banda`.
 - **L23** (2026-10-29, agent): full re-capture of the 14 prototype screens with every change of T20–T25 (`scripts/design-capture/batch-all.json`); verify at tolerance 64: 13 OK, the PDF differs by design (static stand-in). A first run aborted on the dev server's HMR recompilation and wrote nothing; the retry after the server settled passed.
 - **L24** (2026-10-29, author): "me gusta, promover. estoy un poco cansado,creo que me voy a dormir un rato,puedes dejar corriendo algunos workers mientras?y anota todo lo que falta revisar, preguntas y decisiones que falten." → S25/T27; handoff updated.
+- **L25** (2026-10-29, author) on the handoff review list, verbatim: "1: revisado, ok. 2: t22, mejor, mucho mejor. aprobado. 3: me
+  gusta mucho el nuevo, aprobado. 4: revisado, ok. 5: podrías darme las urls?" → dataset panel (T20) and `/organizations` (T27)
+  checked; collections mocks (T22) and the search bar animation (T25) approved; canvas URLs given (GitHub Pages).
