@@ -53,9 +53,10 @@ let altoBarra = $state(0);
 
 // ─── Los pegados (T17 / S15 de `odd/tasks/v0.1.1-polish.md`) ──────────────────────────────────────
 // Desde 1024px la barra de resultados vive sólo en la columna de las tarjetas, y la columna de filtros
-// arranca en el tope de la cuadrícula: en reposo se baja con `transform` el alto de la barra (más el aire
-// de 2rem sobre las tarjetas) y, al pegarse la barra, vuelve a 0 en la misma transición, hasta quedar
-// bajo el encabezado más el aire. La barra nace de borde a borde (su fondo es una capa aparte que se
+// se baja con un margen (en CSS) el alto de la barra más el aire de 2rem sobre las tarjetas; al desplazar
+// sube con la página hasta pegarse bajo el encabezado más un solo `--sticky-air`. Antes la bajada era un
+// `transform` que el script quitaba al pegarse la barra: una captura sin script congelaba el reposo y la
+// columna quedaba pegada 100 px más abajo (S20 de `odd/tasks/prototype-presentation.md`). La barra nace de borde a borde (su fondo es una capa aparte que se
 // extiende hasta los bordes de la ventana) y, al pegarse, esa capa se recorta a la columna con
 // `clip-path`. Ni `transform` ni `clip-path` cambian el flujo: el alto de la barra y la posición de lo de
 // abajo no se mueven durante la transición (anclaje de desplazamiento, commit 4ffbd2d). Bajo 1024px no hay
@@ -80,11 +81,6 @@ const animada = $derived(!reducido);
 const transicionBarra = $derived(animada ? `clip-path ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none");
 const transicionContador = $derived(
 	animada ? `transform ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none",
-);
-// El tope y el alto siguen los tokens de `src/app.css`; `top`/`height` sólo se animan con el encabezado
-// (200 ms), y el `transform` con la barra.
-const transicionFiltros = $derived(
-	`top 200ms ease-out, height 200ms ease-out, transform ${animada ? DURACION_BARRA : 0}ms ${CURVA_BARRA}`,
 );
 
 function medirPegados() {
@@ -844,13 +840,13 @@ const emptyStateMessage = $derived.by(() => {
 		     siguen activos). Sin panel no queda un hueco de 280px: el área de resultados ocupa todo
 		     el ancho. -->
 		{#if showFilterPanel}
-		<!-- Tope, alto y subida (T17): ver el script. El alto es estático —de pantalla completa sobre el
-		     encabezado BAJO, `--header-h-min`— y el contenido se desplaza por dentro de la caja. -->
+		<!-- Tope, alto y bajada (T17, S20): ver el script. El tope y la bajada son sólo CSS: pegada, la columna
+		     queda a un aire del encabezado aunque no haya script. El alto es estático —de pantalla completa
+		     sobre el encabezado BAJO, `--header-h-min`— y el contenido se desplaza por dentro de la caja; tope y
+		     alto se animan sólo con el encabezado (200 ms). -->
 		<aside
 			bind:this={panelEl}
-			class="mb-6 lg:mb-0 lg:self-start lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))] lg:z-[21] lg:h-[calc(100dvh-var(--header-h-min)-1px-2*var(--sticky-air))] lg:[transform:translateY(var(--aside-y,0px))] lg:transition-[top,height] lg:duration-200 lg:ease-out motion-reduce:lg:transition-none"
-			style:--aside-y={enColumna && !pegada ? 'calc(var(--bar-h) + 2rem)' : '0px'}
-			style:transition={enColumna ? transicionFiltros : undefined}
+			class="mb-6 lg:mb-0 lg:mt-[calc(var(--bar-h)+2rem)] lg:self-start lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))] lg:z-[21] lg:h-[calc(100dvh-var(--header-h-min)-1px-2*var(--sticky-air))] lg:transition-[top,height] lg:duration-200 lg:ease-out motion-reduce:lg:transition-none"
 		>
 			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
 			     (md+) el panel queda siempre desplegado. -->
@@ -989,18 +985,19 @@ const emptyStateMessage = $derived.by(() => {
 		</aside>
 		{/if}
 
-		<!-- Results. Con filtros, la columna nunca es más baja que la de filtros bajada por la barra: si lo
-		     fuera, esa columna —que se baja con `transform`— asomaría sobre el pie. -->
+		<!-- Results. Con filtros, la columna mide al menos la de filtros con su margen más otro `--bar-h + 2rem`:
+		     un `sticky` sólo se mueve lo que su caja le deja libre en la fila, y sin ese recorrido, con pocos
+		     resultados, la columna de filtros nunca llegaba a pegarse. -->
 		<div
 			bind:this={columnaEl}
 			data-results-column
 			class="min-w-0 {showFilterPanel
-				? 'lg:min-h-[calc(var(--bar-h)+2rem+100dvh-var(--header-h-min)-1px-2*var(--sticky-air))]'
+				? 'lg:min-h-[calc(2*(var(--bar-h)+2rem)+100dvh-var(--header-h-min)-1px-2*var(--sticky-air))]'
 				: ''}"
 		>
 			{#if enColumna}
 				{@render barraResultados()}
-				<!-- La fila arranca a 2rem de la barra, igual que el panel de filtros (`--aside-y`), así el borde del
+				<!-- La fila arranca a 2rem de la barra, igual que el panel de filtros (su margen), así el borde del
 				     panel no corta su texto; la primera card queda a 1rem de ella (L83). -->
 				{#if hasActiveFilters}
 					<div class="pt-8">

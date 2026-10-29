@@ -1141,7 +1141,7 @@ describe("Página de búsqueda — los pegados", () => {
 		});
 
 		it("desde 1024 px arranca a 2rem de la barra, como el panel de filtros, y deja 1rem hasta la primera card (L83)", async () => {
-			// El panel baja `--bar-h + 2rem` (`--aside-y`): con 1.5rem su borde cortaba el texto de la fila.
+			// El panel baja `--bar-h + 2rem` (su margen superior): con 1.5rem su borde cortaba el texto de la fila.
 			fijarVentana(1280);
 			await montarConFiltro();
 
@@ -1269,7 +1269,7 @@ describe("Página de búsqueda — los pegados", () => {
 
 			const style = fondo().getAttribute("style") ?? "";
 			expect(style).not.toContain("250ms");
-			expect(aside().getAttribute("style")).not.toContain("250ms");
+			expect(aside().getAttribute("style") ?? "").not.toContain("250ms");
 		});
 
 		it("no cambia nada del flujo al pegarse: la transición sólo toca clip-path y transform", async () => {
@@ -1311,33 +1311,54 @@ describe("Página de búsqueda — los pegados", () => {
 			expect(aside().querySelector(".lg\\:overflow-y-auto")).not.toBeNull();
 		});
 
-		it("en reposo se baja la altura de la barra y, pegada, sube con ella: sólo transform", async () => {
+		// S20 de `odd/tasks/prototype-presentation.md` («sticky con top muy bajo»). La bajada en reposo era un
+		// `transform` que el script ponía y quitaba según la barra estuviera pegada; una captura sin script
+		// (el lienzo) congela el reposo y la columna quedaba pegada 100 px más abajo (medido en Chromium a
+		// 1440×900: 193 px contra los 93 del encabezado + borde + aire). La bajada es ahora un margen en CSS:
+		// pegada, la columna queda a un solo `--sticky-air` del encabezado, con o sin script.
+		it("en reposo baja la barra más 2rem con un margen en CSS; pegada queda a un aire del encabezado, sin depender del script", async () => {
 			fijarVentana(1280);
 			fijarGeometria({ barTop: 400, heroBottom: 300 });
 			await montarConFacetas();
 			await desplazar();
+			const enReposo = { clase: aside().className, estilo: aside().getAttribute("style") ?? "" };
 
-			expect(aside().style.getPropertyValue("--aside-y")).toBe("calc(var(--bar-h) + 2rem)");
-			expect(aside().className).toContain("lg:[transform:translateY(var(--aside-y,0px))]");
+			expect(enReposo.clase).toContain("lg:mt-[calc(var(--bar-h)+2rem)]");
+			expect(enReposo.clase).not.toMatch(/translateY|--aside-y/);
+			expect(enReposo.estilo).not.toMatch(/--aside-y|transform/);
+			// La fórmula del tope pegado: encabezado + su borde + un aire. Ni la barra ni un segundo aire.
+			const tope = enReposo.clase.match(/lg:top-\[([^\]]+)\]/);
+			expect(tope?.[1]).toBe("calc(var(--header-h)+1px+var(--sticky-air))");
 
 			rectSpy?.mockRestore();
 			fijarGeometria({ barTop: 65, heroBottom: 300 });
 			await desplazar();
 
-			expect(aside().style.getPropertyValue("--aside-y")).toBe("0px");
-			expect(aside().getAttribute("style")).toContain(
-				"transform 250ms cubic-bezier(0.22, 1, 0.36, 1)",
+			// Pegada o en reposo, la columna es la misma: nada que una captura sin script pueda congelar.
+			expect(aside().className).toBe(enReposo.clase);
+			expect(aside().getAttribute("style") ?? "").toBe(enReposo.estilo);
+		});
+
+		it("con pocos resultados la columna de filtros igual llega a pegarse: le queda el recorrido de la barra", async () => {
+			// Un `sticky` sólo se mueve lo que su caja (con margen) le deja libre en la fila. La columna de
+			// resultados mide su margen + su alto + un recorrido de otro `--bar-h + 2rem`: el mismo que tenía
+			// con el `transform` (medido a 1440×900 con «matrícula», sin él la columna nunca se pegaba).
+			fijarVentana(1280);
+			await montarConFacetas();
+
+			expect(columna().className).toContain(
+				"lg:min-h-[calc(2*(var(--bar-h)+2rem)+100dvh-var(--header-h-min)-1px-2*var(--sticky-air))]",
 			);
 		});
 
-		it("bajo 1024 px no sube ni se baja: el bloque queda como hoy", async () => {
+		it("bajo 1024 px no se baja: el margen sólo existe desde lg y el bloque queda como hoy", async () => {
 			fijarVentana(768);
 			fijarGeometria({ barTop: 400, heroBottom: 300 });
 			await montarConFacetas();
 			await desplazar();
 
-			expect(aside().style.getPropertyValue("--aside-y")).toBe("0px");
-			expect(aside().getAttribute("style") ?? "").not.toContain("transform 250ms");
+			expect(aside().className).not.toMatch(/(?:^|\s)mt-\[/);
+			expect(aside().getAttribute("style") ?? "").not.toMatch(/--aside-y|transform/);
 		});
 	});
 
