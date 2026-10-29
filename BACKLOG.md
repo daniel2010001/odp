@@ -28,7 +28,8 @@
 ## El catálogo de demostración cambió en vivo y el seed todavía no (2026-10-29, S28/S34 de `odd/tasks/prototype-presentation.md`)
 
 - [ ] `[v0]` `scripts/seed-ckan.mjs`: que `matricula-facultad-gestion-ficticia` lleve el PDF
-  `data/informe-matricula-ficticio.pdf` como **segundo recurso**, después del CSV. La sesión de `odp-docker` lo agregó
+  `data/informe-matricula-ficticio.pdf` como **segundo recurso**, después del CSV, con el nombre «Informe de matrícula
+  2015–2025» (así quedó en el dev, 2026-10-29). La sesión de `odp-docker` lo agregó
   a mano en el dev que corre (2026-10-29; el id del recurso vale sólo para ese dev), pero el seed sube un solo recurso por
   dataset de gráficos (`demo.resource`, con `ensureTyped` y vistas), así que hace falta que esa rama acepte un recurso más
   sin tipar. `informe-matricula-ficticio` **sale del catálogo** (decisión del autor, 2026-10-29; en el dev quedó privado,
@@ -46,6 +47,13 @@
   `odp-docker`) para que `user_invite` funcione. Si se puede, la invitación entra en `v1`; si no, pasa a `v2`/`v2+` con ese
   motivo. Cita del autor: «si se puede hacer algo pequeño para probarlo entra eso de la invitación para v1, sino lo dejamos
   como pendiente para v2 o v2+».
+  **Factibilidad (sesión de `odp-docker`, 2026-10-29, sin aplicar):** un servicio Mailpit con versión fijada en
+  `docker-compose.dev.unified.yml`, que atrapa todo y no entrega nada afuera, y `CKAN_SMTP_*` apuntando a él en el
+  `environment:` de `ckan-dev` y `ckan-worker-dev`. Unas 30–40 líneas, un test de configuración y una nota en el README:
+  ~1 hora, riesgo bajo, sólo dev. **La parte grande no es el correo:** el enlace lo arma CKAN con `ckan.site_url` y lleva a
+  la página de restablecer contraseña de CKAN, no al portal. Para un flujo del portal (aceptar y fijar contraseña) hace
+  falta trabajo en el portal o personalizar la plantilla en `ckanext-umss`; el nombre de usuario lo genera CKAN desde el
+  correo. Producción necesita un SMTP real de la universidad.
 
 ## El README del sistema de diseño quedó atrás de `src/app.css` (hallado en la sincronización de Gentle Design, 2026-10-28)
 
