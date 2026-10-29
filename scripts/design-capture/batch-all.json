@@ -26,6 +26,46 @@
 	],
 	"screens": [
 		{
+			"file": "h1-1-alta-de-usuario.html",
+			"url": "/dev/prototype/users?vista=nuevo",
+			"as": "admin"
+		},
+		{
+			"file": "h1-2-inicio-de-sesion.html",
+			"url": "/auth/login",
+			"waitForSelector": "#username"
+		},
+		{
+			"file": "h1-3-panel.html",
+			"url": "/dashboard",
+			"as": "editor",
+			"waitForText": ["Mis organizaciones", "Facultad de Ciencias y Tecnología"]
+		},
+		{
+			"file": "h1-4-nuevo-dataset.html",
+			"url": "/dashboard/datasets/new",
+			"as": "editor",
+			"waitForText": ["Crear dataset"]
+		},
+		{
+			"file": "h1-5-ficha-con-sesion.html",
+			"url": "/dataset/calidad-del-agua-en-puntos-de-muestreo-del-valle",
+			"as": "editor",
+			"waitForSelector": "a[href*=\"/resource/\"]"
+		},
+		{
+			"file": "h1-6-solicitudes.html",
+			"url": "/dashboard/requests",
+			"as": "admin",
+			"waitForText": ["Resueltas ("],
+			"selects": [{ "selector": "select", "value": "todas" }]
+		},
+		{
+			"file": "h1-7-ficha-publica.html",
+			"url": "/dataset/calidad-del-agua-en-puntos-de-muestreo-del-valle",
+			"waitForSelector": "a[href*=\"/resource/\"]"
+		},
+		{
 			"file": "h2-2-organizaciones.html",
 			"url": "/organizations",
 			"waitForSelector": "[data-testid=\"org-directory\"] time"
@@ -111,12 +151,23 @@
 		},
 		{
 			"file": "h3-1-mis-colecciones.html",
-			"url": "/dev/prototype/collections?vista=panel"
+			"url": "/dev/prototype/collections?vista=panel",
+			"as": "editor"
+		},
+		{
+			"file": "h3-2-coleccion-vista-del-curador.html",
+			"url": "/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador",
+			"as": "editor"
 		},
 		{
 			"file": "h3-3-coleccion-publica.html",
 			"url": "/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica",
 			"aliases": ["/dev/prototype/collection?c=rendicion-cuentas-2025"]
+		},
+		{
+			"file": "h3-4-dataset-en-dos-colecciones.html",
+			"url": "/dev/prototype/dataset-collections?d=informe-gestion-2025-fcyt&como=rectorado",
+			"as": "editor"
 		}
 	]
 }

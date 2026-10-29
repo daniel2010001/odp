@@ -13,13 +13,11 @@
 
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { loadScreen, measureHeight } from "./capture.mjs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { loadScreen, measureHeight, openSessions, outDirOf } from "./capture.mjs";
 import { evaluate, launch, navigate, openPage, screenshot, setViewport, sleep } from "./cdp.mjs";
 import { decodePng, diffImages, encodePng, externalReferences, planBatch } from "./lib.mjs";
-
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const bandsText = ({ bands }) =>
 	bands.length ? ` (filas ${bands.map(([a, b]) => `${a}–${b}`).join(", ")})` : "";
@@ -32,13 +30,14 @@ async function main() {
 		process.exit(2);
 	}
 	const batch = JSON.parse(await readFile(batchPath, "utf8"));
-	const plan = planBatch(batch.screens, (file) => existsSync(join(REPO, batch.outDir, file)));
+	const plan = planBatch(batch.screens, (file) => existsSync(join(outDirOf(batch), file)));
 	for (const screen of plan.linkOnly) console.log(`--  ${screen.file}: linkOnly, no se verifica`);
+	const { sessions, logout } = await openSessions({ ...batch, screens: plan.capture });
 	const { browser, close } = await launch();
 	let failed = false;
 	try {
 		for (const screen of plan.capture) {
-			const path = join(REPO, batch.outDir, screen.file);
+			const path = join(outDirOf(batch), screen.file);
 			const html = await readFile(path, "utf8");
 			const external = externalReferences(html);
 			const scripts = (html.match(/<script/gi) ?? []).length;
@@ -69,7 +68,7 @@ async function main() {
 			await board.close();
 
 			// La pantalla real, en su ventana, capturada entera.
-			const { page: live } = await loadScreen(browser, batch, screen);
+			const { page: live } = await loadScreen(browser, batch, screen, sessions);
 			const liveHeight = await measureHeight(live);
 			const livePng = await screenshot(live, { width: batch.width, height: liveHeight });
 			await live.close();
@@ -104,6 +103,7 @@ async function main() {
 		}
 	} finally {
 		await close();
+		await logout();
 	}
 	process.exit(failed ? 1 : 0);
 }

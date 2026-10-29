@@ -28,19 +28,30 @@ export function urlKey(href, base) {
  * Mapa clave → archivo del artboard, con la dirección de cada pantalla y sus alias (otras direcciones que
  * muestran la misma pantalla, p. ej. el enlace sin `vista=`). Una dirección con fragmento entra con él
  * (`/recurso#chart-a`): así cada vista de una misma página (las pestañas de un recurso) tiene su artboard.
+ *
+ * Una dirección puede tener un artboard por cuenta (`as`: la ficha con sesión y sin ella). El mapa es el de quien
+ * mira con la cuenta `as` (sin sesión, `undefined`): su artboard; si no tiene, el de sin sesión; si tampoco, el
+ * de otra cuenta. Dos artboards de la misma dirección y la misma cuenta son un error.
  */
-export function buildLinkMap(screens, origin) {
-	const map = {};
+export function buildLinkMap(screens, origin, as) {
+	const byKey = {};
 	for (const screen of screens) {
 		for (const href of [screen.url, ...(screen.aliases ?? [])]) {
 			let key = urlKey(href, origin);
 			if (key === null) throw new Error(`Dirección fuera del portal: ${href}`);
 			key += new URL(href, origin).hash;
-			if (map[key] && map[key] !== screen.file) {
-				throw new Error(`${href} apunta a dos artboards: ${map[key]} y ${screen.file}`);
+			const account = screen.as ?? "";
+			byKey[key] ??= {};
+			const previous = byKey[key][account];
+			if (previous && previous !== screen.file) {
+				throw new Error(`${href} apunta a dos artboards: ${previous} y ${screen.file}`);
 			}
-			map[key] = screen.file;
+			byKey[key][account] = screen.file;
 		}
+	}
+	const map = {};
+	for (const [key, files] of Object.entries(byKey)) {
+		map[key] = files[as ?? ""] ?? files[""] ?? Object.values(files)[0];
 	}
 	return map;
 }
@@ -92,6 +103,60 @@ export function tabTarget(template, value, base, linkMap) {
 	if (key === null || !url.hash) return null;
 	return linkMap[key + url.hash] ?? null;
 }
+
+// ─── Sesión (pantallas con `as`) ───────────────────────────────────────────────────────────────────────
+
+/** Las cuentas que piden las pantallas (`as`), una vez cada una y en orden. */
+export function batchAccounts(screens) {
+	const accounts = new Set();
+	for (const { as } of screens) {
+		if (as === undefined) continue;
+		if (!/^[a-z]+$/.test(as)) throw new Error(`Cuenta inválida: ${as}`);
+		accounts.add(as);
+	}
+	return [...accounts].sort();
+}
+
+/**
+ * Usuario y contraseña de una cuenta, del entorno: `DEMO_<CUENTA>_USER` y `DEMO_<CUENTA>_PASSWORD` (los mismos
+ * nombres que `presentation/capture/capture.mjs`). Nunca van al lote ni a un archivo; el error nombra las
+ * variables, no sus valores.
+ */
+export function accountCredentials(as, env) {
+	const prefix = `DEMO_${as.toUpperCase()}`;
+	const user = env[`${prefix}_USER`];
+	const password = env[`${prefix}_PASSWORD`];
+	if (!user || !password) {
+		throw new Error(`Faltan ${prefix}_USER / ${prefix}_PASSWORD (pantallas «as: ${as}»)`);
+	}
+	return { user, password };
+}
+
+/** `{ name, value }` de cada `Set-Cookie` de la respuesta del login; las que se borran (vacías o `Max-Age=0`), no. */
+export function sessionCookies(setCookies) {
+	const cookies = [];
+	for (const header of setCookies) {
+		const [pair, ...attributes] = header.split(";");
+		const eq = pair.indexOf("=");
+		const name = pair.slice(0, eq).trim();
+		const value = pair.slice(eq + 1).trim();
+		const expired = attributes.some((a) => /^\s*max-age\s*=\s*0\s*$/i.test(a));
+		if (eq > 0 && value && !expired) cookies.push({ name, value });
+	}
+	return cookies;
+}
+
+/** Las cookies de una pantalla: las del lote más la sesión de su cuenta (`sessions[as]`), si tiene. */
+export function screenCookies(batch, screen, sessions) {
+	const cookies = [...(batch.cookies ?? [])];
+	if (screen.as === undefined) return cookies;
+	if (!sessions[screen.as]) throw new Error(`${screen.file}: no hay sesión de «${screen.as}»`);
+	return [...cookies, ...sessions[screen.as]];
+}
+
+/** Cabecera `Cookie` con esas cookies (para lo que se descarga fuera del navegador, como un PDF). */
+export const cookieHeader = (cookies) =>
+	cookies.map(({ name, value }) => `${name}=${value}`).join("; ");
 
 /**
  * ¿La espera de red en reposo cuenta esta petición? No las de HMR de Vite, que quedan abiertas, ni lo que no

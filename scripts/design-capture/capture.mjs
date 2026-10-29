@@ -29,6 +29,16 @@
 //                    pasa al CSS bajo `@container scroll-state(<query>)` de ese contenedor (`scrollStateCss`).
 //                    El encabezado: `{ container: ":root", query: "scrollable: top" }`; un pegado: su selector
 //                    con `stuck: top`. Lo que cambió fuera de su contenedor queda en reposo (se avisa).
+//                    `as`: la cuenta con que se mira la pantalla (`editor`, `admin`). La captura inicia sesión una vez
+//                    por cuenta con el login real del portal (`POST /auth/login`, el que usa el formulario) y la
+//                    pantalla se abre en un contexto propio con esa sesión; al terminar la cierra (`/auth/logout`
+//                    revoca el token). Usuario y contraseña salen del entorno, nunca del lote:
+//                    `DEMO_<CUENTA>_USER` y `DEMO_<CUENTA>_PASSWORD` (`accountCredentials`). Sin `as`, sin sesión.
+//                    Ninguna pantalla envía un formulario: lo que cambia datos se captura antes de la acción.
+//                    Los enlaces de una pantalla con sesión llevan a los artboards de su misma cuenta cuando una
+//                    dirección tiene dos (la ficha con sesión y sin ella), y si no, al de sin sesión (`buildLinkMap`).
+//                    `selects`: [{ selector, value }] antes de capturar, elige `value` en el `<select>` que cumple
+//                    `selector` (un filtro de la página, p. ej. «Mostrar: Todas»). Sólo cambia la vista; no envía nada.
 //
 // Los enlaces a una pantalla del lote (por su `url` o un alias) apuntan al archivo hermano; los demás quedan
 // inertes (sin `href`). Si `outDir/design.json` existe, actualiza el `height` de cada artboard capturado.
@@ -53,7 +63,10 @@ import {
 	waitFor,
 } from "./cdp.mjs";
 import {
+	accountCredentials,
+	batchAccounts,
 	buildLinkMap,
+	cookieHeader,
 	embedFontFaces,
 	externalReferences,
 	freezeViewportUnits,
@@ -61,7 +74,9 @@ import {
 	mapHref,
 	pdfStandIn,
 	planBatch,
+	screenCookies,
 	scrollStateCss,
+	sessionCookies,
 	styleChanges,
 	tabTarget,
 	urlKey,
@@ -72,21 +87,78 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 export const viewportHeight = (batch) => batch.viewportHeight ?? 900;
 
+/** Carpeta de salida del lote: relativa a la raíz del repo, o absoluta (una carpeta temporal para probar). */
+export const outDirOf = (batch) => resolve(REPO, batch.outDir);
+
+/**
+ * Inicia sesión con cada cuenta que piden las pantallas (`as`) y devuelve `{ sessions, logout }`: `sessions[as]`
+ * son las cookies de la sesión; `logout()` cierra todas (revoca sus tokens en el catálogo).
+ */
+export async function openSessions(batch, env = process.env) {
+	const sessions = {};
+	const logout = async () => {
+		for (const cookies of Object.values(sessions)) {
+			await fetch(new URL("/auth/logout", batch.origin), {
+				method: "POST",
+				headers: { "content-type": "application/json", cookie: cookieHeader(cookies) },
+				body: "{}",
+			}).catch(() => {});
+		}
+	};
+	try {
+		for (const as of batchAccounts(batch.screens)) {
+			const { user, password } = accountCredentials(as, env);
+			const response = await fetch(new URL("/auth/login", batch.origin), {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ username: user, password }),
+			});
+			const cookies = sessionCookies(response.headers.getSetCookie());
+			if (!response.ok || cookies.length === 0) {
+				throw new Error(`No se pudo iniciar sesión como «${as}» (HTTP ${response.status})`);
+			}
+			sessions[as] = cookies;
+			console.log(`Sesión iniciada como «${as}»`);
+		}
+	} catch (error) {
+		await logout();
+		throw error;
+	}
+	return { sessions, logout };
+}
+
 /** Abre una pantalla del lote y espera a que esté completa (red en reposo, contenido, fuentes). */
-export async function loadScreen(browser, batch, screen) {
-	const page = await openPage(browser);
+export async function loadScreen(browser, batch, screen, sessions = {}) {
+	const page = await openPage(browser, { isolated: true });
 	const network = trackNetwork(page);
-	for (const cookie of batch.cookies ?? []) {
+	for (const cookie of screenCookies(batch, screen, sessions)) {
 		await page.send("Network.setCookie", { ...cookie, url: `${batch.origin}/` });
 	}
 	await setViewport(page, batch.width, viewportHeight(batch));
 	await navigate(page, new URL(screen.url, batch.origin).href);
 	await network.idle(1500);
+	if (screen.as && (await evaluate(page, `location.pathname.startsWith("/auth/login")`))) {
+		throw new Error(`${screen.file}: la sesión de «${screen.as}» no alcanzó, llevó al login`);
+	}
 	for (const text of screen.waitForText ?? []) {
 		await waitFor(page, `document.body.innerText.includes(${JSON.stringify(text)})`);
 	}
 	if (screen.waitForSelector) {
 		await waitFor(page, `document.querySelector(${JSON.stringify(screen.waitForSelector)})`);
+	}
+	for (const { selector, value } of screen.selects ?? []) {
+		const chosen = await evaluate(
+			page,
+			`(() => {
+				const select = document.querySelector(${JSON.stringify(selector)});
+				if (!select || ![...select.options].some((o) => o.value === ${JSON.stringify(value)})) return false;
+				select.value = ${JSON.stringify(value)};
+				select.dispatchEvent(new Event("change", { bubbles: true }));
+				return true;
+			})()`,
+		);
+		if (!chosen) throw new Error(`${screen.file}: no hay un ${selector} con la opción «${value}»`);
+		await network.idle(1000);
 	}
 	await evaluate(page, "document.fonts.ready.then(() => true)");
 	await network.idle(1000);
@@ -119,12 +191,12 @@ const run = promisify(execFile);
  * lote, dibuja sus primeras `pages` páginas a 192 ppp (2× de 96: nítidas al ampliar el lienzo) y las muestra al
  * 100 %, como el visor de Chromium.
  */
-async function pdfStandIns(page, batch, { selector, pages = 2 }) {
+async function pdfStandIns(page, cookies, { selector, pages = 2 }) {
 	const frames = await evaluate(
 		page,
 		`[...document.querySelectorAll(${JSON.stringify(selector)})].map((f) => ({ src: f.src, title: f.title, className: f.getAttribute("class") ?? "" }))`,
 	);
-	const cookie = (batch.cookies ?? []).map(({ name, value }) => `${name}=${value}`).join("; ");
+	const cookie = cookieHeader(cookies);
 	const dir = await mkdtemp(join(tmpdir(), "design-capture-pdf-"));
 	try {
 		const html = [];
@@ -234,14 +306,14 @@ async function sampleScrollStates(page, states) {
 	return { css: scrollStateCss(states, claims), warnings };
 }
 
-async function captureScreen(browser, batch, screen, linkMap) {
-	const { page, network } = await loadScreen(browser, batch, screen);
+async function captureScreen(browser, batch, screen, linkMap, sessions) {
+	const { page, network } = await loadScreen(browser, batch, screen, sessions);
 	const height = await measureHeight(page);
 	const scroll = screen.scrollStates
 		? await sampleScrollStates(page, screen.scrollStates)
 		: { css: "", warnings: [] };
 	const standIns = screen.replaceIframes
-		? await pdfStandIns(page, batch, screen.replaceIframes)
+		? await pdfStandIns(page, screenCookies(batch, screen, sessions), screen.replaceIframes)
 		: null;
 	const expression = `(async () => {
 		const urlKey = ${urlKey.toString()};
@@ -285,11 +357,13 @@ async function main() {
 		process.exit(2);
 	}
 	const batch = JSON.parse(await readFile(batchPath, "utf8"));
-	const outDir = join(REPO, batch.outDir);
-	const linkMap = buildLinkMap(batch.screens, batch.origin);
+	const outDir = outDirOf(batch);
+	// Valida las direcciones del lote antes de abrir sesiones y navegador; cada pantalla arma luego el suyo.
+	buildLinkMap(batch.screens, batch.origin);
 	const plan = planBatch(batch.screens, (file) => existsSync(join(outDir, file)));
 	for (const screen of plan.linkOnly)
 		console.log(`${screen.file}: sólo destino de enlaces (linkOnly)`);
+	const { sessions, logout } = await openSessions({ ...batch, screens: plan.capture });
 	const { browser, close } = await launch();
 	const heights = {};
 	try {
@@ -298,7 +372,8 @@ async function main() {
 				browser,
 				batch,
 				screen,
-				linkMap,
+				buildLinkMap(batch.screens, batch.origin, screen.as),
+				sessions,
 			);
 			if (/<script/i.test(html)) throw new Error(`${screen.file}: quedó un <script>`);
 			await writeFile(join(outDir, screen.file), html);
@@ -312,6 +387,7 @@ async function main() {
 		}
 	} finally {
 		await close();
+		await logout();
 	}
 
 	const manifestPath = join(outDir, "design.json");

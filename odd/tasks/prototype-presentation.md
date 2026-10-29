@@ -457,3 +457,9 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   «máx 3 niveles» memory: not in this project's `PRD.md`, repo or memory — likely the previous project; S37 goes to Q6 for analysis.
   Organization sheet for the presentation: direction 02.
 - **L32** (2026-10-29 ~12:05, author): S39–S41 (quoted there). Search 04 and the real search: «revisado. ok».
+- **L33** (2026-10-29 ~12:30, agent): login screens captured (author authorized reading `odp-docker/.demo-users` for this;
+  credentials only through env vars): H1-1…H1-7, H3-2, H3-4 new, H3-1 re-captured logged in, `ficha-organizacion` retitled
+  H2-2b; capture tool gained per-screen accounts (`"as"`), isolated contexts, `selects`, logout. Full batch: 23 screens, verify
+  21 OK; H1-1 differs (fixed modal centered on the full-height artboard) and H2-5e (static PDF stand-in). Deviations: H1-5 shows an
+  approved dataset with a session (no private FCyT draft without a request exists in the demo catalog); H1-6 shows 7 resolved
+  requests (0 pending); story 3 shows `editor-fcyt` (no Rectorado account).

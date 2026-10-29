@@ -1,7 +1,7 @@
 // Chromium headless controlado por CDP (Chrome DevTools Protocol), sin dependencias: el WebSocket global de
 // Node habla con el puerto de depuración remota. Lo usan `capture.mjs` y `verify.mjs`.
 
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -54,6 +54,8 @@ export async function launch() {
 			browser.socket.close();
 			child.kill("SIGTERM");
 			await new Promise((resolve) => child.once("exit", resolve));
+			// Algún subproceso (renderer, GPU) puede sobrevivir al principal: se lo busca por su perfil.
+			await new Promise((resolve) => execFile("pkill", ["-f", profile], () => resolve()));
 			// Los subprocesos de Chromium escriben en el perfil unos instantes después de salir el principal.
 			await rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }).catch(
 				() => console.warn(`No se pudo borrar el perfil temporal ${profile}`),
@@ -92,9 +94,19 @@ async function connect(wsUrl) {
 	return { socket, send, listeners };
 }
 
-/** Abre una pestaña nueva y devuelve una sesión con `send(method, params)` y `on(method, fn)`. */
-export async function openPage(browser) {
-	const { targetId } = await browser.send("Target.createTarget", { url: "about:blank" });
+/**
+ * Abre una pestaña nueva y devuelve una sesión con `send(method, params)` y `on(method, fn)`. Con `isolated`, en un
+ * contexto propio (cookies y almacenamiento aparte, como una ventana de incógnito) que se descarta al cerrarla: así
+ * la sesión de una pantalla no se filtra a la siguiente.
+ */
+export async function openPage(browser, { isolated = false } = {}) {
+	const { browserContextId } = isolated
+		? await browser.send("Target.createBrowserContext")
+		: { browserContextId: undefined };
+	const { targetId } = await browser.send("Target.createTarget", {
+		url: "about:blank",
+		browserContextId,
+	});
 	const { sessionId } = await browser.send("Target.attachToTarget", { targetId, flatten: true });
 	const handlers = new Map();
 	const listener = (message) => {
@@ -111,6 +123,8 @@ export async function openPage(browser) {
 		async close() {
 			browser.listeners.delete(listener);
 			await browser.send("Target.closeTarget", { targetId });
+			if (browserContextId)
+				await browser.send("Target.disposeBrowserContext", { browserContextId });
 		},
 	};
 	await page.send("Page.enable");

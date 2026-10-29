@@ -6,7 +6,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+	accountCredentials,
+	batchAccounts,
 	buildLinkMap,
+	cookieHeader,
 	decodePng,
 	diffImages,
 	embedFontFaces,
@@ -17,7 +20,9 @@ import {
 	mapHref,
 	pdfStandIn,
 	planBatch,
+	screenCookies,
 	scrollStateCss,
+	sessionCookies,
 	styleChanges,
 	tabTarget,
 	urlKey,
@@ -286,4 +291,86 @@ test("scrollStateCss declara cada contenedor y aplica los cambios bajo su consul
 	);
 	// Un estado sin cambios no declara contenedor ni consulta.
 	assert.equal(scrollStateCss(states, [[], []]), "");
+});
+
+test("batchAccounts lista una vez cada cuenta que piden las pantallas, en orden", () => {
+	const screens = [{ as: "editor" }, { file: "x" }, { as: "admin" }, { as: "editor" }];
+	assert.deepEqual(batchAccounts(screens), ["admin", "editor"]);
+	assert.deepEqual(batchAccounts([{ file: "x" }]), []);
+	assert.throws(() => batchAccounts([{ as: "Editor 1" }]), /Cuenta inválida: Editor 1/);
+});
+
+test("accountCredentials lee usuario y contraseña de DEMO_<CUENTA>_USER / _PASSWORD", () => {
+	const env = { DEMO_EDITOR_USER: "ed", DEMO_EDITOR_PASSWORD: "pw" };
+	assert.deepEqual(accountCredentials("editor", env), { user: "ed", password: "pw" });
+	// Sin una de las dos, el error nombra las variables, nunca sus valores.
+	assert.throws(
+		() => accountCredentials("admin", { DEMO_ADMIN_USER: "usuario-secreto" }),
+		(error) =>
+			error.message === "Faltan DEMO_ADMIN_USER / DEMO_ADMIN_PASSWORD (pantallas «as: admin»)",
+	);
+	assert.throws(() => accountCredentials("editor", {}), /Faltan DEMO_EDITOR_USER/);
+});
+
+test("sessionCookies toma nombre y valor de cada Set-Cookie y descarta las que se borran", () => {
+	assert.deepEqual(
+		sessionCookies([
+			"odp_session=abc.def=; Path=/; HttpOnly; SameSite=Lax",
+			"otra=; Path=/; Max-Age=0",
+			"vieja=x; Path=/; Max-Age=0",
+			"flag=1",
+		]),
+		[
+			{ name: "odp_session", value: "abc.def=" },
+			{ name: "flag", value: "1" },
+		],
+	);
+	assert.deepEqual(sessionCookies([]), []);
+});
+
+test("screenCookies suma a las cookies del lote la sesión de la cuenta de la pantalla", () => {
+	const batch = { cookies: [{ name: "odp_prototype", value: "on" }] };
+	const sessions = { editor: [{ name: "odp_session", value: "s1" }] };
+	assert.deepEqual(screenCookies(batch, { file: "a" }, sessions), batch.cookies);
+	assert.deepEqual(screenCookies(batch, { file: "b", as: "editor" }, sessions), [
+		{ name: "odp_prototype", value: "on" },
+		{ name: "odp_session", value: "s1" },
+	]);
+	assert.deepEqual(screenCookies({}, { file: "c" }, {}), []);
+	assert.throws(
+		() => screenCookies(batch, { file: "d.html", as: "admin" }, sessions),
+		/d\.html: no hay sesión de «admin»/,
+	);
+});
+
+test("cookieHeader arma la cabecera Cookie", () => {
+	assert.equal(
+		cookieHeader([
+			{ name: "a", value: "1" },
+			{ name: "b", value: "x=y" },
+		]),
+		"a=1; b=x=y",
+	);
+	assert.equal(cookieHeader([]), "");
+});
+
+test("buildLinkMap con cuenta: una misma dirección con y sin sesión lleva al artboard de quien mira", () => {
+	const screens = [
+		{ file: "h1-5-con-sesion.html", url: "/dataset/a", as: "editor" },
+		{ file: "h1-7-publica.html", url: "/dataset/a" },
+		{ file: "h1-6.html", url: "/dashboard/requests", as: "admin" },
+	];
+	// Sin sesión, la pública; con la sesión del editor, la suya.
+	assert.equal(buildLinkMap(screens, ORIGIN)["/dataset/a"], "h1-7-publica.html");
+	assert.equal(buildLinkMap(screens, ORIGIN, "editor")["/dataset/a"], "h1-5-con-sesion.html");
+	// Otra cuenta sin artboard propio de esa dirección: la versión sin sesión.
+	assert.equal(buildLinkMap(screens, ORIGIN, "admin")["/dataset/a"], "h1-7-publica.html");
+	// Una dirección con un solo artboard lleva a él, se mire con la cuenta que se mire.
+	assert.equal(buildLinkMap(screens, ORIGIN)["/dashboard/requests"], "h1-6.html");
+	// Dos artboards de la misma dirección y la misma cuenta siguen siendo un error.
+	assert.throws(
+		() =>
+			buildLinkMap([...screens, { file: "otro.html", url: "/dataset/a", as: "editor" }], ORIGIN),
+		/\/dataset\/a apunta a dos artboards: h1-5-con-sesion\.html y otro\.html/,
+	);
 });
