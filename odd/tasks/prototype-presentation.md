@@ -259,7 +259,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T39 | S35, S36 | Re-capture H2-3, H2-3b, H2-7, H3-3 | inline | — |
 | T40 | S39 | Root `index.html` redirecting GitHub Pages to `design/` | inline | (this commit) |
 | T41 | S40 | Organization sheet 07 from 06: sticky figures index, unit data out of the hero | worker | (this commit): a compact copy of the figures index sticks under the header (CSS `scroll-state(stuck)`, Chromium only; not on the canvas); unit data as its own section; band 369 px (06: 599) — awaiting author review |
-| T42 | S41 | Playground `/dev/search-extras`: the no-results blocks («Pruebe con», «Mientras tanto, lo más reciente») shown always, with switches | worker | — |
+| T42 | S41 | Playground `/dev/search-extras`: the no-results blocks («Pruebe con», «Mientras tanto, lo más reciente») shown always, with switches | worker | (this commit): «Pruebe con» above the results, «Lo más reciente del catálogo» after the pagination (no repeated cards); same-route links re-read the URL (the fix for the real `/search` chip defect, to promote) — awaiting author review |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed

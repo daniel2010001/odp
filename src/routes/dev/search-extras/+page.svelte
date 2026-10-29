@@ -1,0 +1,1395 @@
+<!--
+	Playground — los bloques del vacío, también con resultados (S41 de `odd/tasks/prototype-presentation.md`; AGENTS.md
+	regla 8). El autor, textual: «me gustaría saber si podemos poner eso que sale cuando no hay resultados, cosa que
+	esté "siempre", podemos probrar?».
+
+	Duplica `/search` tal cual (la página real no se toca: el autor la presenta hoy) y le suma, sólo **con**
+	resultados, los dos bloques del vacío, cada uno con su interruptor al lado:
+	- «Pruebe con» (`pruebe=on`): **arriba de la lista**, bajo la barra de resultados. Es una fila de chips, corta, y
+	  hace lo mismo que los filtros (acotar), así que se lee antes de recorrer las tarjetas; abajo de veinte
+	  tarjetas nadie la vería.
+	- «Lo más reciente del catálogo» (`recientes=on`): **después de la paginación**, cerrando la página. La
+	  paginación es de la lista y no se separa de ella; el bloque no está filtrado, así que es una salida para
+	  quien llegó al final sin encontrar lo que buscaba. «Mientras tanto» se cae: con resultados no hay un
+	  «mientras» que esperar. Se omiten los datasets que ya están en la página, para no repetir tarjetas.
+	Sin resultados, el vacío es el de hoy, interruptores incluidos o no: no cambia nada.
+
+	Los chips llevan a este playground, no a `/search`, y conservan los interruptores. En la página real un chip
+	no hace nada (la navegación a la misma ruta no vuelve a leer la URL; medido en Chromium el 2026-10-29); acá
+	`afterNavigate` la vuelve a leer, y eso es lo que habría que promover.
+
+	El panel (fijo, abajo a la derecha) es liviano: los ajustes «Como hoy» / «Todo» y dos casos. El estado vive en
+	la URL: `pruebe` y `recientes` (`on` o ausentes) y la búsqueda de siempre.
+-->
+<script lang="ts">
+import { ArrowDown, ChevronDown, SlidersHorizontal, X } from "@lucide/svelte";
+import { onMount, tick, untrack } from "svelte";
+import { afterNavigate, replaceState } from "$app/navigation";
+import { page } from "$app/stores";
+import { createCkanClient } from "$lib/api/client";
+import { createDatasetApi } from "$lib/api/datasets";
+import { describeFailure } from "$lib/api/failure";
+import { createOrganizationApi } from "$lib/api/organizations";
+import OrganizationCard from "$lib/components/organizations/OrganizationCard.svelte";
+import DatasetCard from "$lib/components/search/DatasetCard.svelte";
+import FacetFilter from "$lib/components/search/FacetFilter.svelte";
+import Pagination from "$lib/components/search/Pagination.svelte";
+import SearchBar from "$lib/components/search/SearchBar.svelte";
+import { env } from "$lib/env";
+import { getMockSearchResult, MOCK_ORGS } from "$lib/mock/data";
+import type { CkanFacet, CkanOrganization, CkanPackage } from "$lib/types/ckan";
+import { buildFilterQuery } from "$lib/utils/ckan";
+import { mapLicenseItems } from "$lib/utils/licenses";
+import PlaygroundToggle from "./PlaygroundToggle.svelte";
+
+type Interruptor = "off" | "on";
+
+const INTERRUPTOR: { value: Interruptor; label: string }[] = [
+	{ value: "off", label: "Como hoy" },
+	{ value: "on", label: "Siempre" },
+];
+
+const CASOS = [
+	{ id: "matricula", label: "Con resultados («matrícula»)", q: "matrícula" },
+	{ id: "vacio", label: "Sin resultados", q: "zzqqxx" },
+] as const;
+
+// ─── Interruptores del playground (en la URL) ─────────────────────
+let pruebe = $state($page.url.searchParams.get("pruebe") === "on");
+let recientes = $state($page.url.searchParams.get("recientes") === "on");
+
+// ─── State desde URL ──────────────────────────────────────────────
+let query = $state($page.url.searchParams.get("q") ?? "");
+let selectedOrgs = $state<string[]>($page.url.searchParams.get("org")?.split(",") ?? []);
+let selectedFormats = $state<string[]>($page.url.searchParams.get("format")?.split(",") ?? []);
+let selectedTags = $state<string[]>($page.url.searchParams.get("tags")?.split(",") ?? []);
+let selectedLicenses = $state<string[]>($page.url.searchParams.get("license")?.split(",") ?? []);
+let currentPage = $state(Number($page.url.searchParams.get("page")) || 1);
+// El orden que la persona **eligió** (o trajo en la URL); `null` = no eligió. El efectivo se deriva: con un texto
+// buscado el defecto es «Relevancia» (decisión del autor, L70 de `odd/tasks/v0.1.1-polish.md`); sin texto no hay
+// relevancia que medir y el catálogo empieza por lo más reciente.
+let sortChoice = $state<string | null>($page.url.searchParams.get("sort"));
+const defaultSort = $derived(query.trim() ? "score desc" : "metadata_modified desc");
+const sortBy = $derived(sortChoice ?? defaultSort);
+
+// ─── Result state ─────────────────────────────────────────────────
+let results = $state<CkanPackage[]>([]);
+let total = $state(0);
+let loading = $state(true);
+let error = $state<string | null>(null);
+let facets = $state<Record<string, CkanFacet>>({});
+
+// Total del catálogo completo (sin filtros). Se carga una vez y queda fijo:
+// la descripción del hero NO debe cambiar cuando el usuario filtra/busca.
+let catalogTotal = $state(0);
+let catalogTotalLoading = $state(true);
+
+// ─── UI: colapso de filtros en móvil ──────────────────────────────
+let mobileFiltersOpen = $state(false);
+
+// Alto real de la barra pegajosa de resultados, medido con `bind:clientHeight`. Entra en el
+// `scroll-margin-top` de los destinos del vacío: hardcodearlo mentiría en cuanto cambie el ancho.
+let altoBarra = $state(0);
+
+// ─── Los pegados (T17 / S15 de `odd/tasks/v0.1.1-polish.md`) ──────────────────────────────────────
+// Desde 1024px la barra de resultados vive sólo en la columna de las tarjetas, y la columna de filtros
+// se baja con un margen (en CSS) el alto de la barra más el aire de 2rem sobre las tarjetas; al desplazar
+// sube con la página hasta pegarse bajo el encabezado más un solo `--sticky-air`. Antes la bajada era un
+// `transform` que el script quitaba al pegarse la barra: una captura sin script congelaba el reposo y la
+// columna quedaba pegada 100 px más abajo (S20 de `odd/tasks/prototype-presentation.md`). La barra nace de borde a borde (su fondo es una capa aparte que se
+// extiende hasta los bordes de la ventana) y, al pegarse, esa capa se recorta a la columna con
+// `clip-path`. Ni `transform` ni `clip-path` cambian el flujo: el alto de la barra y la posición de lo de
+// abajo no se mueven durante la transición (anclaje de desplazamiento, commit 4ffbd2d). Bajo 1024px no hay
+// columna al lado: la barra queda arriba del bloque de filtros, de borde a borde, como antes.
+// Al pegarse, en el mismo movimiento entra el campo compacto (S24/S35 de `odd/tasks/prototype-presentation.md`,
+// aprobado en el playground que ya no existe): aparece y baja medio rem en un hueco que la barra ya tenía
+// reservado, así nada de la barra ni de los resultados se corre. Al volver arriba, todo se deshace.
+// Cuánto asoma, a cada lado de la columna, la sombra de una tarjeta (`shadow-md` al pasar el cursor).
+const SOMBRA_PX = 8;
+const DURACION_BARRA = 320;
+const CURVA_BARRA = "cubic-bezier(0.22, 1, 0.36, 1)";
+let enColumna = $state(false); // ≥ 1024px
+let ventanaAncha = $state(false); // ≥ 640px: el campo de búsqueda sólo entra en la barra desde aquí
+let reducido = $state(false); // prefers-reduced-motion: las transiciones son instantáneas
+let pegada = $state(false); // la barra llegó a su tope, bajo el encabezado
+
+let barraEl = $state<HTMLElement>();
+let columnaEl = $state<HTMLElement>();
+let heroEl = $state<HTMLElement>();
+let campoEl = $state<HTMLElement>();
+let resultadosEl = $state<HTMLElement>();
+
+// El campo compacto va atado al momento en que la barra se pega, no a que el del hero salga de la vista: las
+// dos cosas se ven como un solo movimiento.
+const buscadorEnBarra = $derived(pegada && ventanaAncha);
+const compacta = $derived(enColumna && pegada);
+const animada = $derived(!reducido);
+const transicionBarra = $derived(animada ? `clip-path ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none");
+const transicionContador = $derived(
+	animada ? `transform ${DURACION_BARRA}ms ${CURVA_BARRA}` : "none",
+);
+const transicionCampo = $derived(
+	animada
+		? `opacity ${DURACION_BARRA}ms ${CURVA_BARRA}, transform ${DURACION_BARRA}ms ${CURVA_BARRA}`
+		: "none",
+);
+
+// Foco: si el campo compacto se esconde con el foco adentro, el foco pasa al del hero, sin desplazar.
+$effect(() => {
+	if (buscadorEnBarra) return;
+	untrack(() => {
+		if (campoEl?.contains(document.activeElement)) {
+			heroEl
+				?.querySelector<HTMLInputElement>('input[type="search"]')
+				?.focus({ preventScroll: true });
+		}
+	});
+});
+
+function medirPegados() {
+	const encabezado = document.querySelector("[data-site-header]")?.getBoundingClientRect();
+	if (!encabezado || !barraEl) return;
+	const barra = barraEl.getBoundingClientRect();
+	pegada = barra.top <= encabezado.bottom + 0.5;
+	// Geometría del recorte: cuánto sobra del fondo a cada lado de la columna. Sólo cambia al
+	// redimensionar; va a variables CSS del propio elemento para no pasar por el estado reactivo.
+	if (!columnaEl) return;
+	const columna = columnaEl.getBoundingClientRect();
+	const ventana = document.documentElement.clientWidth;
+	const izquierda = Math.max(Math.round(columna.left), 0);
+	barraEl.style.setProperty("--bleed-l", `${izquierda}px`);
+	const derecha = Math.max(Math.round(ventana - columna.right), 0);
+	barraEl.style.setProperty("--bleed-r", `${derecha}px`);
+	barraEl.style.setProperty("--cover-l", `${Math.max(izquierda - SOMBRA_PX, 0)}px`);
+	barraEl.style.setProperty("--cover-r", `${Math.max(derecha - SOMBRA_PX, 0)}px`);
+	// El contador de la barra en reposo se corre hasta el borde del contenedor (sobre las facetas).
+	const lateral = panelEl?.getBoundingClientRect();
+	barraEl.style.setProperty(
+		"--shift",
+		`${lateral ? Math.max(Math.round(columna.left - lateral.left), 0) : 0}px`,
+	);
+}
+
+onMount(() => {
+	const consultas = [
+		["(min-width: 1024px)", (v: boolean) => (enColumna = v)],
+		["(min-width: 640px)", (v: boolean) => (ventanaAncha = v)],
+		["(prefers-reduced-motion: reduce)", (v: boolean) => (reducido = v)],
+	] as const;
+	const bajas = consultas.map(([consulta, aplicar]) => {
+		const mq = matchMedia(consulta);
+		aplicar(mq.matches);
+		const alCambiar = () => {
+			aplicar(mq.matches);
+			medirPegados();
+		};
+		mq.addEventListener("change", alCambiar);
+		return () => mq.removeEventListener("change", alCambiar);
+	});
+	medirPegados();
+	return () => {
+		for (const baja of bajas) baja();
+	};
+});
+
+// El diseño cambia de sitio la barra y mueve el contenido: se vuelve a medir cuando cambia lo que la
+// afecta, no sólo al desplazar.
+$effect(() => {
+	void altoBarra;
+	void enColumna;
+	void showFilterPanel;
+	void loading;
+	void total;
+	tick().then(medirPegados);
+});
+
+// Referencia al panel de filtros. Sirve para devolver el foco a un chip restante
+// cuando el chip que tenía el foco desaparece del DOM al quitar su filtro.
+let panelEl = $state<HTMLElement>();
+
+// ─── Router ready guard ────────────────────────────────────────────
+// `replaceState` de $app/navigation solo puede llamarse después de que el
+// router de SvelteKit esté inicializado. onMount NO garantiza eso (corre
+// antes) y llamar replaceState temprano lanza "before router is initialized"
+// y rompe el $effect. `afterNavigate` corre recién cuando el router navegó.
+let routerReady = $state(false);
+
+// Una navegación a esta misma ruta (un chip de «Pruebe con») reutiliza el componente: el estado se leyó de la
+// URL una sola vez, al crearlo, así que hay que volver a leerlo. Sin esto el chip no hace nada, que es lo que
+// pasa hoy en `/search`.
+function leerUrl(url: URL) {
+	const p = url.searchParams;
+	query = p.get("q") ?? "";
+	selectedOrgs = p.get("org")?.split(",") ?? [];
+	selectedFormats = p.get("format")?.split(",") ?? [];
+	selectedTags = p.get("tags")?.split(",") ?? [];
+	selectedLicenses = p.get("license")?.split(",") ?? [];
+	currentPage = Number(p.get("page")) || 1;
+	sortChoice = p.get("sort");
+	pruebe = p.get("pruebe") === "on";
+	recientes = p.get("recientes") === "on";
+}
+
+afterNavigate((navegacion) => {
+	const destino = navegacion?.to?.url;
+	if (
+		navegacion?.type !== "enter" &&
+		destino &&
+		navegacion?.from?.url.pathname === destino.pathname
+	) {
+		leerUrl(destino);
+	}
+	routerReady = true;
+});
+
+const pageSize = 20;
+const totalPages = $derived(Math.ceil(total / pageSize));
+
+// ─── Sincronizar URL ──────────────────────────────────────────────
+function syncUrl() {
+	const params = new URLSearchParams();
+	if (query) params.set("q", query);
+	if (selectedOrgs.length) params.set("org", selectedOrgs.join(","));
+	if (selectedFormats.length) params.set("format", selectedFormats.join(","));
+	if (selectedTags.length) params.set("tags", selectedTags.join(","));
+	if (selectedLicenses.length) params.set("license", selectedLicenses.join(","));
+	if (currentPage > 1) params.set("page", String(currentPage));
+	if (sortChoice !== null && sortChoice !== defaultSort) params.set("sort", sortChoice);
+	if (pruebe) params.set("pruebe", "on");
+	if (recientes) params.set("recientes", "on");
+
+	// Se preserva el fragmento del enlace copiado: sin él, `replaceState` lo borra de la
+	// barra de direcciones y `$page.url.hash` queda desincronizado (un valor viejo que ya
+	// no corresponde a la URL real). Se lee con `untrack`, igual que `$page.state`, para
+	// que `$page.url` no sea dependencia reactiva de los $effect que llaman syncUrl.
+	const hash = untrack(() => $page.url.hash);
+	const queryString = params.toString();
+	const suffix = queryString ? `?${queryString}` : "";
+	const newUrl = `/dev/search-extras${suffix}${hash}`;
+	// Segundo argumento = page.state (shallow routing), NO la URL: un objeto
+	// URL no es serializable y replaceState lanza "could not be cloned".
+	// Se lee con `untrack` para que $page.state no sea dependencia reactiva
+	// de los $effect que llaman syncUrl (si no, replaceState → cambia $page →
+	// re-dispara el effect → loop infinito).
+	replaceState(
+		newUrl,
+		untrack(() => $page.state),
+	);
+}
+
+// ─── Búsqueda en CKAN ─────────────────────────────────────────────
+async function doSearch() {
+	loading = true;
+	error = null;
+
+	// Construir filter query
+	const filterMap: Record<string, string[]> = {};
+	if (selectedOrgs.length) filterMap.organization = selectedOrgs;
+	if (selectedFormats.length) filterMap.res_format = selectedFormats;
+	if (selectedTags.length) filterMap.tags = selectedTags;
+	if (selectedLicenses.length) filterMap.license_id = selectedLicenses;
+	const fq = buildFilterQuery(filterMap);
+
+	try {
+		// CKAN_URL vacío = ruta relativa (proxy de Vite en dev)
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+		const datasetApi = createDatasetApi(client);
+
+		const searchResult = await datasetApi.search({
+			q: query || "*:*",
+			fq,
+			limit: pageSize,
+			offset: (currentPage - 1) * pageSize,
+			sort: sortBy,
+			facet_field: ["organization", "tags", "res_format", "license_id"],
+			facet_limit: 50,
+		});
+
+		results = searchResult.results;
+		total = searchResult.count;
+		facets = searchResult.search_facets;
+	} catch (err) {
+		// Solo en dev se respalda con datos mock; en prod se muestra un error
+		// explícito y nunca se muestran datos falsos.
+		if (import.meta.env.DEV) {
+			try {
+				const mock = getMockSearchResult();
+				results = mock.results;
+				total = mock.count;
+				facets = mock.search_facets;
+			} catch {
+				error = describeFailure(err, "dataset", "unknown").message;
+				results = [];
+				total = 0;
+				facets = {};
+			}
+		} else {
+			error = describeFailure(err, "dataset", "unknown").message;
+			results = [];
+			total = 0;
+			facets = {};
+		}
+	} finally {
+		loading = false;
+		void aterrizarPagina();
+	}
+}
+
+// ─── Cargar total del catálogo (fijo, sin filtros) ───────────────
+// Usa limit: 0 para traer solo el conteo real del catálogo completo,
+// independiente de la búsqueda/filtros activos. Almacenado en
+// `catalogTotal` para que la descripción del hero sea estable.
+async function loadCatalogTotal() {
+	catalogTotalLoading = true;
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+		const datasetApi = createDatasetApi(client);
+		const result = await datasetApi.search({ q: "*:*", limit: 0 });
+		catalogTotal = result.count;
+	} catch {
+		// En dev se usa el conteo mock; en prod el total queda en 0 sin datos falsos.
+		catalogTotal = import.meta.env.DEV ? getMockSearchResult().count : 0;
+	} finally {
+		catalogTotalLoading = false;
+	}
+}
+
+// ─── Contenido del estado vacío (lazy) ───────────────────────────
+// Cuando la búsqueda no devuelve nada, el aviso solo deja un hueco: debajo se ofrecen tres salidas
+// para seguir navegando. Se cargan **sólo** si el vacío llegó a mostrarse: en el camino normal (con
+// resultados) no se dispara ninguna llamada extra.
+let recentDatasets = $state<CkanPackage[]>([]);
+let topOrganizations = $state<CkanOrganization[]>([]);
+// Facetas del **catálogo entero**, para los chips: la búsqueda no sirve como fuente porque con cero
+// resultados vienen vacías.
+let catalogFacets = $state<Record<string, CkanFacet>>({});
+// Guarda de carga: no es `$state` a propósito (no se pinta). Hacerla reactiva re-dispararía el
+// mismo effect que protege. Vuelve a `false` cuando reaparecen resultados.
+let emptyAssistLoaded = false;
+
+// Los tres más frecuentes de cada faceta, como enlaces a una búsqueda filtrada por ese valor.
+// **La fuente es el catálogo, no la búsqueda**: con cero resultados CKAN devuelve `search_facets`
+// vacío —es el propio comentario de más abajo—, así que leerlos de la búsqueda dejaba el bloque
+// invisible justo en el único caso en que existe. Salen de la llamada perezosa de «lo más reciente»,
+// que ya recorre todo el catálogo. Si una faceta falta se muestra la otra; sin ninguna, no hay bloque.
+const suggestionChips = $derived.by(() => {
+	const chips: { label: string; href: string }[] = [];
+	const seen = new Set<string>();
+
+	const take = (facet: CkanFacet | undefined, param: "format" | "tags") => {
+		const items = [...(facet?.items ?? [])].sort((a, b) => b.count - a.count).slice(0, 3);
+		for (const item of items) {
+			if (!item.name) continue;
+			const href = enlaceChip(param, item.name);
+			if (seen.has(href)) continue;
+			seen.add(href);
+			chips.push({ label: item.display_name || item.name, href });
+		}
+	};
+
+	take(catalogFacets.res_format, "format");
+	take(catalogFacets.tags, "tags");
+	return chips;
+});
+
+// Los saltos de la sección del vacío: sólo los bloques que existen reciben enlace, derivados de
+// los mismos `length` que gobiernan los `{#if}`. Un salto a un bloque ausente es un enlace muerto.
+// La etiqueta visible es el mismo texto del `<h3>` del bloque destino.
+const saltos = $derived(
+	[
+		{ id: "pruebe-con", label: "Pruebe con", on: suggestionChips.length > 0 },
+		{ id: "recientes", label: "Mientras tanto, lo más reciente", on: recentDatasets.length > 0 },
+		{ id: "organizaciones", label: "Explorar por organización", on: topOrganizations.length > 0 },
+	].filter((salto) => salto.on),
+);
+
+// Margen de scroll de los destinos: debe dejarlos bajo la barra pegada, o sea la misma fórmula de los
+// pegados (`--header-h` + el borde del encabezado + el alto medido de la barra + `--sticky-air`). `scroll-mt-*` no existe en este repo y el alto no se hardcodea.
+const estiloDestino = $derived(
+	`scroll-margin-top: calc(var(--header-h) + 1px + ${altoBarra}px + var(--sticky-air))`,
+);
+
+// El chip lleva a este playground con el filtro y conserva los interruptores (en `/search`: `/search?<param>=<v>`).
+function enlaceChip(param: "format" | "tags", valor: string): string {
+	const params = new URLSearchParams({ [param]: valor });
+	if (pruebe) params.set("pruebe", "on");
+	if (recientes) params.set("recientes", "on");
+	return `/dev/search-extras?${params.toString()}`;
+}
+
+// Con resultados, «lo más reciente» sin las tarjetas que ya están en la página.
+const recientesConResultados = $derived(
+	recentDatasets.filter((dataset) => !results.some((r) => r.id === dataset.id)),
+);
+
+/** Las tres organizaciones con más datasets, de mayor a menor. */
+function topByPackageCount(orgs: CkanOrganization[]): CkanOrganization[] {
+	return [...orgs].sort((a, b) => (b.package_count ?? 0) - (a.package_count ?? 0)).slice(0, 3);
+}
+
+async function loadEmptyAssist() {
+	// `fallo` habilita el reintento: el latch de arriba existe para no repetir la carga en cada tecla,
+	// no para convertir un fallo transitorio en permanente (`R3-EMPTY-ASSIST-NO-RETRY` de
+	// `review-f6b3cb06831d7e11`). Se apaga sólo si algo falló; que un bloque venga vacío es legítimo.
+	let fallo = false;
+	const sinDatos = () => {
+		recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+		catalogFacets = import.meta.env.DEV ? (getMockSearchResult().search_facets ?? {}) : {};
+		topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
+	};
+
+	// La creación del cliente también puede tirar: va adentro, o el `void` de arriba deja una promesa
+	// rechazada sin dueño (`R3-CLIENT-CREATION-UNCAUGHT`).
+	try {
+		const client = createCkanClient({ baseUrl: env.CKAN_URL });
+
+		// Cada bloque falla por su cuenta: que las organizaciones no carguen no debe tumbar «lo más
+		// reciente» (y al revés). Fuera de DEV no se fabrican datos: el bloque se queda sin pintar.
+		try {
+			const datasetApi = createDatasetApi(client);
+			const result = await datasetApi.search({
+				q: "*:*",
+				sort: "metadata_modified desc",
+				limit: 3,
+				// Mismas facetas que pide la búsqueda, pero sobre todo el catálogo: alimentan los chips.
+				facet_field: ["res_format", "tags"],
+				facet_limit: 10,
+			});
+			recentDatasets = result.results;
+			catalogFacets = result.search_facets ?? {};
+		} catch {
+			fallo = true;
+			recentDatasets = import.meta.env.DEV ? getMockSearchResult().results.slice(0, 3) : [];
+			// Las facetas vienen de esta misma llamada, así que si falla también hay que reponerlas:
+			// dejarlas como estaban dejaba los chips vacíos o viejos aunque el respaldo de desarrollo
+			// existiera (`R3-002` de `review-a4119e82b86ac72e`).
+			catalogFacets = import.meta.env.DEV ? (getMockSearchResult().search_facets ?? {}) : {};
+		}
+
+		try {
+			const organizationApi = createOrganizationApi(client);
+			topOrganizations = topByPackageCount(await organizationApi.list());
+		} catch {
+			fallo = true;
+			topOrganizations = import.meta.env.DEV ? topByPackageCount(MOCK_ORGS) : [];
+		}
+	} catch {
+		fallo = true;
+		sinDatos();
+	}
+
+	if (fallo) emptyAssistLoaded = false;
+}
+
+// ─── Efecto: buscar cuando cambia el estado ───────────────────────
+$effect(() => {
+	// Leer todos los reactivos para que el effect dependa de ellos
+	void query;
+	void selectedOrgs;
+	void selectedFormats;
+	void selectedTags;
+	void selectedLicenses;
+	void currentPage;
+	void sortBy;
+	void routerReady;
+
+	// Recién con el router listo (afterNavigate) ejecutamos la búsqueda.
+	if (routerReady) doSearch();
+});
+
+// ─── Efecto: cargar el total del catálogo una sola vez ───────────
+// No depende de query/filtros: corre cuando el router está listo y nunca
+// se re-dispara al filtrar (a diferencia del effect de búsqueda).
+$effect(() => {
+	void routerReady;
+
+	if (routerReady) loadCatalogTotal();
+});
+
+// ─── Efecto: sincronizar URL ──────────────────────────────────────
+// Separado del effect de búsqueda a propósito: replaceState necesita el
+// router inicializado; si por cualquier motivo este effect fallara, nunca
+// debe tumbar la búsqueda ni viceversa.
+$effect(() => {
+	void query;
+	void selectedOrgs;
+	void selectedFormats;
+	void selectedTags;
+	void selectedLicenses;
+	void currentPage;
+	void sortBy;
+	void pruebe;
+	void recientes;
+	void routerReady;
+
+	if (routerReady) syncUrl();
+});
+
+// ─── Efecto: los bloques con resultados (S41) ─────────────────────
+// La misma carga perezosa del vacío, una sola vez y sólo si un interruptor la pide: son datos del catálogo
+// entero, no de la búsqueda, así que no cambian al filtrar. Con los dos apagados no hay llamada extra.
+let extrasCargados = false;
+$effect(() => {
+	void results;
+	void pruebe;
+	void recientes;
+	void routerReady;
+
+	if (!routerReady || results.length === 0 || (!pruebe && !recientes)) return;
+	if (extrasCargados) return;
+	extrasCargados = true;
+	void loadEmptyAssist();
+});
+
+function elegirCaso(q: string) {
+	query = q;
+	clearAllFilters();
+	sortChoice = null;
+}
+
+// ─── Efecto: contenido del vacío, sólo mientras el vacío se muestra ──
+// Depende de `results`/`total`/`loading`/`error` para no ejecutarse en el camino normal. La guarda
+// impide repetir la carga en cada tecla o cambio de página mientras el vacío siga en pantalla.
+$effect(() => {
+	void results;
+	void total;
+	void error;
+	void loading;
+	void routerReady;
+
+	if (results.length !== 0 || total !== 0) {
+		emptyAssistLoaded = false;
+		return;
+	}
+
+	if (!routerReady || loading || error) return;
+	if (emptyAssistLoaded) return;
+	emptyAssistLoaded = true;
+	void loadEmptyAssist();
+});
+
+// ─── Efecto: re-aplicar el fragmento de un enlace copiado ─────────
+// El navegador resuelve el `#id` del enlace antes de que los bloques perezosos existan y antes de
+// que la barra pegajosa esté medida; si el destino todavía no estaba, el fragmento queda sin
+// aplicar. Se re-aplica **una vez**, cuando el destino existe y el margen es usable (`R3-001` de
+// `review-fda3530895a9b51f`). Depende de `saltos.length` y `altoBarra` para re-correr cuando llegan
+// los bloques o se mide la barra; una vez por fragmento, no pelea con el scroll del navegador
+// cuando el lector pulsa un salto en una página ya pintada.
+let fragmentoAplicado = "";
+$effect(() => {
+	void saltos.length;
+	void altoBarra;
+	if (!routerReady) return;
+	const fragmento = $page.url.hash.replace(/^#/, "");
+	if (!fragmento || fragmento === fragmentoAplicado || altoBarra <= 0) return;
+	const destino = document.getElementById(fragmento);
+	if (!destino) return;
+	fragmentoAplicado = fragmento;
+	destino.scrollIntoView();
+});
+
+// ─── Handlers ─────────────────────────────────────────────────────
+function onSearchSubmit(value: string) {
+	query = value;
+	currentPage = 1;
+}
+
+function onSearchClear() {
+	query = "";
+	currentPage = 1;
+}
+
+function toggleFilter(field: "org" | "format" | "tags" | "license", value: string) {
+	currentPage = 1;
+	if (field === "org") {
+		selectedOrgs = selectedOrgs.includes(value)
+			? selectedOrgs.filter((v) => v !== value)
+			: [...selectedOrgs, value];
+	} else if (field === "format") {
+		selectedFormats = selectedFormats.includes(value)
+			? selectedFormats.filter((v) => v !== value)
+			: [...selectedFormats, value];
+	} else if (field === "license") {
+		selectedLicenses = selectedLicenses.includes(value)
+			? selectedLicenses.filter((v) => v !== value)
+			: [...selectedLicenses, value];
+	} else {
+		selectedTags = selectedTags.includes(value)
+			? selectedTags.filter((v) => v !== value)
+			: [...selectedTags, value];
+	}
+}
+
+function clearAllFilters() {
+	selectedOrgs = [];
+	selectedFormats = [];
+	selectedTags = [];
+	selectedLicenses = [];
+	currentPage = 1;
+}
+
+async function onRemoveAppliedFilter(field: "org" | "format" | "tags" | "license", value: string) {
+	// Mismo handler que usa la faceta correspondiente: no se duplica la lógica de selección.
+	toggleFilter(field, value);
+	// El chip que tenía el foco se va con el filtro. Tras el re-render lo movemos al primer
+	// chip restante del panel; si el panel entero desapareció (no había facetas y era el último
+	// filtro), al buscador, que siempre está. Así el foco nunca cae a <body>.
+	await tick();
+	const nextChip = panelEl?.querySelector<HTMLButtonElement>("[data-applied-filter]");
+	if (nextChip) {
+		nextChip.focus();
+		return;
+	}
+	document.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+}
+
+// Al cambiar de página se lleva al lector al **inicio de los resultados**, no al tope de la página: el
+// destino lleva el mismo margen que los saltos del vacío (`estiloDestino`), así que la primera tarjeta
+// queda justo bajo la barra ya pegada —con las facetas arriba, a la vista, desde 1024px— y no oculta por
+// ella. Con movimiento reducido el desplazamiento es instantáneo.
+//
+// El desplazamiento ocurre **cuando llegan los resultados de la página nueva**, no al pulsar: mientras
+// carga, la lista se reemplaza por el esqueleto, el documento se acorta y el navegador recorta el scroll;
+// un desplazamiento hecho antes se pierde. Además el área conserva su alto durante la carga
+// (`altoRetenido`) para que el documento no se acorte. Si el lector desplaza por su cuenta mientras
+// carga, el aterrizaje se cancela: no se le pelea el scroll.
+let aterrizaje = false;
+let altoRetenido = $state(0);
+const EVENTOS_LECTOR = ["wheel", "touchmove", "keydown", "pointerdown"] as const;
+
+function cancelarAterrizaje() {
+	aterrizaje = false;
+	altoRetenido = 0;
+	for (const e of EVENTOS_LECTOR) window.removeEventListener(e, cancelarAterrizaje);
+}
+
+async function aterrizarPagina() {
+	if (!aterrizaje) return;
+	await tick();
+	// El alto de la barra cambia al terminar la carga (el contador pasa de «cargando» al total y puede
+	// partirse en dos líneas), y `altoBarra` se entera por el observador, un cuadro después. El margen
+	// del destino se lee al desplazar: se espera a que coincida con la barra real, o el aterrizaje
+	// queda corto por la diferencia (medido a 375px: 40px).
+	for (
+		let cuadros = 0;
+		aterrizaje && cuadros < 10 && barraEl && barraEl.offsetHeight !== altoBarra;
+		cuadros++
+	) {
+		await new Promise((r) => requestAnimationFrame(r));
+		await tick();
+	}
+	if (!aterrizaje) return;
+	cancelarAterrizaje();
+	resultadosEl?.scrollIntoView({ block: "start", behavior: reducido ? "instant" : "smooth" });
+}
+
+$effect(() => () => cancelarAterrizaje());
+
+function goToPage(p: number) {
+	altoRetenido = resultadosEl?.offsetHeight ?? 0;
+	aterrizaje = true;
+	for (const e of EVENTOS_LECTOR) window.addEventListener(e, cancelarAterrizaje, { passive: true });
+	currentPage = p;
+}
+
+const hasActiveFilters = $derived(
+	selectedOrgs.length > 0 ||
+		selectedFormats.length > 0 ||
+		selectedTags.length > 0 ||
+		selectedLicenses.length > 0,
+);
+const activeFilterCount = $derived(
+	selectedOrgs.length + selectedFormats.length + selectedTags.length + selectedLicenses.length,
+);
+
+// Un solo valor para «hay facetas que mostrar»: con cero resultados CKAN devuelve facetas
+// vacías, y sin facetas el panel de filtros queda como un marco con su título y nada dentro.
+// Las cuatro guardas por faceta siguen siendo por faceta; esto decide el panel completo.
+const hasFacets = $derived(
+	(facets.organization?.items?.length ?? 0) > 0 ||
+		(facets.res_format?.items?.length ?? 0) > 0 ||
+		(facets.tags?.items?.length ?? 0) > 0 ||
+		(facets.license_id?.items?.length ?? 0) > 0,
+);
+
+// El panel de filtros se muestra si hay facetas O si el usuario tiene filtros aplicados. Con
+// cero resultados CKAN devuelve facetas vacías, pero los filtros aplicados siguen ahí: el panel
+// debe volver para poder quitarlos de a uno. Con facetas, todo se comporta como antes.
+const showFilterPanel = $derived(hasFacets || hasActiveFilters);
+
+// Filtros aplicados agrupados por faceta, con los mismos títulos que los `FacetFilter`. Es la
+// lista que el panel muestra cuando no hay facetas disponibles: son los filtros del usuario, no
+// opciones para elegir.
+const activeFilterGroups = $derived(
+	[
+		{ field: "org" as const, title: "Organización", values: selectedOrgs },
+		{ field: "format" as const, title: "Formato", values: selectedFormats },
+		{ field: "tags" as const, title: "Etiquetas", values: selectedTags },
+		{ field: "license" as const, title: "Licencia", values: selectedLicenses },
+	].filter((group) => group.values.length > 0),
+);
+
+// Los filtros sólo se mencionan cuando el usuario los tiene aplicados: sin ellos la invitación
+// a «limpiar los filtros» no tendría a qué referirse (y el panel ni siquiera está visible).
+const emptyStateMessage = $derived.by(() => {
+	if (!query) {
+		return hasActiveFilters
+			? "No hay datasets disponibles con los filtros aplicados. Limpie los filtros para ver todo el catálogo."
+			: "No hay datasets disponibles en este momento.";
+	}
+	return hasActiveFilters
+		? `No encontramos datasets para "${query}". Pruebe con otros términos o limpie los filtros.`
+		: `No encontramos datasets para "${query}". Pruebe con otros términos.`;
+});
+</script>
+
+<svelte:window onscroll={medirPegados} onresize={medirPegados} />
+
+<svelte:head>
+	<title>
+		Playground: bloques del vacío — UMSS
+	</title>
+</svelte:head>
+
+<!-- Hero -->
+<section class="border-b border-border bg-gradient-to-b from-primary/25 via-primary/10 to-background">
+	<div class="mx-auto max-w-7xl px-4 pb-16 pt-16 text-center sm:px-6 lg:px-8 lg:pb-20 lg:pt-24">
+		<p class="text-[13px] font-bold uppercase tracking-[0.2em] text-destructive">
+			Catálogo de Datos
+		</p>
+		<h1
+			class="mx-auto mt-4 max-w-3xl font-heading text-4xl font-bold leading-[1.1] text-foreground sm:text-5xl lg:text-[52px]"
+		>
+			Explore los datasets abiertos de la UMSS
+		</h1>
+		<p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+			La Universidad Mayor de San Simón publica
+			<span class="font-semibold text-foreground">
+				{catalogTotalLoading ? '…' : catalogTotal.toLocaleString('es-BO')}
+			</span>
+			datasets académicos y administrativos desde sus facultades, departamentos e institutos,
+			bajo principios FAIR.
+		</p>
+
+		<div bind:this={heroEl} data-hero-search class="mx-auto mt-8 w-full max-w-[720px]">
+			<SearchBar
+				value={query}
+				shortcut={!buscadorEnBarra}
+				placeholder="Busque por organización, etiquetas, formato..."
+				submitLabel="Buscar"
+				class="[&_input]:h-14 [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-card [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground [&_input]:shadow-lg [&_input]:focus-visible:ring-primary [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-offset-2 [&_input]:focus-visible:ring-offset-background"
+				onsubmit={onSearchSubmit}
+				onclear={onSearchClear}
+			/>
+		</div>
+	</div>
+</section>
+
+<!-- ResultsBar: pegada bajo el encabezado global —su tope sale de los tokens `--header-h` y
+     `--sticky-air`, más el borde de 1px del encabezado—. Desde 1024px se pinta dentro de la columna de las
+     tarjetas; debajo, aquí, sobre el bloque de filtros. La explicación de la geometría está arriba, en el
+     script. El fondo es **opaco**: con `bg-background/95` + `backdrop-blur` el texto de las tarjetas que
+     pasaba por debajo se transparentaba junto al filete inferior (medido en Chromium, 2026-10-20). -->
+{#snippet barraResultados()}
+	<section
+		bind:this={barraEl}
+		bind:clientHeight={altoBarra}
+		data-results-bar
+		data-state={compacta ? 'compacta' : 'expandida'}
+		class="pointer-events-none sticky top-[calc(var(--header-h)+1px)] z-20 transition-[top] duration-200 ease-out motion-reduce:transition-none"
+	>
+		<!-- Fondo y filete en capas aparte: sólo se recortan con `clip-path` (compositor). La caja de la
+		     barra, y con ella su alto en el flujo, no cambia nunca. Lo recortado tampoco recibe clics.
+		     El fondo se recorta **un poco más ancho que la columna** (`--cover-*`): las tarjetas que pasan
+		     por debajo proyectan su sombra (`shadow-sm`, y `shadow-md` al pasar el cursor) unos píxeles
+		     fuera de la columna, y con el recorte exacto asomaba como una línea tenue a cada lado de la
+		     barra en modo claro (medido en Chromium, 2026-10-20; en oscuro la sombra negra no se ve). El
+		     filete, en cambio, se recorta justo a la columna: si no, sobresaldría de las tarjetas. -->
+		<div
+			aria-hidden="true"
+			data-bar-bg
+			class="absolute inset-y-0 bg-background {enColumna ? '' : 'inset-x-0'}"
+			style:left={enColumna ? 'calc(-1 * var(--bleed-l, 0px))' : undefined}
+			style:right={enColumna ? 'calc(-1 * var(--bleed-r, 0px))' : undefined}
+			style:clip-path={compacta
+				? 'inset(0 var(--cover-r, 0px) 0 var(--cover-l, 0px))'
+				: 'inset(0 0 0 0)'}
+			style:transition={transicionBarra}
+		></div>
+		<div
+			aria-hidden="true"
+			data-bar-line
+			class="absolute bottom-0 h-px bg-border {enColumna ? '' : 'inset-x-0'}"
+			style:left={enColumna ? 'calc(-1 * var(--bleed-l, 0px))' : undefined}
+			style:right={enColumna ? 'calc(-1 * var(--bleed-r, 0px))' : undefined}
+			style:clip-path={compacta
+				? 'inset(0 var(--bleed-r, 0px) 0 var(--bleed-l, 0px))'
+				: 'inset(0 0 0 0)'}
+			style:transition={transicionBarra}
+		></div>
+		<div class="relative {enColumna ? '' : 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'}">
+			<div
+				class="pointer-events-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
+			>
+				<p
+					class="flex items-baseline gap-2"
+					style:transform={enColumna && !pegada ? 'translateX(calc(-1 * var(--shift, 0px)))' : 'none'}
+					style:transition={transicionContador}
+				>
+					{#if loading}
+						<span class="text-sm text-muted-foreground">Buscando...</span>
+					{:else}
+						<span class="font-heading text-2xl font-bold text-foreground">{total.toLocaleString('es-BO')}</span>
+						<span class="text-sm text-muted-foreground">
+							{#if query}
+								resultado{total !== 1 ? 's' : ''} para <span class="font-medium text-foreground">"{query}"</span>
+							{:else}
+								datasets encontrados
+							{/if}
+						</span>
+					{/if}
+				</p>
+
+				<!-- El campo de la barra sólo se muestra con la barra pegada. Siempre está montado y su hueco
+				     siempre reservado: sólo cambian la opacidad y el `transform`, así la barra no se reacomoda ni
+				     cambia de alto, y una captura sin script reproduce el estado pegado con estilos computados.
+				     `inert` lo saca del orden de tabulación y del árbol de accesibilidad mientras no se ve. El
+				     relleno y el margen negativo dejan sitio al anillo de foco. Bajo 640px no entra (la barra
+				     pasaría a dos filas). -->
+				<div
+					bind:this={campoEl}
+					data-bar-search
+					class="-m-1.5 min-w-0 max-w-md flex-1 p-1.5 max-sm:hidden {buscadorEnBarra
+						? ''
+						: 'pointer-events-none'}"
+					style:opacity={buscadorEnBarra ? '1' : '0'}
+					style:transform={buscadorEnBarra ? 'none' : 'translateY(-0.5rem)'}
+					style:transition={transicionCampo}
+					inert={!buscadorEnBarra}
+				>
+					<SearchBar
+						value={query}
+						shortcut={buscadorEnBarra}
+						placeholder="Buscar datasets..."
+						class="[&_input]:h-11 [&_input]:rounded-lg"
+						onsubmit={onSearchSubmit}
+						onclear={onSearchClear}
+					/>
+				</div>
+
+				<label class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+					<span class="hidden sm:inline">Ordenar:</span>
+					<select
+						value={sortBy}
+						onchange={(e) => {
+							sortChoice = (e.target as HTMLSelectElement).value;
+							currentPage = 1;
+						}}
+						class="h-11 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+					>
+						<option value="score desc">Relevancia</option>
+						<option value="metadata_modified desc">Más recientes</option>
+						<option value="metadata_modified asc">Más antiguos</option>
+						<option value="title_string asc">A-Z</option>
+						<option value="title_string desc">Z-A</option>
+					</select>
+				</label>
+			</div>
+		</div>
+	</section>
+{/snippet}
+
+<!-- Filtros activos. Desde `enColumna` viven en la columna de resultados, bajo la barra: arriba del
+     cuerpo empujarían la barra (y las tarjetas) al aplicar un filtro. Bajo `enColumna` van tras la barra. -->
+{#snippet filtrosActivos()}
+		<div class="flex flex-wrap items-center gap-2">
+			<span class="text-sm font-medium text-muted-foreground">Filtros activos:</span>
+
+			{#each selectedOrgs as org}
+				<button
+					onclick={() => toggleFilter('org', org)}
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+				>
+					{org}
+					<X class="size-3" aria-hidden="true" />
+				</button>
+			{/each}
+			{#each selectedFormats as format}
+				<button
+					onclick={() => toggleFilter('format', format)}
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+				>
+					{format}
+					<X class="size-3" aria-hidden="true" />
+				</button>
+			{/each}
+			{#each selectedTags as tag}
+				<button
+					onclick={() => toggleFilter('tags', tag)}
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+				>
+					{tag}
+					<X class="size-3" aria-hidden="true" />
+				</button>
+			{/each}
+			{#each selectedLicenses as license}
+				<button
+					onclick={() => toggleFilter('license', license)}
+					class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20"
+				>
+					{license}
+					<X class="size-3" aria-hidden="true" />
+				</button>
+			{/each}
+
+			<button
+				onclick={clearAllFilters}
+				class="text-xs font-medium text-muted-foreground underline underline-offset-2 transition-colors duration-200 hover:text-primary"
+			>
+				Limpiar todos
+			</button>
+		</div>
+{/snippet}
+
+{#if !enColumna}
+	{@render barraResultados()}
+	{#if hasActiveFilters}
+		<div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+			{@render filtrosActivos()}
+		</div>
+	{/if}
+{/if}
+
+<!-- Body -->
+<div
+	class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 {enColumna ? 'pt-0' : 'pt-8'}"
+	style:--bar-h="{altoBarra}px"
+>
+	<div class={showFilterPanel ? 'lg:grid lg:grid-cols-[280px_1fr] lg:gap-8' : ''}>
+		<!-- Sidebar: Facets o filtros aplicados. Se renderiza si hay facetas o si el usuario tiene
+		     filtros aplicados (con cero resultados CKAN devuelve facetas vacías, pero sus filtros
+		     siguen activos). Sin panel no queda un hueco de 280px: el área de resultados ocupa todo
+		     el ancho. -->
+		{#if showFilterPanel}
+		<!-- Tope, alto y bajada (T17, S20): ver el script. El tope y la bajada son sólo CSS: pegada, la columna
+		     queda a un aire del encabezado aunque no haya script. El alto es estático —de pantalla completa
+		     sobre el encabezado BAJO, `--header-h-min`— y el contenido se desplaza por dentro de la caja; tope y
+		     alto se animan sólo con el encabezado (200 ms). -->
+		<aside
+			bind:this={panelEl}
+			class="mb-6 lg:mb-0 lg:mt-[calc(var(--bar-h)+2rem)] lg:self-start lg:sticky lg:top-[calc(var(--header-h)+1px+var(--sticky-air))] lg:z-[21] lg:h-[calc(100dvh-var(--header-h-min)-1px-2*var(--sticky-air))] lg:transition-[top,height] lg:duration-200 lg:ease-out motion-reduce:lg:transition-none"
+		>
+			<!-- Toggle móvil: solo visible debajo de md (768px). En tablet/desktop
+			     (md+) el panel queda siempre desplegado. -->
+			<button
+				type="button"
+				onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}
+				aria-expanded={mobileFiltersOpen}
+				class="mb-4 flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left shadow-sm transition-colors duration-200 hover:bg-accent md:hidden"
+			>
+				<span class="flex items-center gap-2 text-sm font-semibold text-foreground">
+					<SlidersHorizontal class="size-4 text-primary" aria-hidden="true" />
+					Filtros
+					{#if activeFilterCount > 0}
+						<span
+							class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+						>
+							{activeFilterCount}
+						</span>
+					{/if}
+				</span>
+				<ChevronDown
+					class="size-4 text-muted-foreground transition-transform duration-200 {mobileFiltersOpen
+						? 'rotate-180'
+						: ''}"
+					aria-hidden="true"
+				/>
+			</button>
+
+			<div
+				class="rounded-xl border border-border bg-card p-6 shadow-sm transition-opacity duration-200 lg:h-full lg:overflow-y-auto {mobileFiltersOpen
+					? 'block'
+					: 'hidden'} md:block {loading ? 'opacity-60' : ''}"
+			>
+				<div class="flex items-baseline justify-between gap-2 border-b border-border pb-3">
+					<h2 class="text-sm font-bold uppercase tracking-[0.14em] text-destructive">
+						Filtros
+					</h2>
+					<div class="flex items-center gap-3">
+						{#if loading}
+							<span
+								class="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+							>
+								<span
+									class="size-2 animate-pulse rounded-full bg-primary"
+									aria-hidden="true"
+								></span>
+								Actualizando…
+							</span>
+						{/if}
+						{#if hasActiveFilters}
+							<button
+								onclick={clearAllFilters}
+								class="text-xs font-semibold text-destructive underline underline-offset-2 transition-colors duration-200 hover:text-destructive/80"
+							>
+								Limpiar ({activeFilterCount})
+							</button>
+						{/if}
+					</div>
+				</div>
+
+				<div class="space-y-5 pt-3">
+					{#if hasFacets}
+						{#if facets.organization?.items?.length}
+							<FacetFilter
+								title="Organización"
+								items={facets.organization.items}
+								selected={selectedOrgs}
+								onselect={(v) => toggleFilter('org', v)}
+							/>
+						{/if}
+
+						{#if facets.res_format?.items?.length}
+							<FacetFilter
+								title="Formato"
+								items={facets.res_format.items}
+								selected={selectedFormats}
+								onselect={(v) => toggleFilter('format', v)}
+							/>
+						{/if}
+
+						{#if facets.tags?.items?.length}
+							<FacetFilter
+								title="Etiquetas"
+								items={facets.tags.items}
+								selected={selectedTags}
+								onselect={(v) => toggleFilter('tags', v)}
+							/>
+						{/if}
+
+						{#if facets.license_id?.items?.length}
+							<FacetFilter
+								title="Licencia"
+								items={mapLicenseItems(facets.license_id.items)}
+								selected={selectedLicenses}
+								onselect={(v) => toggleFilter('license', v)}
+							/>
+						{/if}
+					{:else}
+						<!-- Decisión: cuando no hay facetas disponibles el panel muestra los filtros QUE EL
+						     USUARIO APLICÓ, no opciones para elegir. Por eso el bloque va encabezado con
+						     «Filtros aplicados» y agrupado con los mismos títulos que las facetas
+						     (Organización, Formato, Etiquetas, Licencia). Cada filtro es un chip-botón cuyo
+						     nombre accesible dice qué quita, y usa el mismo `toggleFilter` que su faceta: no
+						     se duplica la lógica de selección. -->
+						<div class="space-y-3">
+							<p class="text-xs leading-relaxed text-muted-foreground">
+								Filtros aplicados. Quítelos para ampliar los resultados.
+							</p>
+							{#each activeFilterGroups as group (group.field)}
+								<div>
+									<p
+										class="text-[11px] font-bold uppercase tracking-[0.14em] text-primary"
+									>
+										{group.title}
+									</p>
+									<div class="mt-1.5 flex flex-wrap gap-2">
+										{#each group.values as value (value)}
+											<button
+												type="button"
+												data-applied-filter
+												onclick={() => onRemoveAppliedFilter(group.field, value)}
+												aria-label={`Quitar filtro ${group.title}: ${value}`}
+												class="inline-flex max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary ring-1 ring-primary/30 transition-all duration-200 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+											>
+												<span class="max-w-[12rem] truncate">{value}</span>
+												<X class="size-3 shrink-0" aria-hidden="true" />
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
+		</aside>
+		{/if}
+
+		<!-- Results. Con filtros, la columna mide al menos la de filtros con su margen más otro `--bar-h + 2rem`:
+		     un `sticky` sólo se mueve lo que su caja le deja libre en la fila, y sin ese recorrido, con pocos
+		     resultados, la columna de filtros nunca llegaba a pegarse. -->
+		<div
+			bind:this={columnaEl}
+			data-results-column
+			class="min-w-0 {showFilterPanel
+				? 'lg:min-h-[calc(2*(var(--bar-h)+2rem)+100dvh-var(--header-h-min)-1px-2*var(--sticky-air))]'
+				: ''}"
+		>
+			{#if enColumna}
+				{@render barraResultados()}
+				<!-- La fila arranca a 2rem de la barra, igual que el panel de filtros (su margen), así el borde del
+				     panel no corta su texto; la primera card queda a 1rem de ella (L83). -->
+				{#if hasActiveFilters}
+					<div class="pt-8">
+						{@render filtrosActivos()}
+					</div>
+				{/if}
+			{/if}
+			<div class={enColumna ? (hasActiveFilters ? 'pt-4' : 'pt-8') : ''}>
+			<div
+				bind:this={resultadosEl}
+				data-results
+				style="{estiloDestino}{loading && altoRetenido ? `; min-height: ${altoRetenido}px` : ''}"
+			>
+			<!-- Error -->
+			{#if error}
+				<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+					<p class="font-medium text-destructive">Error al buscar</p>
+					<p class="mt-1 text-sm text-muted-foreground">{error}</p>
+				</div>
+			{/if}
+
+			<!-- Loading skeleton -->
+			{#if loading}
+				<div class="space-y-4">
+					{#each Array(3) as _}
+						<div class="animate-pulse rounded-xl border border-border bg-card p-6">
+							<div class="mb-2 h-4 w-24 rounded bg-muted"></div>
+							<div class="mb-2 h-5 w-3/4 rounded bg-muted"></div>
+							<div class="mb-2 h-4 w-full rounded bg-muted"></div>
+							<div class="mb-3 h-4 w-1/2 rounded bg-muted"></div>
+							<div class="flex gap-2">
+								<div class="h-4 w-12 rounded bg-muted"></div>
+								<div class="h-4 w-12 rounded bg-muted"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+
+			<!-- Empty state: el aviso es el encabezado de la sección y los tres bloques viven adentro.
+			     La fila de saltos `#id` va dentro del aviso, bajo el mensaje (lectura A, 2026-10-01). -->
+			{:else if total === 0 && !error}
+				<section id="sin-resultados" aria-labelledby="sin-resultados-titulo" class="space-y-8">
+					<div
+						class="flex min-h-[24rem] flex-col items-center justify-center rounded-xl border border-border bg-card p-12 text-center"
+					>
+						<h2 id="sin-resultados-titulo" class="font-heading text-xl font-semibold text-primary">
+							Sin resultados
+						</h2>
+						<p class="mt-2 text-sm text-muted-foreground">
+							{emptyStateMessage}
+						</p>
+						{#if saltos.length}
+							<!-- Anclas reales, no botones. El texto visible es el mismo `<h3>` del destino. -->
+							<nav
+								aria-label="Otras formas de encontrar datos"
+								class="mt-6 flex flex-wrap items-center justify-center gap-2"
+							>
+								{#each saltos as salto (salto.id)}
+									<a
+										href={`#${salto.id}`}
+										class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+									>
+										<ArrowDown class="size-4 shrink-0" aria-hidden="true" />
+										{salto.label}
+									</a>
+								{/each}
+							</nav>
+						{/if}
+						{#if query || hasActiveFilters}
+							<button
+								onclick={() => {
+									query = '';
+									clearAllFilters();
+								}}
+								class="mt-4 text-sm font-medium text-primary hover:underline"
+							>
+								Limpiar búsqueda y filtros
+							</button>
+						{/if}
+					</div>
+
+					<!-- 1. «Pruebe con»: los formatos y etiquetas más frecuentes, ya filtrados -->
+					{#if suggestionChips.length}
+						<div id="pruebe-con" style={estiloDestino} class="space-y-3">
+							<h3 class="font-heading text-lg font-semibold text-primary">
+								Pruebe con
+							</h3>
+							<div class="flex flex-wrap gap-2">
+								{#each suggestionChips as chip (chip.href)}
+									<a
+										href={chip.href}
+										class="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm text-foreground transition-colors duration-200 hover:bg-accent"
+									>
+										{chip.label}
+									</a>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- 2. «Mientras tanto, lo más reciente»: sin filtros, a propósito -->
+					{#if recentDatasets.length}
+						<div id="recientes" style={estiloDestino} class="space-y-4">
+							<h3 class="font-heading text-lg font-semibold text-primary">
+								Mientras tanto, lo más reciente
+							</h3>
+							{#each recentDatasets as dataset (dataset.id)}
+								<DatasetCard {dataset} />
+							{/each}
+						</div>
+					{/if}
+
+					<!-- 3. «Explorar por organización»: las tres con más datasets -->
+					{#if topOrganizations.length}
+						<div id="organizaciones" style={estiloDestino} class="space-y-4">
+							<h3 class="font-heading text-lg font-semibold text-primary">
+								Explorar por organización
+							</h3>
+							<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+								{#each topOrganizations as org (org.id)}
+									<OrganizationCard
+										org={org}
+										count={org.package_count ?? 0}
+										href={`/organization/${encodeURIComponent(org.name)}`}
+									/>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</section>
+
+			<!-- Results list -->
+			{:else}
+				<!-- S41 a) «Pruebe con», arriba de la lista: acota como los filtros, se lee antes de las tarjetas -->
+				<div data-extra-section="pruebe" class="mb-6 space-y-4">
+					<div class="rounded-lg border border-dashed border-border bg-muted/50 px-4 py-2">
+						<PlaygroundToggle
+							label="«Pruebe con» con resultados:"
+							options={INTERRUPTOR}
+							value={pruebe ? 'on' : 'off'}
+							onchange={(v) => (pruebe = v === 'on')}
+							testid="toggle-pruebe"
+						/>
+					</div>
+					{#if pruebe && suggestionChips.length}
+						<div id="pruebe-con" data-extra="pruebe" style={estiloDestino} class="space-y-3">
+							<h2 class="font-heading text-lg font-semibold text-primary">Pruebe con</h2>
+							<div class="flex flex-wrap gap-2">
+								{#each suggestionChips as chip (chip.href)}
+									<a
+										href={chip.href}
+										class="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm text-foreground transition-colors duration-200 hover:bg-accent"
+									>
+										{chip.label}
+									</a>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
+
+				<div class="space-y-4">
+					{#each results as dataset (dataset.id)}
+						<DatasetCard {dataset} />
+					{/each}
+				</div>
+
+				<!-- Pagination -->
+				<div class="mt-8">
+					<Pagination
+						current={currentPage}
+						total={totalPages}
+						onchange={goToPage}
+					/>
+				</div>
+
+				<!-- S41 b) «Lo más reciente», tras la paginación: cierra la página, sin filtros, sin repetir tarjetas -->
+				<div data-extra-section="recientes" class="mt-10 space-y-4">
+					<div class="rounded-lg border border-dashed border-border bg-muted/50 px-4 py-2">
+						<PlaygroundToggle
+							label="«Lo más reciente» con resultados:"
+							options={INTERRUPTOR}
+							value={recientes ? 'on' : 'off'}
+							onchange={(v) => (recientes = v === 'on')}
+							testid="toggle-recientes"
+						/>
+					</div>
+					{#if recientes && recientesConResultados.length}
+						<div id="recientes" data-extra="recientes" style={estiloDestino} class="space-y-4">
+							<h2 class="font-heading text-lg font-semibold text-primary">
+								Lo más reciente del catálogo
+							</h2>
+							{#each recientesConResultados as dataset (dataset.id)}
+								<DatasetCard {dataset} />
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+			</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Panel del playground: fijo y liviano. Sólo lo global: los dos ajustes y los dos casos; cada interruptor está
+     en la sección que cambia. -->
+<section
+	data-testid="control-panel"
+	aria-label="Panel del playground"
+	class="fixed bottom-4 right-4 z-40 w-64 rounded-xl border border-dashed border-border bg-card/95 p-4 text-xs shadow-lg"
+>
+	<p class="font-semibold text-foreground">Bloques del vacío, con resultados</p>
+	<div class="mt-2 flex flex-wrap gap-2">
+		<button
+			type="button"
+			data-testid="preset-hoy"
+			aria-pressed={!pruebe && !recientes}
+			onclick={() => {
+				pruebe = false;
+				recientes = false;
+			}}
+			class="cursor-pointer rounded-lg border border-input px-2.5 py-1 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {!pruebe &&
+			!recientes
+				? 'bg-primary text-primary-foreground'
+				: 'bg-background text-foreground hover:bg-accent'}"
+		>
+			Como hoy
+		</button>
+		<button
+			type="button"
+			data-testid="preset-todo"
+			aria-pressed={pruebe && recientes}
+			onclick={() => {
+				pruebe = true;
+				recientes = true;
+			}}
+			class="cursor-pointer rounded-lg border border-input px-2.5 py-1 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {pruebe &&
+			recientes
+				? 'bg-primary text-primary-foreground'
+				: 'bg-background text-foreground hover:bg-accent'}"
+		>
+			Todo
+		</button>
+	</div>
+
+	<p class="mt-4 font-semibold text-foreground">Casos</p>
+	<div class="mt-2 flex flex-wrap gap-2">
+		{#each CASOS as caso (caso.id)}
+			<button
+				type="button"
+				data-testid={`caso-${caso.id}`}
+				aria-pressed={query === caso.q}
+				onclick={() => elegirCaso(caso.q)}
+				class="cursor-pointer rounded-lg border border-input px-2.5 py-1 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {query ===
+				caso.q
+					? 'bg-primary text-primary-foreground'
+					: 'bg-background text-foreground hover:bg-accent'}"
+			>
+				{caso.label}
+			</button>
+		{/each}
+	</div>
+</section>
