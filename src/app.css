@@ -3,7 +3,7 @@
    `components`: el resaltado del hover de las barras salía opaco (negro o blanco según el tema). En dev el orden
    era el correcto, por eso sólo se veía en la demo. */
 @layer theme, base, components, utilities;
-@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap");
+/* EB Garamond y Poppins se sirven desde `static/fonts/` (enlazadas en `src/app.html`): la demo corre sin internet. */
 @import "tailwindcss";
 
 /* `dark:` sigue a la clase `.dark` que pone el interruptor de tema, no a `prefers-color-scheme`. */

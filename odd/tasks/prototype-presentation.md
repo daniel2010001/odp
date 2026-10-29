@@ -479,3 +479,7 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   presentación" — the «Pruebe con» chip defect on `/search`: "para después"; keep the query on a chip: "creo que no, pero lo
   decidimos luego". `odp-docker` asked (approved: "hazlo") for a private FCyT draft without a request, one with a pending request,
   and a Rectorado editor account (María Fernanda Rojas Vargas). `presentation/guion.md` story 3 step 4 now points to H2-4.
+- **L35** (2026-10-29 ~14:45, author + agent): the presentation runs on hs-node with no internet at the venue (author: "como es
+  edificio no hay buena cobertura para usar datos, y no tengo la red wifi del lugar"). The portal loaded EB Garamond and Poppins
+  from Google Fonts; author approved ("Sí, hazlo") serving them from `static/fonts/` (latin + latin-ext, linked in
+  `src/app.html`). Measured in Chromium with Google blocked: 0 requests to Google, fonts load locally, headings in EB Garamond.
