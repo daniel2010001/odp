@@ -276,3 +276,33 @@ body.ficha .cierre > div {
 	padding: 0.55em 0.8em;
 	font-size: 8.4pt;
 }
+
+/* Chuleta: compacta, para tener a mano mientras presenta */
+body.chuleta {
+	font-size: 8.5pt;
+	line-height: 1.4;
+}
+body.chuleta h1 {
+	font-size: 15pt;
+	margin-bottom: 0.3em;
+}
+body.chuleta h2 {
+	font-size: 11pt;
+	margin: 0.8em 0 0.25em;
+}
+body.chuleta p,
+body.chuleta ul {
+	margin: 0.3em 0;
+}
+body.chuleta table {
+	margin: 0.2em 0;
+}
+body.chuleta td,
+body.chuleta th {
+	padding: 0.15em 0.4em;
+}
+
+/* Estudio: el guion y las preguntas; cada documento empieza en una hoja nueva */
+.salto {
+	break-after: page;
+}

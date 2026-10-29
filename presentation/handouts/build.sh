@@ -25,7 +25,8 @@ qr_repo="$(qr repo "$repo_url")"
 # render <fuente.md> <clase del body> <título> <salida.pdf>
 render() {
 	local fuente="$1" clase="$2" titulo="$3" salida="$4" cuerpo
-	cuerpo="$(pnpm dlx marked --gfm -i "$aqui/$fuente")"
+	[[ "$fuente" == /* ]] || fuente="$aqui/$fuente"
+	cuerpo="$(pnpm dlx marked --gfm -i "$fuente")"
 	cuerpo="${cuerpo//\{\{QR_DEMO\}\}/$qr_demo}"
 	cuerpo="${cuerpo//\{\{QR_REPO\}\}/$qr_repo}"
 	{
@@ -39,3 +40,8 @@ render() {
 
 render ficha.md ficha "Portal de datos abiertos de la UMSS · Ficha resumen" ficha-resumen.pdf
 render proyecto.md proyecto "Portal de datos abiertos de la UMSS · Documento del proyecto" documento-proyecto.pdf
+render chuleta.md chuleta "Chuleta de la presentación" chuleta.pdf
+
+# Para estudiar: el guion y las preguntas y respuestas, uno detrás del otro
+cat "$aqui/../guion.md" <(printf '\n\n<div class="salto"></div>\n\n') "$aqui/../preguntas.md" >"$tmp/estudio.md"
+render "$tmp/estudio.md" estudio "Guion y preguntas de la presentación" estudio-guion-y-preguntas.pdf
