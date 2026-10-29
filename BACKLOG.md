@@ -31,8 +31,11 @@
   `data/informe-matricula-ficticio.pdf` como **segundo recurso**, después del CSV. La sesión de `odp-docker` lo agregó
   a mano en el dev que corre (2026-10-29; el id del recurso vale sólo para ese dev), pero el seed sube un solo recurso por
   dataset de gráficos (`demo.resource`, con `ensureTyped` y vistas), así que hace falta que esa rama acepte un recurso más
-  sin tipar. Decidir también si `informe-matricula-ficticio` sigue existiendo: hoy queda activo; ojo con
-  `seed-charts.mjs` y los tests si sale.
+  sin tipar. `informe-matricula-ficticio` **sale del catálogo** (decisión del autor, 2026-10-29; en el dev quedó privado,
+  reversible con `package_patch private=false`): en el seed se quita su bloque o se marca privado, pero
+  `data/informe-matricula-ficticio.pdf` **se queda**, porque ahora lo usa `matricula-facultad-gestion-ficticia`. Revisar
+  quién lo nombra: `seed-ckan.test.mjs`, `seed-charts.mjs`, `presentation/capture/capture.mjs` (con un id de recurso ya
+  viejo) y `scripts/design-capture/batch-3.json`.
 - [ ] `[v0]` `prueba-humo-flujo` («Dataset de humo del flujo completo», `fca`) quedó **privado** en el dev, no borrado
   (se revierte con `package_patch private=false`). No lo crea el seed: vino de una prueba de humo manual. Decidir si se
   borra.
