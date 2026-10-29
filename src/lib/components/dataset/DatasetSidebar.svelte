@@ -5,13 +5,15 @@
 	- el orden «Propuesta» (`SIDEBAR_ORDER`);
 	- el «Scroll propio»: pegajosa, con su propio desplazamiento y un alto que sigue a la ventana
 	  (`OWN_SCROLL_CLASS`), la barra oculta en reposo y la vuelta arriba al subir la página (`panelScrollReset`);
-	- el botón del enlace «Unificado»: junto a la línea del título y visible con toda la tarjeta (`AnchorLink`);
+	- el botón del enlace «Unificado»: junto a la línea del título y visible con toda la tarjeta (`Section`, y
+	  `AnchorLink` en las filas de la licencia);
 	- el historial «Plegado» (`RequestHistory`).
 -->
 <script lang="ts">
 import { Check, ChevronRight, Copy, ExternalLink, FileText, Inbox } from "@lucide/svelte";
 import type { PublicationRequest } from "$lib/api/publication";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
+import Section from "$lib/components/section/Section.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { estadoDeLaSolicitud } from "$lib/copy/publication";
 import { summaryFacts } from "$lib/datasets/details";
@@ -147,14 +149,7 @@ async function handleCopyCitation() {
 
 {#snippet cite()}
 		<!-- Cite card -->
-		<Card
-			id="cite"
-			class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
-		>
-			<div class="flex h-4 items-center gap-2">
-				<p class="text-xs font-medium uppercase tracking-wider text-destructive">Citar como</p>
-				<AnchorLink id="cite" title="Citar como" />
-			</div>
+		<Section id="cite" label="Citar como" class="p-5">
 			<div class="mt-3 flex items-center gap-2">
 				<button
 					type="button"
@@ -198,20 +193,13 @@ async function handleCopyCitation() {
 			<p class="mt-3 whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs leading-relaxed text-foreground">
 				{citationText}
 			</p>
-		</Card>
+		</Section>
 {/snippet}
 
 {#snippet summaryCard()}
 		<!-- Resumen: lo que responde «¿me sirve esto?». Reemplaza a «Detalles» (variante C de
 		     `/dev/dataset-details`); el resto vive en «Información técnica». -->
-		<Card
-			id="summary"
-			class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
-		>
-			<div class="flex h-4 items-center gap-2">
-				<p class="text-xs font-medium uppercase tracking-wider text-destructive">Resumen</p>
-				<AnchorLink id="summary" title="Resumen" />
-			</div>
+		<Section id="summary" label="Resumen" class="p-5">
 			<dl class="mt-3 space-y-3">
 				{#each summary as fact (fact.key)}
 					<!-- `#license` es la fila «Términos» (el destino de los términos de uso) y, sin enlace a los
@@ -285,7 +273,7 @@ async function handleCopyCitation() {
 					aria-hidden="true"
 				/>
 			</a>
-		</Card>
+		</Section>
 {/snippet}
 
 {#snippet history()}
@@ -298,14 +286,7 @@ async function handleCopyCitation() {
 {#snippet organization()}
 		<!-- Organization card -->
 		{#if dataset.organization?.title}
-			<Card
-				id="organization"
-				class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
-			>
-				<div class="flex h-4 items-center gap-2">
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organización</p>
-					<AnchorLink id="organization" title="Organización" />
-				</div>
+			<Section id="organization" label="Organización" class="p-5">
 				<div class="mt-3 flex items-start gap-3">
 					<OrganizationLogo
 						imageUrl={dataset.organization.image_url}
@@ -336,7 +317,7 @@ async function handleCopyCitation() {
 						/>
 					</a>
 				{/if}
-			</Card>
+			</Section>
 		{/if}
 {/snippet}
 

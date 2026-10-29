@@ -1484,3 +1484,73 @@ describe("Página de recurso — botones de copiar y metadatos agrupados", () =>
 		).toBeTruthy();
 	});
 });
+
+// ─── Compartir las secciones (S27) ────────────────────────────────────────────────────────────
+// Las secciones de la página del recurso se comparten como las de la ficha del dataset: el ícono de enlace
+// junto a la línea del título copia la URL actual con su fragmento. Las ventanas de la vista previa ya tienen el
+// suyo (`#table`, `#chart-<id>`…) y no cambian.
+describe("Página de recurso — compartir las secciones", () => {
+	const writeText = vi.fn();
+	const scrollIntoView = vi.fn();
+	const SCROLL_MT = "scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]";
+
+	beforeEach(() => {
+		writeText.mockReset().mockResolvedValue(undefined);
+		scrollIntoView.mockReset();
+		Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+		Object.defineProperty(Element.prototype, "scrollIntoView", {
+			configurable: true,
+			writable: true,
+			value: scrollIntoView,
+		});
+		mocks.showResource.mockResolvedValue(
+			makeResource({ url_type: "upload", format: "CSV", datastore_active: true }),
+		);
+	});
+
+	afterEach(() => {
+		Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+		window.history.replaceState(null, "", window.location.pathname);
+	});
+
+	it.each([
+		["api", "API"],
+		["metadata", "Metadatos"],
+	])("#%s se comparte: el ícono copia la URL de la página con el fragmento", async (id, label) => {
+		render(ResourcePage);
+		await screen.findByRole("heading", { name: "Información sobre el recurso" });
+
+		const section = document.getElementById(id) as HTMLElement;
+		expect(section).not.toBeNull();
+		expect(section.className).toContain(SCROLL_MT);
+		expect(section.className).toContain("group/tarjeta");
+		const button = within(section).getByRole("button", {
+			name: `Copiar enlace a la sección ${label}`,
+		});
+		await fireEvent.click(button);
+		await waitFor(() =>
+			expect(writeText).toHaveBeenCalledWith(`http://localhost${RESOURCE_PATH}#${id}`),
+		);
+	});
+
+	it.each([
+		"api",
+		"metadata",
+	])("un enlace con #%s baja a la sección una vez dibujada", async (id) => {
+		window.history.replaceState(null, "", `#${id}`);
+		render(ResourcePage);
+
+		await screen.findByRole("heading", { name: "Información sobre el recurso" });
+		await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+		expect((scrollIntoView.mock.contexts.at(-1) as HTMLElement).id).toBe(id);
+	});
+
+	it("un enlace con #table sigue bajando a la ventana de la tabla", async () => {
+		window.history.replaceState(null, "", "#table");
+		render(ResourcePage);
+
+		await screen.findByText("Cochabamba");
+		await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+		expect((scrollIntoView.mock.contexts.at(-1) as HTMLElement).id).toBe("table");
+	});
+});

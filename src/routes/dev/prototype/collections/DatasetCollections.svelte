@@ -3,18 +3,18 @@
 	`/dev/prototype/dataset-collections` y la ficha real en modo prototipo (`$lib/prototype/mode.ts`).
 
 	Recibe las colecciones **ya filtradas** por quien mira (`canSee`, Q10): la sección no decide visibilidad.
+	Se comparte con `#collections`, como las demás secciones de la ficha (`Section`, S27).
 -->
 <script lang="ts">
 import { Building2, Library, User } from "@lucide/svelte";
-import Card from "$lib/components/ui/card/card.svelte";
+import Section from "$lib/components/section/Section.svelte";
 import { collectionHref, curatorLabel, type MockCollection } from "./data";
 import VisibilityBadge from "./VisibilityBadge.svelte";
 
 let { collections, orgTitle }: { collections: MockCollection[]; orgTitle: string } = $props();
 </script>
 
-<Card class="p-6 sm:p-8" data-testid="dataset-collections">
-	<p class="text-xs font-medium uppercase tracking-wider text-destructive">Colecciones</p>
+<Section id="collections" label="Colecciones" class="p-6 sm:p-8" data-testid="dataset-collections">
 	<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 		Aparece en las colecciones
 		<span class="font-normal text-muted-foreground">({collections.length})</span>
@@ -63,4 +63,4 @@ let { collections, orgTitle }: { collections: MockCollection[]; orgTitle: string
 			{/each}
 		</ul>
 	{/if}
-</Card>
+</Section>

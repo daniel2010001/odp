@@ -6,7 +6,7 @@
 // aprobaciones, y la del curador, con el bloque «Publicación».
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "$app/stores";
 import CollectionMock from "../collection/+page.svelte";
 import DatasetCollectionsMock from "../dataset-collections/+page.svelte";
@@ -480,5 +480,60 @@ describe("maqueta — colecciones de un dataset", () => {
 		expect(within(section).getByText("Privada").querySelector("svg")).toBeNull();
 		expect(within(section).queryByText("Pública")).toBeNull();
 		expect(document.body.textContent).not.toMatch(TRAMITE);
+	});
+});
+
+// S27 de `odd/tasks/prototype-presentation.md`: cada sección de las maquetas se comparte como las de la ficha
+// del dataset —el ícono de enlace junto a la línea del título copia la URL actual con su fragmento—.
+describe("maqueta — compartir las secciones (S27)", () => {
+	const writeText = vi.fn();
+	const SCROLL_MT = "scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))]";
+
+	beforeEach(() => {
+		writeText.mockReset().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+	});
+	afterEach(() => at("http://localhost/"));
+
+	async function expectShared(url: string, id: string, label: string) {
+		const section = document.getElementById(id) as HTMLElement;
+		expect(section, id).not.toBeNull();
+		expect(section.className).toContain(SCROLL_MT);
+		expect(section.className).toContain("group/tarjeta");
+		const button = within(section).getByRole("button", {
+			name: `Copiar enlace a la sección ${label}`,
+		});
+		await fireEvent.click(button);
+		await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${url}#${id}`));
+	}
+
+	it("«Aparece en las colecciones» del dataset se comparte con #collections", async () => {
+		const url = "http://localhost/dev/prototype/dataset-collections?d=matricula-por-carrera";
+		at(url);
+		render(DatasetCollectionsMock);
+
+		expect(screen.getByTestId("dataset-collections").id).toBe("collections");
+		await expectShared(url, "collections", "Colecciones");
+	});
+
+	it.each([
+		["description", "Descripción"],
+		["datasets", "Contenido"],
+		["information", "Información"],
+		["organizations", "Organizaciones"],
+	])("ficha de colección, vista pública: #%s se comparte", async (id, label) => {
+		const url = "http://localhost/dev/prototype/collection?c=investigacion-laboratorios-fcyt";
+		at(url);
+		render(CollectionMock);
+
+		await expectShared(url, id, label);
+	});
+
+	it("ficha de colección, vista del curador: #publication se comparte", async () => {
+		const url = "http://localhost/dev/prototype/collection?vista=curador";
+		at(url);
+		render(CollectionMock);
+
+		await expectShared(url, "publication", "Publicación");
 	});
 });

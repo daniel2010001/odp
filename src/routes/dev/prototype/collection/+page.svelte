@@ -28,6 +28,9 @@
 	etiqueta lleva ícono. «Curada por» dice si la cura una organización o una persona a título personal (Q10). La
 	vista pública lista las organizaciones dueñas de los datasets con el diseño de la tarjeta «Organización» de la
 	ficha del dataset (`OrganizationLogo`, el título y la flecha del pie), en lista: cada una enlaza a su ficha.
+
+	S27: cada sección se comparte como las de la ficha del dataset (`Section`): `#description`, `#datasets`,
+	`#information`, `#organizations` y, en la vista del curador, `#publication`.
 -->
 <script lang="ts">
 import {
@@ -44,9 +47,9 @@ import {
 } from "@lucide/svelte";
 import { page } from "$app/stores";
 import OrganizationLogo from "$lib/components/organizations/OrganizationLogo.svelte";
+import Section from "$lib/components/section/Section.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Button from "$lib/components/ui/button/button.svelte";
-import Card from "$lib/components/ui/card/card.svelte";
 import { renderMarkdown } from "$lib/utils/markdown";
 import {
 	audienceLabel,
@@ -198,16 +201,19 @@ const linkClass =
 
 		<div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
 			<div class="min-w-0 space-y-6">
-				<Card class="p-6 sm:p-8" data-testid="collection-description">
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Descripción</p>
+				<Section
+					id="description"
+					label="Descripción"
+					class="p-6 sm:p-8"
+					data-testid="collection-description"
+				>
 					<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre esta colección</h2>
 					<div class="markdown-body mt-3 text-sm leading-relaxed text-muted-foreground">
 						{@html description}
 					</div>
-				</Card>
+				</Section>
 
-				<Card class="p-6 sm:p-8">
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">Contenido</p>
+				<Section id="datasets" label="Contenido" class="p-6 sm:p-8">
 					<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 						Datasets
 						<span class="font-normal text-muted-foreground">({datasets.length})</span>
@@ -259,7 +265,7 @@ const linkClass =
 							</li>
 						{/each}
 					</ul>
-				</Card>
+				</Section>
 			</div>
 
 			<aside
@@ -267,8 +273,12 @@ const linkClass =
 				data-testid="collection-aside"
 			>
 				{#if view === "publica"}
-					<Card class="p-6 sm:p-8" data-testid="collection-info">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Información</p>
+					<Section
+						id="information"
+						label="Información"
+						class="p-6 sm:p-8"
+						data-testid="collection-info"
+					>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre la colección</h2>
 						<dl class="mt-4 space-y-3">
 							<div class="flex items-start gap-3">
@@ -312,10 +322,14 @@ const linkClass =
 							<Scale class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
 							Cada dataset conserva su licencia y se publica en su organización dueña.
 						</p>
-					</Card>
+					</Section>
 
-					<Card class="p-6 sm:p-8" data-testid="collection-orgs">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Organizaciones</p>
+					<Section
+						id="organizations"
+						label="Organizaciones"
+						class="p-6 sm:p-8"
+						data-testid="collection-orgs"
+					>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 							Dueñas de los datasets
 							<span class="font-normal text-muted-foreground">({orgs.length})</span>
@@ -345,10 +359,14 @@ const linkClass =
 								</li>
 							{/each}
 						</ul>
-					</Card>
+					</Section>
 				{:else}
-					<Card class="p-6 sm:p-8" data-testid="publication-status">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Publicación</p>
+					<Section
+						id="publication"
+						label="Publicación"
+						class="p-6 sm:p-8"
+						data-testid="publication-status"
+					>
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Aprobación de las organizaciones</h2>
 						<p class="mt-2 text-sm leading-relaxed text-muted-foreground">
 							Para que la colección sea pública, el administrador de cada organización dueña de sus datasets
@@ -404,7 +422,7 @@ const linkClass =
 								Solicitar publicación
 							</Button>
 						{/if}
-					</Card>
+					</Section>
 				{/if}
 			</aside>
 		</div>

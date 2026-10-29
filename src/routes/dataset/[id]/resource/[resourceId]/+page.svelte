@@ -32,6 +32,7 @@ import {
 import ResourceKindChip from "$lib/components/resource/ResourceKindChip.svelte";
 import ResourcePreview from "$lib/components/resource/ResourcePreview.svelte";
 import ResourceStepper from "$lib/components/resource/ResourceStepper.svelte";
+import Section from "$lib/components/section/Section.svelte";
 import type { BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Breadcrumb from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
@@ -456,16 +457,19 @@ const hasPreview = $derived(resource ? !isLink && previewKind(resource) !== "non
 // Contenedor de la vista previa, destino del salto («Ir a la vista previa» del hero y «Ajustar a la pantalla»).
 let previewEl = $state<HTMLElement>();
 
-// Un enlace compartido con `#preview` o con el id de una ventana (`#pdf`, `#table`…): el navegador resuelve
-// el fragmento antes de que el destino exista (llega cuando carga el recurso), así que se re-aplica **una vez**,
-// cuando el destino aparece. Los gráficos llegan después de la lista: los resuelve `ResourceCharts`. Mismo criterio
-// que los saltos del buscador (`R3-001` de `review-fda3530895a9b51f`).
+// Las secciones que se comparten fuera de la vista previa (`Section`, S27): se dibujan con ella.
+const SECTION_IDS = ["api", "metadata"];
+
+// Un enlace compartido con `#preview`, con el id de una ventana (`#pdf`, `#table`…) o con el de una sección
+// (`#api`, `#metadata`): el navegador resuelve el fragmento antes de que el destino exista (llega cuando carga el
+// recurso), así que se re-aplica **una vez**, cuando el destino aparece. Los gráficos llegan después de la lista:
+// los resuelve `ResourceCharts`. Mismo criterio que los saltos del buscador (`R3-001` de `review-fda3530895a9b51f`).
 let previewHashApplied = false;
 $effect(() => {
 	if (!previewEl || previewHashApplied) return;
 	const id = (upgradeFragment(window.location.hash) ?? window.location.hash).slice(1);
 	const target = id ? document.getElementById(id) : null;
-	if (!target || !previewEl.contains(target)) return;
+	if (!target || !(previewEl.contains(target) || SECTION_IDS.includes(id))) return;
 	previewHashApplied = true;
 	rewriteLegacyFragment(new URL(window.location.href));
 	target.scrollIntoView({ block: "start" });
@@ -743,9 +747,8 @@ const resourceLink = $derived(
 		     CKAN para «existe una tabla real» —el mismo que usa la vista previa— y sin tabla no hay filas
 		     que consultar. -->
 		{#if resource.datastore_active === true}
-			<div>
+			<Section id="api" label="API" card={false}>
 				<div>
-					<p class="text-xs font-medium uppercase tracking-wider text-destructive">API</p>
 					<h2 class="mt-1 font-heading text-xl font-bold text-primary">Acceso por API</h2>
 					<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 						Consulte las filas de este recurso a través de la API.
@@ -819,14 +822,11 @@ const resourceLink = $derived(
 						{/if}
 					</Card>
 				</div>
-			</div>
+			</Section>
 		{/if}
 
 		<!-- Metadata content -->
-			<Card class="p-6 sm:p-8">
-				<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-					Metadatos
-				</p>
+			<Section id="metadata" label="Metadatos" class="p-6 sm:p-8">
 				<h2 class="mt-1 font-heading text-xl font-bold text-primary">Información sobre el recurso</h2>
 				<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 					Formato, tamaño, tipo MIME y sus identificadores.
@@ -839,7 +839,7 @@ const resourceLink = $derived(
 						<MetaGroup {...group} />
 					{/each}
 				</div>
-			</Card>
+			</Section>
 		</section>
 	{/if}
 </div>

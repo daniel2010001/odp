@@ -10,17 +10,16 @@
 
 	Va plegado (variante «Plegado» de `/dev/dataset-panel`, S18 de `odd/tasks/prototype-presentation.md`): siempre
 	muestra la última solicitud y «Ver N más» despliega el resto. El botón del enlace aparece con toda la
-	tarjeta (variante «Unificado», ver `AnchorLink`).
+	tarjeta (variante «Unificado», ver `Section`).
 -->
 <script lang="ts">
 import { Ban, CircleCheck, CircleHelp, CircleX, Clock, Undo2 } from "@lucide/svelte";
 import type { Component } from "svelte";
 import type { PublicationRequest } from "$lib/api/publication";
-import Card from "$lib/components/ui/card/card.svelte";
+import Section from "$lib/components/section/Section.svelte";
 import { estadoDelHistorial, motivoDeAnulacion, nombreDelHistorial } from "$lib/copy/publication";
 import { cn } from "$lib/utils";
 import { formatDate } from "$lib/utils/ckan";
-import AnchorLink from "./AnchorLink.svelte";
 
 let { rows }: { rows: PublicationRequest[] } = $props();
 
@@ -91,17 +90,12 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 </script>
 
 {#if rows.length > 0}
-	<Card
+	<Section
 		id="history"
-		class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-5"
+		label="Historial de solicitudes"
+		class="p-5"
 		data-testid="historial-solicitudes"
 	>
-		<div class="flex h-4 items-center gap-2">
-			<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-				Historial de solicitudes
-			</p>
-			<AnchorLink id="history" title="Historial de solicitudes" />
-		</div>
 		<ol class="relative mt-3">
 			<span class="absolute bottom-2 left-2.5 top-2 w-px bg-border" aria-hidden="true"></span>
 			{#each visibles as r (r.id)}
@@ -142,5 +136,5 @@ function notas(r: PublicationRequest): { rotulo: string; texto: string }[] {
 				{showAll ? "Ver menos" : `Ver ${ocultas} más`}
 			</button>
 		{/if}
-	</Card>
+	</Section>
 {/if}

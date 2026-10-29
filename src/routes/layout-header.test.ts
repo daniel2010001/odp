@@ -215,7 +215,7 @@ describe("Alto del encabezado: una sola fuente", () => {
 		// había inventado el suyo (1rem, 17px, pt-2); un literal nuevo vuelve a separarlas sin que nadie lo vea.
 		const surfaces = [
 			"search/+page.svelte",
-			"dataset/[id]/+page.svelte",
+			"../lib/components/section/Section.svelte",
 			"dataset/[id]/resource/[resourceId]/+page.svelte",
 			"../lib/components/datasets/DatasetForm.svelte",
 			"../lib/components/resource/chart/ChartForm.svelte",

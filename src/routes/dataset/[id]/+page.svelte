@@ -16,7 +16,6 @@ import {
 import { createOrganizationApi } from "$lib/api/organizations";
 import { createPublicationApi, type PublicationRequest } from "$lib/api/publication";
 import ActionsMenu from "$lib/components/dataset/ActionsMenu.svelte";
-import AnchorLink from "$lib/components/dataset/AnchorLink.svelte";
 import DatasetSidebar from "$lib/components/dataset/DatasetSidebar.svelte";
 import type { MenuItem } from "$lib/components/dataset/more-menu";
 import OverflowBadges, { type BadgeItem } from "$lib/components/dataset/OverflowBadges.svelte";
@@ -27,6 +26,7 @@ import ResponsiveAction from "$lib/components/dataset/ResponsiveAction.svelte";
 import ErrorPage from "$lib/components/error/ErrorPage.svelte";
 import { rewriteLegacyFragment } from "$lib/components/resource/legacy-fragment";
 import { upgradeFragment } from "$lib/components/resource/preview-views";
+import Section from "$lib/components/section/Section.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
 import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
@@ -734,14 +734,7 @@ const resumenEditorial = $derived(
 					<!-- El botón del enlace va junto a la línea del título y aparece con toda la tarjeta, como en la
 					     columna lateral (variante «Unificado» de `/dev/dataset-panel`, S18 de
 					     `odd/tasks/prototype-presentation.md`). -->
-					<Card
-						id="resources"
-						class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8"
-					>
-						<div class="flex h-4 items-center gap-2">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">Recursos</p>
-							<AnchorLink id="resources" title="Recursos" />
-						</div>
+					<Section id="resources" label="Recursos" class="p-6 sm:p-8">
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">
 							Archivos disponibles
 							{#if activeResources.length > 0}
@@ -759,7 +752,7 @@ const resumenEditorial = $derived(
 								{/each}
 							{/if}
 						</div>
-					</Card>
+					</Section>
 
 					{#if prototypeCollections}
 						<DatasetCollections
@@ -772,16 +765,7 @@ const resumenEditorial = $derived(
 					     `/dev/dataset-details`, elegida por el autor el 2026-10-19). Es el destino de «Ver la
 					     información técnica completa» del «Resumen»; `scroll-mt` deja el título bajo el encabezado fijo,
 					     como `#preview` en la página del recurso. -->
-					<Card
-						id="technical-info"
-						class="group/tarjeta scroll-mt-[calc(var(--header-h-min)+1px+var(--sticky-air))] p-6 sm:p-8"
-					>
-						<div class="flex h-4 items-center gap-2">
-							<p class="text-xs font-medium uppercase tracking-wider text-destructive">
-								Información técnica
-							</p>
-							<AnchorLink id="technical-info" title="Información técnica" />
-						</div>
+					<Section id="technical-info" label="Información técnica" class="p-6 sm:p-8">
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Ficha completa</h2>
 						<p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 							Todos los datos que el catálogo registra de este dataset.
@@ -791,7 +775,7 @@ const resumenEditorial = $derived(
 								<MetaGroup {...group} />
 							{/each}
 						</div>
-					</Card>
+					</Section>
 				</div>
 
 				<!-- Sidebar: la columna lateral vive en `DatasetSidebar`. -->
