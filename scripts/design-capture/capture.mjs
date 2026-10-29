@@ -22,6 +22,13 @@
 //                    `aliases`: otras direcciones de la misma pantalla, para que sus enlaces lleven al artboard.
 //                    `linkOnly`: no se captura ni se escribe; sólo es destino de los enlaces de las demás (su
 //                    artboard ya tiene que existir). Un lote lista todas las pantallas y recaptura las que no lo son.
+//                    `scrollStates`: [{ scrollTo, container, query }] lo que el script de la página cambia al
+//                    desplazar (el encabezado que se achica, una barra que se recorta al pegarse), que sin script
+//                    quedaría congelado en reposo. Por estado, en orden: se desplaza a `scrollTo` px, se comparan
+//                    los estilos computados con los de reposo, y lo que cambió en un descendiente de `container`
+//                    pasa al CSS bajo `@container scroll-state(<query>)` de ese contenedor (`scrollStateCss`).
+//                    El encabezado: `{ container: ":root", query: "scrollable: top" }`; un pegado: su selector
+//                    con `stuck: top`. Lo que cambió fuera de su contenedor queda en reposo (se avisa).
 //
 // Los enlaces a una pantalla del lote (por su `url` o un alias) apuntan al archivo hermano; los demás quedan
 // inertes (sin `href`). Si `outDir/design.json` existe, actualiza el `height` de cada artboard capturado.
@@ -54,6 +61,8 @@ import {
 	mapHref,
 	pdfStandIn,
 	planBatch,
+	scrollStateCss,
+	styleChanges,
 	tabTarget,
 	urlKey,
 } from "./lib.mjs";
@@ -160,9 +169,77 @@ async function pdfStandIns(page, batch, { selector, pages = 2 }) {
 	}
 }
 
+/**
+ * Recorre los `scrollStates` de la pantalla (ver arriba) y marca con `data-capture-scroll` cada elemento que
+ * cambia; devuelve el CSS que reproduce esos cambios sin script. Deja la página de nuevo en el tope.
+ */
+async function sampleScrollStates(page, states) {
+	await evaluate(
+		page,
+		`(() => {
+			const elements = [...document.querySelectorAll("*")];
+			window.__capture = {
+				elements,
+				claimed: {},
+				next: 0,
+				// Valores computados, no resueltos: un \`height: auto\` sigue siendo \`auto\` y no se clava en px lo que
+				// sólo es consecuencia del layout (el \`<header>\` crece con su hijo, que es el que se anima).
+				snapshot: () => elements.map((el) => {
+					const out = {};
+					for (const [prop, values] of el.computedStyleMap()) {
+						if (!prop.startsWith("--")) out[prop] = values.map(String).join(", ");
+					}
+					return out;
+				}),
+			};
+			window.__capture.rest = window.__capture.snapshot();
+			return true;
+		})()`,
+	);
+	const claims = [];
+	const warnings = [];
+	for (const state of states) {
+		await evaluate(
+			page,
+			`window.scrollTo({ top: ${Number(state.scrollTo)}, behavior: "instant" })`,
+		);
+		// Las transiciones de la página duran 200–250 ms: se mide con todo ya quieto.
+		await sleep(1000);
+		const { claimed, outside } = await evaluate(
+			page,
+			`(() => {
+				const styleChanges = ${styleChanges.toString()};
+				const c = window.__capture;
+				const claimed = [];
+				let outside = 0;
+				for (const [index, decls] of styleChanges(c.rest, c.snapshot(), c.claimed)) {
+					const el = c.elements[index];
+					if (!el.parentElement?.closest(${JSON.stringify(state.container)})) { outside++; continue; }
+					el.dataset.captureScroll ??= String(c.next++);
+					c.claimed[index] = { ...c.claimed[index], ...decls };
+					claimed.push({ id: Number(el.dataset.captureScroll), decls });
+				}
+				return { claimed, outside };
+			})()`,
+		);
+		claims.push(claimed);
+		if (outside) {
+			warnings.push(
+				`scroll ${state.scrollTo}: ${outside} elementos cambian fuera de ${state.container} y quedan en reposo`,
+			);
+		}
+	}
+	await evaluate(page, `window.scrollTo({ top: 0, behavior: "instant" })`);
+	await sleep(1000);
+	return { css: scrollStateCss(states, claims), warnings };
+}
+
 async function captureScreen(browser, batch, screen, linkMap) {
 	const { page, network } = await loadScreen(browser, batch, screen);
 	const height = await measureHeight(page);
+	const scroll = screen.scrollStates
+		? await sampleScrollStates(page, screen.scrollStates)
+		: { css: "", warnings: [] };
 	const standIns = screen.replaceIframes
 		? await pdfStandIns(page, batch, screen.replaceIframes)
 		: null;
@@ -179,7 +256,7 @@ async function captureScreen(browser, batch, screen, linkMap) {
 	})()`;
 	const result = await evaluate(page, expression);
 
-	let css = freezeViewportUnits(result.css, viewportHeight(batch));
+	let css = freezeViewportUnits(`${result.css}\n${scroll.css}`, viewportHeight(batch));
 	for (const [index, href] of result.imports.entries()) {
 		const sheet = await network.body(href);
 		if (!sheet) throw new Error(`La hoja externa no se descargó: ${href}`);
@@ -197,7 +274,7 @@ async function captureScreen(browser, batch, screen, linkMap) {
 		height,
 		inertLinks: result.inertLinks,
 		tabLinks: result.tabLinks,
-		warnings: result.warnings,
+		warnings: [...scroll.warnings, ...result.warnings],
 	};
 }
 

@@ -34,12 +34,20 @@
 			"file": "h2-3-busqueda.html",
 			"url": "/search?q=matrícula",
 			"waitForText": ["resultados para"],
+			"scrollStates": [
+				{ "scrollTo": 200, "container": ":root", "query": "scrollable: top" },
+				{ "scrollTo": 800, "container": "[data-results-bar]", "query": "stuck: top" }
+			],
 			"waitForSelector": "a[href=\"/dataset/matricula-facultad-gestion-ficticia\"]"
 		},
 		{
 			"file": "h2-3b-busqueda-sin-resultados.html",
 			"url": "/search?q=calendario académico 1998",
-			"waitForText": ["Sin resultados", "Mientras tanto, lo más reciente"]
+			"waitForText": ["Sin resultados", "Mientras tanto, lo más reciente"],
+			"scrollStates": [
+				{ "scrollTo": 200, "container": ":root", "query": "scrollable: top" },
+				{ "scrollTo": 800, "container": "[data-results-bar]", "query": "stuck: top" }
+			]
 		},
 		{
 			"file": "h2-4-ficha-dataset.html",

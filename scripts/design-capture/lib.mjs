@@ -196,6 +196,50 @@ export function freezeViewportUnitsInStyles(html, viewportHeight) {
 }
 
 /**
+ * Lo que el script de la página cambia al desplazar, sin script (`scrollStates` de una pantalla, ver
+ * `capture.mjs`). `rest` y `sample` son los estilos computados de cada elemento (por índice) en reposo y en una
+ * muestra con scroll; devuelve `[índice, { propiedad: valor }]` con lo que difiere. `claimed` (índice →
+ * propiedades) es lo que ya reclamó un estado anterior: ese cambio es de aquél y no se repite.
+ * Se inyecta en la página como texto (`toString()`): no usa nada de afuera.
+ */
+export function styleChanges(rest, sample, claimed = {}) {
+	const changes = [];
+	for (const [index, after] of sample.entries()) {
+		const before = rest[index] ?? {};
+		const decls = {};
+		for (const [prop, value] of Object.entries(after)) {
+			if (before[prop] !== value && !(prop in (claimed[index] ?? {}))) decls[prop] = value;
+		}
+		if (Object.keys(decls).length) changes.push([index, decls]);
+	}
+	return changes;
+}
+
+/**
+ * El CSS que reproduce esos cambios: cada estado declara su `container` como contenedor `scroll-state` con
+ * nombre propio, y sus cambios (`claims[i]`: `{ id, decls }`, el `id` es el `data-capture-scroll` del
+ * elemento) se aplican bajo `@container <nombre> scroll-state(<query>)`. Con `!important`, porque en reposo
+ * los pone el script en `style`; las transiciones de la página siguen valiendo (son de mayor prioridad).
+ */
+export function scrollStateCss(states, claims) {
+	const containers = [];
+	const rules = [];
+	for (const [index, state] of states.entries()) {
+		if (!claims[index]?.length) continue;
+		const name = `capture-scroll-${index}`;
+		containers.push(`${state.container} { container: ${name} / scroll-state; }`);
+		const body = claims[index]
+			.map(({ id, decls }) => {
+				const list = Object.entries(decls).map(([prop, value]) => `${prop}: ${value} !important;`);
+				return `[data-capture-scroll="${id}"] { ${list.join(" ")} }`;
+			})
+			.join(" ");
+		rules.push(`@container ${name} scroll-state(${state.query}) { ${body} }`);
+	}
+	return [...containers, ...rules].join("\n");
+}
+
+/**
  * Apariciones de `http` en el artboard que no son referencias permitidas. Se permiten los espacios de
  * nombres XML (`xmlns="http://www.w3.org/..."`), que no se descargan.
  */

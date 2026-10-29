@@ -17,6 +17,8 @@ import {
 	mapHref,
 	pdfStandIn,
 	planBatch,
+	scrollStateCss,
+	styleChanges,
 	tabTarget,
 	urlKey,
 	waitsForRequest,
@@ -242,4 +244,46 @@ test("encodePng y decodePng ida y vuelta; diffImages cuenta y ubica los píxeles
 	assert.deepEqual(diff.bands, [[15, 15]]);
 	assert.equal(diffImages(a, a).differing, 0);
 	assert.equal(diffImages(a, { width: 3, height: 1, data: Buffer.alloc(12) }).sameSize, false);
+});
+
+test("styleChanges devuelve, por elemento, sólo las propiedades que cambiaron y no reclamó un estado anterior", () => {
+	const rest = [
+		{ height: "80px", opacity: "1" },
+		{ "clip-path": "inset(0px)", transform: "none" },
+	];
+	const sample = [
+		{ height: "64px", opacity: "1" },
+		{ "clip-path": "inset(0px 104px 0px 416px)", transform: "none" },
+	];
+	assert.deepEqual(styleChanges(rest, sample), [
+		[0, { height: "64px" }],
+		[1, { "clip-path": "inset(0px 104px 0px 416px)" }],
+	]);
+	// Lo que ya cambió en un estado anterior es de ese estado: no se repite en el siguiente.
+	assert.deepEqual(styleChanges(rest, sample, { 0: { height: "64px" } }), [
+		[1, { "clip-path": "inset(0px 104px 0px 416px)" }],
+	]);
+	assert.deepEqual(styleChanges(rest, rest), []);
+});
+
+test("scrollStateCss declara cada contenedor y aplica los cambios bajo su consulta scroll-state", () => {
+	const states = [
+		{ container: ":root", query: "scrollable: top" },
+		{ container: "[data-results-bar]", query: "stuck: top" },
+	];
+	const claims = [
+		[{ id: 0, decls: { height: "64px" } }],
+		[{ id: 1, decls: { "clip-path": "inset(0px 104px 0px 416px)", transform: "none" } }],
+	];
+	assert.equal(
+		scrollStateCss(states, claims),
+		[
+			":root { container: capture-scroll-0 / scroll-state; }",
+			"[data-results-bar] { container: capture-scroll-1 / scroll-state; }",
+			'@container capture-scroll-0 scroll-state(scrollable: top) { [data-capture-scroll="0"] { height: 64px !important; } }',
+			'@container capture-scroll-1 scroll-state(stuck: top) { [data-capture-scroll="1"] { clip-path: inset(0px 104px 0px 416px) !important; transform: none !important; } }',
+		].join("\n"),
+	);
+	// Un estado sin cambios no declara contenedor ni consulta.
+	assert.equal(scrollStateCss(states, [[], []]), "");
 });
