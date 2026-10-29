@@ -22,7 +22,7 @@
 			"title": "H1-3 · Panel",
 			"tradeoff": "Construida hoy: el panel del editor de la FCyT con sesión: sus acciones (crear dataset, revisar solicitudes, mis colecciones), sus datasets y las organizaciones a las que pertenece, con su rol; «Mis colecciones» es diseño para después",
 			"width": 1440,
-			"height": 1143
+			"height": 1151
 		},
 		{
 			"file": "h1-4-nuevo-dataset.html",
@@ -33,17 +33,17 @@
 		},
 		{
 			"file": "h1-5-ficha-con-sesion.html",
-			"title": "H1-5 · Ficha con sesión",
-			"tradeoff": "Construida hoy: la ficha real de «Calidad del agua en puntos de muestreo del valle» (FCyT) con la sesión del editor: el botón «Editar» y el historial de solicitudes («Aprobada»), que sin sesión no se ven (comparar con H1-7). «Solicitar publicación» aparece sólo en un dataset privado sin solicitud, y el catálogo de demostración no tiene ninguno: este paso muestra uno ya aprobado",
+			"title": "H1-5 · Ficha con «Solicitar publicación»",
+			"tradeoff": "Construida hoy: la ficha de un borrador privado de la FCyT («Asistencia a laboratorios de física básica por semestre», datos ficticios) vista por su editor, con el botón «Solicitar publicación»: nadie publica solo.",
 			"width": 1440,
-			"height": 2363
+			"height": 2405
 		},
 		{
 			"file": "h1-6-solicitudes.html",
 			"title": "H1-6 · Solicitudes de publicación",
-			"tradeoff": "Construida hoy: la cola real de solicitudes, con la sesión del administrador de la FCyT, mostrando «Todas»; cada solicitud se aprueba o se rechaza con motivo. Hoy no hay solicitudes pendientes en la demostración: se ven las resueltas",
+			"tradeoff": "Construida hoy: la cola de solicitudes del administrador de la FCyT, con una solicitud pendiente («Proyectos de investigación por departamento», datos ficticios) para aprobar o rechazar con motivo: cuatro ojos.",
 			"width": 1440,
-			"height": 1515
+			"height": 1358
 		},
 		{
 			"file": "h1-7-ficha-publica.html",
@@ -78,7 +78,7 @@
 			"title": "H2-4 · Ficha del dataset",
 			"tradeoff": "Construida hoy: la ficha real de «Matrícula estudiantil por carrera y gestión», con recursos, metadatos y licencia; sólo la sección «Aparece en las colecciones» es diseño para después (colecciones aún no existen en el portal)",
 			"width": 1440,
-			"height": 2472
+			"height": 2652
 		},
 		{
 			"file": "h2-5-recurso-csv.html",
@@ -120,14 +120,14 @@
 			"title": "H2-6b · Colecciones (menú principal)",
 			"tradeoff": "Diseño para después, no construido: la lista pública de colecciones que se abre desde el menú principal, sin filtro de visibilidad; las colecciones aún no existen en el portal",
 			"width": 1440,
-			"height": 1573
+			"height": 1772
 		},
 		{
 			"file": "h2-7-coleccion-de-una-persona.html",
 			"title": "H2-7 · Colección de una persona",
 			"tradeoff": "Diseño para después, no construido: la vista pública de una colección curada por una persona, que reúne datasets de varias organizaciones sin copiarlos",
 			"width": 1440,
-			"height": 1915
+			"height": 1935
 		},
 		{
 			"file": "ficha-organizacion.html",
@@ -141,28 +141,21 @@
 			"title": "H3-1 · Mis colecciones",
 			"tradeoff": "Diseño para después, no construido: la lista de colecciones propias en el panel, con filtros de visibilidad y de curador; el panel existe hoy, esta sección no. Se ve con sesión",
 			"width": 1440,
-			"height": 1573
+			"height": 1533
 		},
 		{
 			"file": "h3-2-coleccion-vista-del-curador.html",
 			"title": "H3-2 · Colección, vista del curador",
 			"tradeoff": "Diseño para después, no construido: la colección de rendición de cuentas 2025 mientras se prepara, privada, con el tablero de aprobaciones de cada unidad dueña (van 2 de 3). Se ve con sesión",
 			"width": 1440,
-			"height": 1970
+			"height": 2010
 		},
 		{
 			"file": "h3-3-coleccion-publica.html",
 			"title": "H3-3 · Colección pública: rendición de cuentas 2025",
 			"tradeoff": "Diseño para después, no construido: la colección del Rectorado como la verá cualquiera una vez que las unidades dueñas aprueben, sin el bloque de aprobaciones",
 			"width": 1440,
-			"height": 1968
-		},
-		{
-			"file": "h3-4-dataset-en-dos-colecciones.html",
-			"title": "H3-4 · Un dataset en dos colecciones",
-			"tradeoff": "Diseño para después, no construido: el informe de gestión 2025 de la FCyT se publica una sola vez y aparece en las colecciones del Rectorado y de la Dirección de Investigación, sin copiarlo. Se ve con sesión",
-			"width": 1440,
-			"height": 1358
+			"height": 2008
 		}
 	]
 }

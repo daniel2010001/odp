@@ -49,16 +49,16 @@
 		},
 		{
 			"file": "h1-5-ficha-con-sesion.html",
-			"url": "/dataset/calidad-del-agua-en-puntos-de-muestreo-del-valle",
+			"url": "/dataset/asistencia-laboratorios-fisica-basica-ficticia",
 			"as": "editor",
+			"waitForText": ["Solicitar publicación"],
 			"waitForSelector": "a[href*=\"/resource/\"]"
 		},
 		{
 			"file": "h1-6-solicitudes.html",
 			"url": "/dashboard/requests",
 			"as": "admin",
-			"waitForText": ["Resueltas ("],
-			"selects": [{ "selector": "select", "value": "todas" }]
+			"waitForText": ["Proyectos de investigación por departamento"]
 		},
 		{
 			"file": "h1-7-ficha-publica.html",
@@ -152,22 +152,17 @@
 		{
 			"file": "h3-1-mis-colecciones.html",
 			"url": "/dev/prototype/collections?vista=panel",
-			"as": "editor"
+			"as": "rectorado"
 		},
 		{
 			"file": "h3-2-coleccion-vista-del-curador.html",
 			"url": "/dev/prototype/collection?c=rendicion-cuentas-2025&vista=curador",
-			"as": "editor"
+			"as": "rectorado"
 		},
 		{
 			"file": "h3-3-coleccion-publica.html",
 			"url": "/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica",
 			"aliases": ["/dev/prototype/collection?c=rendicion-cuentas-2025"]
-		},
-		{
-			"file": "h3-4-dataset-en-dos-colecciones.html",
-			"url": "/dev/prototype/dataset-collections?d=informe-gestion-2025-fcyt&como=rectorado",
-			"as": "editor"
 		}
 	]
 }
