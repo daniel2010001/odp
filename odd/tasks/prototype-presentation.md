@@ -189,36 +189,54 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
 screen by screen in the browser. It is not merged to `main` before the presentation unless the author asks.
 
-## Handoff (session closed 2026-10-26)
+## Handoff (2026-10-29, early morning — the author went to sleep; presentation TODAY 16:00)
 
-**Presentation: Thursday 2026-10-29, 16:00.** Branch `feat/prototype-presentation`, pushed, **not merged to `main`**.
-Environment: `odp-dev` is up (`odp-demo` stopped, volumes kept). Give the author `https://odp.hs.lan/...` URLs.
+**State.** Branch `feat/prototype-presentation`, pushed, not merged. Suite 2125/2125, lint clean, check 0 errors (before T27).
+The prototype is presented on the Gentle Design canvas (S15) and the stories are walked from the portal with prototype mode
+on (S14). Shareable: `https://daniel2010001.github.io/odp/design/` (GitHub Pages serves this branch). Canvas (this machine
+only; SSH tunnel from the desktop): `http://127.0.0.1:34237/…/d/prototipo/`.
 
-**Awaiting the author's review** (screens are reviewed and captured at desktop 16:9 only, L6):
-- Users (multi-org corrected after the first review): `https://odp.hs.lan/dev/prototype/users` and `?vista=nuevo`.
-- Organizations playground (T9): `https://odp.hs.lan/dev/organizations` — mock names and acronyms need checking against the real UMSS.
-- Dataset → collections (T5): `https://odp.hs.lan/dev/prototype/dataset-collections?d=matricula-por-carrera`.
-- Collection sheet, public vs curator (T10): `https://odp.hs.lan/dev/prototype/collection?c=rendicion-cuentas-2025&vista=publica` / `&vista=curador`.
-- Collections list and the first collection sheet: **reviewed, liked** (L7).
+**Running when the author left:** T27 — promote the organizations proposal to `/organizations` (native data only) and
+re-capture H2-2. The agent commits, runs the suite and pushes when it finishes.
 
-**Decisions pending from the author** (ask by file + topic, not by bare ID — L7). Resolved 2026-10-26 (L9, L10): collections
-list location (Q18), script (S11, T11), Q16, Q10. Still open: the other questions in
-`design-system/datos-umss/preguntas-abiertas.md`: Q3, Q4b, Q5, Q8, Q9, Q11–Q14, Q17.
-Q18 mocked (T13): `/dev/prototype/collections?vista=publica|panel`. Still not mocked: «Colecciones que cura» on the
-organization sheet.
+**Awaiting the author's review**
+1. Dataset sheet with the promoted panel (T20): `https://odp.hs.lan/dataset/matricula-estudiantil-por-carrera-y-gestion`.
+   Check with a real mouse that the panel's scrollbar appears on hover (headless cannot emulate hover).
+2. Collections (T22): `/dev/prototype/collections` and `?vista=panel`, `/dev/prototype/collection?c=rendicion-cuentas-2025`.
+3. Search bar animation (T25): `https://odp.hs.lan/dev/search-bar?barra=animada&q=matrícula` vs «como hoy».
+4. `/organizations` once T27 lands (promoted proposal).
+5. Canvas: `organizacion` (3 directions + empty states, T23), `busqueda` (3 hero directions, T26), `inicio` 05 (chosen, last
+   edits), `prototipo` (14 screens, all re-captured — L23).
 
-**On the author's side:** finish re-reading `presentation/preguntas.md` and validate the **[validar]** answers; open UMSSSTAT and
-confirm it has no data download; **test the html.to.design import with one page as soon as possible** (T7 — if it fails, the
-pipeline changes).
+**Decisions pending from the author**
+1. Organization sheet: which direction (01 panel / 02 tabs / 03 dossier).
+2. Search hero: which direction (01 compact band / 02 query as title / 03 card over the band).
+3. Promote the search bar animation to `/search` (after reviewing T25)?
+4. Embed the web fonts in the hand-made artboards (inicio, organizacion, busqueda) so Pages looks the same on any device?
+5. Ask `odp-docker` to hide or delete «Dataset de humo del flujo completo» from the demo catalog?
+6. Contact for «¿Su unidad todavía no publica?» in Inicio 05: is `datos@umss.edu.bo` right?
+7. Collections tabs label: «De personas» (public list) vs «Personales» (panel) — one label?
+8. Open questions in `design-system/datos-umss/preguntas-abiertas.md`: Q6 (hierarchy), Q9 (SMTP), Q13 (slug vs acronym),
+   Q17 (is a license/visibility change a version?).
 
-**Next on the agent's side, after the reviews:** T3 organization management (members tab, one role per org, invitation), T4
-dataset collaborators, T6 public profile `/user/<name>` (Q1) and versions (Q17); then Figma assembly support.
+**Before presenting (author's side)**
+- Turn prototype mode on in the browser used to present (`/dev/prototype`, «Modo prototipo»).
+- Validate the **[validar]** answers in `presentation/preguntas.md`; confirm UMSSSTAT has no data download; check the script
+  duration (`presentation/guion.md`).
+- Inside the canvas, chart tabs open their own artboards; moving between tabs without leaving the page, PDF zoom/search and the
+  search box only work in the portal (T24).
 
-**Outside this repository:** `odp-docker` has the Q7 fix (`620fd73`) and the Q16 fix (`9b5eb55`, verified live 2026-10-26) merged into `master` (PR #40, merge `8ea8582`, 2026-10-26).
-`odp-dev` runs with both; the stopped demo needs `up -d` of `ckan` and `ckan-worker` to pick them up. Delivery: this branch is ~4,000 lines in 31 commits; split into several PRs before
-merging to `main` (after the presentation). GitHub Pages (enabled 2026-10-28) serves this branch at `https://daniel2010001.github.io/odp/design/`: after the merge,
-switch its source to `main`. Before that merge, decide whether prototype mode (T15) stays: real pages import
-the mock data from `src/routes/dev/prototype/collections/` (dead code in production, but a coupling to undo).
+**Next on the agent's side (after the author's answers)**
+- The screens with login: H1-1…H1-7, H3-2, H3-4 («sin login | con login» as separate pages, L15), fixing H3-1's header that shows
+  «Iniciar Sesión» on a panel page.
+- Apply the chosen org-sheet and search-hero directions (playground first, rule 8).
+- T3 organization management, T4 dataset collaborators, T6 profile/versions (not started).
+
+**After the presentation**
+- Split the branch into reviewable PRs before merging to `main` (≈55k changed lines, most of them generated artboards); then
+  switch GitHub Pages to `main`. Decide whether prototype mode (T15) stays: real pages import mock data from
+  `src/routes/dev/prototype/collections/` (dead code in production, but a coupling to undo).
+- Promote Inicio 05 to the real home (playground first). README drift found by the design sync is in `BACKLOG.md`.
 
 ## Log
 
