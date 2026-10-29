@@ -120,6 +120,11 @@ imported into Figma and presented as a click-through prototype before the tribun
   colo una y mostrar el input del buscador." Hero: three directions on the canvas — «hazlo, me gusta este método». The sticky
   filter menu's top is too low (S20).
 
+- **S25** — Promote the organizations proposal (2026-10-29), verbatim: "https://odp.hs.lan/dev/organizations: me gusta,
+  promover." The real `/organizations` takes the proposal's layout and behavior with native data only: the type keeps the
+  current guess from the title until the Q11 field exists; acronym and hierarchy are shown only when the data exists (Q13,
+  Q6); nothing is invented. Then the playground is deleted and H2-2 is captured from the real page.
+
 ## Approach (decided 2026-10-23)
 
 - The author has a **free** Figma account. Penpot/OpenPencil cannot export to `.fig`, and the Figma MCP
@@ -178,6 +183,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T24 | S20, S21 | Captures: chart tabs as their own artboards, a PDF resource (static first page instead of the iframe), the search without results | worker | `ddfc67a` — awaiting author review |
 | T25 | S20, S24 | Search: fix the filter menu's sticky top; animate the bar from both columns to one with the search input revealed (playground first) | worker | `7ebce71` — fix in; animation awaiting author review |
 | T26 | S24 | Search hero: three directions on the canvas (`design/busqueda/`) | worker | (see L22) — awaiting author review |
+| T27 | S25 | Promote the organizations proposal to `/organizations` (native data, graceful without type/acronym/hierarchy), delete the playground, re-capture H2-2 | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 
 **Delivery.** One commit per screen; the branch is a stack of small slices (~170–350 lines each), reviewed
@@ -317,3 +323,4 @@ the mock data from `src/routes/dev/prototype/collections/` (dead code in product
 - **L22** (2026-10-28, design): `design/busqueda/` (T26) — three search hero directions, each with «Al llegar» and «Al
   desplazarse» states: `01-banda-compacta`, `02-consulta-como-titulo`, `03-tarjeta-sobre-la-banda`.
 - **L23** (2026-10-29, agent): full re-capture of the 14 prototype screens with every change of T20–T25 (`scripts/design-capture/batch-all.json`); verify at tolerance 64: 13 OK, the PDF differs by design (static stand-in). A first run aborted on the dev server's HMR recompilation and wrote nothing; the retry after the server settled passed.
+- **L24** (2026-10-29, author): "me gusta, promover. estoy un poco cansado,creo que me voy a dormir un rato,puedes dejar corriendo algunos workers mientras?y anota todo lo que falta revisar, preguntas y decisiones que falten." → S25/T27; handoff updated.
