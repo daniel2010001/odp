@@ -258,7 +258,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T38 | S38 | Organization sheet: new directions from 02 (compact index with counts, share links, no duplicated summary) | worker | (this commit): 05 «Portada con índice» (sticky index strip with counts; «Qué publica» merged into the band) and 06 «Cifras como índice» (the band figures are the index; the four-figure block removed), each with its empty state; all titles now «H2-2b · Ficha de organización · NN …» — awaiting author review |
 | T39 | S35, S36 | Re-capture H2-3, H2-3b, H2-7, H3-3 | inline | — |
 | T40 | S39 | Root `index.html` redirecting GitHub Pages to `design/` | inline | (this commit) |
-| T41 | S40 | Organization sheet 07 from 06: sticky figures index, unit data out of the hero | worker | — |
+| T41 | S40 | Organization sheet 07 from 06: sticky figures index, unit data out of the hero | worker | (this commit): a compact copy of the figures index sticks under the header (CSS `scroll-state(stuck)`, Chromium only; not on the canvas); unit data as its own section; band 369 px (06: 599) — awaiting author review |
 | T42 | S41 | Playground `/dev/search-extras`: the no-results blocks («Pruebe con», «Mientras tanto, lo más reciente») shown always, with switches | worker | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |
 

@@ -86,6 +86,20 @@
 			"tradeoff": "06 sin datasets ni colecciones: la banda conserva los datos de la unidad («Última publicación: todavía ninguna») y la fila de cifras sigue siendo el índice, sin ceros: «Publicaciones — todavía ninguna» (punteada) lleva al aviso de 02b con «Iniciar sesión para publicar»; «Qué podrá publicar» cuenta 5 tipos, no recursos; «Otras direcciones 3» lleva a las que ya publican. Siguen acerca de con miembros, los tipos de 02b, la actividad y otras direcciones en columna. Es la versión vacía más llena de las dos, pero una cifra que dice «todavía ninguna» es una entrada del índice sin número. Factibilidad: igual que 06",
 			"width": 1440,
 			"height": 3472
+		},
+		{
+			"file": "07-cifras-como-indice-fijo.html",
+			"title": "H2-2b · Ficha de organización · 07 Cifras como índice, fijo",
+			"tradeoff": "06 iterada con S40. Se queda lo que gustó: la fila de seis cifras es el índice y cada una lleva a su sección por #… y marca la abierta (sólo CSS). Nuevo: el índice no se pierde al bajar; cuando la banda sale de la pantalla, una barra compacta con el nombre de la unidad y las mismas cifras en una línea («Qué publica 19», «Datasets 10»…) queda fija bajo el encabezado, que también es fijo como en el portal. La barra está montada sobre la fila grande y sólo aparece al quedar fija, así que en reposo no hay dos índices. Los datos de la unidad salen de la banda a su propia sección («Ficha de la unidad», con su enlace para compartir), al lado de la presentación; la banda sólo identifica a la unidad (logo, tipo y sigla, nombre, una línea, sitio y correo) y es la más liviana de todas: 369 px con el índice, contra 599 px de 06 y 382 px de 02 más sus pestañas. Siguen los rótulos coral con palabras, «Qué publica» como única sección con números y los diez datasets listados una sola vez; «Volver a las cifras» se va porque el índice ya está siempre a mano. A cambio: la página es algo más larga que 06 (4680 px contra 4381), Tipo y Sigla aparecen en la banda y otra vez en la tabla como en 02, y el lienzo muestra la lámina entera, donde nada se pega: la anotación lleva una muestra de la barra fija, y para verla funcionar hay que abrir la lámina sola (Chromium; sin soporte de scroll-state la barra se ve siempre bajo la banda). Factibilidad en CKAN 2.12: igual que 06; la barra fija es diseño propio sólo con CSS (position: sticky y scroll-state), con conteos nativos salvo los recursos por tipo (implementable)",
+			"width": 1440,
+			"height": 4680
+		},
+		{
+			"file": "07b-cifras-como-indice-fijo-vacia.html",
+			"title": "H2-2b · Ficha de organización · 07b Cifras como índice, fijo — sin publicaciones",
+			"tradeoff": "07 sin datasets ni colecciones: la misma banda liviana y la fila de cifras de 06b, sin ceros («Publicaciones — todavía ninguna», punteada, lleva al aviso con «Iniciar sesión para publicar»; «Qué podrá publicar 5» cuenta tipos; «Otras direcciones 3»), y la misma barra fija al bajar, con «Publicaciones» sin número. Los datos de la unidad van en su sección al lado de la presentación («Última publicación: todavía ninguna»); debajo, los tipos de 02b, miembros con la actividad y las otras direcciones en tres tarjetas a lo ancho. Más corta que 06b en la banda pero no en la página (3600 px contra 3472), y el aviso y «Qué podrá publicar» siguen diciendo cosas cercanas. Factibilidad: igual que 07; «otras direcciones» sale del tipo (implementable) con conteos nativos",
+			"width": 1440,
+			"height": 3600
 		}
 	]
 }
