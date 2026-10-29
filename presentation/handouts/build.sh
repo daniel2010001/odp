@@ -41,6 +41,7 @@ render() {
 render ficha.md ficha "Portal de datos abiertos de la UMSS · Ficha resumen" ficha-resumen.pdf
 render proyecto.md proyecto "Portal de datos abiertos de la UMSS · Documento del proyecto" documento-proyecto.pdf
 render chuleta.md chuleta "Chuleta de la presentación" chuleta.pdf
+render mapa-de-disenos.md chuleta "Mapa de diseños y prototipo" mapa-de-disenos.pdf
 
 # Para estudiar: el guion y las preguntas y respuestas, uno detrás del otro
 cat "$aqui/../guion.md" <(printf '\n\n<div class="salto"></div>\n\n') "$aqui/../preguntas.md" >"$tmp/estudio.md"
