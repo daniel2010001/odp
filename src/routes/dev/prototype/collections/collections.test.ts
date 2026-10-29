@@ -425,6 +425,96 @@ describe("maqueta — ficha de colección", () => {
 	});
 });
 
+// S36: la ruta de navegación de la ficha no empieza en «Inicio». La de una colección curada por una organización es
+// el árbol de esa organización, de la más alta hasta la curadora (Q6: jerarquía figurativa, sólo navegación); la
+// de una curada por una persona, la lista de colecciones con su pestaña «Personales».
+describe("maqueta — ruta de navegación de la ficha de colección (S36)", () => {
+	afterEach(() => at("http://localhost/"));
+
+	const trail = () => {
+		const nav = screen.getByRole("navigation", { name: "Ruta de navegación" });
+		const list = nav.querySelector("ol") as HTMLElement;
+		return {
+			nav,
+			links: within(list)
+				.getAllByRole("link")
+				.map((a) => [a.textContent?.trim(), a.getAttribute("href")]),
+			current: list.querySelector("[aria-current=page]")?.textContent?.trim(),
+		};
+	};
+
+	it("ninguna colección lleva «Inicio» en la ruta", () => {
+		for (const collection of COLLECTIONS) {
+			at(`http://localhost/dev/prototype/collection?c=${collection.slug}`);
+			const view = render(CollectionMock);
+			const { nav, current } = trail();
+			expect(nav.textContent).not.toMatch(/Inicio/);
+			expect(within(nav).queryByRole("link", { name: "Inicio" })).toBeNull();
+			expect(current).toBe(collection.name);
+			view.unmount();
+		}
+	});
+
+	it("curada por una organización: el árbol de la organización, de la más alta a la curadora, con enlaces", () => {
+		at("http://localhost/dev/prototype/collection?c=investigacion-laboratorios-fcyt");
+		render(CollectionMock);
+
+		// «Vicerrectorado» es un nivel sólo de la maqueta: no existe en el catálogo, así que se nombra sin enlace
+		// (un clic en vivo llevaría a «no encontrada»).
+		expect(trail().links).toEqual([
+			["Rectorado UMSS", "/organization/rectorado"],
+			["Dirección de Investigación", "/organization/direccion-investigacion"],
+		]);
+		expect(trail().nav.querySelector("ol")?.textContent).toMatch(
+			/Rectorado UMSS.*Vicerrectorado.*Dirección de Investigación/s,
+		);
+		expect(trail().current).toBe("Investigación y laboratorios de la FCyT");
+	});
+
+	it("curada por una facultad: la facultad bajo el Rectorado; curada por la organización raíz: sólo ella", () => {
+		at("http://localhost/dev/prototype/collection?c=autoevaluacion-acreditacion-fcyt");
+		const fcyt = render(CollectionMock);
+		expect(trail().links).toEqual([
+			["Rectorado UMSS", "/organization/rectorado"],
+			["Facultad de Ciencias y Tecnología", "/organization/fcyt"],
+		]);
+		fcyt.unmount();
+
+		at("http://localhost/dev/prototype/collection?c=rendicion-cuentas-2025");
+		render(CollectionMock);
+		expect(trail().links).toEqual([["Rectorado UMSS", "/organization/rectorado"]]);
+		expect(trail().current).toBe("Rendición pública de cuentas 2025");
+	});
+
+	it("curada por una persona: «Colecciones › Personales», sin árbol de organizaciones", () => {
+		at("http://localhost/dev/prototype/collection?c=indicadores-academicos");
+		render(CollectionMock);
+
+		expect(trail().links).toEqual([
+			["Colecciones", "/dev/prototype/collections"],
+			["Personales", "/dev/prototype/collections?curador=personales"],
+		]);
+		expect(trail().current).toBe("Indicadores académicos para tesis");
+	});
+
+	it("«Personales» de la ruta abre la lista con esa pestaña elegida", () => {
+		at("http://localhost/dev/prototype/collections?curador=personales");
+		render(CollectionsMock);
+
+		expect(within(orgTabs()).getByRole("tab", { name: /Personales/ })).toHaveAttribute(
+			"aria-selected",
+			"true",
+		);
+		const names = within(screen.getByTestId("collections-list"))
+			.getAllByRole("heading", { level: 2 })
+			.map((el) => el.textContent?.trim());
+		const personal = COLLECTIONS.filter(
+			(c) => c.curator.kind === "user" && c.visibility === "Pública",
+		).map((c) => c.name);
+		expect(names).toEqual(personal);
+	});
+});
+
 describe("maqueta — colecciones de un dataset", () => {
 	afterEach(() => at("http://localhost/"));
 

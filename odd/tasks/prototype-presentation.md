@@ -245,7 +245,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T34 | S33 | «Personales» in both collections views | inline | (this commit) |
 | T35 | S27, S28, S33 | Re-capture the prototype screens touched by T29, T30, T34 | worker | `05e3c4c` (dataset «Descripción» shareable) + (this commit): all 14 re-captured; H2-5…5d ↔ H2-5e linked by the resource switcher («Recurso 1 de 2» / «2 de 2»); verify 13 OK, H2-5e differs only in the static PDF stand-in; suite 2168/2168 — awaiting author review |
 | T36 | S35 | Promote the animated search bar to `/search`, delete `/dev/search-bar` | worker | — |
-| T37 | S36 | Collection sheet breadcrumb: the curator organization's tree instead of «Inicio» | worker | — |
+| T37 | S36 | Collection sheet breadcrumb: the curator organization's tree instead of «Inicio» | worker | (this commit): org tree from the top ancestor (figurative `groups`, like `/organizations`); a mock-only «Vicerrectorado» level is named without a link; person-curated: «Colecciones › Personales» (`?curador=personales` opens that tab) — awaiting author review |
 | T38 | S38 | Organization sheet: new directions from 02 (compact index with counts, share links, no duplicated summary) | worker | (this commit): 05 «Portada con índice» (sticky index strip with counts; «Qué publica» merged into the band) and 06 «Cifras como índice» (the band figures are the index; the four-figure block removed), each with its empty state; all titles now «H2-2b · Ficha de organización · NN …» — awaiting author review |
 | T39 | S35, S36 | Re-capture H2-3, H2-3b, H2-7, H3-3 | inline | — |
 | T8 | S5 | Q&A sheet for the presentation (`presentation/preguntas.md`) | inline | committed — awaiting author validation of [validar] answers |

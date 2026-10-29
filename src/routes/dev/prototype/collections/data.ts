@@ -23,20 +23,67 @@ export interface Org {
 	name: string;
 	title: string;
 	acronym: string;
+	/**
+	 * De quién depende, con la forma de `/organizations` (`ListedOrganization.groups`): los grupos en los que está
+	 * la organización, y el primero es la madre. Jerarquía figurativa (Q6): sólo navegación, sin permisos.
+	 */
+	groups?: { name: string }[];
+	/** Sólo existe en la maqueta (no en el catálogo de la demo): se nombra sin enlace, para que un clic en vivo no lleve a «no encontrada». */
+	mockOnly?: true;
 }
 
-/** Las organizaciones de `src/lib/mock/data.ts`, con la sigla que tenían en la propuesta de organizaciones (hoy promovida a `/organizations`, T27). */
+/**
+ * Las organizaciones de `src/lib/mock/data.ts`, con la sigla que tenían en la propuesta de organizaciones (hoy
+ * promovida a `/organizations`, T27), y el Vicerrectorado, que sólo existe acá para que la ruta de la ficha tenga
+ * un nivel intermedio (S36): Rectorado › Vicerrectorado › Dirección de Investigación; las facultades, bajo el
+ * Rectorado.
+ */
 export const ORGS: Record<string, Org> = {
-	fcyt: { name: "fcyt", title: "Facultad de Ciencias y Tecnología", acronym: "FCyT" },
-	fcs: { name: "fcs", title: "Facultad de Ciencias de la Salud", acronym: "FCS" },
-	fca: { name: "fca", title: "Facultad de Ciencias Agrícolas", acronym: "FCAPyF" },
+	fcyt: {
+		name: "fcyt",
+		title: "Facultad de Ciencias y Tecnología",
+		acronym: "FCyT",
+		groups: [{ name: "rectorado" }],
+	},
+	fcs: {
+		name: "fcs",
+		title: "Facultad de Ciencias de la Salud",
+		acronym: "FCS",
+		groups: [{ name: "rectorado" }],
+	},
+	fca: {
+		name: "fca",
+		title: "Facultad de Ciencias Agrícolas",
+		acronym: "FCAPyF",
+		groups: [{ name: "rectorado" }],
+	},
 	rectorado: { name: "rectorado", title: "Rectorado UMSS", acronym: "UMSS" },
+	vicerrectorado: {
+		name: "vicerrectorado",
+		title: "Vicerrectorado",
+		acronym: "VR",
+		groups: [{ name: "rectorado" }],
+		mockOnly: true,
+	},
 	"direccion-investigacion": {
 		name: "direccion-investigacion",
 		title: "Dirección de Investigación",
 		acronym: "DICyT",
+		groups: [{ name: "vicerrectorado" }],
 	},
 };
+
+/** La cadena de una organización, de la más alta hasta ella. Corta si una madre no está o si el árbol da la vuelta. */
+export function orgAncestry(name: string): Org[] {
+	const chain: Org[] = [];
+	let current: Org | undefined = ORGS[name];
+	while (current && !chain.includes(current)) {
+		chain.unshift(current);
+		const parent: string | undefined = current.groups?.[0]?.name;
+		current = parent ? ORGS[parent] : undefined;
+	}
+	return chain;
+}
 
 export interface MockDataset {
 	slug: string;
@@ -507,4 +554,38 @@ export function collectionsCuratedByOrg(org: string, viewer: Viewer): MockCollec
 }
 
 export const collectionHref = (slug: string) => `/dev/prototype/collection?c=${slug}`;
+export const organizationHref = (name: string) => `/organization/${name}`;
+
+/** `?curador=` de la lista de colecciones: la pestaña con la que abre (`personales` o el nombre de una organización). */
+export const CURADOR_PARAM = "curador";
+export const personalesHref = `/dev/prototype/collections?${CURADOR_PARAM}=personales`;
+
+/** La pestaña que pide `?curador=`; sin él, «Todas». */
+export function curatorTabFromUrl(url: URL, todas: string): string {
+	const value = url.searchParams.get(CURADOR_PARAM);
+	if (value === "personales") return PERSONALES;
+	return value ?? todas;
+}
+
+/**
+ * La ruta de navegación de la ficha (S36), sin «Inicio». Curada por una organización: su árbol, de la más alta
+ * hasta la curadora, cada una hacia su ficha. Curada por una persona no hay árbol: «Colecciones › Personales»,
+ * hacia la lista con esa pestaña. Al final, la colección.
+ */
+export function collectionTrail(
+	collection: MockCollection,
+): { label: string; href?: string; role?: string }[] {
+	const trail =
+		collection.curator.kind === "org"
+			? orgAncestry(collection.curator.org).map((org) => ({
+					label: org.title,
+					href: org.mockOnly ? undefined : organizationHref(org.name),
+					role: "Organización",
+				}))
+			: [
+					{ label: "Colecciones", href: "/dev/prototype/collections", role: "Lista" },
+					{ label: "Personales", href: personalesHref, role: "Curador" },
+				];
+	return [...trail, { label: collection.name, role: "Colección" }];
+}
 export const datasetHref = (slug: string) => `/dev/prototype/dataset-collections?d=${slug}`;

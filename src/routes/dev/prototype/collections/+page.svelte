@@ -11,7 +11,8 @@
 	crear una). La **del panel** es «Mis colecciones» de una persona fija, miembro de tres organizaciones
 	(`PANEL_VIEWER`): las que cura a título personal y las que curan sus organizaciones, con el filtro de
 	visibilidad y «Nueva colección». «Colecciones que cura» en la ficha de cada organización, la tercera ubicación
-	de Q18, no está en esta maqueta.
+	de Q18, no está en esta maqueta. `?curador=personales` (o el nombre de una organización) abre con esa pestaña
+	elegida: es el destino de «Personales» en la ruta de la ficha de una colección personal (S36).
 
 	S22: las dos filtran por quien cura con las pestañas de organización de «Solicitudes»: el mismo `OverflowTabs`,
 	con los mismos parámetros que `OrgTabs` (pestañas desde 611 px de contenedor, desplegable debajo, «Más (n)»
@@ -61,6 +62,7 @@ import {
 	collectionsCountLabel,
 	curatedBy,
 	curatorLabel,
+	curatorTabFromUrl,
 	curatorTabs,
 	inCuratorTab,
 	ownerOrgs,
@@ -108,7 +110,8 @@ const tabItems = $derived<OverflowItem[]>(
 const withTabs = $derived(
 	hasOrganizationTabs(tabs.map((t) => ({ id: t.id, label: t.label, pending: t.count }))),
 );
-let tab = $state(TODAS_LAS_ORGANIZACIONES);
+// `?curador=` elige la pestaña con la que abre: la ruta de la ficha de una colección personal enlaza a «Personales».
+let tab = $state(curatorTabFromUrl($page.url, TODAS_LAS_ORGANIZACIONES));
 const activeTab = $derived(tabs.some((t) => t.id === tab) ? tab : TODAS_LAS_ORGANIZACIONES);
 
 const VISIBILITIES: Visibility[] = ["Privada", "Interna", "Pública"];
