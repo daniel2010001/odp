@@ -8,8 +8,10 @@ lienzo de **Gentle Design** en lugar de Figma, siempre que se pueda compartir. L
 con el modo prototipo activado** (las páginas enlazan entre sí, como un prototipo de Figma); las pantallas como diseños
 están en el lienzo y publicadas en `https://daniel2010001.github.io/odp/design/`. No hay PDF de respaldo.
 
-**Duración:** unos 4 minutos por historia, más apertura y cierre: alrededor de **15 minutos**. **[validar]** cuánto
-tiempo le dan para exponer.
+**Duración:** unos 4 minutos por historia, más apertura y cierre: alrededor de **15 minutos**. El tiempo asignado no se
+sabe todavía. **Si le piden acortar**, en este orden: (1) saltar los pasos *(opcional)*; (2) la historia 3 en dos pasos
+(vista del curador y vista pública); (3) «Cómo diseñamos» sólo con los puntos 2 y 3; (4) la historia 1 sin el alta de
+usuario ni el inicio de sesión (empezar en el panel). Así queda en unos **10 minutos**.
 
 **Honestidad (S6).** Cada paso dice si la pantalla está **construida** (funciona hoy, se captura de la página real) o es
 una **maqueta** (diseño de lo que viene, sin funcionamiento). Conviene decirlo en voz alta al pasar a una maqueta:
@@ -170,5 +172,5 @@ que el portal; no hay un archivo aparte que se desactualice. Es gratuito, sin l�
 
 ## Pendientes antes de presentar
 
-1. Validar la duración (**[validar]** cuánto tiempo le dan para exponer).
-2. Validar las respuestas **[validar]** de `preguntas.md` (siete) y confirmar que UMSSSTAT no tiene descarga.
+1. Si tiene unos minutos, abrir alguna página interna de UMSSSTAT y confirmar que tampoco tiene descarga (la portada ya
+   se revisó: no tiene).

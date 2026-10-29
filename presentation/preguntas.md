@@ -20,7 +20,7 @@ personal; los estudiantes y el público **consultan**. No es un lugar donde cual
 
 ## Las que ya hicieron (2026-10-23)
 
-### ¿Qué busca solucionar la plataforma? **[validar]**
+### ¿Qué busca solucionar la plataforma?
 
 > Hoy la información de la universidad existe, pero está **dispersa**: planillas que circulan por correo, PDFs en carpetas
 > de cada unidad, el mismo dato en varias versiones. Quien la busca no sabe **qué existe, cuál es la versión oficial,
@@ -33,7 +33,7 @@ personal; los estudiantes y el público **consultan**. No es un lugar donde cual
 Ejemplo concreto para tener a mano (elegir uno real): el número de matriculados por carrera, que hoy cada facultad
 reporta a su manera.
 
-### ¿Por qué una plataforma «todo en uno»? **[validar]**
+### ¿Por qué una plataforma «todo en uno»?
 
 > Porque el problema es justamente que **la misma información vive en muchos lugares a la vez**. Si cada unidad tiene su
 > propio sistema, el problema se repite: varias copias, ninguna oficial. Una sola plataforma da **un catálogo, una
@@ -43,7 +43,7 @@ reporta a su manera.
 > «Todo en uno» no quiere decir «todo centralizado en una oficina»: **cada facultad gobierna lo suyo** (sus datasets, sus
 > editores, sus aprobaciones) dentro del mismo sistema.
 
-### ¿Qué tipo de documentos se suben? (por contenido, no por formato) **[validar]**
+### ¿Qué tipo de documentos se suben? (por contenido, no por formato)
 
 Respondido el 2026-10-23: informes y tesis. Para el «¿qué más?», tener la lista entera:
 
@@ -122,7 +122,9 @@ lugares, o que se le haga seguimiento como trámite?»*
 > datos que se entregan al dominio público, **CC0**.
 
 El formulario ofrece las licencias estándar de datos abiertos (CC BY, CC BY-SA, CC0, ODbL, ODC-BY, entre otras; ver
-`src/lib/utils/licenses.ts`). **[validar]** si la universidad tiene una política de licencias propia.
+`src/lib/utils/licenses.ts`). No se conoce una política de licencias propia de la universidad (el autor, 2026-10-29). Si
+preguntan: *«Por defecto, CC BY. Si la universidad define una política propia, el formulario la adopta: la lista vive en
+un solo lugar del código.»*
 
 ### ¿Quién administra los usuarios y las organizaciones?
 
@@ -152,7 +154,7 @@ Tener claro, pantalla por pantalla, cuál es cuál: el índice `/dev/prototype` 
 
 ---
 
-### ¿En qué casos un usuario pertenece a más de una organización? **[validar]**
+### ¿En qué casos un usuario pertenece a más de una organización?
 
 > Es lo habitual en una universidad: la misma persona trabaja para varias unidades. Por ejemplo, un **docente** de la
 > Facultad de Ciencias y Tecnología que además **investiga** en un instituto publica en las dos; una **directora de
@@ -160,7 +162,7 @@ Tener claro, pantalla por pantalla, cuál es cuál: el índice `/dev/prototype` 
 > carga los datos que le envían varias unidades. Por eso el rol se asigna **por organización**: la misma persona puede
 > ser administradora en una y lectora en otra, y cada rol vale sólo donde se le dio.
 
-### ¿Por qué se bloquearía a un usuario? **[validar]**
+### ¿Por qué se bloquearía a un usuario?
 
 *El prototipo muestra sólo usuarios activos; el bloqueo se define en la implementación (Q5, 2026-10-26). Responder sólo si
 preguntan.*
@@ -199,8 +201,10 @@ boliviana con portal de datos abiertos apareció en la búsqueda: decirlo como *
 Ejemplos de fuera: el portal de datos abiertos de la UNAM y el repositorio de datos de investigación de la Universidad de
 Chile (Dataverse, que es otra cosa: datos de investigación, no institucionales).
 
-**[validar]** Antes del jueves, abrir UMSSSTAT y confirmar que no tiene botón de descarga: es la comparación más probable
-y la más fuerte.
+**Verificado a medias (2026-10-29):** la página principal de UMSSSTAT muestra tablas (población estudiantil 2025, carreras
+por sede y por grado) **sin** botón de descarga, exportación ni API; el único enlace es un manual de usuario. No se
+revisaron sus páginas internas: decirlo como *«en lo que revisé, se consulta pero no se descarga»*. Es la comparación más
+probable y la más fuerte.
 
 Fuentes: UMSSSTAT `https://umssstat.umss.edu.bo/site/index` · SAGAA `https://sagaa.fcyt.umss.edu.bo/oferta/` · Repositorio
 `http://bibliotecas.umss.edu.bo/site/php/index.php`, `http://ddigital.umss.edu/handle/123456789/48821` · Moodle
