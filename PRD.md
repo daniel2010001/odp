@@ -215,7 +215,7 @@ de entidades sin equivalente en su esquema están asignados a tiers posteriores 
   la tabla propia de solicitudes usa para **otra** cosa, así que mezclarlos sería peor que diferirlos. El `draft` de
   CKAN —el que deja la UI nativa al despublgar— se retoma cuando se toque esa máquina (decisión del autor, 2026-10-09).
 - RF-16: Cada vez que se aprueba o rechaza una revisión, se genera una nueva versión (con su estado) para auditoría.
-- RF-17: Cambios menores (edición de título, descripción, metadatos) no generan nueva versión, solo se registran en auditoría.
+- RF-17: Cambios menores (edición de título, descripción, metadatos) no generan nueva versión, solo se registran en auditoría; la excepción es el cambio de **licencia** o de **visibilidad**, que sí genera versión (decisión del autor, 2026-10-29; Q17 de `design-system/datos-umss/preguntas-abiertas.md`).
 - RF-41: **Degradación solicitada por el usuario.** Un editor, steward o admin de la organización puede
   **solicitar bajar** la visibilidad de un dataset, en cualquier dirección entre los niveles de §3,
   indicando el motivo. La solicitud se registra en `publication_requests` con `requested_visibility` en

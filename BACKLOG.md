@@ -40,6 +40,13 @@
   (se revierte con `package_patch private=false`). No lo crea el seed: vino de una prueba de humo manual. Decidir si se
   borra.
 
+## La invitación de usuarios depende de poder probar el correo (Q9, decidido 2026-10-29)
+
+- [ ] `[v1]` Probar el envío de correo con algo pequeño (por ejemplo, un receptor de correo de prueba en el entorno dev de
+  `odp-docker`) para que `user_invite` funcione. Si se puede, la invitación entra en `v1`; si no, pasa a `v2`/`v2+` con ese
+  motivo. Cita del autor: «si se puede hacer algo pequeño para probarlo entra eso de la invitación para v1, sino lo dejamos
+  como pendiente para v2 o v2+».
+
 ## El README del sistema de diseño quedó atrás de `src/app.css` (hallado en la sincronización de Gentle Design, 2026-10-28)
 
 - [ ] `[v1+]` Corregir `design-system/datos-umss/README.md` donde contradice el código (manda el código, según `AGENTS.md`).

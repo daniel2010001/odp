@@ -411,3 +411,10 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   resource page, collection sheet); H2-5 ↔ H2-5e as one dataset; organization 04/04b, search 04, Inicio 06. Still pending after
   the presentation: promote the search bar animation (decision 4), the seed follow-up in `BACKLOG.md`, the decisions on Q6, Q9,
   Q13, Q17.
+- **L30** (2026-10-29 ~11:15, author), verbatim: "1: podemos intentarlo, hazlo. 2: quitar, no termina de gustar el nuevo diseño, no
+  sé qué es, pero no termina de gustar. 3: mantengo la postergación. 4: lo del correo: mantengo mi postura, si se puede hacer
+  algo pequeño para probarlo entra eso de la invitación para v1, sino lo dejamos como pendiente para v2 o v2+. 5: url o slug, no
+  la sigla, si quieren poner la sigla pueden editar el slug directamente. 6: sí. qué mas tengo que revisar? cómo vamos con las
+  design o el prototype?" → 1: the `odp-docker` session renames the PDF resource, then H2-5…H2-5e are re-captured; 2: remove «Lo
+  más reciente» from organization 04 (the author is still not convinced by 04); Q6 stays postponed, Q9/Q13/Q17 decided in
+  `preguntas-abiertas.md` (RF-17 updated in `PRD.md`; Q9 test item in `BACKLOG.md`).
