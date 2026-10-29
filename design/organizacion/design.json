@@ -8,42 +8,56 @@
 			"title": "01 · Ficha con panel",
 			"tradeoff": "La estructura de la ficha del dataset: columna principal (acerca de, colecciones que cura, datasets con búsqueda y orden) y un panel con tarjetas (cifras con recursos por tipo, datos de la unidad, miembros, actividad). Es la más familiar y la más fácil de construir sobre lo que existe; a cambio, el panel compite con la lista y la página sigue siendo, sobre todo, una lista larga. Nativo: descripción, miembros, datasets, actividad, conteos. Implementable: tipo, sigla, jerarquía, sitio web y correo de la unidad, recursos por tipo, colecciones de una organización. No disponible: descargas",
 			"width": 1440,
-			"height": 4068
+			"height": 4155
 		},
 		{
 			"file": "01b-ficha-con-panel-vacia.html",
 			"title": "01b · Ficha con panel — sin publicaciones",
 			"tradeoff": "La misma ficha con 0 datasets y 0 colecciones: la identidad, los datos de la unidad, los miembros y la actividad siguen llenando el panel; el hueco de las publicaciones dice qué aparecerá, ofrece «Iniciar sesión para publicar» y lleva a las otras direcciones que publican. Las cifras se ocultan en vez de mostrar ceros",
 			"width": 1440,
-			"height": 2699
+			"height": 2789
 		},
 		{
 			"file": "02-portada-con-pestanas.html",
 			"title": "02 · Portada con pestañas",
 			"tradeoff": "Una banda azul con la identidad y cuatro cifras, y pestañas (Resumen, Datasets, Colecciones, Miembros, Actividad). El resumen se lee de arriba abajo: acerca de y datos de la unidad, qué publica por tipo, últimas publicaciones, colecciones y miembros, actividad. Se ve como la portada de una unidad y escala a unidades grandes; a cambio, la lista completa de datasets —lo que más se busca en un catálogo— queda a un clic, detrás de una pestaña, y hay que diseñar cinco vistas en lugar de una. Factibilidad: igual que 01; cada pestaña es una lista nativa, salvo Colecciones",
 			"width": 1440,
-			"height": 3826
+			"height": 3866
 		},
 		{
 			"file": "02b-portada-con-pestanas-vacia.html",
 			"title": "02b · Portada con pestañas — sin publicaciones",
 			"tradeoff": "La misma portada vacía: la banda cambia las cifras por «Nueva en el catálogo», el resumen abre con el aviso y su siguiente paso, y «Qué podrá publicar» explica con los mismos tipos (sin ceros) qué llenará la página. Es la más llena de las tres versiones vacías, pero las pestañas con «0» siguen a la vista",
 			"width": 1440,
-			"height": 3407
+			"height": 3448
 		},
 		{
 			"file": "03-dossier-con-indice.html",
 			"title": "03 · Dossier con índice",
 			"tradeoff": "Una sola página por capítulos numerados, con un índice fijo a la izquierda: presentación, lugar en la universidad (diagrama con las cuatro direcciones), qué publica (barras por tipo), datasets en tabla, colecciones que cura, integrantes con lo que puede hacer cada rol y actividad en cronología con la fecha en el margen, como «Novedades» de Inicio 05. Es la más formal y la que más explica a quien no conoce la unidad; a cambio, es la más larga y la tabla da menos aire a la descripción de cada dataset. Factibilidad: igual que 01; el diagrama sale del tipo y de la jerarquía, ambos implementables",
 			"width": 1440,
-			"height": 5410
+			"height": 5507
 		},
 		{
 			"file": "03b-dossier-con-indice-vacia.html",
 			"title": "03b · Dossier con índice — sin publicaciones",
 			"tradeoff": "El mismo dossier vacío: los capítulos de publicaciones se funden en uno («Publicaciones») que dice qué traerá cada parte y enlaza a las otras direcciones; el índice pasa de siete capítulos a cinco y no promete capítulos vacíos. Presentación, lugar en la universidad, integrantes y actividad siguen completos",
 			"width": 1440,
-			"height": 3871
+			"height": 3964
+		},
+		{
+			"file": "04-sintesis.html",
+			"title": "04 · Síntesis",
+			"tradeoff": "Itera con las preferencias del autor (S29): la banda azul con cifras de 02; las tres secciones de la izquierda de 01 (acerca de, colecciones que cura, datasets) dentro de seis secciones numeradas; los datos de la unidad en la tabla de 02; «Lugar en la universidad», «Qué publica» (cifras grandes y barras) y la actividad en cronología de 03. El panel de 01 queda liviano, con dos tarjetas como las del panel de la ficha del dataset: el índice de 03 en versión compacta («En esta ficha», marca la sección abierta) y los miembros. Datasets mejora a 03: filtro por tipo, «Lo más reciente» con las tarjetas de 02 y la tabla con el tipo principal, la descripción y los formatos en la misma celda. Cada sección y la tarjeta de miembros llevan el ícono de enlace de la ficha del dataset, visible al pasar o al enfocar (sólo CSS). A cambio es la más larga de las cuatro (unos 7000 px) y las tres publicaciones más recientes aparecen dos veces, en tarjetas y en la tabla. Factibilidad en CKAN 2.12: nativo descripción, datasets, búsqueda y orden, miembros, actividad y conteos; implementable tipo, sigla, jerarquía, sitio web y correo, recursos y filtro por tipo, colecciones, índice y enlace por sección (diseño propio); no disponible: descargas",
+			"width": 1440,
+			"height": 7014
+		},
+		{
+			"file": "04b-sintesis-vacia.html",
+			"title": "04b · Síntesis — sin publicaciones",
+			"tradeoff": "La misma síntesis con 0 datasets y 0 colecciones: la banda cambia las cifras por «Nueva en el catálogo» (02b); arriba de todo, antes de cualquier sección, la tarjeta «todavía no publicó datasets» de 01b con sus acciones y lo que aparecerá; después acerca de con la tabla de datos, lugar en la universidad, «Qué podrá publicar» con los tipos de 02b, la actividad y «otras direcciones que publican» de 01b. El índice baja a cinco secciones y no promete secciones vacías; datasets y colecciones no aparecen hasta que existan. «Qué podrá publicar» y la tarjeta del aviso dicen cosas parecidas desde dos ángulos (qué tipos de archivo / qué partes de la ficha). Factibilidad: igual que 04; «otras direcciones» sale del tipo (implementable) con conteos nativos",
+			"width": 1440,
+			"height": 4972
 		}
 	]
 }

@@ -221,7 +221,7 @@ Not built — mock, in priority order (whatever is done by Wednesday enters):
 | T28 | S26 | Diagnose and fix the H2-3 artboard scroll; re-capture H2-3 | worker | — |
 | T29 | S27 | One section-header piece with the share link; apply it to the dataset sheet's Colecciones, the resource page and the collection sheet | worker | — |
 | T30 | S28, S34 | Demo data: the PDF joins `matricula-facultad-gestion-ficticia`; smoke dataset out (`odp-docker` session); H2-5 captures link through the resource switcher | odp-docker + inline | data applied live by odp-docker (PDF `e45787b1…` at position 1, verified 200; smoke dataset and `informe-matricula-ficticio` private, author's decision); seed follow-up in `BACKLOG.md`; captures in T35 |
-| T31 | S29, S32 | Organization sheet direction 04 + fonts embedded in `design/organizacion/` | worker | — |
+| T31 | S29, S32 | Organization sheet direction 04 + fonts embedded in `design/organizacion/` | worker | (this commit) — awaiting author review |
 | T32 | S30, S32 | Search hero direction 04 + fonts embedded in `design/busqueda/` | worker | (this commit) — awaiting author review; JetBrains Mono not embedded (no source in the repo; the portal does not load it either) |
 | T33 | S31, S32 | Inicio 06 (lighter hero search, compact index, share sections) + fonts embedded in `design/inicio/` | worker | (this commit) — awaiting author review |
 | T34 | S33 | «Personales» in both collections views | inline | (this commit) |
@@ -400,3 +400,9 @@ the real page). The search placeholder is now «Buscar por nombre» (no organiza
   shared). `design/inicio/06-indice-y-enlaces.html` (T33) — one-row search card with the scope inside the field, document types
   as pills on the band, a 52 px sticky section index, a CSS-only share link per section. Fonts embedded from the prototype
   captures (EB Garamond and Poppins; JetBrains Mono and Garamond italic have no source in the repo and fall back to the system).
+- **L28** (2026-10-29, design): `design/organizacion/04-sintesis.html` + `04b-sintesis-vacia.html` (T31) — 02's hero; 01's three
+  sections inside six numbered ones; 03's place in the university, «Qué publica» and activity; 02's unit-data table; datasets
+  with search, type chips, «Lo más reciente» and a table; a lighter panel with a compact index («En esta ficha», CSS-only
+  highlight via `:target`) and Miembros; share icon per section. 04b: 1b's empty card first, 2b's «Qué podrá publicar», 1b's
+  other units. Fonts embedded in all eight boards (no JetBrains Mono). 04 is long (~7000 px); the three newest datasets show
+  twice (cards and table) — stated in its tradeoff.
