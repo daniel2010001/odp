@@ -1774,11 +1774,12 @@ describe("Página de dataset — el historial de solicitudes (T14)", () => {
 });
 
 // ─── Anclas de sección (v0.1.1, T25 / S24, variante A del autor, L52) ────────────────────────────
-// Siete secciones con id y un ícono de enlace junto a su título (visible al pasar el cursor o enfocar; siempre en
+// Ocho secciones con id y un ícono de enlace junto a su título (visible al pasar el cursor o enfocar; siempre en
 // táctil) que copia la URL completa con el fragmento, sin cambiar la URL de la página. Los ids son el destino de
 // las filas «Ver…» y de las URL compartidas; el margen de desplazamiento deja la sección bajo el encabezado fijo.
 describe("Página de dataset — anclas de sección", () => {
 	const SECCIONES: Array<[id: string, titulo: string]> = [
+		["description", "Descripción"],
 		["summary", "Resumen"],
 		["resources", "Recursos"],
 		["license", "Términos"],
@@ -1837,6 +1838,7 @@ describe("Página de dataset — anclas de sección", () => {
 	// botón iba junto al `h2` y aparecía sólo al pasar por el título (`group-hover/ancla`); ahora va junto a la
 	// línea en mayúsculas de la tarjeta, como a la derecha, y aparece con toda la tarjeta.
 	it.each([
+		["description", "Descripción"],
 		["resources", "Recursos"],
 		["technical-info", "Información técnica"],
 	])("#%s: el ícono va junto a la línea del título y aparece al pasar o enfocar en toda la tarjeta; siempre en táctil", async (id, titulo) => {
@@ -1901,6 +1903,7 @@ describe("Página de dataset — anclas de sección", () => {
 	});
 
 	it.each([
+		"description",
 		"summary",
 		"resources",
 		"license",

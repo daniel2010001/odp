@@ -28,7 +28,6 @@ import { rewriteLegacyFragment } from "$lib/components/resource/legacy-fragment"
 import { upgradeFragment } from "$lib/components/resource/preview-views";
 import Section from "$lib/components/section/Section.svelte";
 import Breadcrumb, { type BreadcrumbItem } from "$lib/components/ui/breadcrumb/Breadcrumb.svelte";
-import Card from "$lib/components/ui/card/card.svelte";
 import { CopyButton } from "$lib/components/ui/copy-button";
 import { MetaGroup } from "$lib/components/ui/meta";
 import { insigniaDeLaSolicitud } from "$lib/copy/publication";
@@ -694,8 +693,7 @@ const resumenEditorial = $derived(
 				<!-- Main column -->
 				<div class="min-w-0 space-y-6">
 					<!-- Description + tags -->
-					<Card class="p-6 sm:p-8">
-						<p class="text-xs font-medium uppercase tracking-wider text-destructive">Descripción</p>
+					<Section id="description" label="Descripción" class="p-6 sm:p-8">
 						<h2 class="mt-1 font-heading text-xl font-bold text-primary">Sobre este dataset</h2>
 						{#if description}
 							<div
@@ -728,7 +726,7 @@ const resumenEditorial = $derived(
 								{/if}
 							</div>
 						{/if}
-					</Card>
+					</Section>
 
 					<!-- Resources -->
 					<!-- El botón del enlace va junto a la línea del título y aparece con toda la tarjeta, como en la
